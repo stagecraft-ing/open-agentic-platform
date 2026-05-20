@@ -27,12 +27,12 @@ Halt on non-zero exit and surface the failing step verbatim. `make check-deps` (
 Smoke-test the same calls `/init` makes. Passing here means `/init` will work on this clone:
 
 ```bash
-./tools/codebase-indexer/target/release/codebase-indexer check
-./tools/registry-consumer/target/release/registry-consumer status-report --json --nonzero-only
-./tools/registry-consumer/target/release/registry-consumer list --ids-only | wc -l
+./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check
+./tools/spec-spine/registry-consumer/target/release/registry-consumer status-report --json --nonzero-only
+./tools/spec-spine/registry-consumer/target/release/registry-consumer list --ids-only | wc -l
 ```
 
-If `codebase-indexer check` exits non-zero the index is stale — run `./tools/codebase-indexer/target/release/codebase-indexer compile` and re-check. Do **not** parse `build/**/*.json` directly to "verify" success; that violates spec 103 governed reads.
+If `codebase-indexer check` exits non-zero the index is stale — run `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile` and re-check. Do **not** parse `build/**/*.json` directly to "verify" success; that violates spec 103 governed reads.
 
 ### 3. Emit summary
 

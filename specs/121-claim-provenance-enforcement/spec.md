@@ -273,7 +273,7 @@ A project has `BR-031` `DERIVED` from `extracted/Business Case.docx.txt` lines 2
 
 - **FR-032**: Stage 4 (data model + DDL) MUST read `assumption-only-manifest.md` and skip emission of any DDL artifact whose origin claim's `anchorHash` matches an `ASSUMPTION` or `ASSUMPTION-orphaned` entry. Skipped artifacts MUST be appended to `pending-promotion.md` with the would-have-been emission spec.
 - **FR-033**: Stage 5 (UI + tests) MUST apply the same skip rule. Generated UI MUST contain zero references to vendor / system names from `ASSUMPTION` claims. Generated tests MUST contain zero fixtures for them.
-- **FR-034**: A new CI check `assumption-only-manifest-honored` (in `tools/ci-parity-check` or equivalent) MUST scan generated code for any reference to an `ASSUMPTION` claim's vendor / system surface forms (the entity strings recorded in `extractedEntityCandidates`) and FAIL if any reference exists outside `pending-promotion.md`.
+- **FR-034**: A new CI check `assumption-only-manifest-honored` (in `tools/oap/ci-parity-check` or equivalent) MUST scan generated code for any reference to an `ASSUMPTION` claim's vendor / system surface forms (the entity strings recorded in `extractedEntityCandidates`) and FAIL if any reference exists outside `pending-promotion.md`.
 - **FR-035**: Promotion of an `ASSUMPTION` claim to `DERIVED` MUST emit `audit_log` action `factory.provenance_promoted` with `{ claimId, fromMode, toMode, citation, actor }`. The operator who approves the promotion is the actor of record.
 
 #### Audit (retroactive)

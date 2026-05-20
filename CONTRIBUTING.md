@@ -19,7 +19,7 @@ Implementation lifecycle (frontmatter): `partial → complete`.
 The PR-time gate ([spec 127](specs/127-spec-code-coupling-gate/spec.md))
 fails any change that touches a path claimed by a spec's `implements:`
 list without a corresponding edit to that spec. This is enforced by
-`tools/spec-code-coupling-check` and runs in CI; you can preview it
+`tools/spec-spine/spec-code-coupling-check` and runs in CI; you can preview it
 locally with `make ci-spec-code-coupling`.
 
 **Refusing adversarial drift.** The

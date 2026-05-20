@@ -6,7 +6,7 @@
 
 Feature **003** is primarily a **normative specification** of **`status`** values and lifecycle conventions. **No** change to Feature **000** JSON Schemas or Feature **001** validation is required for MVP.
 
-Optional follow-up: add a **one-line cross-link** from **`tools/registry-consumer/README.md`** to this spec so operators know what **`--status`** filters mean.
+Optional follow-up: add a **one-line cross-link** from **`tools/spec-spine/registry-consumer/README.md`** to this spec so operators know what **`--status`** filters mean.
 
 ## Technical Context
 

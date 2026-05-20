@@ -12,11 +12,17 @@ Open Agentic Platform (OAP) is a governed operating system for AI-native softwar
 
 ```
 specs/              — Feature specifications (000–088), the authoritative design record
-tools/              — Rust CLI tools
-  spec-compiler/    — Compiles specs → build/spec-registry/registry.json
-  registry-consumer/— Reads and queries the compiled registry
-  spec-lint/        — Conformance linter (W-xxx warnings)
-  policy-compiler/  — Compiles governance policies
+tools/              — Rust CLI tools (subdivided by ownership)
+  spec-spine/       — Generic spec-spine binaries (spec-compiler,
+                      registry-consumer, codebase-indexer, spec-lint,
+                      spec-code-coupling-check)
+  oap/              — OAP-specific tools (oap-registry-enrich,
+                      oap-code-index-enrich, policy-compiler,
+                      adapter-scopes-compiler, assumption-cascade-check,
+                      ci-parity-check, schema-parity-check (JS),
+                      stakeholder-doc-lint)
+  shared/spec-types/— Shared frontmatter / spec-shape types
+  vendor/           — Vendored third-party (e.g. tree-sitter grammars)
 crates/             — Rust library crates
   agent/            — Agent framework: executor, verification, ID generation
   axiomregent/      — Unified MCP agent: GitHub tools, semantic search, checkpoint (spec 073)
@@ -63,9 +69,9 @@ In addition, all orchestrated workflows load `.claude/rules/governed-artifact-re
 - **TypeScript for platform services.** `platform/services/stagecraft/` uses Encore.ts with npm (NOT pnpm — excluded from the pnpm workspace). `deployd-api-rs` is the Rust deployment orchestrator (axum + hiqlite).
 - **axiomregent is the unified MCP agent crate.** It now contains the `github/`, `search/`, and `checkpoint/` modules, absorbing the former `gitctx`, `blockoli`, and `stackwalk` crates.
 - **Markdown for specs.** Human truth is markdown (with optional YAML frontmatter). Machine registries are compiler-emitted JSON only.
-- **Spec compiler is the build system.** Run `./tools/spec-compiler/target/release/spec-compiler compile` from repo root to produce `build/spec-registry/registry.json`.
+- **Spec compiler is the build system.** Run `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile` from repo root to produce `build/spec-registry/registry.json`.
 - **Traceability via `[package.metadata.oap]`.** Rust crates that implement a spec declare `spec = "<spec-id>"` under `[package.metadata.oap]` in their Cargo.toml; npm packages do the same via top-level `"oap": { "spec": "<spec-id>" }` in package.json. The codebase-indexer uses these to build spec-to-code traceability mappings in `build/codebase-index/index.json`.
-- **Per-crate documentation lives in the spec, not in per-crate READMEs.** The spec id declared in each manifest (above) is the canonical "what is this crate." `build/codebase-index/CODEBASE-INDEX.md` renders this as a Spec column linking each crate/package to its spec. Do not add new per-crate or per-package READMEs; route prose into the owning spec, the root [`README.md`](README.md), [`DEVELOPERS.md`](DEVELOPERS.md), or [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Existing tool READMEs that document binary-specific behavior beyond the spec (e.g. `tools/registry-consumer/README.md` whose fenced examples are fixture-tested verbatim) are exceptions, not the pattern.
+- **Per-crate documentation lives in the spec, not in per-crate READMEs.** The spec id declared in each manifest (above) is the canonical "what is this crate." `build/codebase-index/CODEBASE-INDEX.md` renders this as a Spec column linking each crate/package to its spec. Do not add new per-crate or per-package READMEs; route prose into the owning spec, the root [`README.md`](README.md), [`DEVELOPERS.md`](DEVELOPERS.md), or [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Existing tool READMEs that document binary-specific behavior beyond the spec (e.g. `tools/spec-spine/registry-consumer/README.md` whose fenced examples are fixture-tested verbatim) are exceptions, not the pattern.
 
 ## Build Commands
 
@@ -86,7 +92,7 @@ make pr-prep      # pre-commit refresh: regenerate codebase index + run coupling
 
 Run `make pr-prep` before `git commit` on a PR. It rebuilds the codebase index and runs the spec-code coupling gate against `origin/main` — the same two checks that fail first in CI when forgotten.
 
-The codebase index hashes more than `spec.md`. Its inputs (see `tools/codebase-indexer/src/lib.rs::collect_input_files`) include `Cargo.toml`, `package.json`, `pnpm-workspace.yaml`, `specs/*/spec.md`, `factory/adapters/*/manifest.yaml`, `factory/process/stages/*`, `.claude/{agents,commands,rules}/**/*.md`, `standards/schemas/**/*.{json,yaml,yml}`, and `.github/workflows/*.yml`. Editing any of these without committing the regenerated `build/codebase-index/index.json` fails the staleness check on the PR. `make pr-prep` is the one command that catches this locally.
+The codebase index hashes more than `spec.md`. Its inputs (see `tools/spec-spine/codebase-indexer/src/lib.rs::collect_input_files`) include `Cargo.toml`, `package.json`, `pnpm-workspace.yaml`, `specs/*/spec.md`, `factory/adapters/*/manifest.yaml`, `factory/process/stages/*`, `.claude/{agents,commands,rules}/**/*.md`, `standards/schemas/**/*.{json,yaml,yml}`, and `.github/workflows/*.yml`. Editing any of these without committing the regenerated `build/codebase-index/index.json` fails the staleness check on the PR. `make pr-prep` is the one command that catches this locally.
 
 If repeated forgetting is a problem, opt into the strict pre-commit hook:
 
@@ -99,25 +105,25 @@ git config --unset core.hooksPath     # disable
 
 ```bash
 # Compile specs
-cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
-./tools/spec-compiler/target/release/spec-compiler compile
+cargo build --release --manifest-path tools/spec-spine/spec-compiler/Cargo.toml
+./tools/spec-spine/spec-compiler/target/release/spec-compiler compile
 
 # Query registry
-cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
-./tools/registry-consumer/target/release/registry-consumer list
-./tools/registry-consumer/target/release/registry-consumer show <feature-id>
+cargo build --release --manifest-path tools/spec-spine/registry-consumer/Cargo.toml
+./tools/spec-spine/registry-consumer/target/release/registry-consumer list
+./tools/spec-spine/registry-consumer/target/release/registry-consumer show <feature-id>
 
 # Lint specs
-cargo build --release --manifest-path tools/spec-lint/Cargo.toml
+cargo build --release --manifest-path tools/spec-spine/spec-lint/Cargo.toml
 
 # Codebase index
-cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
-./tools/codebase-indexer/target/release/codebase-indexer compile  # emit index.json
-./tools/codebase-indexer/target/release/codebase-indexer check    # staleness check
-./tools/oap-code-index-enrich/target/release/oap-code-index-enrich render   # emit CODEBASE-INDEX.md (Cut D W-07b moved this out of codebase-indexer)
+cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml
+./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile  # emit index.json
+./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check    # staleness check
+./tools/oap/oap-code-index-enrich/target/release/oap-code-index-enrich render   # emit CODEBASE-INDEX.md (Cut D W-07b moved this out of codebase-indexer)
 
 # Compile policies
-cargo build --release --manifest-path tools/policy-compiler/Cargo.toml
+cargo build --release --manifest-path tools/oap/policy-compiler/Cargo.toml
 
 # Platform services (local dev)
 cd platform/services/stagecraft && npm run start   # Encore.ts on :4000

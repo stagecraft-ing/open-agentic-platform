@@ -8,7 +8,7 @@ Add `list --json` that serializes the same filtered, sorted feature vector as pr
 
 ## Technical context
 
-- `tools/registry-consumer/src/main.rs`: extend `Command::List` with `json: bool`
+- `tools/spec-spine/registry-consumer/src/main.rs`: extend `Command::List` with `json: bool`
 - Reuse `features_sorted()` and `filter_features()`
 - Render: text → `print_list_table`, json → `serde_json::to_string_pretty`
 

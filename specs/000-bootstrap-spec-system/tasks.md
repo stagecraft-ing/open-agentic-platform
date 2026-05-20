@@ -17,7 +17,7 @@
 
 **Purpose**: Reserve repository layout for compiler output and tooling.
 
-- [ ] T001 Create `tools/spec-compiler/` skeleton with README pointing to Feature 000 spec
+- [ ] T001 Create `tools/spec-spine/spec-compiler/` skeleton with README pointing to Feature 000 spec
 - [ ] T002 Add `build/spec-registry/` to `.gitignore` (compiler output) and document optional committed golden fixtures in `research.md` open items
 - [x] T003 [P] Add a minimal `CONTRIBUTING.md` section or pointer in root `README.md` stating markdown-only / JSON-only rules (one paragraph, links to `specs/000-bootstrap-spec-system/spec.md`) — **done**: root `README.md` links to Feature 000 and `standards/spec/contract.md`
 
@@ -41,7 +41,7 @@
 
 **Independent Test**: Golden test compares emitted JSON to expected file for a tiny `specs/` fixture.
 
-- [ ] T009 [US1] Add `tools/spec-compiler/tests/fixtures/minimal/` with one valid feature spec
+- [ ] T009 [US1] Add `tools/spec-spine/spec-compiler/tests/fixtures/minimal/` with one valid feature spec
 - [ ] T010 [US1] Golden test: two runs produce byte-identical **`registry.json`** (exclude `build-meta.json` from equality)
 - [ ] T011 [US1] Schema validation test using [contracts/registry.schema.json](./contracts/registry.schema.json); optional separate test for [contracts/build-meta.schema.json](./contracts/build-meta.schema.json)
 

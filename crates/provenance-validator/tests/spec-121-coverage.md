@@ -31,7 +31,7 @@ PR.
 | SC-008 | An ASSUMPTION whose `expiresAt` is in the past is treated as Rejected on next gate evaluation | `crates/factory-engine/src/stages/quality_gates.rs::tests::expired_assumption_fails_strict` + `crates/provenance-validator/tests/validator_tests.rs::t05_expired_assumption_becomes_rejected` | factory-engine + provenance-validator | covered (cross-crate) |
 | SC-009 | Anchor-hash collision detection FAILs Stage 1 with `provenance.duplicate_anchor` | `crates/provenance-validator/tests/validator_tests.rs::t03_anchor_hash_collision_both_rejected` | provenance-validator | covered |
 | SC-010 | Validator is byte-deterministic: two runs produce identical `provenance.json` | `crates/provenance-validator/tests/validator_tests.rs::t01_byte_determinism_two_runs_identical` + `crates/provenance-validator/tests/sc001_cfs_audit.rs::sc001_audit_is_deterministic_against_fixture` | provenance-validator | covered |
-| SC-011 | Schema parity check FAILs CI on any drift between Rust and TS provenance schema | `crates/factory-contracts/src/provenance.rs::tests::fingerprint_drift_is_detected` + `tools/schema-parity-check/index.mjs` (extended in Phase 1) | factory-contracts + tooling | covered (cross-crate) |
+| SC-011 | Schema parity check FAILs CI on any drift between Rust and TS provenance schema | `crates/factory-contracts/src/provenance.rs::tests::fingerprint_drift_is_detected` + `tools/oap/schema-parity-check/index.mjs` (extended in Phase 1) | factory-contracts + tooling | covered (cross-crate) |
 | SC-012 | `provenance-validator audit` on a legacy-corpus project produces `synthesizedCorpus: true` and approximately-correct findings | `crates/provenance-validator/tests/validator_tests.rs::t10_audit_synthesis_from_txt_flags_synthesized` + `crates/provenance-validator/tests/sc001_cfs_audit.rs::sc001_audit_rejects_stk13_int003_sn022_against_fixture` | provenance-validator | covered |
 
 ## Notes
@@ -87,7 +87,7 @@ This is its own spec issue; tracking it separately is the right call.
 | factory-engine | 16 (quality_gates + cascade_check) |
 | desktop tauri | 4 (provenance commands) |
 | desktop UI | 8 (ProvenanceReport + ProvenanceHealthPanel) |
-| tools/assumption-cascade-check | 4 (lib + bin) |
+| tools/oap/assumption-cascade-check | 4 (lib + bin) |
 | **Total** | **~121 tests across 6 crates** |
 
 Counts approximate as of Phase 7 close. Run

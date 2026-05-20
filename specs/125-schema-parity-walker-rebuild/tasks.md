@@ -12,7 +12,7 @@ Tasks are grouped by phase per `plan.md`. `[P]` = can run in parallel with other
 
 Define the shared `SchemaNode` type used by both the descriptor (in `extractionOutput.ts`) and the walker (in the parity tool).
 
-- [ ] **T001** Decide the home of `SchemaNode`. Two options: (a) declare in `extractionOutput.ts` and re-export, (b) declare in a small new file `tools/schema-parity-check/schema-node.ts` and import into `extractionOutput.ts`. Choose (a) for v1: keeps the parity tool dependency-free and the descriptor next to the validator. Document the choice in a one-line file header.
+- [ ] **T001** Decide the home of `SchemaNode`. Two options: (a) declare in `extractionOutput.ts` and re-export, (b) declare in a small new file `tools/oap/schema-parity-check/schema-node.ts` and import into `extractionOutput.ts`. Choose (a) for v1: keeps the parity tool dependency-free and the descriptor next to the validator. Document the choice in a one-line file header.
 - [ ] **T002** [P] In `extractionOutput.ts`, add the `SchemaNode` discriminated union:
   ```ts
   export type SchemaNode =
@@ -64,9 +64,9 @@ A vitest case that the descriptor matches what `Validator` actually checks.
 
 ## Phase 3 — Walker rewrite
 
-`tools/schema-parity-check/index.mjs` learns to walk descriptors as well as zod.
+`tools/oap/schema-parity-check/index.mjs` learns to walk descriptors as well as zod.
 
-- [ ] **T030** In `tools/schema-parity-check/index.mjs`, add `function walkDescriptor(node)` that maps `SchemaNode` → the same fingerprint shape the existing `walkType(zod)` produces. Cases must mirror Phase 0's union:
+- [ ] **T030** In `tools/oap/schema-parity-check/index.mjs`, add `function walkDescriptor(node)` that maps `SchemaNode` → the same fingerprint shape the existing `walkType(zod)` produces. Cases must mirror Phase 0's union:
   - `string|int|number|boolean|unknown` → `{ kind }`
   - `enum` → `{ kind: "enum", values: [...sorted] }` (sort to keep order-independent)
   - `array` → `{ kind: "array", element: walk(child) }`
@@ -82,12 +82,12 @@ A vitest case that the descriptor matches what `Validator` actually checks.
   const tsFingerprint = { version: tsSchemaVersion, root: walkDescriptor(knowledgeNode) };
   ```
   Replace the existing `walkType(extractionOutputSchema)` invocation with the descriptor walk. The `extractionOutputSchema` import + check is removed.
-- [ ] **T032** [P] Provenance + stakeholder-doc paths (specs 121 / 122) currently exist only Rust-side per their §8 reserved mode. Keep the existing "Rust-side fingerprint recorded for later" path unchanged — it does not depend on zod and is unaffected by this refactor. Verify by running `bun run tools/schema-parity-check/index.mjs` against a tree where neither TS mirror exists; expect informational lines, not failures.
+- [ ] **T032** [P] Provenance + stakeholder-doc paths (specs 121 / 122) currently exist only Rust-side per their §8 reserved mode. Keep the existing "Rust-side fingerprint recorded for later" path unchanged — it does not depend on zod and is unaffected by this refactor. Verify by running `bun run tools/oap/schema-parity-check/index.mjs` against a tree where neither TS mirror exists; expect informational lines, not failures.
 - [ ] **T033** [P] Delete `function walkType(zod)` and the `unwrap`/`isOptional` zod-tree helpers if no remaining caller exists. If specs 121 / 122 still need them in the same tool, leave them in place behind a comment noting their planned removal. Search inside `index.mjs` for `_def\\.` usages; if zero, the zod walker is dead and goes; if non-zero, it stays.
 - [ ] **T034** [P] Update the comment block at the top of `index.mjs` to describe the dispatcher behaviour. The existing comment is correct in spirit but mentions zod walking; update to mention descriptors as the canonical path going forward.
-- [ ] **T035** [P] Test: a tiny mock descriptor file fed through `walkDescriptor` produces a fingerprint string-equal to the equivalent zod-walked fingerprint for the same shape. Run as a one-off `node -e ...` script committed under `tools/schema-parity-check/walk_descriptor.test.mjs` (or add to the existing test harness if one exists).
+- [ ] **T035** [P] Test: a tiny mock descriptor file fed through `walkDescriptor` produces a fingerprint string-equal to the equivalent zod-walked fingerprint for the same shape. Run as a one-off `node -e ...` script committed under `tools/oap/schema-parity-check/walk_descriptor.test.mjs` (or add to the existing test harness if one exists).
 
-**Checkpoint:** `bun run tools/schema-parity-check/index.mjs` exits 0 on a clean tree. `make ci-schema-parity` exits 0. Drift is detected (T080 in Phase 5 verifies). Commit: `feat(tools, spec-125): schema-parity walker dispatches on descriptor`.
+**Checkpoint:** `bun run tools/oap/schema-parity-check/index.mjs` exits 0 on a clean tree. `make ci-schema-parity` exits 0. Drift is detected (T080 in Phase 5 verifies). Commit: `feat(tools, spec-125): schema-parity walker dispatches on descriptor`.
 
 ---
 
@@ -127,6 +127,6 @@ Acceptance gates A-1..A-5; spec lifecycle flip.
 Stop and report up — do NOT continue past these without surfacing:
 
 - The Rust-side fingerprint at `build/schema-parity/rust-knowledge-schema.json` does not match the descriptor even after Phase 1's careful translation. This indicates a real schema drift between the validator and the Rust mirror that predates this spec; fixing it is in scope ONLY if the fix is mechanical (rename one field, etc.). Otherwise halt.
-- The Encore TS parser crashes after the change. The descriptor MUST NOT trigger the parser bug; if it does, the descriptor file structure needs reshaping (e.g. move `SchemaNode` out into `tools/schema-parity-check/schema-node.ts` per Phase 0 option (b)).
+- The Encore TS parser crashes after the change. The descriptor MUST NOT trigger the parser bug; if it does, the descriptor file structure needs reshaping (e.g. move `SchemaNode` out into `tools/oap/schema-parity-check/schema-node.ts` per Phase 0 option (b)).
 - The dispatcher cannot be made to coexist with the zod walker. If the `walkType` zod paths in the parity tool are too entangled with the entry point to refactor cleanly, halt and surface — a partial dispatcher is worse than the current single-walker code.
 - A field in `extractionOutput.ts` is parsed by the validator with a check the descriptor's `SchemaNode` cannot represent (e.g. a custom regex). Document the limitation as a `// note:` comment per T013, do NOT extend `SchemaNode` to express it. The descriptor is intentionally structural-only; value-shape checks remain in the validator and are tested by the consistency block.

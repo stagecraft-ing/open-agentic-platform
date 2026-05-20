@@ -12,7 +12,7 @@
 
 ## Phase 2: Cross-references (optional, low churn)
 
-- [x] T003 Link **`tools/registry-consumer/README.md`** “Usage” / **`--status`** section to [spec.md](./spec.md) (one or two sentences)
+- [x] T003 Link **`tools/spec-spine/registry-consumer/README.md`** “Usage” / **`--status`** section to [spec.md](./spec.md) (one or two sentences)
 - [x] T004 Optional: one line in root [README.md](../../README.md) under the registry-consumer block pointing to lifecycle semantics for **`status`**
 
 ## Phase 3: Verify

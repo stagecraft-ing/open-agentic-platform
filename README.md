@@ -51,9 +51,9 @@ around three concrete components that already exist in this tree:
 
 The **spec spine** (`specs/`) is the authoritative design record. Every
 feature is a markdown file with YAML frontmatter, compiled by
-[`spec-compiler`](tools/spec-compiler/) into a deterministic `registry.json`.
+[`spec-compiler`](tools/spec-spine/spec-compiler/) into a deterministic `registry.json`.
 Specs are read through the consumer binary
-[`registry-consumer`](tools/registry-consumer/) — never by ad-hoc parsing —
+[`registry-consumer`](tools/spec-spine/registry-consumer/) — never by ad-hoc parsing —
 which makes the spec corpus a typed, query-able surface
 ([spec 103](specs/103-init-protocol-governed-reads/spec.md)).
 
@@ -198,7 +198,7 @@ make setup
 # Builds spec compiler + codebase indexer, compiles the registry,
 # fetches the axiomregent sidecar binary.
 
-./tools/oap-registry-enrich/target/release/oap-registry-enrich \
+./tools/oap/oap-registry-enrich/target/release/oap-registry-enrich \
     compliance-report --framework owasp-asi-2026 --json
 # Emits the ASI-control-to-spec mapping. This is the traceability
 # artifact: structured, deterministic, and reproducible from the
@@ -206,12 +206,12 @@ make setup
 # compliance is an OAP-specific overlay rather than a generic
 # spec-spine concept.)
 
-./tools/registry-consumer/target/release/registry-consumer \
+./tools/spec-spine/registry-consumer/target/release/registry-consumer \
     status-report --json --nonzero-only
 # Lifecycle inventory across the 142-spec corpus.
 # 137 approved, 1 draft, 4 superseded.
 
-./tools/oap-code-index-enrich/target/release/oap-code-index-enrich render
+./tools/oap/oap-code-index-enrich/target/release/oap-code-index-enrich render
 cat build/codebase-index/CODEBASE-INDEX.md
 # Renders the spec-to-code map. The 'Spec' column is the
 # traceability surface for every Rust crate and npm package.

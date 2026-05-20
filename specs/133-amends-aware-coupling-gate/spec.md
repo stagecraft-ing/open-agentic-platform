@@ -14,16 +14,16 @@ depends_on:
   - "130"
 code_aliases: ["COUPLING_GATE"]
 establishes:
-  - tools/spec-code-coupling-check/src/lib.rs
-  - tools/spec-code-coupling-check/src/main.rs
+  - tools/spec-spine/spec-code-coupling-check/src/lib.rs
+  - tools/spec-spine/spec-code-coupling-check/src/main.rs
 extends:
   - spec: "101-codebase-index-mvp"
     paths:
-      - tools/codebase-indexer/src/lib.rs
+      - tools/spec-spine/codebase-indexer/src/lib.rs
     nature: additive
 co_authority:
   - paths:
-      - tools/spec-code-coupling-check/src/lib.rs
+      - tools/spec-spine/spec-code-coupling-check/src/lib.rs
     section: authority-derivation
     with_specs:
       - "130-spec-coupling-primary-owner"
@@ -182,7 +182,7 @@ at code 1), so CI log inspection can distinguish the two cases.
 The gate's authority function is exposed as a library entry point:
 
 ```rust
-// tools/spec-code-coupling-check/src/lib.rs
+// tools/spec-spine/spec-code-coupling-check/src/lib.rs
 pub fn authorities(index: &CodebaseIndex, path: &str) -> Vec<SpecId>
 pub fn authorities_in_section(
     index: &CodebaseIndex,
@@ -247,7 +247,7 @@ errors (code 2).
 This spec's own commit must satisfy its own gate. The recursive
 verification works because:
 
-- This spec's `establishes:` claims `tools/spec-code-coupling-check/*`,
+- This spec's `establishes:` claims `tools/spec-spine/spec-code-coupling-check/*`,
   so edits to that crate require touching this spec's spec.md (which
   the commit does).
 - The relationship-field parsing lives in spec 001 (spec-compiler-mvp),

@@ -37,7 +37,7 @@ establishes:
   - crates/factory-engine/src/stages/stage_cd_comparator.rs
   - crates/factory-engine/skills/client-document-comparator.md
   - crates/factory-engine/skills/project-charter-comparator.md
-  - tools/stakeholder-doc-lint/Cargo.toml
+  - tools/oap/stakeholder-doc-lint/Cargo.toml
   - apps/desktop/src/components/factory/StageCdReview.tsx
 extends:
   - spec: "075-factory-workflow-engine"
@@ -220,7 +220,7 @@ The operator authors a charter that cites an extracted quote (`source: "extracte
 - **FR-002**: Section anchors MUST follow the format `<KIND>-<NNN>` where `<KIND>` ∈ `{OBJ, STAKEHOLDER, OUTCOME, IN-SCOPE, OUT-SCOPE, OWNER, ASSUMPTION, RISK}` and `<NNN>` is a zero-padded integer (`OBJ-001`, `STAKEHOLDER-003`). Anchors are inserted inline in the heading: `### OBJ-1: Reduce form-correction cycles by 50%`.
 - **FR-003**: Anchor kinds MUST be exhaustive for V1; adding a new kind requires a spec amendment. The lint tool `stakeholder-doc-lint` rejects unknown kinds.
 - **FR-004**: Authored docs MAY include citations at two levels: (a) frontmatter-level `citations[]` for whole-doc claims (e.g., the charter's overall objective set is derived from `business-case.docx`), (b) section-level `citations[]` for per-section claims (e.g., `OBJ-1` cites a specific quote). Both use the spec-121 `Citation` type verbatim.
-- **FR-005**: A new tool `tools/stakeholder-doc-lint` MUST validate authored docs against the grammar. It MUST run as part of `make ci` and MUST be invoked by the comparator before producing diffs (the comparator refuses to run against an invalid authored doc).
+- **FR-005**: A new tool `tools/oap/stakeholder-doc-lint` MUST validate authored docs against the grammar. It MUST run as part of `make ci` and MUST be invoked by the comparator before producing diffs (the comparator refuses to run against an invalid authored doc).
 - **FR-006**: The grammar MUST have a compile-time schema version `pub const STAKEHOLDER_DOC_SCHEMA_VERSION: &str = "1.0.0"`. The schema parity check from spec 120 MUST be extended to cover this module.
 
 #### Canonical paths and reclassification
@@ -352,7 +352,7 @@ The operator authors a charter that cites an extracted quote (`source: "extracte
 - `crates/factory-engine/src/stages/stage_cd.rs` — Stage CD driver, split into Phase 1 (candidate generation) and Phase 2 (comparator).
 - `crates/factory-engine/src/stages/stage_cd_comparator.rs` — new module: pairing, classification, gate evaluation.
 - `crates/factory-engine/skills/client-document-comparator.md`, `crates/factory-engine/skills/project-charter-comparator.md` — new skill prose for comparator-mode behaviour, distinct from the legacy generator skills.
-- `tools/stakeholder-doc-lint/` — new lint tool, runs on `make ci`.
+- `tools/oap/stakeholder-doc-lint/` — new lint tool, runs on `make ci`.
 - `apps/desktop/src/components/factory/StageCdReview.tsx` — new UI surface for diff review.
 - `requirements/stakeholder/charter.md`, `requirements/stakeholder/client-document.md` — canonical authored paths reserved by spec.
 - `requirements/audit/stakeholder-doc-migration.md` — migration provenance path.

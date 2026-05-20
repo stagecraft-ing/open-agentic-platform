@@ -15,7 +15,7 @@ summary: >
 extends:
   - spec: "007-registry-consumer-status-report-mvp"
     paths:
-      - tools/registry-consumer
+      - tools/spec-spine/registry-consumer
     nature: additive
 ---
 

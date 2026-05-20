@@ -86,7 +86,7 @@ sysinfo = "0.34"
 # Opc additions
 xray         = { path = "../../../crates/xray" }
 featuregraph = { path = "../../../crates/featuregraph" }
-open_agentic_spec_registry_reader = { path = "../../../tools/registry-consumer" }
+open_agentic_spec_registry_reader = { path = "../../../tools/spec-spine/registry-consumer" }
 agent        = { path = "../../../crates/agent" }
 run          = { path = "../../../crates/run" }
 orchestrator = { path = "../../../crates/orchestrator" }

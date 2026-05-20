@@ -4,7 +4,7 @@
 
 ## Summary
 
-Implement **`tools/spec-lint/`**: a **Rust** CLI **`spec-lint`** that walks **`specs/<NNN>-<slug>/`**, applies **W-001**–**W-006** heuristics (MVP may ship a **subset**; spec lists full catalog), prints warnings to **stderr**, exits **0** by default, **`--fail-on-warn`** exits **1** when any warning emitted.
+Implement **`tools/spec-spine/spec-lint/`**: a **Rust** CLI **`spec-lint`** that walks **`specs/<NNN>-<slug>/`**, applies **W-001**–**W-006** heuristics (MVP may ship a **subset**; spec lists full catalog), prints warnings to **stderr**, exits **0** by default, **`--fail-on-warn`** exits **1** when any warning emitted.
 
 ## Technical Context
 
@@ -25,7 +25,7 @@ Implement **`tools/spec-lint/`**: a **Rust** CLI **`spec-lint`** that walks **`s
 ## Project Structure
 
 ```text
-tools/spec-lint/
+tools/spec-spine/spec-lint/
 ├── Cargo.toml
 ├── README.md
 ├── src/

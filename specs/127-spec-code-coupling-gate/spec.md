@@ -21,7 +21,7 @@ establishes:
 extends:
   - spec: "133-amends-aware-coupling-gate"
     paths:
-      - tools/spec-code-coupling-check
+      - tools/spec-spine/spec-code-coupling-check
     nature: additive
 co_authority:
   - paths:
@@ -100,12 +100,12 @@ request and on workflow dispatch. The job structure:
 
 1. Checkout with `fetch-depth: 0` (the gate diff is `BASE...HEAD`).
 2. Install the pinned Rust toolchain.
-3. Build `tools/codebase-indexer` and emit `index.json`.
-4. Build `tools/spec-code-coupling-check`.
+3. Build `tools/spec-spine/codebase-indexer` and emit `index.json`.
+4. Build `tools/spec-spine/spec-code-coupling-check`.
 5. Run the gate with the PR's base and head SHAs and the PR body.
 
 The job has the same step shape as the local make target: divergence
-between the two is caught by `tools/ci-parity-check` (spec 104).
+between the two is caught by `tools/oap/ci-parity-check` (spec 104).
 
 ## 4. Exit codes
 

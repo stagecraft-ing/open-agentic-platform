@@ -3,11 +3,11 @@
 **Input**: `/specs/002-registry-consumer-mvp/` (spec, plan)  
 **Prerequisites**: Feature **000** schemas; Feature **001** `spec-compiler` emitting **`build/spec-registry/registry.json`**
 
-**Feature status**: **Implemented** — `tools/registry-consumer/` (see crate README).
+**Feature status**: **Implemented** — `tools/spec-spine/registry-consumer/` (see crate README).
 
 ## Phase 1: Skeleton
 
-- [x] T001 Create `tools/registry-consumer/` with `Cargo.toml`, `src/main.rs`, CLI stub (`clap`), README linking Feature 002 spec
+- [x] T001 Create `tools/spec-spine/registry-consumer/` with `Cargo.toml`, `src/main.rs`, CLI stub (`clap`), README linking Feature 002 spec
 - [x] T002 Document default path `build/spec-registry/registry.json` and `--registry-path` in README
 
 ## Phase 2: Read & parse

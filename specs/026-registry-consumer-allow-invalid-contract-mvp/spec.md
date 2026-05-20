@@ -16,11 +16,11 @@ summary: >
 extends:
   - spec: "002-registry-consumer-mvp"
     paths:
-      - tools/registry-consumer
+      - tools/spec-spine/registry-consumer
     nature: additive
 refines:
   - paths:
-      - tools/registry-consumer
+      - tools/spec-spine/registry-consumer
     aspect: contract-tests
 ---
 

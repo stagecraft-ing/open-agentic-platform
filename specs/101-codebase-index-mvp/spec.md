@@ -25,10 +25,10 @@ depends_on:
 code_aliases: ["CODEBASE_INDEX"]
 risk: low
 establishes:
-  - tools/codebase-indexer/src/main.rs
-  - tools/codebase-indexer/src/lib.rs
-  - tools/codebase-indexer/src/spec_scanner.rs
-  - tools/codebase-indexer/src/manifest.rs
+  - tools/spec-spine/codebase-indexer/src/main.rs
+  - tools/spec-spine/codebase-indexer/src/lib.rs
+  - tools/spec-spine/codebase-indexer/src/spec_scanner.rs
+  - tools/spec-spine/codebase-indexer/src/manifest.rs
   - build/codebase-index/index.json
   - standards/schemas/spec-spine/codebase-index.schema.json
 ---
@@ -66,7 +66,7 @@ what a compiler does.
 
 ### 2.1 The Index as a Build Artifact
 
-A new Rust tool `tools/codebase-indexer/` reads the repository tree and emits
+A new Rust tool `tools/spec-spine/codebase-indexer/` reads the repository tree and emits
 `build/codebase-index/index.json`. This follows the identical pattern established by
 the spec-compiler:
 
@@ -156,9 +156,9 @@ id: "001-spec-compiler-mvp"
 status: active
 implements:
   - crate: spec-compiler
-    path: tools/spec-compiler
+    path: tools/spec-spine/spec-compiler
   - crate: registry-consumer
-    path: tools/registry-consumer
+    path: tools/spec-spine/registry-consumer
 ---
 ```
 
@@ -181,7 +181,7 @@ a first-class key if adoption warrants (requires spec-compiler change per the
 
 ### 2.4 Indexer Implementation
 
-The indexer is a Rust binary at `tools/codebase-indexer/`. It follows the
+The indexer is a Rust binary at `tools/spec-spine/codebase-indexer/`. It follows the
 spec-compiler's architecture:
 
 ```

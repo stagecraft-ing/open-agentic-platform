@@ -21,7 +21,7 @@ on:
       - 'apps/**'
       - 'packages/**'
       - 'platform/services/**'
-      - 'tools/codebase-indexer/**'
+      - 'tools/spec-spine/codebase-indexer/**'
       - 'build/codebase-index/**'
       - 'specs/**'
   pull_request:
@@ -30,7 +30,7 @@ on:
       - 'apps/**'
       - 'packages/**'
       - 'platform/services/**'
-      - 'tools/codebase-indexer/**'
+      - 'tools/spec-spine/codebase-indexer/**'
       - 'build/codebase-index/**'
       - 'specs/**'
   workflow_dispatch:
@@ -52,11 +52,11 @@ jobs:
       - name: Build codebase-indexer
         uses: ./.github/actions/rust-ci
         with:
-          manifest-path: tools/codebase-indexer/Cargo.toml
+          manifest-path: tools/spec-spine/codebase-indexer/Cargo.toml
           cache-shared-key: codebase-indexer
 
       - name: Compile codebase-indexer release binary
-        run: cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+        run: cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml
 
       - name: Staleness check (committed artifact)
-        run: ./tools/codebase-indexer/target/release/codebase-indexer check
+        run: ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check

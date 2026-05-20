@@ -36,7 +36,7 @@ sections (round-trip, migration dry-run, integration, replay).
 implementation task starts.
 
 - [ ] T001 [P0] Confirm spec 139 frontmatter compiles cleanly:
-      `./tools/spec-compiler/target/release/spec-compiler compile`
+      `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`
       and verify exit 0 + spec 139 appears in
       `build/spec-registry/registry.json`.
 - [ ] T002 [P0] Walk `goa-software-factory@<latest>` and

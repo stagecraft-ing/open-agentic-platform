@@ -40,7 +40,7 @@ This corresponds to **option (a)** in the next-slice plan: extend the compiled r
 
 ### Negative / follow-up
 
-- **Schema and compiler** were extended (`registry.schema.json`, `tools/spec-compiler`, validation rules) — Feature 039.
+- **Schema and compiler** were extended (`registry.schema.json`, `tools/spec-spine/spec-compiler`, validation rules) — Feature 039.
 - **Content maintenance:** new or renamed code tokens require updates to spec frontmatter `code_aliases` until optional automation exists; see Feature 039 tasks.
 - **Consumers** (`registry-consumer`, featuregraph, desktop) treat **`id` as canonical** and use `codeAliases` only for lookup; optional field preserves backward compatibility until consumers opt in.
 

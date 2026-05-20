@@ -14,7 +14,7 @@
 
 - [x] T003 Add `--json` to `status-report` CLI
 - [x] T004 Emit deterministic JSON rows (`status`, `count`, `ids`)
-- [x] T005 Update `tools/registry-consumer/README.md`
+- [x] T005 Update `tools/spec-spine/registry-consumer/README.md`
 
 ## Phase 3: Tests & verify
 

@@ -24,4 +24,4 @@
 
 ## Notes
 
-- Implementation details belong in Rust code and `tools/spec-compiler/README.md` once the crate exists.
+- Implementation details belong in Rust code and `tools/spec-spine/spec-compiler/README.md` once the crate exists.

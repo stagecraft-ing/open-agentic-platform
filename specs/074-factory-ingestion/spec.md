@@ -175,7 +175,7 @@ crates/factory-contracts/
   ├── consumed by: crates/orchestrator (spec 075)
   ├── consumed by: apps/desktop (spec 076)
   ├── consumed by: crates/axiomregent (policy shards)
-  └── consumed by: tools/spec-compiler (registry integration)
+  └── consumed by: tools/spec-spine/spec-compiler (registry integration)
 ```
 
 ### Key Types (Build Spec — Partial)

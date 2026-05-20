@@ -11,7 +11,7 @@ Restore `make ci-schema-parity` after commit `b6859d3` removed zod from
 `api/knowledge/extractionOutput.ts` for Encore parser stability.
 Author a plain-data `extractionOutputDescriptor: SchemaNode` next to
 the existing `Validator` class; teach
-`tools/schema-parity-check/index.mjs` to walk descriptors instead of
+`tools/oap/schema-parity-check/index.mjs` to walk descriptors instead of
 zod for the knowledge schema; ship an in-file vitest case asserting
 the descriptor matches what `Validator` actually checks for a
 representative payload pair. The Rust mirror at
@@ -23,10 +23,10 @@ surface that cannot use zod (Encore parser invariant).
 
 | Phase | Focus | Spec sections |
 |-------|-------|---------------|
-| **0** | Foundations: define the `SchemaNode` discriminated union type that the walker will accept; pin the type either inside `extractionOutput.ts` or in a new `tools/schema-parity-check/schema-node.ts` consumed by both | §3.1, §3.2 |
+| **0** | Foundations: define the `SchemaNode` discriminated union type that the walker will accept; pin the type either inside `extractionOutput.ts` or in a new `tools/oap/schema-parity-check/schema-node.ts` consumed by both | §3.1, §3.2 |
 | **1** | Author `extractionOutputDescriptor` — the plain-data tree that mirrors what `Validator` checks; place it next to the validator in `extractionOutput.ts`; export it | §3.1 |
 | **2** | In-file consistency test: vitest case asserting the descriptor matches the validator (every required field trips the validator when removed; non-required does not; enums reject out-of-set values) | §3.3 |
-| **3** | Walker rewrite: split `tools/schema-parity-check/index.mjs` into a dispatcher that picks descriptor walker for the knowledge schema and zod walker for the (still-zod) provenance + stakeholder-doc schemas; add `walkDescriptor(node)` returning the same fingerprint shape `walkType(zod)` already produces | §3.2 |
+| **3** | Walker rewrite: split `tools/oap/schema-parity-check/index.mjs` into a dispatcher that picks descriptor walker for the knowledge schema and zod walker for the (still-zod) provenance + stakeholder-doc schemas; add `walkDescriptor(node)` returning the same fingerprint shape `walkType(zod)` already produces | §3.2 |
 | **4** | CI integration: re-run `make ci-schema-parity` (already wired by spec 120) and confirm exit 0; verify the descriptor↔Rust drift case fails with a clear diff message | §5 A-1, A-3 |
 | **5** | Acceptance closure: A-1..A-5 verified; spec 125 frontmatter flips to `status: approved` / `implementation: complete`; `make ci` green | §5 |
 
@@ -92,7 +92,7 @@ Phase 4 is verification. Phase 5 is closure.
   if the descriptor lists fewer values than the validator accepts,
   the consistency test fails.
 - **Schema-parity tool's other consumers.** If anything else imports
-  `tools/schema-parity-check/index.mjs`, the dispatcher refactor
+  `tools/oap/schema-parity-check/index.mjs`, the dispatcher refactor
   could break it. Mitigation: `rg "schema-parity-check" .` to list
   importers; the only caller today is the Makefile target. If that
   changes, this risk re-evaluates.
@@ -117,7 +117,7 @@ Phase 4 is verification. Phase 5 is closure.
 - Existing primitives this spec touches:
   - `platform/services/stagecraft/api/knowledge/extractionOutput.ts`
     — the validator that gains the descriptor
-  - `tools/schema-parity-check/index.mjs` — the walker getting
+  - `tools/oap/schema-parity-check/index.mjs` — the walker getting
     dispatched
   - `crates/factory-contracts/src/knowledge.rs` — Rust mirror
     (untouched; reference only)

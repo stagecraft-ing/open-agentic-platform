@@ -18,7 +18,7 @@ establishes:
   - platform/gitops/clusters/hetzner-prod/manifests/README.md
   - platform/gitops/clusters/hetzner-prod/secrets/README.md
   - .sops.yaml
-  - tools/spec-compiler/tests/v004_consolidation_excludes.rs
+  - tools/spec-spine/spec-compiler/tests/v004_consolidation_excludes.rs
   - platform/gitops/clusters/hetzner-prod/infrastructure/reflector.yaml
   - platform/gitops/clusters/hetzner-prod/manifests/tenants-wildcard-certificate.yaml
   - platform/gitops/clusters/hetzner-prod/infrastructure/cert-manager.yaml
@@ -34,7 +34,7 @@ establishes:
 extends:
   - spec: "001-spec-compiler-mvp"
     paths:
-      - tools/spec-compiler/src/lib.rs
+      - tools/spec-spine/spec-compiler/src/lib.rs
     nature: additive
 co_authority:
   - paths:
@@ -800,7 +800,7 @@ not decisions.
      `platform/gitops/clusters/**` and `.github/workflows/cd-*.yml`
      overlap on the spec 151 owner, so the migration PR cannot land
      without a review that catches an incomplete claim. The spec/code
-     coupling gate (spec 127, `tools/spec-code-coupling-check/`,
+     coupling gate (spec 127, `tools/spec-spine/spec-code-coupling-check/`,
      CI workflow `.github/workflows/ci-spec-code-coupling.yml`) does
      NOT directly catch a missing claim at first-claim time — it fires
      on *touched paths claimed by some spec*; if a path is unclaimed
@@ -1249,7 +1249,7 @@ entry per the same pattern as the prep section above.
   runtime mechanism; spec 153 lands the encrypted manifests).
   Multi-recipient roundtrip verified locally against both pubkeys
   before commit.
-- `tools/spec-compiler/src/lib.rs` — V-004 (no standalone authored
+- `tools/spec-spine/spec-compiler/src/lib.rs` — V-004 (no standalone authored
   YAML) exemption arm extended to include `.sops.yaml` at repo root.
   Spec 000's invariant targets parallel spec registries as authored
   truth; `.sops.yaml` is the SOPS CLI's own tool-format config file,
@@ -1257,7 +1257,7 @@ entry per the same pattern as the prep section above.
   and `pnpm-lock.yaml` already exempt. Rationale recorded inline on
   `v004_yaml_scan_exempt` and back-referenced to plan.md §"Constitution
   check". Covered by a new test (`root_sops_yaml_does_not_trigger_v004`)
-  in `tools/spec-compiler/tests/v004_consolidation_excludes.rs`.
+  in `tools/spec-spine/spec-compiler/tests/v004_consolidation_excludes.rs`.
 - `platform/infra/hetzner/cluster.yaml` — `k3s_version` bumped from
   `v1.31.4+k3s1` to `v1.33.11+k3s1` per dr-baseline.md §F4. Pairs
   atomically with the `flux bootstrap` invocation in setup.sh.

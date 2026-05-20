@@ -50,7 +50,7 @@ extends:
     nature: additive
   - spec: "001-spec-compiler-mvp"
     paths:
-      - tools/spec-compiler/src/lib.rs
+      - tools/spec-spine/spec-compiler/src/lib.rs
     nature: additive
 co_authority:
   - paths:

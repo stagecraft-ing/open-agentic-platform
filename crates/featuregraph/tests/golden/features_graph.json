@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:c3b9fd52b656bd356062db836907d2dc69bba169fef82f9b46996747f3df399c",
+  "graph_fingerprint": "sha256:a3110d7cf81b7e98c584d9124e59f3c20f7de66e6f97dfd5cdf77292d43e5ae7",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3914,28 +3914,28 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "tools/assumption-cascade-check/src/lib.rs",
+      "path": "tools/oap/assumption-cascade-check/src/lib.rs",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-034",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "tools/assumption-cascade-check/src/main.rs",
+      "path": "tools/oap/assumption-cascade-check/src/main.rs",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-034",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "tools/stakeholder-doc-lint/src/lib.rs",
+      "path": "tools/oap/stakeholder-doc-lint/src/lib.rs",
       "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-005, FR-034",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "tools/stakeholder-doc-lint/src/main.rs",
+      "path": "tools/oap/stakeholder-doc-lint/src/main.rs",
       "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-005, FR-035",
       "suggested_fix": "Fix header format"
     }

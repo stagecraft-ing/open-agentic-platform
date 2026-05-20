@@ -16,8 +16,8 @@ summary: >
   reopening 000/001 unless a constitutional amendment is required.
 refines:
   - paths:
-      - tools/spec-compiler/src/lib.rs
-      - tools/registry-consumer/src/lib.rs
+      - tools/spec-spine/spec-compiler/src/lib.rs
+      - tools/spec-spine/registry-consumer/src/lib.rs
     aspect: status-semantics
     refines_specs:
       - "001-spec-compiler-mvp"

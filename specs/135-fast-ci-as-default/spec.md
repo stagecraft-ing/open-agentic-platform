@@ -30,7 +30,7 @@ co_authority:
 extends:
   - spec: "104-makefile-ci-parity-contract"
     paths:
-      - tools/ci-parity-check/src/lib.rs
+      - tools/oap/ci-parity-check/src/lib.rs
       - .github/workflows/ci-crates.yml
       - specs/104-makefile-ci-parity-contract/spec.md
     nature: wrapping
@@ -151,7 +151,7 @@ spec 104.
 
 ### 2.3 `ci-parity-check` binds to `ci-strict`
 
-The `tools/ci-parity-check` binary's parity binding follows the
+The `tools/oap/ci-parity-check` binary's parity binding follows the
 rename: it scans the recipe under `ci-strict:` for parity tokens
 against the enforcing-workflow matrix, not `ci:`. The sentinel comments
 `# BEGIN ci-fast (spec 134)` / `# END ci-fast` are **not** renamed —
@@ -240,7 +240,7 @@ name as an alias would dilute it.
 
 ### FR-04: `ci-parity-check` binds to `ci-strict`
 
-`tools/ci-parity-check/src/lib.rs` MUST scan the `ci-strict:` recipe
+`tools/oap/ci-parity-check/src/lib.rs` MUST scan the `ci-strict:` recipe
 (post-rename) for parity tokens against the enforcing-workflow matrix.
 The sentinel-region exemption (spec 134 §FR-03) continues to apply to
 the renamed `ci:` recipe (formerly `ci-fast:`).
@@ -300,9 +300,9 @@ target.
 
 `make ci-parity` (or its post-rename equivalent if the parity target is
 also renamed) MUST exit 0 immediately after this spec's PR merges. The
-parity rules in `tools/ci-parity-check/src/lib.rs` are updated to scan
+parity rules in `tools/oap/ci-parity-check/src/lib.rs` are updated to scan
 `ci-strict:` instead of `ci:`; the test fixtures under
-`tools/ci-parity-check/tests/` are updated to match.
+`tools/oap/ci-parity-check/tests/` are updated to match.
 
 ### SC-04: `validate-and-fix` recommends the new default
 

@@ -125,7 +125,7 @@ Remove the manual click-walk; add status badge + Retry; live updates.
 - [ ] **T074** [P] Legacy-path-disabled regression test: with `STAGECRAFT_EXTRACT_LEGACY_TRANSITION` unset, POST to `/api/knowledge/objects/:id/transition` → assert `precondition_failed/legacy_transition_disabled`. With env set to `"true"`, same call succeeds and audit row carries `metadata.legacy_path = true`. SC-008.
 - [ ] **T075** [P] Run `make ci` locally; fix any lint, typecheck, or test breakage from new files.
 - [ ] **T076** Update `platform/services/stagecraft/CLAUDE.md`: add a "Knowledge extraction pipeline" section under the existing intake docs describing the Topic + worker + dispatch shape and pointing at the four entry points (`enqueueExtraction`, `runExtractionWork`, `pickExtractor`, `retryExtraction`).
-- [ ] **T077** Flip spec frontmatter `implementation: pending → complete`; recompile registry (`tools/spec-compiler/target/release/spec-compiler compile`) and structural index (`tools/codebase-indexer/target/release/codebase-indexer compile`) so traceability picks up the new files.
+- [ ] **T077** Flip spec frontmatter `implementation: pending → complete`; recompile registry (`tools/spec-spine/spec-compiler/target/release/spec-compiler compile`) and structural index (`tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile`) so traceability picks up the new files.
 
 ---
 

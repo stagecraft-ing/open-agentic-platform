@@ -15,8 +15,8 @@ depends_on:
   - "104"  # makefile-ci-parity-contract (the enforcement surface)
 code_aliases: ["SCRIPTS_RETIRE"]
 establishes:
-  - tools/adapter-scopes-compiler/src/main.rs
-  - tools/adapter-scopes-compiler/src/lib.rs
+  - tools/oap/adapter-scopes-compiler/src/main.rs
+  - tools/oap/adapter-scopes-compiler/src/lib.rs
 co_authority:
   - paths:
       - Makefile
@@ -93,7 +93,7 @@ at the venue that matches its nature:
 
 | Former script | New home | Kind | Rationale |
 |---------------|----------|------|-----------|
-| `compile-adapter-scopes.js` | `tools/adapter-scopes-compiler/` | New Rust crate | Real logic (YAML parsing, scope compilation) |
+| `compile-adapter-scopes.js` | `tools/oap/adapter-scopes-compiler/` | New Rust crate | Real logic (YAML parsing, scope compilation) |
 | `fetch-axiomregent.js` | `make fetch-axiomregent` recipe | Makefile target | Orchestration (wraps `gh release download`) |
 | `build-axiomregent.sh` | `make axiomregent-all` recipe | Makefile target | Orchestration (for-loop + `cargo build` + `cp` + `strip`) |
 
@@ -152,7 +152,7 @@ Every migration MUST:
 
 ### FR-01: `adapter-scopes-compiler` Crate
 
-A new Rust crate at `tools/adapter-scopes-compiler/` MUST:
+A new Rust crate at `tools/oap/adapter-scopes-compiler/` MUST:
 
 - Be a binary crate with `name = "open_agentic_adapter_scopes_compiler"`
   and `[[bin]]` named `adapter-scopes-compiler`
@@ -289,7 +289,7 @@ Each migration PR MUST include a before/after trace showing:
 ## Cross-references
 
 - Spec 127 (`spec-code-coupling-gate`) adds a new Rust binary
-  (`tools/spec-code-coupling-check/`) and a paired Makefile target.
+  (`tools/spec-spine/spec-code-coupling-check/`) and a paired Makefile target.
   Added per the same convention this spec codifies — declares
   `[package.metadata.oap].spec`, mirrors its workflow in `make ci`,
   no `scripts/` artefact introduced. No change to this spec's

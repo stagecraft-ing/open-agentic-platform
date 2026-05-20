@@ -14,7 +14,7 @@
 
 - [x] T003 Add `--nonzero-only` to `status-report` CLI
 - [x] T004 Apply nonzero filtering to text and JSON output paths
-- [x] T005 Update `tools/registry-consumer/README.md`
+- [x] T005 Update `tools/spec-spine/registry-consumer/README.md`
 
 ## Phase 3: Tests & verify
 

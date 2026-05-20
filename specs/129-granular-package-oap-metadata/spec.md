@@ -16,7 +16,7 @@ code_aliases: ["GRANULAR_OAP_METADATA"]
 extends:
   - spec: "101-codebase-index-mvp"
     paths:
-      - tools/codebase-indexer
+      - tools/spec-spine/codebase-indexer
       - standards/schemas/spec-spine/codebase-index.schema.json
     nature: additive
 summary: >
@@ -76,14 +76,14 @@ the convention to a first-class indexer input.
 
 ### In scope
 
-- New `comment_scanner` module in `tools/codebase-indexer/` that walks
+- New `comment_scanner` module in `tools/spec-spine/codebase-indexer/` that walks
   `.rs` files inside discovered package directories and extracts the
   leading-block `// Spec: specs/NNN-slug/spec.md` annotation (or short
   form `// Spec: NNN-slug`, or doc-comment `//! Spec: …`).
 - `xref` engine extended to merge file-level claims into the
   `implementingPaths` array. A path claimed by 2+ sources gets
   `source: "multiple"`; previously this was the bespoke `both`.
-- `TraceSource` enum extended in `tools/codebase-indexer/src/types.rs`:
+- `TraceSource` enum extended in `tools/spec-spine/codebase-indexer/src/types.rs`:
   `cargo-metadata` → `cargo-metadata-crate`; new variants
   `cargo-metadata-module` (reserved) and `comment-header`; `both` →
   `multiple`.
@@ -145,15 +145,15 @@ the convention to a first-class indexer input.
 - **AC-1 — schema version visible.** Running `codebase-indexer compile`
   produces `index.json` with `"schemaVersion": "1.2.0"`.
 - **AC-2 — comment header surfaces.** A focused unit test in
-  `tools/codebase-indexer/src/comment_scanner.rs::tests` verifies that
+  `tools/spec-spine/codebase-indexer/src/comment_scanner.rs::tests` verifies that
   a synthetic file with `// Spec: specs/044-multi-agent-orchestration/spec.md`
   produces the expected `ImplementingPath` entry with
   `source: "comment-header"`. Real-corpus demonstration is deferred
   (see §7).
 - **AC-3 — schema conformance.** `cargo test --manifest-path
-  tools/codebase-indexer/Cargo.toml` continues to pass; the
+  tools/spec-spine/codebase-indexer/Cargo.toml` continues to pass; the
   `schema_conformance` and `golden` tests cover the new schema.
-- **AC-4 — `make ci` exits 0.** The `tools/codebase-indexer/tests/`
+- **AC-4 — `make ci` exits 0.** The `tools/spec-spine/codebase-indexer/tests/`
   unit and integration tests cover the parser; the spec-coupling gate
   (spec 127) accepts the broader `implementingPaths` set without
   spurious violations.

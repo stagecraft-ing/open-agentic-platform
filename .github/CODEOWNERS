@@ -18,15 +18,15 @@
 
 # Registry-consumer contract surface — the PR template's contract checklist
 # applies here. Reviewers should expand the collapsed checklist.
-/tools/registry-consumer/               @bartlomiejkus
-/tools/spec-compiler/                   @bartlomiejkus
-/tools/spec-lint/                       @bartlomiejkus
-/tools/codebase-indexer/                @bartlomiejkus
-/tools/ci-parity-check/                 @bartlomiejkus
+/tools/spec-spine/registry-consumer/    @bartlomiejkus
+/tools/spec-spine/spec-compiler/        @bartlomiejkus
+/tools/spec-spine/spec-lint/            @bartlomiejkus
+/tools/spec-spine/codebase-indexer/     @bartlomiejkus
+/tools/oap/ci-parity-check/             @bartlomiejkus
 
 # Governance + policy — high-impact surface.
 /crates/policy-kernel/                  @bartlomiejkus
-/tools/policy-compiler/                 @bartlomiejkus
+/tools/oap/policy-compiler/             @bartlomiejkus
 
 # CI + release plumbing — touching these affects every PR.
 /.github/                               @bartlomiejkus

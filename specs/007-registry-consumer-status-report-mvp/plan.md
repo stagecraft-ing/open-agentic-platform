@@ -8,10 +8,10 @@ Implement a small `registry-consumer` enhancement: add `status-report` for lifec
 
 ## Technical Context
 
-- Language: Rust 2021 (`tools/registry-consumer`)
+- Language: Rust 2021 (`tools/spec-spine/registry-consumer`)
 - Reuse existing JSON `Value` access pattern from Feature **002**
 - Keep trust model + exit behavior unchanged
-- Add integration tests in `tools/registry-consumer/tests/cli.rs`
+- Add integration tests in `tools/spec-spine/registry-consumer/tests/cli.rs`
 
 ## Constitution Check
 
@@ -27,7 +27,7 @@ Implement a small `registry-consumer` enhancement: add `status-report` for lifec
 2. Add helper(s) in `src/lib.rs` to compute counts and sorted ids by status
 3. Print deterministic report lines
 4. Extend integration tests
-5. Update `tools/registry-consumer/README.md`
+5. Update `tools/spec-spine/registry-consumer/README.md`
 
 ## Exit codes
 

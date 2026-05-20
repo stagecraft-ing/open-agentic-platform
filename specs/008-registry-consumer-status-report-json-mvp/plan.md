@@ -8,10 +8,10 @@ Add a minimal JSON output mode for `registry-consumer status-report` so CI/scrip
 
 ## Technical Context
 
-- Language: Rust 2021 (`tools/registry-consumer`)
+- Language: Rust 2021 (`tools/spec-spine/registry-consumer`)
 - Reuse existing `status_report()` helper from Feature **007**
 - Keep validation/trust model from Feature **002**
-- Extend integration tests in `tools/registry-consumer/tests/cli.rs`
+- Extend integration tests in `tools/spec-spine/registry-consumer/tests/cli.rs`
 
 ## Constitution Check
 
@@ -27,7 +27,7 @@ Add a minimal JSON output mode for `registry-consumer status-report` so CI/scrip
 2. Serialize report rows into deterministic JSON
 3. Keep existing human-readable output path unchanged
 4. Add integration tests for JSON structure/order/content
-5. Update `tools/registry-consumer/README.md`
+5. Update `tools/spec-spine/registry-consumer/README.md`
 
 ## Exit codes
 

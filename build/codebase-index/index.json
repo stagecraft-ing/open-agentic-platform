@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "254439803994f02776f2edb14e16ea4480db19b8a78b487c0fe9d91a1e695883",
+    "contentHash": "73f129ffdd0bc7b8f28c1c1f1eeb62bb335204e719119dd5fc7924f55e3fa4f0",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -757,173 +757,6 @@
     {
       "edition": "2024",
       "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "clap",
-        "serde",
-        "serde_json",
-        "serde_yaml"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "open_agentic_adapter_scopes_compiler",
-      "path": "tools/adapter-scopes-compiler",
-      "specRef": "105-scripts-to-binaries-migration",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "factory-engine"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "open_agentic_assumption_cascade_check",
-      "path": "tools/assumption-cascade-check",
-      "specRef": "121-claim-provenance-enforcement",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "clap",
-        "serde",
-        "serde_yaml"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "open_agentic_ci_parity_check",
-      "path": "tools/ci-parity-check",
-      "specRef": "104-makefile-ci-parity-contract",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "chrono",
-        "clap",
-        "jsonschema",
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "sha2",
-        "toml",
-        "walkdir"
-      ],
-      "internalDeps": [
-        "open_agentic_spec_types"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "open_agentic_codebase_indexer",
-      "path": "tools/codebase-indexer",
-      "specRef": "101-codebase-index-mvp",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "clap",
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "toml",
-        "walkdir"
-      ],
-      "internalDeps": [
-        "open_agentic_codebase_indexer",
-        "open_agentic_spec_types"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "open_agentic_code_index_enrich",
-      "path": "tools/oap-code-index-enrich",
-      "specRef": "101-codebase-index-mvp",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "clap",
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "sha2",
-        "walkdir"
-      ],
-      "internalDeps": [
-        "open_agentic_spec_registry_reader",
-        "open_agentic_spec_types"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "open_agentic_registry_enrich",
-      "path": "tools/oap-registry-enrich",
-      "specRef": "102-governed-excellence",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "chrono",
-        "clap",
-        "hex",
-        "open_agentic_policy_kernel",
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "sha2",
-        "walkdir"
-      ],
-      "internalDeps": [
-        "open_agentic_spec_types"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "open_agentic_policy_compiler",
-      "path": "tools/policy-compiler",
-      "specRef": "047-governance-control-plane",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "clap",
-        "serde",
-        "serde_json"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "open_agentic_spec_registry_reader",
-      "path": "tools/registry-consumer",
-      "specRef": "002-registry-consumer-mvp",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
         "src/lib.rs"
       ],
       "externalDeps": [
@@ -934,90 +767,6 @@
       "name": "open_agentic_spec_types",
       "path": "tools/shared/spec-types",
       "specRef": "000-bootstrap-spec-system",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "clap",
-        "serde_json"
-      ],
-      "internalDeps": [
-        "open_agentic_codebase_indexer",
-        "open_agentic_spec_registry_reader"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "open_agentic_spec_code_coupling_check",
-      "path": "tools/spec-code-coupling-check",
-      "specRef": "127-spec-code-coupling-gate",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "chrono",
-        "clap",
-        "jsonschema",
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "sha2",
-        "walkdir"
-      ],
-      "internalDeps": [
-        "open_agentic_spec_types"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "open_agentic_spec_compiler",
-      "path": "tools/spec-compiler",
-      "specRef": "001-spec-compiler-mvp",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "clap",
-        "serde_yaml"
-      ],
-      "internalDeps": [
-        "open_agentic_spec_types"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "open_agentic_spec_lint",
-      "path": "tools/spec-lint",
-      "specRef": "006-conformance-lint-mvp",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "clap",
-        "factory-contracts",
-        "provenance-validator",
-        "serde",
-        "serde_yaml",
-        "walkdir"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "open_agentic_stakeholder_doc_lint",
-      "path": "tools/stakeholder-doc-lint",
-      "specRef": "122-stakeholder-doc-inversion",
       "version": "0.1.0"
     }
   ],
@@ -1044,16 +793,11 @@
             "source": "spec-implements"
           },
           {
-            "name": "open_agentic_spec_compiler",
-            "path": "tools/spec-compiler",
-            "source": "cargo-metadata-crate"
-          },
-          {
-            "path": "tools/spec-compiler/src/lib.rs",
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-compiler/src/main.rs",
+            "path": "tools/spec-spine/spec-compiler/src/main.rs",
             "source": "spec-implements"
           }
         ],
@@ -1063,19 +807,19 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
-            "source": "multiple"
-          },
-          {
-            "path": "tools/registry-consumer/Cargo.toml",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           },
           {
-            "path": "tools/registry-consumer/src/lib.rs",
+            "path": "tools/spec-spine/registry-consumer/Cargo.toml",
             "source": "spec-implements"
           },
           {
-            "path": "tools/registry-consumer/src/main.rs",
+            "path": "tools/spec-spine/registry-consumer/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/registry-consumer/src/main.rs",
             "source": "spec-implements"
           }
         ],
@@ -1085,11 +829,11 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer/src/lib.rs",
+            "path": "tools/spec-spine/registry-consumer/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-compiler/src/lib.rs",
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -1118,20 +862,14 @@
       },
       {
         "amendmentRecord": "147-spec-kind-grammar",
-        "implementingPaths": [
-          {
-            "name": "open_agentic_spec_lint",
-            "path": "tools/spec-lint",
-            "source": "cargo-metadata-crate"
-          }
-        ],
+        "implementingPaths": [],
         "specId": "006-conformance-lint-mvp",
         "specStatus": "approved"
       },
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1141,7 +879,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1151,7 +889,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1161,7 +899,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1171,7 +909,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1181,7 +919,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1191,7 +929,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1201,7 +939,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1211,7 +949,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1221,7 +959,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1231,7 +969,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1241,7 +979,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1251,7 +989,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1261,7 +999,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1271,7 +1009,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1281,7 +1019,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1291,7 +1029,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1301,7 +1039,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1311,7 +1049,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1321,7 +1059,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1331,7 +1069,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1341,7 +1079,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1351,7 +1089,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1361,7 +1099,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1371,7 +1109,7 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/spec-spine/registry-consumer",
             "source": "spec-implements"
           }
         ],
@@ -1475,7 +1213,7 @@
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-compiler/src/lib.rs",
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -1598,13 +1336,7 @@
       },
       {
         "amendmentRecord": "131-adversarial-prompt-refusal-policy",
-        "implementingPaths": [
-          {
-            "name": "open_agentic_policy_compiler",
-            "path": "tools/policy-compiler",
-            "source": "cargo-metadata-crate"
-          }
-        ],
+        "implementingPaths": [],
         "specId": "047-governance-control-plane",
         "specStatus": "approved"
       },
@@ -2266,7 +1998,7 @@
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-compiler/src/lib.rs",
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -2546,30 +2278,20 @@
             "source": "spec-implements"
           },
           {
-            "name": "open_agentic_codebase_indexer",
-            "path": "tools/codebase-indexer",
-            "source": "cargo-metadata-crate"
-          },
-          {
-            "path": "tools/codebase-indexer/src/lib.rs",
+            "path": "tools/spec-spine/codebase-indexer/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/codebase-indexer/src/main.rs",
+            "path": "tools/spec-spine/codebase-indexer/src/main.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/codebase-indexer/src/manifest.rs",
+            "path": "tools/spec-spine/codebase-indexer/src/manifest.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/codebase-indexer/src/spec_scanner.rs",
+            "path": "tools/spec-spine/codebase-indexer/src/spec_scanner.rs",
             "source": "spec-implements"
-          },
-          {
-            "name": "open_agentic_code_index_enrich",
-            "path": "tools/oap-code-index-enrich",
-            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "101-codebase-index-mvp",
@@ -2619,12 +2341,7 @@
             "source": "spec-implements"
           },
           {
-            "name": "open_agentic_registry_enrich",
-            "path": "tools/oap-registry-enrich",
-            "source": "cargo-metadata-crate"
-          },
-          {
-            "path": "tools/spec-compiler/src/lib.rs",
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -2671,16 +2388,11 @@
             "source": "spec-implements"
           },
           {
-            "name": "open_agentic_ci_parity_check",
-            "path": "tools/ci-parity-check",
-            "source": "cargo-metadata-crate"
-          },
-          {
-            "path": "tools/ci-parity-check/src/lib.rs",
+            "path": "tools/oap/ci-parity-check/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/ci-parity-check/src/main.rs",
+            "path": "tools/oap/ci-parity-check/src/main.rs",
             "source": "spec-implements"
           }
         ],
@@ -2701,16 +2413,11 @@
             "source": "spec-implements"
           },
           {
-            "name": "open_agentic_adapter_scopes_compiler",
-            "path": "tools/adapter-scopes-compiler",
-            "source": "cargo-metadata-crate"
-          },
-          {
-            "path": "tools/adapter-scopes-compiler/src/lib.rs",
+            "path": "tools/oap/adapter-scopes-compiler/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/adapter-scopes-compiler/src/main.rs",
+            "path": "tools/oap/adapter-scopes-compiler/src/main.rs",
             "source": "spec-implements"
           }
         ],
@@ -3275,7 +2982,7 @@
             "source": "spec-implements"
           },
           {
-            "path": "tools/codebase-indexer",
+            "path": "tools/spec-spine/codebase-indexer",
             "source": "spec-implements"
           }
         ],
@@ -3471,19 +3178,6 @@
           {
             "path": "platform/services/stagecraft/api/governance/provenancePolicy.ts",
             "source": "spec-implements"
-          },
-          {
-            "name": "open_agentic_assumption_cascade_check",
-            "path": "tools/assumption-cascade-check",
-            "source": "cargo-metadata-crate"
-          },
-          {
-            "path": "tools/assumption-cascade-check/src/lib.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "tools/assumption-cascade-check/src/main.rs",
-            "source": "comment-header"
           }
         ],
         "specId": "121-claim-provenance-enforcement",
@@ -3523,21 +3217,8 @@
             "source": "spec-implements"
           },
           {
-            "name": "open_agentic_stakeholder_doc_lint",
-            "path": "tools/stakeholder-doc-lint",
-            "source": "cargo-metadata-crate"
-          },
-          {
-            "path": "tools/stakeholder-doc-lint/Cargo.toml",
+            "path": "tools/oap/stakeholder-doc-lint/Cargo.toml",
             "source": "spec-implements"
-          },
-          {
-            "path": "tools/stakeholder-doc-lint/src/lib.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "tools/stakeholder-doc-lint/src/main.rs",
-            "source": "comment-header"
           }
         ],
         "specId": "122-stakeholder-doc-inversion",
@@ -3689,8 +3370,8 @@
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-code-coupling-check",
-            "source": "multiple"
+            "path": "tools/spec-spine/spec-code-coupling-check",
+            "source": "spec-implements"
           }
         ],
         "specId": "127-spec-code-coupling-gate",
@@ -3725,7 +3406,7 @@
             "source": "spec-implements"
           },
           {
-            "path": "tools/codebase-indexer",
+            "path": "tools/spec-spine/codebase-indexer",
             "source": "spec-implements"
           }
         ],
@@ -3744,15 +3425,15 @@
             "source": "spec-implements"
           },
           {
-            "path": "tools/codebase-indexer/src/spec_scanner.rs",
-            "source": "spec-implements"
-          },
-          {
             "path": "tools/shared/spec-types/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-compiler/src/lib.rs",
+            "path": "tools/spec-spine/codebase-indexer/src/spec_scanner.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -3778,7 +3459,7 @@
             "source": "spec-implements"
           },
           {
-            "path": "tools/policy-compiler",
+            "path": "tools/oap/policy-compiler",
             "source": "spec-implements"
           }
         ],
@@ -3796,7 +3477,7 @@
         ],
         "implementingPaths": [
           {
-            "path": "tools/spec-compiler",
+            "path": "tools/spec-spine/spec-compiler",
             "source": "spec-implements"
           }
         ],
@@ -3810,15 +3491,15 @@
         ],
         "implementingPaths": [
           {
-            "path": "tools/codebase-indexer/src/lib.rs",
+            "path": "tools/spec-spine/codebase-indexer/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-code-coupling-check/src/lib.rs",
+            "path": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-code-coupling-check/src/main.rs",
+            "path": "tools/spec-spine/spec-code-coupling-check/src/main.rs",
             "source": "spec-implements"
           }
         ],
@@ -3843,7 +3524,7 @@
             "source": "spec-implements"
           },
           {
-            "path": "tools/ci-parity-check/src/lib.rs",
+            "path": "tools/oap/ci-parity-check/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -3877,7 +3558,7 @@
             "source": "spec-implements"
           },
           {
-            "path": "tools/ci-parity-check/src/lib.rs",
+            "path": "tools/oap/ci-parity-check/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -4771,23 +4452,23 @@
             "source": "spec-implements"
           },
           {
-            "path": "tools/codebase-indexer/src/lib.rs",
-            "source": "spec-implements"
-          },
-          {
-            "path": "tools/codebase-indexer/src/spec_scanner.rs",
-            "source": "spec-implements"
-          },
-          {
             "path": "tools/shared/spec-types/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-compiler/src/lib.rs",
+            "path": "tools/spec-spine/codebase-indexer/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-lint/src/lib.rs",
+            "path": "tools/spec-spine/codebase-indexer/src/spec_scanner.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-lint/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -4917,11 +4598,11 @@
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-compiler/src/lib.rs",
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-compiler/tests/v004_consolidation_excludes.rs",
+            "path": "tools/spec-spine/spec-compiler/tests/v004_consolidation_excludes.rs",
             "source": "spec-implements"
           }
         ],
@@ -4939,7 +4620,7 @@
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-code-coupling-check/src/lib.rs",
+            "path": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
             "source": "spec-implements"
           }
         ],

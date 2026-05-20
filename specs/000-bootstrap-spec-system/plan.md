@@ -64,7 +64,7 @@ specs/000-bootstrap-spec-system/
 ### Source Code (repository root) — planned, not implemented in this PR unless tasks execute
 
 ```text
-tools/spec-compiler/        # Or packages/spec-compiler — fixed in tasks
+tools/spec-spine/spec-compiler/        # Or packages/spec-compiler — fixed in tasks
 ├── src/
 └── tests/fixtures/
 
@@ -72,7 +72,7 @@ build/spec-registry/        # Gitignored compiler output (generated)
 └── registry.json
 ```
 
-**Structure Decision**: Place the compiler under `tools/spec-compiler/` unless a workspace-wide package convention is introduced later; Feature 000 only **reserves** the path in this plan.
+**Structure Decision**: Place the compiler under `tools/spec-spine/spec-compiler/` unless a workspace-wide package convention is introduced later; Feature 000 only **reserves** the path in this plan.
 
 ## Complexity Tracking
 

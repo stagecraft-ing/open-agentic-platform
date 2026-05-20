@@ -199,11 +199,11 @@ crates ship through.
 7. **`make ci`** (warm) — expect green. Spec 134 / 135's fast-CI
    parity is the canonical signal.
 8. **Recompile spec registry + codebase index** —
-   `./tools/spec-compiler/target/release/spec-compiler compile` and
-   `./tools/codebase-indexer/target/release/codebase-indexer compile
+   `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile` and
+   `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
    && render`.
 9. **Spec-code coupling gate** —
-   `./tools/spec-code-coupling-check/target/release/spec-code-coupling-check`
+   `./tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check`
    should accept the diff against this spec's `implements:` list with
    no warnings.
 

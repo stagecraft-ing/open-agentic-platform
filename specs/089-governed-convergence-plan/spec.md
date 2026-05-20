@@ -307,17 +307,17 @@ But:
 1. **Promote `depends_on` to first-class compiler field** (1 day)
    - Add `depends_on` to `KNOWN_KEYS` in spec compiler
    - Emit as `dependsOn: Vec<String>` in registry JSON features array
-   - Files: `tools/spec-compiler/src/lib.rs`
+   - Files: `tools/spec-spine/spec-compiler/src/lib.rs`
 
 2. **Promote `owner` to first-class compiler field** (0.5 day)
    - Add `owner` to `KNOWN_KEYS`
    - Emit as `owner: Option<String>` in registry JSON
-   - Files: `tools/spec-compiler/src/lib.rs`
+   - Files: `tools/spec-spine/spec-compiler/src/lib.rs`
 
 3. **Add `risk` as a new frontmatter field** (0.5 day)
    - Define risk levels: `low`, `medium`, `high`, `critical`
    - Add to `KNOWN_KEYS`, validate enum values, emit in registry
-   - Files: `tools/spec-compiler/src/lib.rs`
+   - Files: `tools/spec-spine/spec-compiler/src/lib.rs`
 
 4. **Featuregraph reads enriched fields** (1 day)
    - Update `RegistryFeatureRecord` to deserialize `dependsOn`, `owner`, `risk`

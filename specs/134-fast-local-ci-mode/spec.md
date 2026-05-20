@@ -28,7 +28,7 @@ co_authority:
 extends:
   - spec: "104-makefile-ci-parity-contract"
     paths:
-      - tools/ci-parity-check/src/lib.rs
+      - tools/oap/ci-parity-check/src/lib.rs
     nature: additive
 refines:
   - aspect: ci-fast-validation
@@ -116,7 +116,7 @@ amendment adds a sibling target with a different contract.
    Makefile comment.
 
    Known redundancy on landing: the 10× `cargo test --manifest-path
-   tools/registry-consumer/Cargo.toml --all <prefix>_` subset loop is
+   tools/spec-spine/registry-consumer/Cargo.toml --all <prefix>_` subset loop is
    subsumed *for test execution* by the unfiltered `cargo test ...`
    immediately preceding it. The loop also provided a side-channel
    guarantee that each prefix in `CI_REGISTRY_CONSUMER_CONTRACTS` matches
@@ -145,7 +145,7 @@ The mapping between `ci-strict` gates and `ci` gates lives in §3 (FR-02).
 
 ### 2.4 ci-parity-check Coverage
 
-`tools/ci-parity-check` continues to enforce token parity on `make ci-strict`
+`tools/oap/ci-parity-check` continues to enforce token parity on `make ci-strict`
 only (spec 135 FR-04 rebinding). The Makefile MUST demarcate the fast-loop
 recipe tree with sentinel comments at line start: the literal text
 `# BEGIN ci-fast (spec 134)` opens the region and `# END ci-fast` closes it.
@@ -192,7 +192,7 @@ unchanged by spec 135):
 
 ### FR-03: Sentinel-bracketed parity exemption
 
-`tools/ci-parity-check/src/lib.rs` MUST treat the Makefile region between
+`tools/oap/ci-parity-check/src/lib.rs` MUST treat the Makefile region between
 `# BEGIN ci-fast (spec 134)` and `# END ci-fast` as opaque: no token from
 that region is required to mirror a workflow `run:` block, and no token from
 that region counts toward parity matches elsewhere.
@@ -238,7 +238,7 @@ a fast-loop bug.
 exemption is the only change to `ci-parity-check`; lines outside the
 sentinels remain bound by spec 104.
 
-**Atomic landing invariant.** The `tools/ci-parity-check` delta (sentinel
+**Atomic landing invariant.** The `tools/oap/ci-parity-check` delta (sentinel
 skip) MUST land in the same commit as — or strictly before — the Makefile
 sentinel-bracketed region. A commit that adds the bracketed Makefile region
 without the parity-check support fails `make ci-parity` locally and on CI.

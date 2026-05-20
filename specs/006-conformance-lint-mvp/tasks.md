@@ -3,7 +3,7 @@
 **Input**: `/specs/006-conformance-lint-mvp/`  
 **Prerequisites**: Features **001** (tree layout), **003–005** (rules to approximate)
 
-**Feature status**: **Implemented** — `tools/spec-lint/` + spec/plan.
+**Feature status**: **Implemented** — `tools/spec-spine/spec-lint/` + spec/plan.
 
 ## Phase 1: Spec
 
@@ -11,7 +11,7 @@
 
 ## Phase 2: Tool
 
-- [x] T002 Create **`tools/spec-lint/`** with **`spec-lint`** binary, **`README.md`** (heuristics + exit codes)
+- [x] T002 Create **`tools/spec-spine/spec-lint/`** with **`spec-lint`** binary, **`README.md`** (heuristics + exit codes)
 - [x] T003 Implement **W-002** / **W-003** ( **`spec.md`** frontmatter **`status`** + body heuristics)
 - [x] T004 Implement **W-001** / **W-004** / **W-005** ( **`tasks.md`** + **`execution/`** paths)
 - [x] T005 **`--fail-on-warn`**, default exit **0** with warnings on stderr
@@ -19,7 +19,7 @@
 
 ## Phase 3: Repo & CI
 
-- [x] T007 Root [README.md](../../README.md) link to **006**; [`.gitignore`](../../.gitignore) exception for **`tools/spec-lint/Cargo.lock`**
+- [x] T007 Root [README.md](../../README.md) link to **006**; [`.gitignore`](../../.gitignore) exception for **`tools/spec-spine/spec-lint/Cargo.lock`**
 - [x] T008 [`.github/workflows/spec-conformance.yml`](../../.github/workflows/spec-conformance.yml): run **`spec-lint`** (non-blocking)
 
 ## Phase 4: Verify

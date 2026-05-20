@@ -19,7 +19,7 @@ code_aliases: ["CONSTITUTIONAL_FREEZE"]
 extends:
   - spec: "001-spec-compiler-mvp"
     paths:
-      - tools/spec-compiler
+      - tools/spec-spine/spec-compiler
     nature: additive
 constrains:
   - kind: invariant-freeze
@@ -91,7 +91,7 @@ the immediate intent is to freeze spec 000's invariants.
 
 ### In scope (this commit)
 
-- New `KNOWN_KEYS` entries in `tools/spec-compiler/src/lib.rs`:
+- New `KNOWN_KEYS` entries in `tools/spec-spine/spec-compiler/src/lib.rs`:
   `amends`, `amends_sections`, `unamendable`.
 - Three new optional fields on `FeatureRecord`, serialized in the
   registry as `amends`, `amendsSections`, `unamendable`.
@@ -102,7 +102,7 @@ the immediate intent is to freeze spec 000's invariants.
 - Schema additions in `standards/schemas/spec-spine/registry.schema.json`:
   three optional `array<string>` fields under `featureRecord`.
 - `SPEC_VERSION` bump 1.3.0 → 1.4.0.
-- Test fixture `tools/spec-compiler/tests/v011_unamendable.rs` — five
+- Test fixture `tools/spec-spine/spec-compiler/tests/v011_unamendable.rs` — five
   test cases covering: overlap fires, non-overlap silent, short-form
   id resolution, empty unamendable list silent, multi-overlap reports
   each.
@@ -182,7 +182,7 @@ applying.
 
 ## 6. Acceptance
 
-- **AC-1.** `cargo test --manifest-path tools/spec-compiler/Cargo.toml`
+- **AC-1.** `cargo test --manifest-path tools/spec-spine/spec-compiler/Cargo.toml`
   passes. The new test file `tests/v011_unamendable.rs` covers FR-002,
   FR-003, and the silent-cases.
 - **AC-2.** `repo_spec_version_is_1_4_0` (renamed from `…1_3_0`)

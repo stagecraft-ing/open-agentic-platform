@@ -4594,7 +4594,7 @@ assumed spec 143's `amends: 115` would clear
 claimed by 115 via 115's `implements:` list) through
 spec 133's amends-aware rule. Reading the gate
 implementation
-(`tools/spec-code-coupling-check/src/lib.rs:300-302`,
+(`tools/spec-spine/spec-code-coupling-check/src/lib.rs:300-302`,
 `legitimate_owners`) corrected the model: spec 133's
 `amends:` and `amendmentRecord:` source classes fire
 ONLY when the violated path is itself a

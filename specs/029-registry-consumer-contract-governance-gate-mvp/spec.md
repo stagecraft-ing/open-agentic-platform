@@ -16,11 +16,11 @@ summary: >
 extends:
   - spec: "002-registry-consumer-mvp"
     paths:
-      - tools/registry-consumer
+      - tools/spec-spine/registry-consumer
     nature: additive
 refines:
   - paths:
-      - tools/registry-consumer
+      - tools/spec-spine/registry-consumer
     aspect: contract-tests
 ---
 
@@ -37,7 +37,7 @@ Institutionalize contract doctrine so future work is evaluated under governance 
 - **FR-003**: Repository includes a PR/reviewer checklist for observable output, ordering, channel routing, exit behavior, fixture updates, and versioning language.
 - **FR-004**: Governance docs define the current fixture corpus as contract baseline for future regression judgment.
 - **FR-005**: Main CI path explicitly runs fixture-bearing registry-consumer contract test suites.
-- **FR-006**: No runtime behavior changes in `tools/registry-consumer/src/`.
+- **FR-006**: No runtime behavior changes in `tools/spec-spine/registry-consumer/src/`.
 
 ## Out of scope
 

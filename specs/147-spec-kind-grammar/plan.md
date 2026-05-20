@@ -18,7 +18,7 @@ without failing. Schema bumps to 1.5.0.
 
 ### Changes
 
-1. `tools/spec-compiler/src/lib.rs`
+1. `tools/spec-spine/spec-compiler/src/lib.rs`
    - Extend `KNOWN_KEYS` (around line 31–51) with the new field
      names: `shape`, `category`, `supersedes`, `superseded_by`,
      `retirement_rationale`, `provides`, `selectable_by`,
@@ -37,7 +37,7 @@ without failing. Schema bumps to 1.5.0.
      §Grammar additions).
    - Define `SHAPE_TABLE` constant (the (kind, shape) lookup).
    - Add parsing for each new field on `FeatureRecord` struct
-     (`tools/spec-compiler/src/lib.rs:368` area).
+     (`tools/spec-spine/spec-compiler/src/lib.rs:368` area).
    - Implement V-012 through V-019 violation emission at warning
      severity (use `severity: "warning"` field on Violation).
    - Disambiguate `implements:` shape: parse as `String` if YAML
@@ -46,7 +46,7 @@ without failing. Schema bumps to 1.5.0.
    - Serialize `implements:` to registry output (currently silently
      consumed per Agent 1 finding).
 
-2. `tools/spec-compiler/src/lib.rs` — bump `SPEC_VERSION` constant
+2. `tools/spec-spine/spec-compiler/src/lib.rs` — bump `SPEC_VERSION` constant
    from 1.4.0 to 1.5.0.
 
 3. `standards/schemas/spec-spine/registry.schema.json`
@@ -57,7 +57,7 @@ without failing. Schema bumps to 1.5.0.
    - Bump expected `spec_version` to match 1.5.0.
 
 5. **Test fixtures.**
-   - Update `tools/spec-compiler/tests/schema_conformance.rs` to
+   - Update `tools/spec-spine/spec-compiler/tests/schema_conformance.rs` to
      reflect the new schema version.
    - Update `crates/featuregraph/tests/golden/features_graph.json`
      after the first compile (sidecar regeneration commit).
@@ -79,7 +79,7 @@ make index             # codebase-indexer accepts new fields
 
 ### Revert path
 
-Revert `tools/spec-compiler/src/lib.rs` and the schema bump.
+Revert `tools/spec-spine/spec-compiler/src/lib.rs` and the schema bump.
 Existing specs continue to compile under 1.4.0.
 
 ## Phase 2 — `kind:` backfill and V-012 promotion
@@ -90,7 +90,7 @@ promotes from warning to error.
 ### Changes
 
 1. **Survey the 28 unkinded specs** (list to be produced by
-   `tools/registry-consumer status-report --filter no-kind --json`,
+   `tools/spec-spine/registry-consumer status-report --filter no-kind --json`,
    added as a tooling subcommand in Phase 1).
 
 2. **Assign a kind to each.** Most will resolve to existing values
@@ -139,7 +139,7 @@ enforcement is a distinct constitutional act.
    amendment with its own scrutiny.
 
 3. **Tooling additions.**
-   - `tools/registry-consumer` gains `--kind`, `--shape`,
+   - `tools/spec-spine/registry-consumer` gains `--kind`, `--shape`,
      `--category` filter flags.
    - `crates/featuregraph` adds queries for capability ↔ registry
      resolution and profile selection traversal.
@@ -177,7 +177,7 @@ error severity.
    this plan was a no-op; what looks like backfill is actually
    auto-promotion via routing.
 
-2. **Rewire W-002 and W-003** in `tools/spec-lint/src/lib.rs`:
+2. **Rewire W-002 and W-003** in `tools/spec-spine/spec-lint/src/lib.rs`:
    - Remove `superseded_pointer_ok(body)` prose scan helper.
    - Remove `retired_rationale_ok(body)` prose scan helper.
    - Replace W-002 check with: `status == "superseded" && superseded_by.is_none()`.
@@ -200,13 +200,13 @@ Restore prose scans; demote V-018, V-019 to warning.
 
 ### Backward compatibility with codebase-index
 
-`tools/codebase-indexer` consumes `implements:` via its existing
+`tools/spec-spine/codebase-indexer` consumes `implements:` via its existing
 spec-frontmatter scan. The Phase 1 promotion of `implements:` to
 registry-serialized adds a new consumption path for
 `crates/featuregraph` (which today goes through codebase-index).
 The codebase-index continues to function unchanged.
 
-`tools/codebase-indexer/src/xref.rs:19` (`build_traceability`)
+`tools/spec-spine/codebase-indexer/src/xref.rs:19` (`build_traceability`)
 needs to consume the `primary: true` flag in implements items.
 This change ships in Phase 1 alongside the parsing.
 
@@ -225,7 +225,7 @@ backfill is small enough to do by hand if preferred.
 
 ### CI parity
 
-`tools/ci-parity-check` rules need no change; the amendment does
+`tools/oap/ci-parity-check` rules need no change; the amendment does
 not introduce new producer/consumer artifact dependencies.
 
 ## Risk register

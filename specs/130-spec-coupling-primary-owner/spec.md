@@ -20,11 +20,11 @@ establishes:
 extends:
   - spec: "001-spec-compiler-mvp"
     paths:
-      - tools/spec-compiler/src/lib.rs
+      - tools/spec-spine/spec-compiler/src/lib.rs
     nature: additive
   - spec: "101-codebase-index-mvp"
     paths:
-      - tools/codebase-indexer/src/spec_scanner.rs
+      - tools/spec-spine/codebase-indexer/src/spec_scanner.rs
     nature: additive
 constrains:
   - kind: invariant-freeze

@@ -2,7 +2,7 @@
 
 Status: **Contract stabilization complete; controlled extension mode active**.
 
-This document defines how changes to `tools/registry-consumer/` are classified and reviewed.
+This document defines how changes to `tools/spec-spine/registry-consumer/` are classified and reviewed.
 
 ## Stabilization boundary
 
@@ -17,11 +17,11 @@ The registry-consumer interface is now a governed contract-bearing tool. The fol
 - Sorting-order contracts (`027`)
 - stdout/stderr channel contracts (`028`)
 
-Normative behavior is defined by fixture-backed tests under `tools/registry-consumer/tests/fixtures/` and contract tests in `tools/registry-consumer/tests/cli.rs`.
+Normative behavior is defined by fixture-backed tests under `tools/spec-spine/registry-consumer/tests/fixtures/` and contract tests in `tools/spec-spine/registry-consumer/tests/cli.rs`.
 
 ## Change classification rubric (required)
 
-Every change touching `tools/registry-consumer/` MUST declare one class:
+Every change touching `tools/spec-spine/registry-consumer/` MUST declare one class:
 
 1. **contract extension**
    - Adds new externally visible behavior and new contract fixtures/tests.
@@ -60,7 +60,7 @@ A proposed `registry-consumer` extension is acceptable only if it satisfies all 
 
 ## Release gate checklist (required)
 
-For every PR touching `tools/registry-consumer/`, answer:
+For every PR touching `tools/spec-spine/registry-consumer/`, answer:
 
 - Does this change observable output?
 - Does this change ordering?
@@ -73,7 +73,7 @@ If any observable behavior changes, fixture updates and contract rationale are m
 
 ## Contract baseline corpus
 
-The current fixture set under `tools/registry-consumer/tests/fixtures/` is the baseline contract corpus.
+The current fixture set under `tools/spec-spine/registry-consumer/tests/fixtures/` is the baseline contract corpus.
 
 Future work is judged against this baseline. Do not update fixtures to match implementation drift without explicit contract justification.
 

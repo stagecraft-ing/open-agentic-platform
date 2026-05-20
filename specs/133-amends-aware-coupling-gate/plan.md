@@ -32,11 +32,11 @@ implementation shapes follow:
 new crates expected.
 **Storage**: file-system reads of `build/codebase-index/index.json` and
 `specs/*/spec.md` frontmatter. No persistent state introduced.
-**Testing**: `cargo test --manifest-path tools/spec-code-coupling-check/Cargo.toml`
+**Testing**: `cargo test --manifest-path tools/spec-spine/spec-code-coupling-check/Cargo.toml`
 (integration tests under `tests/cli.rs`); spec-compiler integration tests
 remain unaffected.
 **Target Platform**: CI (Linux runners) + local macOS/Linux dev shells.
-**Project Type**: CLI tool (`tools/spec-code-coupling-check/`) consumed
+**Project Type**: CLI tool (`tools/spec-spine/spec-code-coupling-check/`) consumed
 by `make ci-spec-code-coupling` and `.github/workflows/ci-spec-code-coupling.yml`.
 **Performance Goals**: gate runtime under 500 ms on a 130-spec corpus;
 amend-aware resolution adds at most one additional pass over the index's
@@ -126,11 +126,11 @@ Look for `amends` / `amendmentRecord` keys. Outcome decides Shape A vs B.
 
 If Phase 0 shows missing data:
 
-1. Extend `tools/codebase-indexer/src/spec_scanner.rs` to read both
+1. Extend `tools/spec-spine/codebase-indexer/src/spec_scanner.rs` to read both
    fields from frontmatter.
 2. Add `amends: Vec<String>` and `amendment_record: Option<String>`
    (or `Vec<String>` if multi-record patterns exist) to the
-   `TraceMapping` in `tools/codebase-indexer/src/types.rs`.
+   `TraceMapping` in `tools/spec-spine/codebase-indexer/src/types.rs`.
 3. Update `standards/schemas/spec-spine/codebase-index.schema.json` to declare the new
    fields under `traceability.mappings.items.properties`.
 4. Bump `SCHEMA_VERSION` (compile-time const) in `lib.rs` or wherever
@@ -141,7 +141,7 @@ If Phase 0 shows missing data:
 
 ### Phase 2 — Gate resolver extension (always)
 
-1. Extend the typed `Index` loader in `tools/spec-code-coupling-check/`
+1. Extend the typed `Index` loader in `tools/spec-spine/spec-code-coupling-check/`
    to surface the two new fields.
 2. Modify the `legitimate_owners()` resolver per spec §5.2 — three
    owner classes, union semantics, source-tagged for renderer.
@@ -150,7 +150,7 @@ If Phase 0 shows missing data:
 
 ### Phase 3 — Tests
 
-Add integration test fixtures under `tools/spec-code-coupling-check/tests/cli.rs`
+Add integration test fixtures under `tools/spec-spine/spec-code-coupling-check/tests/cli.rs`
 covering AC-1 through AC-6 from the spec. Each fixture builds a synthetic
 `index.json` (extending the existing helper `write_synthetic_index`) with
 the new fields populated.

@@ -16,11 +16,11 @@ summary: >
 extends:
   - spec: "002-registry-consumer-mvp"
     paths:
-      - tools/registry-consumer
+      - tools/spec-spine/registry-consumer
     nature: additive
 refines:
   - paths:
-      - tools/registry-consumer
+      - tools/spec-spine/registry-consumer
     aspect: contract-tests
 ---
 
@@ -32,7 +32,7 @@ Reduce documentation drift for `list`, `show`, and `status-report` by treating R
 
 ## Requirements
 
-- **FR-001**: Committed registry fixtures under `tools/registry-consumer/tests/fixtures/readme_examples/` drive documented commands.
+- **FR-001**: Committed registry fixtures under `tools/spec-spine/registry-consumer/tests/fixtures/readme_examples/` drive documented commands.
 - **FR-002**: Integration tests assert CLI stdout for those commands matches committed expected-output files (byte-for-byte after normalizing line endings for tests if needed).
 - **FR-003**: Integration tests assert README fenced blocks between `readme-contract` markers match the same expected-output files.
 - **FR-004**: README separates **human-facing** (default text table / pretty JSON where shown for readability) from **automation-facing** (JSON and compact one-line) examples.
@@ -41,4 +41,4 @@ Reduce documentation drift for `list`, `show`, and `status-report` by treating R
 ## Out of scope
 
 - Generating README from templates at build time
-- Broad documentation rewrites outside `tools/registry-consumer/README.md`
+- Broad documentation rewrites outside `tools/spec-spine/registry-consumer/README.md`

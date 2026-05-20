@@ -144,7 +144,7 @@ A contributor edits `extractionOutput.ts` to add a new required field, but does 
 
 **Acceptance Scenarios:**
 
-1. **Given** a new commit that modifies `extractionOutput.ts`, **When** `make ci` runs, **Then** the schema parity check (`tools/schema-parity-check` or equivalent — implementation choice) compares the Zod schema's structural fingerprint with the Rust serde fingerprint, and fails the build if the two differ.
+1. **Given** a new commit that modifies `extractionOutput.ts`, **When** `make ci` runs, **Then** the schema parity check (`tools/oap/schema-parity-check` or equivalent — implementation choice) compares the Zod schema's structural fingerprint with the Rust serde fingerprint, and fails the build if the two differ.
 2. **Given** the parity check passes, **When** Rust code constructs an `ExtractionOutput` and serializes it, **Then** stagecraft's Zod parser accepts it without modification across a fixture set covering all extractor kinds.
 3. **Given** the parity check fails, **When** the contributor reads the error output, **Then** the message names (a) the source-of-truth file (`extractionOutput.ts`), (b) the mirror file (`crates/factory-contracts/src/knowledge.rs`), (c) the specific divergence (added field, removed field, type mismatch), and (d) the schema version each side claims.
 
@@ -186,7 +186,7 @@ An object was extracted server-side via the connector pipeline (spec 115 worker)
 
 - **FR-001**: A new module `crates/factory-contracts/src/knowledge.rs` MUST define serde types that mirror `platform/services/stagecraft/api/knowledge/extractionOutput.ts` exactly. The Rust types include `ExtractionOutput`, `ExtractionPage`, `ExtractionOutlineEntry`, `Extractor`, `AgentRun`, and `TokenSpend`. Field names use serde rename to match the camelCase TS shape.
 - **FR-002**: The schema version MUST be a compile-time const `pub const KNOWLEDGE_SCHEMA_VERSION: &str = "1.x.x"` in the Rust mirror, and a corresponding `export const KNOWLEDGE_SCHEMA_VERSION = "1.x.x"` in the TS source. Both MUST be declared `as const` / `const` so they are resolvable at compile/build time.
-- **FR-003**: A new check `tools/schema-parity-check` (or equivalent — implementation choice does not pin tool name) MUST run as part of `make ci` and `make registry`. The check MUST: (a) read the Zod schema's structural fingerprint, (b) read the Rust serde structural fingerprint, (c) compare the two, (d) exit non-zero with a diagnostic message naming both files and the divergence on mismatch.
+- **FR-003**: A new check `tools/oap/schema-parity-check` (or equivalent — implementation choice does not pin tool name) MUST run as part of `make ci` and `make registry`. The check MUST: (a) read the Zod schema's structural fingerprint, (b) read the Rust serde structural fingerprint, (c) compare the two, (d) exit non-zero with a diagnostic message naming both files and the divergence on mismatch.
 - **FR-004**: Any modification to `extractionOutput.ts` that does not have a corresponding modification to `knowledge.rs` MUST fail CI. The reverse also holds.
 
 #### Canonical extractor
@@ -267,7 +267,7 @@ An object was extracted server-side via the connector pipeline (spec 115 worker)
 - **Whether OPC should ever do agent extraction.** The v1 answer is no — keys, governance, and cost ceilings stay on the server. A future spec may revisit for air-gapped deployments where stagecraft is unreachable; that scenario is currently out of project scope.
 - **Whether `artifact-extract` should be split into per-mime crates.** Currently a single crate with a dispatch `match`. As the deterministic-mime list grows (CSV, RTF, ODT, etc.), the crate may need to split. V1: single crate; revisit when the dispatch exceeds ~10 arms.
 - **Whether the stagecraft endpoint should accept batched POSTs.** Bundles can be 50+ objects. Per-object POSTs are simple but chatty. V1: per-object POSTs with concurrency cap; revisit if profiling shows network round-trips dominate stage time.
-- **Schema parity check tool name and home.** Could live in `tools/schema-parity-check` (a new tool) or inside `make ci` as a script. V1 reserves the name but defers the implementation choice to plan.md.
+- **Schema parity check tool name and home.** Could live in `tools/oap/schema-parity-check` (a new tool) or inside `make ci` as a script. V1 reserves the name but defers the implementation choice to plan.md.
 - **Resolver tie-breaker on identical `completed_at`.** Currently descending by `completed_at`; if two records share the timestamp (clock skew), we'd want a deterministic tiebreaker. V1: `extractor.kind` lexicographic ascending. Open to revision before implementation.
 
 ## 8. Provenance

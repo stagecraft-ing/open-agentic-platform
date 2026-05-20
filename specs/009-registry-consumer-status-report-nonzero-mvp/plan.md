@@ -8,10 +8,10 @@ Add a tiny UX enhancement for automation/readability by allowing `status-report`
 
 ## Technical Context
 
-- Language: Rust 2021 (`tools/registry-consumer`)
+- Language: Rust 2021 (`tools/spec-spine/registry-consumer`)
 - Reuse existing `status_report()` output from Features **007/008**
 - Keep trust model and exit codes unchanged (Feature **002**)
-- Extend integration tests in `tools/registry-consumer/tests/cli.rs`
+- Extend integration tests in `tools/spec-spine/registry-consumer/tests/cli.rs`
 
 ## Constitution Check
 
@@ -27,7 +27,7 @@ Add a tiny UX enhancement for automation/readability by allowing `status-report`
 2. Filter computed report rows by `count > 0` when enabled
 3. Apply same filtered rows to text and JSON output
 4. Add integration tests for text + JSON filtering and default stability
-5. Update `tools/registry-consumer/README.md`
+5. Update `tools/spec-spine/registry-consumer/README.md`
 
 ## Exit codes
 

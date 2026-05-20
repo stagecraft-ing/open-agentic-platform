@@ -21,8 +21,8 @@ summary: >
   Phase 1), VALID_KINDS enum, SHAPE_TABLE reservation, and `implements:` scalar/list
   serialization. SPEC_VERSION bumps 1.4.0 → 1.5.0.
 establishes:
-  - tools/spec-compiler/src/lib.rs
-  - tools/spec-compiler/src/main.rs
+  - tools/spec-spine/spec-compiler/src/lib.rs
+  - tools/spec-spine/spec-compiler/src/main.rs
   - build/spec-registry/registry.json
 ---
 
@@ -121,7 +121,7 @@ A standalone `.yaml` appears under an authored path (e.g. `docs/bad.yaml`). The 
 
 ### Key Entities
 
-- **Compiler CLI**: The binary + library crate(s) under `tools/spec-compiler/` (path fixed in `plan.md`).
+- **Compiler CLI**: The binary + library crate(s) under `tools/spec-spine/spec-compiler/` (path fixed in `plan.md`).
 - **Compilation run**: One invocation producing a pair of JSON files.
 
 ## Success Criteria *(mandatory)*
@@ -139,7 +139,7 @@ A standalone `.yaml` appears under an authored path (e.g. `docs/bad.yaml`). The 
 
 - Deliberately **not** specifying axiomregent/xray/featuregraph; Feature 001 is the **compiler MVP** only.
 
-### Session 2026-05-04 — Implementation behaviour hoisted from `tools/spec-compiler/README.md`
+### Session 2026-05-04 — Implementation behaviour hoisted from `tools/spec-spine/spec-compiler/README.md`
 
 These clauses refine the spec's narrative with binary-specific normative
 behaviour that has been part of `spec-compiler` since 2026-03-22 but lived

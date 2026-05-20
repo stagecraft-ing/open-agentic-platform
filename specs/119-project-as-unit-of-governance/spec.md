@@ -261,7 +261,7 @@ Set on amended specs (087/092/094/099 in this case). Points to the spec that rec
 
 ### 7.3 Compiler treatment
 
-The spec compiler (tools/spec-compiler) recognises both fields without treating them as semantic gates: amendments do not change the amended spec's `status` or `implementation` fields. The compiler emits both fields into the registry verbatim. Spec lint MAY warn on dangling references (e.g. `amends: ["087"]` without 087 carrying matching `amendment_record:`), but this is non-blocking in the introductory release.
+The spec compiler (tools/spec-spine/spec-compiler) recognises both fields without treating them as semantic gates: amendments do not change the amended spec's `status` or `implementation` fields. The compiler emits both fields into the registry verbatim. Spec lint MAY warn on dangling references (e.g. `amends: ["087"]` without 087 carrying matching `amendment_record:`), but this is non-blocking in the introductory release.
 
 ## 8. Out of Scope
 

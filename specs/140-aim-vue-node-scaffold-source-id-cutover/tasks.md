@@ -32,11 +32,11 @@ reality before writing any code. Per `plan.md` §Phase 0, findings are
 inline in PR description if any deviation surfaces.
 
 - [ ] T001 [P0] Confirm spec 140 frontmatter compiles cleanly:
-      `./tools/spec-compiler/target/release/spec-compiler compile`
+      `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`
       and verify exit 0 + spec 140 appears as `kind: amendment`,
       `amends: ["139"]` in
       `build/spec-registry/registry.json` via
-      `./tools/registry-consumer/target/release/registry-consumer show 140-aim-vue-node-scaffold-source-id-cutover`.
+      `./tools/spec-spine/registry-consumer/target/release/registry-consumer show 140-aim-vue-node-scaffold-source-id-cutover`.
 - [ ] T002 [P0] Verify `factory_upstreams` schema (composite-PK
       `(org_id, source_id)`, `role` enum admits `'orchestration'` /
       `'scaffold'`, `repo_url` / `ref` NOT NULL).
@@ -254,12 +254,12 @@ spec implementation complete.
 - [ ] T070 [P4] Run `make ci` (fast local CI loop, spec 134/135).
       Confirm exit 0.
 - [ ] T071 [P4] Run
-      `./tools/spec-code-coupling-check/target/release/spec-code-coupling-check`
+      `./tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check`
       and confirm spec 140's `implements:` list covers every touched
       production file with no warnings. (AC-7.)
 - [ ] T072 [P4] Recompile spec registry + codebase index:
-      `./tools/spec-compiler/target/release/spec-compiler compile`
-      and `./tools/codebase-indexer/target/release/codebase-indexer compile && render`.
+      `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`
+      and `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile && render`.
 - [ ] T073 [P4] Smoke-test in browser: open `/app/projects/new`
       against a freshly-synced org and confirm the form unlocks.
       Force a `stale-adapter-manifest` blocker by truncating the

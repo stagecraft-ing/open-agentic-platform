@@ -14,4 +14,4 @@ No interactive `/speckit.clarify` session required for the initial draft: scope 
 
 ## Next step
 
-`/speckit.tasks` to generate or refine [tasks.md](./tasks.md), then implement under `tools/spec-compiler/`.
+`/speckit.tasks` to generate or refine [tasks.md](./tasks.md), then implement under `tools/spec-spine/spec-compiler/`.

@@ -11,4 +11,4 @@
 >
 > See `standards/spec/constitution.md` §Constitutional invariants and
 > the spec-compiler's `SPEC_VERSION` constant in
-> `tools/spec-compiler/src/lib.rs` for the current de facto policy.
+> `tools/spec-spine/spec-compiler/src/lib.rs` for the current de facto policy.

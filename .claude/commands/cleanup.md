@@ -45,7 +45,7 @@ Run these commands to find unused exports, files, and dependencies:
 ```bash
 # Find unused exports across the monorepo
 # Check each package that has a tsconfig
-for dir in apps/desktop packages/ui tools/registry-consumer tools/spec-compiler tools/spec-lint; do
+for dir in apps/desktop packages/ui tools/spec-spine/registry-consumer tools/spec-spine/spec-compiler tools/spec-spine/spec-lint; do
   if [ -f "$dir/package.json" ]; then
     echo "=== Checking $dir ==="
     cd "$dir" && npx --yes knip --no-exit-code 2>/dev/null || echo "(knip not configured for $dir)"

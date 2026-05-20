@@ -128,8 +128,8 @@ gitops is fragile."
   not in repository structure.
 
 **Rationale:** Constitution Principle V (one canonical truth); the
-codebase-indexer (`tools/codebase-indexer/`) and the spec/code coupling
-gate (`tools/spec-code-coupling-check/`) both assume one repo for
+codebase-indexer (`tools/spec-spine/codebase-indexer/`) and the spec/code coupling
+gate (`tools/spec-spine/spec-code-coupling-check/`) both assume one repo for
 spec-to-code mapping. Splitting the gitops tree out forks those
 mappings.
 

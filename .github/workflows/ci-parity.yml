@@ -12,12 +12,12 @@ on:
     paths:
       - '.github/workflows/**'
       - 'Makefile'
-      - 'tools/ci-parity-check/**'
+      - 'tools/oap/ci-parity-check/**'
   pull_request:
     paths:
       - '.github/workflows/**'
       - 'Makefile'
-      - 'tools/ci-parity-check/**'
+      - 'tools/oap/ci-parity-check/**'
   workflow_dispatch:
 
 permissions:
@@ -33,10 +33,10 @@ jobs:
 
       - uses: ./.github/actions/rust-ci
         with:
-          manifest-path: tools/ci-parity-check/Cargo.toml
+          manifest-path: tools/oap/ci-parity-check/Cargo.toml
 
       - name: Build ci-parity-check
-        run: cargo build --release --manifest-path tools/ci-parity-check/Cargo.toml
+        run: cargo build --release --manifest-path tools/oap/ci-parity-check/Cargo.toml
 
       - name: Drift check (workflow -> Makefile)
-        run: ./tools/ci-parity-check/target/release/ci-parity-check
+        run: ./tools/oap/ci-parity-check/target/release/ci-parity-check

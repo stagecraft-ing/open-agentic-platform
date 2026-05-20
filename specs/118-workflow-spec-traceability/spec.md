@@ -16,7 +16,7 @@ code_aliases: ["WORKFLOW_TRACEABILITY"]
 extends:
   - spec: "101-codebase-index-mvp"
     paths:
-      - tools/codebase-indexer
+      - tools/spec-spine/codebase-indexer
       - build/codebase-index/CODEBASE-INDEX.md
     nature: additive
 refines:
@@ -25,7 +25,7 @@ refines:
     aspect: spec-header-convention
 summary: >
   Adopt a header-line convention `# Spec: NNN-slug` in every
-  .github/workflows/*.yml. Extend tools/codebase-indexer to scan workflow
+  .github/workflows/*.yml. Extend tools/spec-spine/codebase-indexer to scan workflow
   files for the convention and emit a `workflow_traceability` block in
   index.json, rendered as a new "Layer 5: CI Workflow Traceability" section
   of CODEBASE-INDEX.md. Closes the gap where Rust crates trace to specs via
@@ -78,7 +78,7 @@ and renders a new layer of the codebase index.
 - **Validation is governed.** A new diagnostic code (`I-105`) fires when a
   workflow has neither a `# Spec:` header nor an allowlist entry.
 - **No new tools.** All work lives inside the existing
-  `tools/codebase-indexer` crate. No new binaries, no new flags.
+  `tools/spec-spine/codebase-indexer` crate. No new binaries, no new flags.
 - **Allowlist for genuinely spec-less workflows.** Some workflows
   (composite actions for installation, the AI workflows backed by 085) are
   fine as-is; the allowlist documents the rationale rather than failing
@@ -89,11 +89,11 @@ and renders a new layer of the codebase index.
 ### In scope
 
 - Header convention specification.
-- `tools/codebase-indexer/src/workflows.rs` (new module): scan
+- `tools/spec-spine/codebase-indexer/src/workflows.rs` (new module): scan
   `.github/workflows/**/*.yml`, parse the leading comment block, extract
   `# Spec:` lines.
 - Index schema addition: `workflow_traceability: Vec<WorkflowTrace>`.
-- Allowlist file: `tools/codebase-indexer/workflow-allowlist.toml` lists
+- Allowlist file: `tools/spec-spine/codebase-indexer/workflow-allowlist.toml` lists
   workflow paths that are intentionally spec-less, each with a
   `reason: "..."` field.
 - Diagnostic `I-105: workflow file declares no Spec: header and is not on
@@ -125,7 +125,7 @@ Multiple `# Spec:` lines are allowed (some workflows back multiple specs).
 The slug MUST match a spec id known to the registry; an unknown slug is
 diagnostic `I-106` (warning, not error, because spec drafts may rename).
 
-Allowlist entries live in `tools/codebase-indexer/workflow-allowlist.toml`:
+Allowlist entries live in `tools/spec-spine/codebase-indexer/workflow-allowlist.toml`:
 
 ```toml
 [[allowlist]]
@@ -203,7 +203,7 @@ the renderer emits an `I-105` diagnostic line in the existing
 - **AC-4:** A new workflow added without `# Spec:` and not on the
   allowlist triggers `I-105` and fails `codebase-indexer check` (which is
   already a CI gate).
-- **AC-5:** `cargo test --manifest-path tools/codebase-indexer/Cargo.toml`
+- **AC-5:** `cargo test --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml`
   passes, including new unit tests for the workflow-scanning pass and the
   allowlist parser.
 
@@ -239,6 +239,6 @@ the indexer.
 - Spec 129 (`granular-package-oap-metadata`) extends the same convention
   pattern (`# Spec: NNN-slug` header) to Rust source files via
   `// Spec: specs/NNN-slug/spec.md`. The parser and index entries live
-  in the same `tools/codebase-indexer/` crate. Spec 129 bumps
+  in the same `tools/spec-spine/codebase-indexer/` crate. Spec 129 bumps
   `schemaVersion` 1.1.0 → 1.2.0 and extends `TraceSource`. No change
   to spec 118's workflow-header behaviour.

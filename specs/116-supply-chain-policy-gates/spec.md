@@ -221,13 +221,13 @@ SUPPLY_CHAIN_RUST_MANIFESTS = \
     crates/Cargo.toml \
     platform/services/deployd-api-rs/Cargo.toml \
     apps/desktop/src-tauri/Cargo.toml \
-    tools/spec-compiler/Cargo.toml \
-    tools/registry-consumer/Cargo.toml \
-    tools/spec-lint/Cargo.toml \
-    tools/codebase-indexer/Cargo.toml \
-    tools/policy-compiler/Cargo.toml \
-    tools/adapter-scopes-compiler/Cargo.toml \
-    tools/ci-parity-check/Cargo.toml \
+    tools/spec-spine/spec-compiler/Cargo.toml \
+    tools/spec-spine/registry-consumer/Cargo.toml \
+    tools/spec-spine/spec-lint/Cargo.toml \
+    tools/spec-spine/codebase-indexer/Cargo.toml \
+    tools/oap/policy-compiler/Cargo.toml \
+    tools/oap/adapter-scopes-compiler/Cargo.toml \
+    tools/oap/ci-parity-check/Cargo.toml \
     tools/shared/frontmatter/Cargo.toml
 
 ci-supply-chain-cargo:

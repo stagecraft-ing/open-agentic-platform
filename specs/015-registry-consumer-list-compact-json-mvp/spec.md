@@ -15,7 +15,7 @@ summary: >
 extends:
   - spec: "012-registry-consumer-list-json-mvp"
     paths:
-      - tools/registry-consumer
+      - tools/spec-spine/registry-consumer
     nature: additive
 ---
 

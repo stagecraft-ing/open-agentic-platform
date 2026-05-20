@@ -20,7 +20,7 @@ establishes:
 extends:
   - spec: "047-governance-control-plane"
     paths:
-      - tools/policy-compiler
+      - tools/oap/policy-compiler
     nature: additive
 refines:
   - aspect: spec-code-coherence-policy
@@ -133,7 +133,7 @@ When a trigger fires, the agent MUST:
 ## 5. Implementation
 
 - **Policy block** in `CLAUDE.md` follows the CONST-NNN format used by
-  001–004. Compiled by `tools/policy-compiler/`. Gate name is
+  001–004. Compiled by `tools/oap/policy-compiler/`. Gate name is
   `spec_code_coherence` — added to the compiler's recognized-gate
   allowlist (this is the spec 047 amendment).
 - **`.claude/rules/adversarial-prompt-refusal.md`** is the per-project
@@ -203,7 +203,7 @@ truthful so an action becomes more convenient.**
   `CONST-005-spec-code-coherence` with `mode: enforce`,
   `scope: global`, `gate: spec_code_coherence`. The policy compiler
   parses it without `V-106` (invalid gate) firing.
-- **AC-2.** `tools/policy-compiler/` recognises `spec_code_coherence`
+- **AC-2.** `tools/oap/policy-compiler/` recognises `spec_code_coherence`
   in the gate allowlist. Spec 047 carries
   `amended: 2026-05-02`, `amendment_record: "131-adversarial-prompt-refusal-policy"`.
 - **AC-3.** `.claude/rules/adversarial-prompt-refusal.md` exists and

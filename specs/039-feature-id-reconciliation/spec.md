@@ -16,7 +16,7 @@ summary: >
 extends:
   - spec: "001-spec-compiler-mvp"
     paths:
-      - tools/spec-compiler/src/lib.rs
+      - tools/spec-spine/spec-compiler/src/lib.rs
       - standards/schemas/spec-spine/registry.schema.json
     nature: additive
 ---
@@ -87,7 +87,7 @@ The field is optional (not in `required`). The compiler omits it when empty (`sk
 
 ### Compiler change
 
-1. Add `"code_aliases"` to `KNOWN_KEYS` in `tools/spec-compiler/src/lib.rs`.
+1. Add `"code_aliases"` to `KNOWN_KEYS` in `tools/spec-spine/spec-compiler/src/lib.rs`.
 2. Add `code_aliases: Option<Vec<String>>` to `FeatureRecord` with `#[serde(rename = "codeAliases", skip_serializing_if = "Option::is_none")]`.
 3. Parse from frontmatter, validate pattern, sort lexicographically.
 4. Cross-feature uniqueness check: build `HashMap<String, String>` (alias → feature id) during compilation; emit `V-005` on collision.
@@ -107,8 +107,8 @@ The field is optional (not in `required`). The compiler omits it when empty (`sk
 | Component | File | Change |
 |-----------|------|--------|
 | Schema | `standards/schemas/spec-spine/registry.schema.json` | Add `codeAliases` property |
-| Compiler | `tools/spec-compiler/src/lib.rs` | `KNOWN_KEYS`, `FeatureRecord`, validation |
-| Compiler tests | `tools/spec-compiler/tests/` | Schema conformance, golden, alias collision |
+| Compiler | `tools/spec-spine/spec-compiler/src/lib.rs` | `KNOWN_KEYS`, `FeatureRecord`, validation |
+| Compiler tests | `tools/spec-spine/spec-compiler/tests/` | Schema conformance, golden, alias collision |
 | Scanner source | `crates/featuregraph/src/registry_source.rs` | Deserialize `codeAliases` |
 | Scanner | `crates/featuregraph/src/scanner.rs` | `from_registry_record()` populates aliases |
 | Spec frontmatter | `specs/*/spec.md` | Add `code_aliases` where applicable |
@@ -120,7 +120,7 @@ The field is optional (not in `required`). The compiler omits it when empty (`sk
 - **SC-002**: Features without `code_aliases` in frontmatter have no `codeAliases` field in registry output.
 - **SC-003**: Duplicate alias across features produces `V-005` error in validation output.
 - **SC-004**: `featuregraph` scan resolves `// Feature: FEATUREGRAPH_REGISTRY` to `034-featuregraph-registry-scanner-fix` (or whichever kebab ID declares that alias) via the compiled registry path.
-- **SC-005**: Schema conformance tests pass (`tools/spec-compiler/tests/schema_conformance.rs`).
+- **SC-005**: Schema conformance tests pass (`tools/spec-spine/spec-compiler/tests/schema_conformance.rs`).
 - **SC-006**: `specVersion` in compiled output is `1.1.0`.
 
 ## Contract notes

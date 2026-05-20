@@ -14,8 +14,8 @@ depends_on:
   - "006"  # conformance-lint-mvp (precedent for static workflow linting)
 code_aliases: ["CI_PARITY_CONTRACT"]
 establishes:
-  - tools/ci-parity-check/src/lib.rs
-  - tools/ci-parity-check/src/main.rs
+  - tools/oap/ci-parity-check/src/lib.rs
+  - tools/oap/ci-parity-check/src/main.rs
   - .github/workflows/ci-parity.yml
 co_authority:
   - paths:
@@ -36,7 +36,7 @@ co_authority:
 summary: >
   Promote the root Makefile to the authoritative single source of truth for
   local validation parity with every CI-enforcing GitHub Actions workflow.
-  Introduce a drift-check binary (tools/ci-parity-check) and a CI job that
+  Introduce a drift-check binary (tools/oap/ci-parity-check) and a CI job that
   fails on drift between workflow `run:` blocks and Makefile recipes.
 ---
 
@@ -129,7 +129,7 @@ Explicitly **not** enforcing (excluded from the parity contract):
 
 ### 2.3 Drift-Check Tool
 
-A new Rust binary `tools/ci-parity-check` reads the enforcing workflows' YAML,
+A new Rust binary `tools/oap/ci-parity-check` reads the enforcing workflows' YAML,
 extracts every `run:` block's significant command lines (those invoking
 `cargo`, `pnpm`, `npm`, `npx`, `node`, or a `./tools/*/target/release/*` binary),
 normalises them, and asserts that each line's command skeleton appears in the
@@ -156,7 +156,7 @@ only prevents the Makefile from silently falling behind them.
 
 **Changes:**
 - New spec file (this one)
-- New Rust crate `tools/ci-parity-check/`
+- New Rust crate `tools/oap/ci-parity-check/`
 - New `ci-parity` target in the root `Makefile`
 - New workflow `.github/workflows/ci-parity.yml`
 - `.claude/commands/validate-and-fix.md` gains a one-line reference to
@@ -175,9 +175,9 @@ The enforcing-workflow list in §2.2 is authoritative. Adding a new workflow
 that gates a merge requires adding a row to that table and updating
 `ci-parity-check`'s configured workflow list in the same change.
 
-### FR-02: `tools/ci-parity-check` Binary
+### FR-02: `tools/oap/ci-parity-check` Binary
 
-A Rust crate at `tools/ci-parity-check/` MUST:
+A Rust crate at `tools/oap/ci-parity-check/` MUST:
 
 - Parse the YAML of each configured enforcing workflow (§2.2)
 - Extract significant command lines from every step's `run:` block
@@ -203,12 +203,12 @@ A `ci-parity` target MUST exist at the root of the `Makefile`. It builds
 - Run on `ubuntu-latest` with the project's standard Rust toolchain action
   (`dtolnay/rust-toolchain@<sha> # stable`)
 - Cache Rust dependencies (`Swatinem/rust-cache@<sha>`)
-- Build and run `tools/ci-parity-check`
+- Build and run `tools/oap/ci-parity-check`
 - Fail the job on drift
 
 ### FR-04.1: Precondition Check (Fresh-Clone Execution Parity)
 
-`tools/ci-parity-check` MUST also verify fresh-clone execution parity,
+`tools/oap/ci-parity-check` MUST also verify fresh-clone execution parity,
 not just command equality. The command-equality check guarantees that
 every `run:` block has a Makefile mirror; it does not guarantee the
 CI runner has the preconditions the command needs to succeed.
@@ -229,7 +229,7 @@ because the file exists as dev-workspace residue, fails on CI because
 the fresh clone has no such file.
 
 Consumer and producer rules are listed in
-`tools/ci-parity-check/src/lib.rs` (`CONSUMERS` and `PRODUCERS`
+`tools/oap/ci-parity-check/src/lib.rs` (`CONSUMERS` and `PRODUCERS`
 constants). Adding a new tool that reads or writes a governed artifact
 MUST extend those constants in the same change.
 
@@ -312,7 +312,7 @@ a pre-PR check, alongside the existing `make ci` step.
 
 - Spec 127 (`spec-code-coupling-gate`) plugs the
   `ci-spec-code-coupling.yml` workflow into the `ENFORCING_WORKFLOWS`
-  registry of `tools/ci-parity-check/src/lib.rs` and adds the matching
+  registry of `tools/oap/ci-parity-check/src/lib.rs` and adds the matching
   `ci-spec-code-coupling` Makefile target. The count of mirrored
   workflows moves from 9 → 11 (the 10th was `ci-supply-chain.yml` from
   spec 116). No change to the parity contract itself.
