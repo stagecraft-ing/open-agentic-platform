@@ -83,6 +83,43 @@ enum Command {
         #[arg(long, value_parser = clap::builder::PossibleValuesParser::new(KNOWN_STATUSES))]
         status: Option<String>,
     },
+    /// Show outgoing and incoming relationships for a spec
+    ShowRelationships {
+        spec_id: String,
+        /// Emit structured JSON output
+        #[arg(long)]
+        json: bool,
+    },
+    /// Walk supersedes relationships back and forward from a spec
+    ShowSupersessionChain {
+        spec_id: String,
+        /// Emit structured JSON output
+        #[arg(long)]
+        json: bool,
+    },
+    /// Find specs with constrains: pointing at a target spec's target_specs
+    ShowConstraintsOn {
+        spec_id: String,
+        /// Emit structured JSON output
+        #[arg(long)]
+        json: bool,
+    },
+    /// Output the authority set for a code path
+    ByAuthority {
+        path: String,
+        /// Filter to co_authority entries claiming this section name
+        #[arg(long)]
+        section: Option<String>,
+        /// Emit structured JSON output
+        #[arg(long)]
+        json: bool,
+    },
+    /// Validate the spec relationship graph for structural problems
+    ValidateGraph {
+        /// Emit problems as a JSON array
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 fn default_registry_path() -> PathBuf {
@@ -222,6 +259,155 @@ fn main() -> ExitCode {
             }
             ExitCode::SUCCESS
         }
+        Command::ShowRelationships { spec_id, json } => {
+            match registry.graph_relationships(&spec_id) {
+                None => exit_with_prefixed_message(
+                    1,
+                    format_args!("feature id not found: {spec_id}"),
+                ),
+                Some(view) => {
+                    if json {
+                        if let Err(code) = print_json_or_exit(&view, false) {
+                            return code;
+                        }
+                    } else {
+                        print_relationships_human(&view);
+                    }
+                    ExitCode::SUCCESS
+                }
+            }
+        }
+        Command::ShowSupersessionChain { spec_id, json } => {
+            match registry.supersession_chain(&spec_id) {
+                None => exit_with_prefixed_message(
+                    1,
+                    format_args!("feature id not found: {spec_id}"),
+                ),
+                Some(chain) => {
+                    if json {
+                        if let Err(code) = print_json_or_exit(&chain, false) {
+                            return code;
+                        }
+                    } else {
+                        print_supersession_chain_human(&chain);
+                    }
+                    ExitCode::SUCCESS
+                }
+            }
+        }
+        Command::ShowConstraintsOn { spec_id, json } => {
+            let result = registry.constraints_on(&spec_id);
+            if json {
+                let rows: Vec<serde_json::Value> = result
+                    .iter()
+                    .map(|(sid, kind)| {
+                        serde_json::json!({
+                            "spec_id": sid,
+                            "kind": kind
+                        })
+                    })
+                    .collect();
+                if let Err(code) = print_json_or_exit(&rows, false) {
+                    return code;
+                }
+            } else {
+                if result.is_empty() {
+                    println!("No constraints point at {spec_id}");
+                } else {
+                    println!("Constraints pointing at {spec_id}:");
+                    for (sid, kind) in &result {
+                        println!("  {:<44} kind: {}", sid, kind);
+                    }
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        Command::ByAuthority { path, section, json } => {
+            let result = registry.authority_for_path(&path, section.as_deref());
+            if json {
+                if let Err(code) = print_json_or_exit(&result, false) {
+                    return code;
+                }
+            } else {
+                if result.is_empty() {
+                    println!("No specs claim authority over: {path}");
+                } else {
+                    println!("Authority set for path: {path}");
+                    for entry in &result {
+                        println!("  {:<44} via: {}", entry.spec_id, entry.relationship);
+                    }
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        Command::ValidateGraph { json } => {
+            let problems = registry.validate_graph();
+            if json {
+                if let Err(code) = print_json_or_exit(&problems, false) {
+                    return code;
+                }
+            } else {
+                if problems.is_empty() {
+                    println!("Graph validation passed: no problems found.");
+                } else {
+                    for p in &problems {
+                        println!("[{}] {}", p.kind, p.message);
+                    }
+                }
+            }
+            if problems.is_empty() {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
+        }
+    }
+}
+
+fn print_relationships_human(view: &open_agentic_spec_registry_reader::RelationshipView) {
+    println!("Relationships for: {}", view.spec_id);
+    println!();
+    println!("Outgoing ({}):", view.outgoing.len());
+    if view.outgoing.is_empty() {
+        println!("  (none)");
+    } else {
+        for edge in &view.outgoing {
+            let spec_part = edge
+                .spec
+                .as_deref()
+                .map(|s| format!(" → {s}"))
+                .unwrap_or_default();
+            let paths_part = if edge.paths.is_empty() {
+                String::new()
+            } else {
+                format!(" [{}]", edge.paths.join(", "))
+            };
+            println!("  {}{}{}", edge.kind, spec_part, paths_part);
+        }
+    }
+    println!();
+    println!("Incoming ({}):", view.incoming.len());
+    if view.incoming.is_empty() {
+        println!("  (none)");
+    } else {
+        for edge in &view.incoming {
+            println!("  {} ← {}", edge.kind, edge.from_spec);
+        }
+    }
+}
+
+fn print_supersession_chain_human(
+    chain: &[open_agentic_spec_registry_reader::ChainEntry],
+) {
+    println!("Supersession chain (oldest → newest):");
+    for (i, entry) in chain.iter().enumerate() {
+        let scope_part = if entry.scope.is_empty() {
+            String::new()
+        } else {
+            format!(" (scope: {})", entry.scope)
+        };
+        let arrow = if i == 0 { "  " } else { "→ " };
+        println!("  {}{}{}", arrow, entry.spec_id, scope_part);
     }
 }
 

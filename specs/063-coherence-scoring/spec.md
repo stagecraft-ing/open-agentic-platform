@@ -20,6 +20,13 @@ code_aliases:
   - COHERENCE_SCORE
 sources:
   - ruflo
+establishes:
+  - crates/policy-kernel/src/coherence.rs
+extends:
+  - spec: "036-safety-tier-governance"
+    paths:
+      - crates/policy-kernel
+    nature: additive
 ---
 
 # Feature Specification: Coherence Scoring with Privilege Degradation

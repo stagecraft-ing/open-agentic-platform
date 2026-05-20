@@ -21,8 +21,6 @@ refines:
   - paths:
       - tools/registry-consumer
     aspect: json-serialization
-implements:
-  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Shared JSON serialization helper

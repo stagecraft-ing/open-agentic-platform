@@ -16,6 +16,9 @@ summary: >
   fast status retrieval instead of porcelain commands.
 code_aliases:
   - GIT_PANEL
+establishes:
+  - apps/desktop/src/components/GitPanel.tsx
+  - apps/desktop/src-tauri/src/commands/git.rs
 ---
 
 # Feature Specification: Comprehensive Git Panel

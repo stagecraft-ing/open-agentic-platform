@@ -33,14 +33,21 @@ depends_on:
   - "119"  # project-as-unit-of-governance (project = governance unit for the doc set)
   - "120"  # factory-extraction-stage (typed corpus to cite stakeholder docs against)
   - "121"  # claim-provenance-enforcement (validator + allowlist reused at Stage CD comparator)
-implements:
-  - path: crates/factory-contracts/src/stakeholder_docs.rs
-  - path: crates/factory-engine/src/stages/stage_cd.rs
-  - path: crates/factory-engine/src/stages/stage_cd_comparator.rs
-  - path: crates/factory-engine/skills/client-document-comparator.md
-  - path: crates/factory-engine/skills/project-charter-comparator.md
-  - path: tools/stakeholder-doc-lint/Cargo.toml
-  - path: apps/desktop/src/components/factory/StageCdReview.tsx
+establishes:
+  - crates/factory-engine/src/stages/stage_cd_comparator.rs
+  - crates/factory-engine/skills/client-document-comparator.md
+  - crates/factory-engine/skills/project-charter-comparator.md
+  - tools/stakeholder-doc-lint/Cargo.toml
+  - apps/desktop/src/components/factory/StageCdReview.tsx
+extends:
+  - spec: "075-factory-workflow-engine"
+    paths:
+      - crates/factory-engine/src/stages/stage_cd.rs
+    nature: wrapping
+  - spec: "121-claim-provenance-enforcement"
+    paths:
+      - crates/factory-contracts/src/stakeholder_docs.rs
+    nature: additive
 ---
 
 # 122 — Stakeholder-Doc Inversion and Stage CD Comparator

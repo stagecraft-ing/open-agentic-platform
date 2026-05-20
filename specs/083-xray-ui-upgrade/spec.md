@@ -19,8 +19,11 @@ summary: >
 code_aliases:
   - XRAY_UI
   - INSPECT_SURFACE
-implements:
-  - path: apps/desktop
+extends:
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    paths:
+      - apps/desktop
+    nature: additive
 ---
 
 # 083 — Xray v1.2.0 UI Surface

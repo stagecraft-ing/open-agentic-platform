@@ -13,11 +13,26 @@ depends_on:
   - "000"  # bootstrap-spec-system (Principle II — compiler-owned JSON)
   - "006"  # conformance-lint-mvp (precedent for static workflow linting)
 code_aliases: ["CI_PARITY_CONTRACT"]
-implements:
-  - path: Makefile
-  - path: tools/ci-parity-check
-  - path: .github/workflows/ci-parity.yml
-  - path: .claude/commands/validate-and-fix.md
+establishes:
+  - tools/ci-parity-check/src/lib.rs
+  - tools/ci-parity-check/src/main.rs
+  - .github/workflows/ci-parity.yml
+co_authority:
+  - paths:
+      - Makefile
+    section: ci-parity
+    with_specs:
+      - "102-governed-excellence"
+      - "127-spec-code-coupling-gate"
+      - "116-supply-chain-policy-gates"
+      - "128-spec-lint-default-fail-on-warn"
+      - "134-fast-local-ci-mode"
+      - "135-fast-ci-as-default"
+  - paths:
+      - .claude/commands/validate-and-fix.md
+    section: validate-and-fix-process
+    with_specs:
+      - "000-bootstrap-spec-system"
 summary: >
   Promote the root Makefile to the authoritative single source of truth for
   local validation parity with every CI-enforcing GitHub Actions workflow.

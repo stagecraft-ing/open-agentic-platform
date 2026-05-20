@@ -27,29 +27,29 @@ depends_on:
   - "047"  # governance-control-plane (policy bundle gating model calls)
   - "087"  # unified-workspace-architecture (knowledge intake domain, lifecycle)
   - "114"  # async-project-clone-pipeline (Topic + Subscription + run-row pattern reused here)
-implements:
-  - path: platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql
-  - path: platform/services/stagecraft/api/knowledge/extractionEvents.ts
-  - path: platform/services/stagecraft/api/knowledge/extractionWorker.ts
-  - path: platform/services/stagecraft/api/knowledge/extractionCore.ts
-  - path: platform/services/stagecraft/api/knowledge/extractionOutput.ts
-  - path: platform/services/stagecraft/api/knowledge/extractionPolicy.ts
-  - path: platform/services/stagecraft/api/knowledge/auditActions.ts
-  - path: platform/services/stagecraft/api/knowledge/prompts.ts
-  - path: platform/services/stagecraft/api/knowledge/magic.ts
-  - path: platform/services/stagecraft/api/knowledge/extractors/types.ts
-  - path: platform/services/stagecraft/api/knowledge/extractors/dispatch.ts
-  - path: platform/services/stagecraft/api/knowledge/extractors/index.ts
-  - path: platform/services/stagecraft/api/knowledge/extractors/deterministic-text.ts
-  - path: platform/services/stagecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts
-  - path: platform/services/stagecraft/api/knowledge/extractors/deterministic-docx.ts
-  - path: platform/services/stagecraft/api/knowledge/extractors/agent-base.ts
-  - path: platform/services/stagecraft/api/knowledge/extractors/agent-cost-helpers.ts
-  - path: platform/services/stagecraft/api/knowledge/extractors/agent-pdf-vision.ts
-  - path: platform/services/stagecraft/api/knowledge/extractors/agent-image-vision.ts
-  - path: platform/services/stagecraft/api/knowledge/knowledge.ts
-  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx
+establishes:
+  - platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql
+  - platform/services/stagecraft/api/knowledge/extractionEvents.ts
+  - platform/services/stagecraft/api/knowledge/extractionWorker.ts
+  - platform/services/stagecraft/api/knowledge/extractionCore.ts
+  - platform/services/stagecraft/api/knowledge/extractionOutput.ts
+  - platform/services/stagecraft/api/knowledge/extractionPolicy.ts
+  - platform/services/stagecraft/api/knowledge/auditActions.ts
+  - platform/services/stagecraft/api/knowledge/prompts.ts
+  - platform/services/stagecraft/api/knowledge/magic.ts
+  - platform/services/stagecraft/api/knowledge/extractors/types.ts
+  - platform/services/stagecraft/api/knowledge/extractors/dispatch.ts
+  - platform/services/stagecraft/api/knowledge/extractors/index.ts
+  - platform/services/stagecraft/api/knowledge/extractors/deterministic-text.ts
+  - platform/services/stagecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts
+  - platform/services/stagecraft/api/knowledge/extractors/deterministic-docx.ts
+  - platform/services/stagecraft/api/knowledge/extractors/agent-base.ts
+  - platform/services/stagecraft/api/knowledge/extractors/agent-cost-helpers.ts
+  - platform/services/stagecraft/api/knowledge/extractors/agent-pdf-vision.ts
+  - platform/services/stagecraft/api/knowledge/extractors/agent-image-vision.ts
+  - platform/services/stagecraft/api/knowledge/knowledge.ts
+  - platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx
+  - platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx
 ---
 
 # 115 — Knowledge Extraction Pipeline

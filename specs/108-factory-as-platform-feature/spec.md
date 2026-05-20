@@ -24,9 +24,6 @@ depends_on:
   - "088"  # factory-upstream-sync (superseded)
 supersedes:
   - "088"
-implements:
-  - path: platform/services/stagecraft/web/app/routes/app.factory.tsx
-  - path: platform/services/stagecraft/api/factory/
 ---
 
 # 108 — Factory as a First-Class Platform Feature

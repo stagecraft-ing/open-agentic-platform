@@ -169,6 +169,43 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
                 });
             }
         }
+
+        // ── Spec 130 — V-020: spec lacks relationship fields ──
+        //
+        // Fires when a spec declares no relationship to code or other specs
+        // (none of `establishes`, `extends`, `refines`, `supersedes`,
+        // `amends`, `co_authority`, `constrains`) and does not carry the
+        // bootstrap marker `origin: retroactive: true`. The eight
+        // relationship fields are the corpus's machine-readable governance
+        // model (spec 130). V-020 prevents new specs from accreting
+        // without declaring their relationships.
+        let has_relationship_field = [
+            "establishes",
+            "extends",
+            "refines",
+            "supersedes",
+            "amends",
+            "co_authority",
+            "constrains",
+        ]
+        .iter()
+        .any(|k| fm.get(*k).is_some());
+
+        let is_retroactive_bootstrap = fm
+            .get("origin")
+            .and_then(|v| v.as_mapping())
+            .and_then(|m| m.get("retroactive"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+
+        if !has_relationship_field && !is_retroactive_bootstrap {
+            w.push(Warning {
+                code: "V-020",
+                severity: "warning",
+                path: rel(repo_root, &spec_path),
+                message: "spec carries no relationship fields (establishes / extends / refines / supersedes / amends / co_authority / constrains) and is not marked `origin: retroactive: true`; declare an honest relationship per spec 130".into(),
+            });
+        }
     }
 
     if let Ok(tasks_raw) = fs::read_to_string(&tasks_path) {

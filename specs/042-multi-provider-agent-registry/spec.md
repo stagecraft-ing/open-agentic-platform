@@ -26,8 +26,8 @@ summary: >
   app's orchestrator path.
 code_aliases:
   - PROVIDER_REGISTRY
-implements:
-  - path: crates/provider-registry
+establishes:
+  - crates/provider-registry
 ---
 
 # Feature Specification: Multi-Provider Agent Registry

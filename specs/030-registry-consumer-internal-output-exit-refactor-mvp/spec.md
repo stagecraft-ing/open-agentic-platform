@@ -17,8 +17,6 @@ extends:
     paths:
       - tools/registry-consumer
     nature: additive
-implements:
-  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Internal output/exit refactor

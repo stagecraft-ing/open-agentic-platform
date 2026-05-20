@@ -10,6 +10,21 @@ risk: high
 depends_on:
   - "089"
 code_aliases: ["POST_CONVERGENCE_REMEDIATION"]
+refines:
+  - paths:
+      - apps/desktop/src-tauri/tauri.conf.json
+      - crates/factory-engine/src/artifact_store.rs
+      - crates/orchestrator/src/artifact.rs
+      - crates/policy-kernel/src/lib.rs
+      - platform/charts/stagecraft/templates/deployment.yaml
+      - platform/charts/deployd-api/templates/deployment.yaml
+      - platform/services/deployd-api-rs/src/config.rs
+      - platform/services/deployd-api-rs/src/auth.rs
+    aspect: security-hardening
+    refines_specs:
+      - "075-factory-workflow-engine"
+      - "052-state-persistence"
+      - "068-permission-runtime"
 summary: >
   Remediate security vulnerabilities, integrity gaps, and technical debt surfaced
   during codebase analysis after the governed convergence plan (089) completed.

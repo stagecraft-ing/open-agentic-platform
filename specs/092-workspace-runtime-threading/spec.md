@@ -19,9 +19,19 @@ summary: >
   workspace_id (spec 087); amended by spec 119 when workspace was collapsed
   into project.
 code_aliases: ["PROJECT_THREADING"]
-implements:
-  - path: crates/orchestrator
-  - path: crates/factory-contracts
+extends:
+  - spec: "052-state-persistence"
+    paths:
+      - crates/orchestrator/src/manifest.rs
+      - crates/orchestrator/src/state.rs
+      - crates/orchestrator/src/lib.rs
+    nature: additive
+  - spec: "041-checkpoint-restore-ui"
+    paths:
+      - crates/axiomregent/src/checkpoint/types.rs
+      - crates/axiomregent/src/checkpoint/provider.rs
+      - crates/axiomregent/src/checkpoint/store.rs
+    nature: additive
 ---
 
 # 092 — Project Runtime Threading

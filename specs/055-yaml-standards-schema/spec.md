@@ -24,6 +24,9 @@ summary: >
 code_aliases:
   - YAML_STANDARDS
   - CODING_STANDARDS_SCHEMA
+establishes:
+  - crates/standards-loader
+  - standards/schema/standard.schema.json
 sources:
   - equilateral-agents
 ---

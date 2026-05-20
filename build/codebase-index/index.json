@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "c5e362b79eec091cccee645c5549d54f0428554663a0605542b385600aeac68a",
+    "contentHash": "64d922742a91e717ff41d7a9b943beb9c240bc3221cdadb17bf8df668af96bef",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -8,6 +8,118 @@
   "diagnostics": {
     "errors": [],
     "warnings": [
+      {
+        "code": "I-101",
+        "message": "spec \"033-axiomregent-activation\" declares implements path \"apps/desktop/src-tauri/src/commands/sidecars.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"038-titor-tauri-command-wiring\" declares implements path \"apps/desktop/src-tauri/src/commands/titor.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"040-blockoli-semantic-search-wiring\" declares implements path \"apps/desktop/src-tauri/src/commands/search.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"056-session-memory\" declares implements path \"packages/memory-mcp\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"057-notification-system\" declares implements path \"apps/desktop/src/lib/notificationChannels.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"057-notification-system\" declares implements path \"apps/desktop/src/lib/notificationOrchestrator.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"058-file-mention-system\" declares implements path \"apps/desktop/src/components/FileMentionAutocomplete.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"058-file-mention-system\" declares implements path \"apps/desktop/src/lib/fileMentionSystem.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"059-git-panel\" declares implements path \"apps/desktop/src/components/GitPanel.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"060-panel-event-bus\" declares implements path \"apps/desktop/src/lib/panelEventBus.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"061-conductor-track-lifecycle\" declares implements path \".claude/agents/conductor.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"062-multi-model-chaining\" declares implements path \"crates/agent/src/chain.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"064-websocket-reconnection\" declares implements path \"apps/desktop/src/lib/wsReconnection.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"065-encrypted-keychain\" declares implements path \"apps/desktop/src-tauri/src/keychain.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"065-encrypted-keychain\" declares implements path \"apps/desktop/src/components/CredentialPicker.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"066-vscode-extension\" declares implements path \"packages/vscode-extension\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"070-prompt-assembly-cache\" declares implements path \"crates/agent/src/prompt_assembly.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"074-factory-ingestion\" declares implements path \"factory\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"076-factory-desktop-panel\" declares implements path \"apps/desktop/src/components/FactoryPipelinePanel.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"081-factory-test-hydration\" declares implements path \"factory\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"086-open-source-launch\" declares implements path \"CHANGELOG.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"086-open-source-launch\" declares implements path \"CODE_OF_CONDUCT.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"086-open-source-launch\" declares implements path \"SECURITY.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"087-unified-workspace-architecture\" declares implements path \"packages/project-sdk\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"088-factory-upstream-sync\" declares implements path \"factory/upstream-map.yaml\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"102-governed-excellence\" declares implements path \"factory/contract/checks\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"102-governed-excellence\" declares implements path \"factory/contract/schemas/governance-certificate.schema.json\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"106-rauthy-native-oidc-and-membership\" declares implements path \"platform/services/stagecraft/api/auth/rauthySeed.ts\" which is not a known package, adapter, or existing file/directory"
+      },
       {
         "code": "I-101",
         "message": "spec \"111-org-agent-catalog-sync\" declares implements path \"platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx\" which is not a known package, adapter, or existing file/directory"
@@ -47,6 +159,14 @@
       {
         "code": "I-101",
         "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/project-charter-comparator.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"148-auth-driver-registry\" declares implements path \"crates/auth-driver/\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"149-saml-auth-driver\" declares implements path \"crates/auth-driver-saml/\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
@@ -1411,9 +1531,21 @@
         "amendmentRecord": "147-spec-kind-grammar",
         "implementingPaths": [
           {
+            "path": "build/spec-registry/registry.json",
+            "source": "spec-implements"
+          },
+          {
             "name": "open_agentic_spec_compiler",
             "path": "tools/spec-compiler",
             "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "tools/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-compiler/src/main.rs",
+            "source": "spec-implements"
           }
         ],
         "specId": "001-spec-compiler-mvp",
@@ -1444,11 +1576,11 @@
       {
         "implementingPaths": [
           {
-            "path": "tools/registry-consumer",
+            "path": "tools/registry-consumer/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-compiler",
+            "path": "tools/spec-compiler/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -1468,7 +1600,7 @@
       {
         "implementingPaths": [
           {
-            "path": "packages/verification-profiles",
+            "path": "crates/orchestrator",
             "source": "spec-implements"
           }
         ],
@@ -1761,6 +1893,20 @@
       {
         "implementingPaths": [
           {
+            "path": "apps/desktop/src-tauri/src/commands/sidecars.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "033-axiomregent-activation",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
             "name": "featuregraph",
             "path": "crates/featuregraph",
             "source": "cargo-metadata-crate"
@@ -1776,6 +1922,14 @@
       {
         "implementingPaths": [
           {
+            "path": "apps/desktop/src-tauri/src/commands/agents.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src-tauri/src/commands/claude.rs",
+            "source": "spec-implements"
+          },
+          {
             "name": "agent",
             "path": "crates/agent",
             "source": "cargo-metadata-crate"
@@ -1786,6 +1940,14 @@
       },
       {
         "implementingPaths": [
+          {
+            "path": "crates/agent/src/safety.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/src/router",
+            "source": "spec-implements"
+          },
           {
             "path": "crates/policy-kernel",
             "source": "spec-implements"
@@ -1801,6 +1963,10 @@
       {
         "implementingPaths": [
           {
+            "path": "apps/desktop/src-tauri/binaries",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/axiomregent",
             "source": "spec-implements"
           }
@@ -1811,11 +1977,21 @@
       {
         "implementingPaths": [
           {
-            "path": "crates/featuregraph",
+            "path": "apps/desktop/src-tauri/src/commands/titor.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "038-titor-tauri-command-wiring",
+        "specStatus": "superseded"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "specs/000-bootstrap-spec-system/contracts/registry.schema.json",
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-compiler",
+            "path": "tools/spec-compiler/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -1825,7 +2001,25 @@
       {
         "implementingPaths": [
           {
-            "path": "apps/desktop",
+            "path": "apps/desktop/src-tauri/src/commands/search.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "040-blockoli-semantic-search-wiring",
+        "specStatus": "superseded"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "apps/desktop/src/features/checkpoint/CheckpointSurface.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/features/checkpoint/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/features/checkpoint/useCheckpointFlow.ts",
             "source": "spec-implements"
           }
         ],
@@ -1857,7 +2051,15 @@
       {
         "implementingPaths": [
           {
-            "path": "crates/agent",
+            "path": "crates/agent/src/complexity.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/agent/src/dispatch.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/agent/src/plan.rs",
             "source": "spec-implements"
           },
           {
@@ -1871,16 +2073,20 @@
       {
         "implementingPaths": [
           {
+            "path": "crates/orchestrator/src/artifact.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/orchestrator/src/effort.rs",
             "source": "comment-header"
           },
           {
             "path": "crates/orchestrator/src/lib.rs",
-            "source": "comment-header"
+            "source": "multiple"
           },
           {
             "path": "crates/orchestrator/src/manifest.rs",
-            "source": "comment-header"
+            "source": "multiple"
           }
         ],
         "specId": "044-multi-agent-orchestration",
@@ -1889,9 +2095,12 @@
       {
         "implementingPaths": [
           {
-            "name": "@opc/claude-code-bridge",
+            "path": "apps/desktop/src-tauri/src/commands/claude.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "packages/claude-code-bridge",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "specId": "045-claude-code-sdk-bridge",
@@ -1927,9 +2136,8 @@
       {
         "implementingPaths": [
           {
-            "name": "@opc/hookify-rule-engine",
             "path": "packages/hookify-rule-engine",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "specId": "048-hookify-rule-engine",
@@ -1938,9 +2146,8 @@
       {
         "implementingPaths": [
           {
-            "name": "@opc/permission-system",
             "path": "packages/permission-system",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "specId": "049-permission-system",
@@ -1949,9 +2156,8 @@
       {
         "implementingPaths": [
           {
-            "name": "@opc/tool-renderer",
             "path": "packages/tool-renderer",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "specId": "050-tool-renderer-system",
@@ -1960,9 +2166,12 @@
       {
         "implementingPaths": [
           {
-            "name": "@opc/worktree-agents",
+            "path": "apps/desktop/src-tauri/src/commands/worktree_agents.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "packages/worktree-agents",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "specId": "051-worktree-agents",
@@ -1971,9 +2180,8 @@
       {
         "implementingPaths": [
           {
-            "name": "orchestrator",
             "path": "crates/orchestrator",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           },
           {
             "name": "run",
@@ -1986,6 +2194,10 @@
       },
       {
         "implementingPaths": [
+          {
+            "path": "crates/orchestrator",
+            "source": "spec-implements"
+          },
           {
             "name": "@opc/verification-profiles",
             "path": "packages/verification-profiles",
@@ -2007,14 +2219,17 @@
         ],
         "implementingPaths": [
           {
-            "name": "agent-frontmatter",
             "path": "crates/agent-frontmatter",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           },
           {
             "name": "@opc/agent-frontmatter",
             "path": "packages/agent-frontmatter",
             "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "schemas/agent-frontmatter.schema.json",
+            "source": "spec-implements"
           }
         ],
         "specId": "054-agent-frontmatter-schema",
@@ -2028,14 +2243,17 @@
         ],
         "implementingPaths": [
           {
-            "name": "standards-loader",
             "path": "crates/standards-loader",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           },
           {
             "name": "@opc/yaml-standards-schema",
             "path": "packages/yaml-standards-schema",
             "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "standards/schema/standard.schema.json",
+            "source": "spec-implements"
           }
         ],
         "specId": "055-yaml-standards-schema",
@@ -2043,6 +2261,10 @@
       },
       {
         "implementingPaths": [
+          {
+            "path": "packages/memory-mcp",
+            "source": "spec-implements"
+          },
           {
             "name": "@opc/session-memory",
             "path": "packages/session-memory",
@@ -2055,6 +2277,14 @@
       {
         "implementingPaths": [
           {
+            "path": "apps/desktop/src/lib/notificationChannels.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/lib/notificationOrchestrator.ts",
+            "source": "spec-implements"
+          },
+          {
             "name": "@opc/notification-orchestrator",
             "path": "packages/notification-orchestrator",
             "source": "cargo-metadata-crate"
@@ -2065,6 +2295,14 @@
       },
       {
         "implementingPaths": [
+          {
+            "path": "apps/desktop/src/components/FileMentionAutocomplete.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/lib/fileMentionSystem.ts",
+            "source": "spec-implements"
+          },
           {
             "name": "@opc/file-mention",
             "path": "packages/file-mention",
@@ -2077,6 +2315,14 @@
       {
         "implementingPaths": [
           {
+            "path": "apps/desktop/src-tauri/src/commands/git.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/components/GitPanel.tsx",
+            "source": "spec-implements"
+          },
+          {
             "name": "@opc/git-panel",
             "path": "packages/git-panel",
             "source": "cargo-metadata-crate"
@@ -2087,6 +2333,10 @@
       },
       {
         "implementingPaths": [
+          {
+            "path": "apps/desktop/src/lib/panelEventBus.ts",
+            "source": "spec-implements"
+          },
           {
             "name": "@opc/panel-event-bus",
             "path": "packages/panel-event-bus",
@@ -2099,6 +2349,14 @@
       {
         "implementingPaths": [
           {
+            "path": ".claude/agents/conductor.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".claude/commands/implement-plan.md",
+            "source": "spec-implements"
+          },
+          {
             "name": "@opc/conductor-track",
             "path": "packages/conductor-track",
             "source": "cargo-metadata-crate"
@@ -2110,6 +2368,10 @@
       {
         "implementingPaths": [
           {
+            "path": "crates/agent/src/chain.rs",
+            "source": "spec-implements"
+          },
+          {
             "name": "@opc/multi-model-chaining",
             "path": "packages/multi-model-chaining",
             "source": "cargo-metadata-crate"
@@ -2120,6 +2382,14 @@
       },
       {
         "implementingPaths": [
+          {
+            "path": "crates/policy-kernel",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/policy-kernel/src/coherence.rs",
+            "source": "spec-implements"
+          },
           {
             "name": "@opc/coherence-scoring",
             "path": "packages/coherence-scoring",
@@ -2134,6 +2404,10 @@
           {
             "path": "apps/desktop",
             "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/lib/wsReconnection.ts",
+            "source": "spec-implements"
           }
         ],
         "specId": "064-websocket-reconnection",
@@ -2144,6 +2418,14 @@
           {
             "path": "apps/desktop",
             "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src-tauri/src/keychain.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/components/CredentialPicker.tsx",
+            "source": "spec-implements"
           }
         ],
         "specId": "065-encrypted-keychain",
@@ -2152,9 +2434,18 @@
       {
         "implementingPaths": [
           {
-            "name": "tool-registry",
+            "path": "packages/vscode-extension",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "066-vscode-extension",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
             "path": "crates/tool-registry",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "specId": "067-tool-definition-registry",
@@ -2187,6 +2478,10 @@
             "source": "comment-header"
           },
           {
+            "path": "crates/agent/src/prompt_assembly.rs",
+            "source": "spec-implements"
+          },
+          {
             "name": "@opc/prompt-assembly",
             "path": "packages/prompt-assembly",
             "source": "cargo-metadata-crate"
@@ -2202,9 +2497,8 @@
             "source": "comment-header"
           },
           {
-            "name": "skill-factory",
             "path": "crates/skill-factory",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           },
           {
             "name": "@opc/skill-command-factory",
@@ -2228,14 +2522,12 @@
       {
         "implementingPaths": [
           {
-            "name": "axiomregent",
             "path": "crates/axiomregent",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           },
           {
-            "name": "deployd-api",
             "path": "platform/services/deployd-api-rs",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "specId": "073-axiomregent-unification",
@@ -2244,9 +2536,12 @@
       {
         "implementingPaths": [
           {
-            "name": "factory-contracts",
             "path": "crates/factory-contracts",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
+          },
+          {
+            "path": "factory",
+            "source": "spec-implements"
           }
         ],
         "specId": "074-factory-ingestion",
@@ -2320,6 +2615,10 @@
           {
             "path": "apps/desktop",
             "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/components/FactoryPipelinePanel.tsx",
+            "source": "spec-implements"
           }
         ],
         "specId": "076-factory-desktop-panel",
@@ -2328,7 +2627,7 @@
       {
         "implementingPaths": [
           {
-            "path": "platform/services/stagecraft",
+            "path": "platform/services/stagecraft/api/factory",
             "source": "spec-implements"
           }
         ],
@@ -2348,11 +2647,25 @@
       {
         "implementingPaths": [
           {
-            "path": "platform/services/stagecraft",
+            "path": "platform/services/stagecraft/api/auth",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/github",
             "source": "spec-implements"
           }
         ],
         "specId": "080-github-identity-onboarding",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "factory",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "081-factory-test-hydration",
         "specStatus": "approved"
       },
       {
@@ -2390,7 +2703,19 @@
       {
         "implementingPaths": [
           {
-            "path": "apps/desktop",
+            "path": "apps/desktop/src-tauri/src/commands/claude.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/components/ProjectSettings.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/lib/api.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "apps/desktop/src/lib/settingsManager.ts",
             "source": "spec-implements"
           }
         ],
@@ -2400,12 +2725,46 @@
       {
         "implementingPaths": [
           {
+            "path": "apps/desktop/src-tauri/src/web_server.rs",
+            "source": "spec-implements"
+          },
+          {
             "name": "oap-ctl",
             "path": "packages/oap-ctl",
             "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "packages/oap-ctl/src/cli.js",
+            "source": "spec-implements"
           }
         ],
         "specId": "085-remote-control-cli",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "CHANGELOG.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "CODE_OF_CONDUCT.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "CONTRIBUTING.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "SECURITY.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "docs/ARCHITECTURE.md",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "086-open-source-launch",
         "specStatus": "approved"
       },
       {
@@ -2421,6 +2780,10 @@
         ],
         "implementingPaths": [
           {
+            "path": "packages/project-sdk",
+            "source": "spec-implements"
+          },
+          {
             "name": "@opc/workspace-sdk",
             "path": "packages/workspace-sdk",
             "source": "cargo-metadata-crate"
@@ -2429,10 +2792,48 @@
             "name": "stagecraft",
             "path": "platform/services/stagecraft",
             "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/duplex.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/registry.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/relay.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/store.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/types.ts",
+            "source": "spec-implements"
           }
         ],
         "specId": "087-unified-workspace-architecture",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "074",
+          "075"
+        ],
+        "implementingPaths": [
+          {
+            "path": "factory/upstream-map.yaml",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "088-factory-upstream-sync",
+        "specStatus": "superseded"
       },
       {
         "dependsOn": [
@@ -2441,15 +2842,19 @@
         ],
         "implementingPaths": [
           {
-            "path": "crates/axiomregent",
+            "path": "apps/desktop/src-tauri/src/commands/orchestrator.rs",
             "source": "spec-implements"
           },
           {
-            "path": "crates/orchestrator",
+            "path": "crates/axiomregent/src/lease.rs",
             "source": "spec-implements"
           },
           {
-            "path": "crates/policy-kernel",
+            "path": "crates/policy-kernel/src/merge.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/policy-kernel/src/permission.rs",
             "source": "spec-implements"
           }
         ],
@@ -2462,11 +2867,15 @@
         ],
         "implementingPaths": [
           {
-            "path": "crates/featuregraph",
+            "path": "crates/featuregraph/src/registry_source.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-compiler",
+            "path": "crates/featuregraph/src/scanner.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-compiler/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -2481,11 +2890,27 @@
         ],
         "implementingPaths": [
           {
-            "path": "crates/factory-contracts",
+            "path": "crates/axiomregent/src/checkpoint/provider.rs",
             "source": "spec-implements"
           },
           {
-            "path": "crates/orchestrator",
+            "path": "crates/axiomregent/src/checkpoint/store.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/src/checkpoint/types.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/manifest.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/state.rs",
             "source": "spec-implements"
           }
         ],
@@ -2499,15 +2924,15 @@
         ],
         "implementingPaths": [
           {
-            "path": "crates/agent",
+            "path": "crates/agent/src/safety.rs",
             "source": "spec-implements"
           },
           {
-            "path": "crates/featuregraph",
+            "path": "crates/featuregraph/src/preflight.rs",
             "source": "spec-implements"
           },
           {
-            "path": "crates/policy-kernel",
+            "path": "crates/policy-kernel/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -2522,11 +2947,19 @@
         ],
         "implementingPaths": [
           {
-            "path": "crates/factory-engine",
+            "path": "crates/factory-engine/src/artifact_store.rs",
             "source": "spec-implements"
           },
           {
-            "path": "crates/orchestrator",
+            "path": "crates/orchestrator/src/artifact.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/promotion.rs",
             "source": "spec-implements"
           }
         ],
@@ -2540,7 +2973,23 @@
         ],
         "implementingPaths": [
           {
-            "path": "crates/axiomregent",
+            "path": "crates/axiomregent/src/checkpoint/provider.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/src/checkpoint/store.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/src/checkpoint/types.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/gates.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/manifest.rs",
             "source": "spec-implements"
           }
         ],
@@ -2554,12 +3003,12 @@
         ],
         "implementingPaths": [
           {
-            "path": "crates/featuregraph",
-            "source": "spec-implements"
+            "path": "crates/featuregraph/src/enrichment.rs",
+            "source": "multiple"
           },
           {
-            "path": "crates/featuregraph/src/enrichment.rs",
-            "source": "comment-header"
+            "path": "crates/featuregraph/src/preflight.rs",
+            "source": "spec-implements"
           },
           {
             "path": "crates/xray",
@@ -2578,15 +3027,15 @@
         ],
         "implementingPaths": [
           {
-            "path": "crates/orchestrator",
+            "path": "crates/orchestrator/src/lib.rs",
             "source": "spec-implements"
           },
           {
             "path": "crates/orchestrator/src/promotion.rs",
-            "source": "comment-header"
+            "source": "multiple"
           },
           {
-            "path": "crates/run",
+            "path": "crates/orchestrator/src/state.rs",
             "source": "spec-implements"
           }
         ],
@@ -2601,11 +3050,19 @@
         ],
         "implementingPaths": [
           {
-            "path": "crates/axiomregent",
+            "path": "crates/axiomregent/src/router/mod.rs",
             "source": "spec-implements"
           },
           {
-            "path": "crates/orchestrator",
+            "path": "crates/axiomregent/src/router/permissions.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/promotion.rs",
             "source": "spec-implements"
           }
         ],
@@ -2621,15 +3078,64 @@
         ],
         "implementingPaths": [
           {
-            "path": "crates/orchestrator",
+            "path": "crates/orchestrator/src/hiqlite_store.rs",
             "source": "spec-implements"
           },
           {
-            "path": "crates/run",
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/promotion.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/sqlite_state.rs",
             "source": "spec-implements"
           }
         ],
         "specId": "099-workspace-scoped-persistence",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "089"
+        ],
+        "implementingPaths": [
+          {
+            "path": "apps/desktop/src-tauri/tauri.conf.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/artifact_store.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/artifact.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/policy-kernel/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/templates/deployment.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/stagecraft/templates/deployment.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/auth.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/config.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "100-post-convergence-remediation",
         "specStatus": "approved"
       },
       {
@@ -2641,9 +3147,33 @@
         ],
         "implementingPaths": [
           {
+            "path": "build/codebase-index/index.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "schemas/codebase-index.schema.json",
+            "source": "spec-implements"
+          },
+          {
             "name": "open_agentic_codebase_indexer",
             "path": "tools/codebase-indexer",
             "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "tools/codebase-indexer/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/codebase-indexer/src/main.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/codebase-indexer/src/manifest.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/codebase-indexer/src/spec_scanner.rs",
+            "source": "spec-implements"
           },
           {
             "name": "open_agentic_code_index_enrich",
@@ -2666,12 +3196,12 @@
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-engine",
-            "source": "spec-implements"
-          },
-          {
             "path": "crates/factory-engine/src/bin/build_certificate.rs",
             "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/bin/factory_run.rs",
+            "source": "spec-implements"
           },
           {
             "path": "crates/factory-engine/src/bin/verify_certificate.rs",
@@ -2679,15 +3209,15 @@
           },
           {
             "path": "crates/factory-engine/src/governance_certificate.rs",
-            "source": "comment-header"
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/src/lib.rs",
+            "source": "spec-implements"
           },
           {
             "path": "crates/featuregraph/src/index_bridge.rs",
             "source": "comment-header"
-          },
-          {
-            "path": "crates/orchestrator",
-            "source": "spec-implements"
           },
           {
             "path": "crates/orchestrator/src/agent_identity.rs",
@@ -2698,11 +3228,15 @@
             "source": "comment-header"
           },
           {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/orchestrator/src/output_filter.rs",
             "source": "comment-header"
           },
           {
-            "path": "crates/policy-kernel",
+            "path": "crates/policy-kernel/src/lib.rs",
             "source": "spec-implements"
           },
           {
@@ -2714,12 +3248,20 @@
             "source": "comment-header"
           },
           {
+            "path": "factory/contract/checks",
+            "source": "spec-implements"
+          },
+          {
+            "path": "factory/contract/schemas/governance-certificate.schema.json",
+            "source": "spec-implements"
+          },
+          {
             "name": "open_agentic_registry_enrich",
             "path": "tools/oap-registry-enrich",
             "source": "cargo-metadata-crate"
           },
           {
-            "path": "tools/spec-compiler",
+            "path": "tools/spec-compiler/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -2766,8 +3308,17 @@
             "source": "spec-implements"
           },
           {
+            "name": "open_agentic_ci_parity_check",
             "path": "tools/ci-parity-check",
-            "source": "multiple"
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "tools/ci-parity-check/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/ci-parity-check/src/main.rs",
+            "source": "spec-implements"
           }
         ],
         "specId": "104-makefile-ci-parity-contract",
@@ -2787,8 +3338,17 @@
             "source": "spec-implements"
           },
           {
+            "name": "open_agentic_adapter_scopes_compiler",
             "path": "tools/adapter-scopes-compiler",
-            "source": "multiple"
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "tools/adapter-scopes-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/adapter-scopes-compiler/src/main.rs",
+            "source": "spec-implements"
           }
         ],
         "specId": "105-scripts-to-binaries-migration",
@@ -2821,7 +3381,15 @@
             "source": "spec-implements"
           },
           {
-            "path": "platform/services/stagecraft/api/auth",
+            "path": "platform/services/stagecraft/api/auth/membershipResolver.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthy.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthySeed.ts",
             "source": "spec-implements"
           }
         ],
@@ -2854,16 +3422,7 @@
           "087",
           "088"
         ],
-        "implementingPaths": [
-          {
-            "path": "platform/services/stagecraft/api/factory/",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/web/app/routes/app.factory.tsx",
-            "source": "spec-implements"
-          }
-        ],
+        "implementingPaths": [],
         "specId": "108-factory-as-platform-feature",
         "specStatus": "approved"
       },
@@ -2875,7 +3434,7 @@
         ],
         "implementingPaths": [
           {
-            "path": "platform/services/stagecraft/api/db/migrations/19_factory_pat_and_sync_runs.up.sql",
+            "path": "platform/services/stagecraft/api/factory/factory.ts",
             "source": "spec-implements"
           },
           {
@@ -2923,15 +3482,7 @@
         ],
         "implementingPaths": [
           {
-            "path": "apps/desktop/src-tauri/src/commands/factory.rs",
-            "source": "spec-implements"
-          },
-          {
-            "path": "apps/desktop/src-tauri/src/commands/stagecraft_client.rs",
-            "source": "spec-implements"
-          },
-          {
-            "path": "apps/desktop/src/routes/factory",
+            "path": "apps/desktop/src-tauri/src/commands/sync_client.rs",
             "source": "spec-implements"
           },
           {
@@ -2970,10 +3521,6 @@
         ],
         "implementingPaths": [
           {
-            "path": ".cargo/config.toml",
-            "source": "spec-implements"
-          },
-          {
             "path": "apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs",
             "source": "spec-implements"
           },
@@ -2983,22 +3530,6 @@
           },
           {
             "path": "apps/desktop/src-tauri/src/commands/stagecraft_client.rs",
-            "source": "spec-implements"
-          },
-          {
-            "path": "apps/desktop/src-tauri/src/commands/sync_client.rs",
-            "source": "spec-implements"
-          },
-          {
-            "path": "apps/desktop/src-tauri/src/lib.rs",
-            "source": "spec-implements"
-          },
-          {
-            "path": "crates/agent-frontmatter/src/types.rs",
-            "source": "spec-implements"
-          },
-          {
-            "path": "crates/agent-frontmatter/tests/ts_bindings.rs",
             "source": "spec-implements"
           },
           {
@@ -3184,10 +3715,6 @@
           },
           {
             "path": "platform/services/stagecraft/api/db/schema.ts",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/api/projects/clone.ts",
             "source": "spec-implements"
           },
           {
@@ -3459,10 +3986,6 @@
           },
           {
             "path": "platform/services/stagecraft/api/workspaces",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/web",
             "source": "spec-implements"
           },
           {
@@ -3896,25 +4419,6 @@
       },
       {
         "dependsOn": [
-          "120",
-          "121",
-          "122"
-        ],
-        "implementingPaths": [
-          {
-            "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts",
-            "source": "spec-implements"
-          },
-          {
-            "path": "tools/schema-parity-check/index.mjs",
-            "source": "spec-implements"
-          }
-        ],
-        "specId": "125-schema-parity-walker-rebuild",
-        "specStatus": "approved"
-      },
-      {
-        "dependsOn": [
           "111",
           "123",
           "124"
@@ -4057,10 +4561,6 @@
         ],
         "implementingPaths": [
           {
-            "path": "specs/000-bootstrap-spec-system/contracts/registry.schema.json",
-            "source": "spec-implements"
-          },
-          {
             "path": "tools/spec-compiler",
             "source": "spec-implements"
           }
@@ -4196,10 +4696,6 @@
             "source": "spec-implements"
           },
           {
-            "path": "platform/services/stagecraft/CLAUDE.md",
-            "source": "spec-implements"
-          },
-          {
             "path": "platform/services/stagecraft/api/deploy/chartSelector.test.ts",
             "source": "spec-implements"
           },
@@ -4311,10 +4807,6 @@
           },
           {
             "path": "platform/services/stagecraft/api/environments/encore.service.ts",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/test/__mocks__/encore-auth.ts",
             "source": "spec-implements"
           },
           {
@@ -4947,10 +5439,6 @@
             "source": "spec-implements"
           },
           {
-            "path": "docs/runbooks/deployd-api-durability.md",
-            "source": "spec-implements"
-          },
-          {
             "path": "platform/charts/deployd-api/templates/deployment.yaml",
             "source": "spec-implements"
           },
@@ -5009,10 +5497,6 @@
           {
             "path": "platform/services/deployd-api-rs/src/store.rs",
             "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/test/spec145-deployd-scrub.config.test.ts",
-            "source": "spec-implements"
           }
         ],
         "specId": "145-deployd-durability",
@@ -5046,9 +5530,54 @@
           "132-constitutional-invariant-freeze",
           "133-amends-aware-coupling-gate"
         ],
-        "implementingPaths": [],
+        "implementingPaths": [
+          {
+            "path": "specs/000-bootstrap-spec-system/contracts/registry.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/codebase-indexer/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/codebase-indexer/src/spec_scanner.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/shared/spec-types/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-lint/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
         "specId": "147-spec-kind-grammar",
         "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/auth-driver/",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "148-auth-driver-registry",
+        "specStatus": "draft"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/auth-driver-saml/",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "149-saml-auth-driver",
+        "specStatus": "draft"
       },
       {
         "dependsOn": [
@@ -5058,10 +5587,6 @@
         "implementingPaths": [
           {
             "path": ".sops.yaml",
-            "source": "spec-implements"
-          },
-          {
-            "path": "DEVELOPERS.md",
             "source": "spec-implements"
           },
           {
@@ -5188,14 +5713,7 @@
       }
     ],
     "orphanedSpecs": [
-      "033-axiomregent-activation",
-      "066-vscode-extension",
-      "081-factory-test-hydration",
-      "086-open-source-launch",
-      "088-factory-upstream-sync",
-      "100-post-convergence-remediation",
-      "148-auth-driver-registry",
-      "149-saml-auth-driver",
+      "125-schema-parity-walker-rebuild",
       "150-example-tenant-profile"
     ],
     "untracedCode": [

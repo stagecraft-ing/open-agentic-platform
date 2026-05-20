@@ -23,6 +23,31 @@ summary: |
   retire the prose-scan workarounds W-002 and W-003.
 amends: ["000", "128", "001", "006", "101", "132", "133"]
 amends_sections: []
+extends:
+  - spec: "001-spec-compiler-mvp"
+    paths:
+      - tools/spec-compiler/src/lib.rs
+    nature: additive
+  - spec: "006-conformance-lint-mvp"
+    paths:
+      - tools/spec-lint/src/lib.rs
+    nature: additive
+  - spec: "101-codebase-index-mvp"
+    paths:
+      - tools/codebase-indexer/src/spec_scanner.rs
+    nature: additive
+  - spec: "132-constitutional-invariant-freeze"
+    paths:
+      - specs/000-bootstrap-spec-system/contracts/registry.schema.json
+    nature: additive
+  - spec: "133-amends-aware-coupling-gate"
+    paths:
+      - tools/codebase-indexer/src/lib.rs
+    nature: additive
+refines:
+  - aspect: kind-grammar-corpus-backfill
+    paths:
+      - tools/shared/spec-types/src/lib.rs
 compliance:
   - framework: owasp-asi-2026
     controls: ["ASI01", "ASI03"]

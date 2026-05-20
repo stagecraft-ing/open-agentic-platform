@@ -12,8 +12,10 @@ summary: >
   Add a dedicated Checkpoint panel to the desktop app that exposes titor's
   temporal safety capabilities through a project-scoped UI: initialize tracking,
   create named checkpoints, list/restore/diff/verify checkpoints.
-implements:
-  - path: apps/desktop
+establishes:
+  - apps/desktop/src/features/checkpoint/CheckpointSurface.tsx
+  - apps/desktop/src/features/checkpoint/useCheckpointFlow.ts
+  - apps/desktop/src/features/checkpoint/types.ts
 ---
 
 # Feature Specification: Checkpoint / Restore UI — desktop panel

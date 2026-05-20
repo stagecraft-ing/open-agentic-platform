@@ -13,18 +13,27 @@ depends_on:
   - "112"  # factory-project-lifecycle (registerRawArtifactsFromRepo, OPC deep link)
   - "113"  # stagecraft-projects-rename-and-clone (the synchronous endpoint this spec replaces)
 code_aliases: ["ASYNC_PROJECT_CLONE"]
-implements:
-  - path: platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql
-  - path: platform/services/stagecraft/api/db/schema.ts
-  - path: platform/services/stagecraft/api/projects/clone.ts
-  - path: platform/services/stagecraft/api/projects/cloneCore.ts
-  - path: platform/services/stagecraft/api/projects/cloneEvents.ts
-  - path: platform/services/stagecraft/api/projects/cloneWorker.ts
-  - path: platform/services/stagecraft/api/projects/cloneRunStatus.ts
-  - path: platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx
-  - path: platform/services/stagecraft/web/app/lib/projects-api.server.ts
-  - path: platform/services/stagecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx
+supersedes:
+  - spec: "113-stagecraft-projects-rename-and-clone"
+    scope: partial
+    paths:
+      - platform/services/stagecraft/api/projects/clone.ts
+    rationale: replaces synchronous clone endpoint with async PubSub worker pipeline
+establishes:
+  - platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql
+  - platform/services/stagecraft/api/db/schema.ts
+  - platform/services/stagecraft/api/projects/cloneCore.ts
+  - platform/services/stagecraft/api/projects/cloneEvents.ts
+  - platform/services/stagecraft/api/projects/cloneWorker.ts
+  - platform/services/stagecraft/api/projects/cloneRunStatus.ts
+  - platform/services/stagecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx
+  - platform/services/stagecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx
+extends:
+  - spec: "113-stagecraft-projects-rename-and-clone"
+    paths:
+      - platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx
+      - platform/services/stagecraft/web/app/lib/projects-api.server.ts
+    nature: wrapping
 summary: >
   Spec 113's `POST /api/projects/:id/clone` does the full mirror-clone +
   mirror-push + raw-artifact hydration synchronously inside the HTTP

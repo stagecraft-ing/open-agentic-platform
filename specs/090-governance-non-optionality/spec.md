@@ -16,10 +16,20 @@ summary: >
   default, DefaultMode::Bypass at non-policy tier) are closed or guarded. Axiomregent
   cross-platform builds reduce the platform gap.
 code_aliases: ["GOVERNANCE_NON_OPTION"]
-implements:
-  - path: crates/axiomregent
-  - path: crates/policy-kernel
-  - path: crates/orchestrator
+extends:
+  - spec: "033-axiomregent-activation"
+    paths:
+      - crates/axiomregent/src/lease.rs
+    nature: additive
+  - spec: "068-permission-runtime"
+    paths:
+      - crates/policy-kernel/src/permission.rs
+      - crates/policy-kernel/src/merge.rs
+    nature: additive
+  - spec: "035-agent-governed-execution"
+    paths:
+      - apps/desktop/src-tauri/src/commands/orchestrator.rs
+    nature: additive
 ---
 
 # 090 — Governance Non-Optionality

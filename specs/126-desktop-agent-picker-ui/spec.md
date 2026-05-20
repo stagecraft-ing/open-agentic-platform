@@ -25,9 +25,12 @@ depends_on:
   - "111"  # original duplex-cached agent surface; UI plugs into the existing cache
   - "123"  # source of bindings + retired_upstream invariant + desktop commands
   - "124"  # primary consumer (Run reservation builds AgentReferences from picker output)
-implements:
-  - path: apps/desktop/src/components/AgentPicker.tsx
-  - path: apps/desktop/src/lib/agentPicker.ts
+extends:
+  - spec: "123-agent-catalog-org-rescope"
+    paths:
+      - apps/desktop/src/components/AgentPicker.tsx
+      - apps/desktop/src/lib/agentPicker.ts
+    nature: additive
 ---
 
 # 126 — Desktop Agent Picker — Bindings vs Full Catalog

@@ -20,6 +20,8 @@ code_aliases:
   - PANEL_EVENT_BUS
 sources:
   - crystal
+establishes:
+  - apps/desktop/src/lib/panelEventBus.ts
 ---
 
 # Feature Specification: Typed Inter-Panel Event Bus

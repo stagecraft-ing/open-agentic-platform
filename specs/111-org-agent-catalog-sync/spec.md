@@ -24,25 +24,20 @@ depends_on:
   - "087"  # unified-workspace-architecture (duplex channel + authority)
   - "090"  # governance-non-optionality (no bypass of policy bundle)
   - "110"  # stagecraft-to-opc-factory-trigger (establishes the dispatcher pattern)
-implements:
-  - path: platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql
-  - path: platform/services/stagecraft/api/agents/
-  - path: platform/services/stagecraft/api/agents/catalog.ts
-  - path: platform/services/stagecraft/api/agents/relay.ts
-  - path: platform/services/stagecraft/api/agents/frontmatter/
-  - path: platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx
-  - path: platform/services/stagecraft/api/sync/types.ts
-  - path: platform/services/stagecraft/api/sync/service.ts
-  - path: platform/services/stagecraft/api/sync/duplex.ts
-  - path: platform/services/stagecraft/api/sync/relay.ts
-  - path: apps/desktop/src-tauri/src/commands/agents.rs
-  - path: apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs
-  - path: apps/desktop/src-tauri/src/commands/stagecraft_client.rs
-  - path: apps/desktop/src-tauri/src/commands/sync_client.rs
-  - path: apps/desktop/src-tauri/src/lib.rs
-  - path: crates/agent-frontmatter/src/types.rs
-  - path: crates/agent-frontmatter/tests/ts_bindings.rs
-  - path: .cargo/config.toml
+establishes:
+  - platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql
+  - platform/services/stagecraft/api/agents/
+  - platform/services/stagecraft/api/agents/catalog.ts
+  - platform/services/stagecraft/api/agents/relay.ts
+  - platform/services/stagecraft/api/agents/frontmatter/
+  - platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx
+  - platform/services/stagecraft/api/sync/types.ts
+  - platform/services/stagecraft/api/sync/service.ts
+  - platform/services/stagecraft/api/sync/duplex.ts
+  - platform/services/stagecraft/api/sync/relay.ts
+  - apps/desktop/src-tauri/src/commands/agents.rs
+  - apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs
+  - apps/desktop/src-tauri/src/commands/stagecraft_client.rs
 ---
 
 # 111 — Org-managed Agent Catalog Synced from Stagecraft to OPC

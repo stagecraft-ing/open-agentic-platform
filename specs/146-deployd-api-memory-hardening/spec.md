@@ -13,17 +13,13 @@ depends_on:
   - "073"  # axiomregent-unification (deployd-api-rs runtime carrier)
   - "143"  # presigned-upload-public-endpoint (FU-021 diagnostic chair)
 code_aliases: ["DEPLOYD_API_MEMORY_HARDENING"]
-implements:
-  - path: platform/charts/deployd-api/values.yaml
-  - path: platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts
-  # Note: platform/charts/deployd-api/values.yaml is also claimed by spec 145
-  # (deployd-durability) for its PVC + scrub-narrowing edits. Spec 130's
-  # any-claimant heuristic accepts either spec.md edit as covering the
-  # path; the two edits target disjoint sections of values.yaml (146 adds
-  # `resources:`, 145 flips `persistence.enabled` and `command.args`).
-  # The FU-021 diagnostic chair on spec 143 is preserved by listing 143
-  # in `depends_on:` rather than `amends:` — the FU stub lives on 143's
-  # §13 ledger; this spec is the implementing PR, not a content amendment.
+establishes:
+  - platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts
+co_authority:
+  - paths:
+      - platform/charts/deployd-api/values.yaml
+    section: resources
+    with_specs: ["145-deployd-durability"]
 summary: >
   `platform/charts/deployd-api/values.yaml:20` declares
   `resources: {}` — empty. The deployment.yaml template renders the

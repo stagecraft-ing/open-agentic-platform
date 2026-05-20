@@ -220,7 +220,13 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         let superseded_by = optional_str(fm, "superseded_by");
         let retirement_rationale = fm.get("retirement_rationale").and_then(yaml_to_json);
         // ── Spec 147 — per-kind structural fields ──
-        let mut implements = parse_implements(fm);
+        // `implements:` is preserved only in its scalar form (capability
+        // → registry pointer, e.g. `implements: "148-auth-driver-registry"`
+        // per spec 147 §implements). The list form was the legacy
+        // path-claiming surface; side quest II excised it in favour of
+        // the typed relationship-graph fields (establishes, extends,
+        // refines, supersedes, amends, co_authority, constrains).
+        let implements = parse_implements(fm);
         let provides = fm.get("provides").and_then(yaml_to_json);
         let selectable_by = optional_str(fm, "selectable_by");
         let composition = fm.get("composition").and_then(yaml_to_json);
@@ -244,25 +250,6 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         let co_authority = fm.get("co_authority").and_then(yaml_to_json);
         let constrains = fm.get("constrains").and_then(yaml_to_json);
         let origin = fm.get("origin").and_then(yaml_to_json);
-
-        // ── Spec 130 — derived `implements:` view.
-        // When relationship fields are present and no explicit
-        // `implements:` is authored, derive it from the union of
-        // establishes + extends.paths + refines.paths + co_authority.paths.
-        // The derived view preserves backward compatibility for every
-        // consumer that reads `implements:` from the registry (codebase-
-        // indexer, registry-consumer, coupling-check) without forcing
-        // authors to maintain two representations.
-        if implements.is_none() {
-            let derived = derive_implements_paths(&establishes, &extends, &refines, &co_authority);
-            if !derived.is_empty() {
-                let items: Vec<Value> = derived
-                    .into_iter()
-                    .map(|p| json!({ "path": p }))
-                    .collect();
-                implements = Some(Value::Array(items));
-            }
-        }
 
         // ── V-012 (Spec 147): kind enum membership ──
         // Promoted to error severity in Phase 2 after corpus-wide
@@ -1445,57 +1432,6 @@ fn yaml_to_json(v: &serde_yaml::Value) -> Option<Value> {
 /// (V-014); list form carries `{path, primary?}` items.
 fn parse_implements(m: &serde_yaml::Mapping) -> Option<Value> {
     yaml_to_json(m.get("implements")?)
-}
-
-/// Spec 130 — compute the derived `implements:` path set from the
-/// relationship-graph fields. Used when a spec declares relationship
-/// fields but no explicit `implements:`. Backward compat: consumers
-/// that read `implements:` (codebase-indexer, coupling-check,
-/// registry-consumer) see the same shape regardless of whether the
-/// spec was authored in legacy mode (explicit `implements:`) or the
-/// new model (relationship fields).
-fn derive_implements_paths(
-    establishes: &Option<Vec<String>>,
-    extends: &Option<Value>,
-    refines: &Option<Value>,
-    co_authority: &Option<Value>,
-) -> Vec<String> {
-    let mut out: BTreeSet<String> = BTreeSet::new();
-    if let Some(paths) = establishes {
-        for p in paths {
-            out.insert(p.clone());
-        }
-    }
-    let extract_paths = |v: &Value, key: &str| -> Vec<String> {
-        let Some(items) = v.as_array() else { return Vec::new() };
-        let mut collected = Vec::new();
-        for item in items {
-            let Some(obj) = item.as_object() else { continue };
-            let Some(paths) = obj.get(key).and_then(|p| p.as_array()) else { continue };
-            for p in paths {
-                if let Some(s) = p.as_str() {
-                    collected.push(s.to_string());
-                }
-            }
-        }
-        collected
-    };
-    if let Some(v) = extends {
-        for p in extract_paths(v, "paths") {
-            out.insert(p);
-        }
-    }
-    if let Some(v) = refines {
-        for p in extract_paths(v, "paths") {
-            out.insert(p);
-        }
-    }
-    if let Some(v) = co_authority {
-        for p in extract_paths(v, "paths") {
-            out.insert(p);
-        }
-    }
-    out.into_iter().collect()
 }
 
 fn yaml_scalar_to_json(v: &serde_yaml::Value) -> Option<Value> {

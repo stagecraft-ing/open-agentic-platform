@@ -18,8 +18,8 @@ summary: >
   values overlays.
 code_aliases: ["MULTI_CLOUD_K8S"]
 sources: ["platform-infra"]
-implements:
-  - path: platform/infra
+establishes:
+  - platform/infra
 ---
 
 # Feature Specification: Multi-Cloud Kubernetes Portability

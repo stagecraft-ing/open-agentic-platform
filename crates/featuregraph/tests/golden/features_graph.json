@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:febf01350aa6bcafe421aa95fbb36df6fe6ca0fb4ed52da82a05d1551e96ed43",
+  "graph_fingerprint": "sha256:c3b9fd52b656bd356062db836907d2dc69bba169fef82f9b46996747f3df399c",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2448,7 +2448,7 @@
     },
     {
       "feature_id": "127-spec-code-coupling-gate",
-      "title": "Spec/Code Coupling Gate — fail PRs that change implements: paths without spec.md",
+      "title": "Spec/Code Coupling Workflow — CI job, make target, contributor flow",
       "spec_path": "specs/127-spec-code-coupling-gate/spec.md",
       "status": "approved",
       "implementation": "complete",
@@ -2456,12 +2456,11 @@
       "owner": "bart",
       "group": "",
       "depends_on": [
-        "000",
-        "001",
-        "101",
         "103",
         "104",
-        "118"
+        "118",
+        "130",
+        "133"
       ],
       "impl_files": [],
       "test_files": [],
@@ -2503,7 +2502,7 @@
     },
     {
       "feature_id": "130-spec-coupling-primary-owner",
-      "title": "Spec/code coupling: primary-owner heuristic — relax to any-claimant edit",
+      "title": "Spec Relationship Graph — eight first-class edges between specs and code",
       "spec_path": "specs/130-spec-coupling-primary-owner/spec.md",
       "status": "approved",
       "implementation": "complete",
@@ -2511,8 +2510,9 @@
       "owner": "bart",
       "group": "",
       "depends_on": [
-        "127",
-        "129"
+        "000",
+        "001",
+        "101"
       ],
       "impl_files": [],
       "test_files": [],
@@ -2555,7 +2555,7 @@
     },
     {
       "feature_id": "133-amends-aware-coupling-gate",
-      "title": "Amends-aware spec/code coupling gate — recognise `amends:` as valid coupling",
+      "title": "Coupling Gate — authority derivation, satisfaction semantics, constraint evaluation",
       "spec_path": "specs/133-amends-aware-coupling-gate/spec.md",
       "status": "approved",
       "implementation": "complete",
@@ -2563,8 +2563,7 @@
       "owner": "bart",
       "group": "",
       "depends_on": [
-        "119",
-        "127",
+        "101",
         "130"
       ],
       "impl_files": [],
@@ -2866,6 +2865,23 @@
       "depends_on": [
         "087",
         "143"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "152-path-co-authority",
+      "title": "Path Co-Authority — named-anchor sectioning and empty-authority-by-rule",
+      "spec_path": "specs/152-path-co-authority/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "130",
+        "133"
       ],
       "impl_files": [],
       "test_files": [],

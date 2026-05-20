@@ -21,8 +21,6 @@ refines:
   - paths:
       - tools/registry-consumer
     aspect: contract-tests
-implements:
-  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Registry consumer status-report JSON contract tests

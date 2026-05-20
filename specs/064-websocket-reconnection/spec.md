@@ -19,8 +19,13 @@ code_aliases:
   - WS_RECONNECT
 sources:
   - claudecodeui
-implements:
-  - path: apps/desktop
+establishes:
+  - apps/desktop/src/lib/wsReconnection.ts
+extends:
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    paths:
+      - apps/desktop
+    nature: additive
 ---
 
 # Feature Specification: WebSocket Session Reconnection

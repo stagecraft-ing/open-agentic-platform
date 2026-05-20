@@ -21,8 +21,6 @@ refines:
   - paths:
       - tools/registry-consumer
     aspect: contract-tests
-implements:
-  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Default-path contract

@@ -29,20 +29,24 @@ depends_on:
   - "109"  # factory-pat-and-pubsub-sync (resolveProjectToken, project_github_pats, installation broker)
   - "110"  # stagecraft-to-opc-factory-trigger (run dispatch envelope)
   - "111"  # org-agent-catalog-sync (establishes the workspace-scoped sync pattern reused here)
-implements:
-  - path: crates/factory-contracts/schemas/
-  - path: crates/factory-project-detect/
-  - path: platform/services/stagecraft/api/factory/translator.ts
-  - path: platform/services/stagecraft/api/projects/create.ts
-  - path: platform/services/stagecraft/api/projects/import.ts
-  - path: platform/services/stagecraft/api/projects/opcBundle.ts
-  - path: platform/services/stagecraft/api/projects/opcBundleHelpers.ts
-  - path: platform/services/stagecraft/api/projects/scaffold/
-  - path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.projects.import.tsx
-  - path: apps/desktop/src-tauri/src/commands/factory_project.rs
-  - path: apps/desktop/src-tauri/src/commands/keychain.rs
-  - path: apps/desktop/src/routes/factory/ProjectCockpit.tsx
+establishes:
+  - crates/factory-project-detect/
+  - platform/services/stagecraft/api/projects/create.ts
+  - platform/services/stagecraft/api/projects/import.ts
+  - platform/services/stagecraft/api/projects/opcBundle.ts
+  - platform/services/stagecraft/api/projects/opcBundleHelpers.ts
+  - platform/services/stagecraft/api/projects/scaffold/
+  - platform/services/stagecraft/web/app/routes/app.projects.new.tsx
+  - platform/services/stagecraft/web/app/routes/app.projects.import.tsx
+  - apps/desktop/src-tauri/src/commands/factory_project.rs
+  - apps/desktop/src-tauri/src/commands/keychain.rs
+  - apps/desktop/src/routes/factory/ProjectCockpit.tsx
+extends:
+  - spec: "108-factory-as-platform-feature"
+    paths:
+      - platform/services/stagecraft/api/factory/translator.ts
+      - crates/factory-contracts/schemas/
+    nature: additive
 ---
 
 # 112 — Factory Project Lifecycle — Create, Import, Open

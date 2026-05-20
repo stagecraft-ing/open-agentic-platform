@@ -25,15 +25,26 @@ depends_on:
   - "094"  # unified-artifact-store (where artifact hashes land)
   - "108"  # factory-as-platform-feature (where the button lives)
   - "109"  # factory-pat-and-pubsub-sync (PubSub pattern used here)
-implements:
-  - path: platform/services/stagecraft/api/sync/types.ts
-  - path: platform/services/stagecraft/api/sync/relay.ts
-  - path: platform/services/stagecraft/api/factory/factory.ts
-  - path: apps/desktop/src-tauri/src/commands/factory.rs
-  - path: apps/desktop/src-tauri/src/commands/stagecraft_client.rs
-  - path: apps/desktop/src/routes/factory
-  - path: crates/factory-engine/src/bin/factory_run.rs
-  - path: packages/oap-ctl/src/cli.js
+establishes:
+  - apps/desktop/src-tauri/src/commands/sync_client.rs
+extends:
+  - spec: "087-unified-workspace-architecture"
+    paths:
+      - platform/services/stagecraft/api/sync/types.ts
+      - platform/services/stagecraft/api/sync/relay.ts
+    nature: additive
+  - spec: "075-factory-workflow-engine"
+    paths:
+      - crates/factory-engine/src/bin/factory_run.rs
+    nature: additive
+  - spec: "109-factory-pat-and-pubsub-sync"
+    paths:
+      - platform/services/stagecraft/api/factory/factory.ts
+    nature: additive
+  - spec: "085-remote-control-cli"
+    paths:
+      - packages/oap-ctl/src/cli.js
+    nature: additive
 ---
 
 # 110 — Stagecraft-initiated Factory Run Trigger over the Duplex Channel

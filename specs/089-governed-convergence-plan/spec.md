@@ -17,6 +17,17 @@ depends_on:
 code_aliases: ["GOVERNED_CONVERGENCE"]
 kind: process
 risk: critical
+constrains:
+  - kind: sequencing-plan
+    target_specs:
+      - "090-governance-non-optionality"
+      - "091-registry-enrichment"
+      - "092-workspace-runtime-threading"
+      - "093-spec-driven-preflight"
+      - "094-unified-artifact-store"
+      - "095-checkpoint-branch-of-thought"
+      - "096-portfolio-intelligence"
+      - "097-promotion-grade-mirror"
 ---
 
 # 089 — Governed Convergence Plan

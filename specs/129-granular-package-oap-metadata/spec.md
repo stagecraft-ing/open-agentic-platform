@@ -13,9 +13,12 @@ depends_on:
   - "101"  # codebase-index-mvp (the schema being extended)
   - "118"  # workflow-spec-traceability (the `# Spec:` precedent)
 code_aliases: ["GRANULAR_OAP_METADATA"]
-implements:
-  - path: tools/codebase-indexer
-  - path: schemas/codebase-index.schema.json
+extends:
+  - spec: "101-codebase-index-mvp"
+    paths:
+      - tools/codebase-indexer
+      - schemas/codebase-index.schema.json
+    nature: additive
 summary: >
   Crate-level `[package.metadata.oap].spec` is too coarse — adding a 500-
   line module to an already-tagged crate carries no traceability friction.
@@ -26,8 +29,6 @@ summary: >
   extended with `cargo-metadata-crate` (renamed from `cargo-metadata`),
   `cargo-metadata-module` (reserved), `comment-header` (new), and
   `multiple` (replacing the legacy `both`).
-origin:
-  retroactive: true
 ---
 
 # 129 — Granular `[package.metadata.oap]`

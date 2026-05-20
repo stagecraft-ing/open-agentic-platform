@@ -17,8 +17,15 @@ summary: >
   evaluates permissions at tool dispatch time.
 code_aliases: ["PERMISSION_RUNTIME"]
 sources: ["claude-code"]
-implements:
-  - path: crates/policy-kernel
+extends:
+  - spec: "036-safety-tier-governance"
+    paths:
+      - crates/policy-kernel
+    nature: additive
+  - spec: "049-permission-system"
+    paths:
+      - crates/policy-kernel
+    nature: wrapping
 compliance:
   - framework: "owasp-asi-2026"
     # ASI03 via FR-008 (enterprise policy `deny` is immutable across tiers,

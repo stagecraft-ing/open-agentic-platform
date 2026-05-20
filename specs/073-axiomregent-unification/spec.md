@@ -10,6 +10,22 @@ authors: ["open-agentic-platform"]
 language: en
 code_aliases: ["AXIOM_UNIFY", "HIQLITE_MIGRATION", "GITHUB_ORG"]
 sources: ["gitctx", "blockoli", "stackwalk", "titor", "github-app"]
+extends:
+  - spec: "037-cross-platform-axiomregent"
+    paths:
+      - crates/axiomregent
+    nature: wrapping
+supersedes:
+  - spec: "038-titor-tauri-command-wiring"
+    scope: full
+    paths:
+      - apps/desktop/src-tauri/src/commands/titor.rs
+  - spec: "040-blockoli-semantic-search-wiring"
+    scope: full
+    paths:
+      - apps/desktop/src-tauri/src/commands/search.rs
+establishes:
+  - platform/services/deployd-api-rs
 summary: >
   Consolidates five standalone crates and services (gitctx, blockoli, stackwalk, titor, github-app)
   into axiomregent and stagecraft. Migrates axiomregent from synchronous rusqlite to async hiqlite

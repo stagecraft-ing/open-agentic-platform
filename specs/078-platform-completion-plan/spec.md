@@ -14,6 +14,19 @@ summary: >
   hardening into a phased roadmap that delivers a complete, functioning AI software
   factory platform.
 code_aliases: ["PLATFORM_COMPLETION", "MASTER_PLAN"]
+constrains:
+  - kind: delivery-sequencing
+    target_specs:
+      - "074-factory-ingestion"
+      - "075-factory-workflow-engine"
+      - "076-factory-desktop-panel"
+      - "077-stagecraft-factory-api"
+      - "042-multi-provider-agent-registry"
+      - "049-permission-system"
+      - "051-worktree-agents"
+      - "052-state-persistence"
+      - "057-notification-system"
+      - "072-multi-cloud-k8s-portability"
 ---
 
 # Platform Completion Plan

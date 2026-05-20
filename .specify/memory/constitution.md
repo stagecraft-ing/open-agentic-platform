@@ -67,13 +67,15 @@ A spec with `constrains:` does not claim behavior authority over the listed path
 
 ### Well-formedness
 
-Every spec declares its relationships explicitly. A spec with no relationship fields and no `origin: retroactive: true` produces spec-lint **V-020** (warning during migration; error after the curated annotation pass). The corpus is self-describing — `git grep` over `establishes:` answers "who created this path?" deterministically.
+Every spec declares its relationships explicitly. A spec with no relationship fields and no `origin: retroactive: true` produces spec-lint **V-020** (emission live in `tools/spec-lint`; severity: warning). The corpus is self-describing — `git grep` over `establishes:` answers "who created this path?" deterministically. After the corpus-maturity annotation pass (side quest II, 2026-05-20), V-020 fires on zero specs.
 
-`implements:` is preserved in registry output as a derived view (union of paths from `establishes`, `extends.paths`, `refines.paths`, `co_authority.paths`). Authors no longer write `implements:` directly; the spec-compiler emits it for compatibility.
+`origin: retroactive: true` is reserved for genuine foundational bootstrap (spec 000 and a small set of analogous instances). Specs the first surgery marked retroactive purely as a stopgap have been migrated to honest annotations during the corpus-maturity pass; a future commit will reduce the retroactive set to its irreducible bootstrap core.
+
+`implements:` is preserved in registry output as a derived view (union of paths from `establishes`, `extends.paths`, `refines.paths`, `co_authority.paths`). Authors no longer write `implements:` directly; the spec-compiler emits it for compatibility. Removal of the derived view is the final step of the relationship-graph excision pass.
 
 ### Migration posture
 
-The relationship-graph landing is staged: the schema, parser, and gate all accept both forms during migration. Specs marked `origin: retroactive: true` carry their pre-graph `implements:` lists forward as their effective `establishes:` surface. The curated annotation pass replaces retroactive markers with typed edges as each cluster is reviewed.
+The relationship-graph landing is staged. Side quest I (2026-05-19) installed the model: schema, parser, and gate accept both legacy `implements:` and typed relationship fields. Side quest II (2026-05-20) populated the model corpus-wide: 117 specs newly annotated, V-020 emission live, the graph queryable through `registry-consumer` (new verbs: `show-relationships`, `show-supersession-chain`, `show-constraints-on`, `by-authority`, `validate-graph`). The remaining stages — section-matching runtime activation (spec 152 §3) and full `implements:` excision (Concern 1 case (a)) — land in subsequent commits without revisiting the eight relationship fields, which are now locked.
 
 ## Additional Constraints
 

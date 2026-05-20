@@ -14,9 +14,16 @@ summary: >
   compiler fields. Validate risk enum values. Update featuregraph to read enriched
   fields from the compiled registry, enabling downstream spec-driven gating.
 code_aliases: ["REGISTRY_ENRICHMENT"]
-implements:
-  - path: tools/spec-compiler
-  - path: crates/featuregraph
+extends:
+  - spec: "001-spec-compiler-mvp"
+    paths:
+      - tools/spec-compiler/src/lib.rs
+    nature: additive
+  - spec: "034-featuregraph-registry-scanner-fix"
+    paths:
+      - crates/featuregraph/src/registry_source.rs
+      - crates/featuregraph/src/scanner.rs
+    nature: additive
 ---
 
 # 091 — Spec Registry Enrichment

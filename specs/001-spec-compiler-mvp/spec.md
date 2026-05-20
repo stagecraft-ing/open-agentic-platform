@@ -20,6 +20,10 @@ summary: >
   validation surface: KNOWN_KEYS extension, V-012..V-019 (warning severity in
   Phase 1), VALID_KINDS enum, SHAPE_TABLE reservation, and `implements:` scalar/list
   serialization. SPEC_VERSION bumps 1.4.0 → 1.5.0.
+establishes:
+  - tools/spec-compiler/src/lib.rs
+  - tools/spec-compiler/src/main.rs
+  - build/spec-registry/registry.json
 ---
 
 # Feature Specification: Spec compiler MVP

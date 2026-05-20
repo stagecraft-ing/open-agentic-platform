@@ -17,6 +17,8 @@ summary: >
   automatic registration into the tool registry and prompt assembler.
 code_aliases: ["SKILL_COMMAND_FACTORY"]
 sources: ["claude-code"]
+establishes:
+  - crates/skill-factory
 ---
 
 # Feature Specification: Skill and Command Factory

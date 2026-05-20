@@ -14,9 +14,13 @@ summary: >
   superseded, retired) in authored specs and compiled registry; consumer guarantees
   and explicit non-goals so 004+ can build on stable lifecycle language without
   reopening 000/001 unless a constitutional amendment is required.
-implements:
-  - path: tools/spec-compiler
-  - path: tools/registry-consumer
+refines:
+  - paths:
+      - tools/spec-compiler/src/lib.rs
+      - tools/registry-consumer/src/lib.rs
+    aspect: status-semantics
+    refines_specs:
+      - "001-spec-compiler-mvp"
 ---
 
 # Feature Specification: Feature lifecycle & status semantics

@@ -32,18 +32,22 @@ depends_on:
   - "091"  # registry-enrichment (provenance lives in the enriched registry surface)
   - "118"  # workflow-spec-traceability (claim records are traceable artifacts)
   - "120"  # factory-extraction-stage (typed corpus to cite against)
-implements:
-  - path: crates/provenance-validator/Cargo.toml
-  - path: crates/provenance-validator/src/lib.rs
-  - path: crates/provenance-validator/src/allowlist.rs
-  - path: crates/provenance-validator/src/anchor.rs
-  - path: crates/provenance-validator/src/citation.rs
-  - path: crates/factory-contracts/src/provenance.rs
-  - path: crates/factory-engine/src/stages/s1_business_requirements.rs
-  - path: crates/factory-engine/src/stages/quality_gates.rs
-  - path: crates/factory-engine/skills/business-requirements-analyst.md
-  - path: crates/factory-engine/skills/validate.md
-  - path: platform/services/stagecraft/api/governance/provenancePolicy.ts
+establishes:
+  - crates/provenance-validator/Cargo.toml
+  - crates/provenance-validator/src/lib.rs
+  - crates/provenance-validator/src/allowlist.rs
+  - crates/provenance-validator/src/anchor.rs
+  - crates/provenance-validator/src/citation.rs
+  - crates/factory-contracts/src/provenance.rs
+  - platform/services/stagecraft/api/governance/provenancePolicy.ts
+extends:
+  - spec: "075-factory-workflow-engine"
+    paths:
+      - crates/factory-engine/src/stages/s1_business_requirements.rs
+      - crates/factory-engine/src/stages/quality_gates.rs
+      - crates/factory-engine/skills/business-requirements-analyst.md
+      - crates/factory-engine/skills/validate.md
+    nature: additive
 compliance:
   - framework: "owasp-asi-2026"
     # ASI01 via FR-001/FR-024 (validator + QG-13_ExternalProvenance enforce

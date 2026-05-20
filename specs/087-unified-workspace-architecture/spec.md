@@ -27,6 +27,14 @@ depends_on:
   - "082"  # artifact-integrity-platform-hardening
 kind: architecture
 risk: high
+establishes:
+  - platform/services/stagecraft/api/sync/types.ts
+  - platform/services/stagecraft/api/sync/service.ts
+  - platform/services/stagecraft/api/sync/duplex.ts
+  - platform/services/stagecraft/api/sync/relay.ts
+  - platform/services/stagecraft/api/sync/store.ts
+  - platform/services/stagecraft/api/sync/registry.ts
+  - packages/project-sdk
 ---
 
 # 087 — Unified Project Architecture

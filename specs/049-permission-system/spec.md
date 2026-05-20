@@ -17,6 +17,8 @@ summary: >
   UI surfaces Allow once / Allow & remember / Deny choices.
 code_aliases:
   - PERMISSION_SYSTEM
+establishes:
+  - packages/permission-system
 ---
 
 # Feature Specification: Permission Request System with Memory and Wildcards

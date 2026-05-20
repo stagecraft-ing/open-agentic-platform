@@ -12,9 +12,17 @@ depends_on:
   - "080"  # github-identity-onboarding (desktop PKCE scheme, error codes)
   - "106"  # rauthy-native-oidc-and-membership (seeder + client grants)
 code_aliases: ["RAUTHY_CLIENT_REDIRECTS"]
-implements:
-  - path: platform/services/stagecraft/scripts/seed-rauthy.mjs
-  - path: platform/services/stagecraft/web/README.md
+extends:
+  - spec: "106-rauthy-native-oidc-and-membership"
+    paths:
+      - platform/services/stagecraft/scripts/seed-rauthy.mjs
+    nature: additive
+refines:
+  - paths:
+      - platform/services/stagecraft/web/README.md
+    aspect: redirect-uri-ownership
+    refines_specs:
+      - "106-rauthy-native-oidc-and-membership"
 summary: >
   Close spec 106 FR-002's remaining manual gap: the seeder grants the `oap`
   scope to stagecraft-server / SPA / OPC clients but does not manage their

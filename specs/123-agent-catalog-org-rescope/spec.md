@@ -24,23 +24,27 @@ depends_on:
   - "122"  # stakeholder-doc-inversion (Stage CD comparator agent reference)
 amends:
   - "119"
-implements:
-  - path: platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql
-  - path: platform/services/stagecraft/api/agents/catalog.ts
-  - path: platform/services/stagecraft/api/agents/relay.ts
-  - path: platform/services/stagecraft/api/agents/bindings.ts
-  - path: platform/services/stagecraft/api/sync/duplex.ts
-  - path: platform/services/stagecraft/web/app/routes/app.agents._index.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.agents.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.agents.new.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.agents._index.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.agents.tsx
-  - path: apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs
-  - path: crates/factory-engine/src/agent_resolver.rs
 code_aliases: ["AGENT_CATALOG_ORG"]
+establishes:
+  - platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql
+extends:
+  - spec: "119-project-as-unit-of-governance"
+    paths:
+      - platform/services/stagecraft/api/agents/catalog.ts
+      - platform/services/stagecraft/api/agents/relay.ts
+      - platform/services/stagecraft/api/agents/bindings.ts
+      - platform/services/stagecraft/api/sync/duplex.ts
+      - platform/services/stagecraft/web/app/routes/app.agents._index.tsx
+      - platform/services/stagecraft/web/app/routes/app.agents.tsx
+      - platform/services/stagecraft/web/app/routes/app.agents.new.tsx
+      - platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx
+      - platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx
+      - platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx
+      - platform/services/stagecraft/web/app/routes/app.project.$projectId.agents._index.tsx
+      - platform/services/stagecraft/web/app/routes/app.project.$projectId.agents.tsx
+      - apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs
+      - crates/factory-engine/src/agent_resolver.rs
+    nature: wrapping
 summary: >
   Move the agent catalog back to org scope. Spec 119 collapsed workspace into
   project and rescoped agents to project_id along with knowledge, runs, grants,

@@ -16,6 +16,9 @@ summary: >
   provider, session, kind, severity, and deduplication key.
 code_aliases:
   - NOTIFICATION_SYSTEM
+establishes:
+  - apps/desktop/src/lib/notificationOrchestrator.ts
+  - apps/desktop/src/lib/notificationChannels.ts
 ---
 
 # Feature Specification: Notification Orchestrator

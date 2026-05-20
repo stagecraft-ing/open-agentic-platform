@@ -20,7 +20,12 @@ code_aliases: ["FACTORY_HYDRATION", "TEST_SEED"]
 # in-tree `factory/adapters/*` directories no longer exist after spec 108
 # moved factory state into `factory_adapters` / `factory_contracts` /
 # `factory_processes` and removed the in-tree mirror.
-implements: []
+refines:
+  - aspect: factory-seed-data
+    paths:
+      - factory
+    refines_specs:
+      - "074-factory-ingestion"
 ---
 
 # 081 — Factory Test Data Hydration

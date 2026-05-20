@@ -16,8 +16,18 @@ depends_on:
   - "006"  # conformance-lint-mvp (the surface being amended)
   - "104"  # makefile-ci-parity-contract (the integration point)
 code_aliases: ["SPEC_LINT_STRICT"]
-implements:
-  - path: Makefile
+co_authority:
+  - paths:
+      - Makefile
+    section: spec-lint
+    with_specs:
+      - "102-governed-excellence"
+      - "104-makefile-ci-parity-contract"
+      - "105-axiomregent-sidecar"
+      - "116-supply-chain-policy-gates"
+      - "127-spec-code-coupling-gate"
+      - "134-fast-local-ci-mode"
+      - "135-fast-ci-as-default"
 summary: >
   Spec 006 defines `spec-lint` as advisory by default with an opt-in
   `--fail-on-warn` flag for repos that choose the strict posture. This

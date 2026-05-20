@@ -16,9 +16,17 @@ summary: >
   drift detection from desktop, and enriched feature views with complexity and
   test coverage data.
 code_aliases: ["PORTFOLIO_INTELLIGENCE"]
-implements:
-  - path: crates/featuregraph
-  - path: crates/xray
+establishes:
+  - crates/featuregraph/src/enrichment.rs
+extends:
+  - spec: "034-featuregraph-registry-scanner-fix"
+    paths:
+      - crates/featuregraph/src/preflight.rs
+    nature: additive
+  - spec: "083-xray-ui-upgrade"
+    paths:
+      - crates/xray
+    nature: additive
 ---
 
 # 096 — Portfolio Intelligence

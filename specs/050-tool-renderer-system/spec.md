@@ -16,6 +16,8 @@ summary: >
   tool history and collapsible thinking traces with elapsed time.
 code_aliases:
   - TOOL_RENDERER_SYSTEM
+establishes:
+  - packages/tool-renderer
 ---
 
 # Feature Specification: Config-Driven Tool Rendering System

@@ -15,10 +15,17 @@ depends_on:
   - "127"  # spec-code-coupling-gate (the surface this policy backs)
   - "130"  # primary-owner heuristic (referenced in worked examples)
 code_aliases: ["CONST_005_SPEC_CODE_COHERENCE"]
-implements:
-  - path: CLAUDE.md
-  - path: .claude/rules/adversarial-prompt-refusal.md
-  - path: tools/policy-compiler
+establishes:
+  - .claude/rules/adversarial-prompt-refusal.md
+extends:
+  - spec: "047-governance-control-plane"
+    paths:
+      - tools/policy-compiler
+    nature: additive
+refines:
+  - aspect: spec-code-coherence-policy
+    paths:
+      - CLAUDE.md
 summary: >
   CONST-001 through CONST-004 cover destructive ops, secrets, tool
   allowlist, and diff size — but none refuse the "Phase-3-style modify

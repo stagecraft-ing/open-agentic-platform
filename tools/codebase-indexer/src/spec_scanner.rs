@@ -139,50 +139,19 @@ fn parse_depends_on(fm: &serde_yaml::Mapping) -> Vec<String> {
     ids
 }
 
-/// Parse the `implements` field from raw YAML frontmatter, with the
-/// spec-130 relationship-graph derivation applied: when the spec carries
-/// no explicit `implements:` (or carries one alongside relationship
-/// fields), the indexer also surfaces paths from `establishes`,
-/// `extends[].paths`, `refines[].paths`, and `co_authority[].paths` so
-/// the gate sees the full claim surface for the new relationship-graph
-/// authoring mode.
+/// Parse the relationship-graph fields (`establishes`, `extends`,
+/// `refines`, `co_authority`) from raw YAML frontmatter and emit the
+/// union of code paths as `ImplementsEntry` values.
 ///
-/// This reads the YAML directly because the spec-compiler's extraFrontmatter
-/// rejects nested mappings (V-002). The indexer has its own read path.
+/// Spec 130 + side-quest-II: the legacy `implements:` list-form is
+/// excised from the corpus. The scalar form (`implements: "<spec-id>"`,
+/// capability proving-ground per spec 147) carries no code paths and
+/// is intentionally not read here. The indexer reads relationship
+/// fields directly because the spec-compiler's extraFrontmatter rejects
+/// nested mappings (V-002); the indexer has its own read path.
 fn parse_implements(fm: &serde_yaml::Mapping) -> Vec<ImplementsEntry> {
     let mut entries = Vec::new();
     let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
-
-    // Explicit `implements:` (legacy authoring shape) — preserved.
-    if let Some(val) = fm.get("implements") {
-        if let Some(seq) = val.as_sequence() {
-            for item in seq {
-                if let Some(mapping) = item.as_mapping() {
-                    let crate_name = mapping
-                        .get("crate")
-                        .and_then(|v| v.as_str())
-                        .map(|s| s.to_string());
-                    let path = mapping
-                        .get("path")
-                        .and_then(|v| v.as_str())
-                        .map(|s| s.to_string());
-                    // Spec 147 — optional `primary: true` per implements item.
-                    // Only Some(true) is meaningful; explicit `false` is treated
-                    // identically to absent (the corpus default).
-                    let primary = mapping
-                        .get("primary")
-                        .and_then(|v| v.as_bool())
-                        .filter(|b| *b)
-                        .map(|_| true);
-                    if let Some(path) = path {
-                        if seen.insert(path.clone()) {
-                            entries.push(ImplementsEntry { crate_name, path, primary });
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     // Spec 130 relationship-graph derivation. Each helper extracts
     // paths from a specific field and pushes any new ones into the

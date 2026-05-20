@@ -14,9 +14,17 @@ depends_on:
   - "094"
   - "097"
 code_aliases: ["PROJECT_SCOPED_PERSISTENCE"]
-implements:
-  - path: crates/orchestrator
-  - path: crates/run
+extends:
+  - spec: "052-state-persistence"
+    paths:
+      - crates/orchestrator/src/sqlite_state.rs
+      - crates/orchestrator/src/hiqlite_store.rs
+    nature: additive
+  - spec: "097-promotion-grade-mirror"
+    paths:
+      - crates/orchestrator/src/promotion.rs
+      - crates/orchestrator/src/lib.rs
+    nature: additive
 summary: >
   Make persistence project-native and sync-trackable. Replace fire-and-forget
   Stagecraft calls with tracked acknowledgement, update SyncStatus in the

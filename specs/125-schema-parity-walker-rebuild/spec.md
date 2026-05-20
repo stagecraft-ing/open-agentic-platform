@@ -23,9 +23,12 @@ depends_on:
   - "120"  # factory-extraction-stage (originating spec for the parity check)
   - "121"  # claim-provenance-enforcement (parity extension precedent)
   - "122"  # stakeholder-doc-inversion (third parity surface)
-implements:
-  - path: tools/schema-parity-check/index.mjs
-  - path: platform/services/stagecraft/api/knowledge/extractionOutput.ts
+amends:
+  - spec: "120-factory-extraction-stage"
+    change_type: correction
+    paths:
+      - tools/schema-parity-check/index.mjs
+      - platform/services/stagecraft/api/knowledge/extractionOutput.ts
 ---
 
 # 125 — Schema-Parity Walker — Rebuild for Hand-Rolled Validators

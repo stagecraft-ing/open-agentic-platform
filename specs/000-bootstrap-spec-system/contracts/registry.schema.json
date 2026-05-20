@@ -313,7 +313,7 @@
     },
     "constrainsItem": {
       "type": "object",
-      "description": "Spec 130 — one entry in `constrains:`. `kind` is open-vocabulary (`invariant-freeze` is the initial idiom; spec 132 is its canonical example).",
+      "description": "Spec 130 — one entry in `constrains:`. `kind` is open-vocabulary (`invariant-freeze` is the initial idiom; spec 132 is its canonical example). Authors target either code paths (`paths:`) or other specs (`target_specs:`); `spec:` is the single-target shorthand.",
       "additionalProperties": false,
       "required": ["kind"],
       "properties": {
@@ -321,6 +321,11 @@
         "kind": { "type": "string", "minLength": 1 },
         "paths": {
           "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "target_specs": {
+          "type": "array",
+          "description": "Spec 130 — list of spec ids this constraint targets. Use when the constraint applies to several specs as peers rather than to code paths or a single spec.",
           "items": { "type": "string", "minLength": 1 }
         }
       }

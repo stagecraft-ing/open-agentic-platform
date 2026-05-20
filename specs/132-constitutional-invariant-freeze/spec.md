@@ -16,9 +16,15 @@ depends_on:
   - "000"  # bootstrap-spec-system (the constitutional baseline being frozen)
   - "001"  # spec-compiler-mvp (where V-011 lives)
 code_aliases: ["CONSTITUTIONAL_FREEZE"]
-implements:
-  - path: tools/spec-compiler
-  - path: specs/000-bootstrap-spec-system/contracts/registry.schema.json
+extends:
+  - spec: "001-spec-compiler-mvp"
+    paths:
+      - tools/spec-compiler
+    nature: additive
+constrains:
+  - kind: invariant-freeze
+    paths:
+      - specs/000-bootstrap-spec-system/contracts/registry.schema.json
 summary: >
   Spec 000 is itself amendable, including the amendment protocol. This
   spec adds a frontmatter convention — `unamendable: [<anchor>, ...]`

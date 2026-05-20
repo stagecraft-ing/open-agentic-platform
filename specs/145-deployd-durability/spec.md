@@ -14,38 +14,29 @@ depends_on:
   - "086"  # open-source-launch (deployd-api role context)
   - "144"  # hiqlite default-features hygiene (companion; manifest discipline this spec inherits)
 code_aliases: ["DEPLOYD_DURABILITY"]
-implements:
-  - path: platform/charts/deployd-api/values.yaml
-  - path: platform/charts/deployd-api/values-hetzner.yaml
-  - path: platform/charts/deployd-api/values-azure.yaml
-  - path: platform/charts/deployd-api/values-aws.yaml
-  - path: platform/charts/deployd-api/values-gcp.yaml
-  - path: platform/charts/deployd-api/values-do.yaml
-  - path: platform/charts/deployd-api/values-local.yaml
-  - path: platform/charts/deployd-api/templates/deployment.yaml
-  - path: platform/charts/deployd-api/templates/external-secret.yaml
-  - path: platform/services/deployd-api-rs/Cargo.toml
-  - path: platform/services/deployd-api-rs/Cargo.lock
-  - path: platform/services/deployd-api-rs/src/main.rs
-  - path: platform/services/deployd-api-rs/src/store.rs
-  - path: platform/services/deployd-api-rs/src/config.rs
-  # Amended 2026-05-15 during T052 live AC-1 validation: the jsonwebtoken
-  # 9→10 dependabot bump (04aa8f73) left two latent regressions on the JWT
-  # verify path (missing aws_lc_rs feature on the crate; stricter mixed-
-  # family algorithm check in v10 decoding.rs:342). Both fixes land on
-  # auth.rs as part of spec 145 closure — the spec's AC-1/AC-2 exercise
-  # the auth path end-to-end so it inherits the validator's hardening.
-  - path: platform/services/deployd-api-rs/src/auth.rs
-  - path: docs/runbooks/deployd-api-durability.md
-  # Amended 2026-05-15 during T054 live AC-2 validation: Rauthy 0.35's
-  # client_credentials flow reflects client_id as the aud claim
-  # verbatim. The CD workflow's `--set oidc.audience=https://deploy.<domain>`
-  # override is removed so the chart-side value (`stagecraft-m2m`) governs;
-  # without this, deployd-api rejects every live M2M token with
-  # InvalidAudience. Spec 143 §12 L-006 is the companion default-scopes-is-
-  # load-bearing lesson on the Rauthy side.
-  - path: .github/workflows/cd-deployd-api-rs.yml
-  - path: platform/services/stagecraft/test/spec145-deployd-scrub.config.test.ts
+extends:
+  - spec: "073-axiomregent-unification"
+    paths:
+      - platform/services/deployd-api-rs/Cargo.toml
+      - platform/services/deployd-api-rs/Cargo.lock
+      - platform/services/deployd-api-rs/src/main.rs
+      - platform/services/deployd-api-rs/src/store.rs
+      - platform/services/deployd-api-rs/src/config.rs
+      - platform/services/deployd-api-rs/src/auth.rs
+    nature: additive
+  - spec: "136-tenant-hello-demo-service"
+    paths:
+      - platform/charts/deployd-api/values.yaml
+      - platform/charts/deployd-api/values-hetzner.yaml
+      - platform/charts/deployd-api/values-azure.yaml
+      - platform/charts/deployd-api/values-aws.yaml
+      - platform/charts/deployd-api/values-gcp.yaml
+      - platform/charts/deployd-api/values-do.yaml
+      - platform/charts/deployd-api/values-local.yaml
+      - platform/charts/deployd-api/templates/deployment.yaml
+      - platform/charts/deployd-api/templates/external-secret.yaml
+      - .github/workflows/cd-deployd-api-rs.yml
+    nature: additive
 summary: >
   The `deployments` and `deployment_events` tables in deployd-api-rs's
   Hiqlite store are the audit trail of who deployed what, when, with

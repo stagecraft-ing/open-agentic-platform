@@ -18,37 +18,26 @@ depends_on:
   - "138"  # stagecraft-create-realised-scaffold (introduced template_remote, scaffoldReadiness)
   - "139"  # factory-artifact-substrate (§7.2 declared scaffold_source_id replaces template_remote)
 code_aliases: ["AIM_VUE_NODE_SCAFFOLD_SOURCE_ID_CUTOVER"]
-implements:
-  # Emit-side: the synthetic aim-vue-node adapter projection
-  - path: platform/services/stagecraft/api/factory/projection.ts
-  - path: platform/services/stagecraft/api/factory/translator.ts
-  - path: platform/services/stagecraft/api/factory/substrateBrowser.ts
-  - path: platform/services/stagecraft/api/factory/syncWorker.ts
-  # AC-2 — single source of truth for OAP-native adapter source ids
-  # (extracted from oapNativeSanitise.ts so projection.ts and translator.ts
-  # can import without an import cycle).
-  - path: platform/services/stagecraft/api/factory/oapNativeAdapters.ts
-  # Read-side: the scaffold-warmup + per-request scaffold path
-  - path: platform/services/stagecraft/api/projects/scaffold/scheduler.ts
-  - path: platform/services/stagecraft/api/projects/scaffold/templateCache.ts
-  - path: platform/services/stagecraft/api/projects/scaffold/types.ts
-  - path: platform/services/stagecraft/api/projects/create.ts
-  # Readiness: drop the legacy fallback
-  - path: platform/services/stagecraft/api/projects/scaffoldReadiness.ts
-  # T051 — pure blocker resolver extracted from scaffoldReadiness.ts so
-  # the unit test runs under bare vitest without the encore runtime.
-  - path: platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts
-  - path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx
-  # T061 — web client type mirrors the API response shape; the
-  # `hasTemplateRemote` field is dropped here in lockstep with the
-  # server.
-  - path: platform/services/stagecraft/web/app/lib/projects-api.server.ts
-  # T024 — one-shot, idempotent backfill that writes a synthetic
-  # `oap-self` `adapter-manifest` row per existing org so deploy-time
-  # cutover requires no operator action.
-  - path: platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql
-  # Documentation alignment
-  - path: platform/services/stagecraft/CLAUDE.md
+establishes:
+  - platform/services/stagecraft/api/factory/oapNativeAdapters.ts
+  - platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql
+  - platform/services/stagecraft/api/projects/scaffold/types.ts
+  - platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts
+extends:
+  - spec: "139-factory-artifact-substrate"
+    paths:
+      - platform/services/stagecraft/api/factory/projection.ts
+      - platform/services/stagecraft/api/factory/translator.ts
+      - platform/services/stagecraft/api/factory/substrateBrowser.ts
+      - platform/services/stagecraft/api/factory/syncWorker.ts
+      - platform/services/stagecraft/api/projects/scaffold/scheduler.ts
+      - platform/services/stagecraft/api/projects/scaffold/templateCache.ts
+      - platform/services/stagecraft/api/projects/create.ts
+      - platform/services/stagecraft/api/projects/scaffoldReadiness.ts
+      - platform/services/stagecraft/web/app/routes/app.projects.new.tsx
+      - platform/services/stagecraft/web/app/lib/projects-api.server.ts
+      - platform/services/stagecraft/CLAUDE.md
+    nature: additive
 summary: >
   Spec 139 §7.2 declared `template_remote` is replaced by
   `orchestration_source_id` + `scaffold_source_id`. Phase 2 landed the

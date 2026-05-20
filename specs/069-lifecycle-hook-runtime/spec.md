@@ -17,8 +17,11 @@ summary: >
   manifests.
 code_aliases: ["LIFECYCLE_HOOK_RUNTIME"]
 sources: ["claude-code"]
-implements:
-  - path: packages/hookify-rule-engine
+extends:
+  - spec: "048-hookify-rule-engine"
+    paths:
+      - packages/hookify-rule-engine
+    nature: wrapping
 compliance:
   - framework: "owasp-asi-2026"
     # The Architecture §"Hook definition schema" ships canonical worked

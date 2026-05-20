@@ -17,8 +17,11 @@ code_aliases:
   - SCHEDULED_AGENT_EXECUTION
 sources:
   - claudepal
-implements:
-  - path: crates/orchestrator
+extends:
+  - spec: "004-spec-to-execution-bridge-mvp"
+    paths:
+      - crates/orchestrator
+    nature: additive
 ---
 
 # 079 — Scheduled Agent Execution

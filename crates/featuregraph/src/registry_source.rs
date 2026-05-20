@@ -9,25 +9,24 @@
 //! `RegistryFeatureRecord` duplicates and consumes the typed-reader
 //! library introduced in W-03 (crate
 //! `open_agentic_spec_registry_reader`). The thin adapters here keep
-//! the byte-preserved semantics of `impl_files()` while the typed
-//! reader becomes the single sanctioned site that parses
+//! the typed reader as the single sanctioned site that parses
 //! `registry.json` (spec 103).
+//!
+//! Side quest II (2026-05-20): the `load_from_registry` /
+//! `ImplementsField` re-export pair was confirmed dead by audit (called
+//! only by its own unit tests; no external consumer reached for it via
+//! featuregraph's public API). They were removed alongside the
+//! `implements:` list-form excision. The Scanner now reads spec→code
+//! traceability through `index_bridge::load_from_index`
+//! (`build/codebase-index/index.json`'s `implementingPaths`).
 
-use crate::graph::FeatureNode;
 use open_agentic_spec_registry_reader as srr;
-use std::collections::HashMap;
 use std::path::Path;
 
 /// Adapter alias for the typed Feature record. Featuregraph used to
 /// hold its own `RegistryFeatureRecord` declaration; that duplicate is
 /// gone in W-05.
 pub type RegistryFeatureRecord = srr::Feature;
-
-/// Re-export of the typed `implements:` enum from spec_registry_reader.
-/// Kept under the local name for callers; `paths()` mirrors the old
-/// `impl_files()` semantics (scalar form contributes nothing, list
-/// form returns the inner `path:` strings).
-pub use srr::ImplementsField;
 
 /// Parse `registry.json` and return feature records (sorted by id for
 /// determinism). Internally delegates to `srr::load`; errors map to
@@ -37,42 +36,6 @@ pub fn load_registry_records(path: &Path) -> anyhow::Result<Vec<srr::Feature>> {
     let mut features = registry.features;
     features.sort_by(|a, b| a.id.cmp(&b.id));
     Ok(features)
-}
-
-/// Spec 147 AC-008 — build `FeatureNode` entries directly from
-/// `registry.json`, reading `implements:` from the typed registry.
-///
-/// Returns a map of `spec_id → FeatureNode` with `impl_files` populated
-/// from each spec's `implements:` list-form items via the typed
-/// reader's `paths()` helper. Scalar `implements:` (capability →
-/// registry spec-id) contributes nothing to `impl_files` — those
-/// claims are spec-to-spec references, not code paths.
-pub fn load_from_registry(path: &Path) -> Result<HashMap<String, FeatureNode>, String> {
-    let records = load_registry_records(path).map_err(|e| format!("{e}"))?;
-    let mut nodes = HashMap::with_capacity(records.len());
-    for rec in records {
-        let impl_files: Vec<String> = rec
-            .implements
-            .as_ref()
-            .map(|i| i.paths().into_iter().map(String::from).collect())
-            .unwrap_or_default();
-        let node = FeatureNode {
-            feature_id: rec.id.clone(),
-            title: rec.title.clone().unwrap_or_default(),
-            spec_path: rec.spec_path.clone().unwrap_or_default(),
-            status: rec.status.clone().unwrap_or_default(),
-            implementation: rec.implementation.clone().unwrap_or_default(),
-            governance: String::new(),
-            owner: rec.owner.clone().unwrap_or_default(),
-            group: String::new(),
-            depends_on: rec.depends_on.clone(),
-            impl_files,
-            test_files: Vec::new(),
-            violations: Vec::new(),
-        };
-        nodes.insert(rec.id, node);
-    }
-    Ok(nodes)
 }
 
 #[cfg(test)]
@@ -284,38 +247,10 @@ mod tests {
     }
 
     #[test]
-    fn parses_implements_list_form() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().join("registry.json");
-        write_fixture(
-            &path,
-            r#"{
-                "specVersion": "1.5.0",
-                "features": [
-                    {
-                        "id": "127-spec-code-coupling-gate",
-                        "title": "t",
-                        "specPath": "specs/127/spec.md",
-                        "status": "approved",
-                        "implements": [
-                            {"path": "tools/spec-code-coupling-check"},
-                            {"path": "Makefile", "primary": true}
-                        ]
-                    }
-                ],
-                "validation": { "passed": true, "violations": [] }
-            }"#,
-        );
-        let records = load_registry_records(&path).unwrap();
-        let imp = records[0].implements.as_ref().expect("implements present");
-        assert_eq!(
-            imp.paths(),
-            vec!["tools/spec-code-coupling-check", "Makefile"]
-        );
-    }
-
-    #[test]
-    fn parses_implements_scalar_form_as_no_files() {
+    fn parses_implements_scalar_form() {
+        // Spec 147 capability proving-ground: `implements: "<spec-id>"`
+        // is the registry-pointer form, retained after side-quest-II's
+        // excision of the legacy path-claiming list form.
         let dir = tempdir().unwrap();
         let path = dir.path().join("registry.json");
         write_fixture(
@@ -336,51 +271,7 @@ mod tests {
         );
         let records = load_registry_records(&path).unwrap();
         let imp = records[0].implements.as_ref().expect("implements present");
-        assert!(matches!(imp, ImplementsField::Scalar(_)));
-        assert!(imp.paths().is_empty());
-    }
-
-    #[test]
-    fn load_from_registry_builds_feature_nodes_with_impl_files() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().join("registry.json");
-        write_fixture(
-            &path,
-            r#"{
-                "specVersion": "1.5.0",
-                "features": [
-                    {
-                        "id": "127-spec-code-coupling-gate",
-                        "title": "Spec/Code Coupling Gate",
-                        "specPath": "specs/127/spec.md",
-                        "status": "approved",
-                        "implementation": "complete",
-                        "owner": "bart",
-                        "implements": [
-                            {"path": "tools/spec-code-coupling-check"},
-                            {"path": "Makefile"}
-                        ]
-                    },
-                    {
-                        "id": "149-saml-auth-driver",
-                        "title": "SAML auth driver",
-                        "specPath": "specs/149/spec.md",
-                        "status": "draft",
-                        "implements": "148-auth-driver-registry"
-                    }
-                ],
-                "validation": { "passed": true, "violations": [] }
-            }"#,
-        );
-        let nodes = load_from_registry(&path).unwrap();
-        let n127 = nodes.get("127-spec-code-coupling-gate").expect("127 present");
-        assert_eq!(
-            n127.impl_files,
-            vec!["tools/spec-code-coupling-check".to_string(), "Makefile".to_string()]
-        );
-        assert_eq!(n127.title, "Spec/Code Coupling Gate");
-        assert_eq!(n127.owner, "bart");
-        let n149 = nodes.get("149-saml-auth-driver").expect("149 present");
-        assert!(n149.impl_files.is_empty(), "scalar implements contributes no file paths");
+        assert_eq!(imp.as_scalar(), Some("148-auth-driver-registry"));
+        assert!(imp.paths().is_empty(), "scalar form carries no code paths");
     }
 }

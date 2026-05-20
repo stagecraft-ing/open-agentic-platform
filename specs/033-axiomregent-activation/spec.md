@@ -20,6 +20,9 @@ code_aliases:
   - MCP_TOOLS
 owner: bart
 risk: medium
+establishes:
+  - apps/desktop/src-tauri/src/commands/sidecars.rs
+  - crates/axiomregent/src/lib.rs
 ---
 
 # Feature Specification: axiomregent activation

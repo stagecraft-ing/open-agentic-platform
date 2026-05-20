@@ -21,8 +21,6 @@ refines:
   - paths:
       - tools/registry-consumer
     aspect: error-shape
-implements:
-  - path: tools/registry-consumer
 ---
 
 # Feature Specification: Error contract tests

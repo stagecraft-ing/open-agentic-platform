@@ -15,10 +15,19 @@ depends_on:
 code_aliases: ["SPEC_PREFLIGHT"]
 kind: governance
 risk: high
-implements:
-  - path: crates/policy-kernel
-  - path: crates/featuregraph
-  - path: crates/agent
+extends:
+  - spec: "068-permission-runtime"
+    paths:
+      - crates/policy-kernel/src/lib.rs
+    nature: additive
+  - spec: "034-featuregraph-registry-scanner-fix"
+    paths:
+      - crates/featuregraph/src/preflight.rs
+    nature: additive
+  - spec: "036-safety-tier-governance"
+    paths:
+      - crates/agent/src/safety.rs
+    nature: additive
 ---
 
 # 093 — Spec-Driven Preflight and Gating

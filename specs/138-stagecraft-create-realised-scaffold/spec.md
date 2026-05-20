@@ -16,24 +16,25 @@ depends_on:
   - "108"  # factory-as-platform-feature (factory_adapters/manifest shape)
   - "109"  # factory-pat-and-pubsub-sync (factory_upstream_pats consumed by warmup)
 code_aliases: ["STAGECRAFT_CREATE_REALISED"]
-implements:
-  - path: platform/services/stagecraft/api/projects/create.ts
-  - path: platform/services/stagecraft/api/projects/scaffoldReadiness.ts
-  - path: platform/services/stagecraft/api/projects/scaffold/templateCache.ts
-  - path: platform/services/stagecraft/api/projects/scaffold/scheduler.ts
-  - path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts
-  - path: platform/services/stagecraft/api/projects/scaffold/gitInitAndPush.ts
-  - path: platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts
-  - path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx
-  - path: platform/charts/stagecraft/templates/workspace-pvc.yaml
-  # Auxiliary touches the realisation drove — declared here so the spec/code
-  # coupling gate (spec 127/130/133) sees the amender as a claimant.
-  - path: platform/services/stagecraft/api/factory/syncPipeline.ts
-  - path: platform/services/stagecraft/api/factory/syncWorker.ts
-  - path: platform/services/stagecraft/api/factory/translator.test.ts
-  - path: platform/services/stagecraft/api/github/repoInit.ts
-  - path: platform/services/stagecraft/web/app/lib/projects-api.server.ts
-  - path: platform/services/stagecraft/CLAUDE.md
+extends:
+  - spec: "112-factory-project-lifecycle"
+    paths:
+      - platform/services/stagecraft/api/projects/create.ts
+      - platform/services/stagecraft/api/projects/scaffoldReadiness.ts
+      - platform/services/stagecraft/api/projects/scaffold/templateCache.ts
+      - platform/services/stagecraft/api/projects/scaffold/scheduler.ts
+      - platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts
+      - platform/services/stagecraft/api/projects/scaffold/gitInitAndPush.ts
+      - platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts
+      - platform/services/stagecraft/web/app/routes/app.projects.new.tsx
+      - platform/charts/stagecraft/templates/workspace-pvc.yaml
+      - platform/services/stagecraft/api/factory/syncPipeline.ts
+      - platform/services/stagecraft/api/factory/syncWorker.ts
+      - platform/services/stagecraft/api/factory/translator.test.ts
+      - platform/services/stagecraft/api/github/repoInit.ts
+      - platform/services/stagecraft/web/app/lib/projects-api.server.ts
+      - platform/services/stagecraft/CLAUDE.md
+    nature: additive
 summary: >
   Spec 112 §5 specified Create at the contract level but left four points
   where the landed implementation diverged from the literal spec text:

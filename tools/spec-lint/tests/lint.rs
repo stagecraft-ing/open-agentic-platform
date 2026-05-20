@@ -232,3 +232,122 @@ summary: "x"
         );
     }
 }
+
+// ─── V-020 (spec 130) — relationship-field emission gate ───
+
+#[test]
+fn v020_fires_when_no_relationship_fields_and_no_retroactive() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let feat = root.join("specs/099-v20-bare");
+    fs::create_dir_all(&feat).unwrap();
+    fs::write(
+        feat.join("spec.md"),
+        r#"---
+id: "099-v20-bare"
+title: "t"
+status: draft
+created: "2026-03-22"
+summary: "x"
+---
+# Body
+"#,
+    )
+    .unwrap();
+
+    let w = lint_feature_dir(root, &feat);
+    assert!(
+        w.iter().any(|x| x.code == "V-020"),
+        "V-020 must fire on a spec with no relationship fields and no `origin: retroactive: true`"
+    );
+}
+
+#[test]
+fn v020_silent_when_origin_retroactive() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let feat = root.join("specs/099-v20-retro");
+    fs::create_dir_all(&feat).unwrap();
+    fs::write(
+        feat.join("spec.md"),
+        r#"---
+id: "099-v20-retro"
+title: "t"
+status: draft
+created: "2026-03-22"
+summary: "x"
+origin:
+  retroactive: true
+---
+# Body
+"#,
+    )
+    .unwrap();
+
+    let w = lint_feature_dir(root, &feat);
+    assert!(
+        !w.iter().any(|x| x.code == "V-020"),
+        "V-020 must NOT fire on `origin: retroactive: true` bootstrap specs"
+    );
+}
+
+#[test]
+fn v020_silent_when_extends_present() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let feat = root.join("specs/099-v20-extends");
+    fs::create_dir_all(&feat).unwrap();
+    fs::write(
+        feat.join("spec.md"),
+        r#"---
+id: "099-v20-extends"
+title: "t"
+status: draft
+created: "2026-03-22"
+summary: "x"
+extends:
+  - spec: "001-spec-compiler-mvp"
+    paths:
+      - tools/spec-compiler/src/lib.rs
+    nature: additive
+---
+# Body
+"#,
+    )
+    .unwrap();
+
+    let w = lint_feature_dir(root, &feat);
+    assert!(
+        !w.iter().any(|x| x.code == "V-020"),
+        "V-020 must NOT fire when `extends:` is declared"
+    );
+}
+
+#[test]
+fn v020_silent_when_establishes_present() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let feat = root.join("specs/099-v20-establishes");
+    fs::create_dir_all(&feat).unwrap();
+    fs::write(
+        feat.join("spec.md"),
+        r#"---
+id: "099-v20-establishes"
+title: "t"
+status: draft
+created: "2026-03-22"
+summary: "x"
+establishes:
+  - tools/spec-compiler/src/lib.rs
+---
+# Body
+"#,
+    )
+    .unwrap();
+
+    let w = lint_feature_dir(root, &feat);
+    assert!(
+        !w.iter().any(|x| x.code == "V-020"),
+        "V-020 must NOT fire when `establishes:` is declared"
+    );
+}

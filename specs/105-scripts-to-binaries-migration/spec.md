@@ -14,9 +14,17 @@ depends_on:
   - "075"  # factory-workflow-engine (consumer of adapter-scopes.json)
   - "104"  # makefile-ci-parity-contract (the enforcement surface)
 code_aliases: ["SCRIPTS_RETIRE"]
-implements:
-  - path: tools/adapter-scopes-compiler
-  - path: Makefile
+establishes:
+  - tools/adapter-scopes-compiler/src/main.rs
+  - tools/adapter-scopes-compiler/src/lib.rs
+co_authority:
+  - paths:
+      - Makefile
+    section: axiomregent-build
+    with_specs:
+      - "037-cross-platform-axiomregent"
+      - "073-axiomregent-unification"
+      - "104-makefile-ci-parity-contract"
 summary: >
   Retire the repo-root `scripts/` directory. Each script moves to the
   venue that matches its nature: scripts that perform real logic

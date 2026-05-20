@@ -17,6 +17,11 @@ summary: >
   with a discoverable, composable tool surface.
 code_aliases: ["TOOL_DEFINITION_REGISTRY"]
 sources: ["claude-code"]
+extends:
+  - spec: "036-safety-tier-governance"
+    paths:
+      - crates/tool-registry
+    nature: additive
 compliance:
   - framework: "owasp-asi-2026"
     # ASI03 via FR-004 (`can_use()` consults policy kernel before every

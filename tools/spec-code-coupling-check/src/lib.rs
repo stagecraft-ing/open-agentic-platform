@@ -5,7 +5,15 @@
 //! diff path claimed by some spec's `implements:` list is accompanied
 //! by an edit to that spec's `spec.md`. Bypass list, waivers, and the
 //! self-test are documented in spec 127 §4.
+//!
+//! Spec 152 §2 (partial activation): section-aware authority checking
+//! for Makefile paths. See `section_parser` and `hunk_attribution`
+//! modules. Other file types continue to use whole-file authority.
 
+pub mod hunk_attribution;
+pub mod section_parser;
+
+use hunk_attribution::HunkAttributionMap;
 use open_agentic_codebase_indexer::types::{CodebaseIndex, SCHEMA_VERSION};
 use open_agentic_codebase_indexer::{IndexReaderError, load as load_codebase_index};
 use std::collections::{BTreeMap, BTreeSet};
@@ -194,6 +202,9 @@ impl BypassConfig {
         Ok(Self::from_str(&raw))
     }
 
+    // `from_str` is an intentional non-trait helper for newline-delimited
+    // text (not the `Infallible` contract `FromStr` would require).
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(raw: &str) -> Self {
         let prefixes = raw
             .lines()
@@ -373,6 +384,132 @@ pub fn check_coupling_with_bypass(
         }
         violations.push(Violation { path, owners });
     }
+    violations.sort_by(|a, b| a.path.cmp(&b.path));
+
+    Outcome {
+        violations,
+        waiver_reason,
+    }
+}
+
+/// Spec 152 §2 — section-authority index.
+///
+/// Maps `(path, section_name) → set of spec ids` that are the exclusive
+/// authority for that section. Built from `co_authority:` frontmatter.
+///
+/// Example: `("Makefile", "spec-code-coupling") → {"127-spec-code-coupling-gate"}`.
+///
+/// This type is separate from `claim_index` (which is whole-file). Section
+/// claims are only consulted when the gate can attribute a hunk to a
+/// specific section; otherwise the gate falls back to whole-file authority.
+pub type SectionClaimIndex = BTreeMap<(String, String), BTreeSet<String>>;
+
+/// Spec 152 §2 entry point: section-aware coupling check.
+///
+/// Extends `check_coupling_with_bypass` with per-section authority.
+/// When `hunk_attribution` carries section data for a path (currently
+/// only Makefile paths), the gate narrows the claimant set to only the
+/// spec that declared authority over that section. If no section match is
+/// found, or if the path has no hunk data, the gate falls back to
+/// whole-file authority (identical to the pre-152 behaviour).
+///
+/// **Arguments**:
+/// - `hunk_attribution` — map from file path to the union of sections
+///   touched by any hunk in that file. May be empty (full fallback to
+///   whole-file authority for every path).
+/// - `section_claims` — `(path, section) → spec_ids` index. Typically
+///   built from the spec corpus' `co_authority:` frontmatter. May be
+///   empty (full fallback).
+///
+/// **Section satisfaction rule (spec 152 §2.3)**:
+/// A path P is satisfied when, for each section S attributed to P's
+/// hunks, at least one spec in `section_claims[(P, S)]` has its spec.md
+/// in the diff. If `(P, S)` has no entry in `section_claims`, the check
+/// falls back to whole-file authority for that section.
+///
+/// Paths with no hunk attribution entry, or whose hunk-attributed sections
+/// are all unrecognised in `section_claims`, fall through entirely to
+/// whole-file authority.
+pub fn check_coupling_section_aware(
+    index: &CodebaseIndex,
+    diff_paths: &BTreeSet<String>,
+    hunk_attribution: &HunkAttributionMap,
+    section_claims: &SectionClaimIndex,
+    pr_body: &str,
+    bypass: &BypassConfig,
+) -> Outcome {
+    let waiver_reason = parse_waiver(pr_body);
+    let claim_index = build_claim_index(index);
+
+    let mut violations: Vec<Violation> = Vec::new();
+
+    for path in diff_paths {
+        if is_bypass(path) || bypass.matches(path) {
+            continue;
+        }
+
+        // Whole-file owners (spec 127 / 130 / 133 baseline).
+        let whole_file_owners = legitimate_owners(path, &claim_index, index);
+        if whole_file_owners.is_empty() {
+            continue; // unclaimed path — not a coupling concern
+        }
+
+        // Attempt section-level satisfaction before falling back to whole-file.
+        if let Some(attributed_sections) = hunk_attribution.get(path) {
+            if !attributed_sections.is_empty() {
+                // Check each attributed section independently.
+                let mut all_sections_satisfied = true;
+                let mut first_unsatisfied_owners: Option<OwnerSet> = None;
+
+                for section_name in attributed_sections {
+                    let key = (path.clone(), section_name.clone());
+                    if let Some(section_spec_ids) = section_claims.get(&key) {
+                        // Section has an explicit claimant. Require any one
+                        // of those specs' spec.md to be in the diff.
+                        let section_satisfied = section_spec_ids
+                            .iter()
+                            .any(|id| diff_paths.contains(&format!("specs/{id}/spec.md")));
+                        if !section_satisfied {
+                            all_sections_satisfied = false;
+                            if first_unsatisfied_owners.is_none() {
+                                let mut owners = OwnerSet::default();
+                                owners.implements.extend(section_spec_ids.iter().cloned());
+                                first_unsatisfied_owners = Some(owners);
+                            }
+                        }
+                    } else {
+                        // No section claim for this section — fall back to
+                        // whole-file authority for this section.
+                        if !whole_file_owners.any_owner_in_diff(diff_paths) {
+                            all_sections_satisfied = false;
+                            if first_unsatisfied_owners.is_none() {
+                                first_unsatisfied_owners = Some(whole_file_owners.clone());
+                            }
+                        }
+                    }
+                }
+
+                if !all_sections_satisfied {
+                    violations.push(Violation {
+                        path: path.clone(),
+                        owners: first_unsatisfied_owners
+                            .unwrap_or_else(|| whole_file_owners.clone()),
+                    });
+                }
+                continue; // section path handled
+            }
+        }
+
+        // No hunk attribution for this path (or empty sections):
+        // fall back to whole-file authority.
+        if !whole_file_owners.any_owner_in_diff(diff_paths) {
+            violations.push(Violation {
+                path: path.clone(),
+                owners: whole_file_owners,
+            });
+        }
+    }
+
     violations.sort_by(|a, b| a.path.cmp(&b.path));
 
     Outcome {
@@ -840,5 +977,286 @@ mod tests {
             waiver_reason: None,
         };
         assert!(render(&outcome).is_empty());
+    }
+
+    // ── Spec 152 §2 — section-aware authority tests ──────────────────────────
+
+    /// Build a SectionClaimIndex from (path, section) → [spec_id] triples.
+    fn section_claim_index(entries: &[(&str, &str, &[&str])]) -> SectionClaimIndex {
+        let mut idx = SectionClaimIndex::new();
+        for (path, section, spec_ids) in entries {
+            idx.entry((path.to_string(), section.to_string()))
+                .or_default()
+                .extend(spec_ids.iter().map(|s| s.to_string()));
+        }
+        idx
+    }
+
+    /// Build a HunkAttributionMap from (path, [section]) pairs.
+    fn hunk_map(entries: &[(&str, &[&str])]) -> HunkAttributionMap {
+        entries
+            .iter()
+            .map(|(path, sections)| {
+                (
+                    path.to_string(),
+                    sections.iter().map(|s| s.to_string()).collect(),
+                )
+            })
+            .collect()
+    }
+
+    /// Integration test 1 (spec 152 §2 Concern 4):
+    /// A diff that edits Makefile's `spec-code-coupling` section + spec 127's
+    /// spec.md PASSES. Other co-authority claimants do not need to edit.
+    #[test]
+    fn section_aware_spec_code_coupling_section_passes_with_spec127() {
+        // Build a realistic co-claimant scenario:
+        // specs 127, 134, 102 all co-claim Makefile at whole-file level.
+        let mut idx = index_claiming("127-spec-code-coupling-gate", &["Makefile"]);
+        for spec_id in ["134-fast-local-ci-mode", "102-governed-excellence"] {
+            idx.traceability.mappings.push(TraceMapping {
+                spec_id: spec_id.to_string(),
+                spec_status: Some("approved".to_string()),
+                depends_on: Vec::new(),
+                amends: Vec::new(),
+                amendment_record: None,
+                implementing_paths: vec![ImplementingPath {
+                    path: "Makefile".to_string(),
+                    name: None,
+                    source: Some(TraceSource::SpecImplements),
+                    primary: None,
+                }],
+            });
+        }
+
+        // Section claim: only spec 127 governs the `spec-code-coupling` section.
+        let section_claims = section_claim_index(&[(
+            "Makefile",
+            "spec-code-coupling",
+            &["127-spec-code-coupling-gate"],
+        )]);
+
+        // Hunk attribution: the Makefile edit is in the `spec-code-coupling` section.
+        let hunks = hunk_map(&[("Makefile", &["spec-code-coupling"])]);
+
+        // Diff: edit Makefile + spec 127's spec.md (but NOT 134 or 102).
+        let diff = diffset(&[
+            "Makefile",
+            "specs/127-spec-code-coupling-gate/spec.md",
+        ]);
+
+        let outcome = check_coupling_section_aware(
+            &idx,
+            &diff,
+            &hunks,
+            &section_claims,
+            "",
+            &BypassConfig::default(),
+        );
+
+        assert!(
+            outcome.violations.is_empty(),
+            "section authority satisfied by spec 127; got violations: {:?}",
+            outcome.violations
+        );
+        assert_eq!(outcome.exit_code(), 0);
+    }
+
+    /// Integration test 2 (spec 152 §2 Concern 4):
+    /// A diff that edits Makefile's `ci-fast` section + spec 134's spec.md
+    /// PASSES. Other co-authority claimants do not need to edit.
+    #[test]
+    fn section_aware_ci_fast_section_passes_with_spec134() {
+        let mut idx = index_claiming("134-fast-local-ci-mode", &["Makefile"]);
+        for spec_id in ["127-spec-code-coupling-gate", "102-governed-excellence"] {
+            idx.traceability.mappings.push(TraceMapping {
+                spec_id: spec_id.to_string(),
+                spec_status: Some("approved".to_string()),
+                depends_on: Vec::new(),
+                amends: Vec::new(),
+                amendment_record: None,
+                implementing_paths: vec![ImplementingPath {
+                    path: "Makefile".to_string(),
+                    name: None,
+                    source: Some(TraceSource::SpecImplements),
+                    primary: None,
+                }],
+            });
+        }
+
+        let section_claims = section_claim_index(&[(
+            "Makefile",
+            "ci-fast",
+            &["134-fast-local-ci-mode"],
+        )]);
+
+        let hunks = hunk_map(&[("Makefile", &["ci-fast"])]);
+
+        // Diff: edit Makefile + spec 134's spec.md only.
+        let diff = diffset(&[
+            "Makefile",
+            "specs/134-fast-local-ci-mode/spec.md",
+        ]);
+
+        let outcome = check_coupling_section_aware(
+            &idx,
+            &diff,
+            &hunks,
+            &section_claims,
+            "",
+            &BypassConfig::default(),
+        );
+
+        assert!(
+            outcome.violations.is_empty(),
+            "section authority satisfied by spec 134; got violations: {:?}",
+            outcome.violations
+        );
+        assert_eq!(outcome.exit_code(), 0);
+    }
+
+    /// Section-aware check: hunk in a KNOWN section but WRONG spec.md edited.
+    /// Spec 127 edits the Makefile's `ci-fast` section (which is spec 134's
+    /// territory) → violation because spec 134 did not edit.
+    #[test]
+    fn section_aware_wrong_spec_fails() {
+        let mut idx = index_claiming("134-fast-local-ci-mode", &["Makefile"]);
+        idx.traceability.mappings.push(TraceMapping {
+            spec_id: "127-spec-code-coupling-gate".to_string(),
+            spec_status: Some("approved".to_string()),
+            depends_on: Vec::new(),
+            amends: Vec::new(),
+            amendment_record: None,
+            implementing_paths: vec![ImplementingPath {
+                path: "Makefile".to_string(),
+                name: None,
+                source: Some(TraceSource::SpecImplements),
+                primary: None,
+            }],
+        });
+
+        let section_claims = section_claim_index(&[(
+            "Makefile",
+            "ci-fast",
+            &["134-fast-local-ci-mode"],
+        )]);
+        let hunks = hunk_map(&[("Makefile", &["ci-fast"])]);
+
+        // Only spec 127's spec.md is in the diff — NOT spec 134's.
+        let diff = diffset(&[
+            "Makefile",
+            "specs/127-spec-code-coupling-gate/spec.md",
+        ]);
+
+        let outcome = check_coupling_section_aware(
+            &idx,
+            &diff,
+            &hunks,
+            &section_claims,
+            "",
+            &BypassConfig::default(),
+        );
+
+        assert_eq!(
+            outcome.violations.len(),
+            1,
+            "expected violation: spec 134 owns ci-fast but didn't edit; got: {:?}",
+            outcome.violations
+        );
+        assert_eq!(outcome.exit_code(), 1);
+    }
+
+    /// Section-aware check: hunk in an UNKNOWN section → fallback to
+    /// whole-file authority (any one owner's spec.md suffices).
+    #[test]
+    fn section_aware_unknown_section_falls_back_to_whole_file() {
+        let idx = index_claiming("127-spec-code-coupling-gate", &["Makefile"]);
+
+        // Section claims are empty (no section mapping for Makefile).
+        let section_claims = SectionClaimIndex::new();
+
+        // Hunk is in a section, but no section claim exists for it.
+        let hunks = hunk_map(&[("Makefile", &["some-unclaimed-section"])]);
+
+        // Spec 127 is the whole-file owner and its spec.md is in the diff.
+        let diff = diffset(&[
+            "Makefile",
+            "specs/127-spec-code-coupling-gate/spec.md",
+        ]);
+
+        let outcome = check_coupling_section_aware(
+            &idx,
+            &diff,
+            &hunks,
+            &section_claims,
+            "",
+            &BypassConfig::default(),
+        );
+
+        assert!(
+            outcome.violations.is_empty(),
+            "unknown section falls back to whole-file; any owner clears; got: {:?}",
+            outcome.violations
+        );
+    }
+
+    /// Section-aware check: no hunk attribution → falls back to whole-file
+    /// (identical to pre-152 behaviour).
+    #[test]
+    fn section_aware_no_hunk_attribution_falls_back_to_whole_file() {
+        let idx = index_claiming("127-spec-code-coupling-gate", &["Makefile"]);
+        let section_claims = section_claim_index(&[(
+            "Makefile",
+            "spec-code-coupling",
+            &["127-spec-code-coupling-gate"],
+        )]);
+
+        // Empty hunk attribution — no section data for Makefile.
+        let hunks = HunkAttributionMap::new();
+
+        // Spec 127 is the whole-file owner and its spec.md is in the diff.
+        let diff = diffset(&[
+            "Makefile",
+            "specs/127-spec-code-coupling-gate/spec.md",
+        ]);
+
+        let outcome = check_coupling_section_aware(
+            &idx,
+            &diff,
+            &hunks,
+            &section_claims,
+            "",
+            &BypassConfig::default(),
+        );
+
+        assert!(
+            outcome.violations.is_empty(),
+            "no hunk attribution → whole-file fallback; owner present; got: {:?}",
+            outcome.violations
+        );
+    }
+
+    /// Section-aware check preserves whole-file violation when no spec
+    /// is edited at all (whole-file fallback with no owner in diff).
+    #[test]
+    fn section_aware_no_owner_in_diff_still_fails() {
+        let idx = index_claiming("127-spec-code-coupling-gate", &["Makefile"]);
+        let section_claims = SectionClaimIndex::new();
+        let hunks = HunkAttributionMap::new();
+
+        // Only Makefile in the diff — no spec.md.
+        let diff = diffset(&["Makefile"]);
+
+        let outcome = check_coupling_section_aware(
+            &idx,
+            &diff,
+            &hunks,
+            &section_claims,
+            "",
+            &BypassConfig::default(),
+        );
+
+        assert_eq!(outcome.violations.len(), 1);
+        assert_eq!(outcome.exit_code(), 1);
     }
 }

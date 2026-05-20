@@ -13,10 +13,16 @@ depends_on:
   - "101"  # codebase-index-mvp (the structural index this extends)
   - "103"  # init-protocol-governed-reads (governed read discipline)
 code_aliases: ["WORKFLOW_TRACEABILITY"]
-implements:
-  - path: .github/workflows
-  - path: tools/codebase-indexer
-  - path: build/codebase-index/CODEBASE-INDEX.md
+extends:
+  - spec: "101-codebase-index-mvp"
+    paths:
+      - tools/codebase-indexer
+      - build/codebase-index/CODEBASE-INDEX.md
+    nature: additive
+refines:
+  - paths:
+      - .github/workflows
+    aspect: spec-header-convention
 summary: >
   Adopt a header-line convention `# Spec: NNN-slug` in every
   .github/workflows/*.yml. Extend tools/codebase-indexer to scan workflow
@@ -24,8 +30,6 @@ summary: >
   index.json, rendered as a new "Layer 5: CI Workflow Traceability" section
   of CODEBASE-INDEX.md. Closes the gap where Rust crates trace to specs via
   `[package.metadata.oap]` but workflows have no equivalent.
-origin:
-  retroactive: true
 ---
 
 # 118 — Workflow-to-Spec Traceability

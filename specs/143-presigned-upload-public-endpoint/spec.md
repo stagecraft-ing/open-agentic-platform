@@ -15,55 +15,56 @@ amends:
   - "087"  # extends NF-002 with the browser-reachability requirement
   - "115"  # annotates FR-003 as load-bearing for spec 143 FR-010 race contract
 code_aliases: ["PRESIGNED_UPLOAD_PUBLIC_ENDPOINT"]
-implements:
-  - path: platform/services/stagecraft/api/knowledge/storage.ts
-  - path: platform/services/stagecraft/api/knowledge/storage.dualClient.test.ts
-  - path: platform/services/stagecraft/api/knowledge/knowledge.ts
-  - path: platform/services/stagecraft/api/knowledge/auditActions.ts
-  - path: platform/services/stagecraft/api/knowledge/extractionCore.ts  # FU-019 — dispatch-null permissive-policy re-probe + `markRunUnsupportedInternal` helper at lines 448-501. Co-claimed with specs 077/080/087/115/119 (existing claimants); spec 130 FR-001 any-claimant rule applies. Backfilled 2026-05-11 — spec 143's `amends: 115` does NOT pass-through to non-spec.md paths (spec 133 amend-pathway fires only for `specs/<id>/spec.md` paths), so the explicit `implements:` entry is required.
-  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx  # FU-019 — slate informational `unsupported_type` badge on the knowledge detail page. Co-claimed with specs 077/080/087/115/119. Backfilled 2026-05-11.
-  - path: platform/services/stagecraft/api/db/schema.ts  # FU-019 — `unsupported_type` enum value appended to knowledge object state taxonomy (schema.ts:508-519). Co-claimed with specs 077/080/087/114/119/139/142 (existing claimants); spec 130 FR-001 any-claimant rule clears either edit. Backfilled 2026-05-11 — implements: entry was omitted from f14d5ab when FU-019 closed; coupling gate exit-1 surfaced the gap at FU-024 pickup.
-  - path: platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.up.sql  # FU-019 — adds `unsupported_type` to the knowledge_object_state enum. Backfilled 2026-05-11 (see schema.ts entry above for rationale).
-  - path: platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.down.sql  # FU-019 — drops `unsupported_type` enum value on rollback. Backfilled 2026-05-11.
-  - path: platform/services/stagecraft/api/knowledge/orphanSweeper.ts
-  - path: platform/services/stagecraft/api/knowledge/orphanSweeper.integration.test.ts
-  - path: platform/services/stagecraft/api/knowledge/scheduler.ts
-  - path: platform/services/stagecraft/api/knowledge/uploadLimits.ts
-  - path: platform/services/stagecraft/api/knowledge/uploadLimits.test.ts
-  - path: platform/services/stagecraft/api/knowledge/requestUpload.integration.test.ts
-  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx  # FU-023 — uploadOne uses fetchWithRefresh for the requestUpload/confirmUpload pair
-  - path: platform/services/stagecraft/api/auth/refreshCookie.ts  # FU-023 — POST /auth/refresh endpoint
-  - path: platform/services/stagecraft/api/auth/refreshCookie-pure.ts  # FU-023 — cookie parse/build pure helpers
-  - path: platform/services/stagecraft/api/auth/refreshCookie.test.ts  # FU-023 — endpoint unit test with mocked refreshTokens
-  - path: platform/services/stagecraft/api/auth/refreshCookie-pure.test.ts  # FU-023 — pure-helper unit tests
-  - path: platform/services/stagecraft/web/app/lib/fetchWithRefresh.ts  # FU-023 — browser fetch wrapper with single-flight 401 retry
-  - path: platform/services/stagecraft/web/app/lib/fetchWithRefresh.test.ts  # FU-023 — wrapper unit tests (passthrough, retry, single-flight, refresh-fail propagation)
-  - path: platform/services/stagecraft/test/__mocks__/encore-config.ts
-  - path: platform/services/stagecraft/vite.config.ts
-  - path: platform/services/stagecraft/infra.config.hetzner.json
-  - path: platform/services/stagecraft/infra.config.json
-  - path: platform/infra/hetzner/setup.sh
-  - path: platform/infra/hetzner/post-create.sh
-  - path: platform/infra/hetzner/.env.example
-  - path: platform/infra/hetzner/validate/spec-143.sh
-  - path: platform/charts/stagecraft/values.yaml
-  - path: platform/charts/stagecraft/values-hetzner.yaml
-  - path: platform/charts/stagecraft/templates/deployment.yaml  # §12 L-003 — render imagePullPolicy from values; FU-015 — NODE_OPTIONS env from .Values.nodeOptions (§13 2026-05-10 ~07:48 UTC)
-  - path: platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml  # FR-010 self-hosted scheduler (FU-001 beat 4)
-  - path: platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml  # FR-010 per-purpose-credential mount, ESO path (FU-001 beat 4)
-  - path: platform/charts/deployd-api/values-hetzner.yaml  # FU-024 — chart-side L-003 mirror: drop `tag: latest`, add `pullPolicy: Always`, comment CD as authoritative writer of image.tag. Co-claimed with draft spec 145 (deployd-durability persistence block at lines 34-38); spec 130 FR-001 any-claimant rule clears either edit. (§13 2026-05-11 FU-024 closure entry)
-  - path: platform/charts/deployd-api/templates/deployment.yaml  # FU-024 — chart-side L-003 mirror: add `imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}` line after `image:`. Co-claimed with draft spec 145 (volume claim block at lines 39-43); spec 130 FR-001 any-claimant rule applies. (§13 2026-05-11 FU-024 closure entry)
-  - path: platform/services/stagecraft/api/knowledge/extractionWorker.ts  # FU-015 — Subscription literal-int maxConcurrency cap (§13 2026-05-10 ~07:48 UTC). Primary owner is spec 115; spec 143 amends 115 (frontmatter `amends:`), so spec 133's amends-aware coupling gate accepts the touch — explicit `implements:` entry makes the relationship visible without amends-walking.
-  - path: platform/services/stagecraft/test/spec143-fu015.config.test.ts  # FU-015 — three CI static assertions (Subscription maxConcurrency literal, chart memory limit ≥1Gi, chart NODE_OPTIONS sanity). §13 2026-05-10 ~07:48 UTC.
-  # Note: platform/infra/terraform/envs/dev/core/{main,variables}.tf are owned
-  # by spec 072 (multi-cloud-k8s-portability). FR-010 adds per-purpose
-  # sweeper credential entries into 072's existing keyvault_secrets map —
-  # an additive-only data-shape change, not a multi-cloud-portability
-  # design amendment. The PR carries a Spec-Drift-Waiver per spec 127
-  # FR-005 instead of pulling those paths into 143's implements: (which
-  # would still require a 072 amendment under spec 130's primary-owner
-  # heuristic, and the heuristic correctly assigns primary ownership to
-  # 072 for the infrastructure layout).
+establishes:
+  - platform/services/stagecraft/api/knowledge/storage.ts
+  - platform/services/stagecraft/api/knowledge/uploadLimits.ts
+  - platform/services/stagecraft/api/knowledge/uploadLimits.test.ts
+  - platform/services/stagecraft/api/knowledge/requestUpload.integration.test.ts
+  - platform/services/stagecraft/api/auth/refreshCookie.ts
+  - platform/services/stagecraft/api/auth/refreshCookie-pure.ts
+  - platform/services/stagecraft/api/auth/refreshCookie.test.ts
+  - platform/services/stagecraft/api/auth/refreshCookie-pure.test.ts
+  - platform/services/stagecraft/web/app/lib/fetchWithRefresh.ts
+  - platform/services/stagecraft/web/app/lib/fetchWithRefresh.test.ts
+  - platform/infra/hetzner/validate/spec-143.sh
+  - platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml
+  - platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml
+extends:
+  - spec: "087-unified-workspace-architecture"
+    paths:
+      - platform/services/stagecraft/api/knowledge/knowledge.ts
+      - platform/services/stagecraft/api/knowledge/auditActions.ts
+      - platform/services/stagecraft/api/knowledge/orphanSweeper.ts
+      - platform/services/stagecraft/api/knowledge/orphanSweeper.integration.test.ts
+      - platform/services/stagecraft/api/knowledge/scheduler.ts
+      - platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx
+      - platform/charts/stagecraft/templates/deployment.yaml
+      - platform/charts/stagecraft/values.yaml
+      - platform/charts/stagecraft/values-hetzner.yaml
+    nature: additive
+  - spec: "115-knowledge-extraction-pipeline"
+    paths:
+      - platform/services/stagecraft/api/knowledge/extractionCore.ts
+      - platform/services/stagecraft/api/knowledge/extractionWorker.ts
+    nature: additive
+refines:
+  - aspect: presigned-upload-public-endpoint
+    paths:
+      - platform/services/stagecraft/api/knowledge/storage.dualClient.test.ts
+      - platform/infra/hetzner/setup.sh
+      - platform/infra/hetzner/post-create.sh
+      - platform/infra/hetzner/.env.example
+      - platform/services/stagecraft/infra.config.hetzner.json
+      - platform/services/stagecraft/infra.config.json
+      - platform/charts/deployd-api/values-hetzner.yaml
+      - platform/charts/deployd-api/templates/deployment.yaml
+      - platform/services/stagecraft/test/__mocks__/encore-config.ts
+      - platform/services/stagecraft/vite.config.ts
+      - platform/services/stagecraft/test/spec143-fu015.config.test.ts
+      - platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx
+      - platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.up.sql
+      - platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.down.sql
+      - platform/services/stagecraft/api/db/schema.ts
 summary: >
   Browser uploads via presigned PUT have never landed in MinIO on the
   Hetzner deployment because the server-issued presigned URL points at

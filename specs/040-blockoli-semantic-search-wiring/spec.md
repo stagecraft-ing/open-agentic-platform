@@ -10,6 +10,8 @@ created: "2026-03-29"
 authors:
   - "open-agentic-platform"
 language: en
+establishes:
+  - apps/desktop/src-tauri/src/commands/search.rs
 summary: >
   Wire the existing blockoli semantic code search library into the desktop app
   by implementing the two stubbed Tauri commands (index + search), adding managed

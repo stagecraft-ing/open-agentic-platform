@@ -16,9 +16,14 @@ summary: >
   Sonnet/Opus for execution — replacing ad-hoc agent selection with governed dispatch.
 code_aliases:
   - AGENT_ORGANIZER
-implements:
-  - path: crates/agent
-  - path: crates/orchestrator
+extends:
+  - spec: "004-spec-to-execution-bridge-mvp"
+    paths:
+      - crates/agent/src/complexity.rs
+      - crates/agent/src/dispatch.rs
+      - crates/agent/src/plan.rs
+      - crates/orchestrator
+    nature: additive
 ---
 
 # Feature Specification: agent organizer and meta-orchestrator

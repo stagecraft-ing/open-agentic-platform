@@ -28,6 +28,9 @@ summary: >
 code_aliases:
   - AGENT_FRONTMATTER
   - SKILL_SCHEMA
+establishes:
+  - crates/agent-frontmatter
+  - schemas/agent-frontmatter.schema.json
 ---
 
 # Feature Specification: Unified Agent and Skill Frontmatter Schema

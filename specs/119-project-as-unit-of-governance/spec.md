@@ -27,23 +27,38 @@ amends:
   - "094"
   - "099"
 code_aliases: ["PROJECT_AS_GOVERNANCE_UNIT"]
-implements:
-  - path: platform/services/stagecraft/api/db
-  - path: platform/services/stagecraft/api/projects
-  - path: platform/services/stagecraft/api/knowledge
-  - path: platform/services/stagecraft/api/sync
-  - path: platform/services/stagecraft/api/workspaces
-  - path: platform/services/stagecraft/web
-  - path: crates/orchestrator
-  - path: crates/factory-contracts
-  - path: crates/run
-  - path: apps/desktop
-  - path: .specify/contract.md
-  - path: specs/000-bootstrap-spec-system
-  - path: specs/087-unified-workspace-architecture
-  - path: specs/092-workspace-runtime-threading
-  - path: specs/094-unified-artifact-store
-  - path: specs/099-workspace-scoped-persistence
+establishes:
+  - platform/services/stagecraft/api/db
+  - platform/services/stagecraft/api/projects
+  - platform/services/stagecraft/api/knowledge
+  - platform/services/stagecraft/api/sync
+  - .specify/contract.md
+extends:
+  - spec: "087-unified-workspace-architecture"
+    paths:
+      - platform/services/stagecraft/api/workspaces
+      - specs/087-unified-workspace-architecture
+    nature: wrapping
+  - spec: "092-workspace-runtime-threading"
+    paths:
+      - crates/orchestrator
+      - specs/092-workspace-runtime-threading
+    nature: wrapping
+  - spec: "094-unified-artifact-store"
+    paths:
+      - crates/factory-contracts
+      - specs/094-unified-artifact-store
+    nature: wrapping
+  - spec: "099-workspace-scoped-persistence"
+    paths:
+      - crates/run
+      - specs/099-workspace-scoped-persistence
+    nature: wrapping
+refines:
+  - aspect: project-scoped-governance
+    paths:
+      - apps/desktop
+      - specs/000-bootstrap-spec-system
 summary: >
   Collapse the workspace abstraction into project. Workspace was introduced
   (spec 087) as a multi-project governance container with a shared knowledge

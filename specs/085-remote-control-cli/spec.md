@@ -18,6 +18,13 @@ code_aliases:
   - CONTROL_API
 sources:
   - claudepal
+establishes:
+  - packages/oap-ctl/src/cli.js
+extends:
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    paths:
+      - apps/desktop/src-tauri/src/web_server.rs
+    nature: additive
 ---
 
 # 085 — Remote Control CLI (oap-ctl)

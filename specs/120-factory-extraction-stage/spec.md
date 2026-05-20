@@ -31,17 +31,24 @@ depends_on:
   - "094"  # unified-artifact-store (stage output destination)
   - "110"  # stagecraft-to-opc-factory-trigger (KnowledgeBundle + duplex auth)
   - "115"  # knowledge-extraction-pipeline (ExtractionOutput schema source)
-implements:
-  - path: crates/artifact-extract/Cargo.toml
-  - path: crates/artifact-extract/src/lib.rs
-  - path: crates/factory-contracts/src/knowledge.rs
-  - path: crates/factory-engine/src/manifest_gen.rs
-  - path: crates/factory-engine/src/stages/s_minus_1_extract.rs
-  - path: platform/services/stagecraft/api/knowledge/extractionExternal.ts
-  - path: platform/services/stagecraft/api/knowledge/extractionOutput.ts
-  - path: apps/desktop/src-tauri/src/commands/factory.rs
-  - path: apps/desktop/src-tauri/src/commands/stagecraft_client.rs
-  - path: apps/desktop/src/components/factory/ArtifactInspector.tsx
+establishes:
+  - crates/factory-contracts/src/knowledge.rs
+  - crates/factory-engine/src/stages/s_minus_1_extract.rs
+  - platform/services/stagecraft/api/knowledge/extractionExternal.ts
+  - apps/desktop/src/components/factory/ArtifactInspector.tsx
+extends:
+  - spec: "075-factory-workflow-engine"
+    paths:
+      - crates/factory-engine/src/manifest_gen.rs
+      - crates/artifact-extract/Cargo.toml
+      - crates/artifact-extract/src/lib.rs
+    nature: additive
+  - spec: "108-factory-as-platform-feature"
+    paths:
+      - apps/desktop/src-tauri/src/commands/factory.rs
+      - apps/desktop/src-tauri/src/commands/stagecraft_client.rs
+      - platform/services/stagecraft/api/knowledge/extractionOutput.ts
+    nature: additive
 ---
 
 # 120 — Factory Extraction Stage

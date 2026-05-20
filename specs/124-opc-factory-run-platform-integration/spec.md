@@ -25,10 +25,14 @@ depends_on:
   - "108"  # factory-as-platform-feature (provides /api/factory/*)
   - "109"  # factory-pat-and-pubsub-sync (the platform-side sync model)
   - "123"  # agent-catalog-org-rescope (agent_resolver + binding-aware run identity)
-implements:
-  - path: apps/desktop/src-tauri/src/commands/factory.rs
-  - path: platform/services/stagecraft/api/factory/runs.ts
-  - path: platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql
+establishes:
+  - platform/services/stagecraft/api/factory/runs.ts
+  - platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql
+extends:
+  - spec: "108-factory-as-platform-feature"
+    paths:
+      - apps/desktop/src-tauri/src/commands/factory.rs
+    nature: additive
 ---
 
 # 124 — OPC Factory-Run Platform Integration

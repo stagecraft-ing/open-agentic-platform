@@ -15,10 +15,14 @@ depends_on:
   - "047"  # governance-control-plane (policy posture precedent)
   - "104"  # makefile-ci-parity-contract (Makefile mirror requirement)
 code_aliases: ["SUPPLY_CHAIN_POLICY"]
-implements:
-  - path: deny.toml
-  - path: .github/workflows/ci-supply-chain.yml
-  - path: Makefile
+establishes:
+  - deny.toml
+  - .github/workflows/ci-supply-chain.yml
+co_authority:
+  - paths:
+      - Makefile
+    section: supply-chain
+    with_specs: ["104-makefile-ci-parity-contract"]
 compliance:
   - framework: "owasp-asi-2026"
     # ASI04 (supply-chain compromise) via the gate composition: cargo-deny

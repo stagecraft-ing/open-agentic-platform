@@ -19,6 +19,11 @@ summary: >
 code_aliases:
   - STATE_PERSISTENCE
   - WORKFLOW_RESUME
+extends:
+  - spec: "004-spec-to-execution-bridge-mvp"
+    paths:
+      - crates/orchestrator
+    nature: additive
 sources:
   - agents
   - claudepal

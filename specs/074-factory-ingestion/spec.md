@@ -14,6 +14,9 @@ summary: >
   orchestration engine into a complete AI software factory. Defines directory
   structure, Rust contract types, adapter registry, and integration seams.
 code_aliases: ["FACTORY_INGESTION", "FACTORY_CONTRACTS"]
+establishes:
+  - crates/factory-contracts
+  - factory
 ---
 
 # Feature Specification: Factory Ingestion as First-Class Delivery Engine

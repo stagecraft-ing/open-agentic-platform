@@ -8,6 +8,14 @@ implementation: complete
 owner: bart
 created: "2026-04-10"
 kind: process
+establishes:
+  - factory/upstream-map.yaml
+supersedes:
+  - spec: "074-factory-ingestion"
+    scope: partial
+    paths:
+      - factory/upstream-map.yaml
+    rationale: Replaces one-time ingestion with a repeatable upstream sync protocol
 summary: >
   Defines the protocol, mapping manifest, and tooling for translating updates
   from upstream repositories (goa-software-factory, template) into OAP's
