@@ -10,7 +10,7 @@ authors:
   - "open-agentic-platform"
 language: en
 summary: >
-  Define the first official read-only consumer of build/spec-registry/registry.json:
+  Define the first official read-only consumer of .derived/spec-registry/registry.json:
   who may read it, what guarantees downstream tools rely on, and a normative CLI for
   listing, filtering, and lookups; optional Rust library is non-normative for MVP.
 establishes:
@@ -29,7 +29,7 @@ establishes:
 
 ## Purpose and charter
 
-This feature specifies **who reads** **`build/spec-registry/registry.json`**, **what they may assume**, and **what behavior is stable** for downstream tooling—at MVP scope, **read-only** (no mutation of specs, no orchestration, no new machine-truth formats).
+This feature specifies **who reads** **`.derived/spec-registry/registry.json`**, **what they may assume**, and **what behavior is stable** for downstream tooling—at MVP scope, **read-only** (no mutation of specs, no orchestration, no new machine-truth formats).
 
 It implements the missing layer: **compiled truth → usable truth** for humans and automation that need to **navigate** feature specs without parsing markdown.
 
@@ -117,7 +117,7 @@ Automation may run against a **stale** file or a failed compile output where **`
 ### Functional Requirements
 
 - **FR-001**: The **canonical MVP consumer** MUST be a **CLI** (binary name and path in **`plan.md`**—default **`tools/spec-spine/registry-consumer/`**, binary **`registry-consumer`**). A **Rust library** inside the same crate for parse/query helpers is **optional** and **non-normative** for Feature **002** MVP (implementations MUST NOT treat a public library API as required for conformance).
-- **FR-002**: Read **`registry.json`** only from the path **`build/spec-registry/registry.json`** relative to repository root by default; optional **`--registry-path`** override for tests and advanced use (documented).
+- **FR-002**: Read **`registry.json`** only from the path **`.derived/spec-registry/registry.json`** relative to repository root by default; optional **`--registry-path`** override for tests and advanced use (documented).
 - **FR-003**: Support **`list`** and **`show <feature-id>`**; support **filtering** on **`list`** by **`--status`** and **`--id-prefix`** (**prefix match on `id` only**—no substring / contains matching in MVP).
 - **FR-004**: **Default** mode MUST **reject** using the registry as authoritative when **`validation.passed`** is **false**, per User Story 3 (exact policy in `plan.md`).
 - **FR-005**: Document **stable sort order** for **list** output (e.g. lexicographic by **`id`**, matching Feature **001** determinism expectations).

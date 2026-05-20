@@ -341,7 +341,7 @@ The `verify-certificate` command independently re-derives all hashes from source
 
 - **FR-021**: The `codebase-indexer` MUST be designated as the single authoritative source of structural spec-to-code traceability. This convention MUST be documented in `CONTRIBUTING.md`.
 
-- **FR-022**: The `featuregraph` crate MUST consume traceability mappings from `build/codebase-index/index.json` rather than performing independent source-file scanning. The `// Feature:` header convention becomes optional enrichment, not the primary path.
+- **FR-022**: The `featuregraph` crate MUST consume traceability mappings from `.derived/codebase-index/index.json` rather than performing independent source-file scanning. The `// Feature:` header convention becomes optional enrichment, not the primary path.
 
 - **FR-023**: The spec-compiler MUST support an optional `compliance` frontmatter key with structure: `compliance: [{framework: "owasp-asi-2026", controls: ["ASI01", "ASI02"]}]`.
 
@@ -425,7 +425,7 @@ The `verify-certificate` command independently re-derives all hashes from source
 
 - **SC-006**: All 6 factory process stages (s0-s5) have corresponding gate check YAML configs in `factory/contract/checks/`.
 
-- **SC-007**: `featuregraph` resolves traceability from `build/codebase-index/index.json` — no independent file scanning for spec mappings.
+- **SC-007**: `featuregraph` resolves traceability from `.derived/codebase-index/index.json` — no independent file scanning for spec mappings.
 
 - **SC-008**: `registry.json` contains `compliance` data for at least 5 specs tagged with OWASP ASI mappings.
 
@@ -543,7 +543,7 @@ The featuregraph uses the codebase-indexer's output as its traceability source, 
 
 **Acceptance Scenarios**:
 
-1. **Given** a compiled codebase index and featuregraph running, **When** `governance_preflight` is called for a set of changed files, **Then** the affected spec IDs are resolved from `build/codebase-index/index.json` traceability mappings.
+1. **Given** a compiled codebase index and featuregraph running, **When** `governance_preflight` is called for a set of changed files, **Then** the affected spec IDs are resolved from `.derived/codebase-index/index.json` traceability mappings.
 
 2. **Given** a spec with `implements: [{path: crates/factory-engine}]`, **When** the codebase index is compiled, **Then** the index contains a bidirectional mapping from that spec ID to the package at `crates/factory-engine`.
 

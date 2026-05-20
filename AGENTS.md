@@ -11,7 +11,7 @@ Run `/init` as the mandatory first action of every new session. The command read
    - `CLAUDE.md` — project overview and conventions
    - `README.md` — full project description
    - `codebase-indexer check` — staleness gate for the structural index (non-fatal)
-   - `oap-code-index-enrich render` → `build/codebase-index/CODEBASE-INDEX.md` — rendered structural summary (Cut D W-07b moved this from `codebase-indexer render`; run only if the markdown is missing)
+   - `oap-code-index-enrich render` → `.derived/codebase-index/CODEBASE-INDEX.md` — rendered structural summary (Cut D W-07b moved this from `codebase-indexer render`; run only if the markdown is missing)
    - `registry-consumer status-report --json --nonzero-only` — lifecycle counts per spec status
    - `registry-consumer list --ids-only` — spec id list (for latest-spec detection)
    - `git log --oneline -10` — recent history

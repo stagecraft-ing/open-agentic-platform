@@ -25,7 +25,7 @@ pub async fn featuregraph_overview(
     features_yaml_path: String,
 ) -> Result<serde_json::Value, String> {
     let repo_root = resolve_repo_root(&features_yaml_path);
-    let registry_path = repo_root.join("build/spec-registry/registry.json");
+    let registry_path = repo_root.join(".derived/spec-registry/registry.json");
 
     let registry = match read_registry_summary(&registry_path) {
         Ok(summary) => json!({

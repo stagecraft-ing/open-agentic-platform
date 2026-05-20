@@ -39,12 +39,12 @@ fn repo_root() -> PathBuf {
 }
 
 fn loaded_index() -> open_agentic_codebase_indexer::types::CodebaseIndex {
-    let p = repo_root().join("build/codebase-index/index.json");
+    let p = repo_root().join(".derived/codebase-index/index.json");
     load_index(&p).expect("codebase-index present")
 }
 
 fn loaded_registry() -> open_agentic_spec_registry_reader::Registry {
-    let p = repo_root().join("build/spec-registry/registry.json");
+    let p = repo_root().join(".derived/spec-registry/registry.json");
     load_registry(&p).expect("registry present")
 }
 

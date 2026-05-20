@@ -29,7 +29,7 @@ This is a governed monorepo with three layers:
 
 | Layer | Path | Tech |
 |-------|------|------|
-| Spec Spine | `specs/` | Markdown + YAML frontmatter, compiled to `build/spec-registry/registry.json` |
+| Spec Spine | `specs/` | Markdown + YAML frontmatter, compiled to `.derived/spec-registry/registry.json` |
 | Rust Crates | `crates/` | agent, axiomregent, factory-engine, factory-contracts, featuregraph, orchestrator, policy-kernel, run, skill-factory, tool-registry, xray |
 | Rust Tools | `tools/` | spec-compiler, registry-consumer, spec-lint, policy-compiler |
 | Desktop App (OPC) | `apps/desktop/` | Tauri v2 + React + TypeScript |
@@ -51,7 +51,7 @@ Read the files needed to understand the current state:
 - `CLAUDE.md` and `AGENTS.md` — project conventions and session protocol
 - Relevant specs in `specs/NNN-slug/spec.md` — the authoritative design record
 - Existing code in affected crates or packages — understand current patterns
-- `build/spec-registry/registry.json` — compiled feature state (if relevant)
+- `.derived/spec-registry/registry.json` — compiled feature state (if relevant)
 
 ### 3. Validate Against Spec Spine
 

@@ -58,7 +58,7 @@ governs this path?" calls into this crate, not a re-implementation.
 
 The gate reads:
 
-- **`build/codebase-index/index.json`** via typed deserialization
+- **`.derived/codebase-index/index.json`** via typed deserialization
   (spec 101's `CodebaseIndex` type, governed-read per spec 103).
 - The **diff** as a list of edited paths (`--paths-from` file or
   computed via `git diff --name-only <base>...<head>`).

@@ -53,7 +53,7 @@ fn main() -> ExitCode {
                 println!(
                     "wrote {}",
                     repo_root
-                        .join("build/codebase-index/CODEBASE-INDEX.md")
+                        .join(".derived/codebase-index/CODEBASE-INDEX.md")
                         .display()
                 );
                 ExitCode::SUCCESS

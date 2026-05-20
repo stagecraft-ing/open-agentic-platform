@@ -121,7 +121,7 @@ the walker doesn't have to translate.
 1. Imports `extractionOutputSchema` (zod tree).
 2. Walks it via `walkType(zod._def)`.
 3. Compares the result to the Rust fingerprint at
-   `build/schema-parity/rust-knowledge-schema.json`.
+   `.derived/schema-parity/rust-knowledge-schema.json`.
 
 After spec 125:
 
@@ -226,7 +226,7 @@ six phases of `tasks.md` completed in order:
   it for `metadata: HashMap<String, Value>`.
 - **Phase 1 — Descriptor** (`0f9a27b`). `extractionOutputDescriptor`
   authored by walking `validateExtractionOutput` and its helpers; cross-
-  checked against `build/schema-parity/rust-knowledge-schema.json` —
+  checked against `.derived/schema-parity/rust-knowledge-schema.json` —
   structurally identical, no schema drift between validator and Rust
   mirror predates this spec. Value-shape constraints the validator
   additionally enforces (`HEX_64`, length min/max, integer/finite,

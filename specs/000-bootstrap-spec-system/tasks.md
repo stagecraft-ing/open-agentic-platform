@@ -18,7 +18,7 @@
 **Purpose**: Reserve repository layout for compiler output and tooling.
 
 - [ ] T001 Create `tools/spec-spine/spec-compiler/` skeleton with README pointing to Feature 000 spec
-- [ ] T002 Add `build/spec-registry/` to `.gitignore` (compiler output) and document optional committed golden fixtures in `research.md` open items
+- [ ] T002 Add `.derived/spec-registry/` to `.gitignore` (compiler output) and document optional committed golden fixtures in `research.md` open items
 - [x] T003 [P] Add a minimal `CONTRIBUTING.md` section or pointer in root `README.md` stating markdown-only / JSON-only rules (one paragraph, links to `specs/000-bootstrap-spec-system/spec.md`) — **done**: root `README.md` links to Feature 000 and `standards/spec/contract.md`
 
 ---
@@ -29,7 +29,7 @@
 
 - [ ] T004 Implement markdown discovery for `specs/*/spec.md` under repository root
 - [ ] T005 Parse YAML frontmatter + extract `sectionHeadings` per [data-model.md](./data-model.md)
-- [ ] T006 Emit **`registry.json`** (deterministic) and **`build-meta.json`** (ephemeral) per [spec.md](./spec.md); sorted JSON keys and sorted violation lists; paths under `build/spec-registry/`
+- [ ] T006 Emit **`registry.json`** (deterministic) and **`build-meta.json`** (ephemeral) per [spec.md](./spec.md); sorted JSON keys and sorted violation lists; paths under `.derived/spec-registry/`
 - [ ] T007 Compute `build.contentHash` per [research.md](./research.md) decision D2 (**registry.json** inputs only)
 - [ ] T008 Implement validation codes **V-001**–**V-004** for MVP; **V-005** reserved (warnings only if implemented; no mandatory MVP enforcement per spec)
 

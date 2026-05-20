@@ -27,12 +27,12 @@ refines:
 
 ## Purpose
 
-Stabilize implicit filesystem convention behavior around the default registry location `build/spec-registry/registry.json`.
+Stabilize implicit filesystem convention behavior around the default registry location `.derived/spec-registry/registry.json`.
 
 ## Requirements
 
 - **FR-001**: Integration tests invoke `registry-consumer` without `--registry-path` from controlled working directories.
-- **FR-002**: Success contract: when `build/spec-registry/registry.json` exists and is valid, command succeeds with expected stdout.
+- **FR-002**: Success contract: when `.derived/spec-registry/registry.json` exists and is valid, command succeeds with expected stdout.
 - **FR-003**: Failure contract: when default path is missing, command exits nonzero with exact stderr transcript and empty stdout.
 - **FR-004**: Tests cover at least one core command path (`list`) for both success and missing-default-path failure.
 - **FR-005**: No intentional runtime behavior changes in `src/main.rs` or `src/lib.rs`.

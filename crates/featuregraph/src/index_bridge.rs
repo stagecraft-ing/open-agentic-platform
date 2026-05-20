@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn load_from_real_index() {
         // Use the actual codebase-index if available.
-        let index_path = Path::new("build/codebase-index/index.json");
+        let index_path = Path::new(".derived/codebase-index/index.json");
         if !index_path.exists() {
             // Skip if not in repo root.
             return;

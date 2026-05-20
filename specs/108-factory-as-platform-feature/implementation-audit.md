@@ -159,7 +159,7 @@ Steps to take:
 3. Touch up the three doc-comments in `crates/factory-contracts/src/{agent_loader,adapter_registry}.rs`
    and `crates/agent-frontmatter/src/types.rs` so the doc no longer asserts an
    in-tree location for the factory.
-4. Run `make registry` to refresh `build/codebase-index/index.json` (paths
+4. Run `make registry` to refresh `.derived/codebase-index/index.json` (paths
    under `factory/` will drop out of the inventory) and `make ci-stagecraft`
    plus `make ci-rust` and `make ci-tools` to confirm no consumer regresses.
 

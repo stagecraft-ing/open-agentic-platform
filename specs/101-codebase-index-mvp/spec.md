@@ -10,7 +10,7 @@ amended: "2026-05-13"
 amendment_record: "147-spec-kind-grammar"
 summary: >
   A deterministic indexer tool that walks the repository tree, parses manifest files
-  and spec frontmatter, and emits a governed build/codebase-index/index.json artifact.
+  and spec frontmatter, and emits a governed .derived/codebase-index/index.json artifact.
   Provides four-layer structural inventory: crate/package inventory, spec-to-code
   traceability, factory adapter coverage, and tool/infrastructure catalog. Follows the
   same compiler-emits-artifact pattern established by spec-compiler (001).
@@ -29,7 +29,7 @@ establishes:
   - tools/spec-spine/codebase-indexer/src/lib.rs
   - tools/spec-spine/codebase-indexer/src/spec_scanner.rs
   - tools/spec-spine/codebase-indexer/src/manifest.rs
-  - build/codebase-index/index.json
+  - .derived/codebase-index/index.json
   - standards/schemas/spec-spine/codebase-index.schema.json
 ---
 
@@ -67,18 +67,18 @@ what a compiler does.
 ### 2.1 The Index as a Build Artifact
 
 A new Rust tool `tools/spec-spine/codebase-indexer/` reads the repository tree and emits
-`build/codebase-index/index.json`. This follows the identical pattern established by
+`.derived/codebase-index/index.json`. This follows the identical pattern established by
 the spec-compiler:
 
 ```
-repo tree  →  codebase-indexer compile  →  build/codebase-index/index.json
-                                        →  build/codebase-index/build-meta.json
+repo tree  →  codebase-indexer compile  →  .derived/codebase-index/index.json
+                                        →  .derived/codebase-index/build-meta.json
 ```
 
 The JSON schema lives at `standards/schemas/spec-spine/codebase-index.schema.json` and is itself a
 governed contract.
 
-A markdown renderer mode emits `build/codebase-index/CODEBASE-INDEX.md` from the
+A markdown renderer mode emits `.derived/codebase-index/CODEBASE-INDEX.md` from the
 JSON — this is the human-readable view. It is never hand-authored.
 
 ### 2.2 Four-Layer Schema
@@ -213,7 +213,7 @@ Same pattern as the spec registry:
 
 ### 2.6 Agent Orientation
 
-Once the index exists, any Claude Code agent can read `build/codebase-index/index.json`
+Once the index exists, any Claude Code agent can read `.derived/codebase-index/index.json`
 on startup and immediately understand:
 
 - What crates and packages exist and where

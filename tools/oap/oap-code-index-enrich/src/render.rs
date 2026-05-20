@@ -41,12 +41,12 @@ struct EnrichedView {
 /// Render index-oap.json as a human-readable markdown document and
 /// write it to `build/codebase-index/CODEBASE-INDEX.md`.
 pub fn render_to_file(repo_root: &Path) -> Result<(), std::io::Error> {
-    let path = repo_root.join("build/codebase-index/index-oap.json");
+    let path = repo_root.join(".derived/codebase-index/index-oap.json");
     let raw = fs::read_to_string(&path)?;
     let index: EnrichedView = serde_json::from_str(&raw)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
     let markdown = render_markdown(&index);
-    let out_path = repo_root.join("build/codebase-index/CODEBASE-INDEX.md");
+    let out_path = repo_root.join(".derived/codebase-index/CODEBASE-INDEX.md");
     fs::write(out_path, markdown)?;
     Ok(())
 }

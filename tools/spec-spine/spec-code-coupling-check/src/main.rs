@@ -78,7 +78,7 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
 
     let index_path = cli.index.clone().unwrap_or_else(|| {
-        cli.repo.join("build/codebase-index/index.json")
+        cli.repo.join(".derived/codebase-index/index.json")
     });
     let index = match load_index(&index_path) {
         Ok(i) => i,
@@ -94,7 +94,7 @@ fn main() -> ExitCode {
     // pre-152 gate. This keeps integration tests that synthesise an
     // index without a registry working, and gives CI a soft-fail path
     // when the registry hasn't been compiled yet.
-    let default_registry_path = cli.repo.join("build/spec-registry/registry.json");
+    let default_registry_path = cli.repo.join(".derived/spec-registry/registry.json");
     let registry_path_opt: Option<PathBuf> = match &cli.registry {
         Some(p) => Some(p.clone()),
         None => {

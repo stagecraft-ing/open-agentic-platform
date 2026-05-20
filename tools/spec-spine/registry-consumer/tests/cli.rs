@@ -2108,7 +2108,7 @@ fn version_contract_top_level_stdout_exit_and_stderr() {
 #[test]
 fn default_path_contract_list_success_uses_build_spec_registry_registry_json() {
     let dir = tempfile::tempdir().expect("tempdir");
-    let reg_dir = dir.path().join("build/spec-registry");
+    let reg_dir = dir.path().join(".derived/spec-registry");
     fs::create_dir_all(&reg_dir).expect("create build/spec-registry");
     let reg = reg_dir.join("registry.json");
     write_registry(&reg, &fixture_registry_ok());

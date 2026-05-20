@@ -23,8 +23,8 @@ cargo build --release
 
 Outputs:
 
-- `build/spec-registry/registry.json`
-- `build/spec-registry/build-meta.json`
+- `.derived/spec-registry/registry.json`
+- `.derived/spec-registry/build-meta.json`
 
 Validate with the same `ajv` commands as Feature 000 [`quickstart.md`](../000-bootstrap-spec-system/quickstart.md).
 

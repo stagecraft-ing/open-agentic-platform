@@ -33,7 +33,7 @@ summary: >
 ## 1. Problem Statement
 
 The `/init` protocol defined in `AGENTS.md § New Sessions` instructs agents to read
-`build/codebase-index/index.json` directly as "structural context." In practice this
+`.derived/codebase-index/index.json` directly as "structural context." In practice this
 invites ad-hoc parsing: during a recent session, `/init` shelled out to `python3 -c`
 three times to extract crate/package/spec counts from the raw JSON, including one
 call that failed on a schema guess (`'list' object has no attribute 'keys'`) and had
@@ -88,7 +88,7 @@ consumer-binary calls. The replacement reads:
    - CLAUDE.md                                          — project conventions
    - README.md                                          — full project description
    - codebase-indexer check                             — index staleness gate
-   - build/codebase-index/CODEBASE-INDEX.md             — rendered structural summary
+   - .derived/codebase-index/CODEBASE-INDEX.md          — rendered structural summary
    - registry-consumer status-report --json             — lifecycle counts per status
    - git log --oneline -10                              — recent history
    - git diff --stat HEAD~1                             — last change summary
@@ -129,7 +129,7 @@ without restating it.
 `AGENTS.md § New Sessions` MUST be rewritten so the "parallel reads" list calls
 consumer binaries (`codebase-indexer check`, `codebase-indexer render` +
 `CODEBASE-INDEX.md`, `registry-consumer status-report --json`) instead of
-naming `build/codebase-index/index.json` directly. The section MUST NOT list
+naming `.derived/codebase-index/index.json` directly. The section MUST NOT list
 any `build/**/*.json` path as a read target.
 
 ### FR-02: Publish Governed-Reads Rule
@@ -184,7 +184,7 @@ on the very next `/init`, not two sessions later.
 
 Grepping `AGENTS.md` for `build/**/*.json` (raw compiler JSON) as a read target
 MUST return zero hits. The only `build/**` path init is allowed to name is the
-rendered markdown view (`build/codebase-index/CODEBASE-INDEX.md`), which is
+rendered markdown view (`.derived/codebase-index/CODEBASE-INDEX.md`), which is
 itself a governed output of `codebase-indexer render`. All JSON reads flow
 through consumer binaries.
 

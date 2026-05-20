@@ -252,7 +252,7 @@ anchor.
 
 ## Build-meta impact
 
-`build/spec-registry/registry.json`'s top-level `specVersion`
+`.derived/spec-registry/registry.json`'s top-level `specVersion`
 field bumps from `"1.4.0"` to `"1.5.0"`. The schema-version gate
 in tools/spec-spine/spec-code-coupling-check (line 165) accepts minor-version
 bumps without code change per its existing rules.

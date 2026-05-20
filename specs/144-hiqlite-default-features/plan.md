@@ -262,8 +262,8 @@ Filled 2026-05-10 at end of Phase 2.
   outright from `crates/axiomregent/Cargo.toml:38`. No feature flag
   gates, no dual-listing for compatibility. ✅
 - **Governed-artifact-reads (spec 103).** The implementation pass
-  used `python3` to inspect `build/spec-registry/registry.json` and
-  `build/codebase-index/index.json` once during interactive debugging
+  used `python3` to inspect `.derived/spec-registry/registry.json` and
+  `.derived/codebase-index/index.json` once during interactive debugging
   of the spec-coupling gate (recognising the index was stale and the
   gate's claimant list was therefore incomplete). That use is
   explicitly carved out by the rule's "human running jq at the shell

@@ -205,27 +205,27 @@ struct ProducerRule {
 const CONSUMERS: &[ConsumerRule] = &[
     ConsumerRule {
         pattern: "codebase-indexer check",
-        artifact: "build/codebase-index/index.json",
+        artifact: ".derived/codebase-index/index.json",
     },
     ConsumerRule {
         pattern: "codebase-indexer render",
-        artifact: "build/codebase-index/index.json",
+        artifact: ".derived/codebase-index/index.json",
     },
     ConsumerRule {
         pattern: "registry-consumer list",
-        artifact: "build/spec-registry/registry.json",
+        artifact: ".derived/spec-registry/registry.json",
     },
     ConsumerRule {
         pattern: "registry-consumer show",
-        artifact: "build/spec-registry/registry.json",
+        artifact: ".derived/spec-registry/registry.json",
     },
     ConsumerRule {
         pattern: "registry-consumer status-report",
-        artifact: "build/spec-registry/registry.json",
+        artifact: ".derived/spec-registry/registry.json",
     },
     ConsumerRule {
         pattern: "registry-consumer compliance-report",
-        artifact: "build/spec-registry/registry.json",
+        artifact: ".derived/spec-registry/registry.json",
     },
 ];
 
@@ -233,11 +233,11 @@ const CONSUMERS: &[ConsumerRule] = &[
 const PRODUCERS: &[ProducerRule] = &[
     ProducerRule {
         pattern: "spec-compiler compile",
-        artifact: "build/spec-registry/registry.json",
+        artifact: ".derived/spec-registry/registry.json",
     },
     ProducerRule {
         pattern: "codebase-indexer compile",
-        artifact: "build/codebase-index/index.json",
+        artifact: ".derived/codebase-index/index.json",
     },
     ProducerRule {
         pattern: "adapter-scopes-compiler",

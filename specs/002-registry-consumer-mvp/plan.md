@@ -6,7 +6,7 @@
 
 ## Summary
 
-Introduce the **first canonical read-only consumer** of **`build/spec-registry/registry.json`**: a **normative CLI** under **`tools/spec-spine/registry-consumer/`** (binary **`registry-consumer`**), with documented guarantees, safe default behavior when **`validation.passed`** is false, **prefix-only** **`id`** filtering, **`show`** emitting the **full** **`featureRecord`** as JSON, and **human-readable** default output for **`list`**. Optional in-crate **Rust** helpers are **not** part of conformance.
+Introduce the **first canonical read-only consumer** of **`.derived/spec-registry/registry.json`**: a **normative CLI** under **`tools/spec-spine/registry-consumer/`** (binary **`registry-consumer`**), with documented guarantees, safe default behavior when **`validation.passed`** is false, **prefix-only** **`id`** filtering, **`show`** emitting the **full** **`featureRecord`** as JSON, and **human-readable** default output for **`list`**. Optional in-crate **Rust** helpers are **not** part of conformance.
 
 No changes to Feature **000** contracts or Feature **001** compiler scope.
 
@@ -61,7 +61,7 @@ tools/spec-spine/registry-consumer/
 
 Global:
 
-- **`--registry-path <path>`** — default: **`build/spec-registry/registry.json`** relative to current working directory (document that invocations should run from repo root, matching **`spec-compiler`** usage).
+- **`--registry-path <path>`** — default: **`.derived/spec-registry/registry.json`** relative to current working directory (document that invocations should run from repo root, matching **`spec-compiler`** usage).
 - **`--allow-invalid`** — allow reading when **`validation.passed`** is **false** (diagnostics only).
 
 Subcommands:

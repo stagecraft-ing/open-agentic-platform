@@ -223,7 +223,7 @@ courtesy):
   the *spec* describes them, the YAML files are the implementation
   expression.
 - **Principle II (compiler-owned JSON machine truth):** No JSON
-  authoring. `build/spec-registry/registry.json` and `build/codebase-
+  authoring. `.derived/spec-registry/registry.json` and `build/codebase-
   index/index.json` recompile on every spec edit (verified at Phase
   0 close).
 - **Principle III (spec-first):** 152 and 153's specs MUST land
@@ -264,7 +264,7 @@ peers in the spec spine, not descendants.
 ## Codebase-index regeneration
 
 Per `feedback_codebase_index_spec_edits` memory: every spec.md edit
-bumps `build/codebase-index/index.json`'s contentHash. Each sibling
+bumps `.derived/codebase-index/index.json`'s contentHash. Each sibling
 PR (and the present plan.md + tasks.md edit) MUST commit the
 regenerated `index.json` alongside, or queue a chore PR for the
 batch. The Phase 0 closure commit already includes the regenerated

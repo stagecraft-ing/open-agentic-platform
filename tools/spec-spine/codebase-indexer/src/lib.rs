@@ -153,7 +153,7 @@ pub struct CompileOutput {
 /// Compile the codebase index and write to `build/codebase-index/`.
 pub fn compile_and_write(repo_root: &Path) -> Result<CompileOutput, IndexError> {
     let out = compile(repo_root)?;
-    let out_dir = repo_root.join("build/codebase-index");
+    let out_dir = repo_root.join(".derived/codebase-index");
     fs::create_dir_all(&out_dir)?;
     fs::write(out_dir.join("index.json"), &out.index_json)?;
     fs::write(out_dir.join("build-meta.json"), &out.build_meta_json)?;
@@ -321,7 +321,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
 /// Check if the existing index.json is stale, then fail when any blocking
 /// diagnostic (currently `I-105` per spec 118 §8 step 3) is present.
 pub fn check(repo_root: &Path) -> Result<(), IndexError> {
-    let index_path = repo_root.join("build/codebase-index/index.json");
+    let index_path = repo_root.join(".derived/codebase-index/index.json");
     let raw = fs::read_to_string(&index_path)?;
     let doc: serde_json::Value = serde_json::from_str(&raw)?;
 

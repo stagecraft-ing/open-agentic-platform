@@ -10,7 +10,7 @@ authors:
   - "open-agentic-platform"
 language: en
 summary: >
-  Point the featuregraph scanner and related governance inputs at `build/spec-registry/registry.json`
+  Point the featuregraph scanner and related governance inputs at `.derived/spec-registry/registry.json`
   (compiled by spec-compiler) instead of requiring `spec/features.yaml`, so the governance panel
   can hydrate from the same source of truth as CI and the Inspect surface.
 code_aliases:
@@ -26,7 +26,7 @@ origin:
 
 ## Purpose
 
-Today `featuregraph::scanner` and related paths assume **`spec/features.yaml`** as the feature manifest. The platform’s canonical registry is **`build/spec-registry/registry.json`** produced by **`spec-compiler`**. This mismatch keeps governance surfaces in a **degraded** or partial state when only the compiled registry exists.
+Today `featuregraph::scanner` and related paths assume **`spec/features.yaml`** as the feature manifest. The platform’s canonical registry is **`.derived/spec-registry/registry.json`** produced by **`spec-compiler`**. This mismatch keeps governance surfaces in a **degraded** or partial state when only the compiled registry exists.
 
 ## Scope
 
@@ -44,7 +44,7 @@ Today `featuregraph::scanner` and related paths assume **`spec/features.yaml`** 
 
 ## Requirements
 
-- **FR-001**: When `build/spec-registry/registry.json` exists and is valid, the scanner **does not require** `spec/features.yaml` for basic feature membership checks.
+- **FR-001**: When `.derived/spec-registry/registry.json` exists and is valid, the scanner **does not require** `spec/features.yaml` for basic feature membership checks.
 - **FR-002**: When the registry is missing, behavior degrades **explicitly** (clear message), matching existing degraded patterns in `GovernanceSurface`.
 - **FR-003**: No regression to **registry-consumer** contracts (029–031) beyond intentional dependency bumps.
 
@@ -55,4 +55,4 @@ Today `featuregraph::scanner` and related paths assume **`spec/features.yaml`** 
 
 ## Contract notes
 
-- Registry path convention: **`build/spec-registry/registry.json`** relative to repository root (same as `spec-compiler` output).
+- Registry path convention: **`.derived/spec-registry/registry.json`** relative to repository root (same as `spec-compiler` output).

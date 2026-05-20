@@ -63,7 +63,7 @@ preflight) cannot derive execution boundaries from specs.
 - Files: `crates/featuregraph/src/registry_source.rs`, `crates/featuregraph/src/scanner.rs`
 
 ### 5. Recompile registry and validate (0.5 day)
-- Run `spec-compiler compile` to regenerate `build/spec-registry/registry.json`
+- Run `spec-compiler compile` to regenerate `.derived/spec-registry/registry.json`
 - Verify enriched fields appear for specs that use them (087, 089, etc.)
 - Add `risk` frontmatter to 5+ specs as initial population
 

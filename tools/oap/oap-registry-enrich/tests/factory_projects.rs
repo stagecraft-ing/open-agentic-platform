@@ -16,7 +16,7 @@ fn write_minimal_registry(repo: &std::path::Path) {
     // Spec-compiler 2.0.0 baseline: features list (possibly empty),
     // validation block, build block, specVersion. The enricher reads
     // this and overlays its own walks on top.
-    let dir = repo.join("build/spec-registry");
+    let dir = repo.join(".derived/spec-registry");
     fs::create_dir_all(&dir).unwrap();
     fs::write(
         dir.join("registry.json"),

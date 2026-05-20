@@ -6,16 +6,16 @@ These rules apply to every orchestrated workflow in this project — commands un
 
 ## Principle
 
-Compiled artifacts under `build/**` MUST be read by orchestrated workflows through their designated consumer binaries. Ad-hoc parsers over `build/**/*.json` in a workflow step are a workflow violation.
+Compiled artifacts under `.derived/**` MUST be read by orchestrated workflows through their designated consumer binaries. Ad-hoc parsers over `.derived/**/*.json` in a workflow step are a workflow violation.
 
 ## Consumer Binaries
 
 | Artifact | Consumer | Common subcommands |
 |----------|----------|---------------------|
-| `build/spec-registry/registry.json` | `registry-consumer` | `list`, `list --ids-only`, `list --json`, `show`, `status-report --json` |
-| `build/spec-registry/registry-oap.json` | `oap-registry-enrich` | `enrich` (default), `compliance-report` (moved from registry-consumer in Cut D W-06b) |
-| `build/codebase-index/index.json` | `codebase-indexer` | `compile`, `check`, `render` |
-| `build/codebase-index/CODEBASE-INDEX.md` | read directly (already a governed human-shaped view) | — |
+| `.derived/spec-registry/registry.json` | `registry-consumer` | `list`, `list --ids-only`, `list --json`, `show`, `status-report --json` |
+| `.derived/spec-registry/registry-oap.json` | `oap-registry-enrich` | `enrich` (default), `compliance-report` (moved from registry-consumer in Cut D W-06b) |
+| `.derived/codebase-index/index.json` | `codebase-indexer` | `compile`, `check`, `render` |
+| `.derived/codebase-index/CODEBASE-INDEX.md` | read directly (already a governed human-shaped view) | — |
 
 If a consumer subcommand is missing for a legitimate workflow query, add the subcommand under the consumer's spec — do not work around it with `python`, `jq`, `awk`, `sed`, or similar.
 
@@ -23,7 +23,7 @@ If a consumer subcommand is missing for a legitimate workflow query, add the sub
 
 ```bash
 # Reaches past the consumer layer, guesses the shape, breaks on drift.
-python3 -c "import json; d=json.load(open('build/codebase-index/index.json')); print(len(d['inventory']))"
+python3 -c "import json; d=json.load(open('.derived/codebase-index/index.json')); print(len(d['inventory']))"
 ```
 
 ## Good pattern
@@ -32,7 +32,7 @@ python3 -c "import json; d=json.load(open('build/codebase-index/index.json')); p
 # Governed read. Typed at the tool boundary. Fails loudly on schema drift.
 codebase-indexer check                                    # staleness gate
 codebase-indexer render                                   # refresh markdown view
-cat build/codebase-index/CODEBASE-INDEX.md                # human-shaped summary
+cat .derived/codebase-index/CODEBASE-INDEX.md                # human-shaped summary
 registry-consumer status-report --json --nonzero-only     # typed lifecycle counts
 ```
 

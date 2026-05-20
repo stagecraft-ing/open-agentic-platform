@@ -75,7 +75,7 @@ impl From<IndexReaderError> for EnrichError {
 
 /// Compute the enriched index bytes (deterministic, sorted, pretty).
 pub fn enrich(repo_root: &Path) -> Result<Vec<u8>, EnrichError> {
-    let index_path = repo_root.join("build/codebase-index/index.json");
+    let index_path = repo_root.join(".derived/codebase-index/index.json");
     let index = load_index(&index_path)?;
 
     let (adapters, factory_diags) = scan_adapters(repo_root);
@@ -164,7 +164,7 @@ pub fn enrich(repo_root: &Path) -> Result<Vec<u8>, EnrichError> {
 /// `build/codebase-index/index-oap.json`.
 pub fn enrich_and_write(repo_root: &Path) -> Result<PathBuf, EnrichError> {
     let bytes = enrich(repo_root)?;
-    let out_dir = repo_root.join("build/codebase-index");
+    let out_dir = repo_root.join(".derived/codebase-index");
     fs::create_dir_all(&out_dir)?;
     let out = out_dir.join("index-oap.json");
     fs::write(&out, bytes)?;
@@ -201,7 +201,7 @@ mod tests {
     use super::*;
 
     fn write_minimal_index(repo: &Path, schema_version: &str) {
-        let dir = repo.join("build/codebase-index");
+        let dir = repo.join(".derived/codebase-index");
         fs::create_dir_all(&dir).unwrap();
         fs::write(
             dir.join("index.json"),

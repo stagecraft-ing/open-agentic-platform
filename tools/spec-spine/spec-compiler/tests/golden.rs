@@ -23,7 +23,7 @@ fn spec_compiler_exe() -> PathBuf {
 fn registry_json_is_deterministic_across_runs() {
     let exe = spec_compiler_exe();
     let root = repo_root();
-    let out = root.join("build/spec-registry/registry.json");
+    let out = root.join(".derived/spec-registry/registry.json");
 
     let status = Command::new(&exe)
         .arg("compile")

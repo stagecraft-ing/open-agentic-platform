@@ -64,7 +64,7 @@ For the desktop app:
 
 For specs:
 - Read frontmatter for `depends-on`, `status`, and `feature-id` fields
-- Cross-reference with `build/spec-registry/registry.json` for compiled state
+- Cross-reference with `.derived/spec-registry/registry.json` for compiled state
 
 ### 4. Synthesize Findings
 

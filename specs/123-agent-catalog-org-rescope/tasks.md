@@ -19,7 +19,7 @@ Shared types and constants. Blocks every later phase.
   - `AGENT_CATALOG_ENVELOPE_VERSION: 2` (was `1`)
   - `PROJECT_AGENT_BINDING_ENVELOPE_VERSION: 1` (new)
   Compile-time `const`; mismatched desktop/platform builds must fail at type-check, not runtime.
-- [ ] **T005** [P] Add `code_aliases: ["AGENT_CATALOG_ORG"]` is already in spec 123 frontmatter. Verify the codebase-indexer picks it up by running `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile` and confirming spec 123 lands in `build/codebase-index/index.json` with the alias.
+- [ ] **T005** [P] Add `code_aliases: ["AGENT_CATALOG_ORG"]` is already in spec 123 frontmatter. Verify the codebase-indexer picks it up by running `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile` and confirming spec 123 lands in `.derived/codebase-index/index.json` with the alias.
 
 **Checkpoint:** `npm run typecheck` in `platform/services/stagecraft` passes; `cargo check` at the workspace root passes; spec compiler emits no errors. Commit message: `chore(spec-123): foundations — schema scaffolds, envelope version bump, audit actions`.
 
@@ -196,8 +196,8 @@ The final phase. Every prior phase's checkpoint already commits its slice; Phase
 - [ ] **T091** [P] Edit `specs/123-agent-catalog-org-rescope/spec.md` frontmatter:
   - `status: draft` → `status: approved`
   - `implementation: pending` → `implementation: complete`
-- [ ] **T092** Run `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`. Verify `build/spec-registry/registry.json` carries `amends: ["119"]` on spec 123 and `amendment_record: "123"` on spec 119, with no schema-validation errors. (Spec A-9.)
-- [ ] **T093** Run `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile`. Verify `build/codebase-index/index.json` re-renders cleanly with spec 123 traced to its implementing paths and spec 111 / 119 traceability still resolves to active code. (Spec A-10.) Run `codebase-indexer render` to refresh `CODEBASE-INDEX.md`.
+- [ ] **T092** Run `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`. Verify `.derived/spec-registry/registry.json` carries `amends: ["119"]` on spec 123 and `amendment_record: "123"` on spec 119, with no schema-validation errors. (Spec A-9.)
+- [ ] **T093** Run `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile`. Verify `.derived/codebase-index/index.json` re-renders cleanly with spec 123 traced to its implementing paths and spec 111 / 119 traceability still resolves to active code. (Spec A-10.) Run `codebase-indexer render` to refresh `CODEBASE-INDEX.md`.
 - [ ] **T094** [P] Run the grep gate from spec A-5: `grep -rn "agent_catalog\.project_id\|agent_catalog_audit\.project_id\|agent_policies\.project_id\|agentCatalog\.projectId" platform/services/stagecraft crates product/apps/desktop`. Must return zero hits outside historical migration files (27, 28), this spec's migration script (30), frozen superseded specs, and this spec's body.
 - [ ] **T095** [P] Run `make ci` from the repo root. Must pass green. (Spec A-11.)
 - [ ] **T096** [P] Verify acceptance criteria A-1 through A-11 from the spec one by one. For each, leave a one-line note in the PR description showing the verification artifact (test path, grep output, screenshot reference, etc.).

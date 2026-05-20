@@ -1,7 +1,7 @@
 # Spec: 101-codebase-index-mvp
 # Spec: 103-init-protocol-governed-reads
 #
-# Codebase-index staleness gate. The committed `build/codebase-index/index.json`
+# Codebase-index staleness gate. The committed `.derived/codebase-index/index.json`
 # hashes inputs across crates/, product/, platform/services/**, and
 # tools/. This gate fails the build if any of those inputs changed without
 # `codebase-indexer compile` being re-run and the result committed.
@@ -21,7 +21,7 @@ on:
       - 'product/**'
       - 'platform/services/**'
       - 'tools/spec-spine/codebase-indexer/**'
-      - 'build/codebase-index/**'
+      - '.derived/codebase-index/**'
       - 'specs/**'
   pull_request:
     paths:
@@ -29,7 +29,7 @@ on:
       - 'product/**'
       - 'platform/services/**'
       - 'tools/spec-spine/codebase-indexer/**'
-      - 'build/codebase-index/**'
+      - '.derived/codebase-index/**'
       - 'specs/**'
   workflow_dispatch:
 

@@ -30,7 +30,7 @@ implementation shapes follow:
 **Language/Version**: Rust 1.95.0 (workspace toolchain)
 **Primary Dependencies**: `serde_json` (existing), `clap` (existing); no
 new crates expected.
-**Storage**: file-system reads of `build/codebase-index/index.json` and
+**Storage**: file-system reads of `.derived/codebase-index/index.json` and
 `specs/*/spec.md` frontmatter. No persistent state introduced.
 **Testing**: `cargo test --manifest-path tools/spec-spine/spec-code-coupling-check/Cargo.toml`
 (integration tests under `tests/cli.rs`); spec-compiler integration tests
@@ -51,7 +51,7 @@ without requiring index restructuring.
 *GATE: Must pass before implementation. Re-check before commit.*
 
 - **Principle II — compiled JSON machine truth.** The gate already reads
-  `build/codebase-index/index.json` through typed deserialisation per
+  `.derived/codebase-index/index.json` through typed deserialisation per
   spec 103. New fields (if added) flow through the same governed
   consumer pattern. ✅
 - **Principle: schema version as compile-time const.** If
@@ -111,13 +111,13 @@ the gate refinement in one cohesive change." Same shape here.
 
 ### Phase 0 — Investigation (no edits)
 
-Verify whether `build/codebase-index/index.json` already contains
+Verify whether `.derived/codebase-index/index.json` already contains
 `amends:` and `amendment_record:` for at least one spec mapping.
 Specifically check:
 
 ```bash
-grep -A 2 '"specId": "132-' build/codebase-index/index.json
-grep -A 2 '"specId": "119-' build/codebase-index/index.json
+grep -A 2 '"specId": "132-' .derived/codebase-index/index.json
+grep -A 2 '"specId": "119-' .derived/codebase-index/index.json
 ```
 
 Look for `amends` / `amendmentRecord` keys. Outcome decides Shape A vs B.

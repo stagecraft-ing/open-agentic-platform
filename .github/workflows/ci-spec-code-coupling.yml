@@ -2,7 +2,7 @@
 #
 # PR-time gate: every diff path's current authority spec (derived from
 # the relationship-graph per spec 130) must be edited in the same PR.
-# Reads build/codebase-index/index.json via typed deserialization shared
+# Reads .derived/codebase-index/index.json via typed deserialization shared
 # with `codebase-indexer` (spec 103 governed-read exception).
 # Empty-authority-by-rule patterns (formerly .github/spec-coupling-
 # bypass.txt) are codified in spec 152 (path-co-authority) §3.2;

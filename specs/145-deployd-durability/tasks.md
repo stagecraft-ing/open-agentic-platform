@@ -36,7 +36,7 @@ choices and may amend the spec if material divergences surface.
 - [x] T001 [P0] Confirm spec 145 frontmatter compiles cleanly:
       `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`
       and verify exit 0 + spec 145 appears in
-      `build/spec-registry/registry.json` via
+      `.derived/spec-registry/registry.json` via
       `./tools/spec-spine/registry-consumer/target/release/registry-consumer show 145-deployd-durability`.
 - [x] T001a [P0] **Verify chart template inventory.**
       `ls platform/charts/deployd-api/templates/` — confirm

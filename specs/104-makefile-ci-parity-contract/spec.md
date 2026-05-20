@@ -224,7 +224,7 @@ that the artifact is either:
 If neither holds, the tool MUST report a precondition drift. The
 canonical case this catches: a workflow step running
 `codebase-indexer check` without a prior `codebase-indexer compile` and
-without `build/codebase-index/index.json` committed — passes locally
+without `.derived/codebase-index/index.json` committed — passes locally
 because the file exists as dev-workspace residue, fails on CI because
 the fresh clone has no such file.
 

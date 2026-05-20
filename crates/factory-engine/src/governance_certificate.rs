@@ -763,7 +763,7 @@ pub fn validate_spec_id_resolution(
     let Some(spec_id) = cert.intent.spec_id.as_deref() else {
         return Vec::new();
     };
-    let registry_path = repo_root.join("build/spec-registry/registry.json");
+    let registry_path = repo_root.join(".derived/spec-registry/registry.json");
     let registry = match open_agentic_spec_registry_reader::load(&registry_path) {
         Ok(r) => r,
         Err(e) => {
@@ -825,7 +825,7 @@ mod w10_validation_tests {
     use std::fs;
 
     fn write_fake_registry(dir: &Path, ids: &[&str]) {
-        let regdir = dir.join("build/spec-registry");
+        let regdir = dir.join(".derived/spec-registry");
         fs::create_dir_all(&regdir).unwrap();
         let features: Vec<serde_json::Value> = ids
             .iter()

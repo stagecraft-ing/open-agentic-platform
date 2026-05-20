@@ -142,7 +142,7 @@ fetch-axiomregent-check:
 registry: spec-compile oap-registry-enrich index oap-code-index-enrich ci-schema-parity
 	@echo "==> Registry and index recompiled."
 
-## Cut D W-06a: emit build/spec-registry/registry-oap.json from the
+## Cut D W-06a: emit .derived/spec-registry/registry-oap.json from the
 ## generic registry.json + spec corpus + .factory/build-spec.yaml walk
 ## (specs 074 / 102). OAP-internal CI artifact; never shipped via
 ## release-tools.yml.
@@ -150,7 +150,7 @@ oap-registry-enrich:
 	cargo build --release --manifest-path tools/oap/oap-registry-enrich/Cargo.toml --target-dir tools/oap/oap-registry-enrich/target
 	./tools/oap/oap-registry-enrich/target/release/oap-registry-enrich
 
-## Cut D W-07a: emit build/codebase-index/index-oap.json from the
+## Cut D W-07a: emit .derived/codebase-index/index-oap.json from the
 ## generic index.json + walks over factory/adapters,
 ## .claude/{agents,commands,rules,schemas}, .github/workflows
 ## (specs 101 + 118). OAP-internal CI artifact; never shipped via
@@ -173,10 +173,10 @@ oap-code-index-enrich:
 pr-prep: index ci-fast-spec-coupling
 	@echo ""
 	@echo "==> pr-prep: codebase-index refreshed, coupling gate clean."
-	@if ! git diff --quiet build/codebase-index/index.json 2>/dev/null; then \
+	@if ! git diff --quiet .derived/codebase-index/index.json 2>/dev/null; then \
 	  echo ""; \
-	  echo "  ⚠  build/codebase-index/index.json drifted — stage it:"; \
-	  echo "       git add build/codebase-index/index.json"; \
+	  echo "  ⚠  .derived/codebase-index/index.json drifted — stage it:"; \
+	  echo "       git add .derived/codebase-index/index.json"; \
 	fi
 
 spec-compile:
@@ -817,9 +817,9 @@ ci-fast-supply-chain:
 ## `cargo clean --manifest-path <path>` for those (preserves cargo cache by default).
 clean:
 	@echo "==> Cleaning build artifacts..."
-	rm -rf build/spec-registry
-	rm -rf build/codebase-index
-	rm -rf build/schema-parity
+	rm -rf .derived/spec-registry
+	rm -rf .derived/codebase-index
+	rm -rf .derived/schema-parity
 	rm -rf product/apps/desktop/dist
 	rm -rf product/apps/desktop/src-tauri/target
 

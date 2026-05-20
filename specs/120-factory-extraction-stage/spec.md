@@ -64,7 +64,7 @@ The Factory pipeline today receives knowledge as a sidecar, not a stage. Stagecr
 
 Two extraction systems exist and don't talk to each other:
 
-- `crates/artifact-extract/` — a Rust libbin that emits flat `.txt` files with a provenance header. It is **orphan**: no other crate in the repo depends on it. Verified in `build/codebase-index/index.json` and by grepping `crates/*/Cargo.toml`.
+- `crates/artifact-extract/` — a Rust libbin that emits flat `.txt` files with a provenance header. It is **orphan**: no other crate in the repo depends on it. Verified in `.derived/codebase-index/index.json` and by grepping `crates/*/Cargo.toml`.
 - `platform/services/stagecraft/api/knowledge/extractors/*` — TypeScript, dispatched by `extractionWorker.ts`, emits typed `ExtractionOutput` JSONB validated by Zod (`extractionOutput.ts:49-58`). Writes happen only inside `runExtractionWork`. There is no REST endpoint that accepts `ExtractionOutput` from an external caller.
 
 Three concrete consequences:

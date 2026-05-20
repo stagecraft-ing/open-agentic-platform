@@ -1,6 +1,6 @@
 //! Spec/code coupling gate (spec 127).
 //!
-//! Reads `build/codebase-index/index.json` via typed deserialization
+//! Reads `.derived/codebase-index/index.json` via typed deserialization
 //! (the consumer-binary exception in spec 103) and checks that every
 //! diff path claimed by some spec's `implements:` list is accompanied
 //! by an edit to that spec's `spec.md`. Bypass list, waivers, and the
@@ -59,8 +59,8 @@ pub const BYPASS_PREFIXES: &[&str] = &[
     // described in spec 000 §3, not by this gate.
     ".specify/memory/constitution.md",
     // Compiled artifact output (governed by the compiler spec, not by
-    // file-level coupling).
-    "build/",
+    // file-level coupling). I9 renamed build/ to .derived/.
+    ".derived/",
     // Vendored grammars (imported third-party material).
     "tools/vendor/grammars/",
     // Lockfiles — authoritative dependency resolution; the
@@ -843,7 +843,7 @@ mod tests {
         assert!(is_bypass(".specify/memory/constitution.md"));
         assert!(is_bypass("crates/Cargo.lock"));
         assert!(is_bypass("Cargo.lock"));
-        assert!(is_bypass("build/codebase-index/index.json"));
+        assert!(is_bypass(".derived/codebase-index/index.json"));
         // Non-bypassed: real code paths and AGENTS.md (claimed by spec 103).
         assert!(!is_bypass("Makefile"));
         assert!(!is_bypass("AGENTS.md"));

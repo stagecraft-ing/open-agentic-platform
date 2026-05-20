@@ -23,7 +23,7 @@ summary: >
 establishes:
   - tools/spec-spine/spec-compiler/src/lib.rs
   - tools/spec-spine/spec-compiler/src/main.rs
-  - build/spec-registry/registry.json
+  - .derived/spec-registry/registry.json
 ---
 
 # Feature Specification: Spec compiler MVP
@@ -40,7 +40,7 @@ This feature delivers the **first runnable spec compiler** for `open-agentic-pla
 
 - Discovery of `specs/<NNN>-<kebab>/spec.md`
 - Parsing YAML frontmatter and markdown body (section headings)
-- Emitting **`build/spec-registry/registry.json`** (byte-deterministic) and **`build/spec-registry/build-meta.json`** (ephemeral)
+- Emitting **`.derived/spec-registry/registry.json`** (byte-deterministic) and **`.derived/spec-registry/build-meta.json`** (ephemeral)
 - Validation invariants **V-001** through **V-004** (MVP); **V-005** remains reserved per Feature 000
 
 **Explicitly out of scope:**
@@ -57,7 +57,7 @@ Feature **001** is **subordinate** to Feature **000**. If this spec’s text con
 
 ### User Story 1 — Compile the repository (Priority: P1)
 
-A contributor runs the compiler from the repo root. It writes `registry.json` and `build-meta.json` under `build/spec-registry/`. `registry.json` validates against Feature 000’s `registry.schema.json` and lists every feature under `specs/` with normalized fields.
+A contributor runs the compiler from the repo root. It writes `registry.json` and `build-meta.json` under `.derived/spec-registry/`. `registry.json` validates against Feature 000’s `registry.schema.json` and lists every feature under `specs/` with normalized fields.
 
 **Why this priority:** Without a working compile, Feature 000 is theoretical.
 

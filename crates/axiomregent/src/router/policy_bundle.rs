@@ -45,7 +45,7 @@ impl PolicyBundleCache {
                 return hit.clone();
             }
         }
-        let path = Path::new(repo_root).join("build/policy-bundles/policy-bundle.json");
+        let path = Path::new(repo_root).join(".derived/policy-bundles/policy-bundle.json");
         let loaded = load_bundle_file(&path).map(Arc::new);
         self.cache
             .write()

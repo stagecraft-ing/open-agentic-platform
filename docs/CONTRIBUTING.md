@@ -81,7 +81,7 @@ Loaded automatically by orchestrated workflows:
   local-agents-only, never-enter-plan-mode-autonomously.
 - **`governed-artifact-reads.md`**
   ([spec 103](specs/103-init-protocol-governed-reads/spec.md)) —
-  compiled artifacts under `build/**` MUST be read through their
+  compiled artifacts under `.derived/**` MUST be read through their
   designated consumer binaries (`registry-consumer`,
   `codebase-indexer`), never via ad-hoc `python` / `jq` / `awk` / `sed`
   parsing.
@@ -138,7 +138,7 @@ Specific subsets:
   and registry contract.
 - [`docs/registry-consumer-contract-governance.md`](docs/registry-consumer-contract-governance.md) —
   process governance for `registry-consumer` extensions.
-- [`build/codebase-index/CODEBASE-INDEX.md`](build/codebase-index/CODEBASE-INDEX.md) —
+- [`.derived/codebase-index/CODEBASE-INDEX.md`](.derived/codebase-index/CODEBASE-INDEX.md) —
   rendered structural view; the **Spec** column is the spec-to-code
   traceability surface for every Rust crate and npm package.
 - [`DEVELOPERS.md`](DEVELOPERS.md) — full setup, prerequisites, and

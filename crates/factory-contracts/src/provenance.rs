@@ -600,7 +600,7 @@ mod tests {
     /// Runs as a side effect of `cargo test`; the parity check depends on it.
     #[test]
     fn writes_provenance_fingerprint_file() {
-        let dest = workspace_root().join("build/schema-parity/rust-provenance-schema.json");
+        let dest = workspace_root().join(".derived/schema-parity/rust-provenance-schema.json");
         std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
         let json = serde_json::to_string_pretty(&provenance_schema_fingerprint()).unwrap();
         std::fs::write(&dest, json + "\n").unwrap();

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "970fc757e4a0199cd7ae3dd9273c6cc5c1eb3ab4cbdd36375bd4885836631833",
+    "contentHash": "04f7c0eb2cf644507caed23af5f7c1e418ad194c50a6e60f316e631304803ec7",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1563,7 +1563,7 @@
         "amendmentRecord": "147-spec-kind-grammar",
         "implementingPaths": [
           {
-            "path": "build/spec-registry/registry.json",
+            "path": ".derived/spec-registry/registry.json",
             "source": "spec-implements"
           },
           {
@@ -3183,7 +3183,7 @@
         ],
         "implementingPaths": [
           {
-            "path": "build/codebase-index/index.json",
+            "path": ".derived/codebase-index/index.json",
             "source": "spec-implements"
           },
           {
@@ -3949,11 +3949,11 @@
         ],
         "implementingPaths": [
           {
-            "path": ".github/workflows",
+            "path": ".derived/codebase-index/CODEBASE-INDEX.md",
             "source": "spec-implements"
           },
           {
-            "path": "build/codebase-index/CODEBASE-INDEX.md",
+            "path": ".github/workflows",
             "source": "spec-implements"
           },
           {

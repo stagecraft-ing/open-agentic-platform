@@ -101,7 +101,7 @@ pub struct FactoryProjectRecord {
 /// computes OAP-specific extensions, and returns the enriched
 /// registry-oap.json bytes (deterministic, sorted, pretty-printed).
 pub fn enrich(repo_root: &Path) -> Result<Vec<u8>, EnrichError> {
-    let registry_path = repo_root.join("build/spec-registry/registry.json");
+    let registry_path = repo_root.join(".derived/spec-registry/registry.json");
     let registry = srr::load(&registry_path)?;
     let compliance_by_spec = collect_compliance(repo_root, &registry)?;
     let factory_projects = collect_factory_projects(repo_root)?;
@@ -114,7 +114,7 @@ pub fn enrich(repo_root: &Path) -> Result<Vec<u8>, EnrichError> {
 /// `build/spec-registry/`.
 pub fn enrich_and_write(repo_root: &Path) -> Result<PathBuf, EnrichError> {
     let bytes = enrich(repo_root)?;
-    let out_dir = repo_root.join("build/spec-registry");
+    let out_dir = repo_root.join(".derived/spec-registry");
     fs::create_dir_all(&out_dir)?;
     let out = out_dir.join("registry-oap.json");
     fs::write(&out, bytes)?;
@@ -503,7 +503,7 @@ project:
         let dir = tempfile::tempdir().unwrap();
         let repo = dir.path();
         // Minimal registry.json with one feature pointing at a spec.md.
-        let registry_dir = repo.join("build/spec-registry");
+        let registry_dir = repo.join(".derived/spec-registry");
         fs::create_dir_all(&registry_dir).unwrap();
         fs::write(
             registry_dir.join("registry.json"),
@@ -545,7 +545,7 @@ project:
     fn enrich_walks_factory_build_specs() {
         let dir = tempfile::tempdir().unwrap();
         let repo = dir.path();
-        let registry_dir = repo.join("build/spec-registry");
+        let registry_dir = repo.join(".derived/spec-registry");
         fs::create_dir_all(&registry_dir).unwrap();
         fs::write(
             registry_dir.join("registry.json"),

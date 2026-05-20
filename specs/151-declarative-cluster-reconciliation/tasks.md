@@ -212,7 +212,7 @@ back-references the Flux-reconciled cluster.
 ## Cross-cutting tasks (any phase)
 
 - **T-027** — Each migration PR re-runs `codebase-indexer compile`
-  and commits the regenerated `build/codebase-index/index.json`
+  and commits the regenerated `.derived/codebase-index/index.json`
   alongside the spec/code edits, OR queues a chore PR per the
   `feedback_codebase_index_spec_edits` memory.
 - **T-028** — Each migration PR's `implements:` block claims BOTH

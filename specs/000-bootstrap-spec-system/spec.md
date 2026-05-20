@@ -127,7 +127,7 @@ The following **normative layout** applies to Spec Kit features in this repo:
 | `specs/<NNN>-<kebab-name>/plan.md` | Implementation plan (markdown). |
 | `specs/<NNN>-<kebab-name>/tasks.md` | Task list (markdown; no YAML document header required). |
 | `specs/<NNN>-<kebab-name>/contracts/` | **Optional** JSON Schema or example JSON **for machine contracts** tied to the feature; not a parallel authoring channel. |
-| `build/spec-registry/` (or path fixed in a later implementation task) | **Compiler-emitted JSON**: deterministic `registry.json` and ephemeral `build-meta.json` (see below). |
+| `.derived/spec-registry/` (or path fixed in a later implementation task) | **Compiler-emitted JSON**: deterministic `registry.json` and ephemeral `build-meta.json` (see below). |
 
 **Repository location of feature specs (sticky decision):** Authoritative feature specs live under **`specs/<NNN>-<kebab-name>/` at the repository root**, not under `standards/spec/specifications/` or other tool-internal trees. This keeps specs **first-class repo content**, visible in review and branching like source code. `standards/spec/` holds **templates and constitution** (Epic 2 graduated from `.specify/`)—not the canonical feature library. A future amendment may add mirrors or symlinks, but **must not** introduce a second authoritative path without superseding this spec.
 
@@ -181,7 +181,7 @@ amendment_record: "119"
 
 ## Minimum viable compiled JSON registry contract
 
-The compiler MUST emit two related JSON artifacts under `build/spec-registry/`:
+The compiler MUST emit two related JSON artifacts under `.derived/spec-registry/`:
 
 1. **`registry.json`** (deterministic) — conforms to `contracts/registry.schema.json`. Minimum semantic content:
    - **`specVersion`** — registry format version string.
@@ -299,7 +299,7 @@ A reviewer searches the repo for standalone `.yml`/`.yaml` and finds none in aut
 
 ### User Story 3 — Consumer reads stable JSON (Priority: P3)
 
-A downstream tool (placeholder for future featuregraph) reads **`build/spec-registry/registry.json`** for deterministic feature metadata and needs no markdown parsing. It does **not** require `build-meta.json`.
+A downstream tool (placeholder for future featuregraph) reads **`.derived/spec-registry/registry.json`** for deterministic feature metadata and needs no markdown parsing. It does **not** require `build-meta.json`.
 
 **Why this priority:** Proves the separation of human and machine layers.
 

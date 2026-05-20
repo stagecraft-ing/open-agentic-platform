@@ -38,7 +38,7 @@ implementation task starts.
 - [ ] T001 [P0] Confirm spec 139 frontmatter compiles cleanly:
       `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`
       and verify exit 0 + spec 139 appears in
-      `build/spec-registry/registry.json`.
+      `.derived/spec-registry/registry.json`.
 - [ ] T002 [P0] Walk `goa-software-factory@<latest>` and
       `template@<latest>` end-to-end. For every file: classify by §4.2
       kind; record frontmatter quirks; record bundle candidates per

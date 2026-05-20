@@ -537,7 +537,7 @@ mod tests {
     #[test]
     fn writes_stakeholder_docs_fingerprint_file() {
         let dest = workspace_root()
-            .join("build/schema-parity/rust-stakeholder-doc-schema.json");
+            .join(".derived/schema-parity/rust-stakeholder-doc-schema.json");
         std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
         let json = serde_json::to_string_pretty(
             &stakeholder_doc_schema_fingerprint(),

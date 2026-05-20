@@ -34,7 +34,7 @@ tree before editing anything.
 
 - [x] T001 [P0] Confirm spec 144 frontmatter compiles cleanly:
       `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile` and
-      verify exit 0 + spec 144 appears in `build/spec-registry/registry.json` via
+      verify exit 0 + spec 144 appears in `.derived/spec-registry/registry.json` via
       `./tools/spec-spine/registry-consumer/target/release/registry-consumer show 144-hiqlite-default-features`.
 - [x] T002 [P0] Confirm `crates/orchestrator/Cargo.toml:20` still
       lacks `default-features = false`. Expected line text:

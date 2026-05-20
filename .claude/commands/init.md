@@ -27,7 +27,7 @@ Dispatch all of the following simultaneously (batch them in a single response). 
 - `ls specs/` -- list all feature spec directories (do not read each spec)
 
 **Structural index:**
-- `build/codebase-index/index.json` -- compiled structural inventory (if exists)
+- `.derived/codebase-index/index.json` -- compiled structural inventory (if exists)
 
 **Build and tool state:**
 - `ls tools/` -- available toolchain

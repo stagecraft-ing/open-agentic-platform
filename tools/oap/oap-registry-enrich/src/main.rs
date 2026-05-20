@@ -69,7 +69,7 @@ fn main() -> ExitCode {
             json,
         } => {
             let path = registry_path
-                .unwrap_or_else(|| repo_root.join("build/spec-registry/registry-oap.json"));
+                .unwrap_or_else(|| repo_root.join(".derived/spec-registry/registry-oap.json"));
             let registry = match srr::load(&path) {
                 Ok(r) => r,
                 Err(e) => {

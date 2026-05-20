@@ -55,7 +55,7 @@ every external action) is unusually disciplined for a pre-alpha repo, but
 contains zero dependency-level supply-chain enforcement:
 
 - No `cargo audit` or `cargo deny` step runs against any of the 30 Rust
-  crates inventoried in `build/codebase-index/index.json`.
+  crates inventoried in `.derived/codebase-index/index.json`.
 - No `pnpm audit` or `npm audit` step runs against the 24 npm packages
   (notably `@opc/desktop` and `platform/services/stagecraft`).
 - No license policy is asserted — a contributor can pull in a GPL-3.0 crate

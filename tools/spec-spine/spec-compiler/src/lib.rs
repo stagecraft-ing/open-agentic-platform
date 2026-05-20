@@ -110,7 +110,7 @@ pub struct CompileOutput {
 /// Run compilation from `repo_root` (must be the repository root). Writes to `build/spec-registry/`.
 pub fn compile_and_write(repo_root: &Path) -> Result<CompileOutput, CompileError> {
     let out = compile(repo_root)?;
-    let out_dir = repo_root.join("build/spec-registry");
+    let out_dir = repo_root.join(".derived/spec-registry");
     fs::create_dir_all(&out_dir)?;
     fs::write(out_dir.join("registry.json"), &out.registry_json)?;
     fs::write(out_dir.join("build-meta.json"), &out.build_meta_json)?;

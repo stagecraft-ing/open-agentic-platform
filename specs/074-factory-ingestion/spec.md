@@ -150,7 +150,7 @@ impl PatternResolver {
 
 **FR-007: Spec Registry Integration**
 The spec-compiler SHALL be extended to recognize Factory Build Specs as compilable artifacts. When a project has a frozen Build Spec at `.factory/build-spec.yaml`, the compiler SHALL:
-- Index it in `build/spec-registry/registry.json` under a new `factory_projects` section
+- Index it in `.derived/spec-registry/registry.json` under a new `factory_projects` section
 - Track the Build Spec hash for drift detection
 - Link to the adapter used
 

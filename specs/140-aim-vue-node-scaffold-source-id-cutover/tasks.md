@@ -35,7 +35,7 @@ inline in PR description if any deviation surfaces.
       `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`
       and verify exit 0 + spec 140 appears as `kind: amendment`,
       `amends: ["139"]` in
-      `build/spec-registry/registry.json` via
+      `.derived/spec-registry/registry.json` via
       `./tools/spec-spine/registry-consumer/target/release/registry-consumer show 140-aim-vue-node-scaffold-source-id-cutover`.
 - [ ] T002 [P0] Verify `factory_upstreams` schema (composite-PK
       `(org_id, source_id)`, `role` enum admits `'orchestration'` /

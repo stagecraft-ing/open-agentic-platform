@@ -88,7 +88,7 @@ Four-phase remediation ordered by blast radius.
 | 3.5 | Add superseded_by to specs 038, 040 | `specs/038-*/spec.md`, `specs/040-*/spec.md` |
 | 3.6 | Quote YAML dates | `specs/087-*/spec.md`, `specs/088-*/spec.md` |
 | 3.7 | Track desktop Cargo.lock | `.gitignore`, `product/apps/desktop/src-tauri/Cargo.lock` |
-| 3.8 | Recompile spec registry (096–100) | `build/spec-registry/registry.json` |
+| 3.8 | Recompile spec registry (096–100) | `.derived/spec-registry/registry.json` |
 
 ### Phase 4 — Orphaned Code Feature Catalog
 

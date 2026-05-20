@@ -6,7 +6,7 @@
 
 ## Summary
 
-Establish the **spec compiler** scaffolding that reads authoritative feature markdown under `specs/` and emits **`build/spec-registry/registry.json`** (deterministic) plus **`build/spec-registry/build-meta.json`** (ephemeral wall-clock metadata). No product runtime (axiomregent, xray, featuregraph servers) is implemented in this feature; those components will **consume** `registry.json` in later features.
+Establish the **spec compiler** scaffolding that reads authoritative feature markdown under `specs/` and emits **`.derived/spec-registry/registry.json`** (deterministic) plus **`.derived/spec-registry/build-meta.json`** (ephemeral wall-clock metadata). No product runtime (axiomregent, xray, featuregraph servers) is implemented in this feature; those components will **consume** `registry.json` in later features.
 
 ## Technical Context
 
@@ -14,7 +14,7 @@ Establish the **spec compiler** scaffolding that reads authoritative feature mar
 
 **Primary Dependencies**: JSON Schema validation library for the chosen language; markdown + YAML frontmatter parser; SHA-256 for `contentHash`.
 
-**Storage**: File-system inputs only; output `registry.json` + `build-meta.json` under `build/spec-registry/`. No database in MVP.
+**Storage**: File-system inputs only; output `registry.json` + `build-meta.json` under `.derived/spec-registry/`. No database in MVP.
 
 **Testing**: Golden-fixture tests asserting byte-identical JSON output; schema validation of emitted JSON; policy tests for forbidden YAML paths.
 
@@ -68,7 +68,7 @@ tools/spec-spine/spec-compiler/        # Or packages/spec-compiler — fixed in 
 ├── src/
 └── tests/fixtures/
 
-build/spec-registry/        # Gitignored compiler output (generated)
+.derived/spec-registry/        # Gitignored compiler output (generated)
 └── registry.json
 ```
 

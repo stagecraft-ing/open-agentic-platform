@@ -17,7 +17,7 @@ extends:
   - spec: "101-codebase-index-mvp"
     paths:
       - tools/spec-spine/codebase-indexer
-      - build/codebase-index/CODEBASE-INDEX.md
+      - .derived/codebase-index/CODEBASE-INDEX.md
     nature: additive
 refines:
   - paths:
@@ -144,7 +144,7 @@ the comment edit. The allowlist is the documented escape hatch.
 
 ## 5. Index Schema
 
-`build/codebase-index/index.json` gains a new top-level field
+`.derived/codebase-index/index.json` gains a new top-level field
 `workflowTraceability` (camelCase per the existing schema convention —
 `schemaVersion`, `factoryAdapters`, etc.):
 

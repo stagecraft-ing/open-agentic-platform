@@ -293,48 +293,21 @@ Temporary Items
 .apdisk
 
 
-# Spec compiler output (compiler-owned JSON; regenerate, do not hand-edit)
-build/spec-registry/
-
 # IDE
 .idea/
 _tmp/
 
-# Rust (spec-compiler)
-tools/spec-compiler/target/
-
 # Stray build/ dirs if a tool is run from its own crate directory instead
-# of the repo root. Canonical output for every tool is the repo-root build/.
+# of the repo root. Tool-local build/ output is never canonical.
 tools/*/build/
 
-# Other
-# Ignore top-level entries under build/ rather than the directory itself, so
-# specific artifacts (e.g. build/codebase-index/index.json) can be re-included.
-# gitignore can't re-include children of a directory excluded with `build/`.
-build/*
-# Codebase index (spec 101): index.json is a governed, deterministic artifact
-# that the `codebase-indexer check` staleness gate compares against a fresh
-# recompile. It must be committed for CI's fresh-clone check to pass.
-# build-meta.json and CODEBASE-INDEX.md stay ignored (wall-clock / renderable).
-!build/codebase-index/
-build/codebase-index/*
-!build/codebase-index/index.json
-
-# .derived/ — generated-artifacts root (target shape; I9 cuts over from
-# build/ in Epic 2). For I2, the directory tree is created with .gitkeep
-# placeholders so its structure is visible; all other contents are ignored.
-# I9 will swap consumers from build/ to .derived/ and add re-includes for
-# the index.json staleness gate analogous to the build/codebase-index/
-# rules above. Pattern mirrors the build/ rules above: ignore contents
-# of each subdir, re-include the .gitkeep marker. Per gitignore rules,
-# a parent directory cannot be excluded if its child is to be
-# re-included, so each subdir gets its own rule (no `.derived/` wildcard).
+# .derived/ — generated-artifacts root (I9 cutover from build/). Ignore
+# contents of each subdir; re-include the deterministic `index.json`
+# (spec 101) that the codebase-indexer staleness gate compares against.
 .derived/spec-registry/*
-!.derived/spec-registry/.gitkeep
 .derived/codebase-index/*
-!.derived/codebase-index/.gitkeep
+!.derived/codebase-index/index.json
 .derived/schema-parity/*
-!.derived/schema-parity/.gitkeep
 .axiomregent/
 .fastembed_cache/
 

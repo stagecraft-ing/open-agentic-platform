@@ -173,7 +173,7 @@ impl FeatureEntry {
 
 /// Prefer **`build/spec-registry/registry.json`** (spec-compiler); fall back to **`spec/features.yaml`**.
 fn load_feature_entries(root: &Path) -> Result<(Vec<FeatureEntry>, String), anyhow::Error> {
-    let registry_json = root.join("build/spec-registry/registry.json");
+    let registry_json = root.join(".derived/spec-registry/registry.json");
     let features_yaml = root.join("spec/features.yaml");
 
     if registry_json.is_file() {

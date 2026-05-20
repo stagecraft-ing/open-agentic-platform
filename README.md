@@ -212,7 +212,7 @@ make setup
 # 137 approved, 1 draft, 4 superseded.
 
 ./tools/oap/oap-code-index-enrich/target/release/oap-code-index-enrich render
-cat build/codebase-index/CODEBASE-INDEX.md
+cat .derived/codebase-index/CODEBASE-INDEX.md
 # Renders the spec-to-code map. The 'Spec' column is the
 # traceability surface for every Rust crate and npm package.
 

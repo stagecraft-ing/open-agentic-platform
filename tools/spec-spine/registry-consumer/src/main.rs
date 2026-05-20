@@ -10,10 +10,10 @@ use std::process::ExitCode;
 #[command(
     name = "registry-consumer",
     version,
-    about = "Read-only CLI over build/spec-registry/registry.json (specs/002-registry-consumer-mvp)"
+    about = "Read-only CLI over .derived/spec-registry/registry.json (specs/002-registry-consumer-mvp)"
 )]
 struct Cli {
-    /// Path to registry.json (default: build/spec-registry/registry.json relative to cwd)
+    /// Path to registry.json (default: .derived/spec-registry/registry.json relative to cwd)
     #[arg(long = "registry-path", value_name = "PATH")]
     registry_path: Option<PathBuf>,
 

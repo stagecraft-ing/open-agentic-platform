@@ -17,7 +17,7 @@
 #   factory/process/stages/*, .claude/{agents,commands,rules}/**/*.md,
 #   standards/schemas/**/*.{json,yaml,yml}, .github/workflows/*.yml.
 # Most non-trivial PRs touch at least one of these and need a fresh
-# build/codebase-index/index.json in the diff. The CI staleness check
+# .derived/codebase-index/index.json in the diff. The CI staleness check
 # fails after merge attempts otherwise; this hook moves the failure to
 # the earliest possible point.
 #
@@ -46,11 +46,11 @@ if ! "$INDEXER" check >/dev/null 2>&1; then
   specs/*/spec.md, standards/schemas/**/*.{json,yaml,yml},
   .claude/{agents,commands,rules}/*.md, and .github/workflows/*.yml —
   at least one of these changed and the
-  committed build/codebase-index/index.json no longer matches.
+  committed .derived/codebase-index/index.json no longer matches.
 
   Fix:
     make pr-prep
-    git add build/codebase-index/index.json
+    git add .derived/codebase-index/index.json
 
   Bypass (NOT recommended — CI will fail):
     git commit --no-verify

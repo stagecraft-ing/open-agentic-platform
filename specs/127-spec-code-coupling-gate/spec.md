@@ -75,14 +75,14 @@ pr-prep: index ci-fast-spec-coupling
 
 Two phases:
 
-1. **`index`** — rebuild `build/codebase-index/index.json` so the gate
+1. **`index`** — rebuild `.derived/codebase-index/index.json` so the gate
    reads the current spec corpus. The codebase index is the
    spec-compiler's projection of `implements:` (now derived from the
    relationship graph per spec 130) into a path-to-claimants mapping.
 2. **`ci-fast-spec-coupling`** — build the coupling-check binary if
    needed, then invoke it with the diff against `origin/main`.
 
-A drifted `build/codebase-index/index.json` (from spec edits that
+A drifted `.derived/codebase-index/index.json` (from spec edits that
 weren't followed by `make index`) is detected and reported as a
 follow-up message; the gate itself does not fail on index staleness
 (that's `codebase-indexer check`'s job, invoked separately by CI).
@@ -200,7 +200,7 @@ waiver — patterns are durable; waivers are ephemeral.
 
 ## 8. Governed-read discipline (spec 103)
 
-The gate consumes `build/codebase-index/index.json` through the typed
+The gate consumes `.derived/codebase-index/index.json` through the typed
 deserialization shared with `codebase-indexer`, not via ad-hoc
 parsing. This is the spec-103 governed-read pattern: compiled
 artifacts are read through their designated consumer types.

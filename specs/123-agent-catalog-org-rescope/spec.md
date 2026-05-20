@@ -450,9 +450,9 @@ A-7. Duplex envelope schema constant is bumped to `v: 2` for catalog envelopes a
 
 A-8. The Factory `agent_resolver` resolves stage agent references against the org catalog, and a Stage CD comparator run against two distinct projects uses identical agent definitions by `content_hash` (verified by an integration test).
 
-A-9. The compiled spec registry (`build/spec-registry/registry.json`) carries `amends: ["119"]` on this spec and `amendment_record: "123"` on spec 119, with no schema-validation errors.
+A-9. The compiled spec registry (`.derived/spec-registry/registry.json`) carries `amends: ["119"]` on this spec and `amendment_record: "123"` on spec 119, with no schema-validation errors.
 
-A-10. The codebase index (`build/codebase-index/index.json`) re-renders cleanly; spec 111 and spec 119 traceability continue to resolve to active code.
+A-10. The codebase index (`.derived/codebase-index/index.json`) re-renders cleanly; spec 111 and spec 119 traceability continue to resolve to active code.
 
 A-11. `make ci` passes on the post-migration branch.
 

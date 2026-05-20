@@ -28,7 +28,7 @@ ship with integration test coverage matching AC-1 through AC-6.
 
 - [ ] T001 Confirm spec 133 frontmatter compiles cleanly: run
   `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile` and
-  verify exit 0 + spec 133 appears in `build/spec-registry/registry.json`.
+  verify exit 0 + spec 133 appears in `.derived/spec-registry/registry.json`.
 
 ---
 
@@ -37,12 +37,12 @@ ship with integration test coverage matching AC-1 through AC-6.
 **Purpose**: Phase 0 of the plan. Decide Shape A (gate-only) vs
 Shape B (indexer + gate). All subsequent tasks depend on this outcome.
 
-- [ ] T002 [Foundational] Inspect `build/codebase-index/index.json` for
+- [ ] T002 [Foundational] Inspect `.derived/codebase-index/index.json` for
   `amends` and `amendmentRecord` fields under any spec mapping. Use:
   ```bash
   ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
   python3 -c 'import json,sys; \
-    d=json.load(open("build/codebase-index/index.json")); \
+    d=json.load(open(".derived/codebase-index/index.json")); \
     m=[x for x in d["traceability"]["mappings"] if x["specId"].startswith("132")]; \
     print(json.dumps(m,indent=2))' \
     || true   # ad-hoc inspection only; not an orchestrated workflow read
@@ -110,7 +110,7 @@ amended spec's `spec.md` path. No waiver required.
   `1.2.0` → `1.3.0`). Add a one-line CHANGELOG comment in `types.rs`
   or wherever the const lives.
 - [ ] T024 [US1] Re-run `codebase-indexer compile` and commit the
-  refreshed `build/codebase-index/index.json`.
+  refreshed `.derived/codebase-index/index.json`.
 
 **Always (Shape A and B):**
 

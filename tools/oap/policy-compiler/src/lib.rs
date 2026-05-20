@@ -72,7 +72,7 @@ pub struct CompileOutput {
 
 pub fn compile_and_write(repo_root: &Path) -> Result<CompileOutput, CompileError> {
     let out = compile(repo_root)?;
-    let out_dir = repo_root.join("build/policy-bundles");
+    let out_dir = repo_root.join(".derived/policy-bundles");
     fs::create_dir_all(&out_dir)?;
     let json = serde_json::to_vec_pretty(&build_bundle_json_value(&out))?;
     fs::write(out_dir.join("policy-bundle.json"), json)?;

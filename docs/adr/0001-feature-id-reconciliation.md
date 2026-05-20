@@ -59,7 +59,7 @@ This corresponds to **option (a)** in the next-slice plan: extend the compiled r
 
 ## Consumer contract
 
-- **featuregraph** (registry path): when loading `build/spec-registry/registry.json`, **`RegistryFeatureRecord` MUST deserialize `codeAliases`** (optional). **`FeatureEntry::from_registry_record()` MUST copy them into `FeatureEntry.aliases`** so `Scanner::scan()` builds `alias_map` and resolves `// Feature: TOKEN` lines to the canonical kebab `id`.
+- **featuregraph** (registry path): when loading `.derived/spec-registry/registry.json`, **`RegistryFeatureRecord` MUST deserialize `codeAliases`** (optional). **`FeatureEntry::from_registry_record()` MUST copy them into `FeatureEntry.aliases`** so `Scanner::scan()` builds `alias_map` and resolves `// Feature: TOKEN` lines to the canonical kebab `id`.
 
 ## Population ordering
 
