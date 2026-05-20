@@ -144,8 +144,8 @@ jobs:
           # across Cut D W-04's crate rename), not its [package] name.
           # `registry-consumer` ships from crate `open_agentic_spec_registry_reader`.
           for tool in spec-compiler registry-consumer spec-lint codebase-indexer; do
-            # Each tool has its own target dir under its manifest path
-            SRC="tools/${tool}/target/${TARGET}/release/${tool}${EXT}"
+            # Workspace root target dir (post-Epic-2 root Cargo.toml).
+            SRC="target/${TARGET}/release/${tool}${EXT}"
             DEST="dist/${tool}-${TARGET}${EXT}"
             cp "$SRC" "$DEST"
             if [ "${{ runner.os }}" != "Windows" ]; then
