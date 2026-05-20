@@ -19,7 +19,7 @@
 
 - [ ] T001 Create `tools/spec-compiler/` skeleton with README pointing to Feature 000 spec
 - [ ] T002 Add `build/spec-registry/` to `.gitignore` (compiler output) and document optional committed golden fixtures in `research.md` open items
-- [x] T003 [P] Add a minimal `CONTRIBUTING.md` section or pointer in root `README.md` stating markdown-only / JSON-only rules (one paragraph, links to `specs/000-bootstrap-spec-system/spec.md`) — **done**: root `README.md` links to Feature 000 and `.specify/contract.md`
+- [x] T003 [P] Add a minimal `CONTRIBUTING.md` section or pointer in root `README.md` stating markdown-only / JSON-only rules (one paragraph, links to `specs/000-bootstrap-spec-system/spec.md`) — **done**: root `README.md` links to Feature 000 and `standards/spec/contract.md`
 
 ---
 

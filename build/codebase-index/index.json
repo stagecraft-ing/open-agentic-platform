@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "02c3dfdd7891583b48260a07c765d9369624f0ccde9027ce1e2e61a304420a5a",
+    "contentHash": "0e7d73f5e7647358465eaa1347da24a2d2ba4c5d882869221bbebc06c5f53349",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -3303,10 +3303,6 @@
         ],
         "implementingPaths": [
           {
-            "path": ".specify/contract.md",
-            "source": "spec-implements"
-          },
-          {
             "path": "apps/desktop",
             "source": "spec-implements"
           },
@@ -3360,6 +3356,10 @@
           },
           {
             "path": "specs/099-workspace-scoped-persistence",
+            "source": "spec-implements"
+          },
+          {
+            "path": "standards/spec/contract.md",
             "source": "spec-implements"
           }
         ],

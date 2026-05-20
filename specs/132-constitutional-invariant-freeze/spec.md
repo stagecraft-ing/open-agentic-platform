@@ -49,7 +49,7 @@ summary: >
 
 Spec 000 (bootstrap-spec-system) is the constitutional baseline. The
 spec-amendment convention added later allows refining narrative or
-invariants without supersession (`.specify/contract.md` "Amendment
+invariants without supersession (`standards/spec/contract.md` "Amendment
 convention" section). That convention applies recursively: any spec —
 including spec 000 — can be refined by an amending spec.
 

@@ -1,8 +1,8 @@
-# `.specify/` contract (open-agentic-platform)
+# `standards/spec/` contract (open-agentic-platform)
 
 This file is a **short normative summary** of Feature `000-bootstrap-spec-system`.
 
-**Precedence:** `specs/000-bootstrap-spec-system/spec.md` > `.specify/memory/constitution.md` > **this file**. The constitution filename does **not** override Feature 000.
+**Precedence:** `specs/000-bootstrap-spec-system/spec.md` > `standards/spec/constitution.md` > **this file**. The constitution filename does **not** override Feature 000.
 
 ## Authoring
 
@@ -19,9 +19,9 @@ This file is a **short normative summary** of Feature `000-bootstrap-spec-system
 
 ## Spec Kit layout
 
-- **Canonical feature specs** live at **`specs/NNN-kebab-case/`** (repository root), with `spec.md`, `plan.md`, `tasks.md`, and optional `contracts/`, `research.md`, `quickstart.md`. **Not** under `.specify/specifications/`.
-- `.specify/` holds **templates, scripts, and constitution**—workflow support, not the authoritative spec library.
-- Workflow scripts live under `.specify/scripts/bash/`; templates under `.specify/templates/`.
+- **Canonical feature specs** live at **`specs/NNN-kebab-case/`** (repository root), with `spec.md`, `plan.md`, `tasks.md`, and optional `contracts/`, `research.md`, `quickstart.md`. **Not** under `standards/spec/specifications/`.
+- `standards/spec/` holds **templates, scripts, and constitution**—workflow support, not the authoritative spec library.
+- Workflow scripts live under `.specify/scripts/bash/` (legacy Spec Kit location; evaluated for retirement in Epic 2 I13); templates under `standards/spec/templates/`.
 
 ## Amendment convention
 

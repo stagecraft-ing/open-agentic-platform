@@ -32,7 +32,7 @@ establishes:
   - platform/services/stagecraft/api/projects
   - platform/services/stagecraft/api/knowledge
   - platform/services/stagecraft/api/sync
-  - .specify/contract.md
+  - standards/spec/contract.md
 extends:
   - spec: "087-unified-workspace-architecture"
     paths:
@@ -273,7 +273,7 @@ The spec compiler (tools/spec-compiler) recognises both fields without treating 
 
 A-1. Spec 000 carries the `amends:` and `amendment_record:` field definitions in its body and is itself amended (frontmatter `amended:` set, `amendment_record: "119"`).
 
-A-2. `.specify/contract.md` carries one new bullet describing `amends:` / `amendment_record:` as the in-place amendment convention.
+A-2. `standards/spec/contract.md` carries one new bullet describing `amends:` / `amendment_record:` as the in-place amendment convention.
 
 A-3. Specs 087, 092, 094, 099 each carry `amended: "2026-04-29"`, `amendment_record: "119"`, an "Amended by 119" callout in the body, narrative updates s/workspace/project, and (for 087/092/099) updated titles and code aliases.
 
@@ -302,7 +302,7 @@ OQ-4. **OPC desktop URL paths** — _Resolved._ User confirms no external bookma
 ### Close-out invariant verification (2026-05-05)
 
 - A-5 (`grep -r "workspace_id\|workspaceId" platform/services/stagecraft/api crates apps/desktop --include='*.ts' --include='*.tsx' --include='*.rs' --include='*.sql' --include='*.yaml' --include='*.yml' --include='*.json'`) returns zero hits outside `db/migrations/`.
-- A-1, A-2, A-3 confirmed via `git log` on amended specs and `.specify/contract.md`.
+- A-1, A-2, A-3 confirmed via `git log` on amended specs and `standards/spec/contract.md`.
 - A-4 confirmed via migration history (27, 28, 29, 30 applied).
 - A-6, A-7, A-8 covered by `make ci` runs since landing.
 

@@ -28,11 +28,11 @@ Adjust command after the compiler implementation chooses its validation stack.
 ## Author a new feature spec
 
 1. Create `specs/NNN-my-feature/spec.md` where `NNN` is the next three-digit number.
-2. Copy structure from `.specify/templates/spec-template.md` and add required **YAML frontmatter** per [spec.md](./spec.md) (“Markdown document grammar”).
+2. Copy structure from `standards/spec/templates/spec-template.md` and add required **YAML frontmatter** per [spec.md](./spec.md) (“Markdown document grammar”).
 3. Ensure `id` in frontmatter matches the directory name exactly.
 
 ## Clarify → Plan → Tasks workflow
 
-After editing `spec.md`, run checklist validation in `checklists/requirements.md`, then create `plan.md` and `tasks.md` using the templates in `.specify/templates/`.
+After editing `spec.md`, run checklist validation in `checklists/requirements.md`, then create `plan.md` and `tasks.md` using the templates in `standards/spec/templates/`.
 
 Feature 000 is **constitutional**: changes that weaken markdown-only or JSON-only rules require explicit supersession in spec text.

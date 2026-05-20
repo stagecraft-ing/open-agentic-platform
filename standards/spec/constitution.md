@@ -5,8 +5,8 @@
 Contributors MUST resolve conflicts in this order (**highest wins first**):
 
 1. **`specs/000-bootstrap-spec-system/spec.md`** — constitutional bootstrap for specs and registry contracts.
-2. **This file** (`.specify/memory/constitution.md`) — durable principles; subordinate to Feature 000 where they differ.
-3. **`.specify/contract.md`** — short summary; subordinate to both above.
+2. **This file** (`standards/spec/constitution.md`) — durable principles; subordinate to Feature 000 where they differ.
+3. **`standards/spec/contract.md`** — short summary; subordinate to both above.
 
 The name “constitution” here does **not** imply this file overrides Feature 000. When in doubt, open Feature 000.
 
@@ -79,14 +79,14 @@ The relationship-graph landing is staged. Side quest I (2026-05-19) installed th
 
 ## Additional Constraints
 
-- Feature directories use the pattern `specs/NNN-kebab-case/` with matching `id` in frontmatter. Authoritative specs live under **repo-root `specs/`**, not under `.specify/`.
+- Feature directories use the pattern `specs/NNN-kebab-case/` with matching `id` in frontmatter. Authoritative specs live under **repo-root `specs/`**, not under `standards/spec/`.
 - The compiled registry format is versioned (`specVersion`) and described by JSON Schema in Feature 000. Deterministic output is **`registry.json`**; **`build-meta.json`** holds non-deterministic wall-clock metadata only.
 
 ## Development Workflow
 
-- Create feature specs manually in `specs/NNN-slug/spec.md` using the template in `.specify/templates/spec-template.md`.
+- Create feature specs manually in `specs/NNN-slug/spec.md` using the template in `standards/spec/templates/spec-template.md`.
 - Use feature branches named `NNN-short-name`.
-- Read `.specify/contract.md` and Feature 000 before adding new authoring formats or tooling outputs.
+- Read `standards/spec/contract.md` and Feature 000 before adding new authoring formats or tooling outputs.
 
 ## Governance
 

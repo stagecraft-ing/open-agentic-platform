@@ -3,7 +3,7 @@
 **Input**: `/specs/004-spec-to-execution-bridge-mvp/`  
 **Prerequisites**: Features **000–003**
 
-**Feature status**: **Complete** (MVP protocol + example changeset; optional **`.specify/contract.md`** expansion deferred until task-state convention is chosen).
+**Feature status**: **Complete** (MVP protocol + example changeset; optional **`standards/spec/contract.md`** expansion deferred until task-state convention is chosen).
 
 ## Phase 1: Authoring
 
@@ -16,7 +16,7 @@
 
 ## Phase 3: Cross-links
 
-- [x] T004 Link from root [README.md](../../README.md) to Feature **004** for discoverability; [`.specify/contract.md`](../../.specify/contract.md) may be updated later when task-state notation is repo-wide
+- [x] T004 Link from root [README.md](../../README.md) to Feature **004** for discoverability; [`standards/spec/contract.md`](../../standards/spec/contract.md) may be updated later when task-state notation is repo-wide
 
 ## Phase 4: Verify
 

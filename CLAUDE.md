@@ -39,7 +39,7 @@ platform/           — Organisational control plane (imported from stagecraft-i
   k8s/              — Baseline K8s policies (network deny, resource quotas)
 build/              — Compiler output (registry.json, index.json, build-meta.json)
 .claude/            — Claude Code agents, commands, rules (AI development infrastructure)
-.specify/           — Spec Kit contract metadata and templates
+standards/spec/     — Graduated spec-spine standard: constitution.md, contract.md, templates/
 ```
 
 ## Orchestrator Behavioral Rules

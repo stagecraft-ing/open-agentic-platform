@@ -81,7 +81,7 @@ Four-phase remediation ordered by blast radius.
 
 | Slice | Issue | Files |
 |-------|-------|-------|
-| 3.1 | Add frontmatter to spec template | `.specify/templates/spec-template.md` |
+| 3.1 | Add frontmatter to spec template | `standards/spec/templates/spec-template.md` |
 | 3.2 | Create spec 100 | `specs/100-post-convergence-remediation/spec.md` |
 | 3.3 | Upgrade thiserror 1.0 → 2 | `factory-contracts/Cargo.toml` |
 | 3.4 | Upgrade axum 0.7 → 0.8 | `orchestrator/Cargo.toml` |

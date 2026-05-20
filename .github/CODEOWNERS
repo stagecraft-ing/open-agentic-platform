@@ -14,7 +14,7 @@
 
 # Spec spine and constitution — review these for contract drift.
 /specs/                                 @bartlomiejkus
-/.specify/                              @bartlomiejkus
+/standards/spec/                        @bartlomiejkus
 
 # Registry-consumer contract surface — the PR template's contract checklist
 # applies here. Reviewers should expand the collapsed checklist.

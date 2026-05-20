@@ -1011,7 +1011,7 @@ amendment is applied.
 ## 11. Open Questions
 
 1. **Q11.1 — Spec 087 amendment shape.** The amendment record above
-   is in `spec.md` of 143. The convention from `.specify/contract.md`
+   is in `spec.md` of 143. The convention from `standards/spec/contract.md`
    says spec 087 itself should also pick up the amendment marker
    (`amended: 2026-05-07`, `amendment_record: 143-...`, body callout
    on NF-002). Decide whether 087's frontmatter update lands in the
