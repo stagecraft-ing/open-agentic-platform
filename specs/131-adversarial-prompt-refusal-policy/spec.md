@@ -15,10 +15,17 @@ depends_on:
   - "127"  # spec-code-coupling-gate (the surface this policy backs)
   - "130"  # primary-owner heuristic (referenced in worked examples)
 code_aliases: ["CONST_005_SPEC_CODE_COHERENCE"]
-implements:
-  - path: CLAUDE.md
-  - path: .claude/rules/adversarial-prompt-refusal.md
-  - path: tools/policy-compiler
+establishes:
+  - .claude/rules/adversarial-prompt-refusal.md
+extends:
+  - spec: "047-governance-control-plane"
+    paths:
+      - tools/oap/policy-compiler
+    nature: additive
+refines:
+  - aspect: spec-code-coherence-policy
+    paths:
+      - CLAUDE.md
 summary: >
   CONST-001 through CONST-004 cover destructive ops, secrets, tool
   allowlist, and diff size — but none refuse the "Phase-3-style modify
@@ -31,6 +38,8 @@ summary: >
   `spec_code_coherence` added to its allowlist; amends spec 047). The
   rule is behavioral — the policy kernel does not gate it at tool-call
   time; enforcement is via the orchestrated-workflow protocol.
+origin:
+  retroactive: true
 ---
 
 # 131 — CONST-005 Adversarial-prompt refusal policy
@@ -124,7 +133,7 @@ When a trigger fires, the agent MUST:
 ## 5. Implementation
 
 - **Policy block** in `CLAUDE.md` follows the CONST-NNN format used by
-  001–004. Compiled by `tools/policy-compiler/`. Gate name is
+  001–004. Compiled by `tools/oap/policy-compiler/`. Gate name is
   `spec_code_coherence` — added to the compiler's recognized-gate
   allowlist (this is the spec 047 amendment).
 - **`.claude/rules/adversarial-prompt-refusal.md`** is the per-project
@@ -194,7 +203,7 @@ truthful so an action becomes more convenient.**
   `CONST-005-spec-code-coherence` with `mode: enforce`,
   `scope: global`, `gate: spec_code_coherence`. The policy compiler
   parses it without `V-106` (invalid gate) firing.
-- **AC-2.** `tools/policy-compiler/` recognises `spec_code_coherence`
+- **AC-2.** `tools/oap/policy-compiler/` recognises `spec_code_coherence`
   in the gate allowlist. Spec 047 carries
   `amended: 2026-05-02`, `amendment_record: "131-adversarial-prompt-refusal-policy"`.
 - **AC-3.** `.claude/rules/adversarial-prompt-refusal.md` exists and

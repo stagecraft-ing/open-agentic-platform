@@ -51,4 +51,4 @@
 ## Open items (for implementation tasks, not spec ambiguity)
 
 - Exact CLI flags and exit codes for the compiler binary.
-- Whether `build/spec-registry/` is gitignored entirely or keeps a **committed** golden fixture for tests only.
+- Whether `.derived/spec-registry/` is gitignored entirely or keeps a **committed** golden fixture for tests only.

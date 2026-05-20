@@ -28,7 +28,7 @@ Select one:
 ---
 
 <details>
-<summary>Registry-consumer contract checklist (expand if touching <code>tools/registry-consumer/</code>)</summary>
+<summary>Registry-consumer contract checklist (expand if touching <code>tools/spec-spine/registry-consumer/</code>)</summary>
 
 ### Contract assessment
 

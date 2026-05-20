@@ -19,8 +19,11 @@ summary: >
 code_aliases:
   - XRAY_UI
   - INSPECT_SURFACE
-implements:
-  - path: apps/desktop
+extends:
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    paths:
+      - product/apps/desktop
+    nature: additive
 ---
 
 # 083 — Xray v1.2.0 UI Surface
@@ -81,15 +84,15 @@ desktop.
 
 | File | Role |
 |------|------|
-| `apps/desktop/src/features/inspect/InspectSurface.tsx` | Main refactor target |
-| `apps/desktop/src/features/inspect/types.ts` | Type expansion |
-| `apps/desktop/src/features/inspect/xrayViewModel.ts` | New — view model mapper |
-| `apps/desktop/src/features/inspect/Xray*.tsx` | New — 8 sub-components |
+| `product/apps/desktop/src/features/inspect/InspectSurface.tsx` | Main refactor target |
+| `product/apps/desktop/src/features/inspect/types.ts` | Type expansion |
+| `product/apps/desktop/src/features/inspect/xrayViewModel.ts` | New — view model mapper |
+| `product/apps/desktop/src/features/inspect/Xray*.tsx` | New — 8 sub-components |
 | `crates/xray/src/schema.rs` | Reference for field names |
 
 ## Verification
 
-- `cd apps/desktop && pnpm build` — TypeScript compilation succeeds
-- `cd apps/desktop && pnpm lint` — lint pass
+- `cd product/apps/desktop && pnpm build` — TypeScript compilation succeeds
+- `cd product/apps/desktop && pnpm lint` — lint pass
 - Manual: scan a Rust project, verify all sections render
 - Manual: scan a project with no dependencies/call graph — optional sections hidden

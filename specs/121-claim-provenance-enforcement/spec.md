@@ -32,18 +32,22 @@ depends_on:
   - "091"  # registry-enrichment (provenance lives in the enriched registry surface)
   - "118"  # workflow-spec-traceability (claim records are traceable artifacts)
   - "120"  # factory-extraction-stage (typed corpus to cite against)
-implements:
-  - path: crates/provenance-validator/Cargo.toml
-  - path: crates/provenance-validator/src/lib.rs
-  - path: crates/provenance-validator/src/allowlist.rs
-  - path: crates/provenance-validator/src/anchor.rs
-  - path: crates/provenance-validator/src/citation.rs
-  - path: crates/factory-contracts/src/provenance.rs
-  - path: crates/factory-engine/src/stages/s1_business_requirements.rs
-  - path: crates/factory-engine/src/stages/quality_gates.rs
-  - path: crates/factory-engine/skills/business-requirements-analyst.md
-  - path: crates/factory-engine/skills/validate.md
-  - path: platform/services/stagecraft/api/governance/provenancePolicy.ts
+establishes:
+  - crates/provenance-validator/Cargo.toml
+  - crates/provenance-validator/src/lib.rs
+  - crates/provenance-validator/src/allowlist.rs
+  - crates/provenance-validator/src/anchor.rs
+  - crates/provenance-validator/src/citation.rs
+  - crates/factory-contracts/src/provenance.rs
+  - platform/services/stagecraft/api/governance/provenancePolicy.ts
+extends:
+  - spec: "075-factory-workflow-engine"
+    paths:
+      - crates/factory-engine/src/stages/s1_business_requirements.rs
+      - crates/factory-engine/src/stages/quality_gates.rs
+      - crates/factory-engine/skills/business-requirements-analyst.md
+      - crates/factory-engine/skills/validate.md
+    nature: additive
 compliance:
   - framework: "owasp-asi-2026"
     # ASI01 via FR-001/FR-024 (validator + QG-13_ExternalProvenance enforce
@@ -269,7 +273,7 @@ A project has `BR-031` `DERIVED` from `extracted/Business Case.docx.txt` lines 2
 
 - **FR-032**: Stage 4 (data model + DDL) MUST read `assumption-only-manifest.md` and skip emission of any DDL artifact whose origin claim's `anchorHash` matches an `ASSUMPTION` or `ASSUMPTION-orphaned` entry. Skipped artifacts MUST be appended to `pending-promotion.md` with the would-have-been emission spec.
 - **FR-033**: Stage 5 (UI + tests) MUST apply the same skip rule. Generated UI MUST contain zero references to vendor / system names from `ASSUMPTION` claims. Generated tests MUST contain zero fixtures for them.
-- **FR-034**: A new CI check `assumption-only-manifest-honored` (in `tools/ci-parity-check` or equivalent) MUST scan generated code for any reference to an `ASSUMPTION` claim's vendor / system surface forms (the entity strings recorded in `extractedEntityCandidates`) and FAIL if any reference exists outside `pending-promotion.md`.
+- **FR-034**: A new CI check `assumption-only-manifest-honored` (in `tools/oap/ci-parity-check` or equivalent) MUST scan generated code for any reference to an `ASSUMPTION` claim's vendor / system surface forms (the entity strings recorded in `extractedEntityCandidates`) and FAIL if any reference exists outside `pending-promotion.md`.
 - **FR-035**: Promotion of an `ASSUMPTION` claim to `DERIVED` MUST emit `audit_log` action `factory.provenance_promoted` with `{ claimId, fromMode, toMode, citation, actor }`. The operator who approves the promotion is the actor of record.
 
 #### Audit (retroactive)

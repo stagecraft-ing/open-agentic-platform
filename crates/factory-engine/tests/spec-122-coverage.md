@@ -15,10 +15,10 @@ SC text.
 | SC-006 | Diff classification is byte-deterministic. | `stage_cd_diff_is_byte_deterministic` | `crates/factory-engine/src/stages/stage_cd_comparator.rs` |
 | SC-007 | Force-approve requires non-empty reason; empty rejected, audit-logged with full identity. | `force_approve_rejects_empty_reason`, `force_approve_rejects_whitespace_only_reason`, `force_approve_accepts_non_empty_reason_and_audit_logs` | `crates/factory-engine/src/stages/stage_cd_actions.rs` |
 | SC-008 | Authored docs NEVER modified by Stage CD without explicit `Accept candidate`. | `compare_mode_does_not_modify_authored_doc_bytes` (Phase 3) + the e2e fixture's `before == after` byte check | `crates/factory-engine/src/stages/stage_cd.rs`, `tests/spec_122_e2e.rs` |
-| SC-009 | `stakeholder-doc-lint` emits W-122-001..W-122-005 across fixtures covering each condition. | `w_122_001_fires_on_anchorless_heading`, `w_122_002_fires_on_version_bump_without_applied_from`, `w_122_003_fires_on_duplicate_anchor`, `w_122_004_fires_on_unknown_citation_source`, `w_122_005_fires_on_unallowed_external_entity` | `tools/stakeholder-doc-lint/src/lib.rs` |
+| SC-009 | `stakeholder-doc-lint` emits W-122-001..W-122-005 across fixtures covering each condition. | `w_122_001_fires_on_anchorless_heading`, `w_122_002_fires_on_version_bump_without_applied_from`, `w_122_003_fires_on_duplicate_anchor`, `w_122_004_fires_on_unknown_citation_source`, `w_122_005_fires_on_unallowed_external_entity` | `tools/oap/stakeholder-doc-lint/src/lib.rs` |
 | SC-010 | Migration is idempotent (re-run produces zero file mutations). | `migration_is_idempotent` (unit) + `sc_004_reclassification_migration_on_cfs_shape` (e2e — re-runs via `AlreadyMigrated`) | `crates/factory-engine/src/migration/stakeholder_docs.rs`, `tests/spec_122_e2e.rs` |
 | SC-011 | Seed mode does NOT write to the project workspace; only artifact-store candidates created. | `seed_mode_does_not_create_anything_under_project_workspace` | `crates/factory-engine/src/stages/stage_cd.rs` |
-| SC-012 | Schema parity check fails CI on any drift between `stakeholder_docs.rs` and the (eventual) TS mirror. | `fingerprint_drift_is_detected` (Rust-side regression) + the null-safe TS-mirror block in `tools/schema-parity-check/index.mjs` (activates when the TS mirror lands) | `crates/factory-contracts/src/stakeholder_docs.rs`, `tools/schema-parity-check/index.mjs` |
+| SC-012 | Schema parity check fails CI on any drift between `stakeholder_docs.rs` and the (eventual) TS mirror. | `fingerprint_drift_is_detected` (Rust-side regression) + the null-safe TS-mirror block in `tools/oap/schema-parity-check/index.mjs` (activates when the TS mirror lands) | `crates/factory-contracts/src/stakeholder_docs.rs`, `tools/oap/schema-parity-check/index.mjs` |
 
 ## Cross-cutting load-bearing tests (not tied to a single SC)
 
@@ -40,7 +40,7 @@ SC text.
 cargo test --manifest-path crates/factory-engine/Cargo.toml --lib stages::stage_cd
 
 # Phase 1 lint
-cargo test --manifest-path tools/stakeholder-doc-lint/Cargo.toml
+cargo test --manifest-path tools/oap/stakeholder-doc-lint/Cargo.toml
 
 # Phase 2 migration unit suite
 cargo test --manifest-path crates/factory-engine/Cargo.toml --lib migration::

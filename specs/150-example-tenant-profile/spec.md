@@ -20,6 +20,10 @@ identity:
     public: "https://example.invalid/"
 selects:
   "148-auth-driver-registry": "149-saml-auth-driver"
+extends:
+  - spec: "147-spec-kind-grammar"
+    paths: []
+    nature: additive
 composition:
   requires:
     - "149-saml-auth-driver"

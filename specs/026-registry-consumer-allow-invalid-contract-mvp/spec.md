@@ -13,8 +13,15 @@ summary: >
   Lock policy-override behavior for --allow-invalid by asserting exact outcomes
   with and without the flag, including boundaries where malformed registries
   remain hard failures.
-implements:
-  - path: tools/registry-consumer
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/spec-spine/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/spec-spine/registry-consumer
+    aspect: contract-tests
 ---
 
 # Feature Specification: allow-invalid contract

@@ -10,13 +10,13 @@
 **PR-1 objective:** complete T000 + T000a only — import + baseline evidence; behavior-neutral except fixes required for baseline green or explicitly documented degraded baseline.
 
 - [x] T000 Import OPC code trees required for this slice:
-  - `apps/desktop`
-  - `apps/desktop/src-tauri` (or the repository’s actual Tauri backend path after consolidation)
-  - `packages/mcp-client`
+  - `product/apps/desktop`
+  - `product/apps/desktop/src-tauri` (or the repository’s actual Tauri backend path after consolidation)
+  - `product/packages/mcp-client`
 - [x] T000a Verify imported trees build/test at baseline before Feature 032 wiring starts
   - frontend workspace installs/builds for desktop app baseline
   - Tauri backend compiles for desktop baseline
-  - `packages/mcp-client` resolves as a workspace package
+  - `product/packages/mcp-client` resolves as a workspace package
   - existing baseline tests are run and recorded in `execution/verification.md` before 032 wiring changes
 
 **PR-2 objective (first thin implementation PR after import):** **T003 only** — inspect contract + state model + deterministic tests; minimal inspect shell if needed. **Exclude** T004–T011 (no git/governance/action in the same PR unless an unavoidable inspect-only stub is documented).
@@ -69,9 +69,9 @@
 ### T003 Inspect contract
 
 - Files:
-  - `apps/desktop/src/features/inspect/types.ts`
-  - `apps/desktop/src/features/inspect/useInspectFlow.ts`
-  - `apps/desktop/src/features/inspect/__tests__/InspectSurface.test.tsx`
+  - `product/apps/desktop/src/features/inspect/types.ts`
+  - `product/apps/desktop/src/features/inspect/useInspectFlow.ts`
+  - `product/apps/desktop/src/features/inspect/__tests__/InspectSurface.test.tsx`
 - Done when:
   - success/loading/error/degraded states are typed
   - inspect payload shape is documented in code-level types
@@ -80,9 +80,9 @@
 ### T004-T005 Inspect surface wiring
 
 - Files:
-  - `apps/desktop/src/features/inspect/InspectSurface.tsx`
-  - `apps/desktop/src/lib/apiAdapter.ts`
-  - `apps/desktop/src/features/inspect/__tests__/InspectSurface.test.tsx`
+  - `product/apps/desktop/src/features/inspect/InspectSurface.tsx`
+  - `product/apps/desktop/src/lib/apiAdapter.ts`
+  - `product/apps/desktop/src/features/inspect/__tests__/InspectSurface.test.tsx`
 - Done when:
   - inspect entrypoint hydrates inspect surface; **full** git + governance hydration is **later PRs** after PR-2 (T003-only thin slice)
   - placeholder states are removed for the inspect path
@@ -91,15 +91,15 @@
 ### T006-T007 Git context integration
 
 - Files:
-  - `packages/mcp-client/src/index.ts`
-  - `apps/desktop/src-tauri/src/commands/mcp.rs`
-  - `apps/desktop/src-tauri/src/sidecars.rs`
-  - `apps/desktop/src/components/GitContextPanel.tsx`
-  - `apps/desktop/src/features/git/GitContextSurface.tsx`
-  - `apps/desktop/src/features/git/useGitContext.ts`
-  - `apps/desktop/src/features/git/useGitCtxEnrichment.ts`
-  - `apps/desktop/src/features/git/__tests__/GitContextPanel.test.tsx`
-  - `apps/desktop/src/features/git/__tests__/fixtures/*.json`
+  - `product/packages/mcp-client/src/index.ts`
+  - `product/apps/desktop/src-tauri/src/commands/mcp.rs`
+  - `product/apps/desktop/src-tauri/src/sidecars.rs`
+  - `product/apps/desktop/src/components/GitContextPanel.tsx`
+  - `product/apps/desktop/src/features/git/GitContextSurface.tsx`
+  - `product/apps/desktop/src/features/git/useGitContext.ts`
+  - `product/apps/desktop/src/features/git/useGitCtxEnrichment.ts`
+  - `product/apps/desktop/src/features/git/__tests__/GitContextPanel.test.tsx`
+  - `product/apps/desktop/src/features/git/__tests__/fixtures/*.json`
 - Done when:
   - panel renders live branch/head/cleanliness/repository identity
   - gitctx enrichment is additive; degraded/absent enrichment is explicit without breaking native git
@@ -108,13 +108,13 @@
 ### T008-T009 Governance integration
 
 - Files:
-  - `apps/desktop/src/components/GovernancePanel.tsx`
-  - `apps/desktop/src/features/governance/GovernanceSurface.tsx`
-  - `apps/desktop/src/features/governance/useGovernanceStatus.ts`
-  - `apps/desktop/src-tauri/src/commands/analysis.rs`
-  - `apps/desktop/src-tauri/src/commands/mod.rs`
-  - `apps/desktop/src/features/governance/__tests__/GovernancePanel.test.tsx`
-  - `apps/desktop/src-tauri/tests/featuregraph_commands.rs`
+  - `product/apps/desktop/src/components/GovernancePanel.tsx`
+  - `product/apps/desktop/src/features/governance/GovernanceSurface.tsx`
+  - `product/apps/desktop/src/features/governance/useGovernanceStatus.ts`
+  - `product/apps/desktop/src-tauri/src/commands/analysis.rs`
+  - `product/apps/desktop/src-tauri/src/commands/mod.rs`
+  - `product/apps/desktop/src/features/governance/__tests__/GovernancePanel.test.tsx`
+  - `product/apps/desktop/src-tauri/tests/featuregraph_commands.rs`
 - Done when:
   - panel renders state from the compiled registry artifact and featuregraph command path
   - stubs are removed or explicitly degraded with bounded behavior
@@ -123,9 +123,9 @@
 ### T010 Action handoff
 
 - Files:
-  - `apps/desktop/src/features/inspect/actions.ts`
-  - `apps/desktop/src/features/inspect/InspectSurface.tsx`
-  - `apps/desktop/src/features/inspect/__tests__/inspect-actions.test.tsx`
+  - `product/apps/desktop/src/features/inspect/actions.ts`
+  - `product/apps/desktop/src/features/inspect/InspectSurface.tsx`
+  - `product/apps/desktop/src/features/inspect/__tests__/inspect-actions.test.tsx`
 - Done when:
   - one bounded follow-up action is executable from inspect results
   - action target is deterministic and reviewable in tests
@@ -133,7 +133,7 @@
 ### T011 Docs
 
 - Files:
-  - `apps/desktop/README.md`
+  - `product/apps/desktop/README.md`
   - `README.md`
   - `specs/032-opc-inspect-governance-wiring-mvp/execution/changeset.md`
 - Done when:

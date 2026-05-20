@@ -29,20 +29,24 @@ depends_on:
   - "109"  # factory-pat-and-pubsub-sync (resolveProjectToken, project_github_pats, installation broker)
   - "110"  # stagecraft-to-opc-factory-trigger (run dispatch envelope)
   - "111"  # org-agent-catalog-sync (establishes the workspace-scoped sync pattern reused here)
-implements:
-  - path: crates/factory-contracts/schemas/
-  - path: crates/factory-project-detect/
-  - path: platform/services/stagecraft/api/factory/translator.ts
-  - path: platform/services/stagecraft/api/projects/create.ts
-  - path: platform/services/stagecraft/api/projects/import.ts
-  - path: platform/services/stagecraft/api/projects/opcBundle.ts
-  - path: platform/services/stagecraft/api/projects/opcBundleHelpers.ts
-  - path: platform/services/stagecraft/api/projects/scaffold/
-  - path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.projects.import.tsx
-  - path: apps/desktop/src-tauri/src/commands/factory_project.rs
-  - path: apps/desktop/src-tauri/src/commands/keychain.rs
-  - path: apps/desktop/src/routes/factory/ProjectCockpit.tsx
+establishes:
+  - crates/factory-project-detect/
+  - platform/services/stagecraft/api/projects/create.ts
+  - platform/services/stagecraft/api/projects/import.ts
+  - platform/services/stagecraft/api/projects/opcBundle.ts
+  - platform/services/stagecraft/api/projects/opcBundleHelpers.ts
+  - platform/services/stagecraft/api/projects/scaffold/
+  - platform/services/stagecraft/web/app/routes/app.projects.new.tsx
+  - platform/services/stagecraft/web/app/routes/app.projects.import.tsx
+  - product/apps/desktop/src-tauri/src/commands/factory_project.rs
+  - product/apps/desktop/src-tauri/src/commands/keychain.rs
+  - product/apps/desktop/src/routes/factory/ProjectCockpit.tsx
+extends:
+  - spec: "108-factory-as-platform-feature"
+    paths:
+      - platform/services/stagecraft/api/factory/translator.ts
+      - standards/schemas/factory/
+    nature: additive
 ---
 
 # 112 — Factory Project Lifecycle — Create, Import, Open
@@ -167,7 +171,7 @@ consumer crate (§3.3) — never via ad-hoc JSON parsing (per
 ### 3.2 ACP schemas (from spec 074, vendored)
 
 ```
-crates/factory-contracts/schemas/
+standards/schemas/factory/
   adapter-manifest.schema.yaml
   build-spec.schema.yaml
   pipeline-state.schema.yaml
@@ -287,11 +291,11 @@ absent.
 When OPC opens a directory (via existing recents menu, File → Open, or
 workspace sync from stagecraft):
 
-1. `apps/desktop/src-tauri/src/commands/factory_project.rs` invokes
+1. `product/apps/desktop/src-tauri/src/commands/factory_project.rs` invokes
    `factory_project_detect.detect(path)` from the crate.
 2. If `NotFactory`: no cockpit; standard editor view only.
 3. If `ScaffoldOnly` / `LegacyProduced` / `AcpProduced`: surface the
-   **Factory Cockpit** panel at `apps/desktop/src/routes/factory/ProjectCockpit.tsx`.
+   **Factory Cockpit** panel at `product/apps/desktop/src/routes/factory/ProjectCockpit.tsx`.
 
 ### 4.2 Factory Cockpit
 
@@ -749,7 +753,7 @@ OPC calls this when the cached token is within a refresh window
 
 #### 6.4.3 OPC-side clone injection
 
-`apps/desktop/src-tauri/src/commands/factory_project.rs::clone_project_from_bundle`:
+`product/apps/desktop/src-tauri/src/commands/factory_project.rs::clone_project_from_bundle`:
 
 - `CloneProjectRequest` gains a `github_token: Option<String>` field.
 - Before invoking `Command::new("git")`, the `clone_url` is rewritten
@@ -769,7 +773,7 @@ OPC calls this when the cached token is within a refresh window
 
 The clone token (NOT the long-lived PAT, even when the resolution
 source is `project_github_pat`) is stored in the OS keychain via the
-existing `apps/desktop/src-tauri/src/commands/keychain.rs` abstraction
+existing `product/apps/desktop/src-tauri/src/commands/keychain.rs` abstraction
 under the slot `github-clone-token:<project_id>`. Stored alongside is
 the `expires_at` value as a separate keychain entry
 `github-clone-token-expiry:<project_id>`, or as a JSON-encoded blob
@@ -909,9 +913,9 @@ Each phase is independently mergeable and ends in a runnable state.
   without loss of stage completion timestamps or artifact references.
 
 **Phase 3 — OPC Open path.**
-- Wire `apps/desktop/src-tauri/src/commands/factory_project.rs` to invoke
+- Wire `product/apps/desktop/src-tauri/src/commands/factory_project.rs` to invoke
   the detection crate.
-- Build `apps/desktop/src/routes/factory/ProjectCockpit.tsx` with the
+- Build `product/apps/desktop/src/routes/factory/ProjectCockpit.tsx` with the
   timeline and action buttons. Actions dispatch via the existing spec 110
   envelope.
 - Exit criteria: opening cfs-womens-shelter in OPC shows a populated
@@ -955,11 +959,11 @@ Each phase is independently mergeable and ends in a runnable state.
 - Extend `platform/services/stagecraft/api/projects/opcBundle.ts` per
   §6.4.2: bundle response gains `clone_token`; new
   `GET /api/projects/:projectId/clone-token` refresh endpoint.
-- Extend `apps/desktop/src-tauri/src/commands/factory_project.rs`:
+- Extend `product/apps/desktop/src-tauri/src/commands/factory_project.rs`:
   `CloneProjectRequest` gains `github_token: Option<String>`; URL
   rewrite per §6.4.3; post-clone `git remote set-url` reset; log
   scrubbing.
-- Extend `apps/desktop/src-tauri/src/commands/keychain.rs` with
+- Extend `product/apps/desktop/src-tauri/src/commands/keychain.rs` with
   `github-clone-token:<project_id>` slots and TTL handling.
 - OPC factory-engine launch path threads `GITHUB_TOKEN=<clone_token>`
   into the subprocess env (§6.4.5).

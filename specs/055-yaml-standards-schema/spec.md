@@ -24,6 +24,9 @@ summary: >
 code_aliases:
   - YAML_STANDARDS
   - CODING_STANDARDS_SCHEMA
+establishes:
+  - crates/standards-loader
+  - product/packages/yaml-standards-schema/schemas/coding-standard.schema.json
 sources:
   - equilateral-agents
 ---
@@ -184,8 +187,6 @@ Promoted standard (status: active) added to appropriate tier
 
 ```
 standards/
-  schema/
-    standard.schema.json
   official/
     error-handling-001.yaml
     naming-001.yaml
@@ -197,6 +198,9 @@ standards/
     (in project root)
   candidates/
     (auto-generated, pending review)
+
+packages/yaml-standards-schema/schemas/
+  coding-standard.schema.json   ← canonical schema (npm-package consumer)
 ```
 
 ## Implementation approach

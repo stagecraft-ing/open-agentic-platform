@@ -10,7 +10,7 @@ amended: "2026-05-13"
 amendment_record: "147-spec-kind-grammar"
 summary: >
   A deterministic indexer tool that walks the repository tree, parses manifest files
-  and spec frontmatter, and emits a governed build/codebase-index/index.json artifact.
+  and spec frontmatter, and emits a governed .derived/codebase-index/index.json artifact.
   Provides four-layer structural inventory: crate/package inventory, spec-to-code
   traceability, factory adapter coverage, and tool/infrastructure catalog. Follows the
   same compiler-emits-artifact pattern established by spec-compiler (001).
@@ -24,6 +24,13 @@ depends_on:
   - "003"  # feature-lifecycle-mvp (status vocabulary)
 code_aliases: ["CODEBASE_INDEX"]
 risk: low
+establishes:
+  - tools/spec-spine/codebase-indexer/src/main.rs
+  - tools/spec-spine/codebase-indexer/src/lib.rs
+  - tools/spec-spine/codebase-indexer/src/spec_scanner.rs
+  - tools/spec-spine/codebase-indexer/src/manifest.rs
+  - .derived/codebase-index/index.json
+  - standards/schemas/spec-spine/codebase-index.schema.json
 ---
 
 # 101 — Codebase Index MVP
@@ -59,19 +66,19 @@ what a compiler does.
 
 ### 2.1 The Index as a Build Artifact
 
-A new Rust tool `tools/codebase-indexer/` reads the repository tree and emits
-`build/codebase-index/index.json`. This follows the identical pattern established by
+A new Rust tool `tools/spec-spine/codebase-indexer/` reads the repository tree and emits
+`.derived/codebase-index/index.json`. This follows the identical pattern established by
 the spec-compiler:
 
 ```
-repo tree  →  codebase-indexer compile  →  build/codebase-index/index.json
-                                        →  build/codebase-index/build-meta.json
+repo tree  →  codebase-indexer compile  →  .derived/codebase-index/index.json
+                                        →  .derived/codebase-index/build-meta.json
 ```
 
-The JSON schema lives at `schemas/codebase-index.schema.json` and is itself a
+The JSON schema lives at `standards/schemas/spec-spine/codebase-index.schema.json` and is itself a
 governed contract.
 
-A markdown renderer mode emits `build/codebase-index/CODEBASE-INDEX.md` from the
+A markdown renderer mode emits `.derived/codebase-index/CODEBASE-INDEX.md` from the
 JSON — this is the human-readable view. It is never hand-authored.
 
 ### 2.2 Four-Layer Schema
@@ -149,9 +156,9 @@ id: "001-spec-compiler-mvp"
 status: active
 implements:
   - crate: spec-compiler
-    path: tools/spec-compiler
+    path: tools/spec-spine/spec-compiler
   - crate: registry-consumer
-    path: tools/registry-consumer
+    path: tools/spec-spine/registry-consumer
 ---
 ```
 
@@ -174,7 +181,7 @@ a first-class key if adoption warrants (requires spec-compiler change per the
 
 ### 2.4 Indexer Implementation
 
-The indexer is a Rust binary at `tools/codebase-indexer/`. It follows the
+The indexer is a Rust binary at `tools/spec-spine/codebase-indexer/`. It follows the
 spec-compiler's architecture:
 
 ```
@@ -206,7 +213,7 @@ Same pattern as the spec registry:
 
 ### 2.6 Agent Orientation
 
-Once the index exists, any Claude Code agent can read `build/codebase-index/index.json`
+Once the index exists, any Claude Code agent can read `.derived/codebase-index/index.json`
 on startup and immediately understand:
 
 - What crates and packages exist and where
@@ -274,7 +281,7 @@ The indexer MUST inventory:
 
 ### FR-09: JSON Schema Validation
 
-The emitted `index.json` MUST validate against `schemas/codebase-index.schema.json`.
+The emitted `index.json` MUST validate against `standards/schemas/spec-spine/codebase-index.schema.json`.
 The indexer MUST validate its own output before writing.
 
 ### FR-10: Staleness Check

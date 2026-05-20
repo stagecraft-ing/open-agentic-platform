@@ -19,9 +19,19 @@ summary: >
   workspace_id (spec 087); amended by spec 119 when workspace was collapsed
   into project.
 code_aliases: ["PROJECT_THREADING"]
-implements:
-  - path: crates/orchestrator
-  - path: crates/factory-contracts
+extends:
+  - spec: "052-state-persistence"
+    paths:
+      - crates/orchestrator/src/manifest.rs
+      - crates/orchestrator/src/state.rs
+      - crates/orchestrator/src/lib.rs
+    nature: additive
+  - spec: "041-checkpoint-restore-ui"
+    paths:
+      - crates/axiomregent/src/checkpoint/types.rs
+      - crates/axiomregent/src/checkpoint/provider.rs
+      - crates/axiomregent/src/checkpoint/store.rs
+    nature: additive
 ---
 
 # 092 — Project Runtime Threading
@@ -59,7 +69,7 @@ scoped to the project that created them.
   - Sets `OPC_PROJECT_ID` process env var
   - Fetches grants from platform and updates `SidecarState.grants_json`
   - Emits `project-changed` event
-- Files: `commands/stagecraft_client.rs`, `apps/desktop/src-tauri/src/commands/agents.rs`
+- Files: `commands/stagecraft_client.rs`, `product/apps/desktop/src-tauri/src/commands/agents.rs`
 
 ### 2. Thread project_id into ClaudeExecutionRequest (1 day)
 

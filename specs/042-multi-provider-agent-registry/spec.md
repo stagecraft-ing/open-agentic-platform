@@ -26,8 +26,8 @@ summary: >
   app's orchestrator path.
 code_aliases:
   - PROVIDER_REGISTRY
-implements:
-  - path: crates/provider-registry
+establishes:
+  - crates/provider-registry
 ---
 
 # Feature Specification: Multi-Provider Agent Registry
@@ -41,7 +41,7 @@ implements:
 
 ## Purpose
 
-The platform couples agent execution to a single LLM backend (Claude Code CLI via `ClaudeCodeExecutor` in `crates/orchestrator/`). Multiple provider backends are needed for model routing, cost optimization, and provider redundancy. A prior TypeScript implementation (`packages/provider-registry/`) exists as a scaffold but was never tested against live APIs, has broken sidecar-to-Rust protocol integration, and sits outside the governed Rust execution path.
+The platform couples agent execution to a single LLM backend (Claude Code CLI via `ClaudeCodeExecutor` in `crates/orchestrator/`). Multiple provider backends are needed for model routing, cost optimization, and provider redundancy. A prior TypeScript implementation (`product/packages/provider-registry/`) exists as a scaffold but was never tested against live APIs, has broken sidecar-to-Rust protocol integration, and sits outside the governed Rust execution path.
 
 This feature introduces a Rust `ProviderRegistry` crate that normalises all LLM backends behind a common `ProviderAdapter` trait, so that orchestration code never depends on a specific provider's wire format or lifecycle model. Every provider dispatch passes through `policy_kernel::evaluate()` before execution.
 
@@ -56,7 +56,7 @@ This feature introduces a Rust `ProviderRegistry` crate that normalises all LLM 
 - **Governance integration**: `GovernedProviderRegistry` wrapper evaluating `ToolCallContext` via `policy_kernel::evaluate()` before every dispatch.
 - **Orchestrator integration**: `ProviderRegistryExecutor` implementing `GovernedExecutor` alongside existing `ClaudeCodeExecutor`.
 - **Desktop integration**: Tauri commands route through Rust `ProviderRegistryExecutor` instead of spawning a Node.js sidecar.
-- **TS scaffold retirement**: `packages/provider-registry/` removed after Rust replacement is wired.
+- **TS scaffold retirement**: `product/packages/provider-registry/` removed after Rust replacement is wired.
 
 ### Out of scope
 
@@ -220,7 +220,7 @@ Consumer (orchestrator, Tauri command, logger)
 5. **Phase 5 — Orchestrator migration**: `ProviderRegistryExecutor` implementing `GovernedExecutor`. Coexists with `ClaudeCodeExecutor`.
 6. **Phase 6 — Tauri command wiring**: Replace `dispatch_via_provider_registry` Node subprocess path with Rust `ProviderRegistryExecutor`.
 7. **Phase 7 — Gemini and Bedrock**: Feature-flagged adapters. Gemini via REST JSON streaming. Bedrock via `aws-sdk-bedrockruntime`.
-8. **Phase 8 — TS scaffold retirement**: Remove `packages/provider-registry/`, clean workspace references.
+8. **Phase 8 — TS scaffold retirement**: Remove `product/packages/provider-registry/`, clean workspace references.
 
 ## Success criteria
 

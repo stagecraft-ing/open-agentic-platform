@@ -29,7 +29,7 @@ The load-bearing realignments:
 ## Technical Context
 
 **Languages**: Rust (workspace `crates/`, plus consumer at
-`apps/desktop/src-tauri/`). No TypeScript or chart changes.
+`product/apps/desktop/src-tauri/`). No TypeScript or chart changes.
 **Primary Dependencies**: `hiqlite = ~0.13` (resolves to `0.13.1` on
 both Cargo workspaces in the repo).
 **Storage**: None — manifest-only change.
@@ -39,7 +39,7 @@ with default features. CI surface is
 `.github/workflows/ci-orchestrator.yml` plus the workspace-level
 `crates/` checks.
 **Target Platform**: workspace toolchain only — no deployment or chart
-involvement. Desktop binary (`apps/desktop/src-tauri`) inherits the
+involvement. Desktop binary (`product/apps/desktop/src-tauri`) inherits the
 new feature posture transitively when rebuilt.
 **Project Type**: tooling / dependency hygiene amendment.
 **Performance Goals**: smaller compile graph (drops `cron`-related
@@ -199,11 +199,11 @@ crates ship through.
 7. **`make ci`** (warm) — expect green. Spec 134 / 135's fast-CI
    parity is the canonical signal.
 8. **Recompile spec registry + codebase index** —
-   `./tools/spec-compiler/target/release/spec-compiler compile` and
-   `./tools/codebase-indexer/target/release/codebase-indexer compile
+   `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile` and
+   `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
    && render`.
 9. **Spec-code coupling gate** —
-   `./tools/spec-code-coupling-check/target/release/spec-code-coupling-check`
+   `./tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check`
    should accept the diff against this spec's `implements:` list with
    no warnings.
 
@@ -232,10 +232,10 @@ crates ship through.
   search:
   `grep -rnE 'features.*=.*\[.*"(backup|s3|toml|cache)"' crates/*/Cargo.toml`
   — confirm there is no third party.
-- **Desktop build regression.** `apps/desktop/src-tauri` depends on
+- **Desktop build regression.** `product/apps/desktop/src-tauri` depends on
   `axiomregent`. Build the desktop crate against the new feature
   posture as a smoke check (`cargo check` against
-  `apps/desktop/src-tauri/Cargo.toml`).
+  `product/apps/desktop/src-tauri/Cargo.toml`).
 - **Rollback** is `git revert` of the manifest edits and a fresh
   `cargo build` to restore the lockfile. No persistent state is
   touched; rollback is symmetric with the change.
@@ -262,8 +262,8 @@ Filled 2026-05-10 at end of Phase 2.
   outright from `crates/axiomregent/Cargo.toml:38`. No feature flag
   gates, no dual-listing for compatibility. ✅
 - **Governed-artifact-reads (spec 103).** The implementation pass
-  used `python3` to inspect `build/spec-registry/registry.json` and
-  `build/codebase-index/index.json` once during interactive debugging
+  used `python3` to inspect `.derived/spec-registry/registry.json` and
+  `.derived/codebase-index/index.json` once during interactive debugging
   of the spec-coupling gate (recognising the index was stale and the
   gate's claimant list was therefore incomplete). That use is
   explicitly carved out by the rule's "human running jq at the shell

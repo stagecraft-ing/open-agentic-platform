@@ -20,8 +20,14 @@ code_aliases:
 sources:
   - claudepal
   - claudecodeui
-implements:
-  - path: apps/desktop
+establishes:
+  - product/apps/desktop/src-tauri/src/keychain.rs
+  - product/apps/desktop/src/components/CredentialPicker.tsx
+extends:
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    paths:
+      - product/apps/desktop
+    nature: additive
 ---
 
 # Feature Specification: Encrypted Keychain and Credential Storage

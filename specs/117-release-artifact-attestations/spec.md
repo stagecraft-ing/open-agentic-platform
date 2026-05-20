@@ -14,10 +14,17 @@ depends_on:
   - "086"  # open-source-launch (release-fitness baseline)
   - "104"  # makefile-ci-parity-contract
 code_aliases: ["RELEASE_ATTESTATIONS"]
-implements:
-  - path: .github/workflows/release-axiomregent.yml
-  - path: .github/workflows/release-desktop.yml
-  - path: .github/workflows/release-tools.yml
+extends:
+  - spec: "037-cross-platform-axiomregent"
+    paths:
+      - .github/workflows/release-axiomregent.yml
+    nature: additive
+refines:
+  - paths:
+      - .github/workflows/release-axiomregent.yml
+      - .github/workflows/release-desktop.yml
+      - .github/workflows/release-tools.yml
+    aspect: artifact-attestation
 summary: >
   Every binary shipped via release-{axiomregent,desktop,tools}.yml is paired
   with a CycloneDX SBOM and a GitHub-signed build provenance attestation.
@@ -73,7 +80,7 @@ release surface in one pass.
 - **Every release asset has an SBOM.** A `*.cdx.json` (CycloneDX) sibling
   per artifact lists every crate and version. For the desktop installer,
   the SBOM includes the bundled sidecar binaries' contents.
-- **Verification is documentable.** A `RELEASE-VERIFICATION.md` doc at repo
+- **Verification is documentable.** A `docs/RELEASE-VERIFICATION.md` doc at repo
   root explains the verification flow:
   `gh attestation verify <file> --repo <repo>`.
 - **No new Makefile target.** Attestations are CI-only — they are produced
@@ -94,7 +101,7 @@ release surface in one pass.
   per-installer file (DMG, AppImage, NSIS).
 - `release-tools.yml`: SBOM + provenance per archive (`oap-tools-*.tar.gz`,
   `oap-tools-*.zip`).
-- `RELEASE-VERIFICATION.md` documenting the verification commands.
+- `docs/RELEASE-VERIFICATION.md` documenting the verification commands.
 - `ci-parity-check` allowlist update for the attestation step names so the
   parity gate doesn't flag them as missing-from-Makefile.
 
@@ -165,9 +172,9 @@ for AC-2).
 - name: Generate installer SBOM
   uses: anchore/sbom-action@<pinned-sha>
   with:
-    path: apps/desktop
+    path: product/apps/desktop
     format: cyclonedx-json
-    output-file: apps/desktop/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
+    output-file: product/apps/desktop/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
 
 - name: Attest installer provenance
   id: attest-installer
@@ -260,7 +267,7 @@ the Sigstore Rekor log).
   1. Pointing `anchore/sbom-action` at the staged `dist/` of stripped
      release binaries yields a zero-component SBOM because syft cannot
      recover crate metadata from stripped Rust binaries. Scope `path:` to
-     the source tree (e.g. `crates/axiomregent`, `apps/desktop`, `tools/`)
+     the source tree (e.g. `crates/axiomregent`, `product/apps/desktop`, `tools/`)
      where `Cargo.toml` and `Cargo.lock` give syft something to
      enumerate.
   2. Source-tree scope still returned 0 components on
@@ -305,7 +312,7 @@ the Sigstore Rekor log).
 
 - **Risk:** A consumer running an older `gh` CLI without `gh attestation
   verify` cannot validate.
-  **Mitigation:** RELEASE-VERIFICATION.md documents both `gh` and direct
+  **Mitigation:** docs/RELEASE-VERIFICATION.md documents both `gh` and direct
   `cosign verify-blob` paths. The `gh` requirement is `>= 2.50`.
 
 ## 8. Sequencing With M8 (release-tools workflow_run trigger)

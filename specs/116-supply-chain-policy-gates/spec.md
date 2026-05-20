@@ -15,10 +15,14 @@ depends_on:
   - "047"  # governance-control-plane (policy posture precedent)
   - "104"  # makefile-ci-parity-contract (Makefile mirror requirement)
 code_aliases: ["SUPPLY_CHAIN_POLICY"]
-implements:
-  - path: deny.toml
-  - path: .github/workflows/ci-supply-chain.yml
-  - path: Makefile
+establishes:
+  - deny.toml
+  - .github/workflows/ci-supply-chain.yml
+co_authority:
+  - paths:
+      - Makefile
+    section: supply-chain
+    with_specs: ["104-makefile-ci-parity-contract"]
 compliance:
   - framework: "owasp-asi-2026"
     # ASI04 (supply-chain compromise) via the gate composition: cargo-deny
@@ -34,7 +38,7 @@ compliance:
 summary: >
   Add governed supply-chain gates to CI. cargo-deny enforces a policy bundle
   for advisories, licenses, and banned crates across every Rust manifest in
-  the repo; pnpm/npm audit covers the JavaScript surface (apps/desktop +
+  the repo; pnpm/npm audit covers the JavaScript surface (product/apps/desktop +
   platform/services/stagecraft). Posture is blocking from day 0 (the 30-day
   warn-only window planned in §9.1 was collapsed on 2026-05-02 after a clean
   dry-run; see §9 promotion record). The gate is mirrored in the Makefile
@@ -51,7 +55,7 @@ every external action) is unusually disciplined for a pre-alpha repo, but
 contains zero dependency-level supply-chain enforcement:
 
 - No `cargo audit` or `cargo deny` step runs against any of the 30 Rust
-  crates inventoried in `build/codebase-index/index.json`.
+  crates inventoried in `.derived/codebase-index/index.json`.
 - No `pnpm audit` or `npm audit` step runs against the 24 npm packages
   (notably `@opc/desktop` and `platform/services/stagecraft`).
 - No license policy is asserted — a contributor can pull in a GPL-3.0 crate
@@ -78,7 +82,7 @@ Makefile per spec 104.
   `Makefile` `CI_RUST_MANIFESTS` plus all tool manifests are scanned. No
   manifest is silently excluded.
 - **JavaScript audit at the package-manager layer.** `pnpm audit` is run for
-  the pnpm workspace (apps/desktop + packages/) and `npm audit` for
+  the pnpm workspace (product/apps/desktop + product/packages/) and `npm audit` for
   `platform/services/stagecraft`. Both scoped to `--audit-level=high` (warn
   on moderate, block on high/critical).
 - **Blocking from day 0.** A 30-day warn-only window was originally planned
@@ -216,14 +220,14 @@ ci-supply-chain: ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm
 SUPPLY_CHAIN_RUST_MANIFESTS = \
     crates/Cargo.toml \
     platform/services/deployd-api-rs/Cargo.toml \
-    apps/desktop/src-tauri/Cargo.toml \
-    tools/spec-compiler/Cargo.toml \
-    tools/registry-consumer/Cargo.toml \
-    tools/spec-lint/Cargo.toml \
-    tools/codebase-indexer/Cargo.toml \
-    tools/policy-compiler/Cargo.toml \
-    tools/adapter-scopes-compiler/Cargo.toml \
-    tools/ci-parity-check/Cargo.toml \
+    product/apps/desktop/src-tauri/Cargo.toml \
+    tools/spec-spine/spec-compiler/Cargo.toml \
+    tools/spec-spine/registry-consumer/Cargo.toml \
+    tools/spec-spine/spec-lint/Cargo.toml \
+    tools/spec-spine/codebase-indexer/Cargo.toml \
+    tools/oap/policy-compiler/Cargo.toml \
+    tools/oap/adapter-scopes-compiler/Cargo.toml \
+    tools/oap/ci-parity-check/Cargo.toml \
     tools/shared/frontmatter/Cargo.toml
 
 ci-supply-chain-cargo:

@@ -21,6 +21,9 @@ sources:
   - agents/conductor
   - skills/plan-implementer
   - developer-cc-commands
+establishes:
+  - .claude/agents/conductor.md
+  - .claude/commands/implement-plan.md
 ---
 
 # Feature Specification: Conductor Track Lifecycle

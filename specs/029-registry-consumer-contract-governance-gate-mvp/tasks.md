@@ -12,7 +12,7 @@
 
 ## Phase 2: Governance assets
 
-- [x] T003 Add controlled-extension and normative-surface section to `tools/registry-consumer/README.md`
+- [x] T003 Add controlled-extension and normative-surface section to `tools/spec-spine/registry-consumer/README.md`
 - [x] T004 Add governance doctrine doc with change classification rubric and baseline definition
 - [x] T005 Add PR/reviewer checklist template
 - [x] T006 Add CI step that explicitly runs fixture-bearing contract test subsets

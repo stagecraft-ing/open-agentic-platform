@@ -17,6 +17,8 @@ summary: >
   (Feature 046) for bounded-context long sessions.
 code_aliases: ["PROMPT_ASSEMBLY_CACHE"]
 sources: ["claude-code"]
+establishes:
+  - crates/agent/src/prompt_assembly.rs
 ---
 
 # Feature Specification: Prompt Assembly and Cache Boundaries

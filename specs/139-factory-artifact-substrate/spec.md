@@ -21,49 +21,56 @@ depends_on:
   - "123"  # agent-catalog-org-rescope (binding mechanism becomes universal)
   - "124"  # opc-factory-run-platform-integration (closes spec 108 §7.1 punt)
 code_aliases: ["FACTORY_ARTIFACT_SUBSTRATE"]
-implements:
-  # Substrate primitive — schema, migrations, version constants
-  - path: platform/services/stagecraft/api/db/schema.ts
-  - path: platform/services/stagecraft/api/db/migrations/32_factory_artifact_substrate.up.sql
-  - path: platform/services/stagecraft/api/db/migrations/33_migrate_agent_catalog.up.sql
-  - path: platform/services/stagecraft/api/db/migrations/34_drop_legacy_factory_tables.up.sql
-  - path: platform/services/stagecraft/api/db/migrations/35_drop_legacy_agent_catalog_family.up.sql
-  - path: platform/services/stagecraft/api/factory/substrate.ts
-  - path: crates/factory-engine/src/substrate_version.rs
-  # Phase 1 — verbatim sync, projection, kind/conflict/artifact endpoints
-  - path: platform/services/stagecraft/api/factory/translator.ts
-  - path: platform/services/stagecraft/api/factory/syncPipeline.ts
-  - path: platform/services/stagecraft/api/factory/syncWorker.ts
-  - path: platform/services/stagecraft/api/factory/projection.ts
-  - path: platform/services/stagecraft/api/factory/artifacts.ts
-  - path: platform/services/stagecraft/api/factory/conflicts.ts
-  - path: platform/services/stagecraft/api/factory/bindings.ts
-  - path: platform/services/stagecraft/api/factory/upstreams.ts
-  - path: platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx
-  - path: platform/services/stagecraft/web/app/components/artifact-merge-editor.tsx
-  # Phase 2 — agent_catalog → substrate mirror; OAP-native adapter ingest
-  - path: platform/services/stagecraft/api/factory/agentCatalogMigration.ts
-  - path: platform/services/stagecraft/api/factory/oapNativeIngest.ts
-  - path: platform/services/stagecraft/api/factory/oapNativeSanitise.ts
-  - path: platform/services/stagecraft/api/factory/oapContracts.ts
-  - path: platform/services/stagecraft/api/projects/scaffoldReadiness.ts
-  # Phase 3 — OPC virtual factory_root (closes spec 108 §7.1)
-  - path: crates/factory-engine/src/factory_root.rs
-  - path: crates/factory-engine/src/virtual_root.rs
-  - path: crates/factory-engine/src/engine.rs
-  - path: apps/desktop/src-tauri/src/commands/factory.rs
-  # Phase 4 narrow — substrate-direct reads on the spec 108 surface
-  - path: platform/services/stagecraft/api/factory/substrateBrowser.ts
-  - path: platform/services/stagecraft/api/factory/browse.ts
-  - path: platform/services/stagecraft/api/projects/opcBundle.ts
-  - path: platform/services/stagecraft/api/projects/create.ts
-  - path: platform/services/stagecraft/api/projects/import.ts
-  - path: platform/services/stagecraft/api/agents/catalog.ts
-  - path: platform/services/stagecraft/api/agents/relay.ts
-  # Phase 4b — bindings.ts substrate-direct + legacy upstream column drop
-  - path: platform/services/stagecraft/api/agents/bindings.ts
-  - path: platform/services/stagecraft/api/factory/runAgentRefs.ts
-  - path: platform/services/stagecraft/api/sync/service.ts
+establishes:
+  - platform/services/stagecraft/api/db/migrations/32_factory_artifact_substrate.up.sql
+  - platform/services/stagecraft/api/db/migrations/33_migrate_agent_catalog.up.sql
+  - platform/services/stagecraft/api/db/migrations/34_drop_legacy_factory_tables.up.sql
+  - platform/services/stagecraft/api/db/migrations/35_drop_legacy_agent_catalog_family.up.sql
+  - platform/services/stagecraft/api/factory/substrate.ts
+  - crates/factory-engine/src/substrate_version.rs
+  - platform/services/stagecraft/api/factory/agentCatalogMigration.ts
+  - platform/services/stagecraft/api/factory/oapNativeIngest.ts
+  - platform/services/stagecraft/api/factory/oapNativeSanitise.ts
+  - platform/services/stagecraft/api/factory/oapContracts.ts
+  - crates/factory-engine/src/factory_root.rs
+  - crates/factory-engine/src/virtual_root.rs
+  - platform/services/stagecraft/api/factory/substrateBrowser.ts
+  - platform/services/stagecraft/api/factory/runAgentRefs.ts
+extends:
+  - spec: "108-factory-as-platform-feature"
+    paths:
+      - platform/services/stagecraft/api/factory/translator.ts
+      - platform/services/stagecraft/api/factory/syncPipeline.ts
+      - platform/services/stagecraft/api/factory/syncWorker.ts
+      - platform/services/stagecraft/api/factory/projection.ts
+      - platform/services/stagecraft/api/factory/artifacts.ts
+      - platform/services/stagecraft/api/factory/conflicts.ts
+      - platform/services/stagecraft/api/factory/bindings.ts
+      - platform/services/stagecraft/api/factory/upstreams.ts
+      - platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx
+      - platform/services/stagecraft/web/app/components/artifact-merge-editor.tsx
+      - platform/services/stagecraft/api/factory/browse.ts
+    nature: wrapping
+  - spec: "111-org-agent-catalog-sync"
+    paths:
+      - platform/services/stagecraft/api/agents/catalog.ts
+      - platform/services/stagecraft/api/agents/relay.ts
+      - platform/services/stagecraft/api/sync/service.ts
+    nature: wrapping
+  - spec: "123-agent-catalog-org-rescope"
+    paths:
+      - platform/services/stagecraft/api/agents/bindings.ts
+    nature: wrapping
+refines:
+  - aspect: factory-engine-substrate
+    paths:
+      - crates/factory-engine/src/engine.rs
+      - product/apps/desktop/src-tauri/src/commands/factory.rs
+      - platform/services/stagecraft/api/projects/opcBundle.ts
+      - platform/services/stagecraft/api/projects/create.ts
+      - platform/services/stagecraft/api/projects/import.ts
+      - platform/services/stagecraft/api/projects/scaffoldReadiness.ts
+      - platform/services/stagecraft/api/db/schema.ts
 summary: >
   Replace the spec 108 bucket-blob translator with a content-addressed
   substrate (`factory_artifact_substrate`) that mirrors upstream Factory and
@@ -131,7 +138,7 @@ landed:
    as anonymous JSONB array entries. Same conceptual artifact, two
    incompatible storage models, two pinning stories, two audit shapes.
 6. **OPC checkout dependency persists.** Spec 108 §7.1 explicitly
-   punted migrating `apps/desktop/src-tauri/src/commands/factory.rs`
+   punted migrating `product/apps/desktop/src-tauri/src/commands/factory.rs`
    off the local `factory/` checkout because the platform-served bucket
    blob can't be addressed by path the way a checkout can. Spec 124
    was supposed to close this; the `// TODO(spec-108-§7-punt)` marker
@@ -300,7 +307,7 @@ The sync engine treats both transparently.
 
 ### 3.2 Non-Goals
 
-- **Mirroring the `template` scaffold tree (`apps/`, `packages/`,
+- **Mirroring the `template` scaffold tree (`apps/`, `product/packages/`,
   `modules/`, `scripts/`) into the substrate.** The scaffold remains
   clone-and-discard at create-time. Only the `orchestration/` subpath
   is mirrored. The same rule applies to OAP-native scaffolds.
@@ -573,7 +580,7 @@ is wired into `factory_upstreams` per org.
 
 ## 8. OPC Contract (closes spec 108 §7.1)
 
-OPC's `apps/desktop/src-tauri/src/commands/factory.rs::resolve_factory_root()`
+OPC's `product/apps/desktop/src-tauri/src/commands/factory.rs::resolve_factory_root()`
 is replaced by a **virtual factory_root** backed by the platform API.
 
 The `factory-engine` and `factory-contracts` crates already accept a
@@ -637,7 +644,7 @@ The existing live tables are not deleted in Phase 1.
   `StageCdInputs.artifact_store` remain filesystem-anchored. They are
   per-run output stores, not factory-content stores; virtualising them
   is out of scope for this spec.
-- Migrate `apps/desktop/src-tauri/src/commands/factory.rs`. Delete
+- Migrate `product/apps/desktop/src-tauri/src/commands/factory.rs`. Delete
   the spec 108 §7.1 punt TODO.
 - Spec 124's `agent_ref` shape extended: `agent_ref` becomes
   `artifact_ref = { artifact_id, version, content_hash }`. Backwards
@@ -734,7 +741,7 @@ template side); the wire shape is preserved byte-stable.
   hashes equal the upstream file hashes byte-for-byte. No file is
   dropped; no synthetic categorisation reshapes content.
   - _Post-close gap:_ the OAP-owned contract schemas under
-    `crates/factory-contracts/schemas/` (9 files, declared
+    `standards/schemas/factory/` (9 files, declared
     "compile-time-canonical" in plan.md Constitution Check / Principle
     II) were dropped from the substrate at first cutover because
     `tasks.md` did not file a task to ingest them and the orphaned
@@ -840,7 +847,7 @@ template side); the wire shape is preserved byte-stable.
 - Cross-org artifact sharing.
 - Author-an-adapter-from-scratch UI.
 - Multi-factory-per-org (today: one configuration per org).
-- Mirroring scaffold content (apps/, packages/, modules/) into the
+- Mirroring scaffold content (apps/, product/packages/, modules/) into the
   substrate. Scaffold remains clone-and-discard.
 - Editing the substrate from OPC.
 

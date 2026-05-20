@@ -13,8 +13,15 @@ summary: >
   Lock argument-layer behavior contracts for registry-consumer by asserting exact
   exit codes and stderr transcripts for flag conflicts, missing required args,
   and invalid enum values.
-implements:
-  - path: tools/registry-consumer
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/spec-spine/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/spec-spine/registry-consumer
+    aspect: contract-tests
 ---
 
 # Feature Specification: Flag-conflict and argument-validation contract
@@ -25,7 +32,7 @@ Prevent drift in CLI argument-handling behavior that operators and agents rely o
 
 ## Requirements
 
-- **FR-001**: Fixture transcripts under `tools/registry-consumer/tests/fixtures/arg_contract/expected/` define source-of-truth stderr output for selected argument-layer failures.
+- **FR-001**: Fixture transcripts under `tools/spec-spine/registry-consumer/tests/fixtures/arg_contract/expected/` define source-of-truth stderr output for selected argument-layer failures.
 - **FR-002**: Integration tests assert exact exit code and stderr bytes for `--json` + `--compact` conflicts on `list`, `show`, and `status-report`.
 - **FR-003**: Integration tests assert exact exit code and stderr bytes for missing required positional argument on `show` (missing `<FEATURE_ID>`).
 - **FR-004**: Integration tests assert exact exit code and stderr bytes for invalid enum value on `status-report --status`.

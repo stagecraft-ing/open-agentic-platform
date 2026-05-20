@@ -9,7 +9,7 @@ Feature **000** defines output contracts: [`specs/000-bootstrap-spec-system/spec
 ## Build (once implemented)
 
 ```bash
-cd tools/spec-compiler
+cd tools/spec-spine/spec-compiler
 cargo build --release
 # Binary typically: target/release/spec-compiler
 ```
@@ -18,13 +18,13 @@ cargo build --release
 
 ```bash
 # From repository root (after implementation)
-./tools/spec-compiler/target/release/spec-compiler compile
+./tools/spec-spine/spec-compiler/target/release/spec-compiler compile
 ```
 
 Outputs:
 
-- `build/spec-registry/registry.json`
-- `build/spec-registry/build-meta.json`
+- `.derived/spec-registry/registry.json`
+- `.derived/spec-registry/build-meta.json`
 
 Validate with the same `ajv` commands as Feature 000 [`quickstart.md`](../000-bootstrap-spec-system/quickstart.md).
 

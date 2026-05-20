@@ -15,12 +15,12 @@ on:
     paths:
       - 'tools/**'
       - 'specs/**'
-      - 'build/**'
+      - '.derived/**'
   pull_request:
     paths:
       - 'tools/**'
       - 'specs/**'
-      - 'build/**'
+      - '.derived/**'
   workflow_dispatch:
 
 permissions:
@@ -44,58 +44,70 @@ jobs:
           shared-key: spec-conformance
 
       - name: Build spec-compiler
-        run: cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
+        run: cargo build --release --manifest-path tools/spec-spine/spec-compiler/Cargo.toml --target-dir tools/spec-spine/spec-compiler/target
 
       - name: Emit registry (smoke)
-        run: ./tools/spec-compiler/target/release/spec-compiler compile
+        run: ./tools/spec-spine/spec-compiler/target/release/spec-compiler compile
+
+      - name: Build oap-registry-enrich (Cut D W-06a)
+        run: cargo build --release --manifest-path tools/oap/oap-registry-enrich/Cargo.toml --target-dir tools/oap/oap-registry-enrich/target
+
+      - name: Emit registry-oap.json (OAP-specific overlay)
+        run: ./tools/oap/oap-registry-enrich/target/release/oap-registry-enrich
 
       - name: Tests (golden, schema conformance, exit codes)
-        run: cargo test --manifest-path tools/spec-compiler/Cargo.toml
+        run: cargo test --manifest-path tools/spec-spine/spec-compiler/Cargo.toml
 
       - name: Build registry-consumer (Feature 002)
-        run: cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
+        run: cargo build --release --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --target-dir tools/spec-spine/registry-consumer/target
 
       - name: Registry consumer smoke + tests
         run: |
-          ./tools/registry-consumer/target/release/registry-consumer list | head -n 5
-          cargo test --manifest-path tools/registry-consumer/Cargo.toml
+          ./tools/spec-spine/registry-consumer/target/release/registry-consumer list | head -n 5
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml
 
       - name: Registry consumer contract subsets (governance gate)
         run: |
-          cargo test --manifest-path tools/registry-consumer/Cargo.toml --all readme_
-          cargo test --manifest-path tools/registry-consumer/Cargo.toml --all error_contract_
-          cargo test --manifest-path tools/registry-consumer/Cargo.toml --all shape_contract_
-          cargo test --manifest-path tools/registry-consumer/Cargo.toml --all help_contract_
-          cargo test --manifest-path tools/registry-consumer/Cargo.toml --all arg_contract_
-          cargo test --manifest-path tools/registry-consumer/Cargo.toml --all version_contract_
-          cargo test --manifest-path tools/registry-consumer/Cargo.toml --all default_path_contract_
-          cargo test --manifest-path tools/registry-consumer/Cargo.toml --all allow_invalid_contract_
-          cargo test --manifest-path tools/registry-consumer/Cargo.toml --all sorting_contract_
-          cargo test --manifest-path tools/registry-consumer/Cargo.toml --all channel_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all readme_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all error_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all shape_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all help_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all arg_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all version_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all default_path_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all allow_invalid_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all sorting_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all channel_contract_
 
       - name: Build spec-lint (Feature 006)
-        run: cargo build --release --manifest-path tools/spec-lint/Cargo.toml
+        run: cargo build --release --manifest-path tools/spec-spine/spec-lint/Cargo.toml --target-dir tools/spec-spine/spec-lint/target
 
       - name: spec-lint (strict; spec 128 amends 006)
-        run: ./tools/spec-lint/target/release/spec-lint --fail-on-warn
+        run: ./tools/spec-spine/spec-lint/target/release/spec-lint --fail-on-warn
 
       - name: spec-lint tests
-        run: cargo test --manifest-path tools/spec-lint/Cargo.toml
+        run: cargo test --manifest-path tools/spec-spine/spec-lint/Cargo.toml
 
       # Codebase-indexer staleness check moved to ci-codebase-index.yml
       # (broader path filter — see spec H2 / 101). Smoke + tests still run
       # here because they belong to the spec-tooling conformance bundle.
       - name: Build codebase-indexer (Feature 101)
-        run: cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+        run: cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
 
       - name: Emit codebase index (smoke)
-        run: ./tools/codebase-indexer/target/release/codebase-indexer compile
+        run: ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
+
+      - name: Build oap-code-index-enrich (Cut D W-07a)
+        run: cargo build --release --manifest-path tools/oap/oap-code-index-enrich/Cargo.toml --target-dir tools/oap/oap-code-index-enrich/target
+
+      - name: Emit index-oap.json (OAP-specific overlay)
+        run: ./tools/oap/oap-code-index-enrich/target/release/oap-code-index-enrich
 
       - name: Codebase index tests
-        run: cargo test --manifest-path tools/codebase-indexer/Cargo.toml
+        run: cargo test --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml
 
       - name: Build policy-compiler
-        run: cargo build --release --manifest-path tools/policy-compiler/Cargo.toml
+        run: cargo build --release --manifest-path tools/oap/policy-compiler/Cargo.toml --target-dir tools/oap/policy-compiler/target
 
       - name: Policy compiler tests
-        run: cargo test --manifest-path tools/policy-compiler/Cargo.toml
+        run: cargo test --manifest-path tools/oap/policy-compiler/Cargo.toml

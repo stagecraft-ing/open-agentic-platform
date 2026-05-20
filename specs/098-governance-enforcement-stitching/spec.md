@@ -12,9 +12,17 @@ depends_on:
   - "093"
   - "097"
 code_aliases: ["GOVERNANCE_ENFORCEMENT_STITCHING"]
-implements:
-  - path: crates/orchestrator
-  - path: crates/axiomregent
+extends:
+  - spec: "097-promotion-grade-mirror"
+    paths:
+      - crates/orchestrator/src/promotion.rs
+      - crates/orchestrator/src/lib.rs
+    nature: additive
+  - spec: "033-axiomregent-activation"
+    paths:
+      - crates/axiomregent/src/router/mod.rs
+      - crates/axiomregent/src/router/permissions.rs
+    nature: additive
 summary: >
   Wire governance mode into live workflow metadata and make MCP router preflight
   blocking for mutation tools. Closes two stitching defects that leave governance
@@ -58,7 +66,7 @@ Field is `Option` for backward compatibility — defaults to `None` in existing 
 
 ### Slice 2: Capture GovernedPlan and thread to metadata
 
-In `dispatch_via_governed_claude` (`apps/desktop/src-tauri/src/commands/orchestrator.rs`),
+In `dispatch_via_governed_claude` (`product/apps/desktop/src-tauri/src/commands/orchestrator.rs`),
 derive `"governed"` or `"bypass"` from the `GovernedPlan` variant and set it on
 `DispatchResult.governance_mode`.
 
@@ -73,7 +81,7 @@ if let Some(ref gm) = options.governance_mode {
 
 Thread the same into the non-persisted `dispatch_manifest` path's `RunSummary.metadata`.
 
-**Files**: `crates/orchestrator/src/lib.rs`, `apps/desktop/src-tauri/src/commands/orchestrator.rs`
+**Files**: `crates/orchestrator/src/lib.rs`, `product/apps/desktop/src-tauri/src/commands/orchestrator.rs`
 
 ### Slice 3: Positive-assertion promotion gate
 

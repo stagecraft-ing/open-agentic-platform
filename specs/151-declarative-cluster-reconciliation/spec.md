@@ -12,67 +12,59 @@ depends_on:
   - "087"  # unified-workspace-architecture (stagecraft is the operator surface; this defines how its operator actions reach the cluster)
   - "143"  # presigned-upload-public-endpoint (FU-008 names the setup.sh-monolith seam this spec retires)
 code_aliases: ["GITOPS_RECONCILIATION"]
-implements:
-  # Phase 1 prep — bootstrap scaffold + operator prereqs.
-  # Foundation only; chart-migration phases (2-4) add their own gitops
-  # files; cluster.yaml k3s_version bump pairs atomically with `flux
-  # bootstrap` in T-007's PR per dr-baseline F4; per-purpose Secret
-  # manifests defer to spec 153.
-  - path: platform/gitops/clusters/hetzner-prod/README.md
-  - path: platform/gitops/clusters/hetzner-prod/infrastructure/README.md
-  - path: platform/gitops/clusters/hetzner-prod/manifests/README.md
-  - path: platform/gitops/clusters/hetzner-prod/secrets/README.md
-  - path: platform/infra/hetzner/setup.sh       # co-claimant w/ 072/106/137/143; T-001 header + T-007 pre-flight + bootstrap rewrite + Phase 2 reflector/cert strikes
-  - path: platform/infra/hetzner/.env.example   # co-claimant w/ 072/106/143; T-007 (A) follow-up — GITHUB_TOKEN slot mirroring setup.sh pre-flight
-  - path: platform/infra/hetzner/cluster.yaml   # T-007 / dr-baseline F4 — k3s_version bump pairs atomically with `flux bootstrap`
-  - path: .sops.yaml                            # T-005 + T-006 — multi-recipient SOPS config (operator-host + Bitwarden DR)
-  - path: tools/spec-compiler/src/lib.rs        # V-004 exemption for .sops.yaml (causal — co-claimant w/ 001)
-  - path: tools/spec-compiler/tests/v004_consolidation_excludes.rs  # V-004 exemption test
-  - path: DEVELOPERS.md                         # operator prereq table
-  # Phase 2 — reflector + spec 137 wildcard-cert annotations as the first
-  # Flux-reconciled migrations under the gitops tree. Unblocks spec 137
-  # Phase 6 evidence collection (E1–E6).
-  - path: platform/gitops/clusters/hetzner-prod/infrastructure/reflector.yaml      # T-008 — HelmRepository + HelmRelease for emberstack/reflector 9.1.6 (operational parity w/ setup.sh's removed block)
-  - path: platform/gitops/clusters/hetzner-prod/manifests/tenants-wildcard-certificate.yaml  # T-009 — cert-manager Certificate w/ reflector secretTemplate annotations; co-claimant w/ 106/137 (existing claimants on the imperative ancestor); spec 130 any-claimant rule applies
-  - path: specs/137-tenant-environment-access-gates/tasks.md                       # T-011 — T075/T076 annotated w/ the Phase 2 migration; spec 137's tasks list records the new Flux-reconciled ownership
-  # Phase 3 — cert-manager + ingress-nginx + ClusterIssuers migrate to Flux.
-  # Identity-preserving cutover (Phase 2 pattern): helm-controller adopts
-  # the existing helm releases; cert-manager treats the gitops ClusterIssuers
-  # as the same-named objects (no ACME re-registration, no cert re-issuance).
-  # Hetzner DNS webhook + dormant `letsencrypt-dns01` ClusterIssuer stay in
-  # post-create.sh as the gated dormant fallback (HCLOUD_DNS_API_TOKEN unset
-  # by design; migrating dormant resources to gitops would change semantics).
-  - path: platform/gitops/clusters/hetzner-prod/infrastructure/cert-manager.yaml         # T-014 — HelmRepository (jetstack) + HelmRelease (cert-manager v1.19.3, crds.enabled=true)
-  - path: platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml        # T-017 — HelmRepository + HelmRelease (ingress-nginx 4.15.1, DaemonSet + hostPort + ClusterIP svc)
-  - path: platform/gitops/clusters/hetzner-prod/manifests/cert-manager-clusterissuers.yaml  # T-015 — letsencrypt-prod (HTTP-01) + letsencrypt-prod-dns01-cloudflare (DNS-01); co-claimant w/ 106 on the DNS-01 issuer per spec 130 primary-owner heuristic
-  - path: platform/infra/hetzner/post-create.sh                                          # T-016 + T-018 — strikes for cert-manager + ingress-nginx + HTTP-01 ClusterIssuer; dormant Hetzner-DNS path preserved
-  # Phase 4 — rauthy chart to Flux. Identity-critical; cutover lands in a
-  # maintenance window. helm-controller adopts the existing in-place
-  # `rauthy` release (`<release>.v2` adoption pattern from Phase 3).
-  # rauthy-secrets + rauthy-smtp-secret materialisation stays imperative
-  # in setup.sh until spec 153 SOPS-migrates them.
-  - path: platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml  # T-019 — HelmRelease (in-tree chart via GitRepository source, hetzner-prod values inlined, smtp.enabled=true)
-  - path: platform/charts/rauthy/values-hetzner.yaml                        # T-019 — deletion; hetzner-prod overrides moved inline into the HelmRelease
-  - path: platform/Makefile                                                 # T-021 follow-on — strip the rauthy block from `deploy-hetzner` to eliminate the dual-writer hazard against Flux
-  # Phase 5 — drift detection (T-022). Documents the Flux event +
-  # Prometheus metric surface that SC-005 + FR-006 measure against,
-  # plus the SC-005 live-test recipe. Live test evidence collection
-  # follows in a separate operator-confirmed session.
-  - path: specs/151-declarative-cluster-reconciliation/execution/drift-detection.md  # T-022 — mechanism + metric inventory + Flux event taxonomy + SC-005 test recipe (live evidence pending)
-  # F8 follow-up (2026-05-19) — deferred dependsOn machinery anticipated
-  # by infrastructure/cert-manager.yaml's now-falsified retry-pattern claim.
-  # Bare-cluster bootstrap order: root kustomization.yaml explicit-resources
-  # → infrastructure (healthCheck cert-manager) → manifests (dependsOn).
-  - path: platform/gitops/clusters/hetzner-prod/kustomization.yaml                   # F8 — root kustomize bundle replacing the auto-recursive single-batch apply
-  - path: platform/gitops/clusters/hetzner-prod/infrastructure-kustomization.yaml    # F8 — Flux Kustomization for ./infrastructure with healthCheck on cert-manager HelmRelease
-  - path: platform/gitops/clusters/hetzner-prod/manifests-kustomization.yaml         # F8 — Flux Kustomization for ./manifests with dependsOn: infrastructure, wait: true
-  # F7 future-prevention (2026-05-19) — distinct bootstrap path for the Stage 2
-  # DR throwaway cluster, so its `flux bootstrap` cannot rotate production's
-  # GitHub deploy key as a side effect. Sibling tree under platform/gitops/clusters/
-  # imports the production tree's Kustomization CRs via relative path — no
-  # YAML duplication; only the bootstrap-distinct entry point lives here.
-  - path: platform/gitops/clusters/hetzner-dr-stage2/README.md                       # F7 future-prevention — scope, rationale, runbook integration
-  - path: platform/gitops/clusters/hetzner-dr-stage2/kustomization.yaml              # F7 future-prevention — root kustomize bundle (imports ../hetzner-prod Kustomization CRs)
+establishes:
+  - platform/gitops/clusters/hetzner-prod/README.md
+  - platform/gitops/clusters/hetzner-prod/infrastructure/README.md
+  - platform/gitops/clusters/hetzner-prod/manifests/README.md
+  - platform/gitops/clusters/hetzner-prod/secrets/README.md
+  - .sops.yaml
+  - tools/spec-spine/spec-compiler/tests/v004_consolidation_excludes.rs
+  - platform/gitops/clusters/hetzner-prod/infrastructure/reflector.yaml
+  - platform/gitops/clusters/hetzner-prod/manifests/tenants-wildcard-certificate.yaml
+  - platform/gitops/clusters/hetzner-prod/infrastructure/cert-manager.yaml
+  - platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml
+  - platform/gitops/clusters/hetzner-prod/manifests/cert-manager-clusterissuers.yaml
+  - platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml
+  - platform/gitops/clusters/hetzner-prod/kustomization.yaml
+  - platform/gitops/clusters/hetzner-prod/infrastructure-kustomization.yaml
+  - platform/gitops/clusters/hetzner-prod/manifests-kustomization.yaml
+  - platform/gitops/clusters/hetzner-dr-stage2/README.md
+  - platform/gitops/clusters/hetzner-dr-stage2/kustomization.yaml
+  - specs/151-declarative-cluster-reconciliation/execution/drift-detection.md
+extends:
+  - spec: "001-spec-compiler-mvp"
+    paths:
+      - tools/spec-spine/spec-compiler/src/lib.rs
+    nature: additive
+co_authority:
+  - paths:
+      - platform/infra/hetzner/setup.sh
+    section: bootstrap
+    with_specs: ["072-multi-cloud-k8s-portability", "106-rauthy-native-oidc-and-membership", "137-tenant-environment-access-gates", "143-presigned-upload-public-endpoint"]
+  - paths:
+      - platform/infra/hetzner/.env.example
+    section: env-vars
+    with_specs: ["072-multi-cloud-k8s-portability", "106-rauthy-native-oidc-and-membership", "143-presigned-upload-public-endpoint"]
+  - paths:
+      - platform/infra/hetzner/cluster.yaml
+    section: k3s-version
+    with_specs: ["072-multi-cloud-k8s-portability"]
+  - paths:
+      - platform/infra/hetzner/post-create.sh
+    section: cert-nginx-strikes
+    with_specs: ["106-rauthy-native-oidc-and-membership"]
+  - paths:
+      - platform/Makefile
+    section: rauthy-deploy
+    with_specs: ["104-makefile-ci-parity-contract"]
+  - paths:
+      - specs/137-tenant-environment-access-gates/tasks.md
+    section: phase2-migration
+    with_specs: ["137-tenant-environment-access-gates"]
+  - paths:
+      - platform/charts/rauthy/values-hetzner.yaml
+    section: hetzner-overrides
+    with_specs: ["106-rauthy-native-oidc-and-membership"]
 summary: >
   Replace `platform/infra/hetzner/setup.sh`'s imperative cluster-mutation
   monolith with a declarative GitOps reconciliation layer. Flux v2 runs
@@ -808,7 +800,7 @@ not decisions.
      `platform/gitops/clusters/**` and `.github/workflows/cd-*.yml`
      overlap on the spec 151 owner, so the migration PR cannot land
      without a review that catches an incomplete claim. The spec/code
-     coupling gate (spec 127, `tools/spec-code-coupling-check/`,
+     coupling gate (spec 127, `tools/spec-spine/spec-code-coupling-check/`,
      CI workflow `.github/workflows/ci-spec-code-coupling.yml`) does
      NOT directly catch a missing claim at first-claim time — it fires
      on *touched paths claimed by some spec*; if a path is unclaimed
@@ -1186,7 +1178,7 @@ floating as a list of paths.
 **What landed:**
 
 - `platform/infra/hetzner/setup.sh` — header comment updated (T-001) to
-  document the prerequisites surface and forward-link to DEVELOPERS.md
+  document the prerequisites surface and forward-link to docs/DEVELOPERS.md
   §"Hetzner GitOps operator (spec 151)". The pre-flight enforcement
   (`for cmd in kubectl helm hetzner-k3s ...`) is NOT tightened in this
   PR: extending it to require `flux`, `sops`, `age` before T-007 has
@@ -1199,7 +1191,7 @@ floating as a list of paths.
   `manifests/` (raw K8s resources), `secrets/` (placeholder; spec 153
   owns the per-purpose Secret migration). `flux-system/` is
   intentionally absent — `flux bootstrap` creates its content on T-007.
-- `DEVELOPERS.md` — new "Hetzner GitOps operator (spec 151)" subsection
+- `docs/DEVELOPERS.md` — new "Hetzner GitOps operator (spec 151)" subsection
   under Prerequisites. Lists the four CLIs (`hetzner-k3s`, `flux`,
   `sops`, `age`) with brew install lines and a one-liner. Records the
   k3s ↔ Flux version pair as the operator-facing pin and points at the
@@ -1210,7 +1202,7 @@ floating as a list of paths.
 - T-002 (the canonical Flux version-pin manifest) — owned by `flux
   bootstrap` itself; the bootstrap-generated `flux-system/
   gotk-components.yaml` is where the version is canonically recorded in
-  the cluster tree. The DEVELOPERS.md + gitops-tree-README entries are
+  the cluster tree. The docs/DEVELOPERS.md + gitops-tree-README entries are
   the human-readable mirror, not the source of truth.
 - T-003 (`cluster.yaml` `k3s_version` bump from `v1.31.4+k3s1` to
   `v1.33.11+k3s1`) — dr-baseline.md §F4 specifies "same PR as the one
@@ -1257,7 +1249,7 @@ entry per the same pattern as the prep section above.
   runtime mechanism; spec 153 lands the encrypted manifests).
   Multi-recipient roundtrip verified locally against both pubkeys
   before commit.
-- `tools/spec-compiler/src/lib.rs` — V-004 (no standalone authored
+- `tools/spec-spine/spec-compiler/src/lib.rs` — V-004 (no standalone authored
   YAML) exemption arm extended to include `.sops.yaml` at repo root.
   Spec 000's invariant targets parallel spec registries as authored
   truth; `.sops.yaml` is the SOPS CLI's own tool-format config file,
@@ -1265,7 +1257,7 @@ entry per the same pattern as the prep section above.
   and `pnpm-lock.yaml` already exempt. Rationale recorded inline on
   `v004_yaml_scan_exempt` and back-referenced to plan.md §"Constitution
   check". Covered by a new test (`root_sops_yaml_does_not_trigger_v004`)
-  in `tools/spec-compiler/tests/v004_consolidation_excludes.rs`.
+  in `tools/spec-spine/spec-compiler/tests/v004_consolidation_excludes.rs`.
 - `platform/infra/hetzner/cluster.yaml` — `k3s_version` bumped from
   `v1.31.4+k3s1` to `v1.33.11+k3s1` per dr-baseline.md §F4. Pairs
   atomically with the `flux bootstrap` invocation in setup.sh.

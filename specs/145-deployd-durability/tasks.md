@@ -34,10 +34,10 @@ assumptions before writing code. Findings inform implementation
 choices and may amend the spec if material divergences surface.
 
 - [x] T001 [P0] Confirm spec 145 frontmatter compiles cleanly:
-      `./tools/spec-compiler/target/release/spec-compiler compile`
+      `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`
       and verify exit 0 + spec 145 appears in
-      `build/spec-registry/registry.json` via
-      `./tools/registry-consumer/target/release/registry-consumer show 145-deployd-durability`.
+      `.derived/spec-registry/registry.json` via
+      `./tools/spec-spine/registry-consumer/target/release/registry-consumer show 145-deployd-durability`.
 - [x] T001a [P0] **Verify chart template inventory.**
       `ls platform/charts/deployd-api/templates/` — confirm
       `external-secret.yaml` and/or `secretproviderclass.yaml` exist
@@ -48,7 +48,7 @@ choices and may amend the spec if material divergences surface.
       `implements:` list and T035 target file change accordingly —
       AMEND the spec rather than silently flipping the target.
 - [x] T001b [P0] **Coupling-gate dry-run.**
-      `./tools/spec-code-coupling-check/target/release/spec-code-coupling-check`
+      `./tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check`
       against the working tree as if spec 145's `implements:` paths
       were touched (synthetic stdin diff or `--paths` flag if
       supported, otherwise stage no-op edits to each target file
@@ -609,12 +609,12 @@ deploy, refresh registries, mark spec implementation complete.
       cleanly (re-confirmed against the post-PR working tree).
 - [x] T058 [P4] **AC-9.** `make ci` (warm) → exit 0.
 - [x] T059 [P4] **AC-8.**
-      `./tools/spec-code-coupling-check/target/release/spec-code-coupling-check`
+      `./tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check`
       → no warnings against spec 145's `implements:` list.
 - [x] T060 [P4] Recompile spec registry + codebase index:
-      `./tools/spec-compiler/target/release/spec-compiler compile`
+      `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`
       and
-      `./tools/codebase-indexer/target/release/codebase-indexer compile && render`.
+      `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile && render`.
 - [x] T061 [P4] Update spec 145 frontmatter:
       `implementation: complete`, `closed: "<today>"`. Recompile
       registry. Confirm `registry-consumer status-report` reflects

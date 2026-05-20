@@ -140,10 +140,10 @@ Critical path: ~31.5 days
 | `crates/axiomregent/src/checkpoint/provider.rs` | 092, 095 |
 | `crates/axiomregent/src/checkpoint/types.rs` | 092, 095 |
 | `crates/policy-kernel/src/lib.rs` | 090, 093 |
-| `apps/desktop/src-tauri/src/commands/analysis.rs` | 093, 096 |
-| `apps/desktop/src-tauri/src/governed_claude.rs` | 090, 092 |
+| `product/apps/desktop/src-tauri/src/commands/analysis.rs` | 093, 096 |
+| `product/apps/desktop/src-tauri/src/governed_claude.rs` | 090, 092 |
 | `platform/services/stagecraft/api/factory/factory.ts` | 092, 094, 097 |
-| `tools/spec-compiler/src/lib.rs` | 091 |
+| `tools/spec-spine/spec-compiler/src/lib.rs` | 091 |
 | `crates/featuregraph/src/preflight.rs` | 093, 096 |
 
 ### New Files

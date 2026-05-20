@@ -17,8 +17,12 @@ summary: >
 code_aliases:
   - VERIFICATION_SKILLS
   - VERIFY_PROTOCOL
-implements:
-  - path: packages/verification-profiles
+refines:
+  - paths:
+      - crates/orchestrator
+    aspect: verification-protocol
+    refines_specs:
+      - "004-spec-to-execution-bridge-mvp"
 ---
 
 # Feature Specification: Verification and reconciliation

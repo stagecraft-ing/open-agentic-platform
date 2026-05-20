@@ -20,7 +20,7 @@ sequencing.
 
 - **T-001** — Add `flux` CLI to the operator-host prerequisite list
   in `platform/infra/hetzner/setup.sh` header comments and in
-  [`DEVELOPERS.md`](../../DEVELOPERS.md) if it exists; add to the
+  [`docs/DEVELOPERS.md`](../../docs/DEVELOPERS.md) if it exists; add to the
   homebrew install one-liner used in onboarding.
 - **T-002** — Pin Flux v2 version (current spec hint: 2.8.7;
   re-validate at implementation time against the k3s version pinned
@@ -212,7 +212,7 @@ back-references the Flux-reconciled cluster.
 ## Cross-cutting tasks (any phase)
 
 - **T-027** — Each migration PR re-runs `codebase-indexer compile`
-  and commits the regenerated `build/codebase-index/index.json`
+  and commits the regenerated `.derived/codebase-index/index.json`
   alongside the spec/code edits, OR queues a chore PR per the
   `feedback_codebase_index_spec_edits` memory.
 - **T-028** — Each migration PR's `implements:` block claims BOTH

@@ -12,8 +12,15 @@ language: en
 summary: >
   Consolidate pretty vs compact JSON serialization in one library helper; no CLI
   behavior change.
-implements:
-  - path: tools/registry-consumer
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/spec-spine/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/spec-spine/registry-consumer
+    aspect: json-serialization
 ---
 
 # Feature Specification: Shared JSON serialization helper

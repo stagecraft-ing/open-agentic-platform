@@ -10,6 +10,21 @@ risk: high
 depends_on:
   - "089"
 code_aliases: ["POST_CONVERGENCE_REMEDIATION"]
+refines:
+  - paths:
+      - product/apps/desktop/src-tauri/tauri.conf.json
+      - crates/factory-engine/src/artifact_store.rs
+      - crates/orchestrator/src/artifact.rs
+      - crates/policy-kernel/src/lib.rs
+      - platform/charts/stagecraft/templates/deployment.yaml
+      - platform/charts/deployd-api/templates/deployment.yaml
+      - platform/services/deployd-api-rs/src/config.rs
+      - platform/services/deployd-api-rs/src/auth.rs
+    aspect: security-hardening
+    refines_specs:
+      - "075-factory-workflow-engine"
+      - "052-state-persistence"
+      - "068-permission-runtime"
 summary: >
   Remediate security vulnerabilities, integrity gaps, and technical debt surfaced
   during codebase analysis after the governed convergence plan (089) completed.
@@ -35,7 +50,7 @@ completed surfaced 19 issues across security, integrity, and orphaned code:
   version drift (thiserror, axum), superseded specs missing backlinks, unquoted YAML
   dates, untracked desktop Cargo.lock
 
-Additionally, 17 TypeScript packages in `packages/` have zero consumers but contain
+Additionally, 17 TypeScript packages in `product/packages/` have zero consumers but contain
 fully implemented features (specs 050–071) ready for UI reintegration.
 
 ## Solution
@@ -66,14 +81,14 @@ Four-phase remediation ordered by blast radius.
 
 | Slice | Issue | Files |
 |-------|-------|-------|
-| 3.1 | Add frontmatter to spec template | `.specify/templates/spec-template.md` |
+| 3.1 | Add frontmatter to spec template | `standards/spec/templates/spec-template.md` |
 | 3.2 | Create spec 100 | `specs/100-post-convergence-remediation/spec.md` |
 | 3.3 | Upgrade thiserror 1.0 → 2 | `factory-contracts/Cargo.toml` |
 | 3.4 | Upgrade axum 0.7 → 0.8 | `orchestrator/Cargo.toml` |
 | 3.5 | Add superseded_by to specs 038, 040 | `specs/038-*/spec.md`, `specs/040-*/spec.md` |
 | 3.6 | Quote YAML dates | `specs/087-*/spec.md`, `specs/088-*/spec.md` |
-| 3.7 | Track desktop Cargo.lock | `.gitignore`, `apps/desktop/src-tauri/Cargo.lock` |
-| 3.8 | Recompile spec registry (096–100) | `build/spec-registry/registry.json` |
+| 3.7 | Track desktop Cargo.lock | `.gitignore`, `product/apps/desktop/src-tauri/Cargo.lock` |
+| 3.8 | Recompile spec registry (096–100) | `.derived/spec-registry/registry.json` |
 
 ### Phase 4 — Orphaned Code Feature Catalog
 
@@ -107,7 +122,7 @@ All four phases landed in commit `a04f312` (2026-04-12). Evidence:
 - **Phase 1.2** — `deployd-api-rs/src/config.rs` uses
   `std::env::var("DEPLOYD_AUDIENCE").expect(...)` and
   `std::env::var("DEPLOYD_REQUIRED_SCOPE").expect(...)`; boot fails if unset.
-- **Phase 2.1** — `apps/desktop/src-tauri/tauri.conf.json` CSP lacks
+- **Phase 2.1** — `product/apps/desktop/src-tauri/tauri.conf.json` CSP lacks
   `unsafe-eval`; `assetProtocol.scope` narrowed to `$APPDATA/**`,
   `$RESOURCE/**`.
 - **Phase 2.3** — hex-only `content_hash` and separator-rejecting

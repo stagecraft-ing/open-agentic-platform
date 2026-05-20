@@ -16,6 +16,9 @@ summary: >
   diff preview and merge choice.
 code_aliases:
   - WORKTREE_AGENTS
+establishes:
+  - product/packages/worktree-agents
+  - product/apps/desktop/src-tauri/src/commands/worktree_agents.rs
 ---
 
 # Feature Specification: Background Agents with Git Worktree Isolation

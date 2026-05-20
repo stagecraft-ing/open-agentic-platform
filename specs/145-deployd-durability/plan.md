@@ -230,7 +230,7 @@ expectation of joint timing that would be broken by landing one
 without the other.
 
 P0.9 **Coupling-gate dry-run against the planned `implements:` list.**
-Run `./tools/spec-code-coupling-check/target/release/spec-code-coupling-check`
+Run `./tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check`
 as if every path in spec 145's `implements:` list were touched
 (synthetic stdin diff or a stage-no-op-and-rerun loop). Surface any
 conflicts with specs 086 / 073 / 072 (or any other current owner
@@ -377,7 +377,7 @@ refresh registries, mark spec implementation complete.
    rowsets are unchanged.
 6. **Run `make ci` (warm)** — exit 0.
 7. **Run the coupling check**:
-   `./tools/spec-code-coupling-check/target/release/spec-code-coupling-check`
+   `./tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check`
    → no warnings against spec 145's `implements:` list. (AC-8.)
 8. **Recompile spec registry + codebase index.**
 9. **Update spec 145 frontmatter:** `implementation: complete`,

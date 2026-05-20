@@ -12,8 +12,15 @@ language: en
 summary: >
   Lock top-level `--version` output for registry-consumer with fixture-backed
   transcript tests, including exit code and stderr expectations.
-implements:
-  - path: tools/registry-consumer
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/spec-spine/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/spec-spine/registry-consumer
+    aspect: contract-tests
 ---
 
 # Feature Specification: Version/banner contract
@@ -24,7 +31,7 @@ Prevent drift in operator/agent version introspection behavior by asserting exac
 
 ## Requirements
 
-- **FR-001**: Fixture transcript under `tools/registry-consumer/tests/fixtures/version_contract/expected/` defines source-of-truth `--version` stdout.
+- **FR-001**: Fixture transcript under `tools/spec-spine/registry-consumer/tests/fixtures/version_contract/expected/` defines source-of-truth `--version` stdout.
 - **FR-002**: Integration test asserts exact stdout bytes and exit code `0` for `registry-consumer --version`.
 - **FR-003**: Integration test asserts stderr is empty for `--version` success path.
 - **FR-004**: No intentional runtime behavior changes in `src/main.rs` or `src/lib.rs`.

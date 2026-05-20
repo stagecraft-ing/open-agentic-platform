@@ -82,7 +82,7 @@ updates:
     labels: [dependencies, rust, desktop]
 
   - package-ecosystem: cargo
-    directory: /tools/spec-compiler
+    directory: /tools/spec-spine/spec-compiler
     schedule:
       interval: weekly
     open-pull-requests-limit: 3

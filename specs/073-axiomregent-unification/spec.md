@@ -10,6 +10,22 @@ authors: ["open-agentic-platform"]
 language: en
 code_aliases: ["AXIOM_UNIFY", "HIQLITE_MIGRATION", "GITHUB_ORG"]
 sources: ["gitctx", "blockoli", "stackwalk", "titor", "github-app"]
+extends:
+  - spec: "037-cross-platform-axiomregent"
+    paths:
+      - crates/axiomregent
+    nature: wrapping
+supersedes:
+  - spec: "038-titor-tauri-command-wiring"
+    scope: full
+    paths:
+      - product/apps/desktop/src-tauri/src/commands/titor.rs
+  - spec: "040-blockoli-semantic-search-wiring"
+    scope: full
+    paths:
+      - product/apps/desktop/src-tauri/src/commands/search.rs
+establishes:
+  - platform/services/deployd-api-rs
 summary: >
   Consolidates five standalone crates and services (gitctx, blockoli, stackwalk, titor, github-app)
   into axiomregent and stagecraft. Migrates axiomregent from synchronous rusqlite to async hiqlite
@@ -570,8 +586,8 @@ axiomregent's `build.rs`).
 1. Update `.github/workflows/ci-axiomregent.yml` path filters for absorbed crate directories
 2. Update `.github/workflows/build-axiomregent.yml` to include tree-sitter grammar compilation
 3. Remove `.github/workflows/build-gitctx-mcp.yml`
-4. Update `apps/desktop/src-tauri/Cargo.toml` — remove gitctx, blockoli, stackwalk, titor deps
-5. Update `apps/desktop/src-tauri/tauri.conf.json` — remove gitctx-mcp from `externalBin`
+4. Update `product/apps/desktop/src-tauri/Cargo.toml` — remove gitctx, blockoli, stackwalk, titor deps
+5. Update `product/apps/desktop/src-tauri/tauri.conf.json` — remove gitctx-mcp from `externalBin`
 6. Update desktop `commands/search.rs` and `commands/titor.rs` to use axiomregent MCP calls
 7. Update `CLAUDE.md` crate table, build commands, and repository structure
 8. Update `Makefile` targets

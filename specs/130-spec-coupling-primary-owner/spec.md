@@ -1,178 +1,305 @@
 ---
 id: "130-spec-coupling-primary-owner"
-slug: spec-coupling-primary-owner
-title: "Spec/code coupling: primary-owner heuristic — relax to any-claimant edit"
+slug: spec-relationship-graph
+title: "Spec Relationship Graph — eight first-class edges between specs and code"
 status: approved
 implementation: complete
-amends: ["127"]
 owner: bart
 created: "2026-05-02"
-approved: "2026-05-02"
+approved: "2026-05-19"
 kind: governance
 risk: low
 depends_on:
-  - "127"  # spec-code-coupling-gate (the contract being relaxed)
-  - "129"  # granular-package-oap-metadata (surfaced the over-fire scenario)
-code_aliases: ["SPEC_COUPLING_PRIMARY_OWNER"]
-implements:
-  - path: tools/spec-code-coupling-check
+  - "000"
+  - "001"
+  - "101"
+code_aliases: ["SPEC_RELATIONSHIP_GRAPH"]
+establishes:
+  - tools/shared/spec-types/src/lib.rs
+  - standards/schemas/spec-spine/registry.schema.json
+extends:
+  - spec: "001-spec-compiler-mvp"
+    paths:
+      - tools/spec-spine/spec-compiler/src/lib.rs
+    nature: additive
+  - spec: "101-codebase-index-mvp"
+    paths:
+      - tools/spec-spine/codebase-indexer/src/spec_scanner.rs
+    nature: additive
+constrains:
+  - kind: invariant-freeze
+    paths:
+      - standards/schemas/spec-spine/registry.schema.json
 summary: >
-  Spec 127's gate fires once per (spec, path) pair: a path claimed by N
-  specs requires all N spec.md files in the diff. In OAP's current
-  corpus this cascades — `crates/orchestrator` is claimed by 12 specs;
-  `crates/axiomregent` by 7. A simple file-touch demo for spec 129
-  triggered violations on 20 specs. This amendment relaxes the rule:
-  ANY one claimant's spec.md edit covers the path. The gate output
-  surfaces all claimants on a violation block so reviewers can sanity-
-  check that the right one was edited.
+  Spec governance operates over an explicit relationship graph. Eight
+  frontmatter fields — establishes, extends, refines, supersedes, amends,
+  co_authority, constrains, origin — encode how specs relate to code and
+  to each other. Authority over each code path is derived from the graph;
+  the coupling gate (spec 133) consumes the derivation; co-authority and
+  named-anchor sectioning (spec 152) support shared resources. `implements:`
+  is preserved as a *derived* view computed from the union of paths
+  appearing in establishes, extends.paths, refines.paths, and
+  co_authority.paths — authors no longer write `implements:` directly; the
+  spec-compiler emits it for consumer compatibility.
 ---
 
-# 130 — Primary-owner heuristic for spec/code coupling
+# 130 — Spec Relationship Graph
 
-## 1. Problem Statement
+## 1. Thesis
 
-Spec 127 introduced a CI gate that fails any PR whose diff touches a
-path claimed in some spec's `implements:` list without amending that
-spec's `spec.md`. The semantics are correct in principle. In practice,
-OAP's `implements:` declarations are **broad-by-design**:
+A spec touches the world by claiming code paths. Until this spec landed,
+those claims were expressed via a single `implements:` field — a flat
+list that conflated *establishment*, *extension*, *refinement*,
+*supersession*, *amendment*, *co-authorship*, and *constraint*. Multiple
+specs claiming the same path produced "multi-claim noise" at PR-time:
+the coupling gate reported every claimant, with no way to distinguish
+*current authority* from *historical claimant*.
+
+The relationship graph replaces that flat field with eight typed edges.
+Each edge encodes one specific kind of governance relationship between a
+spec and a path (or between two specs). The graph is the canonical
+representation; `implements:` is a derived projection preserved for
+backward compatibility.
+
+## 2. The eight relationship fields
+
+The fields below are normative. Their semantics are the contract for
+spec-compiler parsing, registry schema acceptance, spec-lint enforcement
+(V-020), and coupling-gate authority derivation (spec 133).
+
+### 2.1 `establishes:` — one-time creation
+
+```yaml
+establishes:
+  - <path>
+  - <path>
+```
+
+A spec **establishes** a path when this is the spec that brought the
+path into existence. Authoritative on the path until superseded.
+
+A path appears under `establishes:` in at most one spec across the
+corpus. (V-021 — reserved — will enforce this at compile-time after the
+corpus is curated.)
+
+### 2.2 `extends:` — additive surface extension
+
+```yaml
+extends:
+  - spec: <predecessor-id>
+    paths: [<path>, ...]
+    nature: additive | wrapping
+```
+
+A spec **extends** a predecessor when it adds to that predecessor's
+authority surface without replacing it. The predecessor remains
+authoritative on its full surface; this spec is an additional authority
+on the listed paths.
+
+- `nature: additive` — new code lives alongside the predecessor's.
+- `nature: wrapping` — new code wraps the predecessor's invocation
+  surface (e.g. middleware, adapter shells, decorators).
+
+`paths` is a subset of the predecessor's surface; declaring paths the
+predecessor never claimed is a well-formedness error (V-022 reserved).
+
+### 2.3 `refines:` — behavior tightening across paths
+
+```yaml
+refines:
+  - paths: [<path>, ...]
+    aspect: <short-tag>
+    refines_specs: [<id>, ...]   # optional
+```
+
+A spec **refines** a behavior when it tightens an *aspect* of how
+existing code must behave. Refinement is path-scoped (the aspect applies
+to the listed paths) and optionally spec-scoped (when it refines
+behavior owned by specific predecessor specs).
+
+`aspect` is open-vocabulary kebab-case (`error-shape`, `logging-format`,
+`retry-policy`, `cache-eviction`, …). The vocabulary is not enumerated
+because refinement aspects are inherently domain-specific.
+
+### 2.4 `supersedes:` — replacement
+
+```yaml
+supersedes:
+  - spec: <predecessor-id>
+    scope: full | partial
+    paths: [<path>, ...]    # required for partial; omitted for full
+    rationale: <one-line>
+```
+
+A spec **supersedes** a predecessor when it replaces the predecessor's
+authority. Supersession resolution is computed by the gate as part of
+authority derivation (spec 133 §3).
+
+- `scope: full` — predecessor is no longer authoritative on any path.
+- `scope: partial` — predecessor remains authoritative on its other
+  paths; this spec takes over the listed paths.
+
+Legacy shape (`supersedes: ["NNN", ...]`) is accepted and treated as
+`scope: full` for each id. Authoring new supersessions in the structured
+form is preferred.
+
+### 2.5 `amends:` — non-replacing patch
+
+```yaml
+amends:
+  - spec: <amended-id>
+    change_type: clarification | correction | restriction
+    paths: [<path>, ...]
+```
+
+A spec **amends** a predecessor when it patches the predecessor's
+behavior without claiming new code or replacing the predecessor.
+Amendments touch the amended spec's spec.md (via §-anchor edits) but
+typically not its code surface.
+
+- `clarification` — restates intent; no behavior change.
+- `correction` — fixes a stated invariant that the code did not match.
+- `restriction` — narrows the predecessor's previously-broad license.
+
+Legacy shape (`amends: ["NNN", ...]`) is accepted and treated as
+`change_type: clarification` with `paths` left unspecified (the gate
+treats unspecified paths as the amended spec's full current surface).
+
+### 2.6 `co_authority:` — section-scoped shared resource
+
+```yaml
+co_authority:
+  - paths: [<path>]
+    section: <named-anchor>
+    with_specs: [<id>, ...]
+```
+
+Two or more specs may **co-author** a single path when each governs a
+non-overlapping section. Section semantics, anchor syntax, and diff-to-
+section matching are owned by spec 152 (path-co-authority).
+
+The canonical use: the repo-root `Makefile`, where each of specs
+102/104/105/116/127/128/134/135 governs a target group, and supply-
+chain edits should require touching the supply-chain spec, not all
+eight Makefile-touching specs.
+
+### 2.7 `constrains:` — meta-authority
+
+```yaml
+constrains:
+  - spec: <id>           # optional; constraints can be path-only
+    kind: invariant-freeze | <other>
+    paths: [<path>, ...]
+```
+
+A spec **constrains** other specs by declaring invariants over how code
+under the listed paths may evolve. Constraint specs are not behavior
+authorities; the coupling gate evaluates them as a separate satisfaction
+condition (spec 133 §4).
+
+`kind` is open-vocabulary. The initial idiom is `invariant-freeze`,
+exemplified by spec 132 (constitutional-invariant-freeze): once a
+registry field or schema element is declared frozen, future amendments
+cannot widen it.
+
+### 2.8 `origin:` — bootstrap marker
+
+```yaml
+origin:
+  retroactive: true
+  paths: [<path>, ...]
+```
+
+A spec carries `origin: retroactive: true` when its `implements:` paths
+predate the relationship graph and have not yet been curated into typed
+edges. The gate treats retroactively-marked specs as `establishes:` on
+their existing `implements:` paths (single-spec authority, no
+relationship metadata).
+
+This field is the migration mechanism: it lets the corpus pass spec-lint
+V-020 ("no relationship fields") without forcing every spec to be
+curated immediately. The curated-annotation pass replaces `origin:
+retroactive: true` with the typed edges that describe what the spec
+actually does.
+
+## 3. The derived `implements:` view
+
+Authors no longer write `implements:` directly. The spec-compiler emits
+it into the registry as a derived projection:
 
 ```
-$ grep -rh "path: crates/" specs/*/spec.md | sort | uniq -c | sort -rn | head
-12   - path: crates/orchestrator
- 5   - path: crates/policy-kernel
- 4   - path: crates/featuregraph
- 4   - path: crates/axiomregent
+implements(P) = establishes(P)
+              ∪ { p | p ∈ extends.paths }
+              ∪ { p | p ∈ refines.paths }
+              ∪ { p | p ∈ co_authority.paths }
 ```
 
-Twelve specs claim `crates/orchestrator` because each governs a different
-aspect (state-persistence, scheduling, agent-organizer, governance,
-artifact-store, …). When a contributor changes one orchestrator file,
-the gate fires once per claimant — twelve cosmetic spec amendments
-covering one substantive change.
+Consumers of `implements:` (codebase-indexer's Layer 2 traceability,
+registry-consumer's `show` output, downstream init protocols) see the
+same shape regardless of whether the spec is authored in legacy mode
+(explicit `implements:`) or the new model. The compatibility is
+deterministic and emits in the same registry schema.
 
-Spec 129 (granular `[package.metadata.oap]`) surfaced this load-bearing.
-A demo that added `// Spec:` comment headers to three files in busy
-crates would have demanded edits to 20 specs. The friction lands on
-the wrong door.
+When a spec authors both relationship fields and `implements:` (a
+transitional state), the explicit `implements:` is preserved as-is; the
+derivation pass is a no-op. This supports incremental migration.
 
-## 2. Decision
+## 4. Well-formedness rules
 
-Adopt the **primary-owner heuristic**: when a path is claimed by N≥2
-specs, the gate accepts ANY ONE of their `spec.md` edits as covering
-the path. Strict-but-not-cascading.
+The rules below are normative. Spec-compiler reads them as V-codes; new
+codes are reserved (compiler emission is staged with corpus curation).
 
-This does not establish "primary ownership" semantics in the index —
-no claim is privileged over another. The gate simply infers that *some*
-owner reviewed the change, which is the actual review-state question.
-The remaining claimants may be tangentially related (governance lens,
-deps-on relationship, scheduling overlay) and don't need to gate the
-PR.
+- **W-1.** `establishes`, `extends`, `refines`, `supersedes`, `amends`,
+  `co_authority`, `constrains` are all optional. A spec may declare any
+  subset. A spec with no relationship fields and no `origin: retroactive:
+  true` triggers **V-020** (warning; promotes to error after curated pass).
+- **W-2.** `extends.paths` must be a subset of the extended spec's
+  current authority surface. (V-022 reserved.)
+- **W-3.** `supersedes.scope: partial` requires `paths`. `supersedes.scope:
+  full` rejects `paths`. (V-023 reserved.)
+- **W-4.** A path may appear under at most one spec's `establishes:`.
+  (V-021 reserved.)
+- **W-5.** `extends:` and `refines:` may co-exist on the same spec for
+  the same path — a spec can extend a predecessor and refine a cross-
+  cutting concern simultaneously.
+- **W-6.** `co_authority` `section` must match a per-file-type anchor
+  pattern (spec 152 §2). (V-024 reserved.)
 
-## 3. Scope
+## 5. Authority as a derived property
 
-### In scope
+Authority over a path is not declared directly — it is computed from
+the graph. The algorithm is owned by spec 133 (coupling-gate) §3. The
+shape of the answer is:
 
-- Refactor `tools/spec-code-coupling-check/src/lib.rs::check_coupling`
-  from per-spec aggregation to per-path aggregation.
-- Change the `Violation` shape: `{spec_id, paths}` → `{path, claimants}`.
-- Update the renderer to surface every claimant on each violation block,
-  with a "claimed by N specs" header for N≥2.
-- Update the resolution hint: "amend ANY ONE claimant's spec.md".
-- Amend spec 127 frontmatter: `amended: 2026-05-02`,
-  `amendment_record: "130-spec-coupling-primary-owner"`, plus an
-  in-body callout in §4 (FR-003).
+```
+authorities(P) = {
+  spec :
+    (spec establishes P)
+    ∨ (spec extends Y where P ∈ extends.paths)
+    ∨ (spec refines P)
+    ∨ (spec co_authority P)
+  ∧ ¬ ∃ later_spec :
+       (later_spec supersedes spec, scope=full)
+     ∨ (later_spec supersedes spec, scope=partial ∧ P ∈ paths)
+}
+```
 
-### Out of scope
+`amends:` edits are gate-satisfying touches but not behavior
+authorities. `constrains:` specs are checked separately.
 
-- `primary: true` per-claim flags (OQ-1; see §6).
-- Re-narrowing existing `implements:` declarations to crate sub-paths
-  (spec 129c — separate audit work).
-- Changes to the bypass list, waiver mechanism, or `--paths-from`
-  behaviour. All preserved.
+## 6. Constitutional declaration
 
-## 4. Functional Requirements
+The constitution (`.specify/memory/constitution.md` §Spec Relationship
+Graph) normatively declares the model. This spec is the foundational
+instance — it establishes the relationship-graph schema fields, extends
+the spec-compiler's parser, and constrains the registry schema (an
+invariant-freeze on the eight field names and their typing).
 
-- **FR-001 — any-claimant clears.** A diff path P with claimants
-  `{S1, …, SN}` passes the gate if `specs/Si/spec.md ∈ diff` for at
-  least one `i ∈ {1, …, N}`.
-- **FR-002 — full claimant disclosure on violation.** When zero claimants
-  edit, the violation block names the path and lists every claimant
-  (sorted, one per line). For N=1 the block uses a compact one-line
-  form `<path> (claimed by <id>)`; for N≥2 it uses an expanded form.
-- **FR-003 — heuristic, not ownership.** This is a coverage relaxation.
-  The index does not gain a `primary` flag. The gate does not pick a
-  primary; it accepts any owner's edit as evidence of review.
-- **FR-004 — extensibility.** A future spec MAY introduce explicit
-  per-claim ownership flags (e.g. `primary: true` in `implements:`
-  entries). When that lands, this heuristic remains as the fallback
-  for paths without an explicit primary.
-- **SC-001 — would-be Unit 4 demo passes.** A diff that adds `// Spec:`
-  headers to `crates/axiomregent/src/{github,checkpoint}/mod.rs` and
-  `crates/orchestrator/src/scheduler/mod.rs` plus the matching
-  three claimant spec edits (one per file) passes the gate without
-  the 17 cosmetic amendments the strict rule would demand.
+## 7. Cross-references
 
-## 5. Acceptance
-
-- **AC-1.** Unit test
-  `tests::primary_owner_heuristic_clears_when_any_claimant_edits`
-  passes: a path claimed by 2 specs is cleared by editing one of them.
-- **AC-2.** Unit test `tests::multi_claim_violation_names_all_claimants`
-  passes: when no claimant edits, the violation block lists all of them
-  and the renderer's header reads "claimed by N specs".
-- **AC-3.** Existing AC tests from spec 127 continue to pass under the
-  new shape: `ac1_violation_when_path_changed_without_spec_edit`,
-  `ac2_no_violation_when_spec_edited`, `ac3_bypass_paths_never_violate`,
-  `ac4_waiver_suppresses_exit_but_keeps_violations`.
-- **AC-4.** `make ci` exits 0 on the Unit 4.5 commit, demonstrating the
-  gate runs cleanly against the cumulative diff (Units 1–4.5).
-- **AC-5.** `tools/ci-parity-check` continues to mirror
-  `.github/workflows/ci-spec-code-coupling.yml` after no surface-API
-  change to the binary.
-
-## 6. Open Questions
-
-- **OQ-1: should `primary: true` per-claim ownership replace the
-  heuristic?** Defer to future spec; revisit if the heuristic produces
-  ambiguous coverage decisions in practice. The heuristic is correct
-  when claimants overlap by design (governance lens, deps-on); it is
-  ambiguous when a claimant accidentally edits its `spec.md` for
-  unrelated reasons in the same PR. If that pattern surfaces, an
-  explicit `primary` flag is the next step.
-
-## 7. Risks and Mitigations
-
-- **Risk:** A claimant edits its `spec.md` for unrelated reasons in
-  the same PR; the gate wrongly considers a coupled path "covered".
-  **Mitigation:** Reviewers see the full claimant list in the
-  violation block. The waiver mechanism remains for explicit decoupling.
-  OQ-1 captures the per-claim primary flag as the eventual answer.
-
-- **Risk:** Reviewers don't notice that they covered a path via the
-  "wrong" claimant when several apply.
-  **Mitigation:** When a path passes silently (no violation), the
-  gate emits no per-path detail; this is a known trade-off. A future
-  enhancement could add `--verbose` to print covered-path summaries
-  with the claimant chosen.
-
-- **Risk:** The amendment makes the gate weaker than the spec 127
-  authoring intent.
-  **Mitigation:** Spec 127 §1 ("Symmetry, not size") still holds at
-  the path level — every claimed path still requires SOME owner to
-  review. The relaxation is from N-of-N to 1-of-N, which matches how
-  human review actually works on shared infrastructure.
-
-## 8. Cross-references
-
-**Spec 133 — Amends-Aware Coupling Gate (2026-05-03).** Spec 133
-extends this primary-owner heuristic without amending it: the set of
-*legitimate owners* a path can be cleared by is broadened from the
-`implements:` claimants alone to the union with `amends:` and
-`amendment_record:` source classes (when the path is itself a
-`specs/X/spec.md`). Spec 130's any-one-clears semantics is unchanged;
-only the input set grows. Spec 133 also adds the FR-005 strict-
-expansion gate (amend pathways do not enrol paths with zero
-`implements:` claimants) so today's silent paths stay silent. This
-is a strict expansion, not an in-place amendment of spec 130's text;
-no `amends:` link is set. See
-`specs/133-amends-aware-coupling-gate/spec.md` for the contract.
+- Spec 127 — spec-code-coupling-workflow (CI job, make target, contributor flow)
+- Spec 133 — coupling-gate (authority derivation algorithm and gate logic)
+- Spec 152 — path-co-authority (named-anchor sectioning and empty-authority-by-rule patterns)
+- Spec 101 — codebase-index-mvp (Layer 2 traceability — consumes derived `implements:`)
+- Spec 132 — constitutional-invariant-freeze (canonical example of `constrains: kind: invariant-freeze`)
+- Spec 147 — spec-kind-grammar (universal dimensions; orthogonal to relationship graph)

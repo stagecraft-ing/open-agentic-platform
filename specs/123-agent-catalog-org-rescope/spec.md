@@ -24,23 +24,27 @@ depends_on:
   - "122"  # stakeholder-doc-inversion (Stage CD comparator agent reference)
 amends:
   - "119"
-implements:
-  - path: platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql
-  - path: platform/services/stagecraft/api/agents/catalog.ts
-  - path: platform/services/stagecraft/api/agents/relay.ts
-  - path: platform/services/stagecraft/api/agents/bindings.ts
-  - path: platform/services/stagecraft/api/sync/duplex.ts
-  - path: platform/services/stagecraft/web/app/routes/app.agents._index.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.agents.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.agents.new.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.agents._index.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.agents.tsx
-  - path: apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs
-  - path: crates/factory-engine/src/agent_resolver.rs
 code_aliases: ["AGENT_CATALOG_ORG"]
+establishes:
+  - platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql
+extends:
+  - spec: "119-project-as-unit-of-governance"
+    paths:
+      - platform/services/stagecraft/api/agents/catalog.ts
+      - platform/services/stagecraft/api/agents/relay.ts
+      - platform/services/stagecraft/api/agents/bindings.ts
+      - platform/services/stagecraft/api/sync/duplex.ts
+      - platform/services/stagecraft/web/app/routes/app.agents._index.tsx
+      - platform/services/stagecraft/web/app/routes/app.agents.tsx
+      - platform/services/stagecraft/web/app/routes/app.agents.new.tsx
+      - platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx
+      - platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx
+      - platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx
+      - platform/services/stagecraft/web/app/routes/app.project.$projectId.agents._index.tsx
+      - platform/services/stagecraft/web/app/routes/app.project.$projectId.agents.tsx
+      - product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs
+      - crates/factory-engine/src/agent_resolver.rs
+    nature: wrapping
 summary: >
   Move the agent catalog back to org scope. Spec 119 collapsed workspace into
   project and rescoped agents to project_id along with knowledge, runs, grants,
@@ -380,8 +384,8 @@ The bump from `v: 1` (spec 111) to `v: 2` is a clean break per pre-alpha posture
 
 ### 8.3 Desktop
 
-- `apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` — schema bump for v2 envelopes; org-keyed cache table.
-- `apps/desktop/src-tauri/src/commands/agents.rs` — add binding-aware `list_active_agents(project_id)` returning org agents with bindings to the active project, plus `list_org_agents(org_id)` for ad-hoc browse.
+- `product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` — schema bump for v2 envelopes; org-keyed cache table.
+- `product/apps/desktop/src-tauri/src/commands/agents.rs` — add binding-aware `list_active_agents(project_id)` returning org agents with bindings to the active project, plus `list_org_agents(org_id)` for ad-hoc browse.
 
 ## 9. Migration
 
@@ -438,7 +442,7 @@ A-3. `agent_catalog`, `agent_catalog_audit`, and `agent_policies` carry `org_id`
 
 A-4. Stagecraft web shows `Agents` as a top-nav item between `Projects` and `Factory`. The org agent catalog UI implements list / create / edit / publish / retire / fork / history.
 
-A-5. `grep -rn "agent_catalog\.project_id\|agent_catalog_audit\.project_id\|agent_policies\.project_id\|agentCatalog\.projectId" platform/services/stagecraft crates apps/desktop` returns zero hits outside (a) historical migration files, (b) the migration script for this spec, (c) frozen superseded specs, (d) this spec's body.
+A-5. `grep -rn "agent_catalog\.project_id\|agent_catalog_audit\.project_id\|agent_policies\.project_id\|agentCatalog\.projectId" platform/services/stagecraft crates product/apps/desktop` returns zero hits outside (a) historical migration files, (b) the migration script for this spec, (c) frozen superseded specs, (d) this spec's body.
 
 A-6. The project `Agents` tab implements bind / repin / unbind against the org catalog. The 119-era authoring routes under `app.project.$projectId.agents.new` and `agents.$agentId.publish` are deleted.
 
@@ -446,9 +450,9 @@ A-7. Duplex envelope schema constant is bumped to `v: 2` for catalog envelopes a
 
 A-8. The Factory `agent_resolver` resolves stage agent references against the org catalog, and a Stage CD comparator run against two distinct projects uses identical agent definitions by `content_hash` (verified by an integration test).
 
-A-9. The compiled spec registry (`build/spec-registry/registry.json`) carries `amends: ["119"]` on this spec and `amendment_record: "123"` on spec 119, with no schema-validation errors.
+A-9. The compiled spec registry (`.derived/spec-registry/registry.json`) carries `amends: ["119"]` on this spec and `amendment_record: "123"` on spec 119, with no schema-validation errors.
 
-A-10. The codebase index (`build/codebase-index/index.json`) re-renders cleanly; spec 111 and spec 119 traceability continue to resolve to active code.
+A-10. The codebase index (`.derived/codebase-index/index.json`) re-renders cleanly; spec 111 and spec 119 traceability continue to resolve to active code.
 
 A-11. `make ci` passes on the post-migration branch.
 

@@ -8,8 +8,8 @@ Treat `status-report --json` as a stable automation contract by adding fixture-b
 
 ## Technical Context
 
-- Language: Rust 2021 (`tools/registry-consumer`)
-- Test target: `tools/registry-consumer/tests/cli.rs`
+- Language: Rust 2021 (`tools/spec-spine/registry-consumer`)
+- Test target: `tools/spec-spine/registry-consumer/tests/cli.rs`
 - No expected runtime changes to `src/main.rs`
 
 ## Constitution Check

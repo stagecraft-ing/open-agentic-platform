@@ -6,7 +6,7 @@
 
 ## Summary
 
-Implement a **Rust** workspace crate at **`tools/spec-compiler/`** exposing a **`spec-compiler`** CLI that compiles repo feature specs into **`build/spec-registry/registry.json`** and **`build-meta.json`**, following Feature **000** schemas and validation codes **V-001**–**V-004**.
+Implement a **Rust** workspace crate at **`tools/spec-spine/spec-compiler/`** exposing a **`spec-compiler`** CLI that compiles repo feature specs into **`.derived/spec-registry/registry.json`** and **`build-meta.json`**, following Feature **000** schemas and validation codes **V-001**–**V-004**.
 
 ## Technical Context
 
@@ -14,7 +14,7 @@ Implement a **Rust** workspace crate at **`tools/spec-compiler/`** exposing a **
 
 **Primary Dependencies**: `serde`, `serde_json` (with deterministic serialization strategy), YAML frontmatter parser (`gray_matter`-equivalent Rust ecosystem, e.g. `matter` + `serde_yaml` scoped to frontmatter blocks), `sha2` for `contentHash`, `walkdir` or `ignore` for filesystem walks, `clap` for CLI.
 
-**Storage**: Read-only inputs from `specs/`; write outputs to `build/spec-registry/`. Create parent directories if missing.
+**Storage**: Read-only inputs from `specs/`; write outputs to `.derived/spec-registry/`. Create parent directories if missing.
 
 **Testing**: `cargo test` including integration tests with golden `registry.json` fixtures; subprocess tests for CLI exit codes.
 
@@ -58,7 +58,7 @@ specs/001-spec-compiler-mvp/
 ### Source Code (repository root)
 
 ```text
-tools/spec-compiler/
+tools/spec-spine/spec-compiler/
 ├── Cargo.toml
 ├── README.md
 ├── src/
@@ -74,7 +74,7 @@ tools/spec-compiler/
     └── fixtures/
 ```
 
-**Structure Decision**: Rust crate under `tools/spec-compiler/`; binary name **`spec-compiler`** (package `spec-compiler` or `open_agentic_spec_compiler` — crate name must be snake_case; binary can still be `spec-compiler` via `[[bin]]` name).
+**Structure Decision**: Rust crate under `tools/spec-spine/spec-compiler/`; binary name **`spec-compiler`** (package `spec-compiler` or `open_agentic_spec_compiler` — crate name must be snake_case; binary can still be `spec-compiler` via `[[bin]]` name).
 
 ## Complexity Tracking
 

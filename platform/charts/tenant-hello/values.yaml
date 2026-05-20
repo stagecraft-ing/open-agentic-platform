@@ -40,6 +40,7 @@ ingress:
     enabled: false
     secretName: ""
 
+# region: access-gate
 # Spec 137 — per-environment access gate. When `gate.enabled` is true,
 # the tenant Ingress emits `nginx.ingress.kubernetes.io/auth-url` and
 # `auth-signin` annotations chaining to the per-environment oauth2-proxy
@@ -54,6 +55,7 @@ gate:
   # http://<proxyServiceName>.<release-namespace>.svc.cluster.local:4180/oauth2/auth
   proxyServiceName: ""
   proxyServicePort: 4180
+# endregion access-gate
 
 serviceAccount:
   # Bind a dedicated SA per release. No extra permissions; the chart

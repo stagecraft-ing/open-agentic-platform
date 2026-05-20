@@ -14,7 +14,7 @@
 
 - [x] T003 Add integration tests for `list --json`
 - [x] T004 Implement `list --json` in `main.rs`
-- [x] T005 Update `tools/registry-consumer/README.md`
+- [x] T005 Update `tools/spec-spine/registry-consumer/README.md`
 
 ## Phase 3: Verify
 

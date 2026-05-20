@@ -22,6 +22,7 @@ export KUBECONFIG="$KUBECONFIG_PATH"
 info()  { printf '\033[1;34m==> %s\033[0m\n' "$*"; }
 err()   { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
+# region: cert-nginx-strikes
 # --- ingress-nginx + cert-manager + ClusterIssuers ---
 # Spec 151 Phase 3 (2026-05-18) — both charts and both active
 # ClusterIssuers (`letsencrypt-prod` HTTP-01 + `letsencrypt-prod-dns01-
@@ -58,6 +59,7 @@ err()   { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 # annotation from a similar existing ingress; if you find yourself
 # guessing, document the choice in the new ingress's PR rather than
 # assuming.
+# endregion cert-nginx-strikes
 
 # --- Namespaces ---
 info "Creating namespaces..."

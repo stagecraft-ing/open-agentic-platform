@@ -24,9 +24,6 @@ depends_on:
   - "088"  # factory-upstream-sync (superseded)
 supersedes:
   - "088"
-implements:
-  - path: platform/services/stagecraft/web/app/routes/app.factory.tsx
-  - path: platform/services/stagecraft/api/factory/
 ---
 
 # 108 — Factory as a First-Class Platform Feature
@@ -217,7 +214,7 @@ tier, stagecraft is the orchestration and persistence tier.
 
 The platform-side surface (`/api/factory/adapters`, `.../contracts/*`,
 `.../processes/:name`) ships with this spec. Migrating the OPC desktop's
-existing local execution path (`apps/desktop/src-tauri/src/commands/factory.rs`)
+existing local execution path (`product/apps/desktop/src-tauri/src/commands/factory.rs`)
 off the in-tree `factory/` checkout and onto the platform API is a separate
 effort with material complexity (auth, caching, run-state, offline
 behaviour) and is **tracked under spec 124 (`opc-factory-run-platform-integration`)**.
@@ -312,15 +309,15 @@ Per-phase artefacts:
   introduced because upstream-map v2 sources do not carry `*.schema.*` files
   in main — still walked up looking for that path, returned an empty list on
   every sync, and left `/app/factory/contracts` reporting "No contracts yet".
-  Resolved by relocating the nine OAP-owned schemas to
-  `crates/factory-contracts/schemas/` (four top-level + five under
+  Resolved by relocating the nine OAP-owned schemas (now at
+  `standards/schemas/factory/`; four top-level + five under
   `stage-outputs/`) and repointing the loader's walk-up target. The
   `OAP_FACTORY_SCHEMAS_DIR` override path is preserved for production
   containers that bind-mount the schemas elsewhere.
 
 OPC desktop migration (§7.1 punt) and the `factory_runs` persistence
 (§7.4) are tracked under **spec 124** (`opc-factory-run-platform-integration`).
-That spec migrates `apps/desktop/src-tauri/src/commands/factory.rs` to
+That spec migrates `product/apps/desktop/src-tauri/src/commands/factory.rs` to
 fetch adapter / contract / process bodies from the API endpoints shipped
 here, and adds the `factory_runs` table + duplex event handlers + Runs
 UI.

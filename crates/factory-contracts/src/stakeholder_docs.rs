@@ -23,7 +23,7 @@
 //! parse time.
 //!
 //! Schema version `STAKEHOLDER_DOC_SCHEMA_VERSION = "1.0.0"` is the
-//! compile-time anchor `tools/schema-parity-check` records on the
+//! compile-time anchor `tools/oap/schema-parity-check` records on the
 //! Rust side. The TS mirror reservation lives at
 //! `platform/services/stagecraft/api/governance/stakeholderDocPolicy.ts`
 //! and is null-safe until authored.
@@ -401,7 +401,7 @@ pub enum StakeholderDocParseError {
 // ---------------------------------------------------------------------------
 
 /// Canonical structural fingerprint of the stakeholder-doc schema. The
-/// matching `tools/schema-parity-check` will compute the same shape from
+/// matching `tools/oap/schema-parity-check` will compute the same shape from
 /// `stakeholderDocPolicy.ts` once the TS mirror lands and assert
 /// equality. Field lists at every nesting level are emitted in
 /// alphabetical order so the comparison is order-independent.
@@ -537,7 +537,7 @@ mod tests {
     #[test]
     fn writes_stakeholder_docs_fingerprint_file() {
         let dest = workspace_root()
-            .join("build/schema-parity/rust-stakeholder-doc-schema.json");
+            .join(".derived/schema-parity/rust-stakeholder-doc-schema.json");
         std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
         let json = serde_json::to_string_pretty(
             &stakeholder_doc_schema_fingerprint(),

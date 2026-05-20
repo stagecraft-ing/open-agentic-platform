@@ -14,8 +14,12 @@ summary: >
   (macOS arm64/x86_64, Linux x86_64/arm64, Windows x86_64) so that governed
   execution works on every platform instead of degrading to bypass mode on
   non-macOS hosts.
-implements:
-  - path: crates/axiomregent
+extends:
+  - spec: "033-axiomregent-activation"
+    paths:
+      - crates/axiomregent
+      - product/apps/desktop/src-tauri/binaries
+    nature: additive
 ---
 
 # Feature Specification: cross-platform axiomregent binaries
@@ -31,7 +35,7 @@ This feature builds axiomregent for all five Tauri-supported targets and integra
 ### In scope
 
 - **Cross-compile axiomregent** for four targets: `aarch64-apple-darwin`, `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-pc-windows-msvc`. _(Intel Mac `x86_64-apple-darwin` dropped 2026-04-15 — not feasible to maintain; Apple Silicon only.)_
-- **Bundle binaries** in `apps/desktop/src-tauri/binaries/` with Tauri's `{name}-{triple}[.exe]` naming convention.
+- **Bundle binaries** in `product/apps/desktop/src-tauri/binaries/` with Tauri's `{name}-{triple}[.exe]` naming convention.
 - **Build script** — a reproducible build/fetch script (following the gitctx-mcp pattern) that can be run locally and in CI.
 - **Verify sidecar spawn on Windows** — confirm `spawn_axiomregent` works with the bundled Windows binary (Tauri's `app.shell().sidecar()` resolves `axiomregent` → `axiomregent-x86_64-pc-windows-msvc.exe`).
 - **CI pipeline** — GitHub Actions workflow for cross-platform binary builds, triggered on axiomregent crate changes.
@@ -47,7 +51,7 @@ This feature builds axiomregent for all five Tauri-supported targets and integra
 
 ### Functional
 
-- **FR-001**: `apps/desktop/src-tauri/binaries/` contains axiomregent binaries for all four target triples. Windows binary has `.exe` extension.
+- **FR-001**: `product/apps/desktop/src-tauri/binaries/` contains axiomregent binaries for all four target triples. Windows binary has `.exe` extension.
 - **FR-002**: `spawn_axiomregent()` successfully starts the sidecar on at least macOS arm64 and Windows x86_64, with port discovery completing within 5 seconds.
 - **FR-003**: A build script (`scripts/build-axiomregent.sh` or equivalent) can produce binaries for all targets from a single host (using cross-compilation or CI matrix).
 - **FR-004**: The governed execution path (Feature 035) works end-to-end on Windows — permission checks, tier enforcement, and audit logging behave identically to macOS.
@@ -92,7 +96,7 @@ axiomregent uses Tauri's `app.shell().sidecar()` instead, which handles resoluti
 
 | Component | File | Change |
 |-----------|------|--------|
-| Binary directory | `apps/desktop/src-tauri/binaries/` | Add 4 new binaries |
+| Binary directory | `product/apps/desktop/src-tauri/binaries/` | Add 4 new binaries |
 | Build script | `scripts/build-axiomregent.sh` (new) | Cross-compile for all targets |
 | CI workflow | `.github/workflows/build-axiomregent.yml` (new) | Matrix build per platform |
 | Tauri config | `tauri.conf.json` | No change needed (`externalBin` already lists `binaries/axiomregent`) |

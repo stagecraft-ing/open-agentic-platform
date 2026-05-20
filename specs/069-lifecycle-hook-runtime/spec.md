@@ -17,8 +17,11 @@ summary: >
   manifests.
 code_aliases: ["LIFECYCLE_HOOK_RUNTIME"]
 sources: ["claude-code"]
-implements:
-  - path: packages/hookify-rule-engine
+extends:
+  - spec: "048-hookify-rule-engine"
+    paths:
+      - product/packages/hookify-rule-engine
+    nature: wrapping
 compliance:
   - framework: "owasp-asi-2026"
     # The Architecture §"Hook definition schema" ships canonical worked
@@ -35,7 +38,7 @@ compliance:
 
 ## Purpose
 
-Feature 048 designed the hookify rule engine — markdown rules with YAML frontmatter that match lifecycle events and fire block/warn/modify actions. The rule engine package (`packages/hookify-rule-engine/`) is scaffolded but not wired to a runtime.
+Feature 048 designed the hookify rule engine — markdown rules with YAML frontmatter that match lifecycle events and fire block/warn/modify actions. The rule engine package (`product/packages/hookify-rule-engine/`) is scaffolded but not wired to a runtime.
 
 Claude Code's hook system (`src/utils/hooks/`, `src/schemas/hooks.ts`) proves that 6 lifecycle events cover the full agent execution surface: `sessionStart`, `sessionStop`, `pre/postToolCall`, `userPromptSubmit`, and `fileChanged`. Handlers can be bash commands, agent prompts, or interactive prompts. Hooks are registered from multiple sources — settings.json, memory frontmatter, and skill registration.
 
@@ -240,7 +243,7 @@ impl HookRegistry {
 
 ## Implementation approach
 
-1. **Define event types and payloads** in `packages/hookify-rule-engine/src/events.ts` (extending existing scaffolding)
+1. **Define event types and payloads** in `product/packages/hookify-rule-engine/src/events.ts` (extending existing scaffolding)
 2. **Implement hook registry** with priority sorting and condition compilation
 3. **Implement bash handler** — spawn subprocess with env vars, capture output, enforce timeout
 4. **Implement agent handler** — invoke agent dispatch (Feature 035) with prompt template + payload context

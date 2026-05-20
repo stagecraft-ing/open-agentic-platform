@@ -12,8 +12,11 @@ language: en
 summary: >
   Add machine-readable JSON output to `registry-consumer status-report` so scripts and
   CI can consume lifecycle/status distribution without parsing human-formatted text.
-implements:
-  - path: tools/registry-consumer
+extends:
+  - spec: "007-registry-consumer-status-report-mvp"
+    paths:
+      - tools/spec-spine/registry-consumer
+    nature: additive
 ---
 
 # Feature Specification: Registry consumer status-report JSON output

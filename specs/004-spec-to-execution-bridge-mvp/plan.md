@@ -6,7 +6,7 @@
 
 Feature **004** is a **protocol and documentation** feature: it defines **changeset** layout, **spec/plan/tasks** roles, **task lifecycle**, **approval** and **verification**, and **markdown output** conventions. **No** Rust crate is required for MVP; **no** **`registry.json`** schema change.
 
-Optional follow-up (later features): a **linter** or **template** under **`.specify/templates/`** for **`execution/changeset.md`**; parsers for **`tasks.md`** task states.
+Optional follow-up (later features): a **linter** or **template** under **`standards/spec/templates/`** for **`execution/changeset.md`**; parsers for **`tasks.md`** task states.
 
 ## Technical Context
 
@@ -40,7 +40,7 @@ In **`tasks.md`**, encode task state with an explicit suffix on the task line, e
 - `- [ ] T001 (pending) …`
 - `- [x] T002 (complete) …`
 
-Alternatively, group tasks under **`### Pending`**, **`### In progress`**, etc. Pick **one** convention per repository when this spec is adopted; document the choice in root **README** or **`.specify/contract.md`** in a follow-up edit.
+Alternatively, group tasks under **`### Pending`**, **`### In progress`**, etc. Pick **one** convention per repository when this spec is adopted; document the choice in root **README** or **`standards/spec/contract.md`** in a follow-up edit.
 
 ## Complexity Tracking
 

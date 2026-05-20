@@ -13,15 +13,16 @@ amends: ["139"]
 depends_on:
   - "139"  # factory artifact substrate (introduces synthetic adapter/process IDs)
 code_aliases: ["FACTORY_ID_COLUMNS_TEXT_CUTOVER"]
-implements:
-  # Migration 38 — ALTER COLUMN TYPE uuid → text on the four affected columns.
-  - path: platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.up.sql
-  - path: platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.down.sql
-  - path: platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.test.ts
-  # Drizzle schema column types switched from `uuid()` to `text()` in lockstep.
-  - path: platform/services/stagecraft/api/db/schema.ts
-  # Vite exclude list extended for the migration-38 isolated test (mirrors mig 36/37 precedent).
-  - path: platform/services/stagecraft/vite.config.ts
+establishes:
+  - platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.up.sql
+  - platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.down.sql
+  - platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.test.ts
+extends:
+  - spec: "139-factory-artifact-substrate"
+    paths:
+      - platform/services/stagecraft/api/db/schema.ts
+      - platform/services/stagecraft/vite.config.ts
+    nature: additive
 summary: >
   Spec 139 Phase 4 cut over to substrate-projected adapter/process records
   whose runtime IDs are deterministic synthetic strings of the form

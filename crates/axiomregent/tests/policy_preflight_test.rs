@@ -50,7 +50,7 @@ async fn minimal_router() -> Router {
 async fn policy_denied_wire_code_when_allowlist_excludes_tool() {
     let tmp = tempfile::TempDir::new().expect("tmp");
     let repo = tmp.path();
-    std::fs::create_dir_all(repo.join("build/policy-bundles")).expect("dirs");
+    std::fs::create_dir_all(repo.join(".derived/policy-bundles")).expect("dirs");
     let bundle = PolicyBundle {
         constitution: vec![PolicyRule {
             id: "AL-1".into(),
@@ -72,7 +72,7 @@ async fn policy_denied_wire_code_when_allowlist_excludes_tool() {
         "shards": bundle.shards,
     });
     std::fs::write(
-        repo.join("build/policy-bundles/policy-bundle.json"),
+        repo.join(".derived/policy-bundles/policy-bundle.json"),
         serde_json::to_vec_pretty(&json).expect("json"),
     )
     .expect("write bundle");

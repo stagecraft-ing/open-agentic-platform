@@ -30,13 +30,13 @@ implementation shapes follow:
 **Language/Version**: Rust 1.95.0 (workspace toolchain)
 **Primary Dependencies**: `serde_json` (existing), `clap` (existing); no
 new crates expected.
-**Storage**: file-system reads of `build/codebase-index/index.json` and
+**Storage**: file-system reads of `.derived/codebase-index/index.json` and
 `specs/*/spec.md` frontmatter. No persistent state introduced.
-**Testing**: `cargo test --manifest-path tools/spec-code-coupling-check/Cargo.toml`
+**Testing**: `cargo test --manifest-path tools/spec-spine/spec-code-coupling-check/Cargo.toml`
 (integration tests under `tests/cli.rs`); spec-compiler integration tests
 remain unaffected.
 **Target Platform**: CI (Linux runners) + local macOS/Linux dev shells.
-**Project Type**: CLI tool (`tools/spec-code-coupling-check/`) consumed
+**Project Type**: CLI tool (`tools/spec-spine/spec-code-coupling-check/`) consumed
 by `make ci-spec-code-coupling` and `.github/workflows/ci-spec-code-coupling.yml`.
 **Performance Goals**: gate runtime under 500 ms on a 130-spec corpus;
 amend-aware resolution adds at most one additional pass over the index's
@@ -51,7 +51,7 @@ without requiring index restructuring.
 *GATE: Must pass before implementation. Re-check before commit.*
 
 - **Principle II — compiled JSON machine truth.** The gate already reads
-  `build/codebase-index/index.json` through typed deserialisation per
+  `.derived/codebase-index/index.json` through typed deserialisation per
   spec 103. New fields (if added) flow through the same governed
   consumer pattern. ✅
 - **Principle: schema version as compile-time const.** If
@@ -111,13 +111,13 @@ the gate refinement in one cohesive change." Same shape here.
 
 ### Phase 0 — Investigation (no edits)
 
-Verify whether `build/codebase-index/index.json` already contains
+Verify whether `.derived/codebase-index/index.json` already contains
 `amends:` and `amendment_record:` for at least one spec mapping.
 Specifically check:
 
 ```bash
-grep -A 2 '"specId": "132-' build/codebase-index/index.json
-grep -A 2 '"specId": "119-' build/codebase-index/index.json
+grep -A 2 '"specId": "132-' .derived/codebase-index/index.json
+grep -A 2 '"specId": "119-' .derived/codebase-index/index.json
 ```
 
 Look for `amends` / `amendmentRecord` keys. Outcome decides Shape A vs B.
@@ -126,12 +126,12 @@ Look for `amends` / `amendmentRecord` keys. Outcome decides Shape A vs B.
 
 If Phase 0 shows missing data:
 
-1. Extend `tools/codebase-indexer/src/spec_scanner.rs` to read both
+1. Extend `tools/spec-spine/codebase-indexer/src/spec_scanner.rs` to read both
    fields from frontmatter.
 2. Add `amends: Vec<String>` and `amendment_record: Option<String>`
    (or `Vec<String>` if multi-record patterns exist) to the
-   `TraceMapping` in `tools/codebase-indexer/src/types.rs`.
-3. Update `schemas/codebase-index.schema.json` to declare the new
+   `TraceMapping` in `tools/spec-spine/codebase-indexer/src/types.rs`.
+3. Update `standards/schemas/spec-spine/codebase-index.schema.json` to declare the new
    fields under `traceability.mappings.items.properties`.
 4. Bump `SCHEMA_VERSION` (compile-time const) in `lib.rs` or wherever
    it lives. The `make ci` schema-conformance gate will validate the
@@ -141,7 +141,7 @@ If Phase 0 shows missing data:
 
 ### Phase 2 — Gate resolver extension (always)
 
-1. Extend the typed `Index` loader in `tools/spec-code-coupling-check/`
+1. Extend the typed `Index` loader in `tools/spec-spine/spec-code-coupling-check/`
    to surface the two new fields.
 2. Modify the `legitimate_owners()` resolver per spec §5.2 — three
    owner classes, union semantics, source-tagged for renderer.
@@ -150,7 +150,7 @@ If Phase 0 shows missing data:
 
 ### Phase 3 — Tests
 
-Add integration test fixtures under `tools/spec-code-coupling-check/tests/cli.rs`
+Add integration test fixtures under `tools/spec-spine/spec-code-coupling-check/tests/cli.rs`
 covering AC-1 through AC-6 from the spec. Each fixture builds a synthetic
 `index.json` (extending the existing helper `write_synthetic_index`) with
 the new fields populated.

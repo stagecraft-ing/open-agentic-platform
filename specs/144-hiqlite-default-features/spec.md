@@ -13,10 +13,15 @@ depends_on:
   - "073"  # axiomregent-unification (axiomregent's hiqlite usage)
   - "052"  # state-persistence (orchestrator's hiqlite-backed distributed mode)
 code_aliases: ["HIQLITE_DEFAULT_FEATURES"]
-implements:
-  - path: crates/orchestrator/Cargo.toml
-  - path: crates/axiomregent/Cargo.toml
-  - path: crates/Cargo.lock
+refines:
+  - paths:
+      - crates/orchestrator/Cargo.toml
+      - crates/axiomregent/Cargo.toml
+      - crates/Cargo.lock
+    aspect: cargo-manifest-hygiene
+    refines_specs:
+      - "073-axiomregent-unification"
+      - "052-state-persistence"
 summary: >
   `crates/orchestrator/Cargo.toml:20` declares the `hiqlite` dependency
   without `default-features = false`. Cargo unifies features across the
@@ -39,7 +44,7 @@ summary: >
 
 The `crates/` Cargo workspace currently ships every binary that depends
 on hiqlite — including the desktop `axiomregent` crate, transitively
-via `apps/desktop/src-tauri` — with `auto-heal`, `backup`, `s3`, and
+via `product/apps/desktop/src-tauri` — with `auto-heal`, `backup`, `s3`, and
 `toml` compiled in, even though no source code imports a single API
 those features expose. The cause is a single missing manifest flag
 captured in `audit.md` (this directory) Phase 2.2 and Phase 3a.

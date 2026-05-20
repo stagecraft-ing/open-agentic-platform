@@ -25,17 +25,20 @@ depends_on:
   - "108"  # factory-as-platform-feature (factory_adapters binding)
   - "109"  # factory-pat-and-pubsub-sync (resolveProjectToken, installation broker)
   - "112"  # factory-project-lifecycle (import + scaffold reusable primitives)
-implements:
-  - path: platform/services/stagecraft/web/app/routes/app._index.tsx
-  - path: platform/services/stagecraft/web/app/routes/app.tsx
-  - path: platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx
-  - path: platform/services/stagecraft/web/app/lib/projects-api.server.ts
-  - path: platform/services/stagecraft/api/projects/clone.ts
-  - path: platform/services/stagecraft/api/projects/cloneHelpers.ts
-  - path: platform/services/stagecraft/api/projects/cloneAvailability.ts
-  - path: platform/services/stagecraft/api/projects/encore.service.ts
-  - path: platform/services/stagecraft/api/projects/clone.test.ts
-  - path: platform/services/stagecraft/api/projects/cloneAvailability.test.ts
+extends:
+  - spec: "112-factory-project-lifecycle"
+    paths:
+      - platform/services/stagecraft/web/app/routes/app._index.tsx
+      - platform/services/stagecraft/web/app/routes/app.tsx
+      - platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx
+      - platform/services/stagecraft/web/app/lib/projects-api.server.ts
+      - platform/services/stagecraft/api/projects/clone.ts
+      - platform/services/stagecraft/api/projects/cloneHelpers.ts
+      - platform/services/stagecraft/api/projects/cloneAvailability.ts
+      - platform/services/stagecraft/api/projects/encore.service.ts
+      - platform/services/stagecraft/api/projects/clone.test.ts
+      - platform/services/stagecraft/api/projects/cloneAvailability.test.ts
+    nature: additive
 ---
 
 # 113 — Stagecraft Projects Rename + In-Org Project Clone

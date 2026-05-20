@@ -12,8 +12,10 @@ summary: >
   Add a dedicated Checkpoint panel to the desktop app that exposes titor's
   temporal safety capabilities through a project-scoped UI: initialize tracking,
   create named checkpoints, list/restore/diff/verify checkpoints.
-implements:
-  - path: apps/desktop
+establishes:
+  - product/apps/desktop/src/features/checkpoint/CheckpointSurface.tsx
+  - product/apps/desktop/src/features/checkpoint/useCheckpointFlow.ts
+  - product/apps/desktop/src/features/checkpoint/types.ts
 ---
 
 # Feature Specification: Checkpoint / Restore UI — desktop panel
@@ -27,7 +29,7 @@ Feature 038 wired the titor library's six Tauri commands (`titor_init`, `titor_c
 ### In scope
 
 - **Singleton tab**: `checkpoint` tab type in the tab system, accessible from the titlebar tools dropdown (following the governance/xray/semantic-search pattern).
-- **Feature directory**: `apps/desktop/src/features/checkpoint/` with `CheckpointSurface.tsx`, `useCheckpointFlow.ts`, and `types.ts`.
+- **Feature directory**: `product/apps/desktop/src/features/checkpoint/` with `CheckpointSurface.tsx`, `useCheckpointFlow.ts`, and `types.ts`.
 - **Project initialization**: Text input for project root path + "Initialize" button that calls `titor_init`.
 - **Checkpoint creation**: "Create checkpoint" button with optional message input; calls `titor_checkpoint`.
 - **Checkpoint list**: Displays all checkpoints for the initialized project (id, timestamp, description, file count, size) via `titor_list`.
@@ -76,7 +78,7 @@ Feature 038 wired the titor library's six Tauri commands (`titor_init`, `titor_c
 ### Feature structure
 
 ```
-apps/desktop/src/features/checkpoint/
+product/apps/desktop/src/features/checkpoint/
   CheckpointSurface.tsx   — main panel component
   useCheckpointFlow.ts    — state machine + titor command wrappers
   types.ts                — TypeScript interfaces for checkpoint data

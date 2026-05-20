@@ -14,9 +14,16 @@ summary: >
   spec-governed definition, fix 13 tools that incorrectly default to Tier3, reconcile the
   dual SafetyTier enums, and surface per-tool tier assignments in the governance UI.
 code_aliases: ["SAFETY_TIER_GOVERNANCE"]
-implements:
-  - path: crates/tool-registry
-  - path: crates/policy-kernel
+refines:
+  - paths:
+      - crates/agent/src/safety.rs
+      - crates/axiomregent/src/router
+    aspect: safety-tier-classification
+    refines_specs:
+      - "035-agent-governed-execution"
+establishes:
+  - crates/tool-registry
+  - crates/policy-kernel
 ---
 
 # Feature Specification: safety tier governance

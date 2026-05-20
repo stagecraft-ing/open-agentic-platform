@@ -16,6 +16,12 @@ summary: >
   bypass in all seven execution paths.
 code_aliases:
   - AGENT_AUTOMATION
+extends:
+  - spec: "033-axiomregent-activation"
+    paths:
+      - product/apps/desktop/src-tauri/src/commands/agents.rs
+      - product/apps/desktop/src-tauri/src/commands/claude.rs
+    nature: additive
 ---
 
 # Feature Specification: agent governed execution

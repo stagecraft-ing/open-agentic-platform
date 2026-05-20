@@ -46,6 +46,7 @@ const TENANT_HELLO_INGRESS_YAML: &str =
 const TENANT_HELLO_SA_YAML: &str =
     include_str!("../../../charts/tenant-hello/templates/serviceaccount.yaml");
 
+// region: gate-overlay
 // Spec 137 — oauth2-proxy-gate chart (per-environment passwordless OIDC gate).
 const OAUTH2_PROXY_GATE_CHART_YAML: &str =
     include_str!("../../../charts/oauth2-proxy-gate/Chart.yaml");
@@ -65,6 +66,7 @@ const OAUTH2_PROXY_GATE_CONFIGMAP_YAML: &str =
     include_str!("../../../charts/oauth2-proxy-gate/templates/configmap.yaml");
 const OAUTH2_PROXY_GATE_SA_YAML: &str =
     include_str!("../../../charts/oauth2-proxy-gate/templates/serviceaccount.yaml");
+// endregion gate-overlay
 
 #[derive(Debug)]
 pub enum HelmError {

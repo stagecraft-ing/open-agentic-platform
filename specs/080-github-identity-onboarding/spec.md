@@ -16,8 +16,9 @@ summary: >
 code_aliases: ["GITHUB_IDENTITY", "ORG_ONBOARDING"]
 owner: bart
 risk: medium
-implements:
-  - path: platform/services/stagecraft
+establishes:
+  - platform/services/stagecraft/api/github
+  - platform/services/stagecraft/api/auth
 ---
 
 # Feature Specification: GitHub Identity and Org Onboarding

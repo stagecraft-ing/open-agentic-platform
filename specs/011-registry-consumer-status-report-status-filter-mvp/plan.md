@@ -8,10 +8,10 @@ Add `--status <value>` filtering to `status-report` for focused text/JSON output
 
 ## Technical Context
 
-- Language: Rust 2021 (`tools/registry-consumer`)
+- Language: Rust 2021 (`tools/spec-spine/registry-consumer`)
 - Minimal CLI/output change in `src/main.rs`
 - Reuse `status_report()` data and known lifecycle statuses from library constants
-- Extend integration tests in `tools/registry-consumer/tests/cli.rs`
+- Extend integration tests in `tools/spec-spine/registry-consumer/tests/cli.rs`
 
 ## Constitution Check
 

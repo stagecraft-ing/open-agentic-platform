@@ -5,6 +5,7 @@ metadata:
   name: {{ include "tenant-hello.fullname" . }}
   labels:
     {{- include "tenant-hello.labels" . | nindent 4 }}
+  # region: access-gate
   {{- if or .Values.gate.enabled .Values.ingress.annotations }}
   annotations:
     {{- /* Spec 137 — chain to the per-env oauth2-proxy gate when enabled.
@@ -19,6 +20,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
   {{- end }}
+  # endregion access-gate
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   {{- if .Values.ingress.tls.enabled }}

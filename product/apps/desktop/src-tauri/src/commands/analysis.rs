@@ -1,0 +1,354 @@
+use featuregraph::enrichment::enrich_features_with_metrics;
+use featuregraph::preflight::compute_blast_radius;
+use featuregraph::scanner::Scanner;
+use featuregraph::tools::FeatureGraphTools;
+use open_agentic_spec_registry_reader as srr;
+use serde::Serialize;
+use serde_json::{Value, json};
+use specta::Type;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use tauri::command;
+use xray::scan_target;
+
+#[command]
+pub async fn xray_scan_project(path: String) -> Result<serde_json::Value, String> {
+    let target = PathBuf::from(&path);
+    let index = scan_target(&target, None).map_err(|e| e.to_string())?;
+    serde_json::to_value(&index).map_err(|e| e.to_string())
+}
+
+/// Governance + inspect: compiled **registry** summary plus **featuregraph** scan.
+/// The graph scan prefers `build/spec-registry/registry.json` (via `spec-compiler`), then `spec/features.yaml` — see `featuregraph::scanner::Scanner::scan`.
+#[command]
+pub async fn featuregraph_overview(
+    features_yaml_path: String,
+) -> Result<serde_json::Value, String> {
+    let repo_root = resolve_repo_root(&features_yaml_path);
+    let registry_path = repo_root.join(".derived/spec-registry/registry.json");
+
+    let registry = match read_registry_summary(&registry_path) {
+        Ok(summary) => json!({
+            "status": "ok",
+            "path": registry_path,
+            "summary": summary,
+        }),
+        Err(err) => json!({
+            "status": "unavailable",
+            "path": registry_path,
+            "message": err,
+        }),
+    };
+
+    let fg_tools = FeatureGraphTools::new();
+    let featuregraph = match fg_tools.features_overview(&repo_root, None) {
+        Ok(graph) => {
+            let feature_count = graph
+                .get("features")
+                .and_then(Value::as_array)
+                .map(|items| items.len())
+                .unwrap_or(0);
+            let violations_count = graph
+                .get("violations")
+                .and_then(Value::as_array)
+                .map(|items| items.len())
+                .unwrap_or(0);
+
+            json!({
+                "status": "ok",
+                "summary": {
+                    "featureCount": feature_count,
+                    "violationsCount": violations_count,
+                },
+            })
+        }
+        Err(err) => json!({
+            "status": "unavailable",
+            "message": err.to_string(),
+        }),
+    };
+
+    let overall_status = if registry["status"] == "ok" && featuregraph["status"] == "ok" {
+        "success"
+    } else {
+        "degraded"
+    };
+
+    Ok(json!({
+        "status": overall_status,
+        "repoRoot": repo_root,
+        "registry": registry,
+        "featuregraph": featuregraph,
+    }))
+}
+
+/// Read-only labels for safety tiers (governance UI).
+/// Change tiers: `featuregraph::preflight::ChangeTier` (classifies file changes).
+/// Tool tiers: `agent::safety::ToolTier` (classifies MCP tool dispatch).
+#[derive(Debug, Clone, Serialize, Type)]
+pub struct SafetyTierRef {
+    pub id: String,
+    pub label: String,
+    pub description: String,
+}
+
+#[command]
+#[specta::specta]
+pub fn get_preflight_safety_tier_reference() -> Vec<SafetyTierRef> {
+    vec![
+        SafetyTierRef {
+            id: "tier1".into(),
+            label: "Tier 1".into(),
+            description: "Autonomous".into(),
+        },
+        SafetyTierRef {
+            id: "tier2".into(),
+            label: "Tier 2".into(),
+            description: "Gated".into(),
+        },
+        SafetyTierRef {
+            id: "tier3".into(),
+            label: "Tier 3".into(),
+            description: "Manual".into(),
+        },
+    ]
+}
+
+/// Per-tool tier assignments for governance UI (Feature 036).
+#[derive(Debug, Clone, Serialize, Type)]
+pub struct ToolTierEntry {
+    pub tool: String,
+    pub tier: String,
+}
+
+#[command]
+#[specta::specta]
+pub fn get_tool_tier_assignments() -> Vec<ToolTierEntry> {
+    agent::safety::explicitly_classified_tools()
+        .iter()
+        .map(|name| ToolTierEntry {
+            tool: name.to_string(),
+            tier: agent::safety::get_tool_tier(name).as_str().to_string(),
+        })
+        .collect()
+}
+
+/// Spec 093 — Governance preflight: given a set of changed files, returns safety tier,
+/// affected features, and violations from the featuregraph preflight checker.
+#[command]
+pub async fn governance_preflight(
+    changed_files: Vec<String>,
+    repo_root: String,
+) -> Result<serde_json::Value, String> {
+    let root = resolve_repo_root(&repo_root);
+    let fg_tools = FeatureGraphTools::new();
+    let request = json!({
+        "intent": "edit",
+        "mode": "worktree",
+        "changed_paths": changed_files,
+    });
+    let preflight = fg_tools
+        .governance_preflight(&root, request)
+        .map_err(|e| e.to_string())?;
+
+    // Enrich with affected feature details from impact analysis
+    let impact = fg_tools
+        .features_impact(&root.to_string_lossy(), &changed_files)
+        .map_err(|e| e.to_string())?;
+
+    // Spec 096 Slice 4: enrich with blast radius when xray scan available
+    let blast_radius = match scan_target(&root, None) {
+        Ok(index) => {
+            let scanner = featuregraph::scanner::Scanner::new(&root);
+            match scanner.scan() {
+                Ok(graph) => {
+                    let br = compute_blast_radius(&graph, &index, &changed_files);
+                    Some(serde_json::to_value(&br).unwrap_or(Value::Null))
+                }
+                Err(_) => None,
+            }
+        }
+        Err(_) => None,
+    };
+
+    Ok(json!({
+        "preflight": preflight,
+        "impact": impact,
+        "blastRadius": blast_radius,
+    }))
+}
+
+/// Spec 096 Slice 3: Governance drift detection — returns features with violations
+/// (e.g., `// Feature:` headers that don't match any registry entry).
+#[command]
+pub async fn governance_drift(repo_root: String) -> Result<serde_json::Value, String> {
+    let root = resolve_repo_root(&repo_root);
+    let fg_tools = FeatureGraphTools::new();
+    fg_tools.governance_drift(&root).map_err(|e| e.to_string())
+}
+
+/// Spec 096 Slice 4 — Portfolio overview: enriched feature list with structural metrics.
+#[command]
+pub async fn portfolio_overview(repo_root: String) -> Result<serde_json::Value, String> {
+    let root = resolve_repo_root(&repo_root);
+
+    let scanner = Scanner::new(&root);
+    let graph = scanner.scan().map_err(|e| e.to_string())?;
+
+    let index = scan_target(&root, None).map_err(|e| e.to_string())?;
+    let features = enrich_features_with_metrics(&graph, &index);
+
+    // Compute aggregates.
+    let total_features = features.len();
+    let total_loc: u64 = features.iter().map(|f| f.total_loc).sum();
+    let avg_test_coverage = if total_features > 0 {
+        features.iter().map(|f| f.test_coverage_ratio).sum::<f64>() / total_features as f64
+    } else {
+        0.0
+    };
+
+    let mut by_status: HashMap<String, usize> = HashMap::new();
+    let mut by_risk: HashMap<String, usize> = HashMap::new();
+    for f in &features {
+        *by_status.entry(f.status.clone()).or_default() += 1;
+        // Derive risk from complexity + test coverage.
+        let risk = if f.max_complexity > 20 && f.test_coverage_ratio < 0.1 {
+            "high"
+        } else if f.max_complexity > 10 || f.test_coverage_ratio < 0.2 {
+            "medium"
+        } else {
+            "low"
+        };
+        *by_risk.entry(risk.to_string()).or_default() += 1;
+    }
+
+    Ok(json!({
+        "features": features,
+        "aggregates": {
+            "totalFeatures": total_features,
+            "totalLoc": total_loc,
+            "avgTestCoverage": avg_test_coverage,
+            "byStatus": by_status,
+            "byRisk": by_risk,
+        },
+    }))
+}
+
+#[command]
+pub async fn featuregraph_impact(
+    file_paths: Vec<String>,
+    features_yaml_path: String,
+) -> Result<serde_json::Value, String> {
+    let repo_root = resolve_repo_root(&features_yaml_path);
+    let fg_tools = FeatureGraphTools::new();
+    fg_tools
+        .features_impact(&repo_root.to_string_lossy(), &file_paths)
+        .map_err(|e| e.to_string())
+}
+
+fn resolve_repo_root(input: &str) -> PathBuf {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    }
+    PathBuf::from(trimmed)
+}
+
+fn read_registry_summary(path: &Path) -> Result<Value, String> {
+    // Cut D W-12: typed-reader consumer. No more ad-hoc Value parsing —
+    // spec 103's "consumer-binary exception" applies once per artifact
+    // (the spec_registry_reader::load entry point in tools/registry-
+    // consumer).
+    let registry = srr::load(path).map_err(|e| match e {
+        srr::RegistryError::Io(err) => format!("Failed reading registry: {err}"),
+        srr::RegistryError::Json(err) => format!("Failed parsing registry JSON: {err}"),
+        srr::RegistryError::UnknownSchemaVersion(v) => {
+            format!("Unsupported registry specVersion: {v}")
+        }
+        srr::RegistryError::MissingFeaturesArray => "Registry missing features array".to_string(),
+    })?;
+
+    let validation_passed = registry.validation.passed;
+    let violations_count = registry.validation.violations.len();
+
+    let mut status_counts = serde_json::Map::new();
+    for f in &registry.features {
+        let status = f.status.as_deref().unwrap_or("unknown");
+        let prev = status_counts
+            .get(status)
+            .and_then(Value::as_u64)
+            .unwrap_or(0);
+        status_counts.insert(status.to_string(), Value::from(prev + 1));
+    }
+
+    let mut feature_summaries = Vec::new();
+    for f in &registry.features {
+        let Some(spec_path) = f.spec_path.as_deref() else {
+            continue;
+        };
+        if spec_path.is_empty() {
+            continue;
+        }
+        feature_summaries.push(json!({
+            "id": f.id,
+            "title": f.title.as_deref().unwrap_or(""),
+            "specPath": spec_path,
+        }));
+    }
+
+    Ok(json!({
+        "featureCount": registry.features.len(),
+        "validationPassed": validation_passed,
+        "violationsCount": violations_count,
+        "statusCounts": status_counts,
+        "featureSummaries": feature_summaries,
+    }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::read_registry_summary;
+    use std::io::Write;
+
+    #[test]
+    fn read_registry_summary_parses_counts() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("registry.json");
+        let mut file = std::fs::File::create(&path).expect("file");
+        writeln!(
+            file,
+            r#"{{
+  "specVersion":"1.5.0",
+  "features":[
+    {{"id":"001","status":"active","title":"A","specPath":"specs/001-a/spec.md"}},
+    {{"id":"002","status":"active","title":"B","specPath":"specs/002-b/spec.md"}},
+    {{"id":"003","status":"draft","title":"C","specPath":"specs/003-c/spec.md"}}
+  ],
+  "validation":{{"passed":true,"violations":[]}}
+}}"#
+        )
+        .expect("write");
+
+        let summary = read_registry_summary(&path).expect("summary");
+        assert_eq!(summary["featureCount"], 3);
+        assert_eq!(summary["validationPassed"], true);
+        assert_eq!(summary["statusCounts"]["active"], 2);
+        assert_eq!(summary["statusCounts"]["draft"], 1);
+        let fs = summary["featureSummaries"]
+            .as_array()
+            .expect("featureSummaries");
+        assert_eq!(fs.len(), 3);
+        assert_eq!(fs[0]["specPath"], "specs/001-a/spec.md");
+    }
+
+    #[test]
+    fn read_registry_summary_rejects_missing_features() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("registry.json");
+        let mut file = std::fs::File::create(&path).expect("file");
+        writeln!(file, r#"{{"specVersion":"1.5.0","validation":{{"passed":true}}}}"#).expect("write");
+
+        let err = read_registry_summary(&path).expect_err("expected error");
+        assert!(err.contains("features array"));
+    }
+}

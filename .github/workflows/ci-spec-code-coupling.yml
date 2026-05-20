@@ -1,11 +1,13 @@
-# Spec: 127-spec-code-coupling-gate
+# Spec: 127-spec-code-coupling-workflow
 #
-# PR-time gate: every diff path claimed by a spec's `implements:` list must
-# be accompanied by an edit to that spec's spec.md. Reads
-# build/codebase-index/index.json via typed deserialization shared with
-# `codebase-indexer` (spec 103 governed-read exception). Bypass list lives
-# in tools/spec-code-coupling-check/src/lib.rs::BYPASS_PREFIXES; explicit
-# waivers via `Spec-Drift-Waiver: <reason>` line in PR body.
+# PR-time gate: every diff path's current authority spec (derived from
+# the relationship-graph per spec 130) must be edited in the same PR.
+# Reads .derived/codebase-index/index.json via typed deserialization shared
+# with `codebase-indexer` (spec 103 governed-read exception).
+# Empty-authority-by-rule patterns (formerly .github/spec-coupling-
+# bypass.txt) are codified in spec 152 (path-co-authority) §3.2;
+# explicit waivers via `Spec-Drift-Waiver: <reason>` line in PR body
+# remain as the last-resort mechanism.
 
 name: CI spec/code coupling
 
@@ -35,13 +37,13 @@ jobs:
           toolchain: '1.95.0'
 
       - name: Build codebase-indexer
-        run: cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+        run: cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
 
       - name: Compile codebase-index
-        run: ./tools/codebase-indexer/target/release/codebase-indexer compile
+        run: ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
 
       - name: Build spec-code-coupling-check
-        run: cargo build --release --manifest-path tools/spec-code-coupling-check/Cargo.toml
+        run: cargo build --release --manifest-path tools/spec-spine/spec-code-coupling-check/Cargo.toml --target-dir tools/spec-spine/spec-code-coupling-check/target
 
       - name: Run spec-code-coupling-check
         env:
@@ -53,5 +55,5 @@ jobs:
           # Materialise the PR body to a file so the gate can grep waivers.
           body_file="$(mktemp)"
           printf '%s' "${PR_BODY:-}" > "$body_file"
-          ./tools/spec-code-coupling-check/target/release/spec-code-coupling-check \
+          ./tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check \
               --base "$BASE_SHA" --head "$HEAD_SHA" --pr-body "$body_file"

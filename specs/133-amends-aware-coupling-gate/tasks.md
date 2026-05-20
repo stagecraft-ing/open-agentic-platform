@@ -18,8 +18,8 @@ ship with integration test coverage matching AC-1 through AC-6.
 
 ## Path Conventions
 
-- Indexer: `tools/codebase-indexer/`
-- Gate: `tools/spec-code-coupling-check/`
+- Indexer: `tools/spec-spine/codebase-indexer/`
+- Gate: `tools/spec-spine/spec-code-coupling-check/`
 - Schemas: `schemas/`
 
 ---
@@ -27,8 +27,8 @@ ship with integration test coverage matching AC-1 through AC-6.
 ## Phase 1: Setup
 
 - [ ] T001 Confirm spec 133 frontmatter compiles cleanly: run
-  `./tools/spec-compiler/target/release/spec-compiler compile` and
-  verify exit 0 + spec 133 appears in `build/spec-registry/registry.json`.
+  `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile` and
+  verify exit 0 + spec 133 appears in `.derived/spec-registry/registry.json`.
 
 ---
 
@@ -37,12 +37,12 @@ ship with integration test coverage matching AC-1 through AC-6.
 **Purpose**: Phase 0 of the plan. Decide Shape A (gate-only) vs
 Shape B (indexer + gate). All subsequent tasks depend on this outcome.
 
-- [ ] T002 [Foundational] Inspect `build/codebase-index/index.json` for
+- [ ] T002 [Foundational] Inspect `.derived/codebase-index/index.json` for
   `amends` and `amendmentRecord` fields under any spec mapping. Use:
   ```bash
-  ./tools/codebase-indexer/target/release/codebase-indexer compile
+  ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
   python3 -c 'import json,sys; \
-    d=json.load(open("build/codebase-index/index.json")); \
+    d=json.load(open(".derived/codebase-index/index.json")); \
     m=[x for x in d["traceability"]["mappings"] if x["specId"].startswith("132")]; \
     print(json.dumps(m,indent=2))' \
     || true   # ad-hoc inspection only; not an orchestrated workflow read
@@ -55,7 +55,7 @@ Shape B (indexer + gate). All subsequent tasks depend on this outcome.
 
 ## Decision (T003): Shape B — index.json does NOT carry `amends:` or
 ## `amendmentRecord:` today. The codebase-indexer's `TraceMapping`
-## struct (`tools/codebase-indexer/src/types.rs`) only surfaces
+## struct (`tools/spec-spine/codebase-indexer/src/types.rs`) only surfaces
 ## `specId`, `specStatus`, `dependsOn`, and `implementingPaths`; the
 ## scanner reads no amend frontmatter. Phase 3 therefore includes the
 ## indexer extension (T020-T024) plus the gate change (T030-T032),
@@ -79,7 +79,7 @@ amended spec's `spec.md` path. No waiver required.
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation.**
 
 - [ ] T010 [P] [US1] Add test `amends_link_clears_amended_spec_path` in
-  `tools/spec-code-coupling-check/tests/cli.rs`: build synthetic index
+  `tools/spec-spine/spec-code-coupling-check/tests/cli.rs`: build synthetic index
   with mapping `{specId: "B", amends: ["A"]}` plus path `specs/A/spec.md`
   + `specs/B/spec.md` in diff, assert exit 0. Maps to spec AC-1.
 - [ ] T011 [P] [US1] Add test `amendment_record_clears_amended_spec_path`
@@ -99,22 +99,22 @@ amended spec's `spec.md` path. No waiver required.
 - [ ] T020 [US1] Add `amends: Vec<String>` and
   `amendment_record: Option<String>` (or `Vec<String>` if multi-record
   evidence found) to `TraceMapping` in
-  `tools/codebase-indexer/src/types.rs`. Mark `#[serde(default)]` for
+  `tools/spec-spine/codebase-indexer/src/types.rs`. Mark `#[serde(default)]` for
   backwards-compat with old indexes.
-- [ ] T021 [US1] Extend `tools/codebase-indexer/src/spec_scanner.rs` to
+- [ ] T021 [US1] Extend `tools/spec-spine/codebase-indexer/src/spec_scanner.rs` to
   populate the new fields from spec frontmatter.
-- [ ] T022 [US1] Update `schemas/codebase-index.schema.json` to declare
+- [ ] T022 [US1] Update `standards/schemas/spec-spine/codebase-index.schema.json` to declare
   `amends` (array of strings) and `amendmentRecord` (string or array)
   under `traceability.mappings.items.properties`.
 - [ ] T023 [US1] Bump indexer `SCHEMA_VERSION` compile-time const (e.g.
   `1.2.0` → `1.3.0`). Add a one-line CHANGELOG comment in `types.rs`
   or wherever the const lives.
 - [ ] T024 [US1] Re-run `codebase-indexer compile` and commit the
-  refreshed `build/codebase-index/index.json`.
+  refreshed `.derived/codebase-index/index.json`.
 
 **Always (Shape A and B):**
 
-- [ ] T030 [US1] In `tools/spec-code-coupling-check/src/lib.rs`,
+- [ ] T030 [US1] In `tools/spec-spine/spec-code-coupling-check/src/lib.rs`,
   extend `legitimate_owners()` (or equivalent named function) to merge
   three sources: `implements:` claimants (existing), `amends:` (per
   spec 133 FR-001), `amendment_record:` (per FR-002). Return tagged
@@ -124,7 +124,7 @@ amended spec's `spec.md` path. No waiver required.
   the data, this is a deserialisation extension; otherwise add fall-
   back to empty per FR-005.
 - [ ] T032 [US1] Confirm tests T010 / T011 / T012 now pass:
-  `cargo test --manifest-path tools/spec-code-coupling-check/Cargo.toml`.
+  `cargo test --manifest-path tools/spec-spine/spec-code-coupling-check/Cargo.toml`.
 
 **Checkpoint**: User Story 1 complete. The 2026-05-02 false-positive
 class no longer fires.
@@ -151,7 +151,7 @@ showing `implements:` / `amends:` / `amendment_record:` columns.
 ### Implementation for User Story 2
 
 - [ ] T041 [US2] Update the renderer in
-  `tools/spec-code-coupling-check/src/lib.rs` (or `render.rs` if
+  `tools/spec-spine/spec-code-coupling-check/src/lib.rs` (or `render.rs` if
   separate) to print per-class subsections under each violated path,
   per spec §"FR-004". Format example in spec body §4.
 - [ ] T042 [US2] Confirm T040 passes.
@@ -174,7 +174,7 @@ amends 000/087/092/094/099 historically).
 ### Implementation
 
 - [ ] T050 [US3] Update the markdown renderer in
-  `tools/codebase-indexer/src/render.rs` (or wherever rendering lives)
+  `tools/spec-spine/codebase-indexer/src/render.rs` (or wherever rendering lives)
   to surface `amends:` / `amendment_record:` non-empty values. Maps to AC-5.
 - [ ] T051 [US3] Run `codebase-indexer render` and visually verify
   the output. Commit the regenerated markdown.
@@ -199,11 +199,11 @@ indexer changes to render.
 
 ## Phase 7: Verification (Polish)
 
-- [ ] T070 Run `./tools/spec-compiler/target/release/spec-compiler compile`
+- [ ] T070 Run `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`
   → exit 0.
-- [ ] T071 Run `./tools/spec-lint/target/release/spec-lint --fail-on-warn`
+- [ ] T071 Run `./tools/spec-spine/spec-lint/target/release/spec-lint --fail-on-warn`
   → exit 0.
-- [ ] T072 Run `./tools/codebase-indexer/target/release/codebase-indexer check`
+- [ ] T072 Run `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check`
   → exit 0.
 - [ ] T073 Run `GITHUB_PR_BODY="<commit body draft>" make ci-spec-code-coupling`
   → exit 0.

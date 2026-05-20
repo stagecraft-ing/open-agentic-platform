@@ -17,6 +17,11 @@ summary: >
   with a discoverable, composable tool surface.
 code_aliases: ["TOOL_DEFINITION_REGISTRY"]
 sources: ["claude-code"]
+extends:
+  - spec: "036-safety-tier-governance"
+    paths:
+      - crates/tool-registry
+    nature: additive
 compliance:
   - framework: "owasp-asi-2026"
     # ASI03 via FR-004 (`can_use()` consults policy kernel before every
@@ -164,7 +169,7 @@ impl ToolDef for McpToolDef {
 2. **Derive macro** — `#[derive(ToolDef)]` proc macro using `schemars` for automatic `input_schema()` generation
 3. **Implement built-in tools** — wrap existing crate capabilities (gitctx, xray, orchestrator steps) as ToolDef implementations
 4. **MCP adapter** — `McpToolDef` struct that bridges MCP `ListTools`/`CallTool` to the trait
-5. **OPC integration** — Tauri command in `apps/desktop/src-tauri/` that serializes the registry to JSON for the React frontend
+5. **OPC integration** — Tauri command in `product/apps/desktop/src-tauri/` that serializes the registry to JSON for the React frontend
 6. **Hook emission** — `execute()` in `ToolRegistry` emits `PreToolUse`/`PostToolUse` events before/after delegation
 
 ## Success criteria

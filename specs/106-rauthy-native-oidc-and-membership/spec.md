@@ -14,24 +14,22 @@ depends_on:
   - "080"  # github-identity-onboarding (completes its FR-002/FR-003/FR-005 intent)
   - "087"  # unified-workspace-architecture (Phase 5 session model)
 code_aliases: ["RAUTHY_OIDC_NATIVE", "A2C_MEMBERSHIP"]
-implements:
-  - path: platform/services/stagecraft/api/auth
-  - path: platform/charts/rauthy
-  # Amendment 2026-05-17 — Rauthy SMTP env-var wire-up (templates/statefulset.yaml
-  # + values.yaml) and Hetzner setup.sh integration (rauthy-smtp-secret
-  # creation + `--set smtp.enabled=true` overlay + Phase-1 instruction
-  # output for manual Google Auth Provider registration). Required by
-  # spec 137 Phase 6 evidence paths E2/E3 (magic-link) and E4 (federated
-  # Google). See §12.1 below.
-  - path: platform/infra/hetzner/setup.sh
-  - path: platform/infra/hetzner/.env.example
-  # Amendment 2026-05-17 §12.4 — wildcard tenant cert via cert-manager
-  # Cloudflare DNS-01. ClusterIssuer + Certificate manifests applied
-  # via setup.sh; companion infra prereq to §12.1 SMTP for spec 137
-  # Phase 6 evidence (Rauthy redirect_uri on tenant hostnames needs
-  # HTTPS, hence wildcard cert).
-  - path: platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml
-  - path: platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml
+establishes:
+  - platform/services/stagecraft/api/auth/rauthySeed.ts
+  - platform/services/stagecraft/api/auth/membershipResolver.ts
+  - platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml
+  - platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml
+extends:
+  - spec: "080-github-identity-onboarding"
+    paths:
+      - platform/services/stagecraft/api/auth/rauthy.ts
+    nature: additive
+  - spec: "087-unified-workspace-architecture"
+    paths:
+      - platform/charts/rauthy
+      - platform/infra/hetzner/setup.sh
+      - platform/infra/hetzner/.env.example
+    nature: additive
 summary: >
   Close the implementation gap between spec 080's design and what actually
   shipped. Move GitHub from stagecraft-direct OAuth to Rauthy's upstream IDP,

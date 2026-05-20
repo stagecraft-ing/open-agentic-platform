@@ -18,6 +18,12 @@ summary: >
 code_aliases:
   - OPEN_SOURCE
   - OSS_LAUNCH
+establishes:
+  - docs/ARCHITECTURE.md
+  - CONTRIBUTING.md
+  - SECURITY.md
+  - CODE_OF_CONDUCT.md
+  - CHANGELOG.md
 ---
 
 > **Deferred** — partial progress has landed (`docs/ARCHITECTURE.md` is

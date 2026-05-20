@@ -1,20 +1,20 @@
 # Tasks: Spec compiler MVP
 
 **Input**: `/specs/001-spec-compiler-mvp/` (spec, plan, research)  
-**Prerequisites**: Feature **000** schemas at `specs/000-bootstrap-spec-system/contracts/`
+**Prerequisites**: Feature **000** schemas at `standards/schemas/spec-spine/`
 
-**Feature status**: **Complete** — treat `tools/spec-compiler` and CI `spec-conformance` as the required gate for downstream features unless Feature 000/001 is amended.
+**Feature status**: **Complete** — treat `tools/spec-spine/spec-compiler` and CI `spec-conformance` as the required gate for downstream features unless Feature 000/001 is amended.
 
 ## Phase 1: Crate skeleton
 
-- [x] T001 Create `tools/spec-compiler/` with `Cargo.toml`, `src/main.rs`, `src/lib.rs`, workspace-friendly README linking Feature 001 spec
+- [x] T001 Create `tools/spec-spine/spec-compiler/` with `Cargo.toml`, `src/main.rs`, `src/lib.rs`, workspace-friendly README linking Feature 001 spec
 - [x] T002 Add `clap` subcommand `compile`; write `registry.json` + `build-meta.json`
 - [x] T003 [P] `rust-version` in `Cargo.toml` (no `rust-toolchain.toml` yet)
 
 ## Phase 2: Read & parse
 
 - [x] T004 Implement `specs/*/spec.md` discovery (sorted directory walk)
-- [x] T005 Parse YAML frontmatter + markdown; extract H1/H2 headings per [data-model.md](./data-model.md) / [README.md](../../../tools/spec-compiler/README.md)
+- [x] T005 Parse YAML frontmatter + markdown; extract H1/H2 headings per [data-model.md](./data-model.md) / [README.md](../../../tools/spec-spine/spec-compiler/README.md)
 - [x] T006 Map frontmatter → `FeatureRecord` + `extraFrontmatter` (normalized keys + schema-allowed extras)
 
 ## Phase 3: Validation

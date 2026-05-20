@@ -12,31 +12,24 @@ risk: low
 depends_on:
   - "087"  # unified-workspace-architecture (stagecraft as the web governance plane)
   - "078"  # platform-completion-plan (the broader platform-finishing context)
-implements:
-  - path: platform/services/tenant-hello
-  - path: platform/charts/tenant-hello
-  - path: platform/services/stagecraft/api/deploy/chartSelector.ts
-  - path: platform/services/stagecraft/api/deploy/chartSelector.test.ts
-  - path: platform/services/stagecraft/CLAUDE.md
-  # Phase 2.b — deployd-api-rs migrated from kube-rs raw-object construction
-  # to `helm upgrade --install` against charts embedded into the binary via
-  # include_str!. Spec 073-axiomregent-unification remains the primary
-  # package-level owner (see Cargo.toml [package.metadata.oap]); spec 136
-  # claims the specific files that carry the Helm bridge.
-  - path: platform/services/deployd-api-rs/src/helm.rs
-  - path: platform/services/deployd-api-rs/src/k8s.rs
-  - path: platform/services/deployd-api-rs/src/routes.rs
-  - path: platform/services/deployd-api-rs/src/main.rs
-  - path: platform/services/deployd-api-rs/Dockerfile
-  - path: .github/workflows/cd-deployd-api-rs.yml
-  - path: .github/workflows/ci-deployd-api-rs.yml
-  # tenant-hello image publishing — the chart's image.repository default points
-  # nowhere by design (see `platform/charts/tenant-hello/values.yaml`); the CD
-  # workflow makes the reference fixture actually deployable. The CI companion
-  # is the PR-time Dockerfile + chart-lint gate that prevents image-build
-  # regressions from landing on main unobserved.
-  - path: .github/workflows/cd-tenant-hello.yml
-  - path: .github/workflows/ci-tenant-hello.yml
+establishes:
+  - platform/services/tenant-hello
+  - platform/charts/tenant-hello
+  - platform/services/stagecraft/api/deploy/chartSelector.ts
+  - platform/services/stagecraft/api/deploy/chartSelector.test.ts
+  - .github/workflows/cd-tenant-hello.yml
+  - .github/workflows/ci-tenant-hello.yml
+extends:
+  - spec: "073-axiomregent-unification"
+    paths:
+      - platform/services/deployd-api-rs/src/helm.rs
+      - platform/services/deployd-api-rs/src/k8s.rs
+      - platform/services/deployd-api-rs/src/routes.rs
+      - platform/services/deployd-api-rs/src/main.rs
+      - platform/services/deployd-api-rs/Dockerfile
+      - .github/workflows/cd-deployd-api-rs.yml
+      - .github/workflows/ci-deployd-api-rs.yml
+    nature: additive
 summary: >
   Document `platform/services/tenant-hello` as the deliberately-minimal
   reference of what a project codebase looks like when stagecraft is

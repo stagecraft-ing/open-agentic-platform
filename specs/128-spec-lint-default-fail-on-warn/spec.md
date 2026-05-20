@@ -16,8 +16,18 @@ depends_on:
   - "006"  # conformance-lint-mvp (the surface being amended)
   - "104"  # makefile-ci-parity-contract (the integration point)
 code_aliases: ["SPEC_LINT_STRICT"]
-implements:
-  - path: Makefile
+co_authority:
+  - paths:
+      - Makefile
+    section: spec-lint
+    with_specs:
+      - "102-governed-excellence"
+      - "104-makefile-ci-parity-contract"
+      - "105-axiomregent-sidecar"
+      - "116-supply-chain-policy-gates"
+      - "127-spec-code-coupling-gate"
+      - "134-fast-local-ci-mode"
+      - "135-fast-ci-as-default"
 summary: >
   Spec 006 defines `spec-lint` as advisory by default with an opt-in
   `--fail-on-warn` flag for repos that choose the strict posture. This
@@ -46,7 +56,7 @@ Spec 006 §"Purpose and charter" defines two postures for `spec-lint`:
 OAP's `make ci` does NOT currently opt in:
 
 ```makefile
-./tools/spec-lint/target/release/spec-lint || true   # warnings non-blocking (matches CI)
+./tools/spec-spine/spec-lint/target/release/spec-lint || true   # warnings non-blocking (matches CI)
 ```
 
 The `|| true` swallows any future warnings into `make ci`'s green log.
@@ -90,7 +100,7 @@ designed for: refining narrative without superseding. The `amends:
 Pre-flip inventory:
 
 ```
-$ ./tools/spec-lint/target/release/spec-lint
+$ ./tools/spec-spine/spec-lint/target/release/spec-lint
 $ echo $?
 0
 ```
@@ -166,7 +176,7 @@ are unchanged — they continue to use `--fail-on-warn` (the
 empty-W-set posture established by §2).
 
 Severity is declared at the W-code registration site in
-`tools/spec-lint/src/lib.rs`. This is a registration-site
+`tools/spec-spine/spec-lint/src/lib.rs`. This is a registration-site
 declaration, not a per-W-code exemption list — the severity is
 intrinsic to the code, not added later by configuration. A future
 amendment that needs to flip a W-code between tiers must do so by

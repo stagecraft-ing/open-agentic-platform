@@ -16,8 +16,8 @@ summary: >
   orchestration runtime, registry schema expansion, or mandatory product bindings.
 code_aliases:
   - TASK_RUNNER
-implements:
-  - path: crates/orchestrator
+establishes:
+  - crates/orchestrator
 ---
 
 # Feature Specification: Spec-to-execution bridge

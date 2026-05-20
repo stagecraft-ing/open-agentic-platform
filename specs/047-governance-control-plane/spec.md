@@ -26,6 +26,8 @@ compliance:
     # monotonic degradation (no self-promotion); ASI05 via secrets-scanner
     # gate (FR-007); ASI10 via coherence-scoring drift detection.
     controls: ["ASI01", "ASI03", "ASI05", "ASI10"]
+origin:
+  retroactive: true
 ---
 
 # Feature Specification: governance control plane (policy compiler)
@@ -267,9 +269,9 @@ The WASM kernel is the **single enforcement point** for policy decisions:
 ### Integration with existing components
 
 **With spec-compiler (Feature 001):**
-- The policy compiler is a **separate binary** under `tools/policy-compiler/`, following the same project structure as `tools/spec-compiler/`.
+- The policy compiler is a **separate binary** under `tools/oap/policy-compiler/`, following the same project structure as `tools/spec-spine/spec-compiler/`.
 - It reuses the spec-compiler's frontmatter YAML parser (extracted as a shared crate `tools/shared/frontmatter-parser/` or vendored).
-- Policy bundles are emitted to `build/policy-bundles/` alongside `build/spec-registry/`.
+- Policy bundles are emitted to `.derived/policy-bundles/` alongside `.derived/spec-registry/`.
 - The spec-compiler's `registry.json` gains an optional `policyBundleHash` field per feature, linking features to the policy version that governs them.
 
 **With axiomregent (Feature 033/035):**

@@ -51,9 +51,9 @@ around three concrete components that already exist in this tree:
 
 The **spec spine** (`specs/`) is the authoritative design record. Every
 feature is a markdown file with YAML frontmatter, compiled by
-[`spec-compiler`](tools/spec-compiler/) into a deterministic `registry.json`.
+[`spec-compiler`](tools/spec-spine/spec-compiler/) into a deterministic `registry.json`.
 Specs are read through the consumer binary
-[`registry-consumer`](tools/registry-consumer/) — never by ad-hoc parsing —
+[`registry-consumer`](tools/spec-spine/registry-consumer/) — never by ad-hoc parsing —
 which makes the spec corpus a typed, query-able surface
 ([spec 103](specs/103-init-protocol-governed-reads/spec.md)).
 
@@ -63,7 +63,7 @@ The **platform layer** (`platform/`) is the organisational control plane:
 deployment orchestration, [Encore.ts stagecraft](platform/services/stagecraft/)
 for governance UX, and Helm charts for managed-K8s deployment.
 
-The **OPC desktop** (`apps/desktop/`) is a Tauri v2 + React cockpit where
+The **OPC desktop** (`product/apps/desktop/`) is a Tauri v2 + React cockpit where
 humans and agents share a single execution surface — local workspaces, git
 context, semantic and structural analysis, snapshots, approval gates.
 
@@ -198,19 +198,21 @@ make setup
 # Builds spec compiler + codebase indexer, compiles the registry,
 # fetches the axiomregent sidecar binary.
 
-./tools/registry-consumer/target/release/registry-consumer \
+./tools/oap/oap-registry-enrich/target/release/oap-registry-enrich \
     compliance-report --framework owasp-asi-2026 --json
 # Emits the ASI-control-to-spec mapping. This is the traceability
 # artifact: structured, deterministic, and reproducible from the
-# compiled registry.
+# compiled registry. (Moved from registry-consumer in Cut D W-06b;
+# compliance is an OAP-specific overlay rather than a generic
+# spec-spine concept.)
 
-./tools/registry-consumer/target/release/registry-consumer \
+./tools/spec-spine/registry-consumer/target/release/registry-consumer \
     status-report --json --nonzero-only
 # Lifecycle inventory across the 142-spec corpus.
 # 137 approved, 1 draft, 4 superseded.
 
-./tools/codebase-indexer/target/release/codebase-indexer render
-cat build/codebase-index/CODEBASE-INDEX.md
+./tools/oap/oap-code-index-enrich/target/release/oap-code-index-enrich render
+cat .derived/codebase-index/CODEBASE-INDEX.md
 # Renders the spec-to-code map. The 'Spec' column is the
 # traceability surface for every Rust crate and npm package.
 
@@ -277,7 +279,9 @@ today vs. what is staged and what is roadmap, by spec ID.
 - **Codebase index** — spec-to-code traceability for every crate and
   package ([spec 101](specs/101-codebase-index-mvp/spec.md)).
 - **OWASP ASI 2026 compliance map** — six controls (ASI01, 03, 05, 07,
-  09, 10) map to spec 102 today via `registry-consumer compliance-report`.
+  09, 10) map to spec 102 today via `oap-registry-enrich compliance-report`
+  (moved from `registry-consumer` in Cut D W-06b; the spec-spine
+  `registry-consumer` no longer carries OAP-specific overlays).
 - **Governance certificate — live emission** ([spec 102](specs/102-governed-excellence/spec.md))
   — every `factory-run` writes `governance-certificate.json` under the
   run directory at termination (success or halt), binding requirements
@@ -342,12 +346,12 @@ today vs. what is staged and what is roadmap, by spec ID.
 | `specs/` | The authoritative spec spine. 142 specs as of 2026-05-06. |
 | `tools/` | Rust CLIs: `spec-compiler`, `registry-consumer`, `spec-lint`, `codebase-indexer`, `policy-compiler`, `spec-code-coupling-check`, others. |
 | `crates/` | Library crates: `factory-engine`, `factory-contracts`, `policy-kernel`, `orchestrator`, `agent`, `tool-registry`, `axiomregent`, `xray`, others. |
-| `apps/desktop/` | OPC desktop (Tauri v2 + React + TypeScript). |
+| `product/apps/desktop/` | OPC desktop (Tauri v2 + React + TypeScript). |
 | `platform/` | Identity, deployd-api, stagecraft, Helm charts, Terraform infra. |
 | `build/` | Compiler-emitted machine truth: `spec-registry/`, `codebase-index/`. Read through consumer binaries only. |
 | `.claude/` | Agent and command definitions used by the development environment. See `CLAUDE.md` and `AGENTS.md`. |
 
 Full setup, prerequisites, and platform-service development:
-[`DEVELOPERS.md`](DEVELOPERS.md). Repository conventions and architectural
+[`docs/DEVELOPERS.md`](docs/DEVELOPERS.md). Repository conventions and architectural
 rules: [`CLAUDE.md`](CLAUDE.md). Compiler architecture and registry
 contract: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).

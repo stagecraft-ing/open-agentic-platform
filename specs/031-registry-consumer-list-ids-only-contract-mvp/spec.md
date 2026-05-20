@@ -12,8 +12,15 @@ language: en
 summary: >
   Add a narrow contract extension: `list --ids-only` emits one feature id per
   line while preserving existing filter and deterministic ordering semantics.
-implements:
-  - path: tools/registry-consumer
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/spec-spine/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/spec-spine/registry-consumer
+    aspect: contract-tests
 ---
 
 # Feature Specification: list --ids-only contract

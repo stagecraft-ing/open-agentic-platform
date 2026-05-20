@@ -14,6 +14,9 @@ summary: >
   orchestration engine into a complete AI software factory. Defines directory
   structure, Rust contract types, adapter registry, and integration seams.
 code_aliases: ["FACTORY_INGESTION", "FACTORY_CONTRACTS"]
+establishes:
+  - crates/factory-contracts
+  - factory
 ---
 
 # Feature Specification: Factory Ingestion as First-Class Delivery Engine
@@ -147,7 +150,7 @@ impl PatternResolver {
 
 **FR-007: Spec Registry Integration**
 The spec-compiler SHALL be extended to recognize Factory Build Specs as compilable artifacts. When a project has a frozen Build Spec at `.factory/build-spec.yaml`, the compiler SHALL:
-- Index it in `build/spec-registry/registry.json` under a new `factory_projects` section
+- Index it in `.derived/spec-registry/registry.json` under a new `factory_projects` section
 - Track the Build Spec hash for drift detection
 - Link to the adapter used
 
@@ -170,9 +173,9 @@ Adding a new adapter SHALL require only creating a new directory under `factory/
 crates/factory-contracts/
   ├── depends on: serde, serde_yaml, serde_json, thiserror
   ├── consumed by: crates/orchestrator (spec 075)
-  ├── consumed by: apps/desktop (spec 076)
+  ├── consumed by: product/apps/desktop (spec 076)
   ├── consumed by: crates/axiomregent (policy shards)
-  └── consumed by: tools/spec-compiler (registry integration)
+  └── consumed by: tools/spec-spine/spec-compiler (registry integration)
 ```
 
 ### Key Types (Build Spec — Partial)
@@ -340,12 +343,11 @@ preflight, gate, state modules) with a `factory-harness` CLI binary.
 
 Spec 108 §8 retired the in-tree `factory/` tree, which removed the canonical
 `factory/contract/schemas/` location these typed representations were derived
-from. The OAP-owned schemas have been relocated to
-`crates/factory-contracts/schemas/` (four top-level: `adapter-manifest`,
-`build-spec`, `pipeline-state`, `verification`; five under `stage-outputs/`)
-so the YAML/JSON sources are co-located with the Rust types they back. The
-stagecraft sync pipeline reads them via `api/factory/oapContracts.ts`,
-which now walks up looking for `crates/factory-contracts/schemas/` and
+from. The OAP-owned schemas now live under
+`standards/schemas/factory/` (four top-level: `adapter-manifest`,
+`build-spec`, `pipeline-state`, `verification`; five under `stage-outputs/`).
+The stagecraft sync pipeline reads them via `api/factory/oapContracts.ts`,
+which walks up looking for `standards/schemas/factory/` and
 respects an `OAP_FACTORY_SCHEMAS_DIR` env override for production
 containers.
 

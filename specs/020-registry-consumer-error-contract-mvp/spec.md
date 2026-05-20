@@ -12,8 +12,15 @@ language: en
 summary: >
   Lock key runtime failure-path contracts for registry-consumer by asserting exact
   stderr bytes and exit codes from deterministic fixtures, without changing CLI behavior.
-implements:
-  - path: tools/registry-consumer
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/spec-spine/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/spec-spine/registry-consumer
+    aspect: error-shape
 ---
 
 # Feature Specification: Error contract tests
@@ -24,7 +31,7 @@ Guard high-value failure paths (`load`, `authority`, `shape`, `not-found`) again
 
 ## Requirements
 
-- **FR-001**: Add deterministic fixtures under `tools/registry-consumer/tests/fixtures/error_contract/` for failure scenarios.
+- **FR-001**: Add deterministic fixtures under `tools/spec-spine/registry-consumer/tests/fixtures/error_contract/` for failure scenarios.
 - **FR-002**: Integration tests assert exact `stderr` bytes and exact exit code for selected failure-path commands.
 - **FR-003**: Contracts cover at least one path each for exit **1** and exit **3**.
 - **FR-004**: Scope remains runtime-stable: no intentional behavior changes in `src/main.rs` or `src/lib.rs`.

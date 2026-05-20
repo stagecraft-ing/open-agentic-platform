@@ -21,6 +21,8 @@ summary: >
   kind-grammar surface and to add a registration-site `severity` field on Warning
   (warning/info tiers) per spec 128 §7. Info-tier diagnostics emit alongside
   warning-tier but are exempt from `--fail-on-warn`.
+origin:
+  retroactive: true
 ---
 
 # Feature Specification: Conformance lint
@@ -72,7 +74,7 @@ Provide **lint semantics** and a **reference implementation** (`spec-lint`) that
 | **W-005** | **`tasks.md`**: **both** **`(pending)`** and a **`###`** heading present (one **known** mixed-pattern heuristic—not a full detector for all notation pairs). |
 | **W-006** | *Reserved* — task-id orphan detection; **not** implemented in the reference **`spec-lint`** MVP (too noisy without richer parsing). |
 
-**FR-001**: The **reference implementation** **must** document exact regex/heuristics in **`tools/spec-lint/README.md`** and keep them **versioned** with **`spec-lint`** releases.
+**FR-001**: The **reference implementation** **must** document exact regex/heuristics in **`tools/spec-spine/spec-lint/README.md`** and keep them **versioned** with **`spec-lint`** releases.
 
 **FR-002**: **Warnings** **must** include **`W-xxx`**, **path**, and **short message** on **stderr** (or stdout—pick one and document; default **stderr**).
 
@@ -96,4 +98,4 @@ Provide **lint semantics** and a **reference implementation** (`spec-lint`) that
 
 ### Session 2026-03-22
 
-- **W-001** / **W-005** heuristics are **intentionally narrow**; see **`tools/spec-lint/README.md`** “Scope limits (MVP).” Broader rules wait for real-world pain and a later **spec-lint** / spec revision.
+- **W-001** / **W-005** heuristics are **intentionally narrow**; see **`tools/spec-spine/spec-lint/README.md`** “Scope limits (MVP).” Broader rules wait for real-world pain and a later **spec-lint** / spec revision.

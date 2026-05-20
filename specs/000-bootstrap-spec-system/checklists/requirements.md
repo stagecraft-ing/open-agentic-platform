@@ -22,7 +22,7 @@
 - [x] Dependencies and assumptions captured in plan/research
 - [x] Determinism vs `builtAt` resolved (`registry.json` / `build-meta.json` split)
 - [x] Frontmatter anti-escape-hatch rules explicit
-- [x] `specs/` vs `.specify/` location decision explicit
+- [x] `specs/` vs `standards/spec/` location decision explicit
 
 ## Feature Readiness
 

@@ -25,7 +25,7 @@
 | §4 Encore APIs | ✅ complete | All 9 endpoints exist (see below). Auth uses `getAuthData()`; mutations gated by `hasOrgPermission(role, "factory:configure")`. |
 | §5 Sync Flow | ✅ complete | `runSyncPipeline` in `api/factory/syncPipeline.ts` does clone → translate → upsert with prune. Async via `FactorySyncRequestTopic` (spec 109 §5). |
 | §6 UI | ✅ complete | All 5 routes present (Overview, Upstreams, Adapters, Contracts, Processes); top-level nav entry in `app.tsx:35`. |
-| §7 OPC contract | ⚠ punted | OPC desktop still calls `resolve_factory_root()` in `apps/desktop/src-tauri/src/commands/factory.rs:600`. Documented as a follow-up below. |
+| §7 OPC contract | ⚠ punted | OPC desktop still calls `resolve_factory_root()` in `product/apps/desktop/src-tauri/src/commands/factory.rs:600`. Documented as a follow-up below. |
 | §8 Removals | ❌ pending | `factory/` directory still present at repo root; `.claude/commands/factory-sync.md` already deleted. |
 
 ## §3 Data Model — concrete location
@@ -117,7 +117,7 @@ already wired.
 
 | Site | What it does | Disposition |
 |------|--------------|-------------|
-| `apps/desktop/src-tauri/src/commands/factory.rs:600 resolve_factory_root` | Walks up from the desktop binary's manifest dir to find `factory/adapters/`. | **Punt.** Migration to platform API fetches is out of scope for spec 108; tracked as follow-up. See Punt note below. |
+| `product/apps/desktop/src-tauri/src/commands/factory.rs:600 resolve_factory_root` | Walks up from the desktop binary's manifest dir to find `factory/adapters/`. | **Punt.** Migration to platform API fetches is out of scope for spec 108; tracked as follow-up. See Punt note below. |
 | `crates/factory-engine/src/engine.rs:54` | Default `FactoryEngineConfig::factory_root = "factory"`. | The engine still takes `factory_root` as input; the type signature does not assume the in-tree path. Punt covers this. |
 | `crates/factory-engine/src/preflight.rs:442` | Test-only path under `#[cfg(test)]` that early-returns when fixture is absent. | No change needed; deletion of `factory/` causes the test to skip cleanly. |
 | `crates/factory-engine/tests/integration_078_e2e.rs:48,98` | Integration tests guarded by `factory_root().join("adapters/aim-vue-node").exists()`. | Skip cleanly on missing dir. |
@@ -159,7 +159,7 @@ Steps to take:
 3. Touch up the three doc-comments in `crates/factory-contracts/src/{agent_loader,adapter_registry}.rs`
    and `crates/agent-frontmatter/src/types.rs` so the doc no longer asserts an
    in-tree location for the factory.
-4. Run `make registry` to refresh `build/codebase-index/index.json` (paths
+4. Run `make registry` to refresh `.derived/codebase-index/index.json` (paths
    under `factory/` will drop out of the inventory) and `make ci-stagecraft`
    plus `make ci-rust` and `make ci-tools` to confirm no consumer regresses.
 

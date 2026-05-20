@@ -12,8 +12,11 @@ language: en
 summary: >
   Add `--nonzero-only` to `registry-consumer status-report` so automation consumers can
   omit empty lifecycle buckets in both human-readable and JSON output modes.
-implements:
-  - path: tools/registry-consumer
+extends:
+  - spec: "007-registry-consumer-status-report-mvp"
+    paths:
+      - tools/spec-spine/registry-consumer
+    nature: additive
 ---
 
 # Feature Specification: Registry consumer status-report nonzero filtering

@@ -66,24 +66,18 @@ jobs:
         # RustSec); 0.16 fails to parse the advisory-db on first hit.
         run: cargo install cargo-deny --locked --version '^0.19'
 
-      # No top-level Cargo.toml: iterate over every Rust manifest the
-      # rest of CI compiles. Workspace `crates/Cargo.toml` covers all 16
-      # member crates in one pass.
+      # Three Rust roots cover the whole codebase: the root workspace
+      # `Cargo.toml` (crates/* + tools/spec-spine/* + tools/oap/* +
+      # tools/shared/*), plus the two single-member workspaces that the
+      # root explicitly `exclude`s (deployd-api-rs for libsqlite3-sys
+      # isolation; desktop src-tauri to avoid the same linking conflict).
       - name: Run cargo-deny
         run: |
           set -u
           manifests=(
-            crates/Cargo.toml
+            Cargo.toml
             platform/services/deployd-api-rs/Cargo.toml
-            apps/desktop/src-tauri/Cargo.toml
-            tools/spec-compiler/Cargo.toml
-            tools/registry-consumer/Cargo.toml
-            tools/spec-lint/Cargo.toml
-            tools/codebase-indexer/Cargo.toml
-            tools/policy-compiler/Cargo.toml
-            tools/adapter-scopes-compiler/Cargo.toml
-            tools/ci-parity-check/Cargo.toml
-            tools/shared/frontmatter/Cargo.toml
+            product/apps/desktop/src-tauri/Cargo.toml
           )
           rc=0
           for m in "${manifests[@]}"; do
@@ -99,14 +93,20 @@ jobs:
     runs-on: ubuntu-latest
     name: pnpm-audit / desktop + packages
     timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: product
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - uses: pnpm/action-setup@4f4305e1fe60ad818b8ae6fc4a697cc47eab0b2d # v6
+        with:
+          package_json_file: product/package.json
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: product/pnpm-lock.yaml
 
       - name: pnpm install
         run: pnpm install --frozen-lockfile

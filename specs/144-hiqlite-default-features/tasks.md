@@ -33,9 +33,9 @@ artifact for the unification fix.
 tree before editing anything.
 
 - [x] T001 [P0] Confirm spec 144 frontmatter compiles cleanly:
-      `./tools/spec-compiler/target/release/spec-compiler compile` and
-      verify exit 0 + spec 144 appears in `build/spec-registry/registry.json` via
-      `./tools/registry-consumer/target/release/registry-consumer show 144-hiqlite-default-features`.
+      `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile` and
+      verify exit 0 + spec 144 appears in `.derived/spec-registry/registry.json` via
+      `./tools/spec-spine/registry-consumer/target/release/registry-consumer show 144-hiqlite-default-features`.
 - [x] T002 [P0] Confirm `crates/orchestrator/Cargo.toml:20` still
       lacks `default-features = false`. Expected line text:
       `hiqlite = { version = "~0.13", features = ["sqlite", "dlock", "listen_notify_local"], optional = true }`.
@@ -123,15 +123,15 @@ crates ship through.
 - [x] T025 [P2] `cargo test --manifest-path crates/axiomregent/Cargo.toml`
       → all tests pass.
 - [x] T026 [P2] Smoke-build the desktop crate:
-      `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml`
+      `cargo check --manifest-path product/apps/desktop/src-tauri/Cargo.toml`
       → exit 0. Catches any unexpected feature regression in the
       transitive consumer.
 - [x] T027 [P2] `make ci` (warm, spec 134 / 135 fast-CI loop) → exit 0.
 - [x] T028 [P2] Recompile spec registry + codebase index:
-      `./tools/spec-compiler/target/release/spec-compiler compile` and
-      `./tools/codebase-indexer/target/release/codebase-indexer compile && render`.
+      `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile` and
+      `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile && render`.
 - [x] T029 [P2] Run the coupling check:
-      `./tools/spec-code-coupling-check/target/release/spec-code-coupling-check`
+      `./tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check`
       → no warnings against spec 144's `implements:` list. (AC-7.)
 - [x] T030 [P2] Update spec 144 frontmatter:
       `implementation: complete`, `closed: "<today>"`. Recompile

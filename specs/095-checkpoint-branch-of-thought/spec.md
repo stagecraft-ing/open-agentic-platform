@@ -16,8 +16,18 @@ summary: >
   scoping, introduce checkpoint.compare MCP tool, bind gate approvals to
   checkpoint IDs, and provide desktop branch visualization.
 code_aliases: ["CHECKPOINT_BRANCHING"]
-implements:
-  - path: crates/axiomregent
+extends:
+  - spec: "041-checkpoint-restore-ui"
+    paths:
+      - crates/axiomregent/src/checkpoint/provider.rs
+      - crates/axiomregent/src/checkpoint/types.rs
+      - crates/axiomregent/src/checkpoint/store.rs
+    nature: additive
+  - spec: "052-state-persistence"
+    paths:
+      - crates/orchestrator/src/gates.rs
+      - crates/orchestrator/src/manifest.rs
+    nature: additive
 ---
 
 # 095 — Checkpoint Branch-of-Thought
@@ -110,7 +120,7 @@ Extend the checkpoint panel to:
 - Add "Compare Branches" action between two selected checkpoints
 - Show run_id grouping in the timeline
 
-**Files**: `apps/desktop/src/components/CheckpointPanel.tsx`
+**Files**: `product/apps/desktop/src/components/CheckpointPanel.tsx`
 
 ## Acceptance Criteria
 

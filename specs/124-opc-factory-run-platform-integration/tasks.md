@@ -19,7 +19,7 @@ Shared types + constants. Blocks every later phase.
 - [ ] **T003** [P] Source-shas agent triple. Spec 123 shipped `crates/factory-contracts/src/agent_reference.rs` (`AgentReference` enum: `ById | ByName | ByNameLatest`) and `crates/factory-engine/src/agent_resolver.rs` (`ResolvedAgent { org_agent_id, version, content_hash, frontmatter, body_markdown }`). Spec 124 does NOT introduce a separate `AgentRef` type: the `source_shas.agents[]` rows are derived by projecting `ResolvedAgent` to `{ org_agent_id, version, content_hash }` at reservation time. On the TypeScript side, declare a single `FactoryAgentRef = Pick<…>` shape in `platform/services/stagecraft/api/factory/runs.ts` matching the projected fields by name. CI gate (T088 in Phase 8) asserts the projection compiles against the live `ResolvedAgent`.
 - [ ] **T004** [P] Add audit-action strings: `factory.run.reserved`, `factory.run.completed`, `factory.run.failed`, `factory.run.cancelled`, `factory.run.swept`. The actor for `factory.run.reserved` is the user; for `factory.run.swept` it is the system user (spec 119 `2_seed_system_user`).
 - [ ] **T005** [P] Cache-root layout helper. Add a small pure helper in `crates/factory-platform-client` (Phase 4 will own this crate; Phase 0 just lays out the path-shaping module): `cache_root_for(source_shas) -> PathBuf` returning `$XDG_CACHE_HOME/oap-factory/<short_run_sha>/`. Unit-tested.
-- [ ] **T006** [P] OIDC desktop-client wiring confirmation. Verify `apps/desktop/src-tauri/src/auth/` has the access-token getter that the platform client (Phase 4) will use; if missing, add a thin wrapper. No new tokens issued; reuse spec 106/107 plumbing.
+- [ ] **T006** [P] OIDC desktop-client wiring confirmation. Verify `product/apps/desktop/src-tauri/src/auth/` has the access-token getter that the platform client (Phase 4) will use; if missing, add a thin wrapper. No new tokens issued; reuse spec 106/107 plumbing.
 
 **Checkpoint:** `npx tsc --noEmit` in `platform/services/stagecraft` passes; `cargo check` at the workspace root passes; the new envelope types serialise round-trip in a unit test. Commit: `chore(spec-124): foundations — envelope types, audit actions, cache-root helper`.
 
@@ -124,7 +124,7 @@ A new lib crate `crates/factory-platform-client` so the desktop's command code s
 
 `commands/factory.rs` switches from the in-tree walk-up to the platform client. Deletes the spec 108 §7.1 punt marker.
 
-- [ ] **T050** In `apps/desktop/src-tauri/src/commands/factory.rs`, replace `resolve_factory_root()` and its callers with `materialise_run_root` from the platform client. The call signature changes from a sync `Result<PathBuf, String>` to `async Result<RunRoot, FactoryError>` — propagate the async out as needed (the existing Tauri command surface already supports async).
+- [ ] **T050** In `product/apps/desktop/src-tauri/src/commands/factory.rs`, replace `resolve_factory_root()` and its callers with `materialise_run_root` from the platform client. The call signature changes from a sync `Result<PathBuf, String>` to `async Result<RunRoot, FactoryError>` — propagate the async out as needed (the existing Tauri command surface already supports async).
 - [ ] **T051** Delete `resolve_factory_root` entirely (function body, callers' fallbacks, error string about "not found"). The `// TODO(spec-108-§7-punt)` marker goes with it.
 - [ ] **T052** Replace the local `state.json` write with duplex emits:
   - On run start: `POST /api/factory/runs` (reservation) → emit `factory.run.stage_started` for the first stage.
@@ -135,7 +135,7 @@ A new lib crate `crates/factory-platform-client` so the desktop's command code s
 - [ ] **T055** [P] Retired-binding handling: spec 123's `ResolveError::RetiredAgent { org_agent_id, version }` is the typed signal returned by `AgentResolver::resolve` when the catalog row is retired. Before reservation, walk the process's agent refs through `agent_resolver`; map any `ResolveError::RetiredAgent` to a typed `FactoryError::RetiredAgent { agent_name, org_agent_id, version, project_id }` and surface a UI message that deep-links to the project's binding page (`/app/project/{id}/agents`). Server-side T020 enforces the same check by joining `project_agent_bindings.status = 'retired_upstream'`; client and server must agree on the rejection criteria.
 - [ ] **T056** [P] Test: a desktop integration test that reserves a run, emits the full event sequence, and asserts the platform-side row reaches `status: 'ok'` with all stages recorded.
 
-**Checkpoint:** `cargo check` for `apps/desktop/src-tauri` passes; `cargo test` passes; `rg "factory/(adapters|contracts|process|upstream-map)" apps/desktop` returns zero hits except inside test fixtures already documented under spec 108 §7. Commit: `feat(desktop, spec-124): commands/factory.rs runs against the platform; resolve_factory_root deleted`.
+**Checkpoint:** `cargo check` for `product/apps/desktop/src-tauri` passes; `cargo test` passes; `rg "factory/(adapters|contracts|process|upstream-map)" product/apps/desktop` returns zero hits except inside test fixtures already documented under spec 108 §7. Commit: `feat(desktop, spec-124): commands/factory.rs runs against the platform; resolve_factory_root deleted`.
 
 ---
 
@@ -190,7 +190,7 @@ Acceptance gates A-1..A-9; spec lifecycle flip; final CI.
 - [ ] **T085** Verify A-6: spec 108 §7.1 and §7.4 reference 124 (already done in spec 108 commit `7b430b4`).
 - [ ] **T086** Verify A-7: migration filename is `31_create_factory_runs.up.sql` and applies cleanly on top of spec 123's `30`. Ordering guard from T013 fires correctly when run out-of-order against a DB that hasn't applied 30.
 - [ ] **T087** Verify A-8: integration test in `runs.test.ts` reserves two runs against the same `(adapter, process)` for two different projects; asserts both reservations write identical `source_shas.agents[].content_hash` arrays.
-- [ ] **T088** Verify A-9: `rg "agent_catalog" apps/desktop/src-tauri/src/commands/factory.rs` returns zero hits. `rg "AgentRef" apps/desktop/src-tauri/src/commands/factory.rs` shows it imported from spec-123's owning module, not redeclared. CI gate.
+- [ ] **T088** Verify A-9: `rg "agent_catalog" product/apps/desktop/src-tauri/src/commands/factory.rs` returns zero hits. `rg "AgentRef" product/apps/desktop/src-tauri/src/commands/factory.rs` shows it imported from spec-123's owning module, not redeclared. CI gate.
 - [ ] **T089** Spec frontmatter flip: `status: draft → approved`, `implementation: pending → complete`, add `approved: <today>`. Append §11 Implementation Notes summarising what shipped per phase.
 - [ ] **T090** `make registry` — recompile spec registry + codebase index. Must be clean (zero new diagnostics).
 - [ ] **T091** `make ci` — final gate. Must be green (assumes spec 125 has landed first; if spec 125 is still in flight, document the expected schema-parity failure as carry-over).

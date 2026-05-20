@@ -14,7 +14,7 @@ fn test_golden_graph() {
     let repo_root = Path::new(&manifest_dir).parent().unwrap().parent().unwrap();
 
     // Ensure we are in the right repo (compiled registry and/or legacy yaml)
-    if !(repo_root.join("build/spec-registry/registry.json").exists()
+    if !(repo_root.join(".derived/spec-registry/registry.json").exists()
         || repo_root.join("spec/features.yaml").exists())
     {
         eprintln!(

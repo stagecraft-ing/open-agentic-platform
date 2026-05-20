@@ -14,7 +14,7 @@ feature: "037-cross-platform-axiomregent"
 
 - [x] **T002** — Build Windows x86_64 binary locally
   - `cargo build --release --target x86_64-pc-windows-msvc` (from `crates/axiomregent/`)
-  - Copied to `apps/desktop/src-tauri/binaries/axiomregent-x86_64-pc-windows-msvc.exe`
+  - Copied to `product/apps/desktop/src-tauri/binaries/axiomregent-x86_64-pc-windows-msvc.exe`
   - Binary runs: MCP initialize handshake succeeds, tools/list returns all 21 tools
   - Size: 7.3 MB (well under 30 MB NF-001 cap)
 

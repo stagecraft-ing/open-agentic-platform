@@ -78,7 +78,7 @@ growth and 100× org count without restructuring.
 - **Principle II — compiler-emitted JSON machine truth.** Substrate
   rows are not compiler artifacts — they are runtime DB rows in a
   governed table. The factory-contracts schemas under
-  `crates/factory-contracts/schemas/` remain compile-time-canonical
+  `standards/schemas/factory/` remain compile-time-canonical
   per spec 112 §3.2 (with `SCHEMA_VERSION` const). Stagecraft
   continues to mirror them per-org for runtime policy lookup, now via
   the substrate (`origin='oap-self'`, `kind='contract-schema'`). ✅
@@ -139,7 +139,7 @@ platform/services/stagecraft/
     ├── app.factory.processes.tsx               # ditto
     └── app.factory.artifacts.tsx               # NEW — kind-filtered browser + override editor + conflict resolver
 
-apps/desktop/src-tauri/src/commands/
+product/apps/desktop/src-tauri/src/commands/
 └── factory.rs                                  # Phase 3: replace resolve_factory_root with VirtualRoot client; delete §7-punt TODO
 
 crates/
@@ -387,7 +387,7 @@ Order:
    `/api/factory/artifacts/*` endpoints. Local cache on disk under
    `~/.cache/oap/factory/<org>/<content_hash>` keyed by content_hash
    (immutable cache).
-3. **`apps/desktop/src-tauri/src/commands/factory.rs` migration.**
+3. **`product/apps/desktop/src-tauri/src/commands/factory.rs` migration.**
    Replace `resolve_factory_root()` with `FactoryRoot::Virtual(...)`.
    Delete the `// TODO(spec-108-§7-punt)` marker.
 4. **Spec 124 `agent_ref` generalisation.** Add `artifact_ref` shape

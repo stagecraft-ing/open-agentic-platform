@@ -33,14 +33,21 @@ depends_on:
   - "119"  # project-as-unit-of-governance (project = governance unit for the doc set)
   - "120"  # factory-extraction-stage (typed corpus to cite stakeholder docs against)
   - "121"  # claim-provenance-enforcement (validator + allowlist reused at Stage CD comparator)
-implements:
-  - path: crates/factory-contracts/src/stakeholder_docs.rs
-  - path: crates/factory-engine/src/stages/stage_cd.rs
-  - path: crates/factory-engine/src/stages/stage_cd_comparator.rs
-  - path: crates/factory-engine/skills/client-document-comparator.md
-  - path: crates/factory-engine/skills/project-charter-comparator.md
-  - path: tools/stakeholder-doc-lint/Cargo.toml
-  - path: apps/desktop/src/components/factory/StageCdReview.tsx
+establishes:
+  - crates/factory-engine/src/stages/stage_cd_comparator.rs
+  - crates/factory-engine/skills/client-document-comparator.md
+  - crates/factory-engine/skills/project-charter-comparator.md
+  - tools/oap/stakeholder-doc-lint/Cargo.toml
+  - product/apps/desktop/src/components/factory/StageCdReview.tsx
+extends:
+  - spec: "075-factory-workflow-engine"
+    paths:
+      - crates/factory-engine/src/stages/stage_cd.rs
+    nature: wrapping
+  - spec: "121-claim-provenance-enforcement"
+    paths:
+      - crates/factory-contracts/src/stakeholder_docs.rs
+    nature: additive
 ---
 
 # 122 — Stakeholder-Doc Inversion and Stage CD Comparator
@@ -213,7 +220,7 @@ The operator authors a charter that cites an extracted quote (`source: "extracte
 - **FR-002**: Section anchors MUST follow the format `<KIND>-<NNN>` where `<KIND>` ∈ `{OBJ, STAKEHOLDER, OUTCOME, IN-SCOPE, OUT-SCOPE, OWNER, ASSUMPTION, RISK}` and `<NNN>` is a zero-padded integer (`OBJ-001`, `STAKEHOLDER-003`). Anchors are inserted inline in the heading: `### OBJ-1: Reduce form-correction cycles by 50%`.
 - **FR-003**: Anchor kinds MUST be exhaustive for V1; adding a new kind requires a spec amendment. The lint tool `stakeholder-doc-lint` rejects unknown kinds.
 - **FR-004**: Authored docs MAY include citations at two levels: (a) frontmatter-level `citations[]` for whole-doc claims (e.g., the charter's overall objective set is derived from `business-case.docx`), (b) section-level `citations[]` for per-section claims (e.g., `OBJ-1` cites a specific quote). Both use the spec-121 `Citation` type verbatim.
-- **FR-005**: A new tool `tools/stakeholder-doc-lint` MUST validate authored docs against the grammar. It MUST run as part of `make ci` and MUST be invoked by the comparator before producing diffs (the comparator refuses to run against an invalid authored doc).
+- **FR-005**: A new tool `tools/oap/stakeholder-doc-lint` MUST validate authored docs against the grammar. It MUST run as part of `make ci` and MUST be invoked by the comparator before producing diffs (the comparator refuses to run against an invalid authored doc).
 - **FR-006**: The grammar MUST have a compile-time schema version `pub const STAKEHOLDER_DOC_SCHEMA_VERSION: &str = "1.0.0"`. The schema parity check from spec 120 MUST be extended to cover this module.
 
 #### Canonical paths and reclassification
@@ -267,7 +274,7 @@ The operator authors a charter that cites an extracted quote (`source: "extracte
 
 #### Operator UX
 
-- **FR-030**: A new desktop UI surface `apps/desktop/src/components/factory/StageCdReview.tsx` MUST render the comparator's output: the `stage-cd-diff.json` per-section, side-by-side authored vs candidate views, diff classification labels, and the three operator actions (Reject / Accept / Force approve).
+- **FR-030**: A new desktop UI surface `product/apps/desktop/src/components/factory/StageCdReview.tsx` MUST render the comparator's output: the `stage-cd-diff.json` per-section, side-by-side authored vs candidate views, diff classification labels, and the three operator actions (Reject / Accept / Force approve).
 - **FR-031**: The review surface MUST link each diff to its underlying claim chain (the BRD claim → Stage 1 emit → upstream extraction citation, where derivable). This lets operators navigate from a Stage CD scope flip to the Stage 1 fabrication that caused it without leaving the surface.
 - **FR-032**: The review surface MUST surface the `seed-ready` signal distinctly from the `compare-blocked` signal: seeding is a positive milestone, blocking is a remediation action.
 
@@ -345,8 +352,8 @@ The operator authors a charter that cites an extracted quote (`source: "extracte
 - `crates/factory-engine/src/stages/stage_cd.rs` — Stage CD driver, split into Phase 1 (candidate generation) and Phase 2 (comparator).
 - `crates/factory-engine/src/stages/stage_cd_comparator.rs` — new module: pairing, classification, gate evaluation.
 - `crates/factory-engine/skills/client-document-comparator.md`, `crates/factory-engine/skills/project-charter-comparator.md` — new skill prose for comparator-mode behaviour, distinct from the legacy generator skills.
-- `tools/stakeholder-doc-lint/` — new lint tool, runs on `make ci`.
-- `apps/desktop/src/components/factory/StageCdReview.tsx` — new UI surface for diff review.
+- `tools/oap/stakeholder-doc-lint/` — new lint tool, runs on `make ci`.
+- `product/apps/desktop/src/components/factory/StageCdReview.tsx` — new UI surface for diff review.
 - `requirements/stakeholder/charter.md`, `requirements/stakeholder/client-document.md` — canonical authored paths reserved by spec.
 - `requirements/audit/stakeholder-doc-migration.md` — migration provenance path.
 - Forensic record: `requirements/debug/Forensic-Analysis_1GX-Integration-Scope-Provenance.md` (project-local at the operator's CFS workspace) — documents the Stage CD overwrite this spec prevents.

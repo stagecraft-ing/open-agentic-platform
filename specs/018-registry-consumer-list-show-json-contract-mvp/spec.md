@@ -12,8 +12,15 @@ language: en
 summary: >
   Lock stable automation contracts for list and show JSON modes (pretty and compact)
   with fixture-based tests, mirroring Feature 010 for status-report.
-implements:
-  - path: tools/registry-consumer
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/spec-spine/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/spec-spine/registry-consumer
+    aspect: contract-tests
 ---
 
 # Feature Specification: List/show JSON contract tests

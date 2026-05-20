@@ -18,6 +18,8 @@ code_aliases:
   - VSCODE_EXT
 sources:
   - claudepal
+establishes:
+  - product/packages/vscode-extension
 ---
 
 > **Deferred** — the repository is pre-alpha / stealth with no external

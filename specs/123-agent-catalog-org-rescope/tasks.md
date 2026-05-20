@@ -19,7 +19,7 @@ Shared types and constants. Blocks every later phase.
   - `AGENT_CATALOG_ENVELOPE_VERSION: 2` (was `1`)
   - `PROJECT_AGENT_BINDING_ENVELOPE_VERSION: 1` (new)
   Compile-time `const`; mismatched desktop/platform builds must fail at type-check, not runtime.
-- [ ] **T005** [P] Add `code_aliases: ["AGENT_CATALOG_ORG"]` is already in spec 123 frontmatter. Verify the codebase-indexer picks it up by running `./tools/codebase-indexer/target/release/codebase-indexer compile` and confirming spec 123 lands in `build/codebase-index/index.json` with the alias.
+- [ ] **T005** [P] Add `code_aliases: ["AGENT_CATALOG_ORG"]` is already in spec 123 frontmatter. Verify the codebase-indexer picks it up by running `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile` and confirming spec 123 lands in `.derived/codebase-index/index.json` with the alias.
 
 **Checkpoint:** `npm run typecheck` in `platform/services/stagecraft` passes; `cargo check` at the workspace root passes; spec compiler emits no errors. Commit message: `chore(spec-123): foundations — schema scaffolds, envelope version bump, audit actions`.
 
@@ -142,16 +142,16 @@ Repurpose the project-side surface; delete 119-era authoring routes.
 
 Schema bump and binding-aware listing on the desktop side.
 
-- [ ] **T070** Update `apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs`:
+- [ ] **T070** Update `product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs`:
   - Local SQLite `agents` table column rename: `workspace_id TEXT` → `org_id TEXT`. Migration writes the new schema and copies values during desktop startup if an existing DB is detected.
   - Envelope handler accepts `v: 2` `agent.catalog.updated` / `agent.catalog.snapshot` (per Phase 3 types). Rejects `v: 1` with a typed error and a "stagecraft requires desktop update" toast (one shot per session).
   - New handler for `project.agent_binding.updated` and `project.agent_binding.snapshot` — maintains a local `project_agent_bindings` table (project_id, org_agent_id, pinned_version, pinned_content_hash).
-- [ ] **T071** [P] Update `apps/desktop/src-tauri/src/commands/agents.rs`:
+- [ ] **T071** [P] Update `product/apps/desktop/src-tauri/src/commands/agents.rs`:
   - `list_active_agents(project_id)` → returns org agents whose id appears in the desktop's local `project_agent_bindings` for that project, with the catalog row's frontmatter and body. This is the default `Agent.list()` source going forward.
   - `list_org_agents(org_id)` → returns the full org catalog (for ad-hoc browse). Surfaced via a "Browse org agents" affordance in the desktop UI (UI work in T073).
   - `.claude/agents/*.md` continues to list as `source: "file"` — unchanged.
-- [ ] **T072** [P] Update `apps/desktop/src-tauri/src/commands/stagecraft_client.rs` and `sync_client.rs` for the v2 envelope wire format. Compile-time `const` for `AGENT_CATALOG_ENVELOPE_VERSION = 2` and `PROJECT_AGENT_BINDING_ENVELOPE_VERSION = 1`.
-- [ ] **T073** [P] Desktop UI — the agent picker / catalog browser surfaces "Active for this project" (bindings) vs "All org agents" (browse). Specific UI files vary by where the picker lives; trace from `apps/desktop/src/components/.../AgentPicker.*` and update.
+- [ ] **T072** [P] Update `product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs` and `sync_client.rs` for the v2 envelope wire format. Compile-time `const` for `AGENT_CATALOG_ENVELOPE_VERSION = 2` and `PROJECT_AGENT_BINDING_ENVELOPE_VERSION = 1`.
+- [ ] **T073** [P] Desktop UI — the agent picker / catalog browser surfaces "Active for this project" (bindings) vs "All org agents" (browse). Specific UI files vary by where the picker lives; trace from `product/apps/desktop/src/components/.../AgentPicker.*` and update.
 - [ ] **T074** [P] Test `crates/agent-frontmatter/tests/ts_bindings.rs` — round-trip the v2 envelope shape through the Rust types. Existing tests for `UnifiedFrontmatter` are unchanged.
 - [ ] **T075** [P] Manual smoke: launch desktop against migrated stagecraft, confirm an org agent appears in list_org_agents but only bound ones appear in list_active_agents for the project.
 
@@ -196,9 +196,9 @@ The final phase. Every prior phase's checkpoint already commits its slice; Phase
 - [ ] **T091** [P] Edit `specs/123-agent-catalog-org-rescope/spec.md` frontmatter:
   - `status: draft` → `status: approved`
   - `implementation: pending` → `implementation: complete`
-- [ ] **T092** Run `./tools/spec-compiler/target/release/spec-compiler compile`. Verify `build/spec-registry/registry.json` carries `amends: ["119"]` on spec 123 and `amendment_record: "123"` on spec 119, with no schema-validation errors. (Spec A-9.)
-- [ ] **T093** Run `./tools/codebase-indexer/target/release/codebase-indexer compile`. Verify `build/codebase-index/index.json` re-renders cleanly with spec 123 traced to its implementing paths and spec 111 / 119 traceability still resolves to active code. (Spec A-10.) Run `codebase-indexer render` to refresh `CODEBASE-INDEX.md`.
-- [ ] **T094** [P] Run the grep gate from spec A-5: `grep -rn "agent_catalog\.project_id\|agent_catalog_audit\.project_id\|agent_policies\.project_id\|agentCatalog\.projectId" platform/services/stagecraft crates apps/desktop`. Must return zero hits outside historical migration files (27, 28), this spec's migration script (30), frozen superseded specs, and this spec's body.
+- [ ] **T092** Run `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`. Verify `.derived/spec-registry/registry.json` carries `amends: ["119"]` on spec 123 and `amendment_record: "123"` on spec 119, with no schema-validation errors. (Spec A-9.)
+- [ ] **T093** Run `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile`. Verify `.derived/codebase-index/index.json` re-renders cleanly with spec 123 traced to its implementing paths and spec 111 / 119 traceability still resolves to active code. (Spec A-10.) Run `codebase-indexer render` to refresh `CODEBASE-INDEX.md`.
+- [ ] **T094** [P] Run the grep gate from spec A-5: `grep -rn "agent_catalog\.project_id\|agent_catalog_audit\.project_id\|agent_policies\.project_id\|agentCatalog\.projectId" platform/services/stagecraft crates product/apps/desktop`. Must return zero hits outside historical migration files (27, 28), this spec's migration script (30), frozen superseded specs, and this spec's body.
 - [ ] **T095** [P] Run `make ci` from the repo root. Must pass green. (Spec A-11.)
 - [ ] **T096** [P] Verify acceptance criteria A-1 through A-11 from the spec one by one. For each, leave a one-line note in the PR description showing the verification artifact (test path, grep output, screenshot reference, etc.).
 - [ ] **T097** Final commit message: `chore(spec-123): close — flip status approved + complete, amend 119, registry/index refresh`.

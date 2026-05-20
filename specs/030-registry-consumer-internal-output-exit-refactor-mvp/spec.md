@@ -12,8 +12,11 @@ language: en
 summary: >
   Internal refactor only: centralize output/error/exit emission in helper paths
   while preserving all observable CLI behavior under existing contracts.
-implements:
-  - path: tools/registry-consumer
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/spec-spine/registry-consumer
+    nature: additive
 ---
 
 # Feature Specification: Internal output/exit refactor
@@ -24,9 +27,9 @@ Validate controlled-extension governance by performing a bounded internal refact
 
 ## Requirements
 
-- **FR-001**: Refactor `tools/registry-consumer/src/main.rs` to centralize repeated output/error/exit handling into helper functions.
+- **FR-001**: Refactor `tools/spec-spine/registry-consumer/src/main.rs` to centralize repeated output/error/exit handling into helper functions.
 - **FR-002**: Preserve exact observable behavior for stdout, stderr, exit codes, ordering, and JSON/text output.
-- **FR-003**: Do not modify fixture corpus under `tools/registry-consumer/tests/fixtures/`.
+- **FR-003**: Do not modify fixture corpus under `tools/spec-spine/registry-consumer/tests/fixtures/`.
 - **FR-004**: All existing registry-consumer contract suites remain green without fixture updates.
 
 ## Out of scope

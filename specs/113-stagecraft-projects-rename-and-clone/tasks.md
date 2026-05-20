@@ -99,7 +99,7 @@ Independent, fast.
 - [ ] **T071** Add an entry to `platform/services/stagecraft/CLAUDE.md` "Factory project scaffold" section describing `clone.ts` alongside `create.ts` and `import.ts`.
 - [ ] **T072** Manual end-to-end: from a real stagecraft instance with a GitHub installation in the destination org, clone a small public repo project; verify the destination repo, project row, audit row, knowledge-objects, and the new project's detail page render.
 - [ ] **T073** Manual rollback verification: temporarily make `git push --mirror` fail (e.g. revoke installation token mid-flight); confirm the destination repo is deleted and no orphan remains under the destination org.
-- [ ] **T074** Update spec frontmatter `implementation:` from `pending` to `complete` once all checkpoints pass; re-run `tools/spec-compiler/target/release/spec-compiler compile` and `tools/codebase-indexer/target/release/codebase-indexer compile` so traceability picks up the new files.
+- [ ] **T074** Update spec frontmatter `implementation:` from `pending` to `complete` once all checkpoints pass; re-run `tools/spec-spine/spec-compiler/target/release/spec-compiler compile` and `tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile` so traceability picks up the new files.
 
 ---
 

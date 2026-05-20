@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:15ca2c6d7cf649cb2b389eb888f7c782bdb91532aa92705dce983d830c802868",
+  "graph_fingerprint": "sha256:df18daeefcd6fbc5deea12388d85de6401af8216ebd74d151dcff14866309524",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2448,7 +2448,7 @@
     },
     {
       "feature_id": "127-spec-code-coupling-gate",
-      "title": "Spec/Code Coupling Gate — fail PRs that change implements: paths without spec.md",
+      "title": "Spec/Code Coupling Workflow — CI job, make target, contributor flow",
       "spec_path": "specs/127-spec-code-coupling-gate/spec.md",
       "status": "approved",
       "implementation": "complete",
@@ -2456,12 +2456,11 @@
       "owner": "bart",
       "group": "",
       "depends_on": [
-        "000",
-        "001",
-        "101",
         "103",
         "104",
-        "118"
+        "118",
+        "130",
+        "133"
       ],
       "impl_files": [],
       "test_files": [],
@@ -2503,7 +2502,7 @@
     },
     {
       "feature_id": "130-spec-coupling-primary-owner",
-      "title": "Spec/code coupling: primary-owner heuristic — relax to any-claimant edit",
+      "title": "Spec Relationship Graph — eight first-class edges between specs and code",
       "spec_path": "specs/130-spec-coupling-primary-owner/spec.md",
       "status": "approved",
       "implementation": "complete",
@@ -2511,8 +2510,9 @@
       "owner": "bart",
       "group": "",
       "depends_on": [
-        "127",
-        "129"
+        "000",
+        "001",
+        "101"
       ],
       "impl_files": [],
       "test_files": [],
@@ -2555,7 +2555,7 @@
     },
     {
       "feature_id": "133-amends-aware-coupling-gate",
-      "title": "Amends-aware spec/code coupling gate — recognise `amends:` as valid coupling",
+      "title": "Coupling Gate — authority derivation, satisfaction semantics, constraint evaluation",
       "spec_path": "specs/133-amends-aware-coupling-gate/spec.md",
       "status": "approved",
       "implementation": "complete",
@@ -2563,8 +2563,7 @@
       "owner": "bart",
       "group": "",
       "depends_on": [
-        "119",
-        "127",
+        "101",
         "130"
       ],
       "impl_files": [],
@@ -2610,7 +2609,7 @@
       "title": "Tenant-hello — stagecraft-deployable tenant reference service",
       "spec_path": "specs/136-tenant-hello-demo-service/spec.md",
       "status": "approved",
-      "implementation": "in-progress",
+      "implementation": "complete",
       "governance": "low",
       "owner": "bart",
       "group": "",
@@ -2627,7 +2626,7 @@
       "title": "Tenant environment access gates — passwordless OIDC via Rauthy",
       "spec_path": "specs/137-tenant-environment-access-gates/spec.md",
       "status": "approved",
-      "implementation": "pending",
+      "implementation": "in-progress",
       "governance": "medium",
       "owner": "bart",
       "group": "",
@@ -2702,7 +2701,7 @@
       "title": "Align aim-vue-node scaffold_source_id with template.json::templateName",
       "spec_path": "specs/141-aim-vue-node-source-id-template-name-alignment/spec.md",
       "status": "approved",
-      "implementation": "in-progress",
+      "implementation": "complete",
       "governance": "low",
       "owner": "bart",
       "group": "",
@@ -2853,170 +2852,43 @@
       "impl_files": [],
       "test_files": [],
       "violations": []
+    },
+    {
+      "feature_id": "151-declarative-cluster-reconciliation",
+      "title": "Declarative cluster reconciliation — GitOps for cluster-side state via Flux v2",
+      "spec_path": "specs/151-declarative-cluster-reconciliation/spec.md",
+      "status": "approved",
+      "implementation": "pending",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "087",
+        "143"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "152-path-co-authority",
+      "title": "Path Co-Authority — named-anchor sectioning and empty-authority-by-rule",
+      "spec_path": "specs/152-path-co-authority/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "130",
+        "133"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
     }
   ],
   "violations": [
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src-tauri/src/commands/factory_platform.rs",
-      "message": "Malformed Spec directive: // Spec: specs/124-opc-factory-run-platform-integration/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src-tauri/src/commands/provenance.rs",
-      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-041",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src-tauri/src/commands/stage_cd.rs",
-      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-024, FR-025, FR-026, FR-030",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src-tauri/src/web_server.rs",
-      "message": "Malformed Spec directive: // Spec: specs/079-scheduling/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/ScheduleDialog.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/079-scheduling/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/SchedulePanel.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/079-scheduling/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/ArtifactInspector.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/BuildSpecStructuredView.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/FactoryPipelineContext.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/FactoryPipelinePanel.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/GateDialog.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/PipelineDAG.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/PipelineHistory.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/PipelineSelector.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/ProvenanceHealthPanel.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-042",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/ProvenanceReport.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-041",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/ScaffoldMonitor.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/StageCdReview.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-030, FR-031, FR-032",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/TokenDashboard.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-042",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/__tests__/ProvenanceReport.test.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-041",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/__tests__/StageCdReview.test.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-030, FR-031, FR-032",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "apps/desktop/src/components/factory/types.ts",
-      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
-      "suggested_fix": "Fix header format"
-    },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
@@ -3727,146 +3599,6 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "packages/prompt-assembly/src/assembler.test.ts",
-      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/prompt-assembly/src/assembler.ts",
-      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/prompt-assembly/src/compaction.test.ts",
-      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/prompt-assembly/src/compaction.ts",
-      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/prompt-assembly/src/defaults.test.ts",
-      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/prompt-assembly/src/defaults.ts",
-      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/prompt-assembly/src/index.ts",
-      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/prompt-assembly/src/types.ts",
-      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/skill-command-factory/src/factory.test.ts",
-      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/skill-command-factory/src/factory.ts",
-      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/skill-command-factory/src/filter.test.ts",
-      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/skill-command-factory/src/filter.ts",
-      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/skill-command-factory/src/index.ts",
-      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/skill-command-factory/src/parser.test.ts",
-      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/skill-command-factory/src/parser.ts",
-      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/skill-command-factory/src/plugin-loader.test.ts",
-      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/skill-command-factory/src/plugin-loader.ts",
-      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/skill-command-factory/src/tool-def.test.ts",
-      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/skill-command-factory/src/tool-def.ts",
-      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "packages/skill-command-factory/src/types.ts",
-      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
       "path": "platform/services/stagecraft/api/knowledge/extractionExternal.test.ts",
       "message": "Malformed Spec directive: // Spec: specs/120-factory-extraction-stage/spec.md — FR-016, FR-017",
       "suggested_fix": "Fix header format"
@@ -3881,28 +3613,329 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "tools/assumption-cascade-check/src/lib.rs",
+      "path": "product/apps/desktop/src-tauri/src/commands/factory_platform.rs",
+      "message": "Malformed Spec directive: // Spec: specs/124-opc-factory-run-platform-integration/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src-tauri/src/commands/provenance.rs",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-041",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src-tauri/src/commands/stage_cd.rs",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-024, FR-025, FR-026, FR-030",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src-tauri/src/web_server.rs",
+      "message": "Malformed Spec directive: // Spec: specs/079-scheduling/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/ScheduleDialog.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/079-scheduling/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/SchedulePanel.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/079-scheduling/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/ArtifactInspector.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/BuildSpecStructuredView.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/FactoryPipelineContext.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/FactoryPipelinePanel.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/GateDialog.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/PipelineDAG.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/PipelineHistory.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/PipelineSelector.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/ProvenanceHealthPanel.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-042",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/ProvenanceReport.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-041",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/ScaffoldMonitor.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/StageCdReview.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-030, FR-031, FR-032",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/TokenDashboard.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-042",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/__tests__/ProvenanceReport.test.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-041",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/__tests__/StageCdReview.test.tsx",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-030, FR-031, FR-032",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/components/factory/types.ts",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/prompt-assembly/src/assembler.test.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/prompt-assembly/src/assembler.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/prompt-assembly/src/compaction.test.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/prompt-assembly/src/compaction.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/prompt-assembly/src/defaults.test.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/prompt-assembly/src/defaults.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/prompt-assembly/src/index.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/prompt-assembly/src/types.ts",
+      "message": "Malformed Feature directive: // Feature: 070-prompt-assembly-cache",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/skill-command-factory/src/factory.test.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/skill-command-factory/src/factory.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/skill-command-factory/src/filter.test.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/skill-command-factory/src/filter.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/skill-command-factory/src/index.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/skill-command-factory/src/parser.test.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/skill-command-factory/src/parser.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/skill-command-factory/src/plugin-loader.test.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/skill-command-factory/src/plugin-loader.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/skill-command-factory/src/tool-def.test.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/skill-command-factory/src/tool-def.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/packages/skill-command-factory/src/types.ts",
+      "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "tools/oap/assumption-cascade-check/src/lib.rs",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-034",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "tools/assumption-cascade-check/src/main.rs",
+      "path": "tools/oap/assumption-cascade-check/src/main.rs",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-034",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "tools/stakeholder-doc-lint/src/lib.rs",
+      "path": "tools/oap/stakeholder-doc-lint/src/lib.rs",
       "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-005, FR-034",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "tools/stakeholder-doc-lint/src/main.rs",
+      "path": "tools/oap/stakeholder-doc-lint/src/main.rs",
       "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-005, FR-035",
       "suggested_fix": "Fix header format"
     }

@@ -18,9 +18,14 @@ summary: >
   create a Stagecraft promotion validation endpoint, and integrate eligibility
   checks into the orchestrator completion path.
 code_aliases: ["PROMOTION_GRADE_MIRROR"]
-implements:
-  - path: crates/run
-  - path: crates/orchestrator
+establishes:
+  - crates/orchestrator/src/promotion.rs
+extends:
+  - spec: "052-state-persistence"
+    paths:
+      - crates/orchestrator/src/state.rs
+      - crates/orchestrator/src/lib.rs
+    nature: additive
 ---
 
 # 097 — Promotion-Grade Platform Mirror

@@ -1,0 +1,5771 @@
+{
+  "build": {
+    "contentHash": "f5a59baabb0a4025d3252229eac3d9dbd45419ebe396811a779eee1a4a1f7b5a",
+    "indexerId": "codebase-indexer",
+    "indexerVersion": "0.1.0",
+    "repoRoot": "."
+  },
+  "diagnostics": {
+    "errors": [],
+    "warnings": [
+      {
+        "code": "I-101",
+        "message": "spec \"033-axiomregent-activation\" declares implements path \"product/apps/desktop/src-tauri/src/commands/sidecars.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"038-titor-tauri-command-wiring\" declares implements path \"product/apps/desktop/src-tauri/src/commands/titor.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"040-blockoli-semantic-search-wiring\" declares implements path \"product/apps/desktop/src-tauri/src/commands/search.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"056-session-memory\" declares implements path \"product/packages/memory-mcp\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"057-notification-system\" declares implements path \"product/apps/desktop/src/lib/notificationChannels.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"057-notification-system\" declares implements path \"product/apps/desktop/src/lib/notificationOrchestrator.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"058-file-mention-system\" declares implements path \"product/apps/desktop/src/components/FileMentionAutocomplete.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"058-file-mention-system\" declares implements path \"product/apps/desktop/src/lib/fileMentionSystem.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"059-git-panel\" declares implements path \"product/apps/desktop/src/components/GitPanel.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"060-panel-event-bus\" declares implements path \"product/apps/desktop/src/lib/panelEventBus.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"061-conductor-track-lifecycle\" declares implements path \".claude/agents/conductor.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"062-multi-model-chaining\" declares implements path \"crates/agent/src/chain.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"064-websocket-reconnection\" declares implements path \"product/apps/desktop/src/lib/wsReconnection.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"065-encrypted-keychain\" declares implements path \"product/apps/desktop/src-tauri/src/keychain.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"065-encrypted-keychain\" declares implements path \"product/apps/desktop/src/components/CredentialPicker.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"066-vscode-extension\" declares implements path \"product/packages/vscode-extension\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"070-prompt-assembly-cache\" declares implements path \"crates/agent/src/prompt_assembly.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"074-factory-ingestion\" declares implements path \"factory\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"076-factory-desktop-panel\" declares implements path \"product/apps/desktop/src/components/FactoryPipelinePanel.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"081-factory-test-hydration\" declares implements path \"factory\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"086-open-source-launch\" declares implements path \"CHANGELOG.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"086-open-source-launch\" declares implements path \"CODE_OF_CONDUCT.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"086-open-source-launch\" declares implements path \"CONTRIBUTING.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"086-open-source-launch\" declares implements path \"SECURITY.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"087-unified-workspace-architecture\" declares implements path \"product/packages/project-sdk\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"088-factory-upstream-sync\" declares implements path \"factory/upstream-map.yaml\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"102-governed-excellence\" declares implements path \"factory/contract/checks\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"102-governed-excellence\" declares implements path \"factory/contract/schemas/governance-certificate.schema.json\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"106-rauthy-native-oidc-and-membership\" declares implements path \"platform/services/stagecraft/api/auth/rauthySeed.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"111-org-agent-catalog-sync\" declares implements path \"platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/clone.test.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"119-project-as-unit-of-governance\" declares implements path \"platform/services/stagecraft/api/workspaces\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-engine/skills/business-requirements-analyst.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-engine/skills/validate.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-engine/src/stages/s1_business_requirements.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/provenance-validator/src/anchor.rs\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"platform/services/stagecraft/api/governance/provenancePolicy.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/client-document-comparator.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/project-charter-comparator.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"144-hiqlite-default-features\" declares implements path \"crates/Cargo.lock\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"148-auth-driver-registry\" declares implements path \"crates/auth-driver/\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"149-saml-auth-driver\" declares implements path \"crates/auth-driver-saml/\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"151-declarative-cluster-reconciliation\" declares implements path \"platform/charts/rauthy/values-hetzner.yaml\" which is not a known package, adapter, or existing file/directory"
+      }
+    ]
+  },
+  "inventory": [
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "anyhow",
+        "chrono",
+        "hex",
+        "regex",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "thiserror",
+        "toml",
+        "url",
+        "uuid"
+      ],
+      "internalDeps": [
+        "agent-frontmatter"
+      ],
+      "kind": "rust-lib",
+      "name": "agent",
+      "path": "crates/agent",
+      "specRef": "035-agent-governed-execution",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "ts-rs"
+      ],
+      "kind": "rust-lib",
+      "name": "agent-frontmatter",
+      "path": "crates/agent-frontmatter",
+      "specRef": "054-agent-frontmatter-schema",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/bin/artifact_extract.rs"
+      ],
+      "externalDeps": [
+        "pdf-extract",
+        "quick-xml",
+        "serde_json",
+        "thiserror",
+        "zip"
+      ],
+      "internalDeps": [
+        "factory-contracts"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "artifact-extract",
+      "path": "crates/artifact-extract",
+      "specRef": "120-factory-extraction-stage",
+      "version": "0.2.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "anyhow",
+        "async-trait",
+        "base64",
+        "chrono",
+        "env_logger",
+        "fastembed",
+        "hex",
+        "hiqlite",
+        "kd-tree",
+        "log",
+        "lz4_flex",
+        "octocrab",
+        "once_cell",
+        "parking_lot",
+        "rayon",
+        "regex",
+        "reqwest",
+        "serde",
+        "serde_json",
+        "sha2",
+        "similar",
+        "tar",
+        "tempfile",
+        "thiserror",
+        "tokio",
+        "typenum",
+        "url",
+        "urlencoding",
+        "uuid",
+        "walkdir",
+        "zstd"
+      ],
+      "internalDeps": [
+        "agent",
+        "featuregraph",
+        "open_agentic_policy_kernel",
+        "run",
+        "skill-factory",
+        "tool-registry",
+        "xray"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "axiomregent",
+      "path": "crates/axiomregent",
+      "specRef": "073-axiomregent-unification",
+      "version": "0.1.5"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "chrono",
+        "glob",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "thiserror",
+        "unicode-normalization"
+      ],
+      "internalDeps": [
+        "agent-frontmatter"
+      ],
+      "kind": "rust-lib",
+      "name": "factory-contracts",
+      "path": "crates/factory-contracts",
+      "specRef": "074-factory-ingestion",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/bin/harness.rs",
+        "src/bin/factory_run.rs",
+        "src/bin/verify_certificate.rs",
+        "src/bin/build_certificate.rs",
+        "src/bin/migrate_stakeholder_docs.rs"
+      ],
+      "externalDeps": [
+        "async-trait",
+        "base64",
+        "chrono",
+        "clap",
+        "dirs",
+        "ed25519-dalek",
+        "infer",
+        "jsonschema",
+        "rand",
+        "regex",
+        "reqwest",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "thiserror",
+        "tokio",
+        "tokio-util",
+        "urlencoding",
+        "uuid",
+        "walkdir"
+      ],
+      "internalDeps": [
+        "artifact-extract",
+        "factory-contracts",
+        "open_agentic_policy_kernel",
+        "open_agentic_spec_registry_reader",
+        "orchestrator",
+        "provenance-validator",
+        "standards-loader"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "factory-engine",
+      "path": "crates/factory-engine",
+      "specRef": "075-factory-workflow-engine",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "async-trait",
+        "dirs",
+        "reqwest",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "thiserror",
+        "tokio"
+      ],
+      "internalDeps": [
+        "factory-contracts",
+        "factory-engine"
+      ],
+      "kind": "rust-lib",
+      "name": "factory-platform-client",
+      "path": "crates/factory-platform-client",
+      "specRef": "124-opc-factory-run-platform-integration",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/bin/factory-project-detect.rs"
+      ],
+      "externalDeps": [
+        "anyhow",
+        "chrono",
+        "clap",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "thiserror"
+      ],
+      "internalDeps": [
+        "factory-contracts"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "factory-project-detect",
+      "path": "crates/factory-project-detect",
+      "specRef": "112-factory-project-lifecycle",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "anyhow",
+        "hex",
+        "ignore",
+        "regex",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "thiserror"
+      ],
+      "internalDeps": [
+        "open_agentic_spec_registry_reader",
+        "xray"
+      ],
+      "kind": "rust-lib",
+      "name": "featuregraph",
+      "path": "crates/featuregraph",
+      "specRef": "034-featuregraph-registry-scanner-fix",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "async-stream",
+        "async-trait",
+        "axum",
+        "chrono",
+        "cron",
+        "dashmap",
+        "dirs",
+        "futures-util",
+        "hiqlite",
+        "regex",
+        "rusqlite",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "thiserror",
+        "tokio",
+        "uuid"
+      ],
+      "internalDeps": [
+        "provider-registry",
+        "standards-loader"
+      ],
+      "kind": "rust-lib",
+      "name": "orchestrator",
+      "path": "crates/orchestrator",
+      "specRef": "052-state-persistence",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/bin/verify_proof_chain.rs"
+      ],
+      "externalDeps": [
+        "base64",
+        "chrono",
+        "dirs",
+        "ed25519-dalek",
+        "glob",
+        "hex",
+        "notify",
+        "rand",
+        "regex",
+        "serde",
+        "serde_json",
+        "sha2"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_policy_kernel",
+      "path": "crates/policy-kernel",
+      "specRef": "047-governance-control-plane",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/bin/audit.rs"
+      ],
+      "externalDeps": [
+        "serde",
+        "serde_json",
+        "sha2",
+        "unicode-normalization"
+      ],
+      "internalDeps": [
+        "factory-contracts"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "provenance-validator",
+      "path": "crates/provenance-validator",
+      "specRef": "121-claim-provenance-enforcement",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "async-stream",
+        "async-trait",
+        "aws-config",
+        "aws-sdk-bedrockruntime",
+        "bytes",
+        "dashmap",
+        "eventsource-stream",
+        "futures-core",
+        "futures-util",
+        "pin-project-lite",
+        "reqwest",
+        "serde",
+        "serde_json",
+        "thiserror",
+        "tokio",
+        "tokio-util",
+        "uuid"
+      ],
+      "internalDeps": [
+        "open_agentic_policy_kernel"
+      ],
+      "kind": "rust-lib",
+      "name": "provider-registry",
+      "path": "crates/provider-registry",
+      "specRef": "042-multi-provider-agent-registry",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "anyhow",
+        "serde",
+        "serde_json",
+        "serde_yaml"
+      ],
+      "kind": "rust-lib",
+      "name": "run",
+      "path": "crates/run",
+      "specRef": "052-state-persistence",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "anyhow",
+        "glob",
+        "regex",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "thiserror"
+      ],
+      "internalDeps": [
+        "agent-frontmatter",
+        "tool-registry"
+      ],
+      "kind": "rust-lib",
+      "name": "skill-factory",
+      "path": "crates/skill-factory",
+      "specRef": "071-skill-command-factory",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "serde",
+        "serde_yaml",
+        "thiserror"
+      ],
+      "kind": "rust-lib",
+      "name": "standards-loader",
+      "path": "crates/standards-loader",
+      "specRef": "055-yaml-standards-schema",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "anyhow",
+        "async-trait",
+        "jsonschema",
+        "serde",
+        "serde_json",
+        "thiserror"
+      ],
+      "internalDeps": [
+        "open_agentic_policy_kernel"
+      ],
+      "kind": "rust-lib",
+      "name": "tool-registry",
+      "path": "crates/tool-registry",
+      "specRef": "067-tool-definition-registry",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "anyhow",
+        "clap",
+        "fastembed",
+        "hex",
+        "kd-tree",
+        "once_cell",
+        "parking_lot",
+        "rayon",
+        "serde",
+        "serde_json",
+        "sha2",
+        "tempfile",
+        "thiserror",
+        "toml",
+        "tree-sitter",
+        "typenum",
+        "walkdir"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "xray",
+      "path": "crates/xray",
+      "specRef": "032-opc-inspect-governance-wiring-mvp",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "anyhow",
+        "axum",
+        "chrono",
+        "hiqlite",
+        "jsonwebtoken",
+        "k8s-openapi",
+        "kube",
+        "once_cell",
+        "reqwest",
+        "serde",
+        "serde_json",
+        "tokio",
+        "tower-http",
+        "tracing",
+        "tracing-subscriber",
+        "uuid"
+      ],
+      "kind": "rust-bin",
+      "name": "deployd-api",
+      "path": "platform/services/deployd-api-rs",
+      "specRef": "073-axiomregent-unification",
+      "version": "0.1.1"
+    },
+    {
+      "externalDeps": [
+        "@aws-sdk/client-s3",
+        "@aws-sdk/s3-request-presigner",
+        "@react-router/dev",
+        "@react-router/node",
+        "@react-router/serve",
+        "@tailwindcss/vite",
+        "@tanstack/react-query",
+        "@types/luxon",
+        "@types/node",
+        "@types/pdf-parse",
+        "@types/react",
+        "@types/react-dom",
+        "drizzle-kit",
+        "drizzle-orm",
+        "encore.dev",
+        "isbot",
+        "knex",
+        "luxon",
+        "mammoth",
+        "pdf-parse",
+        "pg",
+        "prettier",
+        "react",
+        "react-dom",
+        "react-markdown",
+        "react-router",
+        "remark-gfm",
+        "tailwindcss",
+        "typescript",
+        "vite",
+        "vite-tsconfig-paths",
+        "vitest",
+        "yaml",
+        "zod"
+      ],
+      "kind": "npm-package",
+      "name": "stagecraft",
+      "path": "platform/services/stagecraft",
+      "specRef": "087-unified-workspace-architecture",
+      "version": "0.1.0"
+    },
+    {
+      "externalDeps": [
+        "express"
+      ],
+      "kind": "npm-package",
+      "name": "tenant-hello",
+      "path": "platform/services/tenant-hello",
+      "specRef": "136-tenant-hello-demo-service",
+      "version": "0.0.1"
+    },
+    {
+      "externalDeps": [
+        "@hookform/resolvers",
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-dropdown-menu",
+        "@radix-ui/react-label",
+        "@radix-ui/react-popover",
+        "@radix-ui/react-radio-group",
+        "@radix-ui/react-select",
+        "@radix-ui/react-switch",
+        "@radix-ui/react-tabs",
+        "@radix-ui/react-toast",
+        "@radix-ui/react-tooltip",
+        "@tailwindcss/cli",
+        "@tailwindcss/vite",
+        "@tanstack/react-virtual",
+        "@tauri-apps/api",
+        "@tauri-apps/cli",
+        "@tauri-apps/plugin-autostart",
+        "@tauri-apps/plugin-dialog",
+        "@tauri-apps/plugin-fs",
+        "@tauri-apps/plugin-global-shortcut",
+        "@tauri-apps/plugin-opener",
+        "@tauri-apps/plugin-shell",
+        "@testing-library/jest-dom",
+        "@testing-library/react",
+        "@types/diff",
+        "@types/js-yaml",
+        "@types/node",
+        "@types/react",
+        "@types/react-dom",
+        "@types/react-syntax-highlighter",
+        "@types/sharp",
+        "@uiw/react-md-editor",
+        "@vitejs/plugin-react",
+        "ansi-to-html",
+        "class-variance-authority",
+        "clsx",
+        "date-fns",
+        "diff",
+        "framer-motion",
+        "html2canvas",
+        "js-yaml",
+        "jsdom",
+        "lucide-react",
+        "posthog-js",
+        "react",
+        "react-dom",
+        "react-hook-form",
+        "react-markdown",
+        "react-syntax-highlighter",
+        "recharts",
+        "remark-gfm",
+        "sharp",
+        "tailwind-merge",
+        "tailwindcss",
+        "typescript",
+        "vite",
+        "vitest",
+        "zod",
+        "zustand"
+      ],
+      "internalDeps": [
+        "@opc/claude-code-bridge",
+        "@opc/ui",
+        "@opc/workspace-sdk"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/desktop",
+      "path": "product/apps/desktop",
+      "specRef": "032-opc-inspect-governance-wiring-mvp",
+      "version": "0.3.2"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs",
+        "src/web_main.rs"
+      ],
+      "externalDeps": [
+        "anyhow",
+        "async-trait",
+        "axum",
+        "base64",
+        "chrono",
+        "clap",
+        "dirs",
+        "env_logger",
+        "futures",
+        "futures-util",
+        "git2",
+        "glob",
+        "hex",
+        "image",
+        "keyring",
+        "libc",
+        "log",
+        "regex",
+        "reqwest",
+        "rusqlite",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "similar",
+        "specta",
+        "specta-typescript",
+        "sysinfo",
+        "tauri",
+        "tauri-plugin-autostart",
+        "tauri-plugin-clipboard-manager",
+        "tauri-plugin-deep-link",
+        "tauri-plugin-dialog",
+        "tauri-plugin-fs",
+        "tauri-plugin-global-shortcut",
+        "tauri-plugin-http",
+        "tauri-plugin-log",
+        "tauri-plugin-notification",
+        "tauri-plugin-opener",
+        "tauri-plugin-os",
+        "tauri-plugin-persisted-scope",
+        "tauri-plugin-process",
+        "tauri-plugin-shell",
+        "tauri-plugin-single-instance",
+        "tauri-plugin-updater",
+        "tauri-plugin-window-state",
+        "tauri-specta",
+        "tempfile",
+        "thiserror",
+        "tokio",
+        "tokio-tungstenite",
+        "tokio-util",
+        "tower",
+        "tower-http",
+        "url",
+        "uuid",
+        "walkdir",
+        "which",
+        "zstd"
+      ],
+      "internalDeps": [
+        "agent",
+        "factory-contracts",
+        "factory-engine",
+        "factory-platform-client",
+        "factory-project-detect",
+        "featuregraph",
+        "open_agentic_policy_kernel",
+        "open_agentic_spec_registry_reader",
+        "orchestrator",
+        "provenance-validator",
+        "provider-registry",
+        "run",
+        "xray"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "opc",
+      "path": "product/apps/desktop/src-tauri",
+      "version": "0.3.2"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest",
+        "yaml"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/agent-frontmatter",
+      "path": "product/packages/agent-frontmatter",
+      "specRef": "054-agent-frontmatter-schema",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/claude-code-bridge",
+      "path": "product/packages/claude-code-bridge",
+      "specRef": "045-claude-code-sdk-bridge",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/coherence-scoring",
+      "path": "product/packages/coherence-scoring",
+      "specRef": "063-coherence-scoring",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/conductor-track",
+      "path": "product/packages/conductor-track",
+      "specRef": "061-conductor-track-lifecycle",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/file-mention",
+      "path": "product/packages/file-mention",
+      "specRef": "058-file-mention-system",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/git-panel",
+      "path": "product/packages/git-panel",
+      "specRef": "059-git-panel",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest",
+        "yaml"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/hookify-rule-engine",
+      "path": "product/packages/hookify-rule-engine",
+      "specRef": "048-hookify-rule-engine",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest"
+      ],
+      "internalDeps": [
+        "@opc/provider-registry"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/multi-model-chaining",
+      "path": "product/packages/multi-model-chaining",
+      "specRef": "062-multi-model-chaining",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/notification-orchestrator",
+      "path": "product/packages/notification-orchestrator",
+      "specRef": "057-notification-system",
+      "version": "0.1.0"
+    },
+    {
+      "kind": "npm-package",
+      "name": "oap-ctl",
+      "path": "product/packages/oap-ctl",
+      "specRef": "085-remote-control-cli",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/panel-event-bus",
+      "path": "product/packages/panel-event-bus",
+      "specRef": "060-panel-event-bus",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/permission-system",
+      "path": "product/packages/permission-system",
+      "specRef": "049-permission-system",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest"
+      ],
+      "internalDeps": [
+        "@opc/yaml-standards-schema"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/prompt-assembly",
+      "path": "product/packages/prompt-assembly",
+      "specRef": "070-prompt-assembly-cache",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@anthropic-ai/sdk",
+        "@aws-sdk/client-bedrock-runtime",
+        "@google/generative-ai",
+        "@types/node",
+        "openai",
+        "typescript",
+        "vitest"
+      ],
+      "internalDeps": [
+        "@opc/claude-code-bridge",
+        "@opc/permission-system"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/provider-registry",
+      "path": "product/packages/provider-registry",
+      "specRef": "042-multi-provider-agent-registry",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/better-sqlite3",
+        "@types/node",
+        "better-sqlite3",
+        "typescript",
+        "vitest",
+        "yaml"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/session-memory",
+      "path": "product/packages/session-memory",
+      "specRef": "056-session-memory",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest",
+        "yaml"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/skill-command-factory",
+      "path": "product/packages/skill-command-factory",
+      "specRef": "071-skill-command-factory",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "@types/react",
+        "react",
+        "typescript",
+        "vitest"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/tool-renderer",
+      "path": "product/packages/tool-renderer",
+      "specRef": "050-tool-renderer-system",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-dropdown-menu",
+        "@radix-ui/react-label",
+        "@radix-ui/react-popover",
+        "@radix-ui/react-radio-group",
+        "@radix-ui/react-select",
+        "@radix-ui/react-switch",
+        "@radix-ui/react-tabs",
+        "@radix-ui/react-toast",
+        "@radix-ui/react-tooltip",
+        "@types/react",
+        "@types/react-dom",
+        "class-variance-authority",
+        "clsx",
+        "framer-motion",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/ui",
+      "path": "product/packages/ui",
+      "specRef": "032-opc-inspect-governance-wiring-mvp",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest",
+        "yaml"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/verification-profiles",
+      "path": "product/packages/verification-profiles",
+      "specRef": "053-verification-profiles",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/workspace-sdk",
+      "path": "product/packages/workspace-sdk",
+      "specRef": "087-unified-workspace-architecture",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/worktree-agents",
+      "path": "product/packages/worktree-agents",
+      "specRef": "051-worktree-agents",
+      "version": "0.1.0"
+    },
+    {
+      "entryPoints": [
+        "src/index.ts"
+      ],
+      "externalDeps": [
+        "@types/node",
+        "typescript",
+        "vitest",
+        "yaml"
+      ],
+      "kind": "npm-package",
+      "name": "@opc/yaml-standards-schema",
+      "path": "product/packages/yaml-standards-schema",
+      "specRef": "055-yaml-standards-schema",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde",
+        "serde_json",
+        "serde_yaml"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_adapter_scopes_compiler",
+      "path": "tools/oap/adapter-scopes-compiler",
+      "specRef": "105-scripts-to-binaries-migration",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "internalDeps": [
+        "factory-engine"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_assumption_cascade_check",
+      "path": "tools/oap/assumption-cascade-check",
+      "specRef": "121-claim-provenance-enforcement",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde",
+        "serde_yaml"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_ci_parity_check",
+      "path": "tools/oap/ci-parity-check",
+      "specRef": "104-makefile-ci-parity-contract",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "toml",
+        "walkdir"
+      ],
+      "internalDeps": [
+        "open_agentic_codebase_indexer",
+        "open_agentic_spec_types"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_code_index_enrich",
+      "path": "tools/oap/oap-code-index-enrich",
+      "specRef": "101-codebase-index-mvp",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "walkdir"
+      ],
+      "internalDeps": [
+        "open_agentic_spec_registry_reader",
+        "open_agentic_spec_types"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_registry_enrich",
+      "path": "tools/oap/oap-registry-enrich",
+      "specRef": "102-governed-excellence",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "chrono",
+        "clap",
+        "hex",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "walkdir"
+      ],
+      "internalDeps": [
+        "open_agentic_policy_kernel",
+        "open_agentic_spec_types"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_policy_compiler",
+      "path": "tools/oap/policy-compiler",
+      "specRef": "047-governance-control-plane",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde",
+        "serde_yaml",
+        "walkdir"
+      ],
+      "internalDeps": [
+        "factory-contracts",
+        "provenance-validator"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_stakeholder_doc_lint",
+      "path": "tools/oap/stakeholder-doc-lint",
+      "specRef": "122-stakeholder-doc-inversion",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "serde",
+        "serde_yaml"
+      ],
+      "kind": "rust-lib",
+      "name": "open_agentic_spec_types",
+      "path": "tools/shared/spec-types",
+      "specRef": "000-bootstrap-spec-system",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "chrono",
+        "clap",
+        "jsonschema",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "toml",
+        "walkdir"
+      ],
+      "internalDeps": [
+        "open_agentic_spec_types"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_codebase_indexer",
+      "path": "tools/spec-spine/codebase-indexer",
+      "specRef": "101-codebase-index-mvp",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde",
+        "serde_json"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_spec_registry_reader",
+      "path": "tools/spec-spine/registry-consumer",
+      "specRef": "002-registry-consumer-mvp",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde_json"
+      ],
+      "internalDeps": [
+        "open_agentic_codebase_indexer",
+        "open_agentic_spec_registry_reader"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_spec_code_coupling_check",
+      "path": "tools/spec-spine/spec-code-coupling-check",
+      "specRef": "127-spec-code-coupling-gate",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "chrono",
+        "clap",
+        "jsonschema",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "sha2",
+        "walkdir"
+      ],
+      "internalDeps": [
+        "open_agentic_spec_types"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_spec_compiler",
+      "path": "tools/spec-spine/spec-compiler",
+      "specRef": "001-spec-compiler-mvp",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde_yaml"
+      ],
+      "internalDeps": [
+        "open_agentic_spec_types"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_spec_lint",
+      "path": "tools/spec-spine/spec-lint",
+      "specRef": "006-conformance-lint-mvp",
+      "version": "0.1.0"
+    }
+  ],
+  "schemaVersion": "2.0.0",
+  "traceability": {
+    "mappings": [
+      {
+        "amendmentRecord": "130-spec-coupling-primary-owner",
+        "implementingPaths": [
+          {
+            "name": "open_agentic_spec_types",
+            "path": "tools/shared/spec-types",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "000-bootstrap-spec-system",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "147-spec-kind-grammar",
+        "implementingPaths": [
+          {
+            "path": ".derived/spec-registry/registry.json",
+            "source": "spec-implements"
+          },
+          {
+            "name": "open_agentic_spec_compiler",
+            "path": "tools/spec-spine/spec-compiler",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/main.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "001-spec-compiler-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "multiple"
+          },
+          {
+            "path": "tools/spec-spine/registry-consumer/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/registry-consumer/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/registry-consumer/src/main.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "002-registry-consumer-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "003-feature-lifecycle-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/orchestrator",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "004-spec-to-execution-bridge-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/orchestrator",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "005-verification-reconciliation-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "147-spec-kind-grammar",
+        "implementingPaths": [
+          {
+            "name": "open_agentic_spec_lint",
+            "path": "tools/spec-spine/spec-lint",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "006-conformance-lint-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "007-registry-consumer-status-report-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "008-registry-consumer-status-report-json-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "009-registry-consumer-status-report-nonzero-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "010-registry-consumer-status-report-json-contract-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "011-registry-consumer-status-report-status-filter-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "012-registry-consumer-list-json-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "013-registry-consumer-show-json-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "014-registry-consumer-show-compact-json-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "015-registry-consumer-list-compact-json-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "016-registry-consumer-status-report-compact-json-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "017-registry-consumer-shared-json-serialization-helper-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "018-registry-consumer-list-show-json-contract-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "019-registry-consumer-readme-examples-contract-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "020-registry-consumer-error-contract-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "021-registry-consumer-field-shape-invariants-contract-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "022-registry-consumer-help-usage-contract-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "023-registry-consumer-flag-conflict-argument-validation-contract-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "024-registry-consumer-version-banner-contract-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "025-registry-consumer-default-path-contract-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "026-registry-consumer-allow-invalid-contract-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "027-registry-consumer-sorting-order-contract-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "028-registry-consumer-channel-discipline-contract-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "029-registry-consumer-contract-governance-gate-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "030-registry-consumer-internal-output-exit-refactor-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "031-registry-consumer-list-ids-only-contract-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "name": "xray",
+            "path": "crates/xray",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "name": "@opc/desktop",
+            "path": "product/apps/desktop",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "name": "@opc/ui",
+            "path": "product/packages/ui",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "032-opc-inspect-governance-wiring-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/axiomregent/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/sidecars.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "033-axiomregent-activation",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "name": "featuregraph",
+            "path": "crates/featuregraph",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "crates/featuregraph/src/scanner.rs",
+            "source": "comment-header"
+          }
+        ],
+        "specId": "034-featuregraph-registry-scanner-fix",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "name": "agent",
+            "path": "crates/agent",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/agents.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/claude.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "035-agent-governed-execution",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/agent/src/safety.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/src/router",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/policy-kernel",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/tool-registry",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "036-safety-tier-governance",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/axiomregent",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/binaries",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "037-cross-platform-axiomregent",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/titor.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "038-titor-tauri-command-wiring",
+        "specStatus": "superseded"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "standards/schemas/spec-spine/registry.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "039-feature-id-reconciliation",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/search.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "040-blockoli-semantic-search-wiring",
+        "specStatus": "superseded"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src/features/checkpoint/CheckpointSurface.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/features/checkpoint/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/features/checkpoint/useCheckpointFlow.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "041-checkpoint-restore-ui",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "035",
+          "036",
+          "068",
+          "090",
+          "098"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/provider-registry",
+            "source": "multiple"
+          },
+          {
+            "name": "@opc/provider-registry",
+            "path": "product/packages/provider-registry",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "042-multi-provider-agent-registry",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/agent/src/complexity.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/agent/src/dispatch.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/agent/src/plan.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "043-agent-organizer",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/orchestrator/src/artifact.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/effort.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/orchestrator/src/manifest.rs",
+            "source": "multiple"
+          }
+        ],
+        "specId": "044-multi-agent-orchestration",
+        "specStatus": "superseded"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/claude.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/packages/claude-code-bridge",
+            "source": "multiple"
+          }
+        ],
+        "specId": "045-claude-code-sdk-bridge",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/packages/prompt-assembly",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "046-context-compaction",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "131-adversarial-prompt-refusal-policy",
+        "implementingPaths": [
+          {
+            "name": "open_agentic_policy_kernel",
+            "path": "crates/policy-kernel",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "name": "open_agentic_policy_compiler",
+            "path": "tools/oap/policy-compiler",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "047-governance-control-plane",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/packages/hookify-rule-engine",
+            "source": "multiple"
+          }
+        ],
+        "specId": "048-hookify-rule-engine",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/packages/permission-system",
+            "source": "multiple"
+          }
+        ],
+        "specId": "049-permission-system",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/packages/tool-renderer",
+            "source": "multiple"
+          }
+        ],
+        "specId": "050-tool-renderer-system",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/worktree_agents.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/packages/worktree-agents",
+            "source": "multiple"
+          }
+        ],
+        "specId": "051-worktree-agents",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/orchestrator",
+            "source": "multiple"
+          },
+          {
+            "name": "run",
+            "path": "crates/run",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "052-state-persistence",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/orchestrator",
+            "source": "spec-implements"
+          },
+          {
+            "name": "@opc/verification-profiles",
+            "path": "product/packages/verification-profiles",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "053-verification-profiles",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "035-agent-governed-execution",
+          "036-safety-tier-governance",
+          "067-tool-definition-registry",
+          "068-permission-runtime",
+          "071-skill-command-factory",
+          "093-spec-driven-preflight",
+          "098-governance-enforcement-stitching"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/agent-frontmatter",
+            "source": "multiple"
+          },
+          {
+            "name": "@opc/agent-frontmatter",
+            "path": "product/packages/agent-frontmatter",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "standards/schemas/frontmatter/agent-frontmatter.schema.json",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "054-agent-frontmatter-schema",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "035-agent-governed-execution",
+          "053-verification-profiles",
+          "054-agent-frontmatter-schema"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/standards-loader",
+            "source": "multiple"
+          },
+          {
+            "name": "@opc/yaml-standards-schema",
+            "path": "product/packages/yaml-standards-schema",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "product/packages/yaml-standards-schema/schemas/coding-standard.schema.json",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "055-yaml-standards-schema",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/packages/memory-mcp",
+            "source": "spec-implements"
+          },
+          {
+            "name": "@opc/session-memory",
+            "path": "product/packages/session-memory",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "056-session-memory",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src/lib/notificationChannels.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/lib/notificationOrchestrator.ts",
+            "source": "spec-implements"
+          },
+          {
+            "name": "@opc/notification-orchestrator",
+            "path": "product/packages/notification-orchestrator",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "057-notification-system",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src/components/FileMentionAutocomplete.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/lib/fileMentionSystem.ts",
+            "source": "spec-implements"
+          },
+          {
+            "name": "@opc/file-mention",
+            "path": "product/packages/file-mention",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "058-file-mention-system",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/git.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/GitPanel.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "name": "@opc/git-panel",
+            "path": "product/packages/git-panel",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "059-git-panel",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src/lib/panelEventBus.ts",
+            "source": "spec-implements"
+          },
+          {
+            "name": "@opc/panel-event-bus",
+            "path": "product/packages/panel-event-bus",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "060-panel-event-bus",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": ".claude/agents/conductor.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".claude/commands/implement-plan.md",
+            "source": "spec-implements"
+          },
+          {
+            "name": "@opc/conductor-track",
+            "path": "product/packages/conductor-track",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "061-conductor-track-lifecycle",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/agent/src/chain.rs",
+            "source": "spec-implements"
+          },
+          {
+            "name": "@opc/multi-model-chaining",
+            "path": "product/packages/multi-model-chaining",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "062-multi-model-chaining",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/policy-kernel",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/policy-kernel/src/coherence.rs",
+            "source": "spec-implements"
+          },
+          {
+            "name": "@opc/coherence-scoring",
+            "path": "product/packages/coherence-scoring",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "063-coherence-scoring",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/lib/wsReconnection.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "064-websocket-reconnection",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/keychain.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/CredentialPicker.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "065-encrypted-keychain",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/packages/vscode-extension",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "066-vscode-extension",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/tool-registry",
+            "source": "multiple"
+          }
+        ],
+        "specId": "067-tool-definition-registry",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/policy-kernel",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "068-permission-runtime",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/packages/hookify-rule-engine",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "069-lifecycle-hook-runtime",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/agent/src/prompt/mod.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/agent/src/prompt_assembly.rs",
+            "source": "spec-implements"
+          },
+          {
+            "name": "@opc/prompt-assembly",
+            "path": "product/packages/prompt-assembly",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "070-prompt-assembly-cache",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/axiomregent/src/skill_provider.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/skill-factory",
+            "source": "multiple"
+          },
+          {
+            "name": "@opc/skill-command-factory",
+            "path": "product/packages/skill-command-factory",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "071-skill-command-factory",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "platform/infra",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "072-multi-cloud-k8s-portability",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/axiomregent",
+            "source": "multiple"
+          },
+          {
+            "path": "platform/services/deployd-api-rs",
+            "source": "multiple"
+          }
+        ],
+        "specId": "073-axiomregent-unification",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/factory-contracts",
+            "source": "multiple"
+          },
+          {
+            "path": "factory",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "074-factory-ingestion",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "name": "factory-engine",
+            "path": "crates/factory-engine",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "crates/factory-engine/src/agent_bridge.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/checks.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/engine.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/gate.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/harness_state.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/lib.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/manifest_gen.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/pipeline_state.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/policy_shard.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/preflight.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/topo_sort.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/verify_harness.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/orchestrator/src/verify.rs",
+            "source": "comment-header"
+          }
+        ],
+        "specId": "075-factory-workflow-engine",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/FactoryPipelinePanel.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "076-factory-desktop-panel",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/factory",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "077-stagecraft-factory-api",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/orchestrator",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/web_server.rs",
+            "source": "comment-header"
+          }
+        ],
+        "specId": "079-scheduling",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/auth",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/github",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "080-github-identity-onboarding",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "factory",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "081-factory-test-hydration",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/factory-contracts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-contracts/src/namespace.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/artifact_store.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/orchestrator",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "082-artifact-integrity-platform-hardening",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "083-xray-ui-upgrade",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/claude.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/ProjectSettings.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/lib/api.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/lib/settingsManager.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "084-opc-settings-reconciliation",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src-tauri/src/web_server.rs",
+            "source": "spec-implements"
+          },
+          {
+            "name": "oap-ctl",
+            "path": "product/packages/oap-ctl",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "product/packages/oap-ctl/src/cli.js",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "085-remote-control-cli",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "CHANGELOG.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "CODE_OF_CONDUCT.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "CONTRIBUTING.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "SECURITY.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "docs/ARCHITECTURE.md",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "086-open-source-launch",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "143-presigned-upload-public-endpoint",
+        "dependsOn": [
+          "074",
+          "075",
+          "076",
+          "077",
+          "078",
+          "080",
+          "082"
+        ],
+        "implementingPaths": [
+          {
+            "name": "stagecraft",
+            "path": "platform/services/stagecraft",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/duplex.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/registry.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/relay.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/store.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/packages/project-sdk",
+            "source": "spec-implements"
+          },
+          {
+            "name": "@opc/workspace-sdk",
+            "path": "product/packages/workspace-sdk",
+            "source": "cargo-metadata-crate"
+          }
+        ],
+        "specId": "087-unified-workspace-architecture",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "074",
+          "075"
+        ],
+        "implementingPaths": [
+          {
+            "path": "factory/upstream-map.yaml",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "088-factory-upstream-sync",
+        "specStatus": "superseded"
+      },
+      {
+        "dependsOn": [
+          "033",
+          "068"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/axiomregent/src/lease.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/policy-kernel/src/merge.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/policy-kernel/src/permission.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/orchestrator.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "090-governance-non-optionality",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "039"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/src/registry_source.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/src/scanner.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "091-registry-enrichment",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "119-project-as-unit-of-governance",
+        "dependsOn": [
+          "087",
+          "090"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/axiomregent/src/checkpoint/provider.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/src/checkpoint/store.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/src/checkpoint/types.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/manifest.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/state.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "092-workspace-runtime-threading",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "091",
+          "092"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/agent/src/safety.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/src/preflight.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/policy-kernel/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "093-spec-driven-preflight",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "119-project-as-unit-of-governance",
+        "dependsOn": [
+          "082",
+          "092"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-engine/src/artifact_store.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/artifact.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/promotion.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "094-unified-artifact-store",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "092",
+          "094"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/axiomregent/src/checkpoint/provider.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/src/checkpoint/store.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/src/checkpoint/types.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/gates.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/manifest.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "095-checkpoint-branch-of-thought",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "091",
+          "093"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/src/enrichment.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/featuregraph/src/preflight.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/xray",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "096-portfolio-intelligence",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "080",
+          "082",
+          "092",
+          "094"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/promotion.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/orchestrator/src/state.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "097-promotion-grade-mirror",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "090",
+          "093",
+          "097"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/axiomregent/src/router/mod.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/src/router/permissions.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/promotion.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "098-governance-enforcement-stitching",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "119-project-as-unit-of-governance",
+        "dependsOn": [
+          "092",
+          "094",
+          "097"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/orchestrator/src/hiqlite_store.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/promotion.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/sqlite_state.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "099-workspace-scoped-persistence",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "089"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-engine/src/artifact_store.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/artifact.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/policy-kernel/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/templates/deployment.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/stagecraft/templates/deployment.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/auth.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/config.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/tauri.conf.json",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "100-post-convergence-remediation",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "147-spec-kind-grammar",
+        "dependsOn": [
+          "000",
+          "001",
+          "003"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".derived/codebase-index/index.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "standards/schemas/spec-spine/codebase-index.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "name": "open_agentic_code_index_enrich",
+            "path": "tools/oap/oap-code-index-enrich",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "name": "open_agentic_codebase_indexer",
+            "path": "tools/spec-spine/codebase-indexer",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "tools/spec-spine/codebase-indexer/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/codebase-indexer/src/main.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/codebase-indexer/src/manifest.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/codebase-indexer/src/spec_scanner.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "101-codebase-index-mvp",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "089",
+          "100",
+          "101"
+        ],
+        "implementingPaths": [
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/bin/build_certificate.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/bin/factory_run.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/bin/verify_certificate.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/governance_certificate.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/src/index_bridge.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/orchestrator/src/agent_identity.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/orchestrator/src/circuit_breaker.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/output_filter.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/policy-kernel/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/tool-registry",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/tool-registry/src/policy_bridge.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "factory/contract/checks",
+            "source": "spec-implements"
+          },
+          {
+            "path": "factory/contract/schemas/governance-certificate.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "name": "open_agentic_registry_enrich",
+            "path": "tools/oap/oap-registry-enrich",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "102-governed-excellence",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "000",
+          "001",
+          "002",
+          "101"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".claude/rules/governed-artifact-reads.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "AGENTS.md",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "103-init-protocol-governed-reads",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "135-fast-ci-as-default",
+        "dependsOn": [
+          "000",
+          "006"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".claude/commands/validate-and-fix.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci-parity.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "name": "open_agentic_ci_parity_check",
+            "path": "tools/oap/ci-parity-check",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/src/main.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "104-makefile-ci-parity-contract",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "000",
+          "037",
+          "073",
+          "075",
+          "104"
+        ],
+        "implementingPaths": [
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "name": "open_agentic_adapter_scopes_compiler",
+            "path": "tools/oap/adapter-scopes-compiler",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "tools/oap/adapter-scopes-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/adapter-scopes-compiler/src/main.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "105-scripts-to-binaries-migration",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "080",
+          "087"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/charts/rauthy",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/.env.example",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/setup.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/membershipResolver.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthy.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthySeed.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "106-rauthy-native-oidc-and-membership",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "080",
+          "106"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/scripts/seed-rauthy.mjs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/README.md",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "107-rauthy-client-redirect-convergence",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "139-factory-artifact-substrate",
+        "dependsOn": [
+          "074",
+          "075",
+          "087",
+          "088"
+        ],
+        "implementingPaths": [],
+        "specId": "108-factory-as-platform-feature",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "080",
+          "106",
+          "108"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/factory/factory.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/syncRuns.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/syncWorker.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/tokenResolver.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/upstreamPat.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/projectPat.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.factory.upstreams.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "109-factory-pat-and-pubsub-sync",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "075",
+          "076",
+          "077",
+          "087",
+          "092",
+          "094",
+          "108",
+          "109"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-engine/src/bin/factory_run.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/factory.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/relay.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/sync_client.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/packages/oap-ctl/src/cli.js",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "110-stagecraft-to-opc-factory-trigger",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "139-factory-artifact-substrate",
+        "dependsOn": [
+          "042",
+          "054",
+          "068",
+          "087",
+          "090",
+          "110"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/agents/",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/catalog.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/frontmatter/",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/relay.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/duplex.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/relay.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/agents.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "111-org-agent-catalog-sync",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "138-stagecraft-create-realised-scaffold",
+        "dependsOn": [
+          "074",
+          "075",
+          "087",
+          "094",
+          "108",
+          "109",
+          "110",
+          "111"
+        ],
+        "implementingPaths": [
+          {
+            "name": "factory-project-detect",
+            "path": "crates/factory-project-detect",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "crates/factory-project-detect/",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/translator.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/create.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/import.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/opcBundle.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/opcBundleHelpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.projects.import.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/factory_project.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/keychain.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/routes/factory/ProjectCockpit.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "standards/schemas/factory/",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "112-factory-project-lifecycle",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "087",
+          "108",
+          "109",
+          "112"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/projects/clone.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/clone.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/cloneAvailability.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/cloneAvailability.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/cloneHelpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/encore.service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app._index.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "113-stagecraft-projects-rename-and-clone",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "109",
+          "112",
+          "113"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/cloneCore.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/cloneEvents.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/cloneRunStatus.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/cloneWorker.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "114-async-project-clone-pipeline",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "143-presigned-upload-public-endpoint",
+        "dependsOn": [
+          "036",
+          "047",
+          "087",
+          "114"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/artifact-extract/src/bin/artifact_extract.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/auditActions.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionCore.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionEvents.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionPolicy.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionWorker.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/agent-base.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/agent-cost-helpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/agent-image-vision.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/agent-pdf-vision.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-docx.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/deterministic-text.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/dispatch.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/index.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractors/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/knowledge.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/magic.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/prompts.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "115-knowledge-extraction-pipeline",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "000",
+          "047",
+          "104"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/ci-supply-chain.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "deny.toml",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "116-supply-chain-policy-gates",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "000",
+          "037",
+          "086",
+          "104"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/release-axiomregent.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/release-desktop.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/release-tools.yml",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "117-release-artifact-attestations",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "000",
+          "101",
+          "103"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".derived/codebase-index/CODEBASE-INDEX.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/codebase-indexer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "118-workflow-spec-traceability",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "123-agent-catalog-org-rescope",
+        "amends": [
+          "000-bootstrap-spec-system",
+          "087-unified-workspace-architecture",
+          "092-workspace-runtime-threading",
+          "094-unified-artifact-store",
+          "099-workspace-scoped-persistence"
+        ],
+        "dependsOn": [
+          "000",
+          "087",
+          "092",
+          "094",
+          "099",
+          "113",
+          "114",
+          "115"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-contracts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/run",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/workspaces",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/000-bootstrap-spec-system",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/087-unified-workspace-architecture",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/092-workspace-runtime-threading",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/094-unified-artifact-store",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/099-workspace-scoped-persistence",
+            "source": "spec-implements"
+          },
+          {
+            "path": "standards/spec/contract.md",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "119-project-as-unit-of-governance",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "074",
+          "075",
+          "077",
+          "094",
+          "110",
+          "115"
+        ],
+        "implementingPaths": [
+          {
+            "name": "artifact-extract",
+            "path": "crates/artifact-extract",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "crates/artifact-extract/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/artifact-extract/src/extractors/docx.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/artifact-extract/src/extractors/mod.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/artifact-extract/src/extractors/pdf.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/artifact-extract/src/extractors/text.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/artifact-extract/src/lib.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-contracts/src/knowledge.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/src/manifest_gen.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/stagecraft_client.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/s_minus_1_extract.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionExternal.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/factory.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/factory/ArtifactInspector.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "120-factory-extraction-stage",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "075",
+          "091",
+          "118",
+          "120"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-contracts/src/budget.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-contracts/src/provenance.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-contracts/src/provenance_config.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/skills/business-requirements-analyst.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/skills/validate.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/project_config.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/cascade_check.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/quality_gates.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/s1_business_requirements.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/policy-kernel/src/provenance_policy.rs",
+            "source": "comment-header"
+          },
+          {
+            "name": "provenance-validator",
+            "path": "crates/provenance-validator",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "crates/provenance-validator/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/provenance-validator/src/allowlist.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/provenance-validator/src/anchor.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/provenance-validator/src/bin/audit.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/provenance-validator/src/citation.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/provenance-validator/src/corpus.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/provenance-validator/src/lib.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/provenance-validator/src/manifest.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/provenance-validator/src/validator.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "platform/services/stagecraft/api/governance/provenancePolicy.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/provenance.rs",
+            "source": "comment-header"
+          },
+          {
+            "name": "open_agentic_assumption_cascade_check",
+            "path": "tools/oap/assumption-cascade-check",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "tools/oap/assumption-cascade-check/src/lib.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "tools/oap/assumption-cascade-check/src/main.rs",
+            "source": "comment-header"
+          }
+        ],
+        "specId": "121-claim-provenance-enforcement",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "075",
+          "087",
+          "119",
+          "120",
+          "121"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-contracts/src/stakeholder_docs.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/skills/client-document-comparator.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/skills/project-charter-comparator.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/bin/migrate_stakeholder_docs.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/migration/mod.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/migration/stakeholder_docs.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/stage_cd.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/stage_cd_actions.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/stage_cd_comparator.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/src/stages/stage_cd_gate.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/stage_cd.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "product/apps/desktop/src/components/factory/StageCdReview.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "name": "open_agentic_stakeholder_doc_lint",
+            "path": "tools/oap/stakeholder-doc-lint",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "tools/oap/stakeholder-doc-lint/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/stakeholder-doc-lint/src/lib.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "tools/oap/stakeholder-doc-lint/src/main.rs",
+            "source": "comment-header"
+          }
+        ],
+        "specId": "122-stakeholder-doc-inversion",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "139-factory-artifact-substrate",
+        "amends": [
+          "119-project-as-unit-of-governance"
+        ],
+        "dependsOn": [
+          "042",
+          "054",
+          "068",
+          "075",
+          "087",
+          "090",
+          "098",
+          "108",
+          "111",
+          "119",
+          "122"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-contracts/src/agent_reference.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-engine/src/agent_resolver.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/bindings.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/catalog.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/relay.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/duplex.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.agents._index.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.agents.new.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.agents.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.agents._index.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.agents.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "123-agent-catalog-org-rescope",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "087",
+          "106",
+          "107",
+          "108",
+          "109",
+          "123"
+        ],
+        "implementingPaths": [
+          {
+            "name": "factory-platform-client",
+            "path": "crates/factory-platform-client",
+            "source": "cargo-metadata-crate"
+          },
+          {
+            "path": "crates/factory-platform-client/src/cache_root.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-platform-client/src/client.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-platform-client/src/error.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-platform-client/src/lib.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-platform-client/src/materialise.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/factory-platform-client/src/wire.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/runs.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/factory.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/factory_platform.rs",
+            "source": "comment-header"
+          }
+        ],
+        "specId": "124-opc-factory-run-platform-integration",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "111",
+          "123",
+          "124"
+        ],
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src/components/AgentPicker.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/lib/agentPicker.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "126-desktop-agent-picker-ui",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "103",
+          "104",
+          "118",
+          "130",
+          "133"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/ci-spec-code-coupling.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-code-coupling-check",
+            "source": "multiple"
+          }
+        ],
+        "specId": "127-spec-code-coupling-gate",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "147-spec-kind-grammar",
+        "amends": [
+          "006-conformance-lint-mvp"
+        ],
+        "dependsOn": [
+          "006",
+          "104"
+        ],
+        "implementingPaths": [
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "128-spec-lint-default-fail-on-warn",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "101",
+          "118"
+        ],
+        "implementingPaths": [
+          {
+            "path": "standards/schemas/spec-spine/codebase-index.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/codebase-indexer",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "129-granular-package-oap-metadata",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "000",
+          "001",
+          "101"
+        ],
+        "implementingPaths": [
+          {
+            "path": "standards/schemas/spec-spine/registry.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/shared/spec-types/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/codebase-indexer/src/spec_scanner.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "130-spec-coupling-primary-owner",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "047-governance-control-plane"
+        ],
+        "dependsOn": [
+          "047",
+          "127",
+          "130"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".claude/rules/adversarial-prompt-refusal.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "CLAUDE.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/policy-compiler",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "131-adversarial-prompt-refusal-policy",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "147-spec-kind-grammar",
+        "amends": [
+          "000-bootstrap-spec-system"
+        ],
+        "dependsOn": [
+          "000",
+          "001"
+        ],
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/spec-compiler",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "132-constitutional-invariant-freeze",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "101",
+          "130"
+        ],
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/codebase-indexer/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-code-coupling-check/src/main.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "133-amends-aware-coupling-gate",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "135-fast-ci-as-default",
+        "amends": [
+          "104-makefile-ci-parity-contract"
+        ],
+        "dependsOn": [
+          "104"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".claude/commands/validate-and-fix.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "134-fast-local-ci-mode",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "104-makefile-ci-parity-contract"
+        ],
+        "dependsOn": [
+          "104",
+          "130",
+          "134"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".claude/commands/validate-and-fix.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci-crates.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/104-makefile-ci-parity-contract/spec.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "135-fast-ci-as-default",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "078",
+          "087"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/cd-deployd-api-rs.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/cd-tenant-hello.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci-deployd-api-rs.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci-tenant-hello.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/tenant-hello",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/Dockerfile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/helm.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/k8s.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/main.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/routes.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/chartSelector.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/chartSelector.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/tenant-hello",
+            "source": "multiple"
+          }
+        ],
+        "specId": "136-tenant-hello-demo-service",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "087",
+          "136"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/charts/oauth2-proxy-gate",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/tenant-hello/templates/ingress.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/tenant-hello/values.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/setup.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/helm.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/routes.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthyAdminClients.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/deploy.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/accessGates.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/accessGates.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/accessGatesDeploy.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/accessGatesHelpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/environments/encore.service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/vite.config.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "137-tenant-environment-access-gates",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "112-factory-project-lifecycle"
+        ],
+        "dependsOn": [
+          "108",
+          "109",
+          "112"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/charts/stagecraft/templates/workspace-pvc.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/CLAUDE.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/syncPipeline.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/syncWorker.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/translator.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/github/repoInit.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/create.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/gitInitAndPush.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/scheduler.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffoldReadiness.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "138-stagecraft-create-realised-scaffold",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "140-aim-vue-node-scaffold-source-id-cutover",
+        "amends": [
+          "108-factory-as-platform-feature",
+          "111-org-agent-catalog-sync",
+          "123-agent-catalog-org-rescope"
+        ],
+        "dependsOn": [
+          "082",
+          "094",
+          "108",
+          "111",
+          "112",
+          "123",
+          "124"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-engine/src/engine.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/factory_root.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/src/substrate_version.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/src/virtual_root.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/bindings.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/catalog.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/relay.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/32_factory_artifact_substrate.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/33_migrate_agent_catalog.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/34_drop_legacy_factory_tables.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/35_drop_legacy_agent_catalog_family.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/agentCatalogMigration.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/artifacts.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/bindings.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/browse.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/conflicts.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/oapContracts.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/oapNativeIngest.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/oapNativeSanitise.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/projection.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/runAgentRefs.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/substrate.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/syncPipeline.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/syncWorker.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/translator.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/upstreams.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/create.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/import.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/opcBundle.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffoldReadiness.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/components/artifact-merge-editor.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/factory.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "139-factory-artifact-substrate",
+        "specStatus": "approved"
+      },
+      {
+        "amendmentRecord": "141-aim-vue-node-source-id-template-name-alignment",
+        "amends": [
+          "139-factory-artifact-substrate"
+        ],
+        "dependsOn": [
+          "112",
+          "138",
+          "139"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/CLAUDE.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/projection.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/syncWorker.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/translator.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/create.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/scheduler.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffoldReadiness.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "140-aim-vue-node-scaffold-source-id-cutover",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "140-aim-vue-node-scaffold-source-id-cutover"
+        ],
+        "dependsOn": [
+          "140"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/artifacts.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/projection.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/translator.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/translator.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/scheduler.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/vite.config.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "141-aim-vue-node-source-id-template-name-alignment",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "139-factory-artifact-substrate"
+        ],
+        "dependsOn": [
+          "139"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/vite.config.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "142-factory-id-columns-text-cutover",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "087-unified-workspace-architecture",
+          "115-knowledge-extraction-pipeline"
+        ],
+        "dependsOn": [
+          "087",
+          "115"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/charts/deployd-api/templates/deployment.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-hetzner.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/stagecraft/templates/deployment.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/stagecraft/values-hetzner.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/stagecraft/values.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/.env.example",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/post-create.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/setup.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/validate/spec-143.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/refreshCookie-pure.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/refreshCookie-pure.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/refreshCookie.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/refreshCookie.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/auditActions.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionCore.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/extractionWorker.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/knowledge.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/orphanSweeper.integration.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/orphanSweeper.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/requestUpload.integration.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/scheduler.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/storage.dualClient.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/storage.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/uploadLimits.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/knowledge/uploadLimits.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/infra.config.hetzner.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/infra.config.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/test/__mocks__/encore-config.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/test/spec143-fu015.config.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/vite.config.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/fetchWithRefresh.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/fetchWithRefresh.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "143-presigned-upload-public-endpoint",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "052",
+          "073"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/Cargo.lock",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/Cargo.toml",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "144-hiqlite-default-features",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "073",
+          "086",
+          "144"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/cd-deployd-api-rs.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/templates/deployment.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/templates/external-secret.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-aws.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-azure.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-do.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-gcp.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-hetzner.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values-local.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/Cargo.lock",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/auth.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/config.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/main.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/store.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "145-deployd-durability",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "073",
+          "143"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/charts/deployd-api/values.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "146-deployd-api-memory-hardening",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "000-bootstrap-spec-system",
+          "128-spec-lint-default-fail-on-warn",
+          "001-spec-compiler-mvp",
+          "006-conformance-lint-mvp",
+          "101-codebase-index-mvp",
+          "132-constitutional-invariant-freeze",
+          "133-amends-aware-coupling-gate"
+        ],
+        "implementingPaths": [
+          {
+            "path": "standards/schemas/spec-spine/registry.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/shared/spec-types/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/codebase-indexer/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/codebase-indexer/src/spec_scanner.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-lint/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "147-spec-kind-grammar",
+        "specStatus": "approved"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/auth-driver/",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "148-auth-driver-registry",
+        "specStatus": "draft"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/auth-driver-saml/",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "149-saml-auth-driver",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "087",
+          "143"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".sops.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/rauthy/values-hetzner.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-dr-stage2/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-dr-stage2/kustomization.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure-kustomization.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure/cert-manager.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure/reflector.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/kustomization.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/manifests-kustomization.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/manifests/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/manifests/cert-manager-clusterissuers.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/manifests/tenants-wildcard-certificate.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/secrets/README.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/.env.example",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/cluster.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/post-create.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/setup.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/137-tenant-environment-access-gates/tasks.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "specs/151-declarative-cluster-reconciliation/execution/drift-detection.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/tests/v004_consolidation_excludes.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "151-declarative-cluster-reconciliation",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "130",
+          "133"
+        ],
+        "implementingPaths": [
+          {
+            "path": "tools/shared/spec-types/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "152-path-co-authority",
+        "specStatus": "approved"
+      }
+    ],
+    "orphanedSpecs": [
+      "125-schema-parity-walker-rebuild",
+      "150-example-tenant-profile"
+    ],
+    "untracedCode": [
+      "product/apps/desktop/src-tauri"
+    ]
+  }
+}

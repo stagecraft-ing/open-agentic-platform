@@ -18,6 +18,7 @@ hex = "0.4"
 thiserror = "2"
 anyhow = "1.0"
 xray = { path = "../xray" }
+open_agentic_spec_registry_reader = { path = "../../tools/spec-spine/registry-consumer" }
 
 [dev-dependencies]
 tempfile = "3.10"

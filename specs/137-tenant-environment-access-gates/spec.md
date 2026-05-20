@@ -11,52 +11,54 @@ risk: medium
 depends_on:
   - "136"  # tenant-hello as reference; gates are added per-environment
   - "087"  # unified-workspace-architecture (environments are stagecraft entities)
-implements:
-  # Phase 1 — schema migration (T010–T014)
-  - path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql
-  - path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql
-  - path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts
-  - path: platform/services/stagecraft/api/db/schema.ts  # adds environmentAccessGates + environmentAccessGateAllowlistEmails tables + four exported types. Co-claimed with many existing claimants on schema.ts; spec 130 FR-001 any-claimant rule applies.
-  - path: platform/services/stagecraft/vite.config.ts  # registers migration 40 test under the encore-test-only exclude list (live-db mutation gate). Co-claimed with existing test-exclusion claimants.
-  # Phase 2 — Stagecraft API CRUD (T020–T025)
-  - path: platform/services/stagecraft/api/environments/accessGates.ts
-  - path: platform/services/stagecraft/api/environments/accessGatesHelpers.ts  # pure helpers extracted per the cloneAvailabilityHelpers pattern so vitest can drive them without the Encore native runtime
-  - path: platform/services/stagecraft/api/environments/accessGates.test.ts
-  - path: platform/services/stagecraft/api/environments/encore.service.ts  # registers the new Encore service so the four endpoints are discovered at startup
-  # Phase 3 — Rauthy admin client provisioning (T030–T034)
-  - path: platform/services/stagecraft/api/auth/rauthyAdminClients.ts  # network-bound wrapper around POST/PUT/DELETE /auth/v1/clients + idempotent provision/deprovision domain operations
-  - path: platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts  # pure helpers (FR-004 invariant, payload construction, deterministic client id)
-  - path: platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts  # 14 passing vitest tests covering pure helpers + provision/deprovision against a stub fetch — exercises the four T003 contract assumptions
-  - path: platform/services/stagecraft/test/__mocks__/encore-auth.ts  # drive-by alignment of mock AuthData.userID casing with Encore-generated shape so future handlers can't fall into the lowercase-userId footgun. Co-claimed with specs 077/080/087 (existing claimants); spec 130 any-claimant rule applies.
-  # Phase 4 — deployd-api gate-overlay (T040–T046). Per the §"Open question"
-  # disposition (2026-05-15) Helm overlay is the canonical renderer; spec 136
-  # Phase 2.b prerequisite landed 2026-05-17 (#147/#148) so the chart-overlay
-  # path is the implementation here, not hand-rolled kube-rs objects.
-  - path: platform/charts/oauth2-proxy-gate  # new chart: per-environment passwordless OIDC gate. 8 templates (Chart.yaml, values.yaml, _helpers.tpl, deployment, service, ingress, secret, configmap, serviceaccount).
-  - path: platform/charts/tenant-hello/values.yaml  # adds `gate.enabled` / `gate.proxyServiceName` / `gate.proxyServicePort` block. Co-claimed with spec 136 (existing primary owner per [package.metadata.oap]); spec 130 any-claimant rule applies.
-  - path: platform/charts/tenant-hello/templates/ingress.yaml  # conditional auth-url/auth-signin/auth-response-headers annotations on the tenant Ingress when `.Values.gate.enabled`. Co-claimed with spec 136.
-  - path: platform/services/deployd-api-rs/src/helm.rs  # AccessGateDescriptor struct (FR-001 wire shape), build_gate_values, gate_release_name (`<tenant>-gate`), install_with_gate (FR-003 atomicity — rolls back tenant on gate failure), uninstall_with_gate (paired teardown), oauth2-proxy-gate chart embedded via include_str! mirroring the spec 136 pattern. Co-claimed with specs 073/136.
-  - path: platform/services/deployd-api-rs/src/routes.rs  # DeploymentRequest gains `access_gate: Option<AccessGateDescriptor>` (T040); create_deployment dispatches to install_with_gate when enabled or to install + best-effort gate teardown when disabled (T045 reconcile semantics for the off-transition); delete_deployment uses uninstall_with_gate universally (T044). Co-claimed with specs 073/136.
-  # Phase 5 — Stagecraft UI (T050–T054). Per-env access-gate management surface
-  # in the stagecraft web app. Server-side fetch helpers in lib/projects-api.server.ts
-  # call the Phase 2 endpoints; the new per-env route is the gate card + allowlist
-  # editor + login-method picker + preview + empty-state CTA.
-  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx  # new route: env detail page hosting the access-gate card
-  - path: platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx  # wraps each env tile in a <Link> to the new detail page. Co-claimed with existing claimants.
-  - path: platform/services/stagecraft/web/app/lib/projects-api.server.ts  # adds getAccessGate / putAccessGate / addAllowlistEntry / removeAllowlistEntry server-side helpers + wire types. Co-claimed with existing claimants.
-  # Phase 4↔5 integration — descriptor wire-through (T070–T076). Migration 41 +
-  # caller path + cert replication. Migration 41 stores the deploy-descriptor
-  # secrets that Phase 4's AccessGateDescriptor consumes; deploy.ts loads the
-  # descriptor + allowlist + forwards as access_gate on POST /v1/deployments;
-  # reflector replicates the wildcard cert Secret into tenant namespaces so the
-  # gate Ingress can mount TLS.
-  - path: platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql
-  - path: platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.down.sql
-  - path: platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts
-  - path: platform/services/stagecraft/api/environments/accessGatesDeploy.ts  # server-only helper assembling the deployd-api AccessGateDescriptor wire shape from the descriptor row + sibling allowlist. Reads the migration-41 secret columns the public GET hides.
-  - path: platform/services/stagecraft/api/deploy/deploy.ts  # createDeployment loads loadDeployDescriptorForEnv and forwards as access_gate to deployd-api. Surfaces RAUTHY_ISSUER_URL env requirement when any gate is enabled. Co-claimed with spec 077 (existing claimant); spec 130 any-claimant rule applies.
-  - path: platform/infra/hetzner/setup.sh  # installs emberstack/kubernetes-reflector chart (pinned 9.1.6) for wildcard cert replication into tenant namespaces. Co-claimed with specs 106/116/119/143 (existing claimants); spec 130 any-claimant rule applies.
-  - path: platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml  # spec.secretTemplate.annotations carry reflector reflection-allowed + auto-enabled + auto-namespaces. Co-claimed with spec 106 (existing primary owner per the original cert manifest in PR #155); spec 130 any-claimant rule applies.
+establishes:
+  - platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql
+  - platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql
+  - platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts
+  - platform/services/stagecraft/api/environments/accessGates.ts
+  - platform/services/stagecraft/api/environments/accessGatesHelpers.ts
+  - platform/services/stagecraft/api/environments/accessGates.test.ts
+  - platform/services/stagecraft/api/environments/encore.service.ts
+  - platform/services/stagecraft/api/auth/rauthyAdminClients.ts
+  - platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts
+  - platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts
+  - platform/charts/oauth2-proxy-gate
+  - platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql
+  - platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.down.sql
+  - platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts
+  - platform/services/stagecraft/api/environments/accessGatesDeploy.ts
+  - platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx
+extends:
+  - spec: "136-tenant-hello-demo-service"
+    paths:
+      - platform/services/stagecraft/api/db/schema.ts
+      - platform/services/stagecraft/vite.config.ts
+      - platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx
+      - platform/services/stagecraft/web/app/lib/projects-api.server.ts
+    nature: additive
+co_authority:
+  - paths:
+      - platform/charts/tenant-hello/values.yaml
+      - platform/charts/tenant-hello/templates/ingress.yaml
+    section: access-gate
+    with_specs: ["136-tenant-hello-demo-service"]
+  - paths:
+      - platform/services/deployd-api-rs/src/helm.rs
+      - platform/services/deployd-api-rs/src/routes.rs
+    section: gate-overlay
+    with_specs: ["073-axiomregent-unification", "136-tenant-hello-demo-service"]
+  - paths:
+      - platform/services/stagecraft/api/deploy/deploy.ts
+    section: access-gate-wire
+    with_specs: ["077-stagecraft-factory-api"]
+  - paths:
+      - platform/infra/hetzner/setup.sh
+    section: reflector-install
+    with_specs: ["072-multi-cloud-k8s-portability", "106-rauthy-native-oidc-and-membership", "143-presigned-upload-public-endpoint"]
+  - paths:
+      - platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml
+    section: reflector-annotations
+    with_specs: ["106-rauthy-native-oidc-and-membership"]
 summary: >
   Per-environment access gating for projects deployed via deployd-api,
   applied above the tenant app so tenant codebases carry no auth logic.

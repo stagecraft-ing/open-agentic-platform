@@ -17,9 +17,15 @@ summary: >
 code_aliases: ["ARTIFACT_INTEGRITY", "SEAM_OIDC", "CROSS_RUN"]
 owner: bart
 risk: high
-implements:
-  - path: crates/factory-contracts
-  - path: crates/orchestrator
+extends:
+  - spec: "074-factory-ingestion"
+    paths:
+      - crates/factory-contracts
+    nature: additive
+  - spec: "004-spec-to-execution-bridge-mvp"
+    paths:
+      - crates/orchestrator
+    nature: additive
 ---
 
 # Feature Specification: Artifact Integrity and Platform Hardening

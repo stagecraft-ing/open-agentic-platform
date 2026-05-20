@@ -31,17 +31,24 @@ depends_on:
   - "094"  # unified-artifact-store (stage output destination)
   - "110"  # stagecraft-to-opc-factory-trigger (KnowledgeBundle + duplex auth)
   - "115"  # knowledge-extraction-pipeline (ExtractionOutput schema source)
-implements:
-  - path: crates/artifact-extract/Cargo.toml
-  - path: crates/artifact-extract/src/lib.rs
-  - path: crates/factory-contracts/src/knowledge.rs
-  - path: crates/factory-engine/src/manifest_gen.rs
-  - path: crates/factory-engine/src/stages/s_minus_1_extract.rs
-  - path: platform/services/stagecraft/api/knowledge/extractionExternal.ts
-  - path: platform/services/stagecraft/api/knowledge/extractionOutput.ts
-  - path: apps/desktop/src-tauri/src/commands/factory.rs
-  - path: apps/desktop/src-tauri/src/commands/stagecraft_client.rs
-  - path: apps/desktop/src/components/factory/ArtifactInspector.tsx
+establishes:
+  - crates/factory-contracts/src/knowledge.rs
+  - crates/factory-engine/src/stages/s_minus_1_extract.rs
+  - platform/services/stagecraft/api/knowledge/extractionExternal.ts
+  - product/apps/desktop/src/components/factory/ArtifactInspector.tsx
+extends:
+  - spec: "075-factory-workflow-engine"
+    paths:
+      - crates/factory-engine/src/manifest_gen.rs
+      - crates/artifact-extract/Cargo.toml
+      - crates/artifact-extract/src/lib.rs
+    nature: additive
+  - spec: "108-factory-as-platform-feature"
+    paths:
+      - product/apps/desktop/src-tauri/src/commands/factory.rs
+      - product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs
+      - platform/services/stagecraft/api/knowledge/extractionOutput.ts
+    nature: additive
 ---
 
 # 120 — Factory Extraction Stage
@@ -53,17 +60,17 @@ implements:
 
 ## 1. Problem
 
-The Factory pipeline today receives knowledge as a sidecar, not a stage. Stagecraft pre-resolves `KnowledgeBundle[]` and ships presigned URLs over the duplex envelope (spec 110). OPC materialises the bundles locally and passes file paths into `factory-run --business-docs` (`apps/desktop/src-tauri/src/commands/factory.rs`, around L2206–L2217). The factory engine never sees stagecraft's typed `ExtractionOutput` (spec 115) — only the local file paths.
+The Factory pipeline today receives knowledge as a sidecar, not a stage. Stagecraft pre-resolves `KnowledgeBundle[]` and ships presigned URLs over the duplex envelope (spec 110). OPC materialises the bundles locally and passes file paths into `factory-run --business-docs` (`product/apps/desktop/src-tauri/src/commands/factory.rs`, around L2206–L2217). The factory engine never sees stagecraft's typed `ExtractionOutput` (spec 115) — only the local file paths.
 
 Two extraction systems exist and don't talk to each other:
 
-- `crates/artifact-extract/` — a Rust libbin that emits flat `.txt` files with a provenance header. It is **orphan**: no other crate in the repo depends on it. Verified in `build/codebase-index/index.json` and by grepping `crates/*/Cargo.toml`.
+- `crates/artifact-extract/` — a Rust libbin that emits flat `.txt` files with a provenance header. It is **orphan**: no other crate in the repo depends on it. Verified in `.derived/codebase-index/index.json` and by grepping `crates/*/Cargo.toml`.
 - `platform/services/stagecraft/api/knowledge/extractors/*` — TypeScript, dispatched by `extractionWorker.ts`, emits typed `ExtractionOutput` JSONB validated by Zod (`extractionOutput.ts:49-58`). Writes happen only inside `runExtractionWork`. There is no REST endpoint that accepts `ExtractionOutput` from an external caller.
 
 Three concrete consequences:
 
 1. **Stage 1 reinterprets raw evidence on every run.** The `business-requirements-analyst` skill (in `goa-software-factory` as of upstream sync, and absorbed into `factory-engine` skills under `crates/factory-engine/skills/`) is a single LLM call that reads heterogeneous extracted text without page boundaries, structural outline, or extractor provenance. Reinterpretation drift is structural, not incidental — the same inputs land at Stage 1 differently shaped each run.
-2. **OPC has no write surface for extraction output.** Today's OPC → Stagecraft writes (`apps/desktop/src-tauri/src/commands/stagecraft_client.rs:483-550`) cover orchestrator events (`ingest_events`) and artifact metadata (`record_artifacts`) — neither carries an extraction payload. A factory run that produces structured extraction has nowhere to put it back.
+2. **OPC has no write surface for extraction output.** Today's OPC → Stagecraft writes (`product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs:483-550`) cover orchestrator events (`ingest_events`) and artifact metadata (`record_artifacts`) — neither carries an extraction payload. A factory run that produces structured extraction has nowhere to put it back.
 3. **Stagecraft's `resolveKnowledgeForFactory` (`api/knowledge/knowledge.ts` around L1397–L1440) gates ingestion on `state === "available"`.** A typed extraction produced by OPC cannot advance an object even to `extracted` from outside, because the state machine accepts an `extraction_output` only via the legacy `transitionState` stub or the internal worker.
 
 This spec closes the seam: one schema, one canonical extractor (Rust, deterministic-only), one stage in the pipeline, one content-addressed endpoint to write back.
@@ -137,7 +144,7 @@ A contributor edits `extractionOutput.ts` to add a new required field, but does 
 
 **Acceptance Scenarios:**
 
-1. **Given** a new commit that modifies `extractionOutput.ts`, **When** `make ci` runs, **Then** the schema parity check (`tools/schema-parity-check` or equivalent — implementation choice) compares the Zod schema's structural fingerprint with the Rust serde fingerprint, and fails the build if the two differ.
+1. **Given** a new commit that modifies `extractionOutput.ts`, **When** `make ci` runs, **Then** the schema parity check (`tools/oap/schema-parity-check` or equivalent — implementation choice) compares the Zod schema's structural fingerprint with the Rust serde fingerprint, and fails the build if the two differ.
 2. **Given** the parity check passes, **When** Rust code constructs an `ExtractionOutput` and serializes it, **Then** stagecraft's Zod parser accepts it without modification across a fixture set covering all extractor kinds.
 3. **Given** the parity check fails, **When** the contributor reads the error output, **Then** the message names (a) the source-of-truth file (`extractionOutput.ts`), (b) the mirror file (`crates/factory-contracts/src/knowledge.rs`), (c) the specific divergence (added field, removed field, type mismatch), and (d) the schema version each side claims.
 
@@ -179,7 +186,7 @@ An object was extracted server-side via the connector pipeline (spec 115 worker)
 
 - **FR-001**: A new module `crates/factory-contracts/src/knowledge.rs` MUST define serde types that mirror `platform/services/stagecraft/api/knowledge/extractionOutput.ts` exactly. The Rust types include `ExtractionOutput`, `ExtractionPage`, `ExtractionOutlineEntry`, `Extractor`, `AgentRun`, and `TokenSpend`. Field names use serde rename to match the camelCase TS shape.
 - **FR-002**: The schema version MUST be a compile-time const `pub const KNOWLEDGE_SCHEMA_VERSION: &str = "1.x.x"` in the Rust mirror, and a corresponding `export const KNOWLEDGE_SCHEMA_VERSION = "1.x.x"` in the TS source. Both MUST be declared `as const` / `const` so they are resolvable at compile/build time.
-- **FR-003**: A new check `tools/schema-parity-check` (or equivalent — implementation choice does not pin tool name) MUST run as part of `make ci` and `make registry`. The check MUST: (a) read the Zod schema's structural fingerprint, (b) read the Rust serde structural fingerprint, (c) compare the two, (d) exit non-zero with a diagnostic message naming both files and the divergence on mismatch.
+- **FR-003**: A new check `tools/oap/schema-parity-check` (or equivalent — implementation choice does not pin tool name) MUST run as part of `make ci` and `make registry`. The check MUST: (a) read the Zod schema's structural fingerprint, (b) read the Rust serde structural fingerprint, (c) compare the two, (d) exit non-zero with a diagnostic message naming both files and the divergence on mismatch.
 - **FR-004**: Any modification to `extractionOutput.ts` that does not have a corresponding modification to `knowledge.rs` MUST fail CI. The reverse also holds.
 
 #### Canonical extractor
@@ -209,9 +216,9 @@ An object was extracted server-side via the connector pipeline (spec 115 worker)
 
 #### OPC client surfaces
 
-- **FR-021**: `apps/desktop/src-tauri/src/commands/stagecraft_client.rs` MUST gain three Tauri commands: `post_extraction_output(project_id, object_id, payload)`, `request_extraction_yield(project_id, object_id, content_hash, reason)`, and `fetch_extraction_output(project_id, object_id, content_hash)`. All three MUST authenticate via the existing duplex identity.
-- **FR-022**: `apps/desktop/src-tauri/src/commands/factory.rs` MUST be updated so the `--business-docs` flow first invokes `s-1-extract` (when called from inside the orchestrated pipeline) and only falls back to direct file-path passing when called from the CLI in standalone mode (`--no-pipeline-extract`).
-- **FR-023**: `apps/desktop/src/components/inspector/ArtifactInspector.tsx` MUST render a typed-extraction view for artifacts whose mime is `application/x-extraction-output+json`. The view MUST show: full text (with show-full toggle for long output), pages with index + length, outline, language, and `extractor.kind` + `extractor.version` + (when present) `extractor.agentRun.modelId` / `extractor.agentRun.tokenSpend` / `extractor.agentRun.costUsd`.
+- **FR-021**: `product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs` MUST gain three Tauri commands: `post_extraction_output(project_id, object_id, payload)`, `request_extraction_yield(project_id, object_id, content_hash, reason)`, and `fetch_extraction_output(project_id, object_id, content_hash)`. All three MUST authenticate via the existing duplex identity.
+- **FR-022**: `product/apps/desktop/src-tauri/src/commands/factory.rs` MUST be updated so the `--business-docs` flow first invokes `s-1-extract` (when called from inside the orchestrated pipeline) and only falls back to direct file-path passing when called from the CLI in standalone mode (`--no-pipeline-extract`).
+- **FR-023**: `product/apps/desktop/src/components/inspector/ArtifactInspector.tsx` MUST render a typed-extraction view for artifacts whose mime is `application/x-extraction-output+json`. The view MUST show: full text (with show-full toggle for long output), pages with index + length, outline, language, and `extractor.kind` + `extractor.version` + (when present) `extractor.agentRun.modelId` / `extractor.agentRun.tokenSpend` / `extractor.agentRun.costUsd`.
 
 #### Operational
 
@@ -260,7 +267,7 @@ An object was extracted server-side via the connector pipeline (spec 115 worker)
 - **Whether OPC should ever do agent extraction.** The v1 answer is no — keys, governance, and cost ceilings stay on the server. A future spec may revisit for air-gapped deployments where stagecraft is unreachable; that scenario is currently out of project scope.
 - **Whether `artifact-extract` should be split into per-mime crates.** Currently a single crate with a dispatch `match`. As the deterministic-mime list grows (CSV, RTF, ODT, etc.), the crate may need to split. V1: single crate; revisit when the dispatch exceeds ~10 arms.
 - **Whether the stagecraft endpoint should accept batched POSTs.** Bundles can be 50+ objects. Per-object POSTs are simple but chatty. V1: per-object POSTs with concurrency cap; revisit if profiling shows network round-trips dominate stage time.
-- **Schema parity check tool name and home.** Could live in `tools/schema-parity-check` (a new tool) or inside `make ci` as a script. V1 reserves the name but defers the implementation choice to plan.md.
+- **Schema parity check tool name and home.** Could live in `tools/oap/schema-parity-check` (a new tool) or inside `make ci` as a script. V1 reserves the name but defers the implementation choice to plan.md.
 - **Resolver tie-breaker on identical `completed_at`.** Currently descending by `completed_at`; if two records share the timestamp (clock skew), we'd want a deterministic tiebreaker. V1: `extractor.kind` lexicographic ascending. Open to revision before implementation.
 
 ## 8. Provenance
@@ -269,8 +276,8 @@ An object was extracted server-side via the connector pipeline (spec 115 worker)
 - `crates/factory-contracts/` — gains `src/knowledge.rs` mirroring stagecraft's TS schema.
 - `crates/factory-engine/src/manifest_gen.rs` — Phase 1 stage list extended; `s-1-extract` prepended.
 - `crates/factory-engine/src/artifact_store.rs` (around L22–L136) — `store_artifact` is the existing seam this stage writes through.
-- `apps/desktop/src-tauri/src/commands/factory.rs` (around L2206–L2217) — current `--business-docs` path; updated so orchestrated runs pass through `s-1-extract`.
-- `apps/desktop/src-tauri/src/commands/stagecraft_client.rs` (around L483–L550) — current write surfaces (`ingest_events`, `record_artifacts`); this spec adds three new Tauri commands alongside.
+- `product/apps/desktop/src-tauri/src/commands/factory.rs` (around L2206–L2217) — current `--business-docs` path; updated so orchestrated runs pass through `s-1-extract`.
+- `product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs` (around L483–L550) — current write surfaces (`ingest_events`, `record_artifacts`); this spec adds three new Tauri commands alongside.
 - `platform/services/stagecraft/api/knowledge/extractionOutput.ts` (Zod schema around L49–L58) — schema source of truth; this spec freezes it as the shared contract.
 - `platform/services/stagecraft/api/knowledge/extractionCore.ts` — internal write path; the new external endpoint mirrors its idempotency rule.
 - `platform/services/stagecraft/api/knowledge/knowledge.ts` (around L1397–L1440) — `resolveKnowledgeForFactory` updated for multi-record selection.

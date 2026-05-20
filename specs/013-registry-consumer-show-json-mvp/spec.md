@@ -12,8 +12,11 @@ language: en
 summary: >
   Add explicit `show --json <id>` for single-feature retrieval with a stable
   pretty-printed JSON object contract, without changing default show output or trust semantics.
-implements:
-  - path: tools/registry-consumer
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/spec-spine/registry-consumer
+    nature: additive
 ---
 
 # Feature Specification: Registry consumer show JSON contract

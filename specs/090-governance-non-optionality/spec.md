@@ -16,10 +16,20 @@ summary: >
   default, DefaultMode::Bypass at non-policy tier) are closed or guarded. Axiomregent
   cross-platform builds reduce the platform gap.
 code_aliases: ["GOVERNANCE_NON_OPTION"]
-implements:
-  - path: crates/axiomregent
-  - path: crates/policy-kernel
-  - path: crates/orchestrator
+extends:
+  - spec: "033-axiomregent-activation"
+    paths:
+      - crates/axiomregent/src/lease.rs
+    nature: additive
+  - spec: "068-permission-runtime"
+    paths:
+      - crates/policy-kernel/src/permission.rs
+      - crates/policy-kernel/src/merge.rs
+    nature: additive
+  - spec: "035-agent-governed-execution"
+    paths:
+      - product/apps/desktop/src-tauri/src/commands/orchestrator.rs
+    nature: additive
 ---
 
 # 090 — Governance Non-Optionality
@@ -47,11 +57,11 @@ Additional risks:
 ### 1. Eliminate silent orchestrator bypass (1 day)
 - Refactor `dispatch_via_governed_claude()` in `commands/orchestrator.rs` to call shared `plan_governed()` instead of inline duplication
 - Emit `governance-mode` event from orchestrator path
-- Files: `apps/desktop/src-tauri/src/commands/orchestrator.rs`
+- Files: `product/apps/desktop/src-tauri/src/commands/orchestrator.rs`
 
 ### 2. Fix web_server port detection race (0.5 day)
 - Replace `std::env::var("OPC_AXIOMREGENT_PORT")` in `web_server.rs` with shared `SidecarState` or watch pattern
-- Files: `apps/desktop/src-tauri/src/web_server.rs`, `apps/desktop/src-tauri/src/sidecars.rs`
+- Files: `product/apps/desktop/src-tauri/src/web_server.rs`, `product/apps/desktop/src-tauri/src/sidecars.rs`
 
 ### 3. Fix LeaseStore default (0.5 day)
 - Change `LeaseStore::new()` default from `test_permissive()` to `claude_default()` (max_tier: 2)
@@ -67,7 +77,7 @@ Additional risks:
 ### 5. Cross-platform axiomregent binary (3 days, extends spec 037)
 - Add CI build targets for `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu` _(Intel Mac `x86_64-apple-darwin` dropped 2026-04-15)_
 - Bundle all targets in Tauri sidecar config
-- Files: `.github/workflows/`, `apps/desktop/src-tauri/tauri.conf.json`
+- Files: `.github/workflows/`, `product/apps/desktop/src-tauri/tauri.conf.json`
 
 ### 6. Guard DefaultMode::Bypass at policy tier (1 day)
 - `PermissionRuntime::evaluate()`: if `DefaultMode::Bypass` at non-Policy tier, log warning and fall through to `Ask`

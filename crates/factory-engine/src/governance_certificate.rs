@@ -707,7 +707,254 @@ pub fn verify_certificate(
     }
 }
 
+// ── Cut D W-10: spec_id resolution validation (spec 102 G-2) ─────────
+//
+// Validates that a governance certificate's `intent.spec_id` resolves
+// against `build/spec-registry/registry.json` via the typed-reader
+// library introduced in W-03. Default: warn-only. Env-gated
+// `OAP_REQUIRE_SPEC_ID_RESOLUTION=1` promotes any unresolved id to a
+// hard error.
+//
+// Per Phase 6 § "Surprises #3", validation results live in a sibling
+// `validation-warnings.json` file rather than the cert itself. This
+// keeps the cert struct immutable (no version bump, signature
+// invariant, every existing fixture survives).
+
+/// A single spec-id-resolution finding.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub enum ValidationWarning {
+    /// `intent.spec_id` was set but no spec with that id exists in
+    /// the spec-spine registry.
+    SpecIdNotResolved {
+        spec_id: String,
+        registry_path: String,
+    },
+    /// The registry was not loadable at the expected path. By
+    /// default this surfaces as a warning, not an error, because
+    /// the cert is authoritative independent of the registry's
+    /// existence on this filesystem.
+    RegistryNotLoadable {
+        registry_path: String,
+        error: String,
+    },
+}
+
+impl ValidationWarning {
+    /// Stable string id for the finding kind. Used by the env-gate
+    /// to decide whether to promote a warning to an error.
+    pub fn kind(&self) -> &'static str {
+        match self {
+            ValidationWarning::SpecIdNotResolved { .. } => "spec-id-not-resolved",
+            ValidationWarning::RegistryNotLoadable { .. } => "registry-not-loadable",
+        }
+    }
+}
+
+/// Validate `cert.intent.spec_id` against the spec spine.
+///
+/// Returns the list of [`ValidationWarning`]s (possibly empty). When
+/// `intent.spec_id` is `None`, returns an empty list — the cert does
+/// not claim a spec governance and there is nothing to validate.
+pub fn validate_spec_id_resolution(
+    cert: &GovernanceCertificate,
+    repo_root: &Path,
+) -> Vec<ValidationWarning> {
+    let Some(spec_id) = cert.intent.spec_id.as_deref() else {
+        return Vec::new();
+    };
+    let registry_path = repo_root.join(".derived/spec-registry/registry.json");
+    let registry = match open_agentic_spec_registry_reader::load(&registry_path) {
+        Ok(r) => r,
+        Err(e) => {
+            return vec![ValidationWarning::RegistryNotLoadable {
+                registry_path: registry_path.display().to_string(),
+                error: format!("{e}"),
+            }];
+        }
+    };
+    if registry.find_by_id(spec_id).is_some() {
+        return Vec::new();
+    }
+    vec![ValidationWarning::SpecIdNotResolved {
+        spec_id: spec_id.to_string(),
+        registry_path: registry_path.display().to_string(),
+    }]
+}
+
+/// Write the validation warnings to a sibling
+/// `validation-warnings.json` next to the certificate (no-op when
+/// the slice is empty — sibling-file absence == no warnings).
+pub fn write_validation_warnings(
+    warnings: &[ValidationWarning],
+    cert_path: &Path,
+) -> Result<Option<std::path::PathBuf>, std::io::Error> {
+    if warnings.is_empty() {
+        return Ok(None);
+    }
+    let sibling = cert_path
+        .parent()
+        .unwrap_or(Path::new("."))
+        .join("validation-warnings.json");
+    let body = serde_json::to_string_pretty(&serde_json::json!({
+        "certificateHash": "see governance-certificate.json",
+        "warnings": warnings,
+    }))
+    .expect("validation warnings serialize");
+    std::fs::write(&sibling, body)?;
+    Ok(Some(sibling))
+}
+
+/// Returns true when the operator has opted into hard-failure mode
+/// via `OAP_REQUIRE_SPEC_ID_RESOLUTION=1`. Default: false (warnings
+/// remain warnings).
+pub fn require_spec_id_resolution_enabled() -> bool {
+    matches!(
+        std::env::var("OAP_REQUIRE_SPEC_ID_RESOLUTION").as_deref(),
+        Ok("1") | Ok("true") | Ok("yes")
+    )
+}
+
 // ── Tests ────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod w10_validation_tests {
+    //! Cut D W-10 (spec 102 G-2) — spec_id resolution validation.
+
+    use super::*;
+    use std::fs;
+
+    fn write_fake_registry(dir: &Path, ids: &[&str]) {
+        let regdir = dir.join(".derived/spec-registry");
+        fs::create_dir_all(&regdir).unwrap();
+        let features: Vec<serde_json::Value> = ids
+            .iter()
+            .map(|id| {
+                serde_json::json!({
+                    "id": id,
+                    "title": id,
+                    "status": "approved",
+                    "specPath": format!("specs/{id}/spec.md"),
+                })
+            })
+            .collect();
+        let body = serde_json::json!({
+            "specVersion": "2.0.0",
+            "build": {"compilerId": "test", "compilerVersion": "0", "inputRoot": ".", "contentHash": "0"},
+            "features": features,
+            "validation": {"passed": true, "violations": []},
+        });
+        fs::write(
+            regdir.join("registry.json"),
+            serde_json::to_string_pretty(&body).unwrap(),
+        )
+        .unwrap();
+    }
+
+    fn cert_with_spec_id(spec_id: Option<&str>) -> GovernanceCertificate {
+        CertificateBuilder::new(
+            "run-w10",
+            IntentRecord {
+                requirements_hash: "h".to_string(),
+                spec_id: spec_id.map(String::from),
+                spec_hash: None,
+            },
+        )
+        .build_spec_hash("bs")
+        .build()
+    }
+
+    #[test]
+    fn validate_returns_empty_when_intent_spec_id_is_none() {
+        let dir = tempfile::tempdir().unwrap();
+        write_fake_registry(dir.path(), &["001-x"]);
+        let cert = cert_with_spec_id(None);
+        let warnings = validate_spec_id_resolution(&cert, dir.path());
+        assert!(warnings.is_empty());
+    }
+
+    #[test]
+    fn validate_returns_empty_when_spec_id_resolves() {
+        let dir = tempfile::tempdir().unwrap();
+        write_fake_registry(dir.path(), &["042-multi-provider-agent-registry"]);
+        let cert = cert_with_spec_id(Some("042-multi-provider-agent-registry"));
+        let warnings = validate_spec_id_resolution(&cert, dir.path());
+        assert!(warnings.is_empty());
+    }
+
+    #[test]
+    fn validate_emits_warning_for_unknown_spec_id() {
+        let dir = tempfile::tempdir().unwrap();
+        write_fake_registry(dir.path(), &["042-multi-provider-agent-registry"]);
+        let cert = cert_with_spec_id(Some("999-nonexistent"));
+        let warnings = validate_spec_id_resolution(&cert, dir.path());
+        assert_eq!(warnings.len(), 1);
+        match &warnings[0] {
+            ValidationWarning::SpecIdNotResolved { spec_id, .. } => {
+                assert_eq!(spec_id, "999-nonexistent");
+            }
+            other => panic!("expected SpecIdNotResolved, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn validate_emits_warning_when_registry_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let cert = cert_with_spec_id(Some("042-multi-provider-agent-registry"));
+        let warnings = validate_spec_id_resolution(&cert, dir.path());
+        assert_eq!(warnings.len(), 1);
+        assert!(matches!(
+            warnings[0],
+            ValidationWarning::RegistryNotLoadable { .. }
+        ));
+    }
+
+    #[test]
+    fn write_validation_warnings_skips_empty() {
+        let dir = tempfile::tempdir().unwrap();
+        let cert_path = dir.path().join("governance-certificate.json");
+        fs::write(&cert_path, "{}").unwrap();
+        let out = write_validation_warnings(&[], &cert_path).unwrap();
+        assert!(out.is_none());
+        assert!(!dir.path().join("validation-warnings.json").exists());
+    }
+
+    #[test]
+    fn write_validation_warnings_emits_sibling_when_non_empty() {
+        let dir = tempfile::tempdir().unwrap();
+        let cert_path = dir.path().join("governance-certificate.json");
+        fs::write(&cert_path, "{}").unwrap();
+        let warnings = vec![ValidationWarning::SpecIdNotResolved {
+            spec_id: "999-x".to_string(),
+            registry_path: "registry.json".to_string(),
+        }];
+        let out = write_validation_warnings(&warnings, &cert_path).unwrap();
+        let path = out.expect("sibling path returned");
+        assert!(path.exists());
+        let body: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(body["warnings"][0]["kind"], "spec-id-not-resolved");
+        assert_eq!(body["warnings"][0]["spec_id"], "999-x");
+    }
+
+    #[test]
+    fn require_resolution_env_gate_default_and_enabled() {
+        // Single test for the env-gate so test parallelism doesn't
+        // race over the shared global env var. SAFETY: env::set_var
+        // and remove_var are unsafe under multi-threaded test
+        // invocation; bracketing the assertions here keeps the
+        // mutation self-contained.
+        unsafe { std::env::remove_var("OAP_REQUIRE_SPEC_ID_RESOLUTION") };
+        assert!(!require_spec_id_resolution_enabled());
+        unsafe { std::env::set_var("OAP_REQUIRE_SPEC_ID_RESOLUTION", "1") };
+        assert!(require_spec_id_resolution_enabled());
+        unsafe { std::env::set_var("OAP_REQUIRE_SPEC_ID_RESOLUTION", "true") };
+        assert!(require_spec_id_resolution_enabled());
+        unsafe { std::env::set_var("OAP_REQUIRE_SPEC_ID_RESOLUTION", "no") };
+        assert!(!require_spec_id_resolution_enabled());
+        unsafe { std::env::remove_var("OAP_REQUIRE_SPEC_ID_RESOLUTION") };
+    }
+}
 
 #[cfg(test)]
 mod tests {

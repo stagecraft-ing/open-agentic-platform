@@ -14,7 +14,7 @@
 
 - [x] T003 Add `status-report` CLI subcommand
 - [x] T004 Add report helper logic (counts + optional ids)
-- [x] T005 Update `tools/registry-consumer/README.md` usage examples
+- [x] T005 Update `tools/spec-spine/registry-consumer/README.md` usage examples
 
 ## Phase 3: Tests & verify
 

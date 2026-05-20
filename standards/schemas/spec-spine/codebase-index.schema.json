@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-agentic-platform.local/schemas/codebase-index.schema.json",
+  "title": "Open Agentic Platform — compiled codebase index (spec 101)",
+  "description": "Generic structural inventory (Cut D W-07c): Layer 1 crate/package inventory + Layer 2 spec-to-code traceability + diagnostics. OAP-specific layers (factory adapters, infrastructure, workflow traceability) live in codebase-index-oap.schema.json, emitted by oap-code-index-enrich.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "build", "inventory", "traceability", "diagnostics"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "2.0.0",
+      "description": "Schema version. Cut D W-07c bump to 2.0.0: Layer 3-5 fields (factory, infrastructure, workflowTraceability) removed from the generic index and lifted to the OAP enricher's index-oap.json. 1.4.0 (spec 147) extended ImplementingPath with an optional `primary` boolean; 1.3.0 (spec 133) extended traceMapping with `amends` and `amendmentRecord`."
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["indexerId", "indexerVersion", "repoRoot", "contentHash"],
+      "properties": {
+        "indexerId": {
+          "type": "string",
+          "const": "codebase-indexer"
+        },
+        "indexerVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "repoRoot": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Absolute or repository-relative root used for indexing."
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "SHA-256 of the deterministic input state. Used for staleness checks."
+        }
+      }
+    },
+    "inventory": {
+      "description": "Layer 1: Crate and package inventory.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/packageRecord" }
+    },
+    "traceability": {
+      "description": "Layer 2: Spec-to-code traceability.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mappings", "orphanedSpecs", "untracedCode"],
+      "properties": {
+        "mappings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/traceMapping" }
+        },
+        "orphanedSpecs": {
+          "description": "Spec IDs with no implementing code.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "untracedCode": {
+          "description": "Package paths with no governing spec.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "diagnostics": {
+      "description": "Indexer warnings and errors.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["warnings", "errors"],
+      "properties": {
+        "warnings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/diagnostic" }
+        },
+        "errors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/diagnostic" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "packageRecord": {
+      "description": "A Rust crate or npm package.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "path", "kind"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canonical package name from manifest."
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repo-relative directory path."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["rust-lib", "rust-bin", "rust-lib-bin", "npm-package", "npm-workspace"],
+          "description": "Package classification."
+        },
+        "version": {
+          "type": "string",
+          "description": "Declared version string."
+        },
+        "edition": {
+          "type": "string",
+          "description": "Rust edition (2021, 2024, etc). Null for npm packages."
+        },
+        "entryPoints": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Targets emitted by the manifest (e.g. lib, bin names)."
+        },
+        "internalDeps": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Path-resolved internal dependencies (workspace neighbours, file-protocol packages)."
+        },
+        "externalDeps": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "External dependency package names (no version pins)."
+        },
+        "specRef": {
+          "type": "string",
+          "description": "spec id declared in [package.metadata.oap].spec (Cargo) or top-level \"oap.spec\" (npm)."
+        }
+      }
+    },
+    "traceMapping": {
+      "description": "Spec-to-code mapping with sorted implementing paths.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["specId", "implementingPaths"],
+      "properties": {
+        "specId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specStatus": {
+          "type": "string",
+          "description": "Spec lifecycle status (draft / approved / superseded / retired)."
+        },
+        "dependsOn": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Optional list of spec ids this spec depends on."
+        },
+        "amends": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Spec 133 — spec ids amended by this spec via the spec 119 protocol."
+        },
+        "amendmentRecord": {
+          "type": "string",
+          "description": "Spec 133 — the amender spec id from the amended spec's `amendment_record:` frontmatter (reverse link)."
+        },
+        "implementingPaths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "description": "Crate or package name."
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "spec-implements",
+                  "cargo-metadata-crate",
+                  "cargo-metadata-module",
+                  "comment-header",
+                  "multiple"
+                ],
+                "description": "How the mapping was discovered."
+              },
+              "primary": {
+                "type": "boolean",
+                "description": "Spec 147 — true when this path is the primary owner of the claim per the new `implements:` list-item shape."
+              }
+            }
+          },
+          "description": "Code locations implementing this spec."
+        }
+      }
+    },
+    "diagnostic": {
+      "description": "An indexer diagnostic message.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^I-[0-9]{3}$",
+          "description": "Diagnostic code. I-0xx = info, I-1xx = traceability, I-2xx = structural."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "description": "Repo-relative path related to the diagnostic."
+        }
+      }
+    }
+  }
+}

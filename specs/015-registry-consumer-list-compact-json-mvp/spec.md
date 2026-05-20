@@ -12,8 +12,11 @@ language: en
 summary: >
   Add `list --compact` for single-line compact JSON array output, mutually exclusive
   with `list --json`, mirroring Feature 014 for `show`.
-implements:
-  - path: tools/registry-consumer
+extends:
+  - spec: "012-registry-consumer-list-json-mvp"
+    paths:
+      - tools/spec-spine/registry-consumer
+    nature: additive
 ---
 
 # Feature Specification: Registry consumer list compact JSON

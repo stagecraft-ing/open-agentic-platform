@@ -122,6 +122,7 @@ bootstrap-hetzner:
 	@echo "==> Running Hetzner setup..."
 	$(HETZNER_ROOT)/setup.sh
 
+## tag: rauthy-deploy
 deploy-hetzner:
 	# Spec 151 Phase 4 — rauthy moved to Flux
 	# (`platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml`).

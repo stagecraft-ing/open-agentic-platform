@@ -22,7 +22,7 @@ Invoke `make ci` from the repo root. The `Makefile` is the **single source of tr
 - **`ci-fast-tools`** — parallel xargs fan-out across tool manifests with shared `CARGO_TARGET_DIR`; `cargo test -- --list` post-pass asserting each `CI_REGISTRY_CONSUMER_CONTRACTS` prefix has ≥1 match; `spec-lint --fail-on-warn` smoke; `codebase-indexer check` staleness gate. Mirrors `spec-conformance.yml`.
 - **`ci-fast-desktop`** — `apps/desktop/src-tauri` Rust (custom clippy flags: `-A dead_code -D warnings`) concurrent with `pnpm install --frozen-lockfile`; `tsc --noEmit` and vitest concurrent; `Cargo.toml` ↔ `package.json` version alignment. Mirrors `ci-desktop.yml`.
 - **`ci-fast-stagecraft`** — `platform/services/stagecraft`: `npm ci`, then `tsc --noEmit` and `npm test` concurrent. Mirrors `ci-stagecraft.yml`.
-- **`ci-fast-schema-parity`** — Rust factory-contracts fingerprints + `bun run tools/schema-parity-check/index.mjs`. Mirrors `ci-schema-parity.yml` (spec 120/125).
+- **`ci-fast-schema-parity`** — Rust factory-contracts fingerprints + `bun run tools/oap/schema-parity-check/index.mjs`. Mirrors `ci-schema-parity.yml` (spec 120/125).
 - **`ci-fast-spec-coupling`** — PR-time spec/code coupling gate. Mirrors `ci-spec-code-coupling.yml` (spec 127).
 - **`ci-fast-supply-chain`** — `cargo-deny` parallel xargs over Rust manifests + `pnpm audit` + `npm audit` concurrent. Mirrors `ci-supply-chain.yml` (spec 116).
 

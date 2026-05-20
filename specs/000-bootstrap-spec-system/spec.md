@@ -6,8 +6,10 @@ status: approved
 implementation: complete
 kind: constitutional-bootstrap
 created: "2026-03-22"
-amended: "2026-05-13"
-amendment_record: "147-spec-kind-grammar"
+amended: "2026-05-20"
+amendment_record: "130-spec-coupling-primary-owner"
+origin:
+  retroactive: true
 unamendable:
    - "V-001"
    - "V-002"
@@ -59,7 +61,7 @@ Scope of Feature 000:
 - A **minimum document grammar** for feature specs and related authored documents.
 - A **minimum viable compiled registry** contract and **determinism** requirements.
 - **Validation invariants** and **provenance** rules for reverse-engineered or legacy-informed work.
-- The **initial `.specify/` layout contract** so Spec Kit workflows remain aligned with repository architecture.
+- The **initial `standards/spec/` layout contract** so spec-spine workflows remain aligned with repository architecture. (Pre-cleanup the tree lived under `.specify/`; Epic 2 graduated the load-bearing content — `contract.md`, `constitution.md`, `templates/` — to `standards/spec/`.)
 
 Explicitly **out of scope** for Feature 000:
 
@@ -112,22 +114,22 @@ The following are **forbidden** in this repository’s **authored** surface area
 
 **Rejected legacy pattern:** Reverse-engineered flows that passed a **`features_yaml_path`** (or similar) as the registry input. In this repository, **features are defined in markdown**; any YAML-shaped interchange is **compiler output**, not an authoring format.
 
-## Initial `.specify/` contract (future features)
+## Initial `standards/spec/` contract (future features)
 
 The following **normative layout** applies to Spec Kit features in this repo:
 
 | Path | Role |
 |------|------|
-| `.specify/memory/constitution.md` | Human-authored principles; subordinate to feature `000` where bootstrap rules are stricter. |
-| `.specify/templates/*.md` | Authoring aids. Templates remain markdown. Must not require standalone YAML sidecars. |
-| `.specify/scripts/bash/*.sh` | Workflow glue; may emit JSON **only** if a later feature explicitly designates those outputs as compiler products (otherwise scripts remain non-authoritative helpers). |
+| `standards/spec/constitution.md` | Human-authored principles; subordinate to feature `000` where bootstrap rules are stricter. |
+| `standards/spec/templates/*.md` | Authoring aids. Templates remain markdown. Must not require standalone YAML sidecars. |
+| `.specify/scripts/bash/*.sh` | Workflow glue (legacy Spec Kit location; retirement evaluated in Epic 2 I13); may emit JSON **only** if a later feature explicitly designates those outputs as compiler products (otherwise scripts remain non-authoritative helpers). |
 | `specs/<NNN>-<kebab-name>/spec.md` | **Authoritative feature specification** for numbered feature `NNN`. |
 | `specs/<NNN>-<kebab-name>/plan.md` | Implementation plan (markdown). |
 | `specs/<NNN>-<kebab-name>/tasks.md` | Task list (markdown; no YAML document header required). |
 | `specs/<NNN>-<kebab-name>/contracts/` | **Optional** JSON Schema or example JSON **for machine contracts** tied to the feature; not a parallel authoring channel. |
-| `build/spec-registry/` (or path fixed in a later implementation task) | **Compiler-emitted JSON**: deterministic `registry.json` and ephemeral `build-meta.json` (see below). |
+| `.derived/spec-registry/` (or path fixed in a later implementation task) | **Compiler-emitted JSON**: deterministic `registry.json` and ephemeral `build-meta.json` (see below). |
 
-**Repository location of feature specs (sticky decision):** Authoritative feature specs live under **`specs/<NNN>-<kebab-name>/` at the repository root**, not under `.specify/specifications/` or other tool-internal trees. This keeps specs **first-class repo content**, visible in review and branching like source code. `.specify/` holds **templates, scripts, and constitution**—not the canonical feature library. A future amendment may add mirrors or symlinks, but **must not** introduce a second authoritative path without superseding this spec.
+**Repository location of feature specs (sticky decision):** Authoritative feature specs live under **`specs/<NNN>-<kebab-name>/` at the repository root**, not under `standards/spec/specifications/` or other tool-internal trees. This keeps specs **first-class repo content**, visible in review and branching like source code. `standards/spec/` holds **templates and constitution** (Epic 2 graduated from `.specify/`)—not the canonical feature library. A future amendment may add mirrors or symlinks, but **must not** introduce a second authoritative path without superseding this spec.
 
 **Feature ID rule:** Directory name MUST be `NNN-kebab-case` where `NNN` is three decimal digits, zero-padded. Feature `000` is reserved for this bootstrap contract.
 
@@ -179,7 +181,7 @@ amendment_record: "119"
 
 ## Minimum viable compiled JSON registry contract
 
-The compiler MUST emit two related JSON artifacts under `build/spec-registry/`:
+The compiler MUST emit two related JSON artifacts under `.derived/spec-registry/`:
 
 1. **`registry.json`** (deterministic) — conforms to `contracts/registry.schema.json`. Minimum semantic content:
    - **`specVersion`** — registry format version string.
@@ -297,7 +299,7 @@ A reviewer searches the repo for standalone `.yml`/`.yaml` and finds none in aut
 
 ### User Story 3 — Consumer reads stable JSON (Priority: P3)
 
-A downstream tool (placeholder for future featuregraph) reads **`build/spec-registry/registry.json`** for deterministic feature metadata and needs no markdown parsing. It does **not** require `build-meta.json`.
+A downstream tool (placeholder for future featuregraph) reads **`.derived/spec-registry/registry.json`** for deterministic feature metadata and needs no markdown parsing. It does **not** require `build-meta.json`.
 
 **Why this priority:** Proves the separation of human and machine layers.
 
@@ -352,7 +354,7 @@ A downstream tool (placeholder for future featuregraph) reads **`build/spec-regi
 ### Session 2026-03-22 (ratification pass)
 
 - Normalized documentation dates to **2026**.
-- Confirmed **repo-root `specs/`** as the sole authoritative feature-spec tree (vs `.specify/specifications/`).
+- Confirmed **repo-root `specs/`** as the sole authoritative feature-spec tree (vs `standards/spec/specifications/`).
 - Tightened **frontmatter** rules to forbid YAML-as-escape-hatch semantics.
 - Resolved **determinism vs `builtAt`**: split **`registry.json`** (deterministic) and **`build-meta.json`** (ephemeral); updated schema and success criteria.
 - Replaced bulk **`frontmatter`** blob in registry with **normalized fields** + optional **`extraFrontmatter`** (capped).

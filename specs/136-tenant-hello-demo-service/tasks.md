@@ -11,7 +11,7 @@
   SC-001…SC-003.
 - [x] T002 Add `oap.spec = "136-tenant-hello-demo-service"` to
   `platform/services/tenant-hello/package.json`.
-- [x] T003 Extend `tools/codebase-indexer/src/manifest.rs`
+- [x] T003 Extend `tools/spec-spine/codebase-indexer/src/manifest.rs`
   `discover_npm_packages` to include `tenant-hello` alongside
   `stagecraft`. Verify Layer 1 NPM table and Layer 2 traceability list
   the fixture.

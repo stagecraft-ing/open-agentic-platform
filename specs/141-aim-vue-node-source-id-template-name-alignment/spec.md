@@ -13,24 +13,23 @@ amends: ["140"]
 depends_on:
   - "140"  # aim-vue-node manifest cutover (introduces scaffold_source_id and migration 36)
 code_aliases: ["AIM_VUE_NODE_SOURCE_ID_TEMPLATE_NAME_ALIGNMENT"]
-implements:
-  # Single source of truth for the canonical aim-vue-node source-id literal.
-  - path: platform/services/stagecraft/api/factory/oapNativeAdapters.ts
-  # jsdoc references to the canonical literal — kept in sync with the constant.
-  - path: platform/services/stagecraft/api/factory/translator.ts
-  - path: platform/services/stagecraft/api/factory/substrateBrowser.ts
-  # Forward-migration of migration-36 substrate row + sibling factory_upstreams row.
-  - path: platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.up.sql
-  - path: platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.down.sql
-  - path: platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.test.ts
-  # Test fixtures + assertions updated to the canonical literal in lockstep.
-  - path: platform/services/stagecraft/api/factory/translator.test.ts
-  - path: platform/services/stagecraft/api/factory/projection.test.ts
-  - path: platform/services/stagecraft/api/factory/artifacts.test.ts
-  - path: platform/services/stagecraft/api/projects/scaffold/scheduler.test.ts
-  - path: platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts
-  # Vite exclude list extended for the migration-37 isolated test (mirrors mig 36).
-  - path: platform/services/stagecraft/vite.config.ts
+establishes:
+  - platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.up.sql
+  - platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.down.sql
+  - platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.test.ts
+extends:
+  - spec: "140-aim-vue-node-scaffold-source-id-cutover"
+    paths:
+      - platform/services/stagecraft/api/factory/oapNativeAdapters.ts
+      - platform/services/stagecraft/api/factory/translator.ts
+      - platform/services/stagecraft/api/factory/substrateBrowser.ts
+      - platform/services/stagecraft/api/factory/translator.test.ts
+      - platform/services/stagecraft/api/factory/projection.test.ts
+      - platform/services/stagecraft/api/factory/artifacts.test.ts
+      - platform/services/stagecraft/api/projects/scaffold/scheduler.test.ts
+      - platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts
+      - platform/services/stagecraft/vite.config.ts
+    nature: additive
 summary: >
   Spec 140 §2.1 fixed the canonical scaffold_source_id for aim-vue-node
   as `aim-vue-node-template`. The upstream's own

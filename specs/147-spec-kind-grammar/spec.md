@@ -23,6 +23,31 @@ summary: |
   retire the prose-scan workarounds W-002 and W-003.
 amends: ["000", "128", "001", "006", "101", "132", "133"]
 amends_sections: []
+extends:
+  - spec: "001-spec-compiler-mvp"
+    paths:
+      - tools/spec-spine/spec-compiler/src/lib.rs
+    nature: additive
+  - spec: "006-conformance-lint-mvp"
+    paths:
+      - tools/spec-spine/spec-lint/src/lib.rs
+    nature: additive
+  - spec: "101-codebase-index-mvp"
+    paths:
+      - tools/spec-spine/codebase-indexer/src/spec_scanner.rs
+    nature: additive
+  - spec: "132-constitutional-invariant-freeze"
+    paths:
+      - standards/schemas/spec-spine/registry.schema.json
+    nature: additive
+  - spec: "133-amends-aware-coupling-gate"
+    paths:
+      - tools/spec-spine/codebase-indexer/src/lib.rs
+    nature: additive
+refines:
+  - aspect: kind-grammar-corpus-backfill
+    paths:
+      - tools/shared/spec-types/src/lib.rs
 compliance:
   - framework: owasp-asi-2026
     controls: ["ASI01", "ASI03"]
@@ -204,7 +229,7 @@ one representation, one validator.
 
 W-002 (status superseded but body lacks replacement pointer) and
 W-003 (status retired but body lacks rationale) are retired. Their
-prose-scan implementations in tools/spec-lint/src/lib.rs are
+prose-scan implementations in tools/spec-spine/spec-lint/src/lib.rs are
 replaced by frontmatter-presence checks: W-002 becomes "status
 superseded but `superseded_by:` absent"; W-003 becomes "status
 retired but `retirement_rationale:` absent." The W-codes are
@@ -313,7 +338,7 @@ Optional fields:
 
 ## `implements:` promotion
 
-Currently `implements:` is parsed by the compiler (tools/spec-compiler/src/lib.rs:45)
+Currently `implements:` is parsed by the compiler (tools/spec-spine/spec-compiler/src/lib.rs:45)
 but is not serialized to registry.json. The amendment promotes it to
 a first-class registry field.
 
@@ -424,7 +449,7 @@ this amendment introduces to spec 128:
   not a contract violation in itself.
 
 Severity is intrinsic to the W-code, declared at registration in
-`tools/spec-lint/src/lib.rs`. Info-tier diagnostics emit to the
+`tools/spec-spine/spec-lint/src/lib.rs`. Info-tier diagnostics emit to the
 standard diagnostic stream but are exempt from `--fail-on-warn`;
 warning-tier diagnostics gate CI under spec 128's strict posture.
 See spec 128 §"Amendment 147 — Severity tiers" for the tier
@@ -495,20 +520,20 @@ declarations, so the invariant is vacuously satisfied on day one.
 
 ## Tooling impact
 
-- **tools/spec-compiler/** — extend `KNOWN_KEYS` with the new
+- **tools/spec-spine/spec-compiler/** — extend `KNOWN_KEYS` with the new
   fields. Add `kind` enum constant. Add per-kind required-field
   table. Emit `implements:` to registry. Add V-012..V-019
   implementations. Bump SPEC_VERSION to 1.5.0.
-- **tools/spec-lint/** — rewire W-002 and W-003 from prose scans to
+- **tools/spec-spine/spec-lint/** — rewire W-002 and W-003 from prose scans to
   frontmatter checks. Add W-130, W-131, W-132. Add (kind, shape)
   validation table.
-- **tools/registry-consumer/** — add filters for `--kind`,
+- **tools/spec-spine/registry-consumer/** — add filters for `--kind`,
   `--shape`, `--category`. Wire `implementation_report` to a CLI
   command (currently library-only; resolves a pre-existing gap).
 - **crates/featuregraph/** — ingest `implements:` (now serialized)
   for spec → code joins instead of relying on the codebase-index.
   Add capability/registry/profile aware queries.
-- **tools/codebase-indexer/** — consume `primary: true` flag for
+- **tools/spec-spine/codebase-indexer/** — consume `primary: true` flag for
   primary-owner attribution; downgrade to any-one-claimant when
   absent.
 - **contracts/registry.schema.json** — bump to 1.5.0. Add field

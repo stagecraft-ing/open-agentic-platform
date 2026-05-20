@@ -16,14 +16,14 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/desktop/**'
+      - 'product/apps/desktop/**'
       - 'crates/**'
-      - 'packages/**'
+      - 'product/packages/**'
   pull_request:
     paths:
-      - 'apps/desktop/**'
+      - 'product/apps/desktop/**'
       - 'crates/**'
-      - 'packages/**'
+      - 'product/packages/**'
   workflow_dispatch:
 
 permissions:
@@ -53,37 +53,37 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
-          workspaces: apps/desktop/src-tauri
+          workspaces: product/apps/desktop/src-tauri
           shared-key: ci-desktop-aarch64-apple-darwin
 
       - name: Create dist stub for web_server include_str!
         run: |
-          mkdir -p apps/desktop/dist
-          echo '<!doctype html><html><body>stub</body></html>' > apps/desktop/dist/index.html
+          mkdir -p product/apps/desktop/dist
+          echo '<!doctype html><html><body>stub</body></html>' > product/apps/desktop/dist/index.html
 
       - name: Create sidecar binary stub for Tauri build.rs
         run: |
-          mkdir -p apps/desktop/src-tauri/binaries
-          touch apps/desktop/src-tauri/binaries/axiomregent-aarch64-apple-darwin
-          chmod +x apps/desktop/src-tauri/binaries/axiomregent-aarch64-apple-darwin
+          mkdir -p product/apps/desktop/src-tauri/binaries
+          touch product/apps/desktop/src-tauri/binaries/axiomregent-aarch64-apple-darwin
+          chmod +x product/apps/desktop/src-tauri/binaries/axiomregent-aarch64-apple-darwin
 
       - name: cargo check
-        run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
+        run: cargo check --manifest-path product/apps/desktop/src-tauri/Cargo.toml
 
       - name: cargo clippy
-        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml -- -A dead_code -D warnings
+        run: cargo clippy --manifest-path product/apps/desktop/src-tauri/Cargo.toml -- -A dead_code -D warnings
 
       - name: cargo test (lib)
-        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --lib
+        run: cargo test --manifest-path product/apps/desktop/src-tauri/Cargo.toml --lib
 
       - name: cargo test (doc)
-        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --doc
+        run: cargo test --manifest-path product/apps/desktop/src-tauri/Cargo.toml --doc
 
       - name: Version alignment check
         shell: bash
         run: |
-          CARGO_VERSION=$(grep '^version' apps/desktop/src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
-          PKG_VERSION=$(node -p "require('./apps/desktop/package.json').version")
+          CARGO_VERSION=$(grep '^version' product/apps/desktop/src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          PKG_VERSION=$(node -p "require('./product/apps/desktop/package.json').version")
           if [ "$CARGO_VERSION" != "$PKG_VERSION" ]; then
             echo "::error::Version mismatch: Cargo.toml=$CARGO_VERSION package.json=$PKG_VERSION"
             exit 1
@@ -93,7 +93,7 @@ jobs:
   # M7 (cross-target cargo check on Linux + Windows) was added in PR #6 to
   # catch release-target link breakage at PR time. It has failed on every
   # PR since merge: the `macos-private-api` Tauri feature in
-  # apps/desktop/src-tauri/Cargo.toml is cross-target, but only
+  # product/apps/desktop/src-tauri/Cargo.toml is cross-target, but only
   # tauri.macos.conf.json declares macOSPrivateApi. The base
   # tauri.conf.json (which tauri-build's build.rs reads when
   # cargo check --target is invoked directly) doesn't allow the feature on
@@ -113,15 +113,21 @@ jobs:
     runs-on: ubuntu-latest
     name: typescript / check + test
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: product
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - uses: pnpm/action-setup@4f4305e1fe60ad818b8ae6fc4a697cc47eab0b2d # v6
+        with:
+          package_json_file: product/package.json
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: product/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

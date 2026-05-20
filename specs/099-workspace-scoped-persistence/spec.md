@@ -14,9 +14,17 @@ depends_on:
   - "094"
   - "097"
 code_aliases: ["PROJECT_SCOPED_PERSISTENCE"]
-implements:
-  - path: crates/orchestrator
-  - path: crates/run
+extends:
+  - spec: "052-state-persistence"
+    paths:
+      - crates/orchestrator/src/sqlite_state.rs
+      - crates/orchestrator/src/hiqlite_store.rs
+    nature: additive
+  - spec: "097-promotion-grade-mirror"
+    paths:
+      - crates/orchestrator/src/promotion.rs
+      - crates/orchestrator/src/lib.rs
+    nature: additive
 summary: >
   Make persistence project-native and sync-trackable. Replace fire-and-forget
   Stagecraft calls with tracked acknowledgement, update SyncStatus in the
@@ -79,7 +87,7 @@ In `factory.rs`, modify fire-and-forget calls to capture the `SyncTracker` refer
 spawned tasks. On success: `tracker.record_events_ack(resp.ingested)`. On failure:
 `tracker.record_events_fail(e.to_string())`.
 
-**Files**: `crates/orchestrator/src/promotion.rs`, `apps/desktop/src-tauri/src/commands/factory.rs`
+**Files**: `crates/orchestrator/src/promotion.rs`, `product/apps/desktop/src-tauri/src/commands/factory.rs`
 
 ### Slice 2: SyncStatus plumbing into promotion
 
@@ -95,7 +103,7 @@ let sync_status = match &options.sync_tracker {
 
 In `factory.rs`, pass the per-run `SyncTracker` through `DispatchOptions.sync_tracker`.
 
-**Files**: `crates/orchestrator/src/lib.rs`, `apps/desktop/src-tauri/src/commands/factory.rs`
+**Files**: `crates/orchestrator/src/lib.rs`, `product/apps/desktop/src-tauri/src/commands/factory.rs`
 
 ### Slice 3: project_id column in SQLite store
 
@@ -147,7 +155,7 @@ avoid loading all steps per workflow.
 Add Tauri command `list_project_workflows` and register in `lib.rs` invoke_handler.
 
 **Files**: `crates/orchestrator/src/sqlite_state.rs`, `crates/orchestrator/src/hiqlite_store.rs`,
-`apps/desktop/src-tauri/src/commands/orchestrator.rs`, `apps/desktop/src-tauri/src/lib.rs`
+`product/apps/desktop/src-tauri/src/commands/orchestrator.rs`, `product/apps/desktop/src-tauri/src/lib.rs`
 
 ## Acceptance Criteria
 

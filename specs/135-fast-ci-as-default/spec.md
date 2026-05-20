@@ -15,12 +15,29 @@ depends_on:
   - "104"  # makefile-ci-parity-contract (the contract being amended)
   - "134"  # fast-local-ci-mode (the sibling target being promoted)
   - "130"  # spec-coupling-primary-owner (claim resolution for shared paths)
-implements:
-  - path: Makefile
-  - path: tools/ci-parity-check/src/lib.rs
-  - path: .github/workflows/ci-crates.yml
-  - path: .claude/commands/validate-and-fix.md
-  - path: specs/104-makefile-ci-parity-contract/spec.md
+co_authority:
+  - paths:
+      - Makefile
+    section: ci-default-rename
+    with_specs:
+      - "102-governed-excellence"
+      - "104-makefile-ci-parity-contract"
+      - "105-axiomregent-sidecar"
+      - "116-supply-chain-policy-gates"
+      - "127-spec-code-coupling-gate"
+      - "128-spec-lint-default-fail-on-warn"
+      - "134-fast-local-ci-mode"
+extends:
+  - spec: "104-makefile-ci-parity-contract"
+    paths:
+      - tools/oap/ci-parity-check/src/lib.rs
+      - .github/workflows/ci-crates.yml
+      - specs/104-makefile-ci-parity-contract/spec.md
+    nature: wrapping
+  - spec: "134-fast-local-ci-mode"
+    paths:
+      - .claude/commands/validate-and-fix.md
+    nature: wrapping
 summary: >
   Amend spec 104 to (a) collapse the per-manifest crates/* loop in `ci-rust`
   into a single `cargo --workspace` invocation, closing the ghost-crate
@@ -134,7 +151,7 @@ spec 104.
 
 ### 2.3 `ci-parity-check` binds to `ci-strict`
 
-The `tools/ci-parity-check` binary's parity binding follows the
+The `tools/oap/ci-parity-check` binary's parity binding follows the
 rename: it scans the recipe under `ci-strict:` for parity tokens
 against the enforcing-workflow matrix, not `ci:`. The sentinel comments
 `# BEGIN ci-fast (spec 134)` / `# END ci-fast` are **not** renamed —
@@ -223,7 +240,7 @@ name as an alias would dilute it.
 
 ### FR-04: `ci-parity-check` binds to `ci-strict`
 
-`tools/ci-parity-check/src/lib.rs` MUST scan the `ci-strict:` recipe
+`tools/oap/ci-parity-check/src/lib.rs` MUST scan the `ci-strict:` recipe
 (post-rename) for parity tokens against the enforcing-workflow matrix.
 The sentinel-region exemption (spec 134 §FR-03) continues to apply to
 the renamed `ci:` recipe (formerly `ci-fast:`).
@@ -283,9 +300,9 @@ target.
 
 `make ci-parity` (or its post-rename equivalent if the parity target is
 also renamed) MUST exit 0 immediately after this spec's PR merges. The
-parity rules in `tools/ci-parity-check/src/lib.rs` are updated to scan
+parity rules in `tools/oap/ci-parity-check/src/lib.rs` are updated to scan
 `ci-strict:` instead of `ci:`; the test fixtures under
-`tools/ci-parity-check/tests/` are updated to match.
+`tools/oap/ci-parity-check/tests/` are updated to match.
 
 ### SC-04: `validate-and-fix` recommends the new default
 

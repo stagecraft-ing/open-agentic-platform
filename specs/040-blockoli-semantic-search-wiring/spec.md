@@ -10,6 +10,8 @@ created: "2026-03-29"
 authors:
   - "open-agentic-platform"
 language: en
+establishes:
+  - product/apps/desktop/src-tauri/src/commands/search.rs
 summary: >
   Wire the existing blockoli semantic code search library into the desktop app
   by implementing the two stubbed Tauri commands (index + search), adding managed
@@ -102,10 +104,10 @@ Option (c) is simplest — `VectorStore` is an enum with a single variant holdin
 
 | Component | File | Change |
 |-----------|------|--------|
-| Managed state | `apps/desktop/src-tauri/src/commands/search.rs` | Add `BlockoliState`, init in setup |
-| Index command | `apps/desktop/src-tauri/src/commands/search.rs` | Implement `blockoli_index_project` |
-| Search command | `apps/desktop/src-tauri/src/commands/search.rs` | Implement `blockoli_search` |
-| App setup | `apps/desktop/src-tauri/src/lib.rs` | Register `BlockoliState` via `app.manage()` |
+| Managed state | `product/apps/desktop/src-tauri/src/commands/search.rs` | Add `BlockoliState`, init in setup |
+| Index command | `product/apps/desktop/src-tauri/src/commands/search.rs` | Implement `blockoli_index_project` |
+| Search command | `product/apps/desktop/src-tauri/src/commands/search.rs` | Implement `blockoli_search` |
+| App setup | `product/apps/desktop/src-tauri/src/lib.rs` | Register `BlockoliState` via `app.manage()` |
 | (No frontend changes) | — | `SemanticSearchPanel.tsx` already invokes the correct commands |
 
 ## Success criteria

@@ -23,9 +23,12 @@ depends_on:
   - "120"  # factory-extraction-stage (originating spec for the parity check)
   - "121"  # claim-provenance-enforcement (parity extension precedent)
   - "122"  # stakeholder-doc-inversion (third parity surface)
-implements:
-  - path: tools/schema-parity-check/index.mjs
-  - path: platform/services/stagecraft/api/knowledge/extractionOutput.ts
+amends:
+  - spec: "120-factory-extraction-stage"
+    change_type: correction
+    paths:
+      - tools/oap/schema-parity-check/index.mjs
+      - platform/services/stagecraft/api/knowledge/extractionOutput.ts
 ---
 
 # 125 — Schema-Parity Walker — Rebuild for Hand-Rolled Validators
@@ -45,7 +48,7 @@ from Encore parse path` (2026-05-01) replaced the zod schema in
 `extractionOutput.ts` with TypeScript interfaces + a `Validator` class.
 The architectural fix was correct: Encore.ts's TS parser crashed walking
 `zod/v4/classic/schemas.d.cts`. But the parity walker
-(`tools/schema-parity-check/index.mjs`) was built against the zod tree —
+(`tools/oap/schema-parity-check/index.mjs`) was built against the zod tree —
 it imports `extractionOutputSchema` and recursively introspects
 `zod._def.type` — and now short-circuits before any comparison happens.
 
@@ -72,7 +75,7 @@ A. **Re-add zod alongside the validator.** Reject. The zod removal was
 B. **Make the walker introspect the new validator.** Accept. Author a
    small **schema descriptor** alongside the `Validator` class — a plain
    data structure that mirrors the field tree the validator already
-   walks — and update `tools/schema-parity-check/index.mjs` to walk that
+   walks — and update `tools/oap/schema-parity-check/index.mjs` to walk that
    descriptor instead of zod. The descriptor is plain TS objects, so it
    never triggers the Encore parser bug.
 
@@ -113,12 +116,12 @@ the walker doesn't have to translate.
 
 ### 3.2 Parity walker rewrite
 
-`tools/schema-parity-check/index.mjs` currently:
+`tools/oap/schema-parity-check/index.mjs` currently:
 
 1. Imports `extractionOutputSchema` (zod tree).
 2. Walks it via `walkType(zod._def)`.
 3. Compares the result to the Rust fingerprint at
-   `build/schema-parity/rust-knowledge-schema.json`.
+   `.derived/schema-parity/rust-knowledge-schema.json`.
 
 After spec 125:
 
@@ -164,7 +167,7 @@ A single PR:
 1. Adds `extractionOutputDescriptor` and `KNOWLEDGE_SCHEMA_VERSION` (the
    latter is already exported but called out for parity-tool symmetry).
 2. Adds the in-file consistency test.
-3. Updates `tools/schema-parity-check/index.mjs` to dispatch between
+3. Updates `tools/oap/schema-parity-check/index.mjs` to dispatch between
    descriptor and zod walkers, defaulting to the descriptor walker for
    the knowledge schema.
 4. Removes the zod-walker dead path once provenance + stakeholder-doc
@@ -223,7 +226,7 @@ six phases of `tasks.md` completed in order:
   it for `metadata: HashMap<String, Value>`.
 - **Phase 1 — Descriptor** (`0f9a27b`). `extractionOutputDescriptor`
   authored by walking `validateExtractionOutput` and its helpers; cross-
-  checked against `build/schema-parity/rust-knowledge-schema.json` —
+  checked against `.derived/schema-parity/rust-knowledge-schema.json` —
   structurally identical, no schema drift between validator and Rust
   mirror predates this spec. Value-shape constraints the validator
   additionally enforces (`HEX_64`, length min/max, integer/finite,
@@ -234,13 +237,13 @@ six phases of `tasks.md` completed in order:
   extractionOutput.test.ts --run`. Catches descriptor↔validator drift
   locally before commit.
 - **Phase 3 — Walker rewrite** (`8db4b0a`). Extracted
-  `walkDescriptor` into `tools/schema-parity-check/walk-descriptor.mjs`;
+  `walkDescriptor` into `tools/oap/schema-parity-check/walk-descriptor.mjs`;
   added a `walk(node)` dispatcher in `index.mjs` that picks descriptor
   walker on `node.kind` and falls through to the legacy zod walker for
   the still-reserved provenance + stakeholder-doc surfaces. Replaced
   the `extractionOutputSchema` import + presence check with
   `extractionOutputDescriptor`. Added 12-case standalone test at
-  `tools/schema-parity-check/walk-descriptor.test.mjs` (`node …`, no
+  `tools/oap/schema-parity-check/walk-descriptor.test.mjs` (`node …`, no
   zod, no `.ts` imports). Updated the `make ci-schema-parity` echo
   line and Makefile preamble to reflect the dispatcher behaviour.
 - **Phase 4 — CI integration** (`028cf0f`). All five acceptance gates

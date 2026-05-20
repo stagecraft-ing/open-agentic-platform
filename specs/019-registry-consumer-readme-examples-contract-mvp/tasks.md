@@ -14,7 +14,7 @@
 
 - [x] T003 Add `tests/fixtures/readme_examples/` registries and expected stdout files
 - [x] T004 Add CLI + README marker contract tests in `tests/cli.rs`
-- [x] T005 Update `tools/registry-consumer/README.md` with separated human vs automation examples
+- [x] T005 Update `tools/spec-spine/registry-consumer/README.md` with separated human vs automation examples
 
 ## Phase 3: Verification
 

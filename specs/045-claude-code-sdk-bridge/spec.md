@@ -9,6 +9,13 @@ created: "2026-03-29"
 authors:
   - "open-agentic-platform"
 language: en
+establishes:
+  - product/packages/claude-code-bridge
+extends:
+  - spec: "035-agent-governed-execution"
+    paths:
+      - product/apps/desktop/src-tauri/src/commands/claude.rs
+    nature: wrapping
 summary: >
   Replace the current CLI-subprocess integration with a first-class bridge to
   the @anthropic-ai/claude-code SDK, providing typed message streaming, session
@@ -33,7 +40,7 @@ significant limitations:
 4. **Session resumption by convention** -- the `--resume <id>` and `-c` flags work but session identity is inferred from the working directory. The SDK's `resume` option provides explicit, reliable session resumption.
 5. **No structured cost data** -- cost and token usage are only available if the frontend happens to see a `response` message with a `usage` field. The SDK's `SDKResultMessage` guarantees `total_cost_usd`, `total_input_tokens`, `total_output_tokens`, `num_turns`, and `duration_ms` on every completed query.
 
-This feature introduces a bridge layer (`packages/claude-code-bridge/`) that wraps the SDK's `query()` function behind a well-typed interface consumed by both the Tauri backend (via a sidecar Node process or embedded runtime) and, optionally, the web-server mode.
+This feature introduces a bridge layer (`product/packages/claude-code-bridge/`) that wraps the SDK's `query()` function behind a well-typed interface consumed by both the Tauri backend (via a sidecar Node process or embedded runtime) and, optionally, the web-server mode.
 
 ## Scope
 
@@ -211,12 +218,12 @@ The fallback is transparent to consumers -- they receive the same `BridgeEvent` 
 
 | Component | File | Change |
 |-----------|------|--------|
-| Bridge package | `packages/claude-code-bridge/` | New package |
-| Tauri commands | `apps/desktop/src-tauri/src/commands/claude.rs` | Refactor `execute_claude_code`, `continue_claude_code`, `resume_claude_code` to use bridge |
-| Permission command | `apps/desktop/src-tauri/src/commands/claude.rs` | New `respond_to_permission` command |
-| Frontend hook | `apps/desktop/src/components/claude-code-session/useClaudeMessages.ts` | Replace `(message as any)` casts with typed `BridgeEvent` discriminated union |
-| Frontend types | `apps/desktop/src/types/claude-bridge.ts` | New shared type definitions |
-| Web server | `apps/desktop/src-tauri/src/web_server.rs` | Route bridge events over WebSocket |
+| Bridge package | `product/packages/claude-code-bridge/` | New package |
+| Tauri commands | `product/apps/desktop/src-tauri/src/commands/claude.rs` | Refactor `execute_claude_code`, `continue_claude_code`, `resume_claude_code` to use bridge |
+| Permission command | `product/apps/desktop/src-tauri/src/commands/claude.rs` | New `respond_to_permission` command |
+| Frontend hook | `product/apps/desktop/src/components/claude-code-session/useClaudeMessages.ts` | Replace `(message as any)` casts with typed `BridgeEvent` discriminated union |
+| Frontend types | `product/apps/desktop/src/types/claude-bridge.ts` | New shared type definitions |
+| Web server | `product/apps/desktop/src-tauri/src/web_server.rs` | Route bridge events over WebSocket |
 
 ## Success criteria
 
@@ -233,7 +240,7 @@ The fallback is transparent to consumers -- they receive the same `BridgeEvent` 
 - The `@anthropic-ai/claude-code` package is declared as an optional peer dependency. The bridge must handle its absence gracefully (FR-008).
 - The SDK's `query()` function returns `AsyncGenerator<SDKMessage>`. The bridge wraps each yielded message in a `BridgeEvent` envelope to add the `kind` discriminator and any bridge-level metadata.
 - The `canUseTool` hook signature in the SDK is `(toolName: string, toolInput: Record<string, unknown>) => Promise<boolean>`. The bridge converts this to an event-based protocol for IPC compatibility.
-- The existing `governed_claude` module (`apps/desktop/src-tauri/src/governed_claude.rs`) currently appends `--allowedTools` CLI flags. With the SDK bridge, these map to the `allowedTools` and `disallowedTools` query options, and the `canUseTool` hook can enforce governance rules programmatically.
+- The existing `governed_claude` module (`product/apps/desktop/src-tauri/src/governed_claude.rs`) currently appends `--allowedTools` CLI flags. With the SDK bridge, these map to the `allowedTools` and `disallowedTools` query options, and the `canUseTool` hook can enforce governance rules programmatically.
 
 ## Risk
 

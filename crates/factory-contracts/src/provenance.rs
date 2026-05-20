@@ -17,7 +17,7 @@
 //!
 //! The reserved TS mirror lives at
 //! `platform/services/stagecraft/api/governance/provenancePolicy.ts`. When
-//! that file lands, `tools/schema-parity-check` will compare its fingerprint
+//! that file lands, `tools/oap/schema-parity-check` will compare its fingerprint
 //! against `provenance_schema_fingerprint()`. Until then, the parity check
 //! records the Rust-side fingerprint to `build/schema-parity/` so the
 //! comparison is ready on first TS-side commit.
@@ -445,11 +445,11 @@ fn hex_lower(bytes: &[u8]) -> String {
 
 // ---------------------------------------------------------------------------
 // Schema fingerprint — emits the structural shape that
-// tools/schema-parity-check compares against the future TS Zod mirror.
+// tools/oap/schema-parity-check compares against the future TS Zod mirror.
 // ---------------------------------------------------------------------------
 
 /// Canonical structural fingerprint of the provenance schema as produced by
-/// the Rust types above. The matching `tools/schema-parity-check` will
+/// the Rust types above. The matching `tools/oap/schema-parity-check` will
 /// compute the same shape from `provenancePolicy.ts` once the TS mirror
 /// lands and will assert equality.
 ///
@@ -600,7 +600,7 @@ mod tests {
     /// Runs as a side effect of `cargo test`; the parity check depends on it.
     #[test]
     fn writes_provenance_fingerprint_file() {
-        let dest = workspace_root().join("build/schema-parity/rust-provenance-schema.json");
+        let dest = workspace_root().join(".derived/schema-parity/rust-provenance-schema.json");
         std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
         let json = serde_json::to_string_pretty(&provenance_schema_fingerprint()).unwrap();
         std::fs::write(&dest, json + "\n").unwrap();

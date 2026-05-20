@@ -18,9 +18,18 @@ summary: >
   lineage, and platform recording. Fixes hash-chain verification gap in the
   persisted dispatch path.
 code_aliases: ["UNIFIED_ARTIFACT_STORE"]
-implements:
-  - path: crates/orchestrator
-  - path: crates/factory-engine
+establishes:
+  - crates/orchestrator/src/promotion.rs
+extends:
+  - spec: "052-state-persistence"
+    paths:
+      - crates/orchestrator/src/artifact.rs
+      - crates/orchestrator/src/lib.rs
+    nature: additive
+  - spec: "075-factory-workflow-engine"
+    paths:
+      - crates/factory-engine/src/artifact_store.rs
+    nature: additive
 ---
 
 # 094 — Unified Artifact Store with Provenance

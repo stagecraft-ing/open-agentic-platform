@@ -17,11 +17,11 @@ use test_helpers::make_router;
 /// featuregraph scanner can initialise without requiring `spec-compiler compile`.
 fn create_test_workspace() -> TempDir {
     let dir = TempDir::new().expect("failed to create temp dir");
-    let registry_dir = dir.path().join("build/spec-registry");
+    let registry_dir = dir.path().join(".derived/spec-registry");
     std::fs::create_dir_all(&registry_dir).unwrap();
     std::fs::write(
         registry_dir.join("registry.json"),
-        r#"{"features":[{"id":"test-feature","title":"Test Feature","specPath":"specs/test/spec.md","status":"active","codeAliases":[]}]}"#,
+        r#"{"specVersion":"1.5.0","features":[{"id":"test-feature","title":"Test Feature","specPath":"specs/test/spec.md","status":"active","codeAliases":[]}]}"#,
     )
     .unwrap();
     // Create a dummy source file so features.impact has something to scan

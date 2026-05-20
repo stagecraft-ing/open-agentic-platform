@@ -18,6 +18,13 @@ code_aliases:
   - CONTROL_API
 sources:
   - claudepal
+establishes:
+  - product/packages/oap-ctl/src/cli.js
+extends:
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    paths:
+      - product/apps/desktop/src-tauri/src/web_server.rs
+    nature: additive
 ---
 
 # 085 — Remote Control CLI (oap-ctl)
@@ -79,9 +86,9 @@ instance.
 
 | File | Role |
 |------|------|
-| `apps/desktop/src-tauri/src/web_server.rs` | Control server infra + auth middleware + routes |
-| `packages/oap-ctl/package.json` | New CLI package |
-| `packages/oap-ctl/src/cli.js` | New CLI entry point (~200 lines) |
+| `product/apps/desktop/src-tauri/src/web_server.rs` | Control server infra + auth middleware + routes |
+| `product/packages/oap-ctl/package.json` | New CLI package |
+| `product/packages/oap-ctl/src/cli.js` | New CLI entry point (~200 lines) |
 
 ## Verification
 

@@ -20,6 +20,10 @@ summary: >
   validation surface: KNOWN_KEYS extension, V-012..V-019 (warning severity in
   Phase 1), VALID_KINDS enum, SHAPE_TABLE reservation, and `implements:` scalar/list
   serialization. SPEC_VERSION bumps 1.4.0 → 1.5.0.
+establishes:
+  - tools/spec-spine/spec-compiler/src/lib.rs
+  - tools/spec-spine/spec-compiler/src/main.rs
+  - .derived/spec-registry/registry.json
 ---
 
 # Feature Specification: Spec compiler MVP
@@ -36,7 +40,7 @@ This feature delivers the **first runnable spec compiler** for `open-agentic-pla
 
 - Discovery of `specs/<NNN>-<kebab>/spec.md`
 - Parsing YAML frontmatter and markdown body (section headings)
-- Emitting **`build/spec-registry/registry.json`** (byte-deterministic) and **`build/spec-registry/build-meta.json`** (ephemeral)
+- Emitting **`.derived/spec-registry/registry.json`** (byte-deterministic) and **`.derived/spec-registry/build-meta.json`** (ephemeral)
 - Validation invariants **V-001** through **V-004** (MVP); **V-005** remains reserved per Feature 000
 
 **Explicitly out of scope:**
@@ -53,7 +57,7 @@ Feature **001** is **subordinate** to Feature **000**. If this spec’s text con
 
 ### User Story 1 — Compile the repository (Priority: P1)
 
-A contributor runs the compiler from the repo root. It writes `registry.json` and `build-meta.json` under `build/spec-registry/`. `registry.json` validates against Feature 000’s `registry.schema.json` and lists every feature under `specs/` with normalized fields.
+A contributor runs the compiler from the repo root. It writes `registry.json` and `build-meta.json` under `.derived/spec-registry/`. `registry.json` validates against Feature 000’s `registry.schema.json` and lists every feature under `specs/` with normalized fields.
 
 **Why this priority:** Without a working compile, Feature 000 is theoretical.
 
@@ -104,20 +108,20 @@ A standalone `.yaml` appears under an authored path (e.g. `docs/bad.yaml`). The 
 
 - **FR-001**: Provide a **CLI entry point** (exact name in `plan.md`) runnable from the repository root with documented flags.
 - **FR-002**: Default **`inputRoot`** behavior MUST match Feature 000 research **D8**: canonical **`"."`** for full-repo compilation; emitted `build.inputRoot` MUST be normalized (no trailing slash, forward slashes).
-- **FR-003**: Emit **`registry.json`** satisfying `specs/000-bootstrap-spec-system/contracts/registry.schema.json` (including **`extraFrontmatter`** value constraints).
-- **FR-004**: Emit **`build-meta.json`** satisfying `specs/000-bootstrap-spec-system/contracts/build-meta.schema.json`.
+- **FR-003**: Emit **`registry.json`** satisfying `standards/schemas/spec-spine/registry.schema.json` (including **`extraFrontmatter`** value constraints).
+- **FR-004**: Emit **`build-meta.json`** satisfying `standards/schemas/spec-spine/build-meta.schema.json`.
 - **FR-005**: Implement **V-001**, **V-002**, **V-003**, **V-004** as defined in Feature 000. **V-005** MUST NOT be claimed as enforced.
 - **FR-006**: Implement **deterministic** emission for **`registry.json`** per Feature 000 (sorted keys, sorted arrays where applicable, stable feature order—**lexicographic by `id`** unless Feature 000 specifies otherwise).
 - **FR-007**: Compute **`build.contentHash`** per Feature 000 `research.md` **D2** using **only** the following inputs (nothing else unless this list is amended by a spec change):
   1. **Every** file path `specs/<NNN>-<kebab-name>/spec.md` that exists and is read for compilation, with file content normalized per D2 (UTF-8 without BOM, LF newlines), concatenated in **sorted path order** as D2 defines.
-  2. **Optionally**, the bytes of `specs/000-bootstrap-spec-system/contracts/registry.schema.json` and `build-meta.schema.json` **only if** the compiler reads them at runtime to validate or embed—if the compiler does **not** read these files, they MUST NOT be included in the hash.
+  2. **Optionally**, the bytes of `standards/schemas/spec-spine/registry.schema.json` and `build-meta.schema.json` **only if** the compiler reads them at runtime to validate or embed—if the compiler does **not** read these files, they MUST NOT be included in the hash.
 
   Adding new inputs to the fingerprint **requires** an explicit spec amendment; implementations MUST NOT silently fold in extra paths (“relevant to compilation” is **not** an elastic escape hatch).
 - **FR-008**: Exit with **non-zero** status when `validation.passed` is false or on unrecoverable I/O error; exact mapping in `research.md`.
 
 ### Key Entities
 
-- **Compiler CLI**: The binary + library crate(s) under `tools/spec-compiler/` (path fixed in `plan.md`).
+- **Compiler CLI**: The binary + library crate(s) under `tools/spec-spine/spec-compiler/` (path fixed in `plan.md`).
 - **Compilation run**: One invocation producing a pair of JSON files.
 
 ## Success Criteria *(mandatory)*
@@ -135,7 +139,7 @@ A standalone `.yaml` appears under an authored path (e.g. `docs/bad.yaml`). The 
 
 - Deliberately **not** specifying axiomregent/xray/featuregraph; Feature 001 is the **compiler MVP** only.
 
-### Session 2026-05-04 — Implementation behaviour hoisted from `tools/spec-compiler/README.md`
+### Session 2026-05-04 — Implementation behaviour hoisted from `tools/spec-spine/spec-compiler/README.md`
 
 These clauses refine the spec's narrative with binary-specific normative
 behaviour that has been part of `spec-compiler` since 2026-03-22 but lived

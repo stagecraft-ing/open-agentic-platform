@@ -8,7 +8,7 @@
 //! Field names are camelCase via `serde(rename_all)` so a serialised
 //! `ExtractionOutput` round-trips through stagecraft's Zod parser without
 //! transformation. The schema version is a compile-time const on both sides;
-//! drift fails CI via `tools/schema-parity-check`.
+//! drift fails CI via `tools/oap/schema-parity-check`.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -82,7 +82,7 @@ pub struct TokenSpend {
 }
 
 /// Canonical structural fingerprint of the `ExtractionOutput` schema as
-/// produced by the Rust types above. The matching `tools/schema-parity-check`
+/// produced by the Rust types above. The matching `tools/oap/schema-parity-check`
 /// computes the same shape from `extractionOutput.ts` and asserts equality.
 ///
 /// Field lists at every nesting level are emitted in alphabetical order so
@@ -177,7 +177,7 @@ mod tests {
     /// Runs as a side effect of `cargo test`; the parity check depends on it.
     #[test]
     fn writes_fingerprint_file() {
-        let dest = workspace_root().join("build/schema-parity/rust-knowledge-schema.json");
+        let dest = workspace_root().join(".derived/schema-parity/rust-knowledge-schema.json");
         std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
         let json = serde_json::to_string_pretty(&knowledge_schema_fingerprint()).unwrap();
         std::fs::write(&dest, json + "\n").unwrap();

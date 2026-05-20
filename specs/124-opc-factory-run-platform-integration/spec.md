@@ -25,10 +25,14 @@ depends_on:
   - "108"  # factory-as-platform-feature (provides /api/factory/*)
   - "109"  # factory-pat-and-pubsub-sync (the platform-side sync model)
   - "123"  # agent-catalog-org-rescope (agent_resolver + binding-aware run identity)
-implements:
-  - path: apps/desktop/src-tauri/src/commands/factory.rs
-  - path: platform/services/stagecraft/api/factory/runs.ts
-  - path: platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql
+establishes:
+  - platform/services/stagecraft/api/factory/runs.ts
+  - platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql
+extends:
+  - spec: "108-factory-as-platform-feature"
+    paths:
+      - product/apps/desktop/src-tauri/src/commands/factory.rs
+    nature: additive
 ---
 
 # 124 — OPC Factory-Run Platform Integration
@@ -43,7 +47,7 @@ in-tree `factory/` directory landed on 2026-05-01.
 Two pieces of OPC's local execution path were explicitly **deferred** by
 spec 108 and remain unaddressed:
 
-1. **§7.1 punt.** `apps/desktop/src-tauri/src/commands/factory.rs` still
+1. **§7.1 punt.** `product/apps/desktop/src-tauri/src/commands/factory.rs` still
    resolves `factory_root` by walking up from `CARGO_MANIFEST_DIR` to find
    an in-tree `factory/adapters/`. After §8 that path no longer exists in
    the repo; the desktop's factory-run command therefore requires a
@@ -313,7 +317,7 @@ StageCdReview surface in a later spec if required.
 
 ## 10. Acceptance
 
-A-1. `apps/desktop/src-tauri/src/commands/factory.rs` no longer references
+A-1. `product/apps/desktop/src-tauri/src/commands/factory.rs` no longer references
      `resolve_factory_root`; the `// TODO(spec-108-§7-punt)` marker is
      removed.
 A-2. `rg "factory/(adapters|contracts|process|upstream-map)" apps/ crates/`
@@ -336,7 +340,7 @@ A-8. `factory_runs.source_shas.agents[]` carries the spec-123 triple
      `agents[].content_hash` values.
 A-9. The desktop's `materialise_run_root` materialises agent bodies by
      calling `agent_resolver` (spec 123 §8.2) — `rg "agent_catalog"
-     apps/desktop/src-tauri/src/commands/factory.rs` returns zero hits
+     product/apps/desktop/src-tauri/src/commands/factory.rs` returns zero hits
      because the resolver is consumed via the factory-engine crate, not
      directly.
 
