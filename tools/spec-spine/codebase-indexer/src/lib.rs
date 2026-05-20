@@ -3,6 +3,7 @@
 pub mod comment_scanner;
 pub mod hash;
 pub mod manifest;
+pub mod render;
 pub mod schema;
 pub mod spec_scanner;
 pub mod types;

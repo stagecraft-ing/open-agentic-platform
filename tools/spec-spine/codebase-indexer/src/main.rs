@@ -33,6 +33,16 @@ enum Command {
         #[arg(long)]
         repo: Option<PathBuf>,
     },
+    /// Render the generic Layer 1+2+Diagnostics markdown to stdout.
+    /// (Epic 2 I11: restored after Cut D W-07b moved full rendering
+    /// to oap-code-index-enrich.) Generic view is the spec-spine's
+    /// self-sufficient consumer protocol; OAP Layers 3-5 require
+    /// `oap-code-index-enrich render`.
+    Render {
+        /// Repository root (default: current directory)
+        #[arg(long)]
+        repo: Option<PathBuf>,
+    },
 }
 
 fn main() {
@@ -72,6 +82,38 @@ fn main() {
                 Err(e) => {
                     eprintln!("codebase-indexer: {e}");
                     3
+                }
+            }
+        }
+        Command::Render { repo } => {
+            let root = repo.unwrap_or_else(|| std::env::current_dir().expect("cwd"));
+            let path = root.join(".derived/codebase-index/index.json");
+            match std::fs::read_to_string(&path) {
+                Ok(raw) => match serde_json::from_str::<
+                    open_agentic_codebase_indexer::types::CodebaseIndex,
+                >(&raw)
+                {
+                    Ok(index) => {
+                        print!(
+                            "{}",
+                            open_agentic_codebase_indexer::render::render_generic(&index)
+                        );
+                        0
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "codebase-indexer: failed to parse {}: {e}",
+                            path.display()
+                        );
+                        1
+                    }
+                },
+                Err(e) => {
+                    eprintln!(
+                        "codebase-indexer: failed to read {}: {e}",
+                        path.display()
+                    );
+                    1
                 }
             }
         }

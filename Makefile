@@ -293,7 +293,12 @@ index: $(CODEBASE_INDEXER_BIN)
 index-check: $(CODEBASE_INDEXER_BIN)
 	./$(CODEBASE_INDEXER_BIN) check
 
-## Cut D W-07b: render moved from codebase-indexer to oap-code-index-enrich.
+## Generic Layers 1+2+Diagnostics rendering (Epic 2 I11 restored).
+## Goes to stdout; redirect to capture.
+index-render-generic: $(CODEBASE_INDEXER_BIN)
+	./$(CODEBASE_INDEXER_BIN) render
+
+## OAP-overlay (Layers 1-5) markdown rendering.
 ## Requires index-oap.json (produced by `make oap-code-index-enrich`).
 index-render:
 	cargo build --release --manifest-path tools/oap/oap-code-index-enrich/Cargo.toml --target-dir tools/oap/oap-code-index-enrich/target
