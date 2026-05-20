@@ -14,7 +14,7 @@ Compiled artifacts under `.derived/**` MUST be read by orchestrated workflows th
 |----------|----------|---------------------|
 | `.derived/spec-registry/registry.json` | `registry-consumer` | `list`, `list --ids-only`, `list --json`, `show`, `status-report --json` |
 | `.derived/spec-registry/registry-oap.json` | `oap-registry-enrich` | `enrich` (default), `compliance-report` (moved from registry-consumer in Cut D W-06b) |
-| `.derived/codebase-index/index.json` | `codebase-indexer` | `compile`, `check`, `render` |
+| `.derived/codebase-index/index.json` | `codebase-indexer` | `compile`, `check`, `render` (generic L1+L2+Diagnostics, restored in Epic 2 I11), `dump-inputs` |
 | `.derived/codebase-index/CODEBASE-INDEX.md` | read directly (already a governed human-shaped view) | — |
 
 If a consumer subcommand is missing for a legitimate workflow query, add the subcommand under the consumer's spec — do not work around it with `python`, `jq`, `awk`, `sed`, or similar.

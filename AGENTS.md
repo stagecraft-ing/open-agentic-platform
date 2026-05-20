@@ -6,19 +6,41 @@ Run `/init` as the mandatory first action of every new session. The command read
 
 **Init protocol (executed by `/init`):**
 
-0. **Load rules** — read `.claude/rules/orchestrator-rules.md` AND `.claude/rules/governed-artifact-reads.md`.
+> AGENTS.md is loaded implicitly as the protocol source — its contents
+> are the protocol, so `/init` does not list AGENTS.md as a parallel
+> identity read in Step 1 (avoiding the self-reference loop).
+
+0. **Load rules** — read `.claude/rules/orchestrator-rules.md`,
+   `.claude/rules/governed-artifact-reads.md`, AND
+   `.claude/rules/adversarial-prompt-refusal.md` (the three loaded
+   automatically by every orchestrated workflow per spec 103 +
+   spec 131).
 1. **Parallel reads** (dispatch simultaneously):
    - `CLAUDE.md` — project overview and conventions
    - `README.md` — full project description
+   - `standards/spec/contract.md` — graduated spec spine contract
+   - `standards/spec/constitution.md` — graduated constitutional baseline
    - `codebase-indexer check` — staleness gate for the structural index (non-fatal)
-   - `oap-code-index-enrich render` → `.derived/codebase-index/CODEBASE-INDEX.md` — rendered structural summary (Cut D W-07b moved this from `codebase-indexer render`; run only if the markdown is missing)
+   - `codebase-indexer render` — generic Layer 1+2+Diagnostics markdown
+     (the spec-spine view); optional follow-up
+     `oap-code-index-enrich render` produces the OAP-overlay
+     `.derived/codebase-index/CODEBASE-INDEX.md` (Layers 3-5; spec 101+118)
    - `registry-consumer status-report --json --nonzero-only` — lifecycle counts per spec status
    - `registry-consumer list --ids-only` — spec id list (for latest-spec detection)
+   - `ls tools/` — top-level tool subdivision (spec-spine/, oap/, shared/, vendor/)
+   - `ls product/apps/` — desktop app discovery
+   - `ls docs/` — graduated docs surface
    - `git log --oneline -10` — recent history
    - `git diff --stat HEAD~1` — last change summary
-2. **Emit** `## initialized: open-agentic-platform` summary block (layer overview, recent activity, ready to help with).
+2. **Emit** `## initialized: open-agentic-platform` summary block (layer
+   overview, recent activity, ready to help with). The summary
+   template includes a `## lifecycle:` sub-section populated from the
+   `registry-consumer status-report --nonzero-only` output. The
+   templates live under `standards/spec/templates/` (graduated from
+   `.specify/templates/` in Epic 2 I3); modifying the summary shape
+   requires editing them, not AGENTS.md.
 
-**Read discipline (spec 103):** the init protocol MUST NOT parse `build/**/*.json` directly (no `python`, `jq`, `awk`, `sed` against compiled artifacts). All structural and lifecycle data comes from the consumer binaries and the rendered markdown view.
+**Read discipline (spec 103):** the init protocol MUST NOT parse `.derived/**/*.json` directly (no `python`, `jq`, `awk`, `sed` against compiled artifacts). All structural and lifecycle data comes from the consumer binaries and the rendered markdown view.
 
 **Staleness surface:** if `codebase-indexer check` exits non-zero, include `Structural index: stale — run `codebase-indexer compile`` in the summary and continue. If `CODEBASE-INDEX.md` is missing and `render` fails (no `index.json`), report `Structural index: not built` and continue without structural counts.
 
