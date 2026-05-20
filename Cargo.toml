@@ -1,0 +1,54 @@
+[workspace]
+resolver = "2"
+members = [
+    # 18 OAP library crates.
+    "crates/agent",
+    "crates/agent-frontmatter",
+    "crates/artifact-extract",
+    "crates/axiomregent",
+    "crates/factory-contracts",
+    "crates/factory-engine",
+    "crates/factory-platform-client",
+    "crates/factory-project-detect",
+    "crates/featuregraph",
+    "crates/orchestrator",
+    "crates/policy-kernel",
+    "crates/provenance-validator",
+    "crates/provider-registry",
+    "crates/run",
+    "crates/skill-factory",
+    "crates/standards-loader",
+    "crates/tool-registry",
+    "crates/xray",
+
+    # 12 OAP / spec-spine tools (subdivided into spec-spine/oap in I5).
+    "tools/adapter-scopes-compiler",
+    "tools/assumption-cascade-check",
+    "tools/ci-parity-check",
+    "tools/codebase-indexer",
+    "tools/oap-code-index-enrich",
+    "tools/oap-registry-enrich",
+    "tools/policy-compiler",
+    "tools/registry-consumer",
+    "tools/spec-code-coupling-check",
+    "tools/spec-compiler",
+    "tools/spec-lint",
+    "tools/stakeholder-doc-lint",
+
+    # Shared spec types crate.
+    "tools/shared/spec-types",
+]
+
+# apps/desktop/src-tauri/ is a deliberately separate single-member workspace
+# (its own [workspace] table) to prevent libsqlite3-sys linking conflicts
+# when both this crate and crates/axiomregent bundle rusqlite. Operator
+# decision #1 (Epic 2): keep isolated.
+#
+# platform/services/deployd-api-rs/ is excluded from this root workspace per
+# operator decision #2 (Epic 2): platform/ remains structurally untouched
+# (master plan §Locked target layout). It builds standalone via
+# `cargo build --manifest-path platform/services/deployd-api-rs/Cargo.toml`.
+exclude = [
+    "apps/desktop/src-tauri",
+    "platform/services/deployd-api-rs",
+]

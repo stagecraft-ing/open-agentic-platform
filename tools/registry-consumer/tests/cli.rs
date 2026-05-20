@@ -1,5 +1,6 @@
 //! Integration tests: exit codes 0 / 1 / 3 per specs/002-registry-consumer-mvp.
 
+use open_agentic_spec_registry_reader::canonicalize_value;
 use serde_json::json;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -502,7 +503,12 @@ fn list_compact_contract_matches_expected_serialization() {
             "sectionHeadings": ["H"]
         }
     ]);
-    let expected_line = serde_json::to_string(&expected).unwrap();
+    // CLI output goes through `canonicalize_value` so object keys are
+    // emitted in lex order regardless of `serde_json`'s `preserve_order`
+    // feature (active workspace-wide via `crates/xray`). The expected
+    // string runs through the same canonicalization so the contract
+    // compares like-with-like.
+    let expected_line = serde_json::to_string(&canonicalize_value(expected.clone())).unwrap();
 
     let exe = registry_consumer_exe();
     let out = Command::new(&exe)
@@ -567,7 +573,10 @@ fn show_compact_contract_matches_expected_serialization() {
         "specPath": "specs/001-a/spec.md",
         "sectionHeadings": ["H"]
     });
-    let expected_line = serde_json::to_string(&expected).unwrap();
+    // Canonicalize the expected string so the byte-compare matches the
+    // CLI's `canonicalize_value`-routed output. See list_compact_contract
+    // for rationale.
+    let expected_line = serde_json::to_string(&canonicalize_value(expected.clone())).unwrap();
 
     let exe = registry_consumer_exe();
     let out = Command::new(&exe)

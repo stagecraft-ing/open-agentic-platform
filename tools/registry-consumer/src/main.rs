@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use open_agentic_spec_registry_reader::{
     DEFAULT_REGISTRY_REL_PATH, Feature, FeatureFilter, KNOWN_IMPLEMENTATIONS, KNOWN_STATUSES,
-    Registry, RegistryError, load, serialize_json_compact_or_pretty,
+    Registry, RegistryError, load, serialize_json_canonical,
 };
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -132,7 +132,13 @@ fn exit_with_prefixed_message(code: u8, message: impl std::fmt::Display) -> Exit
 }
 
 fn print_json_or_exit<T: serde::Serialize>(value: &T, compact: bool) -> Result<(), ExitCode> {
-    match serialize_json_compact_or_pretty(value, compact) {
+    // Route every CLI JSON emission through `serialize_json_canonical` so
+    // object keys are lex-ordered regardless of `serde_json`'s
+    // `preserve_order` feature (active workspace-wide via `crates/xray`).
+    // See `open_agentic_spec_registry_reader::canonicalize_value` for
+    // the full rationale; this is the single emission boundary for
+    // CLI stdout JSON.
+    match serialize_json_canonical(value, compact) {
         Ok(s) => {
             println!("{s}");
             Ok(())

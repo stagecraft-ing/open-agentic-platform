@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "9e6594ad4316ebcbc8bf922034f5f2f21864f4fcb0d8ee38b3b0f6ec906fbea5",
+    "contentHash": "02c3dfdd7891583b48260a07c765d9369624f0ccde9027ce1e2e61a304420a5a",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -162,6 +162,10 @@
       },
       {
         "code": "I-101",
+        "message": "spec \"144-hiqlite-default-features\" declares implements path \"crates/Cargo.lock\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
         "message": "spec \"148-auth-driver-registry\" declares implements path \"crates/auth-driver/\" which is not a known package, adapter, or existing file/directory"
       },
       {
@@ -247,500 +251,6 @@
       "path": "apps/desktop",
       "specRef": "032-opc-inspect-governance-wiring-mvp",
       "version": "0.3.2"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs"
-      ],
-      "externalDeps": [
-        "anyhow",
-        "chrono",
-        "hex",
-        "regex",
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "sha2",
-        "thiserror",
-        "toml",
-        "url",
-        "uuid"
-      ],
-      "internalDeps": [
-        "agent-frontmatter"
-      ],
-      "kind": "rust-lib",
-      "name": "agent",
-      "path": "crates/agent",
-      "specRef": "035-agent-governed-execution",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs"
-      ],
-      "externalDeps": [
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "ts-rs"
-      ],
-      "kind": "rust-lib",
-      "name": "agent-frontmatter",
-      "path": "crates/agent-frontmatter",
-      "specRef": "054-agent-frontmatter-schema",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/bin/artifact_extract.rs"
-      ],
-      "externalDeps": [
-        "pdf-extract",
-        "quick-xml",
-        "serde_json",
-        "thiserror",
-        "zip"
-      ],
-      "internalDeps": [
-        "factory-contracts"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "artifact-extract",
-      "path": "crates/artifact-extract",
-      "specRef": "120-factory-extraction-stage",
-      "version": "0.2.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "anyhow",
-        "async-trait",
-        "base64",
-        "chrono",
-        "env_logger",
-        "fastembed",
-        "hex",
-        "hiqlite",
-        "kd-tree",
-        "log",
-        "lz4_flex",
-        "octocrab",
-        "once_cell",
-        "parking_lot",
-        "rayon",
-        "regex",
-        "reqwest",
-        "serde",
-        "serde_json",
-        "sha2",
-        "similar",
-        "tar",
-        "tempfile",
-        "thiserror",
-        "tokio",
-        "typenum",
-        "url",
-        "urlencoding",
-        "uuid",
-        "walkdir",
-        "zstd"
-      ],
-      "internalDeps": [
-        "agent",
-        "featuregraph",
-        "open_agentic_policy_kernel",
-        "run",
-        "skill-factory",
-        "tool-registry",
-        "xray"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "axiomregent",
-      "path": "crates/axiomregent",
-      "specRef": "073-axiomregent-unification",
-      "version": "0.1.5"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs"
-      ],
-      "externalDeps": [
-        "chrono",
-        "glob",
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "sha2",
-        "thiserror",
-        "unicode-normalization"
-      ],
-      "internalDeps": [
-        "agent-frontmatter"
-      ],
-      "kind": "rust-lib",
-      "name": "factory-contracts",
-      "path": "crates/factory-contracts",
-      "specRef": "074-factory-ingestion",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/bin/harness.rs",
-        "src/bin/factory_run.rs",
-        "src/bin/verify_certificate.rs",
-        "src/bin/build_certificate.rs",
-        "src/bin/migrate_stakeholder_docs.rs"
-      ],
-      "externalDeps": [
-        "async-trait",
-        "base64",
-        "chrono",
-        "clap",
-        "dirs",
-        "ed25519-dalek",
-        "infer",
-        "jsonschema",
-        "rand",
-        "regex",
-        "reqwest",
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "sha2",
-        "thiserror",
-        "tokio",
-        "tokio-util",
-        "urlencoding",
-        "uuid",
-        "walkdir"
-      ],
-      "internalDeps": [
-        "artifact-extract",
-        "factory-contracts",
-        "open_agentic_policy_kernel",
-        "open_agentic_spec_registry_reader",
-        "orchestrator",
-        "provenance-validator",
-        "standards-loader"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "factory-engine",
-      "path": "crates/factory-engine",
-      "specRef": "075-factory-workflow-engine",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs"
-      ],
-      "externalDeps": [
-        "async-trait",
-        "dirs",
-        "reqwest",
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "sha2",
-        "thiserror",
-        "tokio"
-      ],
-      "internalDeps": [
-        "factory-contracts",
-        "factory-engine"
-      ],
-      "kind": "rust-lib",
-      "name": "factory-platform-client",
-      "path": "crates/factory-platform-client",
-      "specRef": "124-opc-factory-run-platform-integration",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/bin/factory-project-detect.rs"
-      ],
-      "externalDeps": [
-        "anyhow",
-        "chrono",
-        "clap",
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "thiserror"
-      ],
-      "internalDeps": [
-        "factory-contracts"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "factory-project-detect",
-      "path": "crates/factory-project-detect",
-      "specRef": "112-factory-project-lifecycle",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs"
-      ],
-      "externalDeps": [
-        "anyhow",
-        "hex",
-        "ignore",
-        "regex",
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "sha2",
-        "thiserror"
-      ],
-      "internalDeps": [
-        "open_agentic_spec_registry_reader",
-        "xray"
-      ],
-      "kind": "rust-lib",
-      "name": "featuregraph",
-      "path": "crates/featuregraph",
-      "specRef": "034-featuregraph-registry-scanner-fix",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs"
-      ],
-      "externalDeps": [
-        "async-stream",
-        "async-trait",
-        "axum",
-        "chrono",
-        "cron",
-        "dashmap",
-        "dirs",
-        "futures-util",
-        "hiqlite",
-        "regex",
-        "rusqlite",
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "sha2",
-        "thiserror",
-        "tokio",
-        "uuid"
-      ],
-      "internalDeps": [
-        "provider-registry",
-        "standards-loader"
-      ],
-      "kind": "rust-lib",
-      "name": "orchestrator",
-      "path": "crates/orchestrator",
-      "specRef": "052-state-persistence",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/bin/verify_proof_chain.rs"
-      ],
-      "externalDeps": [
-        "base64",
-        "chrono",
-        "dirs",
-        "ed25519-dalek",
-        "glob",
-        "hex",
-        "notify",
-        "rand",
-        "regex",
-        "serde",
-        "serde_json",
-        "sha2"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "open_agentic_policy_kernel",
-      "path": "crates/policy-kernel",
-      "specRef": "047-governance-control-plane",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/bin/audit.rs"
-      ],
-      "externalDeps": [
-        "serde",
-        "serde_json",
-        "sha2",
-        "unicode-normalization"
-      ],
-      "internalDeps": [
-        "factory-contracts"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "provenance-validator",
-      "path": "crates/provenance-validator",
-      "specRef": "121-claim-provenance-enforcement",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs"
-      ],
-      "externalDeps": [
-        "async-stream",
-        "async-trait",
-        "aws-config",
-        "aws-sdk-bedrockruntime",
-        "bytes",
-        "dashmap",
-        "eventsource-stream",
-        "futures-core",
-        "futures-util",
-        "pin-project-lite",
-        "reqwest",
-        "serde",
-        "serde_json",
-        "thiserror",
-        "tokio",
-        "tokio-util",
-        "uuid"
-      ],
-      "internalDeps": [
-        "open_agentic_policy_kernel"
-      ],
-      "kind": "rust-lib",
-      "name": "provider-registry",
-      "path": "crates/provider-registry",
-      "specRef": "042-multi-provider-agent-registry",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs"
-      ],
-      "externalDeps": [
-        "anyhow",
-        "serde",
-        "serde_json",
-        "serde_yaml"
-      ],
-      "kind": "rust-lib",
-      "name": "run",
-      "path": "crates/run",
-      "specRef": "052-state-persistence",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs"
-      ],
-      "externalDeps": [
-        "anyhow",
-        "glob",
-        "regex",
-        "serde",
-        "serde_json",
-        "serde_yaml",
-        "thiserror"
-      ],
-      "internalDeps": [
-        "agent-frontmatter",
-        "tool-registry"
-      ],
-      "kind": "rust-lib",
-      "name": "skill-factory",
-      "path": "crates/skill-factory",
-      "specRef": "071-skill-command-factory",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs"
-      ],
-      "externalDeps": [
-        "serde",
-        "serde_yaml",
-        "thiserror"
-      ],
-      "kind": "rust-lib",
-      "name": "standards-loader",
-      "path": "crates/standards-loader",
-      "specRef": "055-yaml-standards-schema",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs"
-      ],
-      "externalDeps": [
-        "anyhow",
-        "async-trait",
-        "jsonschema",
-        "serde",
-        "serde_json",
-        "thiserror"
-      ],
-      "internalDeps": [
-        "open_agentic_policy_kernel"
-      ],
-      "kind": "rust-lib",
-      "name": "tool-registry",
-      "path": "crates/tool-registry",
-      "specRef": "067-tool-definition-registry",
-      "version": "0.1.0"
-    },
-    {
-      "edition": "2024",
-      "entryPoints": [
-        "src/lib.rs",
-        "src/main.rs"
-      ],
-      "externalDeps": [
-        "anyhow",
-        "clap",
-        "fastembed",
-        "hex",
-        "kd-tree",
-        "once_cell",
-        "parking_lot",
-        "rayon",
-        "serde",
-        "serde_json",
-        "sha2",
-        "tempfile",
-        "thiserror",
-        "toml",
-        "tree-sitter",
-        "typenum",
-        "walkdir"
-      ],
-      "kind": "rust-lib-bin",
-      "name": "xray",
-      "path": "crates/xray",
-      "specRef": "032-opc-inspect-governance-wiring-mvp",
-      "version": "0.1.0"
     },
     {
       "edition": "2021",
@@ -1268,7 +778,7 @@
         "src/lib.rs",
         "src/main.rs"
       ],
-      "internalDeps": [
+      "externalDeps": [
         "factory-engine"
       ],
       "kind": "rust-lib-bin",
@@ -1378,6 +888,7 @@
         "chrono",
         "clap",
         "hex",
+        "open_agentic_policy_kernel",
         "serde",
         "serde_json",
         "serde_yaml",
@@ -1385,7 +896,6 @@
         "walkdir"
       ],
       "internalDeps": [
-        "open_agentic_policy_kernel",
         "open_agentic_spec_types"
       ],
       "kind": "rust-lib-bin",
@@ -1498,13 +1008,11 @@
       ],
       "externalDeps": [
         "clap",
+        "factory-contracts",
+        "provenance-validator",
         "serde",
         "serde_yaml",
         "walkdir"
-      ],
-      "internalDeps": [
-        "factory-contracts",
-        "provenance-validator"
       ],
       "kind": "rust-lib-bin",
       "name": "open_agentic_stakeholder_doc_lint",
@@ -1878,11 +1386,6 @@
             "source": "cargo-metadata-crate"
           },
           {
-            "name": "xray",
-            "path": "crates/xray",
-            "source": "cargo-metadata-crate"
-          },
-          {
             "name": "@opc/ui",
             "path": "packages/ui",
             "source": "cargo-metadata-crate"
@@ -1908,32 +1411,12 @@
       {
         "implementingPaths": [
           {
-            "name": "featuregraph",
-            "path": "crates/featuregraph",
-            "source": "cargo-metadata-crate"
-          },
-          {
-            "path": "crates/featuregraph/src/scanner.rs",
-            "source": "comment-header"
-          }
-        ],
-        "specId": "034-featuregraph-registry-scanner-fix",
-        "specStatus": "approved"
-      },
-      {
-        "implementingPaths": [
-          {
             "path": "apps/desktop/src-tauri/src/commands/agents.rs",
             "source": "spec-implements"
           },
           {
             "path": "apps/desktop/src-tauri/src/commands/claude.rs",
             "source": "spec-implements"
-          },
-          {
-            "name": "agent",
-            "path": "crates/agent",
-            "source": "cargo-metadata-crate"
           }
         ],
         "specId": "035-agent-governed-execution",
@@ -2038,7 +1521,7 @@
         "implementingPaths": [
           {
             "path": "crates/provider-registry",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "name": "@opc/provider-registry",
@@ -2078,16 +1561,12 @@
             "source": "spec-implements"
           },
           {
-            "path": "crates/orchestrator/src/effort.rs",
-            "source": "comment-header"
-          },
-          {
             "path": "crates/orchestrator/src/lib.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "crates/orchestrator/src/manifest.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           }
         ],
         "specId": "044-multi-agent-orchestration",
@@ -2120,11 +1599,6 @@
       {
         "amendmentRecord": "131-adversarial-prompt-refusal-policy",
         "implementingPaths": [
-          {
-            "name": "open_agentic_policy_kernel",
-            "path": "crates/policy-kernel",
-            "source": "cargo-metadata-crate"
-          },
           {
             "name": "open_agentic_policy_compiler",
             "path": "tools/policy-compiler",
@@ -2182,12 +1656,7 @@
         "implementingPaths": [
           {
             "path": "crates/orchestrator",
-            "source": "multiple"
-          },
-          {
-            "name": "run",
-            "path": "crates/run",
-            "source": "cargo-metadata-crate"
+            "source": "spec-implements"
           }
         ],
         "specId": "052-state-persistence",
@@ -2221,7 +1690,7 @@
         "implementingPaths": [
           {
             "path": "crates/agent-frontmatter",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "name": "@opc/agent-frontmatter",
@@ -2245,7 +1714,7 @@
         "implementingPaths": [
           {
             "path": "crates/standards-loader",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "name": "@opc/yaml-standards-schema",
@@ -2446,7 +1915,7 @@
         "implementingPaths": [
           {
             "path": "crates/tool-registry",
-            "source": "multiple"
+            "source": "spec-implements"
           }
         ],
         "specId": "067-tool-definition-registry",
@@ -2475,10 +1944,6 @@
       {
         "implementingPaths": [
           {
-            "path": "crates/agent/src/prompt/mod.rs",
-            "source": "comment-header"
-          },
-          {
             "path": "crates/agent/src/prompt_assembly.rs",
             "source": "spec-implements"
           },
@@ -2494,12 +1959,8 @@
       {
         "implementingPaths": [
           {
-            "path": "crates/axiomregent/src/skill_provider.rs",
-            "source": "comment-header"
-          },
-          {
             "path": "crates/skill-factory",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "name": "@opc/skill-command-factory",
@@ -2524,7 +1985,7 @@
         "implementingPaths": [
           {
             "path": "crates/axiomregent",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "platform/services/deployd-api-rs",
@@ -2538,7 +1999,7 @@
         "implementingPaths": [
           {
             "path": "crates/factory-contracts",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "factory",
@@ -2546,69 +2007,6 @@
           }
         ],
         "specId": "074-factory-ingestion",
-        "specStatus": "approved"
-      },
-      {
-        "implementingPaths": [
-          {
-            "name": "factory-engine",
-            "path": "crates/factory-engine",
-            "source": "cargo-metadata-crate"
-          },
-          {
-            "path": "crates/factory-engine/src/agent_bridge.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/checks.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/engine.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/gate.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/harness_state.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/lib.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/manifest_gen.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/pipeline_state.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/policy_shard.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/preflight.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/topo_sort.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/verify_harness.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/orchestrator/src/verify.rs",
-            "source": "comment-header"
-          }
-        ],
-        "specId": "075-factory-workflow-engine",
         "specStatus": "approved"
       },
       {
@@ -2674,14 +2072,6 @@
           {
             "path": "crates/factory-contracts",
             "source": "spec-implements"
-          },
-          {
-            "path": "crates/factory-contracts/src/namespace.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/artifact_store.rs",
-            "source": "comment-header"
           },
           {
             "path": "crates/orchestrator",
@@ -3005,7 +2395,7 @@
         "implementingPaths": [
           {
             "path": "crates/featuregraph/src/enrichment.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "crates/featuregraph/src/preflight.rs",
@@ -3033,7 +2423,7 @@
           },
           {
             "path": "crates/orchestrator/src/promotion.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "crates/orchestrator/src/state.rs",
@@ -3197,44 +2587,20 @@
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-engine/src/bin/build_certificate.rs",
-            "source": "comment-header"
-          },
-          {
             "path": "crates/factory-engine/src/bin/factory_run.rs",
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-engine/src/bin/verify_certificate.rs",
-            "source": "comment-header"
-          },
-          {
             "path": "crates/factory-engine/src/governance_certificate.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "crates/factory-engine/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "crates/featuregraph/src/index_bridge.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/orchestrator/src/agent_identity.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/orchestrator/src/circuit_breaker.rs",
-            "source": "comment-header"
-          },
-          {
             "path": "crates/orchestrator/src/lib.rs",
             "source": "spec-implements"
-          },
-          {
-            "path": "crates/orchestrator/src/output_filter.rs",
-            "source": "comment-header"
           },
           {
             "path": "crates/policy-kernel/src/lib.rs",
@@ -3243,10 +2609,6 @@
           {
             "path": "crates/tool-registry",
             "source": "spec-implements"
-          },
-          {
-            "path": "crates/tool-registry/src/policy_bridge.rs",
-            "source": "comment-header"
           },
           {
             "path": "factory/contract/checks",
@@ -3607,11 +2969,6 @@
             "source": "spec-implements"
           },
           {
-            "name": "factory-project-detect",
-            "path": "crates/factory-project-detect",
-            "source": "cargo-metadata-crate"
-          },
-          {
             "path": "crates/factory-project-detect/",
             "source": "spec-implements"
           },
@@ -3763,10 +3120,6 @@
           "114"
         ],
         "implementingPaths": [
-          {
-            "path": "crates/artifact-extract/src/bin/artifact_extract.rs",
-            "source": "comment-header"
-          },
           {
             "path": "platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql",
             "source": "spec-implements"
@@ -4036,49 +3389,24 @@
             "source": "spec-implements"
           },
           {
-            "name": "artifact-extract",
-            "path": "crates/artifact-extract",
-            "source": "cargo-metadata-crate"
-          },
-          {
             "path": "crates/artifact-extract/Cargo.toml",
             "source": "spec-implements"
           },
           {
-            "path": "crates/artifact-extract/src/extractors/docx.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/artifact-extract/src/extractors/mod.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/artifact-extract/src/extractors/pdf.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/artifact-extract/src/extractors/text.rs",
-            "source": "comment-header"
-          },
-          {
             "path": "crates/artifact-extract/src/lib.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "crates/factory-contracts/src/knowledge.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "crates/factory-engine/src/manifest_gen.rs",
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-engine/src/stagecraft_client.rs",
-            "source": "comment-header"
-          },
-          {
             "path": "crates/factory-engine/src/stages/s_minus_1_extract.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "platform/services/stagecraft/api/knowledge/extractionExternal.ts",
@@ -4101,16 +3429,8 @@
         ],
         "implementingPaths": [
           {
-            "path": "crates/factory-contracts/src/budget.rs",
-            "source": "comment-header"
-          },
-          {
             "path": "crates/factory-contracts/src/provenance.rs",
-            "source": "multiple"
-          },
-          {
-            "path": "crates/factory-contracts/src/provenance_config.rs",
-            "source": "comment-header"
+            "source": "spec-implements"
           },
           {
             "path": "crates/factory-engine/skills/business-requirements-analyst.md",
@@ -4121,29 +3441,12 @@
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-engine/src/project_config.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/stages/cascade_check.rs",
-            "source": "comment-header"
-          },
-          {
             "path": "crates/factory-engine/src/stages/quality_gates.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "crates/factory-engine/src/stages/s1_business_requirements.rs",
             "source": "spec-implements"
-          },
-          {
-            "path": "crates/policy-kernel/src/provenance_policy.rs",
-            "source": "comment-header"
-          },
-          {
-            "name": "provenance-validator",
-            "path": "crates/provenance-validator",
-            "source": "cargo-metadata-crate"
           },
           {
             "path": "crates/provenance-validator/Cargo.toml",
@@ -4151,35 +3454,19 @@
           },
           {
             "path": "crates/provenance-validator/src/allowlist.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "crates/provenance-validator/src/anchor.rs",
             "source": "spec-implements"
           },
           {
-            "path": "crates/provenance-validator/src/bin/audit.rs",
-            "source": "comment-header"
-          },
-          {
             "path": "crates/provenance-validator/src/citation.rs",
-            "source": "multiple"
-          },
-          {
-            "path": "crates/provenance-validator/src/corpus.rs",
-            "source": "comment-header"
+            "source": "spec-implements"
           },
           {
             "path": "crates/provenance-validator/src/lib.rs",
-            "source": "multiple"
-          },
-          {
-            "path": "crates/provenance-validator/src/manifest.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/provenance-validator/src/validator.rs",
-            "source": "comment-header"
+            "source": "spec-implements"
           },
           {
             "path": "platform/services/stagecraft/api/governance/provenancePolicy.ts",
@@ -4217,7 +3504,7 @@
           },
           {
             "path": "crates/factory-contracts/src/stakeholder_docs.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "crates/factory-engine/skills/client-document-comparator.md",
@@ -4228,32 +3515,12 @@
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-engine/src/bin/migrate_stakeholder_docs.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/migration/mod.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-engine/src/migration/stakeholder_docs.rs",
-            "source": "comment-header"
-          },
-          {
             "path": "crates/factory-engine/src/stages/stage_cd.rs",
-            "source": "multiple"
-          },
-          {
-            "path": "crates/factory-engine/src/stages/stage_cd_actions.rs",
-            "source": "comment-header"
+            "source": "spec-implements"
           },
           {
             "path": "crates/factory-engine/src/stages/stage_cd_comparator.rs",
-            "source": "multiple"
-          },
-          {
-            "path": "crates/factory-engine/src/stages/stage_cd_gate.rs",
-            "source": "comment-header"
+            "source": "spec-implements"
           },
           {
             "name": "open_agentic_stakeholder_doc_lint",
@@ -4300,12 +3567,8 @@
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-contracts/src/agent_reference.rs",
-            "source": "comment-header"
-          },
-          {
             "path": "crates/factory-engine/src/agent_resolver.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "platform/services/stagecraft/api/agents/bindings.ts",
@@ -4376,35 +3639,6 @@
           {
             "path": "apps/desktop/src-tauri/src/commands/factory.rs",
             "source": "spec-implements"
-          },
-          {
-            "name": "factory-platform-client",
-            "path": "crates/factory-platform-client",
-            "source": "cargo-metadata-crate"
-          },
-          {
-            "path": "crates/factory-platform-client/src/cache_root.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-platform-client/src/client.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-platform-client/src/error.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-platform-client/src/lib.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-platform-client/src/materialise.rs",
-            "source": "comment-header"
-          },
-          {
-            "path": "crates/factory-platform-client/src/wire.rs",
-            "source": "comment-header"
           },
           {
             "path": "platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql",
@@ -4931,15 +4165,15 @@
           },
           {
             "path": "crates/factory-engine/src/factory_root.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "crates/factory-engine/src/substrate_version.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "crates/factory-engine/src/virtual_root.rs",
-            "source": "multiple"
+            "source": "spec-implements"
           },
           {
             "path": "platform/services/stagecraft/api/agents/bindings.ts",
@@ -5714,6 +4948,8 @@
       }
     ],
     "orphanedSpecs": [
+      "034-featuregraph-registry-scanner-fix",
+      "075-factory-workflow-engine",
       "125-schema-parity-walker-rebuild",
       "150-example-tenant-profile"
     ],
