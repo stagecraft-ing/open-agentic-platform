@@ -47,10 +47,42 @@ Where they conflict, halt and surface.
   If you encounter a decision point that isn't covered, halt.
 - Not a chance to re-litigate the manifest. If a phase's manifest
   entry seems wrong, halt and surface; do not silently deviate.
-- Not a chance to re-curate `co_authority:` or `implements:`
-  annotations beyond mechanical path-string updates. Annotation
-  semantics were locked by the activation commit (`131392ff`); Epic 2
-  preserves them.
+- Not a chance to re-curate relationship-graph annotations beyond
+  mechanical path-string updates. Relationship-graph semantics
+  (`establishes:`, `extends:`, `refines:`, `amends:`, `co_authority:`,
+  any other path-bearing fields surfaced during I0) were locked by
+  the activation commit `131392ff`; Epic 2 preserves them.
+
+## Post-activation field model (orientation)
+
+This block exists so the agent reads Epic 2 with the correct mental
+model of where path references live post-activation. It is descriptive,
+not prescriptive — I0 enumerates the actual corpus state authoritatively.
+
+Pre-activation, list-form `implements:` carried path arrays. The
+activation excised list-form `implements:` (V-014 errors on it) and
+migrated path claims to the relationship-graph fields:
+
+| Field | Carries | Authority shape |
+|---|---|---|
+| `establishes:` | paths arrays | whole-file |
+| `extends:` | paths arrays | whole-file |
+| `refines:` | paths arrays | whole-file |
+| `amends:` | paths arrays | whole-file |
+| `co_authority:` | path + section | section-aware |
+| `constrains:` | enumerate at I0; may or may not carry paths | tbd |
+| `implements:` | scalar spec-ID pointer only (e.g., `implements: "148-..."`) | n/a — no paths to sweep |
+
+Path-string updates during Epic 2 sweep **all path-bearing
+relationship-graph fields**, not just `co_authority:`. D4 was
+authored pre-activation against list-form `implements:`; I0
+reconciles by enumerating the relationship-graph fields and
+producing an append-only appendix.
+
+Section anchors exist only on `co_authority:` (path + section pairs).
+The other path-bearing fields are whole-file. Cross-phase rule 9
+(section-anchor resolution failure) therefore applies only to
+`co_authority:`.
 
 ## Pre-conditions
 
@@ -109,6 +141,7 @@ defaults are provided where the discovery audits made one explicit.
 | 11 | Spec 151 dangling `co_authority:` references (the two surfaced during activation `131392ff`) | Activation summary | Defer to post-cleanup. Expected W-codes during Epic 2; not corrected in scope. Agent treats them as baseline noise. | `correct`               |
 | 12 | G-2 spec_id validation work | Memory: "G-2 decoupled, small downstream change once typed reader exists" | Defer to post-cleanup. Out of Epic 2 scope. | `correct`               |
 | 13 | `co_authority:` section-anchor resolution after I3 constitution.md graduation | New (post-activation) | Verify post-move with `spec-code-coupling-check --base origin/main --head HEAD` over the I3 diff range; if any anchor fails to resolve after the byte-identical `git mv`, the cause is a path-string mismatch (not anchor drift) — fix in the same I3 commit | `correct`               |
+| 14 | Relationship-graph field enumeration scope for I0 + per-phase sweeps | I0 in-flight discovery (post-activation) | Sweep all path-bearing relationship-graph fields surfaced by I0 enumeration, not just `co_authority:`. Starting hypothesis: `establishes:`, `extends:`, `refines:`, `amends:`, `co_authority:`; verify `constrains:` (and any other field surfaced) at I0 enumeration. I0 produces the definitive list as an append-only appendix to D4 | `correct`               |
 
 If any `<pending>` remains when Epic 2 fires, halt immediately and
 surface — do not infer.
@@ -141,18 +174,19 @@ These are restated from the master plan and are non-negotiable:
    reference moved paths during in-flight edits, but the phase's
    final commit must leave `/init` clean.
 4. **Section-scoped coupling gate at every commit.** Code moves land
-   together with **both** their `implements:` updates **and** their
-   `co_authority:` updates in the same commit. The gate as of commit
-   `131392ff` enforces section authority via `co_authority:`
-   annotations; a path moved without its corresponding `co_authority:`
-   references being updated will fail the section-aware check on the
-   next file touch that hits that section. D4 enumerates
-   `implements:` references; I0 produces an appendix that enumerates
-   `co_authority:` references in the same I-phase shape. `make
-   pr-prep` succeeds at every commit (modulo the two known Spec 151
-   W-codes per pre-conditions). No "I'll fix the spec refs in the
-   next commit" — the discovery in D4 + the I0 appendix enumerate the
-   updates by phase; consult before committing.
+   together with **all relationship-graph reference updates** in the
+   same commit. The gate as of commit `131392ff` enforces authority
+   via the relationship-graph fields (`establishes:`, `extends:`,
+   `refines:`, `amends:`, `co_authority:`, and any other path-bearing
+   field surfaced by the I0 enumeration). `co_authority:` adds
+   section-aware enforcement on top of whole-file. A path moved
+   without its corresponding relationship-graph references being
+   updated will fail the gate on the next file touch that hits
+   that path or section. The I0 appendix to D4 enumerates the
+   per-phase relationship-graph reference updates. `make pr-prep`
+   succeeds at every commit (modulo the two known Spec 151 W-codes
+   per pre-conditions). No "I'll fix the spec refs in the next
+   commit" — consult D4 + the I0 appendix before committing.
 5. **Spec 103 governed-artifact-reads observed.** No ad-hoc parsing
    of `build/**` (or `.derived/**` post-I9). Consumer binaries
    (`codebase-indexer check`, `registry-consumer ...`) only. If a
@@ -199,10 +233,10 @@ If any check fails, halt at the failing commit. Do not push.
 Throughout all phases:
 
 1. **Read the relevant audit before touching a path.** D4 + the I0
-   appendix say which specs' `implements:` and `co_authority:` rows
-   update in which I-phase. D6 says which workflows and which
-   Makefile lines. D1 catalogues every path reference. If a phase's
-   manifest entry diverges from the audits, halt and surface.
+   appendix say which specs' relationship-graph rows update in
+   which I-phase. D6 says which workflows and which Makefile lines.
+   D1 catalogues every path reference. If a phase's manifest entry
+   diverges from the audits, halt and surface.
 2. **`git mv`, not `cp` + `rm`.** Path moves preserve history; the
    reviewer (and the operator) can `git log --follow` through the
    cleanup.
@@ -238,7 +272,9 @@ Throughout all phases:
    (in I3, I5, I6, I7, or I9) the section-aware gate reports a
    `co_authority:` annotation whose `path:` resolves to the new
    location but whose `section:` anchor no longer resolves inside
-   the file, halt. The expected cause is one of:
+   the file, halt. (Section anchors exist only on `co_authority:`;
+   the other relationship-graph fields are whole-file and this rule
+   does not apply to them.) The expected cause is one of:
    (a) the move was accompanied by an unintended content edit
    (forbidden by invariant 6),
    (b) the section anchor was already broken pre-move (a
@@ -266,12 +302,16 @@ At the end of each phase:
 === Phase I<N> complete ===
 Commits landed: <hashes>
 Files touched: <count>
-implements: refs updated: <count>
-co_authority: refs updated: <count>
+Relationship-graph refs updated: establishes=<n>, extends=<n>,
+  refines=<n>, amends=<n>, co_authority=<n>, <other>=<n>
 Verification gate: PASS
 Trip-wires encountered: <none | list>
 Audit-doc appendices added: <none | list>
 ```
+
+Omit zero-count fields from the relationship-graph line. If no
+relationship-graph fields were touched in the phase (e.g., I1, I2),
+state `Relationship-graph refs updated: none`.
 
 If a trip-wire halts the phase mid-execution:
 
@@ -294,88 +334,119 @@ attempt corrective improvisation.
 
 D4 (`spec-implements-inventory.md`) was authored 2026-05-19, before
 the side-quest activation. The activation (commit `131392ff`)
-migrated the corpus from list-form `implements: [- path: ...]` to
-the scalar `kind: capability` form (V-014 errors on list-form
-stragglers), and normalized `co_authority:` annotations across the
-corpus.
+migrated path claims from list-form `implements:` to the
+relationship-graph fields. V-014 now errors on list-form
+`implements:` stragglers; scalar `implements: "<spec-id>"` survives
+as a parent-spec pointer that carries no paths.
 
-Two gaps result:
+Two gaps result, both reconciled in I0:
 
 1. **Shape gap.** D4's tables reference list-form `- path:` entries
-   that no longer exist verbatim. The mechanical update operation
-   is still "string-replace path X with path Y in spec N", but the
-   surrounding YAML structure differs from D4's snapshot.
-2. **Coverage gap.** D4 does not enumerate `co_authority:` paths.
-   The activation made these load-bearing for the same reason
-   `implements:` is load-bearing (invariant 4).
-
-I0 reconciles both before any move lands.
+   under `implements:`. Those entries no longer exist verbatim. The
+   same path strings now live under relationship-graph fields in
+   the same specs.
+2. **Coverage gap.** D4 does not enumerate the relationship-graph
+   fields. Per operator decision #14, the post-activation
+   load-bearing surface for path references is the full set of
+   path-bearing relationship-graph fields. I0 enumerates this set
+   authoritatively against the corpus.
 
 ## Discovery reference
 
-D4 (`spec-implements-inventory.md`), activation commit `131392ff`.
+D4 (`spec-implements-inventory.md`), activation commit `131392ff`,
+operator decision #14.
 
 ## Operations
 
-1. Re-derive the moving-path reference inventory against
-   post-activation HEAD:
+1. Enumerate the relationship-graph field surface against
+   post-activation HEAD. Starting hypothesis: `establishes:`,
+   `extends:`, `refines:`, `amends:`, `co_authority:`. Verify
+   `constrains:` and any other path-bearing field by reading
+   `tools/spec-compiler/src/lib.rs` around line 247–250 (the
+   compiler's relationship-graph source-field list) and
+   cross-checking against `git grep -nE "^(establishes|extends|refines|amends|co_authority|constrains):" specs/*/spec.md`.
 
-   ```
-   git grep -nE "^(implements|co_authority):" specs/*/spec.md
-   ```
+   Lock the final field list at the top of the I0 appendix
+   (described below). The list is the definitive scope for I3–I9
+   sweeps.
 
-   For each match, extract the scalar `kind: capability` value (for
-   `implements:`) or the `path:` / `section:` pair (for
-   `co_authority:`).
+2. For each enumerated field, extract every `(spec, line, path,
+   [section])` tuple. For `co_authority:` entries, include the
+   `section:` value; for the other path-bearing fields, omit.
 
-2. Cross-reference against D4's I-phase column. For each entry in
-   D4 that no longer resolves to a real line, append a correction
-   row to D4 under a new heading:
+3. Cross-reference each tuple against D1 Groups A–O (the same
+   path-group taxonomy D4 uses). Classify by I-phase per the master
+   plan.
+
+4. Append to D4 under three new headings (append-only; do not
+   rewrite D4's main tables):
 
    ```
    ## I0 refresh corrections (post-activation reconciliation)
    ```
 
-   Do not rewrite D4's main tables. Append-only.
-
-3. For each `co_authority:` entry whose `path:` matches a Group A–O
-   target (the same groups D4 catalogues for `implements:`), append
-   under a second new heading:
+   For any D4 row whose underlying entry no longer resolves to a
+   real line (the shape gap). May be empty if D4's rows are
+   accidentally still resolvable.
 
    ```
-   ## co_authority: references (Epic 2 in-scope)
+   ## relationship-graph reference enumeration (Epic 2 in-scope)
    ```
 
-   Columns: `spec | line | path | section | I-phase`.
+   The full enumerated set from step 2, scoped to entries whose
+   `path:` matches a moving target (D1 Groups A–O). Columns:
+   `spec | line | field | path | section | I-phase`.
 
-4. Commit `docs(cleanup): I0 inventory refresh appendix to D4` if any
-   corrections or additions land. If the refresh surfaces zero
-   changes (corpus shape exactly matches D4), skip the commit and
-   proceed directly to I1 — note in the I0 completion report that no
-   appendix was needed.
+   ```
+   ## relationship-graph fields locked at I0
+   ```
+
+   A single bulleted list of the field names that I0 enumerated.
+   I3–I9 sweeps reference this list verbatim.
+
+5. Commit `docs(cleanup): I0 inventory refresh appendix to D4` if
+   any of the three headings carries content. If all three are
+   empty (corpus shape exactly matches D4 + only `implements:` is
+   path-bearing — very unlikely post-activation), skip the commit
+   and note in the I0 completion report that no appendix was
+   needed.
 
 ## Verification
 
 - `git status` clean post-commit.
 - `make pr-prep` clean modulo the two known Spec 151 W-codes.
 - `cargo test --workspace` unchanged (no code touched).
+- The `relationship-graph fields locked at I0` list contains, at
+  minimum, every field for which the I0 enumeration found at least
+  one path entry. If a field is in the starting hypothesis but the
+  enumeration finds no path entries (e.g., `constrains:` is
+  spec-ID-only), it is listed under a sub-heading
+  `## relationship-graph fields enumerated but not path-bearing` for
+  documentation completeness.
 
 ## Trip-wires
 
-- If the refresh surfaces a `co_authority:` reference pointing at a
-  moving path whose target I-phase is ambiguous (e.g., a path that
-  crosses two groups): halt. Do not heuristic-classify.
-- If the refresh surfaces a `co_authority:` reference whose `path:`
-  points at a path **not** catalogued in any D1 group: halt. This
-  is a coverage gap in D1 that needs operator review.
-- If `git grep` surfaces list-form `implements:` entries (which V-014
-  should have prevented from existing): halt. The activation either
-  did not fully migrate the corpus or the gate has regressed.
+- If the enumeration surfaces a path-bearing relationship-graph
+  field that was not in the starting hypothesis (i.e., a sixth or
+  seventh field): halt, surface. This indicates the field model
+  has drifted from operator decision #14's starting hypothesis;
+  operator confirms before I3 begins.
+- If the enumeration surfaces a relationship-graph reference whose
+  target I-phase is ambiguous (e.g., a path that crosses two
+  groups): halt. Do not heuristic-classify.
+- If the enumeration surfaces a relationship-graph reference whose
+  `path:` points at a path **not** catalogued in any D1 group:
+  halt. This is a coverage gap in D1 that needs operator review.
+- If `git grep` surfaces list-form `implements:` entries (which
+  V-014 should have prevented from existing): halt. The activation
+  either did not fully migrate the corpus or the gate has
+  regressed.
 
 ## Commit
 
 `docs(cleanup): I0 inventory refresh appendix to D4`
-(or no commit if the refresh surfaces zero changes).
+(or no commit if all three appendix headings are empty — very
+unlikely).
 
 ---
 
@@ -524,8 +595,9 @@ in I13. `.specify/init-options` is evaluated in I13.
 
 ## Discovery reference
 
-D1 Group A (`.specify/` paths), D4 Group A (`implements:` rows),
-I0 appendix Group A (`co_authority:` rows).
+D1 Group A (`.specify/` paths), D4 Group A, I0 appendix
+"relationship-graph reference enumeration (Epic 2 in-scope)"
+Group A rows.
 
 ## Operations
 
@@ -538,13 +610,13 @@ I0 appendix Group A (`co_authority:` rows).
    path-literal, doc-prose, spec-implements, gitignore-rule
    categories — all in scope here except those marked for I10 protocol
    alignment, which I10 handles).
-6. Update spec frontmatter `implements:` rows per D4's I3-phase rows.
-7. **Sweep `co_authority:` references per the I0 refresh appendix's
-   "co_authority: references (Epic 2 in-scope)" table, Group A
-   rows.** Update `path:` values from `.specify/...` to
-   `standards/spec/...` in the same commit. Section anchors are
-   byte-identical post-`git mv`; do not adjust the `section:` values.
-8. **Per operator decision #13**: after the commit, run
+6. **Sweep all relationship-graph references per the I0 appendix,
+   Group A rows.** For every field listed in `relationship-graph
+   fields locked at I0` whose entries point at `.specify/...`,
+   update `path:` values to `standards/spec/...` in the same commit.
+   Section anchors on `co_authority:` entries are byte-identical
+   post-`git mv`; do not adjust the `section:` values.
+7. **Per operator decision #13**: after the commit, run
    `spec-code-coupling-check --base origin/main --head HEAD` over
    the I3 diff. If any `co_authority:` annotation reports a
    resolution failure, the cause is a path-string mismatch (not
@@ -568,10 +640,11 @@ I0 appendix Group A (`co_authority:` rows).
   and the post-cleanup path isn't substitutable (e.g., binary file
   embedded via `include_str!` at compile time and the offset matters):
   halt, surface.
-- If a spec's `implements:` or `co_authority:` row references a
-  `.specify/` path that the audit missed: halt, surface, file an
-  appendix to D1 / D4.
-- Cross-phase rule 9 (section-anchor resolution failure) applies.
+- If a spec's relationship-graph row references a `.specify/` path
+  that the I0 appendix missed: halt, surface, file an appendix to
+  D1 / the I0 appendix.
+- Cross-phase rule 9 (section-anchor resolution failure) applies
+  to `co_authority:` entries.
 
 ## Commit
 
@@ -622,11 +695,12 @@ For each authored schema:
 6. Address `crates/agent/src/schemas/` per operator decision #4 — if
    delete: `git rm` the directory and any dead references; if move:
    `git mv` into `standards/schemas/agent/`.
-7. Update spec frontmatter `implements:` rows per D4's I4-phase rows.
-8. **Sweep `co_authority:` references per the I0 refresh appendix,
-   Groups B / D / E / F rows.** Update `path:` values from current
-   locations to `standards/schemas/<group>/...`. Section anchors
-   inside JSON schemas are uncommon; if any annotation does have a
+7. **Sweep all relationship-graph references per the I0 appendix,
+   Groups B / D / E / F rows.** For every field listed in
+   `relationship-graph fields locked at I0` whose entries point at
+   the moving schemas, update `path:` values to
+   `standards/schemas/<group>/...`. Section anchors inside JSON
+   schemas are uncommon; if any `co_authority:` annotation has a
    `section:` for a schema, surface for operator review (likely an
    annotation error).
 
@@ -648,7 +722,8 @@ For each authored schema:
 - If `crates/agent/src/schemas/` turns out to be referenced by a
   consumer not catalogued in D5: halt, do not delete; surface for
   operator re-decision.
-- Cross-phase rule 9 applies.
+- Cross-phase rule 9 applies to any `co_authority:` annotations
+  in scope.
 
 ## Commit
 
@@ -699,12 +774,13 @@ equivalent) co-move into `tools/spec-spine/scripts/bash/`.
 5. Update `tools/ci-parity-check/src/lib.rs:592` hardcoded path
    (`./tools/adapter-scopes-compiler/...` →
    `./tools/oap/adapter-scopes-compiler/...`).
-6. Update spec `implements:` rows per D4's I5-phase rows.
-7. Per operator decision #8: keep `manifest-path tools/<group>/<tool>/Cargo.toml`
+6. Per operator decision #8: keep `manifest-path tools/<group>/<tool>/Cargo.toml`
    style in Makefile and workflow invocations.
-8. **Sweep `co_authority:` references per the I0 refresh appendix,
-   Group G + H rows.** Update `path:` values from `tools/<tool>/...`
-   to `tools/spec-spine/<tool>/...` or `tools/oap/<tool>/...` per
+7. **Sweep all relationship-graph references per the I0 appendix,
+   Groups G + H rows.** For every field listed in
+   `relationship-graph fields locked at I0` whose entries point at
+   `tools/<tool>/...`, update `path:` values to
+   `tools/spec-spine/<tool>/...` or `tools/oap/<tool>/...` per
    operator decision #9.
 
 ## Verification
@@ -733,7 +809,8 @@ equivalent) co-move into `tools/spec-spine/scripts/bash/`.
 - The stale `Makefile:584` ref to `tools/shared/frontmatter/Cargo.toml`
   (D6 surfaced): remove as part of this phase (the file does not
   exist; the line is dead).
-- Cross-phase rule 9 applies.
+- Cross-phase rule 9 applies to any `co_authority:` annotations
+  in scope.
 
 ## Commit
 
@@ -754,9 +831,9 @@ Five grammars: c, javascript, python, rust, typescript.
 
 ## Discovery reference
 
-D1 Group J — grammars references. I0 appendix Group J — `co_authority:`
-references (expected to be sparse or empty; grammars are vendored
-third-party content).
+D1 Group J — grammars references. I0 appendix Group J —
+relationship-graph references (expected to be sparse or empty;
+grammars are vendored third-party content).
 
 ## Operations
 
@@ -764,7 +841,7 @@ third-party content).
 2. Update axiomregent's `build.rs` (or the binding crate's path
    refs) to point at `tools/vendor/grammars/...`.
 3. Update any docs referencing `grammars/`.
-4. **Sweep `co_authority:` references per the I0 refresh appendix,
+4. **Sweep all relationship-graph references per the I0 appendix,
    Group J rows.** Expected to be zero or near-zero; if present,
    update `path:` values from `grammars/...` to
    `tools/vendor/grammars/...`.
@@ -782,7 +859,8 @@ third-party content).
   its build.rs that don't survive the depth change: halt, surface.
 - If `build-axiomregent.yml` workflow has a path-glob the audit
   missed: halt, surface.
-- Cross-phase rule 9 applies.
+- Cross-phase rule 9 applies to any `co_authority:` annotations
+  in scope.
 
 ## Commit
 
@@ -837,13 +915,13 @@ files (`package.json`, `package-lock.json`, `pnpm-workspace.yaml`,
    ci-supply-chain.yml — per D6's I7 manifest.
 10. Update Makefile recipes (ci-desktop, ci-fast-desktop, clean) per
     D6's I7 manifest.
-11. Update spec `implements:` rows per D4's I7-phase rows.
-12. `make registry` regenerates the registry; codebase-indexer
+11. `make registry` regenerates the registry; codebase-indexer
     regenerates the index; both auto-rebase to the new paths.
-13. **Sweep `co_authority:` references per the I0 refresh appendix,
-    Groups K / L / M rows.** Update `path:` values from
-    `apps/...` and `packages/...` to `product/apps/...` and
-    `product/packages/...`.
+12. **Sweep all relationship-graph references per the I0 appendix,
+    Groups K / L / M rows.** For every field listed in
+    `relationship-graph fields locked at I0` whose entries point at
+    `apps/...` or `packages/...`, update `path:` values to
+    `product/apps/...` and `product/packages/...`.
 
 ## Verification
 
@@ -869,7 +947,8 @@ files (`package.json`, `package-lock.json`, `pnpm-workspace.yaml`,
   (`crates/featuregraph/tests/golden/features_graph.json`) diverges
   on regenerate: halt; this typically indicates a path-literal still
   pointing at the old location.
-- Cross-phase rule 9 applies.
+- Cross-phase rule 9 applies to any `co_authority:` annotations
+  in scope.
 
 ## Commit
 
@@ -898,7 +977,7 @@ Three loose top-level docs move into `docs/`:
 
 ## Discovery reference
 
-D1 Group N.
+D1 Group N, I0 appendix Group N.
 
 ## Operations
 
@@ -909,8 +988,8 @@ D1 Group N.
 5. Update GitHub repo settings? — No. The repo's README links
    directly to the docs/ paths; GitHub auto-resolves CONTRIBUTING.md
    in `.github/` or `docs/` (the docs/ location is GitHub-aware).
-6. Sweep `co_authority:` references per the I0 refresh appendix,
-   Group N rows. Expected to be sparse (these are top-level docs,
+6. **Sweep all relationship-graph references per the I0 appendix,
+   Group N rows.** Expected to be sparse (these are top-level docs,
    not spec authority surfaces); if present, update accordingly.
 
 ## Verification
@@ -921,8 +1000,8 @@ D1 Group N.
 
 ## Trip-wires
 
-None expected. Cross-phase rule 9 applies if any annotation lands
-in scope.
+None expected. Cross-phase rule 9 applies if any `co_authority:`
+annotation lands in scope.
 
 ## Commit
 
@@ -943,7 +1022,7 @@ The gitignored generated-artifacts directory renames from `build/` to
 
 ## Discovery reference
 
-D1 Group O, D6 (workflow + Makefile updates).
+D1 Group O, D6 (workflow + Makefile updates), I0 appendix Group O.
 
 ## Operations
 
@@ -969,12 +1048,11 @@ D1 Group O, D6 (workflow + Makefile updates).
    leave gitignore as updated in I2 (`.derived/` only).
 7. Clean up any stale `build/` tree on the working copy (`rm -rf build/`
    locally — not a commit operation since the tree is gitignored).
-8. **Sweep `co_authority:` references per the I0 refresh appendix,
-   Group O rows.** Note: `co_authority:` typically does not point
-   inside generated artifacts (the gate's section semantics target
-   authored files), so this sweep is expected to surface zero
-   changes. If it surfaces any, halt and surface for operator
-   review.
+8. **Sweep all relationship-graph references per the I0 appendix,
+   Group O rows.** Note: relationship-graph fields typically do not
+   point inside generated artifacts (authority targets authored
+   files), so this sweep is expected to surface zero changes. If
+   it surfaces any, halt and surface for operator review.
 
 ## Verification
 
@@ -996,7 +1074,8 @@ D1 Group O, D6 (workflow + Makefile updates).
   land before I9.
 - A workflow with a trigger glob mentioning `build/...` that D6 missed:
   halt, surface.
-- Cross-phase rule 9 applies.
+- Cross-phase rule 9 applies to any `co_authority:` annotations
+  in scope.
 
 ## Commit
 
@@ -1238,12 +1317,12 @@ After I13 lands:
 
    must return OK with zero V-codes and only the two known Spec 151
    W-codes. This is the canonical regression check that all moves
-   landed with both `implements:` and `co_authority:` updates intact.
-   Per-phase `make pr-prep` checks the incremental delta; this check
-   exercises the full restructure as a single change-set. If it
-   surfaces additional V-codes or W-codes, the cleanup is not
-   complete — surface to operator with the specific failures rather
-   than declaring success.
+   landed with their relationship-graph updates intact across every
+   field locked at I0. Per-phase `make pr-prep` checks the
+   incremental delta; this check exercises the full restructure as
+   a single change-set. If it surfaces additional V-codes or
+   W-codes, the cleanup is not complete — surface to operator with
+   the specific failures rather than declaring success.
 
 # Hard rules across all phases
 
@@ -1258,7 +1337,7 @@ Throughout Epic 2:
   the same commit (per Cross-phase rule 8). Do not silently update
   the audit's main tables.
 - **No autonomous resolution of operator-decision items.** All
-  thirteen operator decisions are pre-resolved (§Operator decisions).
+  fourteen operator decisions are pre-resolved (§Operator decisions).
   If a phase requires a decision that isn't there, halt.
 - **No re-litigation of the manifest.** If a phase's manifest entry
   looks wrong, halt and surface; do not silently deviate.
@@ -1270,9 +1349,10 @@ Throughout Epic 2:
   the layout or the manifest, halt; do not improvise.
 - **`platform/` is read-only.** Reference-updates only inside files;
   no moves; no restructure.
-- **`implements:` and `co_authority:` move together.** Cross-epic
-  invariant 4 + cross-phase rule 9. A move is incomplete until both
-  are updated in the same commit.
+- **Moves carry their full relationship-graph update set.**
+  Cross-epic invariant 4 + cross-phase rule 9. A move is incomplete
+  until every relationship-graph field locked at I0 has had its
+  matching references updated in the same commit.
 
 # Explicitly out of scope (Epic 2)
 
@@ -1314,8 +1394,8 @@ After Epic 2 completes:
 - V-002 (b) emission corrected; all V-codes follow the V-007 pattern
   under the current schema.
 - Section-scoped coupling gate clean over the entire Epic 2 range;
-  every `implements:` and `co_authority:` reference points at a real
-  path with a real section.
+  every relationship-graph reference (every field locked at I0)
+  points at a real path with a real section where applicable.
 - Branch is merge-ready.
 
 Whether the working tree feels "lighter" or "heavier" post-cleanup
