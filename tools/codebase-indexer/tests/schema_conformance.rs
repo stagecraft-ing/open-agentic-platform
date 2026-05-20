@@ -26,7 +26,7 @@ fn load_schema(relative_to_repo: &str) -> Value {
 fn compile_output_matches_codebase_index_schema() {
     let root = repo_root();
     let out = open_agentic_codebase_indexer::compile(&root).expect("compile");
-    let schema = load_schema("schemas/codebase-index.schema.json");
+    let schema = load_schema("standards/schemas/spec-spine/codebase-index.schema.json");
     let validator = validator_for(&schema).expect("compile codebase-index.schema.json");
     let instance: Value = serde_json::from_slice(&out.index_json).expect("index JSON");
     if let Err(e) = validator.validate(&instance) {
@@ -84,14 +84,14 @@ members = ["test-crate"]
     .unwrap();
 
     // Copy the schema so self-validation works
-    let schemas_dir = root.join("schemas");
+    let schemas_dir = root.join("standards/schemas/spec-spine");
     fs::create_dir_all(&schemas_dir).unwrap();
-    let real_schema = repo_root().join("schemas/codebase-index.schema.json");
+    let real_schema = repo_root().join("standards/schemas/spec-spine/codebase-index.schema.json");
     fs::copy(&real_schema, schemas_dir.join("codebase-index.schema.json")).unwrap();
 
     let out = open_agentic_codebase_indexer::compile(root).expect("compile fixture");
 
-    let schema = load_schema("schemas/codebase-index.schema.json");
+    let schema = load_schema("standards/schemas/spec-spine/codebase-index.schema.json");
     let validator = validator_for(&schema).expect("schema");
     let instance: Value = serde_json::from_slice(&out.index_json).expect("index JSON");
     if let Err(e) = validator.validate(&instance) {

@@ -10,7 +10,7 @@
 
 Two parallel identifier systems exist:
 
-1. **Spec registry (canonical)** — Kebab-case IDs with a three-digit numeric prefix, matching `specs/<id>/` and `FeatureRecord.id` in `registry.json` (see `specs/000-bootstrap-spec-system/contracts/registry.schema.json`).
+1. **Spec registry (canonical)** — Kebab-case IDs with a three-digit numeric prefix, matching `specs/<id>/` and `FeatureRecord.id` in `registry.json` (see `standards/schemas/spec-spine/registry.schema.json`).
 2. **Code attribution** — `// Feature: UPPERCASE_TOKEN` (and `#` variants) scanned by `featuregraph` (`crates/featuregraph/src/scanner.rs`), using semantic names such as `FEATUREGRAPH_REGISTRY` that do not encode the spec folder slug.
 
 There is no stable bridge in compiled registry JSON between these systems, so governance consumers cannot join spec metadata to scanned code ownership. Legacy YAML alias plumbing does not apply to the deterministic compiled registry path.
@@ -68,6 +68,6 @@ This corresponds to **option (a)** in the next-slice plan: extend the compiled r
 
 ## References
 
-- `specs/000-bootstrap-spec-system/contracts/registry.schema.json` — `featureRecord.id` pattern.
+- `standards/schemas/spec-spine/registry.schema.json` — `featureRecord.id` pattern.
 - `crates/featuregraph/src/scanner.rs` — `FEATURE_REGEX`, attribution model.
 - Slice E scope and options (a)–(c) (formerly in `.ai/plans/next-slice.md`, removed with .ai/ cleanup).

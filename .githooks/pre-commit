@@ -15,7 +15,7 @@
 #   Cargo.toml (workspace + each crate/tool), package.json,
 #   pnpm-workspace.yaml, specs/*/spec.md, factory/adapters/*/manifest.yaml,
 #   factory/process/stages/*, .claude/{agents,commands,rules}/**/*.md,
-#   schemas/*.json, .github/workflows/*.yml.
+#   standards/schemas/**/*.{json,yaml,yml}, .github/workflows/*.yml.
 # Most non-trivial PRs touch at least one of these and need a fresh
 # build/codebase-index/index.json in the diff. The CI staleness check
 # fails after merge attempts otherwise; this hook moves the failure to
@@ -43,8 +43,9 @@ if ! "$INDEXER" check >/dev/null 2>&1; then
 [pre-commit] codebase-index is stale relative to current inputs.
 
   The indexer hashes Cargo.toml, package.json, pnpm-workspace.yaml,
-  specs/*/spec.md, schemas/*.json, .claude/{agents,commands,rules}/*.md,
-  and .github/workflows/*.yml — at least one of these changed and the
+  specs/*/spec.md, standards/schemas/**/*.{json,yaml,yml},
+  .claude/{agents,commands,rules}/*.md, and .github/workflows/*.yml —
+  at least one of these changed and the
   committed build/codebase-index/index.json no longer matches.
 
   Fix:

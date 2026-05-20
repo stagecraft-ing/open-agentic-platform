@@ -10,8 +10,10 @@ fn repo_root() -> PathBuf {
 }
 
 fn indexer_exe() -> PathBuf {
-    // cargo test builds to the target/debug directory
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/debug/codebase-indexer")
+    // Cargo exports the actual integration-test binary path via this env var,
+    // which works regardless of whether the workspace builds into the root
+    // `target/` or a per-package one.
+    PathBuf::from(env!("CARGO_BIN_EXE_codebase-indexer"))
 }
 
 /// Mirror the real repo into a tempdir via symlinks so each test owns its
@@ -47,10 +49,6 @@ fn mirror_repo() -> tempfile::TempDir {
 #[test]
 fn compile_exits_zero_on_success() {
     let exe = indexer_exe();
-    if !exe.is_file() {
-        // Skip in environments where the binary isn't built yet (e.g., cargo test --lib)
-        return;
-    }
     let scratch = mirror_repo();
     let status = Command::new(&exe)
         .arg("compile")
@@ -64,9 +62,6 @@ fn compile_exits_zero_on_success() {
 #[test]
 fn check_exits_zero_when_fresh() {
     let exe = indexer_exe();
-    if !exe.is_file() {
-        return;
-    }
     let scratch = mirror_repo();
 
     // First compile to ensure index exists and is fresh
@@ -98,9 +93,6 @@ fn check_exits_zero_when_fresh() {
 #[test]
 fn compile_exits_nonzero_on_missing_repo() {
     let exe = indexer_exe();
-    if !exe.is_file() {
-        return;
-    }
     let status = Command::new(&exe)
         .arg("compile")
         .arg("--repo")

@@ -149,7 +149,7 @@ Aligned with Feature **001** style (`0` / `1` / `3`):
 - **SC-001**: A new contributor can **list** and **look up** features using documented commands in under **15 minutes** on a clean clone (after **`registry.json`** exists—typically after running Feature **001** compile).
 - **SC-002**: Behavior for **`validation.passed: false`** is **observable** and **safe-by-default** (no silent success).
 - **SC-003**: Automated tests cover **list**, **`show`** (full **featureRecord** JSON), **invalid-registry** refusal, and **exit codes** **0** / **1** / **3** per this spec (exact test style in `plan.md`).
-- **SC-004**: No change to **`specs/000-bootstrap-spec-system/contracts/*.schema.json`** is required for MVP **unless** an explicit amendment note is added to this spec (default: **zero** contract diffs).
+- **SC-004**: No change to **`standards/schemas/spec-spine/*.schema.json`** is required for MVP **unless** an explicit amendment note is added to this spec (default: **zero** contract diffs).
 
 ## Clarifications
 

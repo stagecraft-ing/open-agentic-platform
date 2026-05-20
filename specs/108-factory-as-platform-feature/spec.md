@@ -309,8 +309,8 @@ Per-phase artefacts:
   introduced because upstream-map v2 sources do not carry `*.schema.*` files
   in main — still walked up looking for that path, returned an empty list on
   every sync, and left `/app/factory/contracts` reporting "No contracts yet".
-  Resolved by relocating the nine OAP-owned schemas to
-  `crates/factory-contracts/schemas/` (four top-level + five under
+  Resolved by relocating the nine OAP-owned schemas (now at
+  `standards/schemas/factory/`; four top-level + five under
   `stage-outputs/`) and repointing the loader's walk-up target. The
   `OAP_FACTORY_SCHEMAS_DIR` override path is preserved for production
   containers that bind-mount the schemas elsewhere.

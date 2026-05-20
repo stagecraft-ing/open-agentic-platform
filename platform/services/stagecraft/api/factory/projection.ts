@@ -96,7 +96,7 @@ export function projectSubstrateToLegacy(
   const templateRows = input.rows.filter(
     (r) => r.origin === input.templateOriginId,
   );
-  // OAP-owned contract schemas under `crates/factory-contracts/schemas/`
+  // OAP-owned contract schemas under `standards/schemas/factory/`
   // ride alongside the upstream contracts. They aren't tracked by either
   // upstream repo so the substrate sync surfaces them under a third
   // origin (`oap-self`); the projection merges them into the legacy

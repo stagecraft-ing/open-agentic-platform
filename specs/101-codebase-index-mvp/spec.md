@@ -30,7 +30,7 @@ establishes:
   - tools/codebase-indexer/src/spec_scanner.rs
   - tools/codebase-indexer/src/manifest.rs
   - build/codebase-index/index.json
-  - schemas/codebase-index.schema.json
+  - standards/schemas/spec-spine/codebase-index.schema.json
 ---
 
 # 101 — Codebase Index MVP
@@ -75,7 +75,7 @@ repo tree  →  codebase-indexer compile  →  build/codebase-index/index.json
                                         →  build/codebase-index/build-meta.json
 ```
 
-The JSON schema lives at `schemas/codebase-index.schema.json` and is itself a
+The JSON schema lives at `standards/schemas/spec-spine/codebase-index.schema.json` and is itself a
 governed contract.
 
 A markdown renderer mode emits `build/codebase-index/CODEBASE-INDEX.md` from the
@@ -281,7 +281,7 @@ The indexer MUST inventory:
 
 ### FR-09: JSON Schema Validation
 
-The emitted `index.json` MUST validate against `schemas/codebase-index.schema.json`.
+The emitted `index.json` MUST validate against `standards/schemas/spec-spine/codebase-index.schema.json`.
 The indexer MUST validate its own output before writing.
 
 ### FR-10: Staleness Check

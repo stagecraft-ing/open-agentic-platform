@@ -86,7 +86,7 @@ make pr-prep      # pre-commit refresh: regenerate codebase index + run coupling
 
 Run `make pr-prep` before `git commit` on a PR. It rebuilds the codebase index and runs the spec-code coupling gate against `origin/main` — the same two checks that fail first in CI when forgotten.
 
-The codebase index hashes more than `spec.md`. Its inputs (see `tools/codebase-indexer/src/lib.rs::collect_input_files`) include `Cargo.toml`, `package.json`, `pnpm-workspace.yaml`, `specs/*/spec.md`, `factory/adapters/*/manifest.yaml`, `factory/process/stages/*`, `.claude/{agents,commands,rules}/**/*.md`, `schemas/*.json`, and `.github/workflows/*.yml`. Editing any of these without committing the regenerated `build/codebase-index/index.json` fails the staleness check on the PR. `make pr-prep` is the one command that catches this locally.
+The codebase index hashes more than `spec.md`. Its inputs (see `tools/codebase-indexer/src/lib.rs::collect_input_files`) include `Cargo.toml`, `package.json`, `pnpm-workspace.yaml`, `specs/*/spec.md`, `factory/adapters/*/manifest.yaml`, `factory/process/stages/*`, `.claude/{agents,commands,rules}/**/*.md`, `standards/schemas/**/*.{json,yaml,yml}`, and `.github/workflows/*.yml`. Editing any of these without committing the regenerated `build/codebase-index/index.json` fails the staleness check on the PR. `make pr-prep` is the one command that catches this locally.
 
 If repeated forgetting is a problem, opt into the strict pre-commit hook:
 

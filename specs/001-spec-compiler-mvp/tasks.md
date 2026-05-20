@@ -1,7 +1,7 @@
 # Tasks: Spec compiler MVP
 
 **Input**: `/specs/001-spec-compiler-mvp/` (spec, plan, research)  
-**Prerequisites**: Feature **000** schemas at `specs/000-bootstrap-spec-system/contracts/`
+**Prerequisites**: Feature **000** schemas at `standards/schemas/spec-spine/`
 
 **Feature status**: **Complete** — treat `tools/spec-compiler` and CI `spec-conformance` as the required gate for downstream features unless Feature 000/001 is amended.
 

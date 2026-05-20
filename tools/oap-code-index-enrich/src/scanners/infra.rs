@@ -7,7 +7,7 @@
 use crate::types::{Infrastructure, NamedEntry, ToolEntry};
 use open_agentic_spec_types::split_frontmatter_optional;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 pub fn scan_infrastructure(repo_root: &Path) -> Infrastructure {
@@ -137,23 +137,15 @@ fn scan_rules(repo_root: &Path) -> Vec<NamedEntry> {
 }
 
 fn scan_schemas(repo_root: &Path) -> Vec<NamedEntry> {
-    let schemas_dir = repo_root.join("schemas");
+    let schemas_dir = repo_root.join("standards/schemas");
     if !schemas_dir.is_dir() {
         return vec![];
     }
+    let mut files: Vec<PathBuf> = Vec::new();
+    collect_schema_files(&schemas_dir, &mut files);
+    files.sort();
     let mut entries = Vec::new();
-    let mut files: Vec<_> = fs::read_dir(&schemas_dir)
-        .into_iter()
-        .flatten()
-        .flatten()
-        .filter(|e| {
-            e.path().is_file()
-                && (e.path().extension().and_then(|ext| ext.to_str()) == Some("json"))
-        })
-        .collect();
-    files.sort_by_key(|e| e.file_name());
-    for ent in files {
-        let p = ent.path();
+    for p in files {
         let name = p
             .file_stem()
             .and_then(|s| s.to_str())
@@ -174,6 +166,20 @@ fn scan_schemas(repo_root: &Path) -> Vec<NamedEntry> {
         });
     }
     entries
+}
+
+fn collect_schema_files(dir: &Path, out: &mut Vec<PathBuf>) {
+    let Ok(read) = fs::read_dir(dir) else {
+        return;
+    };
+    for ent in read.flatten() {
+        let p = ent.path();
+        if p.is_dir() {
+            collect_schema_files(&p, out);
+        } else if p.extension().and_then(|ext| ext.to_str()) == Some("json") {
+            out.push(p);
+        }
+    }
 }
 
 fn scan_md_with_frontmatter(dir: &Path, repo_root: &Path, recursive: bool) -> Vec<NamedEntry> {

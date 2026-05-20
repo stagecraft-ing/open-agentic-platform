@@ -1,4 +1,4 @@
-//! Core data types mapping to `schemas/codebase-index.schema.json`.
+//! Core data types mapping to `standards/schemas/spec-spine/codebase-index.schema.json`.
 
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 /// `tools/oap-code-index-enrich`. The generic schema is now Layer
 /// 1 (crate/package inventory) + Layer 2 (spec-to-code traceability)
 /// only. Consumers needing Layers 3-5 read `index-oap.json` from the
-/// OAP enricher, validated by `schemas/codebase-index-oap.schema.json`.
+/// OAP enricher, validated by `standards/schemas/spec-spine/codebase-index-oap.schema.json`.
 pub const SCHEMA_VERSION: &str = "2.0.0";
 pub const INDEXER_ID: &str = "codebase-indexer";
 

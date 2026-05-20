@@ -38,7 +38,7 @@ extends:
     nature: additive
   - spec: "132-constitutional-invariant-freeze"
     paths:
-      - specs/000-bootstrap-spec-system/contracts/registry.schema.json
+      - standards/schemas/spec-spine/registry.schema.json
     nature: additive
   - spec: "133-amends-aware-coupling-gate"
     paths:

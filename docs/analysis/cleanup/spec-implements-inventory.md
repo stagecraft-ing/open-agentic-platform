@@ -650,3 +650,56 @@ Corpus-consistency check (supersedes/constrains): PASS|FAIL
 ```
 
 FAIL halts per cross-phase rule 5 (no autonomous resolution).
+
+## Discovered in I4 execution (2026-05-20)
+
+### Group F — missed `establishes:` entry on spec 055:29
+
+The original I0 enumeration classified Group F (`standards/`) as
+Epic 2 I3 (line 47) and recorded "No `implements:` references
+found." That note was stale: it predates the relationship-graph
+rename from `implements:` to `establishes:`. Spec 055 carries
+
+```yaml
+establishes:
+  - crates/standards-loader
+  - standards/schema/standard.schema.json
+```
+
+so spec 055:29 is a path-bearing `establishes:` entry whose path
+disappears under the I4 coding-standard duplicate resolution
+(operator decision #3 option (b): delete
+`standards/schema/standard.schema.json`; keep
+`packages/yaml-standards-schema/schemas/coding-standard.schema.json`
+as the canonical npm-side consumer).
+
+Resolution applied in I4: spec 055:29 swept to point at the kept
+copy:
+
+```yaml
+establishes:
+  - crates/standards-loader
+  - packages/yaml-standards-schema/schemas/coding-standard.schema.json
+```
+
+This is a **1-entry append to the Phase I4 / Group B–F sweep
+manifest** (the original enumeration counted 9 path-bearing
+entries across B + C + D for I4; this brings I4 to 10).
+
+### CLAUDE.md `collect_input_files` semantics — path-glob updated
+
+CLAUDE.md (line 89) and `.githooks/pre-commit` previously
+documented the indexer's hash-input list as including
+`schemas/*.json`. After the I4 move, the input glob is
+`standards/schemas/**/*.{json,yaml,yml}` (recursive, both JSON
+and YAML, to capture the new factory/ YAML schemas + stage-outputs
+nesting). The indexer's `collect_input_files` was updated in the
+same commit to walk `standards/schemas/` recursively. This is a
+documentation-and-behavior alignment, not a new rule.
+
+### `tools/oap-code-index-enrich/src/scanners/infra.rs::scan_schemas`
+
+The infra scanner was looking at `repo_root.join("schemas")` (now
+empty post-move). I4 updates it to walk `standards/schemas/`
+recursively, preserving the prior top-level JSON-only filter
+semantics for the NamedEntry rows it produces.

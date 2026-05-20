@@ -17,7 +17,7 @@ extends:
   - spec: "101-codebase-index-mvp"
     paths:
       - tools/codebase-indexer
-      - schemas/codebase-index.schema.json
+      - standards/schemas/spec-spine/codebase-index.schema.json
     nature: additive
 summary: >
   Crate-level `[package.metadata.oap].spec` is too coarse — adding a 500-

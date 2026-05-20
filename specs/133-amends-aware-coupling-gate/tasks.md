@@ -103,7 +103,7 @@ amended spec's `spec.md` path. No waiver required.
   backwards-compat with old indexes.
 - [ ] T021 [US1] Extend `tools/codebase-indexer/src/spec_scanner.rs` to
   populate the new fields from spec frontmatter.
-- [ ] T022 [US1] Update `schemas/codebase-index.schema.json` to declare
+- [ ] T022 [US1] Update `standards/schemas/spec-spine/codebase-index.schema.json` to declare
   `amends` (array of strings) and `amendmentRecord` (string or array)
   under `traceability.mappings.items.properties`.
 - [ ] T023 [US1] Bump indexer `SCHEMA_VERSION` compile-time const (e.g.

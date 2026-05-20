@@ -343,12 +343,11 @@ preflight, gate, state modules) with a `factory-harness` CLI binary.
 
 Spec 108 §8 retired the in-tree `factory/` tree, which removed the canonical
 `factory/contract/schemas/` location these typed representations were derived
-from. The OAP-owned schemas have been relocated to
-`crates/factory-contracts/schemas/` (four top-level: `adapter-manifest`,
-`build-spec`, `pipeline-state`, `verification`; five under `stage-outputs/`)
-so the YAML/JSON sources are co-located with the Rust types they back. The
-stagecraft sync pipeline reads them via `api/factory/oapContracts.ts`,
-which now walks up looking for `crates/factory-contracts/schemas/` and
+from. The OAP-owned schemas now live under
+`standards/schemas/factory/` (four top-level: `adapter-manifest`,
+`build-spec`, `pipeline-state`, `verification`; five under `stage-outputs/`).
+The stagecraft sync pipeline reads them via `api/factory/oapContracts.ts`,
+which walks up looking for `standards/schemas/factory/` and
 respects an `OAP_FACTORY_SCHEMAS_DIR` env override for production
 containers.
 

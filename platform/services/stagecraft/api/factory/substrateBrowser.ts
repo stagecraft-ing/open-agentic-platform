@@ -67,7 +67,7 @@ export async function loadSubstrateForOrg(
 
   // The projection consumes rows from the factory + template origins
   // (for adapters/processes/contracts) and from `oap-self` (for OAP-owned
-  // contract schemas under `crates/factory-contracts/schemas/`).
+  // contract schemas under `standards/schemas/factory/`).
   // Filter in TS (rather than constructing a complex SQL OR) so the
   // query plan stays one indexed lookup per row.
   const drafts: SubstrateRowDraft[] = [];

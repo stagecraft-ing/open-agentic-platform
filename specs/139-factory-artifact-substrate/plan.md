@@ -78,7 +78,7 @@ growth and 100× org count without restructuring.
 - **Principle II — compiler-emitted JSON machine truth.** Substrate
   rows are not compiler artifacts — they are runtime DB rows in a
   governed table. The factory-contracts schemas under
-  `crates/factory-contracts/schemas/` remain compile-time-canonical
+  `standards/schemas/factory/` remain compile-time-canonical
   per spec 112 §3.2 (with `SCHEMA_VERSION` const). Stagecraft
   continues to mirror them per-org for runtime policy lookup, now via
   the substrate (`origin='oap-self'`, `kind='contract-schema'`). ✅

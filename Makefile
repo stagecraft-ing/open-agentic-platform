@@ -46,20 +46,20 @@ setup: check-deps
 	pnpm install
 	@echo ""
 	@echo "==> Building spec compiler..."
-	cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
+	cargo build --release --manifest-path tools/spec-compiler/Cargo.toml --target-dir tools/spec-compiler/target
 	@echo ""
 	@echo "==> Compiling spec registry..."
 	./tools/spec-compiler/target/release/spec-compiler compile
 	@echo ""
 	@echo ""
 	@echo "==> Building codebase indexer..."
-	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml --target-dir tools/codebase-indexer/target
 	@echo ""
 	@echo "==> Compiling codebase index..."
 	./tools/codebase-indexer/target/release/codebase-indexer compile
 	@echo ""
 	@echo "==> Building registry-consumer (governed-read CLI for /init)..."
-	cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
+	cargo build --release --manifest-path tools/registry-consumer/Cargo.toml --target-dir tools/registry-consumer/target
 	@echo ""
 	@echo "==> Fetching axiomregent sidecar binary..."
 	@$(MAKE) fetch-axiomregent-check || echo "  WARN: fetch failed. Run 'make axiomregent' to build from source."
@@ -82,7 +82,7 @@ AXIOMREGENT_BINDIR = apps/desktop/src-tauri/binaries
 
 axiomregent:
 	@echo "==> Building axiomregent from source..."
-	cargo build --release --manifest-path crates/axiomregent/Cargo.toml
+	cargo build --release --manifest-path crates/axiomregent/Cargo.toml --target-dir crates/axiomregent/target
 	@HOST_TRIPLE=$$(rustc -vV | grep '^host:' | awk '{print $$2}'); \
 	EXT=""; \
 	case "$$HOST_TRIPLE" in *windows*) EXT=".exe";; esac; \
@@ -147,7 +147,7 @@ registry: spec-compile oap-registry-enrich index oap-code-index-enrich ci-schema
 ## (specs 074 / 102). OAP-internal CI artifact; never shipped via
 ## release-tools.yml.
 oap-registry-enrich:
-	cargo build --release --manifest-path tools/oap-registry-enrich/Cargo.toml
+	cargo build --release --manifest-path tools/oap-registry-enrich/Cargo.toml --target-dir tools/oap-registry-enrich/target
 	./tools/oap-registry-enrich/target/release/oap-registry-enrich
 
 ## Cut D W-07a: emit build/codebase-index/index-oap.json from the
@@ -156,7 +156,7 @@ oap-registry-enrich:
 ## (specs 101 + 118). OAP-internal CI artifact; never shipped via
 ## release-tools.yml.
 oap-code-index-enrich:
-	cargo build --release --manifest-path tools/oap-code-index-enrich/Cargo.toml
+	cargo build --release --manifest-path tools/oap-code-index-enrich/Cargo.toml --target-dir tools/oap-code-index-enrich/target
 	./tools/oap-code-index-enrich/target/release/oap-code-index-enrich
 
 ## Pre-PR / pre-commit prep. Regenerates the codebase index (catches the
@@ -168,7 +168,7 @@ oap-code-index-enrich:
 ##   Cargo.toml, workspace + tool Cargo.tomls, package.json, pnpm-workspace.yaml,
 ##   specs/*/spec.md, factory/adapters/*/manifest.yaml,
 ##   factory/process/stages/*, .claude/{agents,commands,rules}/**/*.md,
-##   schemas/*.json, .github/workflows/*.yml — i.e. most of what you'd
+##   standards/schemas/**/*.{json,yaml,yml}, .github/workflows/*.yml — i.e. most of what you'd
 ##   normally edit in a non-trivial PR.
 pr-prep: index ci-fast-spec-coupling
 	@echo ""
@@ -183,11 +183,11 @@ spec-compile:
 	./tools/spec-compiler/target/release/spec-compiler compile
 
 spec-tools:
-	cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
-	cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
-	cargo build --release --manifest-path tools/spec-lint/Cargo.toml
-	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
-	cargo build --release --manifest-path tools/stakeholder-doc-lint/Cargo.toml
+	cargo build --release --manifest-path tools/spec-compiler/Cargo.toml --target-dir tools/spec-compiler/target
+	cargo build --release --manifest-path tools/registry-consumer/Cargo.toml --target-dir tools/registry-consumer/target
+	cargo build --release --manifest-path tools/spec-lint/Cargo.toml --target-dir tools/spec-lint/target
+	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml --target-dir tools/codebase-indexer/target
+	cargo build --release --manifest-path tools/stakeholder-doc-lint/Cargo.toml --target-dir tools/stakeholder-doc-lint/target
 
 # ============================================================
 # agent-frontmatter TS mirror (spec 111 §2.1, Phase 2)
@@ -255,7 +255,7 @@ build-certificate:
 	    echo "  example: make build-certificate FILE=./demo/.factory/runs/<run-id>"; \
 	    exit 1; \
 	fi
-	@cargo build --release --manifest-path $(FACTORY_ENGINE_MANIFEST) --bin build-certificate
+	@cargo build --release --manifest-path $(FACTORY_ENGINE_MANIFEST) --bin build-certificate --target-dir crates/target
 	@./$(FACTORY_ENGINE_TARGET)/build-certificate "$(FILE)" \
 	    $(if $(ADAPTER),--adapter $(ADAPTER)) \
 	    $(if $(REQUIREMENTS_HASH),--requirements-hash $(REQUIREMENTS_HASH)) \
@@ -267,7 +267,7 @@ verify-certificate:
 	    echo "  example: make verify-certificate FILE=./demo/.factory/runs/<run-id>/governance-certificate.json"; \
 	    exit 1; \
 	fi
-	@cargo build --release --manifest-path $(FACTORY_ENGINE_MANIFEST) --bin verify-certificate
+	@cargo build --release --manifest-path $(FACTORY_ENGINE_MANIFEST) --bin verify-certificate --target-dir crates/target
 	@./$(FACTORY_ENGINE_TARGET)/verify-certificate "$(FILE)" \
 	    $(if $(ARTIFACT_DIR),--artifact-dir $(ARTIFACT_DIR))
 
@@ -285,7 +285,7 @@ verify-certificate:
 CODEBASE_INDEXER_BIN = tools/codebase-indexer/target/release/codebase-indexer
 
 $(CODEBASE_INDEXER_BIN): tools/codebase-indexer/Cargo.toml tools/codebase-indexer/src/*.rs
-	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml --target-dir tools/codebase-indexer/target
 
 index: $(CODEBASE_INDEXER_BIN)
 	./$(CODEBASE_INDEXER_BIN) compile
@@ -296,7 +296,7 @@ index-check: $(CODEBASE_INDEXER_BIN)
 ## Cut D W-07b: render moved from codebase-indexer to oap-code-index-enrich.
 ## Requires index-oap.json (produced by `make oap-code-index-enrich`).
 index-render:
-	cargo build --release --manifest-path tools/oap-code-index-enrich/Cargo.toml
+	cargo build --release --manifest-path tools/oap-code-index-enrich/Cargo.toml --target-dir tools/oap-code-index-enrich/target
 	./tools/oap-code-index-enrich/target/release/oap-code-index-enrich render
 
 # ============================================================
@@ -429,12 +429,12 @@ CI_REGISTRY_CONSUMER_CONTRACTS = \
 
 ci-tools:
 	@echo "==> ci-tools: spec-compiler"
-	cargo build --release --manifest-path tools/spec-compiler/Cargo.toml
+	cargo build --release --manifest-path tools/spec-compiler/Cargo.toml --target-dir tools/spec-compiler/target
 	./tools/spec-compiler/target/release/spec-compiler compile
 	cargo test --manifest-path tools/spec-compiler/Cargo.toml
 	@echo ""
 	@echo "==> ci-tools: registry-consumer (+ contract subsets)"
-	cargo build --release --manifest-path tools/registry-consumer/Cargo.toml
+	cargo build --release --manifest-path tools/registry-consumer/Cargo.toml --target-dir tools/registry-consumer/target
 	./tools/registry-consumer/target/release/registry-consumer list | head -n 5
 	cargo test --manifest-path tools/registry-consumer/Cargo.toml
 	@set -e; for c in $(CI_REGISTRY_CONSUMER_CONTRACTS); do \
@@ -444,28 +444,28 @@ ci-tools:
 	@echo ""
 ## tag: spec-lint
 	@echo "==> ci-tools: spec-lint"
-	cargo build --release --manifest-path tools/spec-lint/Cargo.toml
+	cargo build --release --manifest-path tools/spec-lint/Cargo.toml --target-dir tools/spec-lint/target
 	./tools/spec-lint/target/release/spec-lint --fail-on-warn   # spec 128: strict posture (amends spec 006)
 	cargo test --manifest-path tools/spec-lint/Cargo.toml
 	@echo ""
 	@echo "==> ci-tools: stakeholder-doc-lint (spec 122 FR-035)"
-	cargo build --release --manifest-path tools/stakeholder-doc-lint/Cargo.toml
+	cargo build --release --manifest-path tools/stakeholder-doc-lint/Cargo.toml --target-dir tools/stakeholder-doc-lint/target
 	cargo clippy --manifest-path tools/stakeholder-doc-lint/Cargo.toml -- -D warnings
 	cargo test --manifest-path tools/stakeholder-doc-lint/Cargo.toml
 	./tools/stakeholder-doc-lint/target/release/stakeholder-doc-lint --project . || true   # warnings non-blocking by default (FR-035)
 	@echo ""
 	@echo "==> ci-tools: codebase-indexer (+ staleness gate)"
-	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml
+	cargo build --release --manifest-path tools/codebase-indexer/Cargo.toml --target-dir tools/codebase-indexer/target
 	./tools/codebase-indexer/target/release/codebase-indexer check
 	./tools/codebase-indexer/target/release/codebase-indexer compile
 	cargo test --manifest-path tools/codebase-indexer/Cargo.toml
 	@echo ""
 	@echo "==> ci-tools: policy-compiler"
-	cargo build --release --manifest-path tools/policy-compiler/Cargo.toml
+	cargo build --release --manifest-path tools/policy-compiler/Cargo.toml --target-dir tools/policy-compiler/target
 	cargo test --manifest-path tools/policy-compiler/Cargo.toml
 	@echo ""
 	@echo "==> ci-tools: assumption-cascade-check (spec 121 FR-034)"
-	cargo build --release --manifest-path tools/assumption-cascade-check/Cargo.toml
+	cargo build --release --manifest-path tools/assumption-cascade-check/Cargo.toml --target-dir tools/assumption-cascade-check/target
 	cargo test --manifest-path tools/assumption-cascade-check/Cargo.toml
 	./tools/assumption-cascade-check/target/release/assumption-cascade-check --repo .
 
@@ -546,7 +546,7 @@ ci-schema-parity:
 
 ci-spec-code-coupling:
 	@echo "==> ci-spec-code-coupling: build + run gate"
-	cargo build --release --manifest-path tools/spec-code-coupling-check/Cargo.toml
+	cargo build --release --manifest-path tools/spec-code-coupling-check/Cargo.toml --target-dir tools/spec-code-coupling-check/target
 	cargo test --manifest-path tools/spec-code-coupling-check/Cargo.toml
 	@# Local mirror of .github/workflows/ci-spec-code-coupling.yml. CI passes
 	@# explicit base/head SHAs via --base/--head; locally we materialise the
@@ -623,7 +623,7 @@ ci-cross:
 # included in `ci-strict` to avoid circular failure — CI runs it
 # independently via .github/workflows/ci-parity.yml.
 ci-parity:
-	cargo build --release --manifest-path tools/ci-parity-check/Cargo.toml
+	cargo build --release --manifest-path tools/ci-parity-check/Cargo.toml --target-dir tools/ci-parity-check/target
 	./tools/ci-parity-check/target/release/ci-parity-check
 
 # BEGIN ci-fast (spec 134)
@@ -796,7 +796,7 @@ ci-fast-schema-parity:
 	bun run tools/schema-parity-check/index.mjs
 
 ci-fast-spec-coupling:
-	cargo build --release --manifest-path tools/spec-code-coupling-check/Cargo.toml
+	cargo build --release --manifest-path tools/spec-code-coupling-check/Cargo.toml --target-dir tools/spec-code-coupling-check/target
 	@paths_file=$$(mktemp); \
 	  base=$(or $(BASE_REF),origin/main); \
 	  { git diff --name-only $$base; git ls-files --others --exclude-standard; } \

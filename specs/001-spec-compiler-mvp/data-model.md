@@ -16,8 +16,8 @@ This feature **consumes** the registry data model defined in Feature **000** (`s
 
 | File | Schema |
 |------|--------|
-| `build/spec-registry/registry.json` | `specs/000-bootstrap-spec-system/contracts/registry.schema.json` |
-| `build/spec-registry/build-meta.json` | `specs/000-bootstrap-spec-system/contracts/build-meta.schema.json` |
+| `build/spec-registry/registry.json` | `standards/schemas/spec-spine/registry.schema.json` |
+| `build/spec-registry/build-meta.json` | `standards/schemas/spec-spine/build-meta.schema.json` |
 
 ## Heading extraction (non-normative implementation note)
 

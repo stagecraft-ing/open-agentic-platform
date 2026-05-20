@@ -137,9 +137,9 @@ describe("unwrapArtifactEnvelope", () => {
   test("hoists path + body from {path, body} envelope", () => {
     const unwrapped = unwrapArtifactEnvelope({
       name: "adapter-manifest",
-      body: { path: "schemas/adapter-manifest.schema.yaml", body: "key: value\n" },
+      body: { path: "standards/schemas/factory/adapter-manifest.schema.yaml", body: "key: value\n" },
     });
-    expect(unwrapped.path).toBe("schemas/adapter-manifest.schema.yaml");
+    expect(unwrapped.path).toBe("standards/schemas/factory/adapter-manifest.schema.yaml");
     expect(unwrapped.body).toBe("key: value\n");
   });
 

@@ -45,7 +45,7 @@ extends:
   - spec: "108-factory-as-platform-feature"
     paths:
       - platform/services/stagecraft/api/factory/translator.ts
-      - crates/factory-contracts/schemas/
+      - standards/schemas/factory/
     nature: additive
 ---
 
@@ -171,7 +171,7 @@ consumer crate (§3.3) — never via ad-hoc JSON parsing (per
 ### 3.2 ACP schemas (from spec 074, vendored)
 
 ```
-crates/factory-contracts/schemas/
+standards/schemas/factory/
   adapter-manifest.schema.yaml
   build-spec.schema.yaml
   pipeline-state.schema.yaml

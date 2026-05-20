@@ -233,7 +233,7 @@ mention of historical claimants.
 ```
 spec-code-coupling-check: 1 constraint violation.
 
-  specs/000-bootstrap-spec-system/contracts/registry.schema.json:152
+  standards/schemas/spec-spine/registry.schema.json:152
     constraint: 132-constitutional-invariant-freeze (invariant-freeze)
     violation: the field `supersededBy` is frozen; removal requires
                amending spec 132 to retire the freeze.

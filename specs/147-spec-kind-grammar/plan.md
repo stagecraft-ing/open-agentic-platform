@@ -49,11 +49,11 @@ without failing. Schema bumps to 1.5.0.
 2. `tools/spec-compiler/src/lib.rs` — bump `SPEC_VERSION` constant
    from 1.4.0 to 1.5.0.
 
-3. `specs/000-bootstrap-spec-system/contracts/registry.schema.json`
+3. `standards/schemas/spec-spine/registry.schema.json`
    - Bump `$id` version to 1.5.0.
    - Add field declarations per `contracts/registry.schema.json.patch`.
 
-4. `specs/000-bootstrap-spec-system/contracts/build-meta.schema.json`
+4. `standards/schemas/spec-spine/build-meta.schema.json`
    - Bump expected `spec_version` to match 1.5.0.
 
 5. **Test fixtures.**

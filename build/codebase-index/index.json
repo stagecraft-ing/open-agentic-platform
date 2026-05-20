@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "0e7d73f5e7647358465eaa1347da24a2d2ba4c5d882869221bbebc06c5f53349",
+    "contentHash": "254439803994f02776f2edb14e16ea4480db19b8a78b487c0fe9d91a1e695883",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1471,7 +1471,7 @@
       {
         "implementingPaths": [
           {
-            "path": "specs/000-bootstrap-spec-system/contracts/registry.schema.json",
+            "path": "standards/schemas/spec-spine/registry.schema.json",
             "source": "spec-implements"
           },
           {
@@ -1698,7 +1698,7 @@
             "source": "cargo-metadata-crate"
           },
           {
-            "path": "schemas/agent-frontmatter.schema.json",
+            "path": "standards/schemas/frontmatter/agent-frontmatter.schema.json",
             "source": "spec-implements"
           }
         ],
@@ -1722,7 +1722,7 @@
             "source": "cargo-metadata-crate"
           },
           {
-            "path": "standards/schema/standard.schema.json",
+            "path": "packages/yaml-standards-schema/schemas/coding-standard.schema.json",
             "source": "spec-implements"
           }
         ],
@@ -2542,7 +2542,7 @@
             "source": "spec-implements"
           },
           {
-            "path": "schemas/codebase-index.schema.json",
+            "path": "standards/schemas/spec-spine/codebase-index.schema.json",
             "source": "spec-implements"
           },
           {
@@ -2965,10 +2965,6 @@
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-contracts/schemas/",
-            "source": "spec-implements"
-          },
-          {
             "path": "crates/factory-project-detect/",
             "source": "spec-implements"
           },
@@ -3002,6 +2998,10 @@
           },
           {
             "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "standards/schemas/factory/",
             "source": "spec-implements"
           }
         ],
@@ -3721,7 +3721,7 @@
         ],
         "implementingPaths": [
           {
-            "path": "schemas/codebase-index.schema.json",
+            "path": "standards/schemas/spec-spine/codebase-index.schema.json",
             "source": "spec-implements"
           },
           {
@@ -3740,7 +3740,7 @@
         ],
         "implementingPaths": [
           {
-            "path": "specs/000-bootstrap-spec-system/contracts/registry.schema.json",
+            "path": "standards/schemas/spec-spine/registry.schema.json",
             "source": "spec-implements"
           },
           {
@@ -4767,7 +4767,7 @@
         ],
         "implementingPaths": [
           {
-            "path": "specs/000-bootstrap-spec-system/contracts/registry.schema.json",
+            "path": "standards/schemas/spec-spine/registry.schema.json",
             "source": "spec-implements"
           },
           {

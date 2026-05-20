@@ -24,7 +24,7 @@ extends:
 constrains:
   - kind: invariant-freeze
     paths:
-      - specs/000-bootstrap-spec-system/contracts/registry.schema.json
+      - standards/schemas/spec-spine/registry.schema.json
 summary: >
   Spec 000 is itself amendable, including the amendment protocol. This
   spec adds a frontmatter convention — `unamendable: [<anchor>, ...]`
@@ -99,7 +99,7 @@ the immediate intent is to freeze spec 000's invariants.
   spec X with non-empty `amends` and `amends_sections`, look up each
   amended spec Y and assert
   `amends_sections(X) ∩ unamendable(Y) = ∅`.
-- Schema additions in `specs/000-bootstrap-spec-system/contracts/registry.schema.json`:
+- Schema additions in `standards/schemas/spec-spine/registry.schema.json`:
   three optional `array<string>` fields under `featureRecord`.
 - `SPEC_VERSION` bump 1.3.0 → 1.4.0.
 - Test fixture `tools/spec-compiler/tests/v011_unamendable.rs` — five

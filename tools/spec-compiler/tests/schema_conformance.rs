@@ -27,7 +27,7 @@ fn load_schema(relative_to_repo: &str) -> Value {
 fn compile_output_matches_feature_000_registry_schema() {
     let root = repo_root();
     let out = open_agentic_spec_compiler::compile(&root).expect("compile");
-    let schema = load_schema("specs/000-bootstrap-spec-system/contracts/registry.schema.json");
+    let schema = load_schema("standards/schemas/spec-spine/registry.schema.json");
     let validator = validator_for(&schema).expect("compile registry.schema.json");
     let instance: Value = serde_json::from_slice(&out.registry_json).expect("registry JSON");
     if let Err(e) = validator.validate(&instance) {
@@ -39,7 +39,7 @@ fn compile_output_matches_feature_000_registry_schema() {
 fn compile_output_matches_feature_000_build_meta_schema() {
     let root = repo_root();
     let out = open_agentic_spec_compiler::compile(&root).expect("compile");
-    let schema = load_schema("specs/000-bootstrap-spec-system/contracts/build-meta.schema.json");
+    let schema = load_schema("standards/schemas/spec-spine/build-meta.schema.json");
     let validator = validator_for(&schema).expect("compile build-meta.schema.json");
     let instance: Value = serde_json::from_slice(&out.build_meta_json).expect("build-meta JSON");
     if let Err(e) = validator.validate(&instance) {
@@ -72,13 +72,12 @@ summary: "Minimal spec for fixture-based schema test."
 
     let out = open_agentic_spec_compiler::compile(root).expect("compile fixture");
 
-    let reg_schema = load_schema("specs/000-bootstrap-spec-system/contracts/registry.schema.json");
+    let reg_schema = load_schema("standards/schemas/spec-spine/registry.schema.json");
     let reg_val = validator_for(&reg_schema).expect("registry schema");
     let reg_inst: Value = serde_json::from_slice(&out.registry_json).expect("registry");
     reg_val.validate(&reg_inst).expect("fixture registry.json");
 
-    let meta_schema =
-        load_schema("specs/000-bootstrap-spec-system/contracts/build-meta.schema.json");
+    let meta_schema = load_schema("standards/schemas/spec-spine/build-meta.schema.json");
     let meta_val = validator_for(&meta_schema).expect("build-meta schema");
     let meta_inst: Value = serde_json::from_slice(&out.build_meta_json).expect("build-meta");
     meta_val

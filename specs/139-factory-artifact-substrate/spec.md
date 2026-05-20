@@ -741,7 +741,7 @@ template side); the wire shape is preserved byte-stable.
   hashes equal the upstream file hashes byte-for-byte. No file is
   dropped; no synthetic categorisation reshapes content.
   - _Post-close gap:_ the OAP-owned contract schemas under
-    `crates/factory-contracts/schemas/` (9 files, declared
+    `standards/schemas/factory/` (9 files, declared
     "compile-time-canonical" in plan.md Constitution Check / Principle
     II) were dropped from the substrate at first cutover because
     `tasks.md` did not file a task to ingest them and the orphaned

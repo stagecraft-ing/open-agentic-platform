@@ -17,7 +17,7 @@ extends:
   - spec: "001-spec-compiler-mvp"
     paths:
       - tools/spec-compiler/src/lib.rs
-      - specs/000-bootstrap-spec-system/contracts/registry.schema.json
+      - standards/schemas/spec-spine/registry.schema.json
     nature: additive
 ---
 
@@ -106,7 +106,7 @@ The field is optional (not in `required`). The compiler omits it when empty (`sk
 
 | Component | File | Change |
 |-----------|------|--------|
-| Schema | `specs/000-bootstrap-spec-system/contracts/registry.schema.json` | Add `codeAliases` property |
+| Schema | `standards/schemas/spec-spine/registry.schema.json` | Add `codeAliases` property |
 | Compiler | `tools/spec-compiler/src/lib.rs` | `KNOWN_KEYS`, `FeatureRecord`, validation |
 | Compiler tests | `tools/spec-compiler/tests/` | Schema conformance, golden, alias collision |
 | Scanner source | `crates/featuregraph/src/registry_source.rs` | Deserialize `codeAliases` |

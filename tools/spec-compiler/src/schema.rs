@@ -5,15 +5,14 @@
 //! Diverges from codebase-indexer's runtime-file-read pattern by design:
 //! spec-compiler's fixture-test landscape uses the `specs/000-*` directory
 //! namespace with semantic meaning to the compiler (short-form id resolution,
-//! dir-name ↔ id consistency), so a runtime-read pattern that requires
-//! the schemas to live under `<root>/specs/000-bootstrap-spec-system/contracts/`
-//! collides with that namespace.
+//! dir-name ↔ id consistency), so a runtime-read pattern would collide
+//! with that namespace. Schemas now live under `standards/schemas/spec-spine/`.
 
 const REGISTRY_SCHEMA: &str =
-    include_str!("../../../specs/000-bootstrap-spec-system/contracts/registry.schema.json");
+    include_str!("../../../standards/schemas/spec-spine/registry.schema.json");
 
 const BUILD_META_SCHEMA: &str =
-    include_str!("../../../specs/000-bootstrap-spec-system/contracts/build-meta.schema.json");
+    include_str!("../../../standards/schemas/spec-spine/build-meta.schema.json");
 
 /// Validate registry JSON against the embedded
 /// `registry.schema.json` (Feature 000).

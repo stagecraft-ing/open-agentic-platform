@@ -17,10 +17,10 @@ When `registry.json` and optionally `build-meta.json` exist under `build/spec-re
 
 ```bash
 # Deterministic registry (golden tests use this file only)
-npx --yes ajv-cli validate -s specs/000-bootstrap-spec-system/contracts/registry.schema.json -d build/spec-registry/registry.json
+npx --yes ajv-cli validate -s standards/schemas/spec-spine/registry.schema.json -d build/spec-registry/registry.json
 
 # Wall-clock metadata (optional; changes every run)
-npx --yes ajv-cli validate -s specs/000-bootstrap-spec-system/contracts/build-meta.schema.json -d build/spec-registry/build-meta.json
+npx --yes ajv-cli validate -s standards/schemas/spec-spine/build-meta.schema.json -d build/spec-registry/build-meta.json
 ```
 
 Adjust command after the compiler implementation chooses its validation stack.

@@ -30,7 +30,7 @@ code_aliases:
   - SKILL_SCHEMA
 establishes:
   - crates/agent-frontmatter
-  - schemas/agent-frontmatter.schema.json
+  - standards/schemas/frontmatter/agent-frontmatter.schema.json
 ---
 
 # Feature Specification: Unified Agent and Skill Frontmatter Schema
@@ -236,7 +236,7 @@ trigger: "when the user asks for deep research"
 | Safety tiers | `crates/agent/src/safety.rs` | `From<SafetyTier> for ToolTier` conversion |
 | Policy kernel | `crates/policy-kernel/src/lib.rs` | `ToolCallContext` consumes governance and risk fields |
 | Standards | `crates/standards-loader/src/lib.rs` | Tier 3 resource loaded during execution (spec 055) |
-| JSON Schema | `schemas/agent-frontmatter.schema.json` (new) | Generated from Rust types |
+| JSON Schema | `standards/schemas/frontmatter/agent-frontmatter.schema.json` (new) | Generated from Rust types |
 
 ## Implementation approach
 
@@ -248,7 +248,7 @@ trigger: "when the user asks for deep research"
 
 4. **Phase 4 — registry enrichment**: Add `agent_type`, `model`, `tags`, `safety_tier` to `AgentRegistryEntry` in `crates/agent/src/registry.rs`. Add `From<SafetyTier> for ToolTier` in `safety.rs`. The organizer can now make governance-aware team selections.
 
-5. **Phase 5 — JSON Schema and linting**: Generate `schemas/agent-frontmatter.schema.json` from Rust types. Build quality linter (required fields, description length, kebab-case names, non-empty tool lists). Integrate as `spec-lint` subcommand or standalone binary.
+5. **Phase 5 — JSON Schema and linting**: Generate `standards/schemas/frontmatter/agent-frontmatter.schema.json` from Rust types. Build quality linter (required fields, description length, kebab-case names, non-empty tool lists). Integrate as `spec-lint` subcommand or standalone binary.
 
 6. **Phase 6 — file migration**: Add `safety_tier` and `mutation` fields to existing `.claude/agents/*.md` and `factory/process/agents/*.md` files. Purely additive — files without new fields continue to parse via derivation rules.
 

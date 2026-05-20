@@ -16,7 +16,7 @@ depends_on:
 code_aliases: ["SPEC_RELATIONSHIP_GRAPH"]
 establishes:
   - tools/shared/spec-types/src/lib.rs
-  - specs/000-bootstrap-spec-system/contracts/registry.schema.json
+  - standards/schemas/spec-spine/registry.schema.json
 extends:
   - spec: "001-spec-compiler-mvp"
     paths:
@@ -29,7 +29,7 @@ extends:
 constrains:
   - kind: invariant-freeze
     paths:
-      - specs/000-bootstrap-spec-system/contracts/registry.schema.json
+      - standards/schemas/spec-spine/registry.schema.json
 summary: >
   Spec governance operates over an explicit relationship graph. Eight
   frontmatter fields — establishes, extends, refines, supersedes, amends,

@@ -2,7 +2,7 @@
  * OAP-owned contract schemas — substrate ingest.
  *
  * The Factory's contract schemas are OAP-internal at
- * `crates/factory-contracts/schemas/`, not tracked in the upstream repos.
+ * `standards/schemas/factory/`, not tracked in the upstream repos.
  * Without this loader, the contracts surface stays empty after every sync
  * because `translateUpstreamsToSubstrate` only walks the two upstream
  * repos (neither carries `*.schema.*` files in its main tree).
@@ -17,7 +17,7 @@
  * Schema directory resolved in this order:
  *   1. `OAP_FACTORY_SCHEMAS_DIR` env var (explicit override — set this in
  *      production container images)
- *   2. Walk up from `__dirname` looking for `crates/factory-contracts/schemas/`
+ *   2. Walk up from `__dirname` looking for `standards/schemas/factory/`
  *      (dev / monorepo-local execution)
  *   3. Return empty (no crash — substrate just won't carry the rows)
  */
@@ -40,7 +40,7 @@ const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
 async function findSchemasDirByWalkUp(start: string): Promise<string | null> {
   let current = start;
   for (let i = 0; i < 8; i += 1) {
-    const candidate = join(current, "crates", "factory-contracts", "schemas");
+    const candidate = join(current, "standards", "schemas", "factory");
     const s = await stat(candidate).catch(() => null);
     if (s && s.isDirectory()) return candidate;
     const parent = dirname(current);
@@ -83,9 +83,9 @@ async function* walkSchemas(
 }
 
 /**
- * Walk `crates/factory-contracts/schemas/` and emit one substrate row
+ * Walk `standards/schemas/factory/` and emit one substrate row
  * draft per `*.schema.{json,yaml,yml}` file. The substrate path uses the
- * full repo-relative location (`crates/factory-contracts/schemas/<rel>`)
+ * full repo-relative location (`standards/schemas/factory/<rel>`)
  * so it's stable across moves and identifiable in the artifact browser.
  *
  * Returns an empty array if the schemas directory cannot be located —
@@ -107,7 +107,7 @@ export async function loadOapOwnedSubstrateRows(): Promise<SubstrateRowDraft[]> 
     const body = await readFile(abs, "utf8");
     rows.push({
       origin: OAP_SELF_ORIGIN,
-      path: `crates/factory-contracts/schemas/${rel}`,
+      path: `standards/schemas/factory/${rel}`,
       kind: "contract-schema",
       bundleId: null,
       upstreamSha: OAP_SELF_CONTRACT_SCHEMAS_SHA,

@@ -59,7 +59,7 @@ export async function runSyncPipeline(
   const syncedAt = new Date();
 
   // Spec 139 Constitution Check (Principle II) + SC-004:
-  //   - OAP-owned contract schemas (`crates/factory-contracts/schemas/`)
+  //   - OAP-owned contract schemas (`standards/schemas/factory/`)
   //     ride into the substrate as `(oap-self, contract-schema)`.
   //   - OAP-native adapters (`next-prisma`, `rust-axum`, `encore-react`)
   //     ride into the substrate as `(oap-self, adapter-manifest|pattern|…)`.
@@ -164,7 +164,7 @@ function countByLegacyKind(substrate: SubstrateTranslation): {
   let processes = 0;
   // Contracts: every contract-schema row across all origins (upstream
   // factory/template repos AND `oap-self` for OAP-owned schemas under
-  // `crates/factory-contracts/schemas/`).
+  // `standards/schemas/factory/`).
   for (const row of substrate.rows) {
     if (row.kind === "contract-schema") contracts += 1;
   }

@@ -499,17 +499,12 @@ fn collect_input_files(
         }
     }
 
-    // schemas/
-    let schemas_dir = repo_root.join("schemas");
+    // standards/schemas/** — recursive collection of .json and .yaml schemas
+    // (post-I4 consolidation: schemas now nest under spec-spine/, frontmatter/,
+    // factory/ (incl. stage-outputs/), agent/, coding/).
+    let schemas_dir = repo_root.join("standards/schemas");
     if schemas_dir.is_dir() {
-        if let Ok(dir) = fs::read_dir(&schemas_dir) {
-            for ent in dir.flatten() {
-                let p = ent.path();
-                if p.is_file() && (p.extension().and_then(|e| e.to_str()) == Some("json")) {
-                    files.push(p);
-                }
-            }
-        }
+        collect_schema_files(&schemas_dir, &mut files);
     }
 
     // .github/workflows/ (spec 118 — header changes affect Layer 5).
@@ -544,6 +539,22 @@ fn collect_md_files(dir: &Path, files: &mut Vec<PathBuf>) {
             if p.is_dir() {
                 collect_md_files(&p, files);
             } else if p.extension().and_then(|e| e.to_str()) == Some("md") {
+                files.push(p);
+            }
+        }
+    }
+}
+
+fn collect_schema_files(dir: &Path, files: &mut Vec<PathBuf>) {
+    if let Ok(entries) = fs::read_dir(dir) {
+        for ent in entries.flatten() {
+            let p = ent.path();
+            if p.is_dir() {
+                collect_schema_files(&p, files);
+            } else if matches!(
+                p.extension().and_then(|e| e.to_str()),
+                Some("json") | Some("yaml") | Some("yml")
+            ) {
                 files.push(p);
             }
         }

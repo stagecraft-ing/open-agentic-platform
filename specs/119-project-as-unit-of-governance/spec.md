@@ -320,7 +320,7 @@ The broader `workspace` lexical scan surfaces several non-violations that I-3 ex
 
 - Removed dead Tauri commands `list_workspaces` and `set_active_workspace` from `apps/desktop/src-tauri/src/commands/agents.rs` (both had zero frontend callers).
 - Removed dead HTTP client methods `list_workspaces`, `get_workspace`, `get_default_workspace` and their response types `WorkspaceInfo` / `ListWorkspacesResponse` / `GetWorkspaceResponse` from `apps/desktop/src-tauri/src/commands/stagecraft_client.rs` (called dead `/api/workspaces/*` endpoints with no callers).
-- Removed orphan `workspace_id: string` documentation field from `crates/factory-contracts/schemas/build-spec.schema.yaml` (never deserialized by the Rust mirror; pre-alpha posture allows clean removal).
+- Removed orphan `workspace_id: string` documentation field from `standards/schemas/factory/build-spec.schema.yaml` (never deserialized by the Rust mirror; pre-alpha posture allows clean removal).
 - Removed Tauri command registrations for the deleted commands from `apps/desktop/src-tauri/src/lib.rs`.
 
 ## 11. References

@@ -131,7 +131,7 @@ If Phase 0 shows missing data:
 2. Add `amends: Vec<String>` and `amendment_record: Option<String>`
    (or `Vec<String>` if multi-record patterns exist) to the
    `TraceMapping` in `tools/codebase-indexer/src/types.rs`.
-3. Update `schemas/codebase-index.schema.json` to declare the new
+3. Update `standards/schemas/spec-spine/codebase-index.schema.json` to declare the new
    fields under `traceability.mappings.items.properties`.
 4. Bump `SCHEMA_VERSION` (compile-time const) in `lib.rs` or wherever
    it lives. The `make ci` schema-conformance gate will validate the
