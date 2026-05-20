@@ -15,7 +15,7 @@ summary: >
   modifications, and interruption state so sessions can be resumed
   efficiently without losing critical context.
 establishes:
-  - packages/prompt-assembly
+  - product/packages/prompt-assembly
 ---
 
 # Feature Specification: Context Compaction for Session Resumption

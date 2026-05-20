@@ -25,4 +25,4 @@ Introduce a registry-backed ingestion path in **`crates/featuregraph`** (scanner
 
 - `crates/featuregraph/src/scanner.rs`
 - `build/spec-registry/registry.json` (output of `tools/spec-spine/spec-compiler`)
-- `apps/desktop/src-tauri/src/commands/analysis.rs`
+- `product/apps/desktop/src-tauri/src/commands/analysis.rs`

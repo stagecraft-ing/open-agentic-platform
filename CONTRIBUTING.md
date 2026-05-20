@@ -114,7 +114,7 @@ Specific subsets:
 |---|---|
 | `make ci-rust` | All Rust manifests: `check` + `clippy -D warnings` + `test` |
 | `make ci-tools` | Spec tool crates + `registry-consumer` contract subsets + staleness gate |
-| `make ci-desktop` | `apps/desktop`: rust + version alignment + tsc + vitest |
+| `make ci-desktop` | `product/apps/desktop`: rust + version alignment + tsc + vitest |
 | `make ci-stagecraft` | `platform/services/stagecraft`: npm ci + tsc + vitest |
 | `make ci-spec-code-coupling` | PR-time spec/code coupling gate (spec 127) |
 | `make ci-supply-chain` | `cargo-deny` + `pnpm audit` + `npm audit` (spec 116, blocking) |

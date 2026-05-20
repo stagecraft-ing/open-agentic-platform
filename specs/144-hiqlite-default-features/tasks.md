@@ -123,7 +123,7 @@ crates ship through.
 - [x] T025 [P2] `cargo test --manifest-path crates/axiomregent/Cargo.toml`
       → all tests pass.
 - [x] T026 [P2] Smoke-build the desktop crate:
-      `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml`
+      `cargo check --manifest-path product/apps/desktop/src-tauri/Cargo.toml`
       → exit 0. Catches any unexpected feature regression in the
       transitive consumer.
 - [x] T027 [P2] `make ci` (warm, spec 134 / 135 fast-CI loop) → exit 0.

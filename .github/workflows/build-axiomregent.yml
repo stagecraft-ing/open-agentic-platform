@@ -69,9 +69,9 @@ jobs:
       - name: Copy binary (Unix)
         if: runner.os != 'Windows'
         run: |
-          cp crates/target/${{ matrix.target }}/release/axiomregent apps/desktop/src-tauri/binaries/${{ matrix.binary }}
-          strip apps/desktop/src-tauri/binaries/${{ matrix.binary }} || true
-          ls -lh apps/desktop/src-tauri/binaries/${{ matrix.binary }}
+          cp crates/target/${{ matrix.target }}/release/axiomregent product/apps/desktop/src-tauri/binaries/${{ matrix.binary }}
+          strip product/apps/desktop/src-tauri/binaries/${{ matrix.binary }} || true
+          ls -lh product/apps/desktop/src-tauri/binaries/${{ matrix.binary }}
 
       - name: Copy binary (Windows)
         if: runner.os == 'Windows'
@@ -82,7 +82,7 @@ jobs:
 
       - name: Smoke test
         run: |
-          perl -e 'alarm shift; exec @ARGV' 3 apps/desktop/src-tauri/binaries/${{ matrix.binary }} 2>&1 || true
+          perl -e 'alarm shift; exec @ARGV' 3 product/apps/desktop/src-tauri/binaries/${{ matrix.binary }} 2>&1 || true
         shell: bash
         continue-on-error: true
 
@@ -90,7 +90,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ${{ matrix.binary }}
-          path: apps/desktop/src-tauri/binaries/${{ matrix.binary }}
+          path: product/apps/desktop/src-tauri/binaries/${{ matrix.binary }}
           retention-days: 30
 
   # aarch64-linux requires cross-compilation (no native GitHub runner)
@@ -128,12 +128,12 @@ jobs:
 
       - name: Copy binary
         run: |
-          cp crates/target/aarch64-unknown-linux-gnu/release/axiomregent apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
-          ls -lh apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
+          cp crates/target/aarch64-unknown-linux-gnu/release/axiomregent product/apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
+          ls -lh product/apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
 
       - name: Upload binary
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: axiomregent-aarch64-unknown-linux-gnu
-          path: apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
+          path: product/apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
           retention-days: 30

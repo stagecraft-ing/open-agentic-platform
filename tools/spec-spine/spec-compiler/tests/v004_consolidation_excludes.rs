@@ -28,12 +28,17 @@ fn root_pnpm_workspace_files_do_not_trigger_v004() {
     fs::create_dir_all(root.join("specs/098-v004-consolidation")).unwrap();
     minimal_spec(&root.join("specs/098-v004-consolidation/spec.md"));
 
+    fs::create_dir_all(root.join("product")).unwrap();
     fs::write(
-        root.join("pnpm-workspace.yaml"),
+        root.join("product/pnpm-workspace.yaml"),
         "packages:\n  - 'packages/*'\n",
     )
     .unwrap();
-    fs::write(root.join("pnpm-lock.yaml"), "lockfileVersion: '9.0'\n").unwrap();
+    fs::write(
+        root.join("product/pnpm-lock.yaml"),
+        "lockfileVersion: '9.0'\n",
+    )
+    .unwrap();
 
     let out = open_agentic_spec_compiler::compile(root).expect("compile");
     let v: Value = serde_json::from_slice(&out.registry_json).expect("registry JSON");

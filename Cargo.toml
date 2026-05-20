@@ -51,6 +51,6 @@ members = [
 # (master plan §Locked target layout). It builds standalone via
 # `cargo build --manifest-path platform/services/deployd-api-rs/Cargo.toml`.
 exclude = [
-    "apps/desktop/src-tauri",
+    "product/apps/desktop/src-tauri",
     "platform/services/deployd-api-rs",
 ]

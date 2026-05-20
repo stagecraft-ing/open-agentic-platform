@@ -120,7 +120,7 @@ Extend the checkpoint panel to:
 - Add "Compare Branches" action between two selected checkpoints
 - Show run_id grouping in the timeline
 
-**Files**: `apps/desktop/src/components/CheckpointPanel.tsx`
+**Files**: `product/apps/desktop/src/components/CheckpointPanel.tsx`
 
 ## Acceptance Criteria
 

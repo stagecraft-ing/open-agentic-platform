@@ -16,12 +16,12 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/desktop/**'
+      - 'product/apps/desktop/**'
       - 'crates/**'
       - 'packages/**'
   pull_request:
     paths:
-      - 'apps/desktop/**'
+      - 'product/apps/desktop/**'
       - 'crates/**'
       - 'packages/**'
   workflow_dispatch:
@@ -53,37 +53,37 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
-          workspaces: apps/desktop/src-tauri
+          workspaces: product/apps/desktop/src-tauri
           shared-key: ci-desktop-aarch64-apple-darwin
 
       - name: Create dist stub for web_server include_str!
         run: |
-          mkdir -p apps/desktop/dist
-          echo '<!doctype html><html><body>stub</body></html>' > apps/desktop/dist/index.html
+          mkdir -p product/apps/desktop/dist
+          echo '<!doctype html><html><body>stub</body></html>' > product/apps/desktop/dist/index.html
 
       - name: Create sidecar binary stub for Tauri build.rs
         run: |
-          mkdir -p apps/desktop/src-tauri/binaries
-          touch apps/desktop/src-tauri/binaries/axiomregent-aarch64-apple-darwin
-          chmod +x apps/desktop/src-tauri/binaries/axiomregent-aarch64-apple-darwin
+          mkdir -p product/apps/desktop/src-tauri/binaries
+          touch product/apps/desktop/src-tauri/binaries/axiomregent-aarch64-apple-darwin
+          chmod +x product/apps/desktop/src-tauri/binaries/axiomregent-aarch64-apple-darwin
 
       - name: cargo check
-        run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
+        run: cargo check --manifest-path product/apps/desktop/src-tauri/Cargo.toml
 
       - name: cargo clippy
-        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml -- -A dead_code -D warnings
+        run: cargo clippy --manifest-path product/apps/desktop/src-tauri/Cargo.toml -- -A dead_code -D warnings
 
       - name: cargo test (lib)
-        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --lib
+        run: cargo test --manifest-path product/apps/desktop/src-tauri/Cargo.toml --lib
 
       - name: cargo test (doc)
-        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --doc
+        run: cargo test --manifest-path product/apps/desktop/src-tauri/Cargo.toml --doc
 
       - name: Version alignment check
         shell: bash
         run: |
-          CARGO_VERSION=$(grep '^version' apps/desktop/src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
-          PKG_VERSION=$(node -p "require('./apps/desktop/package.json').version")
+          CARGO_VERSION=$(grep '^version' product/apps/desktop/src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          PKG_VERSION=$(node -p "require('./product/apps/desktop/package.json').version")
           if [ "$CARGO_VERSION" != "$PKG_VERSION" ]; then
             echo "::error::Version mismatch: Cargo.toml=$CARGO_VERSION package.json=$PKG_VERSION"
             exit 1
@@ -93,7 +93,7 @@ jobs:
   # M7 (cross-target cargo check on Linux + Windows) was added in PR #6 to
   # catch release-target link breakage at PR time. It has failed on every
   # PR since merge: the `macos-private-api` Tauri feature in
-  # apps/desktop/src-tauri/Cargo.toml is cross-target, but only
+  # product/apps/desktop/src-tauri/Cargo.toml is cross-target, but only
   # tauri.macos.conf.json declares macOSPrivateApi. The base
   # tauri.conf.json (which tauri-build's build.rs reads when
   # cargo check --target is invoked directly) doesn't allow the feature on

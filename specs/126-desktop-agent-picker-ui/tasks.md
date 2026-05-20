@@ -13,7 +13,7 @@ Tasks are grouped by phase per `plan.md`. `[P]` = can run in parallel with other
 TypeScript surface mirroring spec 123's enums and row shapes.
 
 - [x] **T001** Audit `crates/factory-contracts/src/agent_reference.rs` to confirm the `AgentReference` enum's three variants (`ById`, `ByName`, `ByNameLatest`) and their field shapes. The picker's TS mirror MUST match exactly.
-- [x] **T002** [P] In `apps/desktop/src/lib/agentPicker.ts`, declare the TS mirror of `AgentReference`:
+- [x] **T002** [P] In `product/apps/desktop/src/lib/agentPicker.ts`, declare the TS mirror of `AgentReference`:
   ```ts
   export type AgentReference =
     | { kind: "by_id"; org_agent_id: string; version: number }
@@ -32,7 +32,7 @@ TypeScript surface mirroring spec 123's enums and row shapes.
 
 Presentational only; no real data. A fixture array drives the rendering until Phase 2.
 
-- [x] **T010** Create `apps/desktop/src/components/AgentPicker.tsx`. Props per spec §3. Body is a modal + tabs + search + list. Empty state: "No bindings yet — open the project's Agents tab in stagecraft to bind one."
+- [x] **T010** Create `product/apps/desktop/src/components/AgentPicker.tsx`. Props per spec §3. Body is a modal + tabs + search + list. Empty state: "No bindings yet — open the project's Agents tab in stagecraft to bind one."
 - [x] **T011** Add tab switcher with active count badges. Tab state is local component state initialised from `defaultMode`.
 - [x] **T012** [P] Search input with debounce (existing helper if one is in the desktop codebase; otherwise inline 200ms debounce). Filter is client-side over the list.
 - [x] **T013** [P] Row layout per spec §4 ASCII mock: name @ vN, content_hash short, status pill, safety tier + model line.
@@ -53,7 +53,7 @@ Replace the fixture with real Tauri command calls.
   - Both calls run in parallel via `Promise.all`.
   - Transient errors surface in `error`; partial success (one call OK, the other failed) is treated as full failure for now (revisit if needed).
 - [x] **T021** Concurrent-fetch dedup: if a second invocation of the hook with the same `(orgId, projectId)` arrives while a fetch is in flight, both subscribers share the in-flight promise. Implement via a small in-module `Map<key, Promise>`.
-- [x] **T022** [P] Listen for duplex `agent.catalog.updated` events. The desktop's existing duplex bridge surfaces these as Tauri events (see `apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` — `EVENT_CATALOG_UPDATED = "agent-catalog-updated"`, kebab-case); subscribe via `listen("agent-catalog-updated", …)` and call `refresh()`. Same for `project-agent-binding-updated` when `projectId` is set.
+- [x] **T022** [P] Listen for duplex `agent.catalog.updated` events. The desktop's existing duplex bridge surfaces these as Tauri events (see `product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` — `EVENT_CATALOG_UPDATED = "agent-catalog-updated"`, kebab-case); subscribe via `listen("agent-catalog-updated", …)` and call `refresh()`. Same for `project-agent-binding-updated` when `projectId` is set.
 - [x] **T023** [P] Replace the Phase 1 fixture in `AgentPicker.tsx` with `useAgentPickerData`'s output.
 - [x] **T024** [P] Loading state: skeleton rows or spinner while `loading: true`. Error state: a small banner with retry.
 
@@ -79,14 +79,14 @@ The spec 123 invariants the picker must surface correctly.
 
 Lock the behaviour.
 
-- [x] **T040** Unit tests in `apps/desktop/src/components/AgentPicker.test.tsx` (using whatever the desktop's React test runner is — likely vitest + react-testing-library):
+- [x] **T040** Unit tests in `product/apps/desktop/src/components/AgentPicker.test.tsx` (using whatever the desktop's React test runner is — likely vitest + react-testing-library):
   - Renders with `projectId` set; `Active` tab is default.
   - Renders without `projectId`; `Active` tab hidden, `Browse` is default.
   - Switching tabs preserves the search filter input.
   - Retired-upstream row is non-selectable (clicking it does not fire `onSelect`).
   - Draft rows in catalog response are filtered out before rendering.
   - "↻ latest" toggle changes the emitted reference variant.
-- [x] **T041** [P] If Storybook is configured, add stories covering the four canonical states (empty active, active with retired-upstream, mixed browse, search-filtered). If not, add a fixture page under `apps/desktop/src/dev/AgentPickerFixture.tsx` with the same coverage so visual review is possible without running Storybook.
+- [x] **T041** [P] If Storybook is configured, add stories covering the four canonical states (empty active, active with retired-upstream, mixed browse, search-filtered). If not, add a fixture page under `product/apps/desktop/src/dev/AgentPickerFixture.tsx` with the same coverage so visual review is possible without running Storybook.
 - [x] **T042** [P] Wire the picker into spec 124's run-trigger flow at the call site (when spec 124 reaches Phase 5 — coordinate). The integration is a one-line invocation; the test that closes the loop lives in spec 124's task list, not here. _Coordination note: spec 124 already shipped (commit `001aedd`); the picker is exported and ready to be invoked from `commands/factory.rs`'s run-trigger UI when that surface needs an explicit agent selection._
 
 **Checkpoint:** All unit tests green. Coverage of the spec §8 acceptance criteria is one-to-one with test names. Commit: `test(desktop, spec-126): AgentPicker behavioural tests + visual fixtures`.

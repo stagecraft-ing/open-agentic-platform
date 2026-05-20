@@ -42,7 +42,7 @@ extends:
       - platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx
       - platform/services/stagecraft/web/app/routes/app.project.$projectId.agents._index.tsx
       - platform/services/stagecraft/web/app/routes/app.project.$projectId.agents.tsx
-      - apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs
+      - product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs
       - crates/factory-engine/src/agent_resolver.rs
     nature: wrapping
 summary: >
@@ -384,8 +384,8 @@ The bump from `v: 1` (spec 111) to `v: 2` is a clean break per pre-alpha posture
 
 ### 8.3 Desktop
 
-- `apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` — schema bump for v2 envelopes; org-keyed cache table.
-- `apps/desktop/src-tauri/src/commands/agents.rs` — add binding-aware `list_active_agents(project_id)` returning org agents with bindings to the active project, plus `list_org_agents(org_id)` for ad-hoc browse.
+- `product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` — schema bump for v2 envelopes; org-keyed cache table.
+- `product/apps/desktop/src-tauri/src/commands/agents.rs` — add binding-aware `list_active_agents(project_id)` returning org agents with bindings to the active project, plus `list_org_agents(org_id)` for ad-hoc browse.
 
 ## 9. Migration
 
@@ -442,7 +442,7 @@ A-3. `agent_catalog`, `agent_catalog_audit`, and `agent_policies` carry `org_id`
 
 A-4. Stagecraft web shows `Agents` as a top-nav item between `Projects` and `Factory`. The org agent catalog UI implements list / create / edit / publish / retire / fork / history.
 
-A-5. `grep -rn "agent_catalog\.project_id\|agent_catalog_audit\.project_id\|agent_policies\.project_id\|agentCatalog\.projectId" platform/services/stagecraft crates apps/desktop` returns zero hits outside (a) historical migration files, (b) the migration script for this spec, (c) frozen superseded specs, (d) this spec's body.
+A-5. `grep -rn "agent_catalog\.project_id\|agent_catalog_audit\.project_id\|agent_policies\.project_id\|agentCatalog\.projectId" platform/services/stagecraft crates product/apps/desktop` returns zero hits outside (a) historical migration files, (b) the migration script for this spec, (c) frozen superseded specs, (d) this spec's body.
 
 A-6. The project `Agents` tab implements bind / repin / unbind against the org catalog. The 119-era authoring routes under `app.project.$projectId.agents.new` and `agents.$agentId.publish` are deleted.
 

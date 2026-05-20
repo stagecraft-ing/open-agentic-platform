@@ -79,7 +79,7 @@ This spec bridges the five silos by:
 
 ### Slice 1 — Wire governance_preflight as Tauri command
 
-**Files**: `apps/desktop/src-tauri/src/commands/analysis.rs`, `apps/desktop/src-tauri/src/lib.rs`
+**Files**: `product/apps/desktop/src-tauri/src/commands/analysis.rs`, `product/apps/desktop/src-tauri/src/lib.rs`
 
 Register `governance_preflight` as a Tauri command that:
 - Accepts `changed_files: Vec<String>` and `repo_root: String`

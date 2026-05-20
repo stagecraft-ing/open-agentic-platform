@@ -44,7 +44,7 @@ summary: >
 
 The `crates/` Cargo workspace currently ships every binary that depends
 on hiqlite — including the desktop `axiomregent` crate, transitively
-via `apps/desktop/src-tauri` — with `auto-heal`, `backup`, `s3`, and
+via `product/apps/desktop/src-tauri` — with `auto-heal`, `backup`, `s3`, and
 `toml` compiled in, even though no source code imports a single API
 those features expose. The cause is a single missing manifest flag
 captured in `audit.md` (this directory) Phase 2.2 and Phase 3a.

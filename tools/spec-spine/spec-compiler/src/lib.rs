@@ -1154,7 +1154,10 @@ fn v004_yaml_scan_exempt(repo_root: &Path, p: &Path) -> bool {
     let Some(parent) = p.parent() else {
         return false;
     };
-    if parent != repo_root {
+    // Exempt at the repo root (.sops.yaml) and at product/ (npm package
+    // manager files moved there in Epic 2 I7).
+    let product_root = repo_root.join("product");
+    if parent != repo_root && parent != product_root.as_path() {
         return false;
     }
     let Some(name) = p.file_name().and_then(|n| n.to_str()) else {

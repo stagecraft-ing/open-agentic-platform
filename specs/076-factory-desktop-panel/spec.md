@@ -14,11 +14,11 @@ summary: >
   token spend dashboard, and scaffolding fan-out monitoring.
 code_aliases: ["FACTORY_DESKTOP", "FACTORY_PANEL"]
 establishes:
-  - apps/desktop/src/components/FactoryPipelinePanel.tsx
+  - product/apps/desktop/src/components/FactoryPipelinePanel.tsx
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
     paths:
-      - apps/desktop
+      - product/apps/desktop
     nature: additive
 ---
 

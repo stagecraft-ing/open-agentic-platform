@@ -20,11 +20,11 @@ code_aliases:
 sources:
   - claudecodeui
 establishes:
-  - apps/desktop/src/lib/wsReconnection.ts
+  - product/apps/desktop/src/lib/wsReconnection.ts
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
     paths:
-      - apps/desktop
+      - product/apps/desktop
     nature: additive
 ---
 

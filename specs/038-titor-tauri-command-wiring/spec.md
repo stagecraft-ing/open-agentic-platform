@@ -11,7 +11,7 @@ authors:
   - "open-agentic-platform"
 language: en
 establishes:
-  - apps/desktop/src-tauri/src/commands/titor.rs
+  - product/apps/desktop/src-tauri/src/commands/titor.rs
 summary: >
   Wire the five stubbed titor Tauri commands (checkpoint, list, restore, diff,
   verify) to the production-ready titor library crate via a new TitorState in
@@ -87,10 +87,10 @@ titor_checkpoint(root_path, message)
 
 | Component | File | Change |
 |-----------|------|--------|
-| TitorState | `apps/desktop/src-tauri/src/commands/titor.rs` | New struct + impl |
-| titor_init | `apps/desktop/src-tauri/src/commands/titor.rs` | Wire to TitorState |
-| 5 command stubs | `apps/desktop/src-tauri/src/commands/titor.rs` | Replace `todo!()` with delegation |
-| App setup | `apps/desktop/src-tauri/src/lib.rs` | `.manage(TitorState::new())` |
+| TitorState | `product/apps/desktop/src-tauri/src/commands/titor.rs` | New struct + impl |
+| titor_init | `product/apps/desktop/src-tauri/src/commands/titor.rs` | Wire to TitorState |
+| 5 command stubs | `product/apps/desktop/src-tauri/src/commands/titor.rs` | Replace `todo!()` with delegation |
+| App setup | `product/apps/desktop/src-tauri/src/lib.rs` | `.manage(TitorState::new())` |
 | Tauri config | `tauri.conf.json` | No change (commands already registered) |
 
 ### Reference: existing CheckpointState pattern

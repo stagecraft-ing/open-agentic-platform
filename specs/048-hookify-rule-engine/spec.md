@@ -18,7 +18,7 @@ summary: >
 code_aliases:
   - HOOKIFY_RULE_ENGINE
 establishes:
-  - packages/hookify-rule-engine
+  - product/packages/hookify-rule-engine
 ---
 
 # Feature Specification: Declarative Hook Rule Engine

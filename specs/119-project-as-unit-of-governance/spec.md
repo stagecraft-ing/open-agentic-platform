@@ -57,7 +57,7 @@ extends:
 refines:
   - aspect: project-scoped-governance
     paths:
-      - apps/desktop
+      - product/apps/desktop
       - specs/000-bootstrap-spec-system
 summary: >
   Collapse the workspace abstraction into project. Workspace was introduced
@@ -279,7 +279,7 @@ A-3. Specs 087, 092, 094, 099 each carry `amended: "2026-04-29"`, `amendment_rec
 
 A-4. The Postgres migration applies cleanly against a representative dev database, satisfying invariants I-1..I-3 of §6.5, with the migration warning log empty.
 
-A-5. `grep -r "workspace_id\|workspaceId" platform/services/stagecraft/api crates apps/desktop` returns zero hits outside (a) historical migration files, (b) the migration script for this spec, (c) frozen superseded specs, (d) Cargo/pnpm-workspace mentions.
+A-5. `grep -r "workspace_id\|workspaceId" platform/services/stagecraft/api crates product/apps/desktop` returns zero hits outside (a) historical migration files, (b) the migration script for this spec, (c) frozen superseded specs, (d) Cargo/pnpm-workspace mentions.
 
 A-6. The compiled spec registry (`build/spec-registry/registry.json`) carries `amends`/`amendment_record` fields on this spec and the four amended specs, with no schema-validation errors.
 
@@ -297,11 +297,11 @@ OQ-2. **Audit-log retention** — _Resolved._ Historical `target_type='workspace
 
 OQ-3. **`amends:` lint posture** — _Resolved._ Spec-lint enforcement remains **non-blocking** in the introductory release. The convention has now been exercised by spec 123 (amends 119), spec 130 (amends 127), spec 132 (amends 000), spec 133 (amends 127), spec 134 (amends 104), spec 135 (amends 104, 134), spec 138 (amends 112), and spec 139 (amends 108, 111, 123) — well past the "at least one further amendment" threshold. Promotion to blocking is filed as a spec-lint follow-up.
 
-OQ-4. **OPC desktop URL paths** — _Resolved._ User confirms no external bookmarks rely on the old `/workspaces/{id}/projects/{id}` path. Codebase scan (`grep` over `apps/desktop/src/` and `platform/services/stagecraft/web/app/`) returns zero `/workspaces/` route declarations; the OPC desktop and stagecraft web routers exclusively use `/projects/{id}`. Migration of any committed screenshots is a docs follow-up, not an invariant.
+OQ-4. **OPC desktop URL paths** — _Resolved._ User confirms no external bookmarks rely on the old `/workspaces/{id}/projects/{id}` path. Codebase scan (`grep` over `product/apps/desktop/src/` and `platform/services/stagecraft/web/app/`) returns zero `/workspaces/` route declarations; the OPC desktop and stagecraft web routers exclusively use `/projects/{id}`. Migration of any committed screenshots is a docs follow-up, not an invariant.
 
 ### Close-out invariant verification (2026-05-05)
 
-- A-5 (`grep -r "workspace_id\|workspaceId" platform/services/stagecraft/api crates apps/desktop --include='*.ts' --include='*.tsx' --include='*.rs' --include='*.sql' --include='*.yaml' --include='*.yml' --include='*.json'`) returns zero hits outside `db/migrations/`.
+- A-5 (`grep -r "workspace_id\|workspaceId" platform/services/stagecraft/api crates product/apps/desktop --include='*.ts' --include='*.tsx' --include='*.rs' --include='*.sql' --include='*.yaml' --include='*.yml' --include='*.json'`) returns zero hits outside `db/migrations/`.
 - A-1, A-2, A-3 confirmed via `git log` on amended specs and `standards/spec/contract.md`.
 - A-4 confirmed via migration history (27, 28, 29, 30 applied).
 - A-6, A-7, A-8 covered by `make ci` runs since landing.
@@ -318,10 +318,10 @@ The broader `workspace` lexical scan surfaces several non-violations that I-3 ex
 
 ### Close-out cleanups landed in this commit
 
-- Removed dead Tauri commands `list_workspaces` and `set_active_workspace` from `apps/desktop/src-tauri/src/commands/agents.rs` (both had zero frontend callers).
-- Removed dead HTTP client methods `list_workspaces`, `get_workspace`, `get_default_workspace` and their response types `WorkspaceInfo` / `ListWorkspacesResponse` / `GetWorkspaceResponse` from `apps/desktop/src-tauri/src/commands/stagecraft_client.rs` (called dead `/api/workspaces/*` endpoints with no callers).
+- Removed dead Tauri commands `list_workspaces` and `set_active_workspace` from `product/apps/desktop/src-tauri/src/commands/agents.rs` (both had zero frontend callers).
+- Removed dead HTTP client methods `list_workspaces`, `get_workspace`, `get_default_workspace` and their response types `WorkspaceInfo` / `ListWorkspacesResponse` / `GetWorkspaceResponse` from `product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs` (called dead `/api/workspaces/*` endpoints with no callers).
 - Removed orphan `workspace_id: string` documentation field from `standards/schemas/factory/build-spec.schema.yaml` (never deserialized by the Rust mirror; pre-alpha posture allows clean removal).
-- Removed Tauri command registrations for the deleted commands from `apps/desktop/src-tauri/src/lib.rs`.
+- Removed Tauri command registrations for the deleted commands from `product/apps/desktop/src-tauri/src/lib.rs`.
 
 ## 11. References
 
@@ -334,4 +334,4 @@ The broader `workspace` lexical scan surfaces several non-violations that I-3 ex
 
 ## 12. Release Markers
 
-- **OPC desktop v0.3.2 (2026-05-05):** ships the workspace→project entity collapse described above. App version metadata at `apps/desktop/package.json`, `apps/desktop/src-tauri/Cargo.toml`, `apps/desktop/src-tauri/tauri.conf.json` bumped accordingly. Version-only edits do not change spec semantics; recording the release here documents the artefact lineage for the spec/code coupling gate.
+- **OPC desktop v0.3.2 (2026-05-05):** ships the workspace→project entity collapse described above. App version metadata at `product/apps/desktop/package.json`, `product/apps/desktop/src-tauri/Cargo.toml`, `product/apps/desktop/src-tauri/tauri.conf.json` bumped accordingly. Version-only edits do not change spec semantics; recording the release here documents the artefact lineage for the spec/code coupling gate.

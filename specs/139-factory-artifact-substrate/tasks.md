@@ -24,7 +24,7 @@ sections (round-trip, migration dry-run, integration, replay).
 - Stagecraft DB: `platform/services/stagecraft/api/db/`
 - Factory engine (Rust): `crates/factory-engine/`
 - Factory contracts (Rust): `crates/factory-contracts/`
-- OPC desktop: `apps/desktop/src-tauri/src/commands/`
+- OPC desktop: `product/apps/desktop/src-tauri/src/commands/`
 
 ---
 
@@ -275,7 +275,7 @@ substrate as their `factory_root`; recorded runs replay reproducibly.
       `~/.cache/oap/factory/<org>/<content_hash>`. Cache key is
       `(org_id, artifact_id, content_hash)`; integrity-check on
       read (recompute hash, fail loudly on mismatch).
-- [ ] T072 [P3] Migrate `apps/desktop/src-tauri/src/commands/factory.rs`:
+- [ ] T072 [P3] Migrate `product/apps/desktop/src-tauri/src/commands/factory.rs`:
       replace `resolve_factory_root()` with `FactoryRoot::Virtual(...)`.
       Delete the `// TODO(spec-108-§7-punt)` marker comment.
 - [ ] T073 [P3] Spec 124 generalisation. Add `artifact_ref`

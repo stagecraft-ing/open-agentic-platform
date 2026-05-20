@@ -65,7 +65,7 @@ refines:
   - aspect: factory-engine-substrate
     paths:
       - crates/factory-engine/src/engine.rs
-      - apps/desktop/src-tauri/src/commands/factory.rs
+      - product/apps/desktop/src-tauri/src/commands/factory.rs
       - platform/services/stagecraft/api/projects/opcBundle.ts
       - platform/services/stagecraft/api/projects/create.ts
       - platform/services/stagecraft/api/projects/import.ts
@@ -138,7 +138,7 @@ landed:
    as anonymous JSONB array entries. Same conceptual artifact, two
    incompatible storage models, two pinning stories, two audit shapes.
 6. **OPC checkout dependency persists.** Spec 108 §7.1 explicitly
-   punted migrating `apps/desktop/src-tauri/src/commands/factory.rs`
+   punted migrating `product/apps/desktop/src-tauri/src/commands/factory.rs`
    off the local `factory/` checkout because the platform-served bucket
    blob can't be addressed by path the way a checkout can. Spec 124
    was supposed to close this; the `// TODO(spec-108-§7-punt)` marker
@@ -307,7 +307,7 @@ The sync engine treats both transparently.
 
 ### 3.2 Non-Goals
 
-- **Mirroring the `template` scaffold tree (`apps/`, `packages/`,
+- **Mirroring the `template` scaffold tree (`apps/`, `product/packages/`,
   `modules/`, `scripts/`) into the substrate.** The scaffold remains
   clone-and-discard at create-time. Only the `orchestration/` subpath
   is mirrored. The same rule applies to OAP-native scaffolds.
@@ -580,7 +580,7 @@ is wired into `factory_upstreams` per org.
 
 ## 8. OPC Contract (closes spec 108 §7.1)
 
-OPC's `apps/desktop/src-tauri/src/commands/factory.rs::resolve_factory_root()`
+OPC's `product/apps/desktop/src-tauri/src/commands/factory.rs::resolve_factory_root()`
 is replaced by a **virtual factory_root** backed by the platform API.
 
 The `factory-engine` and `factory-contracts` crates already accept a
@@ -644,7 +644,7 @@ The existing live tables are not deleted in Phase 1.
   `StageCdInputs.artifact_store` remain filesystem-anchored. They are
   per-run output stores, not factory-content stores; virtualising them
   is out of scope for this spec.
-- Migrate `apps/desktop/src-tauri/src/commands/factory.rs`. Delete
+- Migrate `product/apps/desktop/src-tauri/src/commands/factory.rs`. Delete
   the spec 108 §7.1 punt TODO.
 - Spec 124's `agent_ref` shape extended: `agent_ref` becomes
   `artifact_ref = { artifact_id, version, content_hash }`. Backwards
@@ -847,7 +847,7 @@ template side); the wire shape is preserved byte-stable.
 - Cross-org artifact sharing.
 - Author-an-adapter-from-scratch UI.
 - Multi-factory-per-org (today: one configuration per org).
-- Mirroring scaffold content (apps/, packages/, modules/) into the
+- Mirroring scaffold content (apps/, product/packages/, modules/) into the
   substrate. Scaffold remains clone-and-discard.
 - Editing the substrate from OPC.
 

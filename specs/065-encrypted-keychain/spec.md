@@ -21,12 +21,12 @@ sources:
   - claudepal
   - claudecodeui
 establishes:
-  - apps/desktop/src-tauri/src/keychain.rs
-  - apps/desktop/src/components/CredentialPicker.tsx
+  - product/apps/desktop/src-tauri/src/keychain.rs
+  - product/apps/desktop/src/components/CredentialPicker.tsx
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
     paths:
-      - apps/desktop
+      - product/apps/desktop
     nature: additive
 ---
 

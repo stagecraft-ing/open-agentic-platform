@@ -69,7 +69,7 @@ scoped to the project that created them.
   - Sets `OPC_PROJECT_ID` process env var
   - Fetches grants from platform and updates `SidecarState.grants_json`
   - Emits `project-changed` event
-- Files: `commands/stagecraft_client.rs`, `apps/desktop/src-tauri/src/commands/agents.rs`
+- Files: `commands/stagecraft_client.rs`, `product/apps/desktop/src-tauri/src/commands/agents.rs`
 
 ### 2. Thread project_id into ClaudeExecutionRequest (1 day)
 

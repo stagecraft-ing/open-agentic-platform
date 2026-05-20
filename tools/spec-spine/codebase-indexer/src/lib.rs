@@ -443,8 +443,8 @@ fn collect_input_files(
     // package.json files
     files.extend_from_slice(npm_jsons);
 
-    // pnpm-workspace.yaml
-    let pnpm_ws = repo_root.join("pnpm-workspace.yaml");
+    // pnpm-workspace.yaml (lives under product/ post-I7)
+    let pnpm_ws = repo_root.join("product/pnpm-workspace.yaml");
     if pnpm_ws.is_file() {
         files.push(pnpm_ws);
     }

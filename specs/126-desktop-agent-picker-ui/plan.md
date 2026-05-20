@@ -102,8 +102,8 @@ component + hook + types.
   - Spec 124 §4.1 — primary consumer; the picker feeds an
     `AgentReference` into the run-trigger flow
 - Existing primitives this spec touches:
-  - `apps/desktop/src/components/AgentPicker.tsx` (new)
-  - `apps/desktop/src/lib/agentPicker.ts` (new)
+  - `product/apps/desktop/src/components/AgentPicker.tsx` (new)
+  - `product/apps/desktop/src/lib/agentPicker.ts` (new)
   - Reuses the existing modal / dialog primitive (e.g. from
     `AgentsModal.tsx`); does NOT replace it
 - Cross-crate dependencies: none. Pure UI; consumes existing Tauri

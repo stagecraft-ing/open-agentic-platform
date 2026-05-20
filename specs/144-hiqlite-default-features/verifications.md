@@ -85,12 +85,12 @@ Searches performed (all from repo root, all returning zero hits for
 |----------------------------------------------------------------------|---------------------------------|
 | `grep -rnE 'features.*distributed\|--features.*distributed'` across `**/Cargo.toml`, `**/*.yml`, `**/*.yaml`, `**/Dockerfile*`, `**/*.sh`, `**/Makefile`, `**/*.mk`, `**/Justfile` | 0 |
 | `grep -rn 'distributed' .github/workflows Makefile platform/Makefile` | 0 |
-| `grep -rn '"distributed"\|features.*=.*\[' apps/desktop/src-tauri/Cargo.toml crates/factory-engine/Cargo.toml` | 0 (orchestrator dep declared without `features = […]`) |
+| `grep -rn '"distributed"\|features.*=.*\[' product/apps/desktop/src-tauri/Cargo.toml crates/factory-engine/Cargo.toml` | 0 (orchestrator dep declared without `features = […]`) |
 
 Direct evidence each consumer omits the feature:
 
 - `crates/factory-engine/Cargo.toml:12` — `orchestrator = { path = "../orchestrator" }`. No `features = […]` field; default-features-only build of orchestrator (i.e. `local-sqlite`).
-- `apps/desktop/src-tauri/Cargo.toml:91` — `orchestrator = { path = "../../../crates/orchestrator" }`. No `features = […]` field.
+- `product/apps/desktop/src-tauri/Cargo.toml:91` — `orchestrator = { path = "../../../crates/orchestrator" }`. No `features = […]` field.
 - `.github/workflows/ci-orchestrator.yml:38-42` — invokes the composite action `./.github/actions/rust-ci` with `manifest-path: crates/orchestrator/Cargo.toml`.
 - `.github/actions/rust-ci/action.yml:68-84` — runs `cargo check`, `cargo clippy`, `cargo test` with **no** `--features` flag and no opt-in to `--all-features`. Orchestrator's CI thus only exercises the default `local-sqlite` build.
 - `Makefile` — every `cargo build/run/test` invocation either omits `--features` or names a different manifest path (`tools/*`, `crates/axiomregent`, `factory-engine`, `deployd-api-rs`); no orchestrator-targeted `--features distributed` anywhere.

@@ -75,7 +75,7 @@ jobs:
           manifests=(
             crates/Cargo.toml
             platform/services/deployd-api-rs/Cargo.toml
-            apps/desktop/src-tauri/Cargo.toml
+            product/apps/desktop/src-tauri/Cargo.toml
             tools/spec-spine/spec-compiler/Cargo.toml
             tools/spec-spine/registry-consumer/Cargo.toml
             tools/spec-spine/spec-lint/Cargo.toml

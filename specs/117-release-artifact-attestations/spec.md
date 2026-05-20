@@ -172,9 +172,9 @@ for AC-2).
 - name: Generate installer SBOM
   uses: anchore/sbom-action@<pinned-sha>
   with:
-    path: apps/desktop
+    path: product/apps/desktop
     format: cyclonedx-json
-    output-file: apps/desktop/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
+    output-file: product/apps/desktop/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
 
 - name: Attest installer provenance
   id: attest-installer
@@ -267,7 +267,7 @@ the Sigstore Rekor log).
   1. Pointing `anchore/sbom-action` at the staged `dist/` of stripped
      release binaries yields a zero-component SBOM because syft cannot
      recover crate metadata from stripped Rust binaries. Scope `path:` to
-     the source tree (e.g. `crates/axiomregent`, `apps/desktop`, `tools/`)
+     the source tree (e.g. `crates/axiomregent`, `product/apps/desktop`, `tools/`)
      where `Cargo.toml` and `Cargo.lock` give syft something to
      enumerate.
   2. Source-tree scope still returned 0 components on

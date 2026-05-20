@@ -18,7 +18,7 @@ summary: >
 code_aliases:
   - PERMISSION_SYSTEM
 establishes:
-  - packages/permission-system
+  - product/packages/permission-system
 ---
 
 # Feature Specification: Permission Request System with Memory and Wildcards

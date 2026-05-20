@@ -78,10 +78,10 @@ jobs:
       - name: Stage axiomregent (Unix)
         if: runner.os != 'Windows'
         run: |
-          mkdir -p apps/desktop/src-tauri/binaries
+          mkdir -p product/apps/desktop/src-tauri/binaries
           cp "crates/target/${{ matrix.target }}/release/axiomregent" \
-             "apps/desktop/src-tauri/binaries/axiomregent-${{ matrix.target }}"
-          strip "apps/desktop/src-tauri/binaries/axiomregent-${{ matrix.target }}" || true
+             "product/apps/desktop/src-tauri/binaries/axiomregent-${{ matrix.target }}"
+          strip "product/apps/desktop/src-tauri/binaries/axiomregent-${{ matrix.target }}" || true
 
       - name: Stage axiomregent (Windows)
         if: runner.os == 'Windows'
@@ -94,7 +94,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sidecar-${{ matrix.target }}
-          path: apps/desktop/src-tauri/binaries/
+          path: product/apps/desktop/src-tauri/binaries/
           retention-days: 5
 
   # ── Stage 1b: Linux ARM64 sidecar (cross-compiled) ────────────────
@@ -132,15 +132,15 @@ jobs:
 
       - name: Stage binaries
         run: |
-          mkdir -p apps/desktop/src-tauri/binaries
+          mkdir -p product/apps/desktop/src-tauri/binaries
           cp crates/target/aarch64-unknown-linux-gnu/release/axiomregent \
-             apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
+             product/apps/desktop/src-tauri/binaries/axiomregent-aarch64-unknown-linux-gnu
 
       - name: Upload sidecar artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sidecar-aarch64-unknown-linux-gnu
-          path: apps/desktop/src-tauri/binaries/
+          path: product/apps/desktop/src-tauri/binaries/
           retention-days: 5
 
   # ── Stage 2: Build & release desktop app ───────────────────────────
@@ -213,11 +213,11 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: sidecar-${{ matrix.target }}
-          path: apps/desktop/src-tauri/binaries/
+          path: product/apps/desktop/src-tauri/binaries/
 
       - name: Mark sidecars executable (Unix)
         if: runner.os != 'Windows'
-        run: chmod +x apps/desktop/src-tauri/binaries/*
+        run: chmod +x product/apps/desktop/src-tauri/binaries/*
 
       - name: Resolve release tag
         id: tag
@@ -266,7 +266,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          projectPath: apps/desktop
+          projectPath: product/apps/desktop
           tauriScript: pnpm tauri
           tagName: ${{ steps.tag.outputs.tag }}
           releaseName: 'OPC ${{ steps.tag.outputs.tag }}'
@@ -293,7 +293,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          projectPath: apps/desktop
+          projectPath: product/apps/desktop
           tauriScript: pnpm tauri
           tagName: ${{ steps.tag.outputs.tag }}
           releaseName: 'OPC ${{ steps.tag.outputs.tag }}'
@@ -317,7 +317,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          target_root="apps/desktop/src-tauri/target"
+          target_root="product/apps/desktop/src-tauri/target"
           # Multi-line output via GITHUB_OUTPUT heredoc.
           {
             echo "paths<<INSTALLERS_EOF"
@@ -336,9 +336,9 @@ jobs:
       - name: Generate desktop SBOM (CycloneDX)
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0 (ships syft 1.30+; v0.17.8's syft 1.11 returned 0 rust components)
         with:
-          path: apps/desktop
+          path: product/apps/desktop
           format: cyclonedx-json
-          output-file: apps/desktop/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
+          output-file: product/apps/desktop/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
 
       # Spec 117 — provenance attestation per installer file produced this run.
       # Single attest call covers DMG/AppImage/NSIS in this matrix-target's
@@ -357,7 +357,7 @@ jobs:
           BUNDLE: ${{ steps.attest-installer.outputs.bundle-path }}
         run: |
           set -euo pipefail
-          target_root="apps/desktop/src-tauri/target"
+          target_root="product/apps/desktop/src-tauri/target"
           if [ -z "${BUNDLE:-}" ] || [ ! -f "$BUNDLE" ]; then
             echo "::error::attest-build-provenance did not emit a bundle path."
             exit 1
@@ -381,16 +381,16 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           set -euo pipefail
-          target_root="apps/desktop/src-tauri/target"
+          target_root="product/apps/desktop/src-tauri/target"
           gh release upload "$TAG" \
-            "apps/desktop/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json" \
+            "product/apps/desktop/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json" \
             --clobber --repo "$GITHUB_REPOSITORY"
           while IFS= read -r att; do
             [ -z "$att" ] && continue
             gh release upload "$TAG" "$att" --clobber --repo "$GITHUB_REPOSITORY"
           done < <(find "$target_root" -type f -name '*.intoto.jsonl' 2>/dev/null)
 
-      # Consumed by the in-app updater (apps/desktop/src-tauri/src/commands/updater.rs).
+      # Consumed by the in-app updater (product/apps/desktop/src-tauri/src/commands/updater.rs).
       # Emits a `<installer>.sha256` sidecar for the platform installer the updater
       # downloads (DMG / NSIS setup.exe / AppImage) and attaches it to the release.
       - name: Generate SHA-256 sidecars for installer assets
@@ -400,7 +400,7 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           set -euo pipefail
-          target_root="apps/desktop/src-tauri/target"
+          target_root="product/apps/desktop/src-tauri/target"
           # Portable across bash 3.2 (macOS) — no `mapfile`.
           hash_cmd=""
           if command -v sha256sum >/dev/null 2>&1; then

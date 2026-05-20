@@ -18,7 +18,7 @@ summary: >
 code_aliases:
   - SESSION_MEMORY
 establishes:
-  - packages/memory-mcp
+  - product/packages/memory-mcp
 ---
 
 # Feature Specification: Session Memory / Project-Object Persistence

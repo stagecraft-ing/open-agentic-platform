@@ -71,6 +71,6 @@ Phase 1a unblocks 1b and 1c in parallel — once the worker subscription is load
   - `platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx` — list view to gain `latestRun` denormalisation
 - Cross-crate dependencies:
   - `crates/policy-kernel` — new `resolveExtractionPolicy(workspaceId)` helper exposed via stagecraft FFI / HTTP shim
-  - `packages/prompt-assembly` (spec 070) — versioned prompt source for agent extractors; provides `promptFingerprint`
+  - `product/packages/prompt-assembly` (spec 070) — versioned prompt source for agent extractors; provides `promptFingerprint`
   - `crates/tool-registry` (spec 067) + `crates/agent` safety tier registration (spec 036) — agent extractors register at the appropriate tier so a tool-bearing call fails closed
 - Related specs: 036 (safety tiers), 047 (governance control plane), 070 (prompt-assembly cache), 087 (knowledge intake domain), 114 (async clone pipeline pattern)

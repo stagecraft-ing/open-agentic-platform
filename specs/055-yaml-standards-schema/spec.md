@@ -26,7 +26,7 @@ code_aliases:
   - CODING_STANDARDS_SCHEMA
 establishes:
   - crates/standards-loader
-  - packages/yaml-standards-schema/schemas/coding-standard.schema.json
+  - product/packages/yaml-standards-schema/schemas/coding-standard.schema.json
 sources:
   - equilateral-agents
 ---

@@ -17,8 +17,8 @@ summary: >
 code_aliases:
   - NOTIFICATION_SYSTEM
 establishes:
-  - apps/desktop/src/lib/notificationOrchestrator.ts
-  - apps/desktop/src/lib/notificationChannels.ts
+  - product/apps/desktop/src/lib/notificationOrchestrator.ts
+  - product/apps/desktop/src/lib/notificationChannels.ts
 ---
 
 # Feature Specification: Notification Orchestrator

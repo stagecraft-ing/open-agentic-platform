@@ -294,15 +294,21 @@ pub fn resolve_internal_deps(packages: &mut [PackageRecord], dep_map: &[(String,
 }
 
 /// Discover all Rust crate Cargo.toml files in the repo.
+///
+/// Post-I1: the root workspace at `<repo>/Cargo.toml` enumerates the
+/// crates/ and tools/{spec-spine,oap,shared}/ members. Standalone
+/// workspaces (excluded from the root) live at known paths and are
+/// added explicitly. Vendored tree-sitter grammars under
+/// tools/vendor/grammars/ are not Rust crates and are skipped.
 pub fn discover_rust_crates(repo_root: &Path) -> Vec<PathBuf> {
     let mut paths = Vec::new();
 
-    // crates/ workspace members
-    let workspace_toml = repo_root.join("crates/Cargo.toml");
+    // Root workspace members (post-I1 consolidation).
+    let workspace_toml = repo_root.join("Cargo.toml");
     if workspace_toml.is_file() {
         if let Ok(members) = parse_workspace_members(&workspace_toml) {
             for m in members {
-                let p = repo_root.join("crates").join(&m).join("Cargo.toml");
+                let p = repo_root.join(&m).join("Cargo.toml");
                 if p.is_file() {
                     paths.push(p);
                 }
@@ -310,60 +316,15 @@ pub fn discover_rust_crates(repo_root: &Path) -> Vec<PathBuf> {
         }
     }
 
-    // tools/*/ (each independent, skip tools/shared/)
-    if let Ok(entries) = fs::read_dir(repo_root.join("tools")) {
-        for ent in entries.flatten() {
-            let p = ent.path();
-            if !p.is_dir() {
-                continue;
-            }
-            let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            if name == "shared" {
-                continue;
-            }
-            let toml_path = p.join("Cargo.toml");
-            if toml_path.is_file() {
-                paths.push(toml_path);
-            }
+    // Standalone excluded workspaces (declared in [workspace.exclude]).
+    for excluded in [
+        "product/apps/desktop/src-tauri",
+        "platform/services/deployd-api-rs",
+    ] {
+        let p = repo_root.join(excluded).join("Cargo.toml");
+        if p.is_file() {
+            paths.push(p);
         }
-    }
-
-    // tools/shared/*/
-    let shared = repo_root.join("tools/shared");
-    if shared.is_dir() {
-        if let Ok(entries) = fs::read_dir(&shared) {
-            for ent in entries.flatten() {
-                let p = ent.path();
-                if p.is_dir() {
-                    let toml_path = p.join("Cargo.toml");
-                    if toml_path.is_file() {
-                        paths.push(toml_path);
-                    }
-                }
-            }
-        }
-    }
-
-    // grammars/*/
-    let grammars = repo_root.join("grammars");
-    if grammars.is_dir() {
-        if let Ok(entries) = fs::read_dir(&grammars) {
-            for ent in entries.flatten() {
-                let p = ent.path();
-                if p.is_dir() {
-                    let toml_path = p.join("Cargo.toml");
-                    if toml_path.is_file() {
-                        paths.push(toml_path);
-                    }
-                }
-            }
-        }
-    }
-
-    // platform/services/deployd-api-rs/
-    let deployd = repo_root.join("platform/services/deployd-api-rs/Cargo.toml");
-    if deployd.is_file() {
-        paths.push(deployd);
     }
 
     paths.sort();
@@ -374,8 +335,11 @@ pub fn discover_rust_crates(repo_root: &Path) -> Vec<PathBuf> {
 pub fn discover_npm_packages(repo_root: &Path) -> Vec<PathBuf> {
     let mut paths = Vec::new();
 
-    // Read pnpm-workspace.yaml for workspace globs
-    let ws_yaml = repo_root.join("pnpm-workspace.yaml");
+    // Read pnpm-workspace.yaml for workspace globs (lives under product/
+    // post-I7; globs are relative to the yaml's directory, so resolve
+    // them via product/ rather than the repo root).
+    let ws_yaml_dir = repo_root.join("product");
+    let ws_yaml = ws_yaml_dir.join("pnpm-workspace.yaml");
     if ws_yaml.is_file() {
         if let Ok(raw) = fs::read_to_string(&ws_yaml) {
             if let Ok(doc) = serde_yaml::from_str::<serde_yaml::Value>(&raw) {
@@ -384,7 +348,7 @@ pub fn discover_npm_packages(repo_root: &Path) -> Vec<PathBuf> {
                         if let Some(pattern) = glob.as_str() {
                             // Pattern is like "apps/*" or "packages/*"
                             let base = pattern.trim_end_matches("/*").trim_end_matches("/**");
-                            let dir = repo_root.join(base);
+                            let dir = ws_yaml_dir.join(base);
                             if dir.is_dir() {
                                 if let Ok(entries) = fs::read_dir(&dir) {
                                     for ent in entries.flatten() {

@@ -63,7 +63,7 @@ Phase 0 unblocks 1 and 3 in parallel-by-file (types are shared). Phases 4 and 5 
   - `platform/services/stagecraft/api/sync/duplex.ts` — envelope kind registry
   - `platform/services/stagecraft/api/db/migrations/27_collapse_workspace_into_project.up.sql` — what migration 30 partially reverses (agents only)
   - `platform/services/stagecraft/web/app/routes/app.tsx` — top-nav adds `Agents`
-  - `apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` — schema bump
+  - `product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` — schema bump
   - `crates/factory-engine/src/stages/stage_cd_comparator.rs` — passes through new resolver
 - Cross-crate dependencies:
   - `crates/agent-frontmatter` — UnifiedFrontmatter contract; unchanged shape

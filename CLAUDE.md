@@ -4,7 +4,7 @@
 
 Open Agentic Platform (OAP) is a governed operating system for AI-native software delivery. It combines three layers:
 
-- **OPC** (`apps/desktop/`) — local Tauri + React cockpit for inspect, governance, and git context
+- **OPC** (`product/apps/desktop/`) — local Tauri + React cockpit for inspect, governance, and git context
 - **Platform** (`platform/`) — organisational control plane (identity, policy, approvals, deployments, audit)
 - **Spec Spine** (`specs/`) — canonical contract system turning intent into traceable, machine-verifiable truth
 
@@ -35,7 +35,10 @@ crates/             — Rust library crates
   skill-factory/    — Skill and Command Factory (spec 071)
   tool-registry/    — ToolDef trait + registry with permission gates (spec 067)
   xray/             — Repository analysis: complexity scoring, call graphs, structural fingerprinting
-apps/desktop/       — Tauri v2 + React desktop app (TypeScript + Rust)
+product/            — End-user product layer (npm workspace root post-I7)
+  apps/desktop/     — Tauri v2 + React desktop app (TypeScript + Rust)
+  packages/         — Shared npm packages (provider-registry, ui, etc.)
+  package.json, pnpm-workspace.yaml — workspace root
 platform/           — Organisational control plane (imported from stagecraft-ing/platform)
   services/
     stagecraft/     — Encore.ts SaaS (auth, admin, monitoring, Slack, GitHub webhook handling)
@@ -65,7 +68,7 @@ In addition, all orchestrated workflows load `.claude/rules/governed-artifact-re
 
 - **Specs are the source of truth.** Every feature starts as a spec in `specs/NNN-slug/spec.md` with YAML frontmatter.
 - **Rust for tools and crates.** All CLI tools and library crates are Rust. Build with `cargo build --release --manifest-path <path>/Cargo.toml`.
-- **TypeScript for the desktop app.** `apps/desktop/` uses Tauri v2, React, TypeScript.
+- **TypeScript for the desktop app.** `product/apps/desktop/` uses Tauri v2, React, TypeScript.
 - **TypeScript for platform services.** `platform/services/stagecraft/` uses Encore.ts with npm (NOT pnpm — excluded from the pnpm workspace). `deployd-api-rs` is the Rust deployment orchestrator (axum + hiqlite).
 - **axiomregent is the unified MCP agent crate.** It now contains the `github/`, `search/`, and `checkpoint/` modules, absorbing the former `gitctx`, `blockoli`, and `stackwalk` crates.
 - **Markdown for specs.** Human truth is markdown (with optional YAML frontmatter). Machine registries are compiler-emitted JSON only.

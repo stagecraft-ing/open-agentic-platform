@@ -19,8 +19,8 @@ code_aliases:
 extends:
   - spec: "033-axiomregent-activation"
     paths:
-      - apps/desktop/src-tauri/src/commands/agents.rs
-      - apps/desktop/src-tauri/src/commands/claude.rs
+      - product/apps/desktop/src-tauri/src/commands/agents.rs
+      - product/apps/desktop/src-tauri/src/commands/claude.rs
     nature: additive
 ---
 

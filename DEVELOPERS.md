@@ -82,7 +82,7 @@ Stagecraft also exposes the Encore development dashboard at http://localhost:940
 
 ## Package Managers
 
-- **JS workspace** uses **pnpm** — covers `apps/desktop/` and `packages/*`. Tools and crates under `tools/` and `crates/` are Rust (managed by `cargo`, not pnpm).
+- **JS workspace** uses **pnpm** — covers `product/apps/desktop/` and `product/packages/*`. Tools and crates under `tools/` and `crates/` are Rust (managed by `cargo`, not pnpm).
 - **Platform services** use **npm** (each has its own `package-lock.json`)
 
 Platform services are excluded from `pnpm-workspace.yaml`. Do not run `pnpm install` inside `platform/services/*`.
@@ -92,4 +92,4 @@ Platform services are excluded from `pnpm-workspace.yaml`. Do not run `pnpm inst
 - [README.md](README.md) — architecture overview and system vision
 - [platform/CLAUDE.md](platform/CLAUDE.md) — platform layer technical reference
 - [platform/services/stagecraft/README.md](platform/services/stagecraft/README.md) — full stagecraft service docs
-- [apps/desktop/README.md](apps/desktop/README.md) — OPC desktop app
+- [product/apps/desktop/README.md](product/apps/desktop/README.md) — OPC desktop app

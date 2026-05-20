@@ -173,7 +173,7 @@ Adding a new adapter SHALL require only creating a new directory under `factory/
 crates/factory-contracts/
   ├── depends on: serde, serde_yaml, serde_json, thiserror
   ├── consumed by: crates/orchestrator (spec 075)
-  ├── consumed by: apps/desktop (spec 076)
+  ├── consumed by: product/apps/desktop (spec 076)
   ├── consumed by: crates/axiomregent (policy shards)
   └── consumed by: tools/spec-spine/spec-compiler (registry integration)
 ```

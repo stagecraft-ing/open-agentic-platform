@@ -21,7 +21,7 @@ code_aliases:
 owner: bart
 risk: medium
 establishes:
-  - apps/desktop/src-tauri/src/commands/sidecars.rs
+  - product/apps/desktop/src-tauri/src/commands/sidecars.rs
   - crates/axiomregent/src/lib.rs
 ---
 

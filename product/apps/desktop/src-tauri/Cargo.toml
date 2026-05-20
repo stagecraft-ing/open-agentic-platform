@@ -84,19 +84,19 @@ similar = { version = "2", features = ["unicode", "text"] }
 sysinfo = "0.34"
 
 # Opc additions
-xray         = { path = "../../../crates/xray" }
-featuregraph = { path = "../../../crates/featuregraph" }
-open_agentic_spec_registry_reader = { path = "../../../tools/spec-spine/registry-consumer" }
-agent        = { path = "../../../crates/agent" }
-run          = { path = "../../../crates/run" }
-orchestrator = { path = "../../../crates/orchestrator" }
-provider-registry = { path = "../../../crates/provider-registry", default-features = false, features = ["anthropic", "openai"] }
-policy-kernel = { package = "open_agentic_policy_kernel", path = "../../../crates/policy-kernel", default-features = false }
-factory-engine = { path = "../../../crates/factory-engine" }
-factory-contracts = { path = "../../../crates/factory-contracts" }
-factory-platform-client = { path = "../../../crates/factory-platform-client" }
-factory-project-detect = { path = "../../../crates/factory-project-detect" }
-provenance-validator = { path = "../../../crates/provenance-validator" }
+xray         = { path = "../../../../crates/xray" }
+featuregraph = { path = "../../../../crates/featuregraph" }
+open_agentic_spec_registry_reader = { path = "../../../../tools/spec-spine/registry-consumer" }
+agent        = { path = "../../../../crates/agent" }
+run          = { path = "../../../../crates/run" }
+orchestrator = { path = "../../../../crates/orchestrator" }
+provider-registry = { path = "../../../../crates/provider-registry", default-features = false, features = ["anthropic", "openai"] }
+policy-kernel = { package = "open_agentic_policy_kernel", path = "../../../../crates/policy-kernel", default-features = false }
+factory-engine = { path = "../../../../crates/factory-engine" }
+factory-contracts = { path = "../../../../crates/factory-contracts" }
+factory-platform-client = { path = "../../../../crates/factory-platform-client" }
+factory-project-detect = { path = "../../../../crates/factory-project-detect" }
+provenance-validator = { path = "../../../../crates/provenance-validator" }
 
 
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }

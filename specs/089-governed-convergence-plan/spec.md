@@ -258,11 +258,11 @@ But:
 1. **Eliminate silent orchestrator bypass** (1 day)
    - Refactor `dispatch_via_governed_claude()` in `commands/orchestrator.rs` to call shared `plan_governed()` instead of inline duplication
    - Emit `governance-mode` event from orchestrator path
-   - Files: `apps/desktop/src-tauri/src/commands/orchestrator.rs`
+   - Files: `product/apps/desktop/src-tauri/src/commands/orchestrator.rs`
 
 2. **Fix web_server port detection race** (0.5 day)
    - Replace `std::env::var("OPC_AXIOMREGENT_PORT")` in `web_server.rs` with shared `SidecarState` or watch pattern
-   - Files: `apps/desktop/src-tauri/src/web_server.rs`, `apps/desktop/src-tauri/src/sidecars.rs`
+   - Files: `product/apps/desktop/src-tauri/src/web_server.rs`, `product/apps/desktop/src-tauri/src/sidecars.rs`
 
 3. **Fix LeaseStore default** (0.5 day)
    - Change `LeaseStore::new()` default from `test_permissive()` to `claude_default()` (max_tier: 2)
@@ -279,7 +279,7 @@ But:
    - Add CI build targets for `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu` _(Intel Mac `x86_64-apple-darwin` dropped 2026-04-15)_
    - Bundle all targets in Tauri sidecar config
    - Reduces bypass surface from "all non-aarch64-mac" to "binary genuinely missing"
-   - Files: `.github/workflows/`, `apps/desktop/src-tauri/tauri.conf.json`
+   - Files: `.github/workflows/`, `product/apps/desktop/src-tauri/tauri.conf.json`
 
 6. **Guard `DefaultMode::Bypass` at policy tier** (1 day)
    - `PermissionRuntime::evaluate()`: if `DefaultMode::Bypass` is set at non-Policy tier, log warning and fall through to `Ask` instead
@@ -426,7 +426,7 @@ But:
    - Register `governance_preflight` in `commands/analysis.rs`
    - Accept `changed_files: Vec<String>`, return `PreflightResult` with `ChangeTier`, affected features, violations
    - Wire into desktop pre-commit or pre-dispatch hook
-   - Files: `apps/desktop/src-tauri/src/commands/analysis.rs`, desktop UI
+   - Files: `product/apps/desktop/src-tauri/src/commands/analysis.rs`, desktop UI
 
 2. **Extend ToolCallContext with spec fields** (1 day)
    - Add `feature_ids: Vec<String>`, `max_spec_risk: Option<String>`, `spec_statuses: Vec<String>` to `ToolCallContext`
@@ -565,7 +565,7 @@ But:
    - Extend checkpoint panel to show branch names and divergence points
    - Show git SHA alongside each checkpoint
    - Allow "compare branches" between two checkpoints
-   - Files: `apps/desktop/src/` checkpoint components
+   - Files: `product/apps/desktop/src/` checkpoint components
 
 **Acceptance criteria**:
 - SC-095-1: Checkpoint creation records actual git HEAD SHA
@@ -607,13 +607,13 @@ But:
 3. **Wire governance_drift as Tauri command** (0.5 day)
    - Expose `FeatureGraphTools::governance_drift()` as a desktop command
    - Returns features with `// Feature:` headers that don't match any registry entry
-   - Files: `apps/desktop/src-tauri/src/commands/analysis.rs`
+   - Files: `product/apps/desktop/src-tauri/src/commands/analysis.rs`
 
 4. **Desktop portfolio dashboard** (2 days)
    - New panel combining enriched feature list with complexity heatmap
    - Feature cards show: status, risk, LOC, complexity, test ratio, dependency count
    - Sortable/filterable by status, risk, complexity
-   - Files: `apps/desktop/src/features/` new component
+   - Files: `product/apps/desktop/src/features/` new component
 
 **Acceptance criteria**:
 - SC-096-1: `EnrichedFeature` records carry xray metrics alongside feature attribution

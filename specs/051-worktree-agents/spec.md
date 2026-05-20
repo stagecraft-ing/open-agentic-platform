@@ -17,8 +17,8 @@ summary: >
 code_aliases:
   - WORKTREE_AGENTS
 establishes:
-  - packages/worktree-agents
-  - apps/desktop/src-tauri/src/commands/worktree_agents.rs
+  - product/packages/worktree-agents
+  - product/apps/desktop/src-tauri/src/commands/worktree_agents.rs
 ---
 
 # Feature Specification: Background Agents with Git Worktree Isolation

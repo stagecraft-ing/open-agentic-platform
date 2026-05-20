@@ -4,7 +4,7 @@
 
 Open Agentic Platform (OAP) is a governed operating system for AI-native software delivery. Three layers:
 
-1. **OPC Desktop** (`apps/desktop/`) — Local Tauri v2 + React cockpit for inspection, governance, and git context
+1. **OPC Desktop** (`product/apps/desktop/`) — Local Tauri v2 + React cockpit for inspection, governance, and git context
 2. **Spec Spine** (`specs/`, `tools/`, `build/`) — Canonical contract system: markdown specs compile to JSON registries
 3. **Platform** (`platform/`) — Organisational control plane: identity, policy, approvals, deployments, audit
 
@@ -18,7 +18,7 @@ Refresh after manifest changes:
 codebase-indexer compile && codebase-indexer render
 ```
 
-Layer 1 of the index covers Rust crates (`crates/`, `tools/spec-spine/`, `tools/oap/`, `tools/shared/`, `tools/vendor/grammars/`, `platform/services/deployd-api-rs/`) and npm packages (`apps/desktop/`, `packages/*`, `platform/services/stagecraft/`). Layer 2 maps each spec to its implementing paths. Spec narrative for any crate: open the spec id from its inventory row.
+Layer 1 of the index covers Rust crates (`crates/`, `tools/spec-spine/`, `tools/oap/`, `tools/shared/`, `tools/vendor/grammars/`, `platform/services/deployd-api-rs/`) and npm packages (`product/apps/desktop/`, `product/packages/*`, `platform/services/stagecraft/`). Layer 2 maps each spec to its implementing paths. Spec narrative for any crate: open the spec id from its inventory row.
 
 ## Factory Pipeline
 
@@ -113,7 +113,7 @@ Human-authored truth is always markdown. Machine-consumed truth is always compil
 
 ## Desktop App (OPC)
 
-Tauri v2 + React desktop application in `apps/desktop/`:
+Tauri v2 + React desktop application in `product/apps/desktop/`:
 
 - **Rust backend** (`src-tauri/`) — Tauri commands, axiomregent sidecar, state management
 - **React frontend** (`src/`) — Panels for inspection, governance, git, Factory pipeline visualization

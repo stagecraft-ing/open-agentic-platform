@@ -17,7 +17,7 @@ summary: >
 code_aliases:
   - TOOL_RENDERER_SYSTEM
 establishes:
-  - packages/tool-renderer
+  - product/packages/tool-renderer
 ---
 
 # Feature Specification: Config-Driven Tool Rendering System

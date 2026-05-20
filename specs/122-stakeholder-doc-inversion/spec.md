@@ -38,7 +38,7 @@ establishes:
   - crates/factory-engine/skills/client-document-comparator.md
   - crates/factory-engine/skills/project-charter-comparator.md
   - tools/oap/stakeholder-doc-lint/Cargo.toml
-  - apps/desktop/src/components/factory/StageCdReview.tsx
+  - product/apps/desktop/src/components/factory/StageCdReview.tsx
 extends:
   - spec: "075-factory-workflow-engine"
     paths:
@@ -274,7 +274,7 @@ The operator authors a charter that cites an extracted quote (`source: "extracte
 
 #### Operator UX
 
-- **FR-030**: A new desktop UI surface `apps/desktop/src/components/factory/StageCdReview.tsx` MUST render the comparator's output: the `stage-cd-diff.json` per-section, side-by-side authored vs candidate views, diff classification labels, and the three operator actions (Reject / Accept / Force approve).
+- **FR-030**: A new desktop UI surface `product/apps/desktop/src/components/factory/StageCdReview.tsx` MUST render the comparator's output: the `stage-cd-diff.json` per-section, side-by-side authored vs candidate views, diff classification labels, and the three operator actions (Reject / Accept / Force approve).
 - **FR-031**: The review surface MUST link each diff to its underlying claim chain (the BRD claim → Stage 1 emit → upstream extraction citation, where derivable). This lets operators navigate from a Stage CD scope flip to the Stage 1 fabrication that caused it without leaving the surface.
 - **FR-032**: The review surface MUST surface the `seed-ready` signal distinctly from the `compare-blocked` signal: seeding is a positive milestone, blocking is a remediation action.
 
@@ -353,7 +353,7 @@ The operator authors a charter that cites an extracted quote (`source: "extracte
 - `crates/factory-engine/src/stages/stage_cd_comparator.rs` — new module: pairing, classification, gate evaluation.
 - `crates/factory-engine/skills/client-document-comparator.md`, `crates/factory-engine/skills/project-charter-comparator.md` — new skill prose for comparator-mode behaviour, distinct from the legacy generator skills.
 - `tools/oap/stakeholder-doc-lint/` — new lint tool, runs on `make ci`.
-- `apps/desktop/src/components/factory/StageCdReview.tsx` — new UI surface for diff review.
+- `product/apps/desktop/src/components/factory/StageCdReview.tsx` — new UI surface for diff review.
 - `requirements/stakeholder/charter.md`, `requirements/stakeholder/client-document.md` — canonical authored paths reserved by spec.
 - `requirements/audit/stakeholder-doc-migration.md` — migration provenance path.
 - Forensic record: `requirements/debug/Forensic-Analysis_1GX-Integration-Scope-Provenance.md` (project-local at the operator's CFS workspace) — documents the Stage CD overwrite this spec prevents.

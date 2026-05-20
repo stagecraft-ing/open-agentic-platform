@@ -38,7 +38,7 @@ compliance:
 summary: >
   Add governed supply-chain gates to CI. cargo-deny enforces a policy bundle
   for advisories, licenses, and banned crates across every Rust manifest in
-  the repo; pnpm/npm audit covers the JavaScript surface (apps/desktop +
+  the repo; pnpm/npm audit covers the JavaScript surface (product/apps/desktop +
   platform/services/stagecraft). Posture is blocking from day 0 (the 30-day
   warn-only window planned in §9.1 was collapsed on 2026-05-02 after a clean
   dry-run; see §9 promotion record). The gate is mirrored in the Makefile
@@ -82,7 +82,7 @@ Makefile per spec 104.
   `Makefile` `CI_RUST_MANIFESTS` plus all tool manifests are scanned. No
   manifest is silently excluded.
 - **JavaScript audit at the package-manager layer.** `pnpm audit` is run for
-  the pnpm workspace (apps/desktop + packages/) and `npm audit` for
+  the pnpm workspace (product/apps/desktop + product/packages/) and `npm audit` for
   `platform/services/stagecraft`. Both scoped to `--audit-level=high` (warn
   on moderate, block on high/critical).
 - **Blocking from day 0.** A 30-day warn-only window was originally planned
@@ -220,7 +220,7 @@ ci-supply-chain: ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm
 SUPPLY_CHAIN_RUST_MANIFESTS = \
     crates/Cargo.toml \
     platform/services/deployd-api-rs/Cargo.toml \
-    apps/desktop/src-tauri/Cargo.toml \
+    product/apps/desktop/src-tauri/Cargo.toml \
     tools/spec-spine/spec-compiler/Cargo.toml \
     tools/spec-spine/registry-consumer/Cargo.toml \
     tools/spec-spine/spec-lint/Cargo.toml \
