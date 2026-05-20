@@ -62,7 +62,7 @@ pub const BYPASS_PREFIXES: &[&str] = &[
     // file-level coupling).
     "build/",
     // Vendored grammars (imported third-party material).
-    "grammars/",
+    "tools/vendor/grammars/",
     // Lockfiles — authoritative dependency resolution; the
     // corresponding manifest carries the spec claim. `**/` tail-suffix
     // patterns match any Cargo.lock or node lockfile regardless of

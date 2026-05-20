@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "73f129ffdd0bc7b8f28c1c1f1eeb62bb335204e719119dd5fc7924f55e3fa4f0",
+    "contentHash": "39fe664c25b9d01b22ec5aaa716ce0bb7a1766af3d5964a66dc0c14d2fabc103",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -251,71 +251,6 @@
       "path": "apps/desktop",
       "specRef": "032-opc-inspect-governance-wiring-mvp",
       "version": "0.3.2"
-    },
-    {
-      "edition": "2021",
-      "entryPoints": [
-        "bindings/rust/lib.rs"
-      ],
-      "externalDeps": [
-        "tree-sitter-language"
-      ],
-      "kind": "rust-lib",
-      "name": "tree-sitter-c",
-      "path": "grammars/tree-sitter-c",
-      "version": "0.24.1"
-    },
-    {
-      "edition": "2021",
-      "entryPoints": [
-        "bindings/rust/lib.rs"
-      ],
-      "externalDeps": [
-        "tree-sitter-language"
-      ],
-      "kind": "rust-lib",
-      "name": "tree-sitter-javascript",
-      "path": "grammars/tree-sitter-javascript",
-      "version": "0.25.0"
-    },
-    {
-      "edition": "2021",
-      "entryPoints": [
-        "bindings/rust/lib.rs"
-      ],
-      "externalDeps": [
-        "tree-sitter-language"
-      ],
-      "kind": "rust-lib",
-      "name": "tree-sitter-python",
-      "path": "grammars/tree-sitter-python",
-      "version": "0.25.0"
-    },
-    {
-      "edition": "2021",
-      "entryPoints": [
-        "bindings/rust/lib.rs"
-      ],
-      "externalDeps": [
-        "tree-sitter-language"
-      ],
-      "kind": "rust-lib",
-      "name": "tree-sitter-rust",
-      "path": "grammars/tree-sitter-rust",
-      "version": "0.24.0"
-    },
-    {
-      "edition": "2021",
-      "entryPoints": [
-        "bindings/rust/lib.rs"
-      ],
-      "externalDeps": [
-        "tree-sitter-language"
-      ],
-      "kind": "rust-lib",
-      "name": "tree-sitter-typescript",
-      "path": "grammars/tree-sitter-typescript",
-      "version": "0.23.2"
     },
     {
       "entryPoints": [
@@ -4634,12 +4569,6 @@
       "125-schema-parity-walker-rebuild",
       "150-example-tenant-profile"
     ],
-    "untracedCode": [
-      "grammars/tree-sitter-c",
-      "grammars/tree-sitter-javascript",
-      "grammars/tree-sitter-python",
-      "grammars/tree-sitter-rust",
-      "grammars/tree-sitter-typescript"
-    ]
+    "untracedCode": []
   }
 }

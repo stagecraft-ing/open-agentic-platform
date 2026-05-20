@@ -18,7 +18,7 @@ Refresh after manifest changes:
 codebase-indexer compile && codebase-indexer render
 ```
 
-Layer 1 of the index covers Rust crates (`crates/`, `tools/`, `tools/shared/`, `grammars/`, `platform/services/deployd-api-rs/`) and npm packages (`apps/desktop/`, `packages/*`, `platform/services/stagecraft/`). Layer 2 maps each spec to its implementing paths. Spec narrative for any crate: open the spec id from its inventory row.
+Layer 1 of the index covers Rust crates (`crates/`, `tools/spec-spine/`, `tools/oap/`, `tools/shared/`, `tools/vendor/grammars/`, `platform/services/deployd-api-rs/`) and npm packages (`apps/desktop/`, `packages/*`, `platform/services/stagecraft/`). Layer 2 maps each spec to its implementing paths. Spec narrative for any crate: open the spec id from its inventory row.
 
 ## Factory Pipeline
 

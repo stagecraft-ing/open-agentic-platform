@@ -6,7 +6,7 @@ fn main() {
     {
         use std::path::PathBuf;
         let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let grammars_dir = manifest_dir.join("../../grammars");
+        let grammars_dir = manifest_dir.join("../../tools/vendor/grammars");
 
         let dirs: Vec<PathBuf> = [
             "tree-sitter-rust",
