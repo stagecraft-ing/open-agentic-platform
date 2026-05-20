@@ -43,6 +43,7 @@ spec:
   issuerRef:
     name: letsencrypt-prod-dns01-cloudflare
     kind: ClusterIssuer
+  # region: reflector-annotations
   # kubernetes-reflector annotations propagated onto the generated
   # `tenants-wildcard-tls` Secret. See header comment for the full
   # replication explanation.
@@ -57,3 +58,4 @@ spec:
       # namespaces labelled `oap.tenant=true`), narrow the regex here.
       reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
       reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: ".+"
+  # endregion reflector-annotations

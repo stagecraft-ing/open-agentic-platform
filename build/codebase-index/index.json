@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "64d922742a91e717ff41d7a9b943beb9c240bc3221cdadb17bf8df668af96bef",
+    "contentHash": "9e6594ad4316ebcbc8bf922034f5f2f21864f4fcb0d8ee38b3b0f6ec906fbea5",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1437,7 +1437,8 @@
         "serde_json"
       ],
       "internalDeps": [
-        "open_agentic_codebase_indexer"
+        "open_agentic_codebase_indexer",
+        "open_agentic_spec_registry_reader"
       ],
       "kind": "rust-lib-bin",
       "name": "open_agentic_spec_code_coupling_check",

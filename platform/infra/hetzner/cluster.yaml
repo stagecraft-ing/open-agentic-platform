@@ -4,7 +4,9 @@
 
 cluster_name: oap-hetzner
 kubeconfig_path: ./kubeconfig
+# region: k3s-version
 k3s_version: v1.33.11+k3s1
+# endregion k3s-version
 
 networking:
   ssh:

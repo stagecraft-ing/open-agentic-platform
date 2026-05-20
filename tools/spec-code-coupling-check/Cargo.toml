@@ -17,6 +17,7 @@ path = "src/lib.rs"
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 open_agentic_codebase_indexer = { path = "../codebase-indexer" }
+open_agentic_spec_registry_reader = { path = "../registry-consumer" }
 serde_json = "1"
 
 [dev-dependencies]

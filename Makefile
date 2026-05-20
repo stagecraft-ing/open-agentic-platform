@@ -69,6 +69,7 @@ setup: check-deps
 # ============================================================
 # axiomregent sidecar binary
 # ============================================================
+## tag: axiomregent-build
 
 # Default repo for `gh release download`. Auto-detected from the local
 # git remote when possible; otherwise falls back to the canonical path so
@@ -135,6 +136,7 @@ fetch-axiomregent-check:
 # ============================================================
 # Spec tools
 # ============================================================
+## tag: registry
 
 ## Recompile spec registry + codebase index in one step (102 FR-026).
 registry: spec-compile oap-registry-enrich index oap-code-index-enrich ci-schema-parity
@@ -440,6 +442,7 @@ ci-tools:
 	    cargo test --manifest-path tools/registry-consumer/Cargo.toml --all $$c; \
 	done
 	@echo ""
+## tag: spec-lint
 	@echo "==> ci-tools: spec-lint"
 	cargo build --release --manifest-path tools/spec-lint/Cargo.toml
 	./tools/spec-lint/target/release/spec-lint --fail-on-warn   # spec 128: strict posture (amends spec 006)
@@ -539,6 +542,7 @@ ci-schema-parity:
 # to `origin/main...HEAD`; override BASE_REF/HEAD_REF on the command line
 # (e.g. `make ci-spec-code-coupling BASE_REF=HEAD~3`).
 # ============================================================
+## tag: spec-code-coupling
 
 ci-spec-code-coupling:
 	@echo "==> ci-spec-code-coupling: build + run gate"
@@ -561,6 +565,7 @@ ci-spec-code-coupling:
 # Supply chain (spec 116) — mirrors .github/workflows/ci-supply-chain.yml.
 # Posture: blocking from day 0 (spec 116 §9 — warn window collapsed 2026-05-02).
 # ============================================================
+## tag: supply-chain
 
 ci-supply-chain: ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm
 	@echo ""
@@ -661,6 +666,7 @@ else
   CIFAST_CARGO_TEST := test
 endif
 
+## tag: ci-default-rename
 ci:
 	@echo "==> ci (spec 134 fast loop, promoted to default by spec 135): parallel local validation"
 	@echo "    sccache:  $(if $(RUSTC_WRAPPER),enabled ($(RUSTC_WRAPPER)),absent — install: brew install sccache)"

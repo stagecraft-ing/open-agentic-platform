@@ -184,6 +184,7 @@ info "Waiting for at least one non-master node Ready..."
 kubectl wait --for=condition=Ready node -l '!node-role.kubernetes.io/master' --timeout=10m
 ok "Non-master node ready"
 
+# region: bootstrap
 # ---------------------------------------------------------------------------
 # Spec 151 Phase 1 — Flux v2 GitOps bootstrap.
 #
@@ -215,6 +216,7 @@ kubectl create secret generic sops-age \
   --from-file=age.agekey="$SOPS_AGE_KEY_FILE" \
   --dry-run=client -o yaml | kubectl apply -f -
 ok "Flux v2 bootstrapped + SOPS-age Secret present"
+# endregion bootstrap
 
 # ---------------------------------------------------------------------------
 # Phase 1: Bootstrap infrastructure (legacy path — retires phase by phase
@@ -223,6 +225,7 @@ ok "Flux v2 bootstrapped + SOPS-age Secret present"
 info "Bootstrapping infrastructure (pre-Flux phase-out path)..."
 "$SCRIPT_DIR/post-create.sh"
 
+# region: reflector-install
 # ---------------------------------------------------------------------------
 # Spec 151 Phase 2 (2026-05-18) — kubernetes-reflector is now Flux-
 # reconciled via `platform/gitops/clusters/hetzner-prod/infrastructure/
@@ -231,6 +234,7 @@ info "Bootstrapping infrastructure (pre-Flux phase-out path)..."
 # the chart on first reconciliation of the gitops tree; setup.sh no
 # longer touches reflector.
 # ---------------------------------------------------------------------------
+# endregion reflector-install
 
 # ---------------------------------------------------------------------------
 # Spec 151 Phase 3 (2026-05-18) — DNS-01 cloudflare ClusterIssuer is

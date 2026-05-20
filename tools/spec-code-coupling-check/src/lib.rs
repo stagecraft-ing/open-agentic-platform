@@ -16,6 +16,8 @@ pub mod section_parser;
 use hunk_attribution::HunkAttributionMap;
 use open_agentic_codebase_indexer::types::{CodebaseIndex, SCHEMA_VERSION};
 use open_agentic_codebase_indexer::{IndexReaderError, load as load_codebase_index};
+use open_agentic_spec_registry_reader::Registry as SpecRegistry;
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
@@ -132,9 +134,18 @@ impl OwnerSet {
 /// owners, source-tagged so the renderer can surface each class
 /// separately (spec 133 FR-004) while still composing under spec 130's
 /// primary-owner heuristic.
+///
+/// Spec 152 §2 adds the optional [`section`] field: when the violation
+/// is attributable to a specific named section under section-aware
+/// authority checking, the section name appears here. Whole-file
+/// violations leave it [`None`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Violation {
     pub path: String,
+    /// `Some(section_name)` when the violation was raised against a
+    /// section-scoped authority; `None` for whole-file fallback
+    /// violations.
+    pub section: Option<String>,
     pub owners: OwnerSet,
 }
 
@@ -382,7 +393,7 @@ pub fn check_coupling_with_bypass(
         if owners.any_owner_in_diff(diff_paths) {
             continue;
         }
-        violations.push(Violation { path, owners });
+        violations.push(Violation { path, section: None, owners });
     }
     violations.sort_by(|a, b| a.path.cmp(&b.path));
 
@@ -391,6 +402,13 @@ pub fn check_coupling_with_bypass(
         waiver_reason,
     }
 }
+
+// region: section-matching
+//
+// Spec 152 — section-scoped authority surface. The SectionClaimIndex
+// type, its compile-time builder from registry frontmatter, and the
+// section-aware coupling check live in this region. Edits to this
+// region's machinery require an edit to specs/152-path-co-authority.
 
 /// Spec 152 §2 — section-authority index.
 ///
@@ -403,6 +421,50 @@ pub fn check_coupling_with_bypass(
 /// claims are only consulted when the gate can attribute a hunk to a
 /// specific section; otherwise the gate falls back to whole-file authority.
 pub type SectionClaimIndex = BTreeMap<(String, String), BTreeSet<String>>;
+
+/// Build a [`SectionClaimIndex`] from the spec registry's `co_authority`
+/// frontmatter (spec 152 §2.1). Walks every feature; for each that
+/// declares a `co_authority:` entry, the feature's id is registered as
+/// authority for every `(path, section)` pair the entry names.
+///
+/// Per spec 152 §2.3: the spec **declaring** the `co_authority:` entry
+/// IS the authority for `(paths × section)` — the `with_specs:` field is
+/// informational (it lists co-authors of the same file at other sections).
+pub fn build_section_claim_index(registry: &SpecRegistry) -> SectionClaimIndex {
+    let mut idx: SectionClaimIndex = BTreeMap::new();
+    for feature in &registry.features {
+        // The spec-compiler emits `coAuthority` (camelCase) per the
+        // JSON serialization contract in registry.json. The frontmatter
+        // source key is `co_authority` (snake_case YAML) but by the
+        // time the registry crystallises it, the key is renamed.
+        let entries = match feature
+            .raw
+            .get("coAuthority")
+            .and_then(|v| v.as_array())
+        {
+            Some(arr) => arr,
+            None => continue,
+        };
+        for entry in entries {
+            let section = match entry.get("section").and_then(Value::as_str) {
+                Some(s) if !s.is_empty() => s.to_string(),
+                _ => continue,
+            };
+            let paths = match entry.get("paths").and_then(Value::as_array) {
+                Some(ps) => ps,
+                None => continue,
+            };
+            for p in paths {
+                if let Some(path) = p.as_str() {
+                    idx.entry((path.to_string(), section.clone()))
+                        .or_default()
+                        .insert(feature.id.clone());
+                }
+            }
+        }
+    }
+    idx
+}
 
 /// Spec 152 §2 entry point: section-aware coupling check.
 ///
@@ -457,54 +519,64 @@ pub fn check_coupling_section_aware(
         // Attempt section-level satisfaction before falling back to whole-file.
         if let Some(attributed_sections) = hunk_attribution.get(path) {
             if !attributed_sections.is_empty() {
-                // Check each attributed section independently.
-                let mut all_sections_satisfied = true;
-                let mut first_unsatisfied_owners: Option<OwnerSet> = None;
-
+                // Emit one Violation per unsatisfied section so the
+                // operator sees the exact (path, section) pair.
+                let mut any_section_handled = false;
                 for section_name in attributed_sections {
                     let key = (path.clone(), section_name.clone());
                     if let Some(section_spec_ids) = section_claims.get(&key) {
-                        // Section has an explicit claimant. Require any one
-                        // of those specs' spec.md to be in the diff.
-                        let section_satisfied = section_spec_ids
+                        any_section_handled = true;
+                        let satisfied = section_spec_ids
                             .iter()
                             .any(|id| diff_paths.contains(&format!("specs/{id}/spec.md")));
-                        if !section_satisfied {
-                            all_sections_satisfied = false;
-                            if first_unsatisfied_owners.is_none() {
-                                let mut owners = OwnerSet::default();
-                                owners.implements.extend(section_spec_ids.iter().cloned());
-                                first_unsatisfied_owners = Some(owners);
-                            }
-                        }
-                    } else {
-                        // No section claim for this section — fall back to
-                        // whole-file authority for this section.
-                        if !whole_file_owners.any_owner_in_diff(diff_paths) {
-                            all_sections_satisfied = false;
-                            if first_unsatisfied_owners.is_none() {
-                                first_unsatisfied_owners = Some(whole_file_owners.clone());
-                            }
+                        if !satisfied {
+                            let mut owners = OwnerSet::default();
+                            owners.implements.extend(section_spec_ids.iter().cloned());
+                            violations.push(Violation {
+                                path: path.clone(),
+                                section: Some(section_name.clone()),
+                                owners,
+                            });
                         }
                     }
+                    // Sections with no `(path, section)` claim fall through
+                    // to the whole-file fallback below — emitted ONCE per
+                    // path, not per unattributed section.
                 }
-
-                if !all_sections_satisfied {
-                    violations.push(Violation {
-                        path: path.clone(),
-                        owners: first_unsatisfied_owners
-                            .unwrap_or_else(|| whole_file_owners.clone()),
-                    });
+                if any_section_handled {
+                    // At least one section had a section-scoped claim.
+                    // Whole-file fallback only fires for paths whose
+                    // attributed sections were all unclaimed.
+                    let all_sections_claimed = attributed_sections
+                        .iter()
+                        .all(|s| section_claims.contains_key(&(path.clone(), s.clone())));
+                    if all_sections_claimed {
+                        continue; // section path fully handled
+                    }
+                    // Mixed case: some sections claimed, others not. The
+                    // claimed sections emitted their own violations
+                    // (above); the unclaimed sections need a whole-file
+                    // fallback check.
+                    if !whole_file_owners.any_owner_in_diff(diff_paths) {
+                        violations.push(Violation {
+                            path: path.clone(),
+                            section: None,
+                            owners: whole_file_owners.clone(),
+                        });
+                    }
+                    continue;
                 }
-                continue; // section path handled
+                // No attributed section had a section-scoped claim:
+                // fall through to whole-file authority below.
             }
         }
 
-        // No hunk attribution for this path (or empty sections):
-        // fall back to whole-file authority.
+        // No hunk attribution for this path (or empty sections, or no
+        // section claims matched): fall back to whole-file authority.
         if !whole_file_owners.any_owner_in_diff(diff_paths) {
             violations.push(Violation {
                 path: path.clone(),
+                section: None,
                 owners: whole_file_owners,
             });
         }
@@ -517,6 +589,16 @@ pub fn check_coupling_section_aware(
         waiver_reason,
     }
 }
+
+// endregion section-matching
+
+// region: authority-derivation
+//
+// Spec 133 — multi-class owner resolution. The legitimate_owners
+// function and spec.md path parser compose `implements:`, `amends:`,
+// and `amendment_record:` source classes into a single OwnerSet per
+// path. Edits to this region's machinery require an edit to
+// specs/133-amends-aware-coupling-gate.
 
 /// Spec 133: parse `specs/<id>/spec.md` into `<id>`. Returns `None` for
 /// paths that do not match the canonical spec.md location (e.g. crate
@@ -586,15 +668,18 @@ pub fn legitimate_owners(
     owners
 }
 
+// endregion authority-derivation
+
 /// Render an outcome for human-readable CI logs. Empty for clean runs;
-/// otherwise a path-centric block listing every legitimate owner per
-/// uncovered path, partitioned by source class (spec 130 + spec 133).
+/// otherwise one block per violation listing the precise `(path, section)`
+/// pair and the source-tagged authority set under spec 130 + spec 133
+/// + spec 152.
 ///
-/// Format (spec 133 FR-004): when an owner is named via `amends:` or
-/// `amendmentRecord`, the renderer prints aligned `implements:`,
-/// `amends:`, `amendment_record:` rows beneath the path so reviewers can
-/// audit which coupling class applies. For implements-only violations
-/// the renderer keeps the spec 130 compact form ("claimed by N specs").
+/// Spec 152 §2.4: when a violation is section-scoped, the block names
+/// the section explicitly. Whole-file violations omit the section line.
+/// The legacy "claimed by N specs" noise is eliminated per operator
+/// decision #8 of the section-scoped activation: every block names its
+/// authority spec(s) directly.
 pub fn render(outcome: &Outcome) -> String {
     if let Some(reason) = &outcome.waiver_reason {
         let count = outcome.violations.len();
@@ -605,7 +690,7 @@ pub fn render(outcome: &Outcome) -> String {
             "::warning::spec-code-coupling-check: {count} path(s) waived by PR body — reason: {reason}\n",
         );
         for v in &outcome.violations {
-            s.push_str(&format!("  {} (waived)\n", v.path));
+            s.push_str(&format!("  {} (waived)\n", render_path_section(v)));
             for c in v.owners.all_unique_sorted() {
                 s.push_str(&format!("    {c}\n"));
             }
@@ -616,47 +701,50 @@ pub fn render(outcome: &Outcome) -> String {
         return String::new();
     }
     let mut s = format!(
-        "spec-code-coupling-check: {} path(s) lack a claimant edit.\n\n",
+        "spec-code-coupling-check: {} violation(s) — every (path, section) pair lacks an authority edit.\n\n",
         outcome.violations.len(),
     );
     for v in &outcome.violations {
         s.push_str(&render_violation_block(v));
     }
     s.push('\n');
-    s.push_str("To resolve, amend ANY ONE claimant's spec.md (per spec 130\n");
-    s.push_str("primary-owner heuristic; spec 133 also accepts amender\n");
-    s.push_str("or amendment-record edits), or add 'Spec-Drift-Waiver: <reason>'\n");
-    s.push_str("to the PR body.\n");
+    s.push_str("To resolve, edit the named authority spec's spec.md (per spec\n");
+    s.push_str("152 section-scoped authority and spec 130 primary-owner heuristic;\n");
+    s.push_str("spec 133 also accepts amender or amendment-record edits), or add\n");
+    s.push_str("'Spec-Drift-Waiver: <reason>' to the PR body.\n");
     s
 }
 
-/// Render a single violation block. Spec 133 FR-004 mandates per-class
-/// labels when the amend or amendment_record source classes carry
-/// owners. For implements-only violations the renderer falls back to
-/// spec 130's compact form so existing CI output stays stable.
+/// "<path>" or "<path> (section: <name>)" depending on whether the
+/// violation is section-scoped.
+fn render_path_section(v: &Violation) -> String {
+    match &v.section {
+        Some(s) => format!("{} (section: {})", v.path, s),
+        None => v.path.clone(),
+    }
+}
+
+/// Render a single violation block. Always lists authorities on their
+/// own lines (no inline "claimed by N specs" compact form); when amend
+/// or amendment_record source classes are present, they are labeled
+/// per spec 133 FR-004.
 fn render_violation_block(v: &Violation) -> String {
     let has_amend_link = !v.owners.amends.is_empty()
         || !v.owners.amendment_record.is_empty();
+
+    let header = render_path_section(v);
+    let mut s = format!("  {header}\n");
+
     if !has_amend_link {
-        return render_implements_only_block(&v.path, &v.owners.implements);
+        for c in &v.owners.implements {
+            s.push_str(&format!("    {c}\n"));
+        }
+        return s;
     }
 
-    let mut s = format!("  {}\n", v.path);
     push_owner_class(&mut s, "implements", &v.owners.implements);
     push_owner_class(&mut s, "amends", &v.owners.amends);
     push_owner_class(&mut s, "amendment_record", &v.owners.amendment_record);
-    s
-}
-
-fn render_implements_only_block(path: &str, claimants: &BTreeSet<String>) -> String {
-    if claimants.len() == 1 {
-        let only = claimants.iter().next().expect("len==1");
-        return format!("  {path} (claimed by {only})\n");
-    }
-    let mut s = format!("  {path} (claimed by {} specs)\n", claimants.len());
-    for c in claimants {
-        s.push_str(&format!("    {c}\n"));
-    }
     s
 }
 
@@ -962,12 +1050,22 @@ mod tests {
             ]
         );
         let rendered = render(&outcome);
-        // Header signals multi-claim (implements-only path keeps the
-        // spec 130 compact form).
-        assert!(rendered.contains("claimed by 3 specs"));
+        // Spec 152 §2.4: every authority is listed on its own line.
+        // The legacy "claimed by N specs" compact form is eliminated
+        // (operator decision #8 of the activation pass).
+        assert!(
+            !rendered.contains("claimed by"),
+            "expected the legacy 'claimed by N specs' phrase to be absent; got: {rendered}"
+        );
+        // Every authority name appears.
         for c in v.owners.implements.iter() {
             assert!(rendered.contains(c.as_str()));
         }
+        // Header tallies the number of violations.
+        assert!(
+            rendered.contains("1 violation"),
+            "expected header to count violations; got: {rendered}"
+        );
     }
 
     #[test]
@@ -1234,6 +1332,108 @@ mod tests {
             "no hunk attribution → whole-file fallback; owner present; got: {:?}",
             outcome.violations
         );
+    }
+
+    /// Section-aware check: a violation in a section-scoped claim names
+    /// the (path, section) pair explicitly in the rendered output.
+    #[test]
+    fn section_aware_violation_renders_path_and_section() {
+        let mut idx = index_claiming("134-fast-local-ci-mode", &["Makefile"]);
+        idx.traceability.mappings.push(TraceMapping {
+            spec_id: "127-spec-code-coupling-gate".to_string(),
+            spec_status: Some("approved".to_string()),
+            depends_on: Vec::new(),
+            amends: Vec::new(),
+            amendment_record: None,
+            implementing_paths: vec![ImplementingPath {
+                path: "Makefile".to_string(),
+                name: None,
+                source: Some(TraceSource::SpecImplements),
+                primary: None,
+            }],
+        });
+
+        let section_claims = section_claim_index(&[(
+            "Makefile",
+            "ci-fast",
+            &["134-fast-local-ci-mode"],
+        )]);
+        let hunks = hunk_map(&[("Makefile", &["ci-fast"])]);
+        // Only spec 127's spec.md is in the diff — NOT spec 134's.
+        let diff = diffset(&[
+            "Makefile",
+            "specs/127-spec-code-coupling-gate/spec.md",
+        ]);
+
+        let outcome = check_coupling_section_aware(
+            &idx,
+            &diff,
+            &hunks,
+            &section_claims,
+            "",
+            &BypassConfig::default(),
+        );
+        assert_eq!(outcome.violations.len(), 1);
+        let v = &outcome.violations[0];
+        assert_eq!(v.path, "Makefile");
+        assert_eq!(v.section.as_deref(), Some("ci-fast"));
+        assert_eq!(v.owners.implements.len(), 1);
+        assert!(v.owners.implements.contains("134-fast-local-ci-mode"));
+
+        let rendered = render(&outcome);
+        assert!(
+            rendered.contains("Makefile (section: ci-fast)"),
+            "expected '(section: ci-fast)' header; got: {rendered}"
+        );
+        assert!(
+            !rendered.contains("claimed by"),
+            "legacy 'claimed by' phrase should be absent; got: {rendered}"
+        );
+    }
+
+    /// Section-aware check: a single Makefile diff touching two
+    /// unsatisfied sections emits TWO violations — one per (path, section).
+    #[test]
+    fn section_aware_two_unsatisfied_sections_emit_two_violations() {
+        let mut idx = index_claiming("127-spec-code-coupling-gate", &["Makefile"]);
+        idx.traceability.mappings.push(TraceMapping {
+            spec_id: "134-fast-local-ci-mode".to_string(),
+            spec_status: Some("approved".to_string()),
+            depends_on: Vec::new(),
+            amends: Vec::new(),
+            amendment_record: None,
+            implementing_paths: vec![ImplementingPath {
+                path: "Makefile".to_string(),
+                name: None,
+                source: Some(TraceSource::SpecImplements),
+                primary: None,
+            }],
+        });
+
+        let section_claims = section_claim_index(&[
+            ("Makefile", "spec-code-coupling", &["127-spec-code-coupling-gate"]),
+            ("Makefile", "ci-fast", &["134-fast-local-ci-mode"]),
+        ]);
+        let hunks = hunk_map(&[("Makefile", &["spec-code-coupling", "ci-fast"])]);
+        // No spec.md edits in the diff at all.
+        let diff = diffset(&["Makefile"]);
+
+        let outcome = check_coupling_section_aware(
+            &idx,
+            &diff,
+            &hunks,
+            &section_claims,
+            "",
+            &BypassConfig::default(),
+        );
+        assert_eq!(outcome.violations.len(), 2, "two sections → two violations");
+        let mut sections: Vec<&str> = outcome
+            .violations
+            .iter()
+            .filter_map(|v| v.section.as_deref())
+            .collect();
+        sections.sort();
+        assert_eq!(sections, vec!["ci-fast", "spec-code-coupling"]);
     }
 
     /// Section-aware check preserves whole-file violation when no spec

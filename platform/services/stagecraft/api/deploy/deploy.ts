@@ -247,6 +247,7 @@ export const createDeployment = api.raw(
       }
     }
 
+    // region: access-gate-wire
     // Spec 137 Phase 4↔5 integration — load the per-env access-gate
     // descriptor and forward as `access_gate` to deployd-api. The
     // descriptor lives in stagecraft Postgres; deployd-api only sees the
@@ -315,6 +316,7 @@ export const createDeployment = api.raw(
           access_gate,
         }),
       });
+    // endregion access-gate-wire
 
       const text = await resp.text();
 

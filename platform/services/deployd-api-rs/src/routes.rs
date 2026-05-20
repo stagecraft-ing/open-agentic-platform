@@ -35,6 +35,7 @@ pub struct DeploymentRequest {
     /// Chart version, mirrors the chartSelector output. Currently advisory:
     /// the chart bundled into deployd-api is pinned by the image build.
     pub chart_version: Option<String>,
+    // region: gate-overlay
     /// Spec 137 — per-environment access-gate descriptor. When `Some` with
     /// `enabled: true`, the tenant chart renders auth-url annotations and
     /// the oauth2-proxy-gate chart is installed alongside via
@@ -42,6 +43,7 @@ pub struct DeploymentRequest {
     /// through as a direct-exposure tenant deploy (existing behaviour).
     #[serde(default)]
     pub access_gate: Option<AccessGateDescriptor>,
+    // endregion gate-overlay
 }
 
 #[derive(Deserialize, Serialize)]

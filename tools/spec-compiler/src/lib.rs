@@ -341,28 +341,47 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
             }
         }
 
-        // ── V-014 (Spec 147): implements shape consistency ──
-        // Scalar form is valid only for kind: capability. List form is
-        // valid for every other kind (or no kind).
+        // ── V-014 (Spec 147 / Spec 152 activation): implements shape ──
+        //
+        // Spec 152 activation (2026-05-20): the list-form
+        // `implements:` input surface is dropped. The legacy
+        // path-claiming list (`implements: [{path, primary?}, ...]`)
+        // has been fully replaced by the typed relationship-graph
+        // fields (`establishes`, `extends`, `refines`, `co_authority`,
+        // `constrains`). The only remaining accepted form is the
+        // scalar capability-implements-registry pointer
+        // (`implements: "<registry-spec-id>"`) reserved for
+        // `kind: capability`.
+        //
+        // V-014 now fires at ERROR severity on any non-scalar shape
+        // (lists, mappings, nulls). Scalar form with a non-capability
+        // kind continues to warn as before.
         if let Some(ref imp) = implements {
-            let is_scalar = imp.is_string();
-            let is_list = imp.is_array();
-            let kind_is_capability = kind.as_deref() == Some("capability");
-            if is_scalar && !kind_is_capability {
+            if imp.is_array() {
                 violations.push(Violation {
                     code: "V-014".to_string(),
-                    severity: "warning".to_string(),
-                    message: format!(
-                        "implements: scalar form is reserved for kind=capability; this spec declares kind={:?}",
-                        kind.as_deref().unwrap_or("(none)")
-                    ),
+                    severity: "error".to_string(),
+                    message: "implements: list form was retired by spec 152 activation. Replace with the typed relationship-graph fields (establishes, extends, refines, co_authority, constrains). The only accepted form is the scalar capability→registry pointer (`implements: \"<registry-spec-id>\"`) for kind: capability.".to_string(),
                     path: Some(normalize_repo_path(repo_root, spec_path)),
                 });
-            } else if !is_scalar && !is_list {
+            } else if imp.is_string() {
+                let kind_is_capability = kind.as_deref() == Some("capability");
+                if !kind_is_capability {
+                    violations.push(Violation {
+                        code: "V-014".to_string(),
+                        severity: "warning".to_string(),
+                        message: format!(
+                            "implements: scalar form is reserved for kind=capability; this spec declares kind={:?}",
+                            kind.as_deref().unwrap_or("(none)")
+                        ),
+                        path: Some(normalize_repo_path(repo_root, spec_path)),
+                    });
+                }
+            } else {
                 violations.push(Violation {
                     code: "V-014".to_string(),
-                    severity: "warning".to_string(),
-                    message: "implements: must be a scalar string (kind=capability) or a list of {path, primary?} items".to_string(),
+                    severity: "error".to_string(),
+                    message: "implements: must be a scalar string (kind=capability → registry-id). Other shapes are not accepted after spec 152 activation.".to_string(),
                     path: Some(normalize_repo_path(repo_root, spec_path)),
                 });
             }

@@ -30,7 +30,7 @@ co_authority:
       - "135-fast-ci-as-default"
   - paths:
       - .claude/commands/validate-and-fix.md
-    section: validate-and-fix-process
+    section: process
     with_specs:
       - "000-bootstrap-spec-system"
 summary: >
