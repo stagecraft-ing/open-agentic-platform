@@ -18,12 +18,12 @@ on:
     paths:
       - 'product/apps/desktop/**'
       - 'crates/**'
-      - 'packages/**'
+      - 'product/packages/**'
   pull_request:
     paths:
       - 'product/apps/desktop/**'
       - 'crates/**'
-      - 'packages/**'
+      - 'product/packages/**'
   workflow_dispatch:
 
 permissions:
