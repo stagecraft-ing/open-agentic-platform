@@ -319,6 +319,22 @@ build/*
 !build/codebase-index/
 build/codebase-index/*
 !build/codebase-index/index.json
+
+# .derived/ — generated-artifacts root (target shape; I9 cuts over from
+# build/ in Epic 2). For I2, the directory tree is created with .gitkeep
+# placeholders so its structure is visible; all other contents are ignored.
+# I9 will swap consumers from build/ to .derived/ and add re-includes for
+# the index.json staleness gate analogous to the build/codebase-index/
+# rules above. Pattern mirrors the build/ rules above: ignore contents
+# of each subdir, re-include the .gitkeep marker. Per gitignore rules,
+# a parent directory cannot be excluded if its child is to be
+# re-included, so each subdir gets its own rule (no `.derived/` wildcard).
+.derived/spec-registry/*
+!.derived/spec-registry/.gitkeep
+.derived/codebase-index/*
+!.derived/codebase-index/.gitkeep
+.derived/schema-parity/*
+!.derived/schema-parity/.gitkeep
 .axiomregent/
 .fastembed_cache/
 
