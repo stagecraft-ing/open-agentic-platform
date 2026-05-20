@@ -12,6 +12,15 @@ language: en
 summary: >
   Lock top-level `--version` output for registry-consumer with fixture-backed
   transcript tests, including exit code and stderr expectations.
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/registry-consumer
+    aspect: contract-tests
 implements:
   - path: tools/registry-consumer
 ---

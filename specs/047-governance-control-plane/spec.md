@@ -26,6 +26,8 @@ compliance:
     # monotonic degradation (no self-promotion); ASI05 via secrets-scanner
     # gate (FR-007); ASI10 via coherence-scoring drift detection.
     controls: ["ASI01", "ASI03", "ASI05", "ASI10"]
+origin:
+  retroactive: true
 ---
 
 # Feature Specification: governance control plane (policy compiler)

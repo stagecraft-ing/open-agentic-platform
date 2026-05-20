@@ -213,6 +213,43 @@
           "type": "object",
           "description": "Spec 147 — optional structured policy values applied by the profile. Compile-time validation is structural only; semantic validation lives in the policy-kernel.",
           "additionalProperties": true
+        },
+        "establishes": {
+          "type": "array",
+          "description": "Spec 130 (relationship graph) — code paths this spec brought into existence. Authoritative on those paths until superseded.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "extends": {
+          "type": "array",
+          "description": "Spec 130 — extensions to another spec's authority surface. Each item references the predecessor spec, the subset of its surface this spec extends, and the nature (additive | wrapping).",
+          "items": { "$ref": "#/$defs/extendsItem" }
+        },
+        "refines": {
+          "type": "array",
+          "description": "Spec 130 — refinements that tighten behavior across paths. Each item carries an aspect tag and optionally lists the specs it refines.",
+          "items": { "$ref": "#/$defs/refinesItem" }
+        },
+        "coAuthority": {
+          "type": "array",
+          "description": "Spec 130 — co-authority on a named section of a shared path. The diff-to-section matcher lives in spec 152 (path-co-authority).",
+          "items": { "$ref": "#/$defs/coAuthorityItem" }
+        },
+        "constrains": {
+          "type": "array",
+          "description": "Spec 130 — meta-authority over how others may shape code. Constraint specs are not behavior authorities; the gate evaluates them separately.",
+          "items": { "$ref": "#/$defs/constrainsItem" }
+        },
+        "origin": {
+          "type": "object",
+          "description": "Spec 130 — bootstrap or retroactive marker. `retroactive: true` indicates the spec's `implements:` carries forward as its surface without curated relationship annotation.",
+          "additionalProperties": false,
+          "properties": {
+            "retroactive": { "type": "boolean" },
+            "paths": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
         }
       }
     },
@@ -224,6 +261,68 @@
       "properties": {
         "path": { "type": "string", "minLength": 1 },
         "primary": { "type": "boolean" }
+      }
+    },
+    "extendsItem": {
+      "type": "object",
+      "description": "Spec 130 — one entry in `extends:`.",
+      "additionalProperties": false,
+      "required": ["spec"],
+      "properties": {
+        "spec": { "type": "string", "minLength": 1 },
+        "paths": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "nature": { "type": "string", "enum": ["additive", "wrapping"] }
+      }
+    },
+    "refinesItem": {
+      "type": "object",
+      "description": "Spec 130 — one entry in `refines:`.",
+      "additionalProperties": false,
+      "required": ["paths", "aspect"],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "aspect": { "type": "string", "minLength": 1 },
+        "refines_specs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "coAuthorityItem": {
+      "type": "object",
+      "description": "Spec 130/152 — one entry in `co_authority:`. `section` names a per-file-type anchor (Makefile target group, markdown heading, workflow jobs.<name>, source-file `// region: <name>`).",
+      "additionalProperties": false,
+      "required": ["paths", "section"],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "section": { "type": "string", "minLength": 1 },
+        "with_specs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "constrainsItem": {
+      "type": "object",
+      "description": "Spec 130 — one entry in `constrains:`. `kind` is open-vocabulary (`invariant-freeze` is the initial idiom; spec 132 is its canonical example).",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "spec": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "paths": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
       }
     },
     "extraFrontmatterValue": {

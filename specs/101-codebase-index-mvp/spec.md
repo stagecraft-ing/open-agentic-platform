@@ -24,6 +24,8 @@ depends_on:
   - "003"  # feature-lifecycle-mvp (status vocabulary)
 code_aliases: ["CODEBASE_INDEX"]
 risk: low
+origin:
+  retroactive: true
 ---
 
 # 101 — Codebase Index MVP

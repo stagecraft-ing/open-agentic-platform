@@ -12,6 +12,15 @@ language: en
 summary: >
   Lock behavior when --registry-path is omitted by asserting default-path success
   and missing-path failure semantics from controlled current working directories.
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/registry-consumer
+    aspect: contract-tests
 implements:
   - path: tools/registry-consumer
 ---

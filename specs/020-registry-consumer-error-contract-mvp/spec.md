@@ -12,6 +12,15 @@ language: en
 summary: >
   Lock key runtime failure-path contracts for registry-consumer by asserting exact
   stderr bytes and exit codes from deterministic fixtures, without changing CLI behavior.
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/registry-consumer
+    aspect: error-shape
 implements:
   - path: tools/registry-consumer
 ---

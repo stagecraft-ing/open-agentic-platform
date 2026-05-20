@@ -21,6 +21,8 @@ summary: >
   kind-grammar surface and to add a registration-site `severity` field on Warning
   (warning/info tiers) per spec 128 §7. Info-tier diagnostics emit alongside
   warning-tier but are exempt from `--fail-on-warn`.
+origin:
+  retroactive: true
 ---
 
 # Feature Specification: Conformance lint

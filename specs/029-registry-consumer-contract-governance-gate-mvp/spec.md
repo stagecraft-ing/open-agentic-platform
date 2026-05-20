@@ -13,6 +13,15 @@ summary: >
   Codify controlled-extension governance for registry-consumer via explicit
   stabilization boundary, change classification rubric, reviewer checklist,
   contract baseline definition, and CI validation gate language.
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/registry-consumer
+    aspect: contract-tests
 implements:
   - path: tools/registry-consumer
 ---

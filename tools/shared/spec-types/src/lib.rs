@@ -109,6 +109,19 @@ pub const KNOWN_KEYS: &[&str] = &[
     "identity",
     "selects",
     "policy",
+    // Spec 130 (relationship graph) — eight relationship fields. Authors
+    // declare relationships explicitly; `implements:` is derived from the
+    // union of paths in `establishes`, `extends.paths`, `refines.paths`,
+    // and `co_authority.paths`. `origin: retroactive: true` is the
+    // bootstrap marker for specs not yet curated into the graph.
+    "establishes",
+    "extends",
+    "refines",
+    "supersedes",  // already valid as V147 list; rebound by spec 130 to relationship-graph semantics (object form: {spec, scope, paths?, rationale}). Backward-compatible: string-list form treated as scope=full.
+    "amends",      // already in spec 132 list-of-ids form; rebound to support object form ({spec, change_type, paths}) when relationship-graph semantics are desired.
+    "co_authority",
+    "constrains",
+    "origin",
 ];
 
 /// Valid values for the `risk` frontmatter field.
@@ -223,6 +236,14 @@ pub const V_016: ViolationCode = ViolationCode("V-016");
 pub const V_017: ViolationCode = ViolationCode("V-017");
 pub const V_018: ViolationCode = ViolationCode("V-018");
 pub const V_019: ViolationCode = ViolationCode("V-019");
+/// Spec 130 — emitted by spec-lint when a spec carries no relationship
+/// fields (`establishes`, `extends`, `refines`, `supersedes`, `amends`,
+/// `co_authority`, `constrains`) and no `origin: retroactive: true`
+/// bootstrap marker. Initial severity: warning (corpus migration is
+/// staged; the gate falls back to legacy `implements:` claim semantics
+/// for un-annotated specs). Promotion to error follows the curated-
+/// annotation pass.
+pub const V_020: ViolationCode = ViolationCode("V-020");
 
 // Lint W-codes (emitted by spec-lint).
 pub const W_001: ViolationCode = ViolationCode("W-001");

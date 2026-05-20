@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "8408b933dbf6728e7bcbbc6685c12ea157ce66182368459240e6a0fba6285e43",
+    "contentHash": "c5e362b79eec091cccee645c5549d54f0428554663a0605542b385600aeac68a",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1396,7 +1396,7 @@
   "traceability": {
     "mappings": [
       {
-        "amendmentRecord": "147-spec-kind-grammar",
+        "amendmentRecord": "130-spec-coupling-primary-owner",
         "implementingPaths": [
           {
             "name": "open_agentic_spec_types",
@@ -1422,9 +1422,20 @@
       {
         "implementingPaths": [
           {
-            "name": "open_agentic_spec_registry_reader",
             "path": "tools/registry-consumer",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
+          },
+          {
+            "path": "tools/registry-consumer/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/registry-consumer/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/registry-consumer/src/main.rs",
+            "source": "spec-implements"
           }
         ],
         "specId": "002-registry-consumer-mvp",
@@ -3922,14 +3933,12 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "130-spec-coupling-primary-owner",
         "dependsOn": [
-          "000",
-          "001",
-          "101",
           "103",
           "104",
-          "118"
+          "118",
+          "130",
+          "133"
         ],
         "implementingPaths": [
           {
@@ -3985,16 +3994,26 @@
         "specStatus": "approved"
       },
       {
-        "amends": [
-          "127-spec-code-coupling-gate"
-        ],
         "dependsOn": [
-          "127",
-          "129"
+          "000",
+          "001",
+          "101"
         ],
         "implementingPaths": [
           {
-            "path": "tools/spec-code-coupling-check",
+            "path": "specs/000-bootstrap-spec-system/contracts/registry.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/codebase-indexer/src/spec_scanner.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/shared/spec-types/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-compiler/src/lib.rs",
             "source": "spec-implements"
           }
         ],
@@ -4050,23 +4069,21 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "147-spec-kind-grammar",
         "dependsOn": [
-          "119",
-          "127",
+          "101",
           "130"
         ],
         "implementingPaths": [
           {
-            "path": "schemas/codebase-index.schema.json",
+            "path": "tools/codebase-indexer/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/codebase-indexer",
+            "path": "tools/spec-code-coupling-check/src/lib.rs",
             "source": "spec-implements"
           },
           {
-            "path": "tools/spec-code-coupling-check",
+            "path": "tools/spec-code-coupling-check/src/main.rs",
             "source": "spec-implements"
           }
         ],
@@ -5149,6 +5166,24 @@
           }
         ],
         "specId": "151-declarative-cluster-reconciliation",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "130",
+          "133"
+        ],
+        "implementingPaths": [
+          {
+            "path": "tools/shared/spec-types/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-code-coupling-check/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "152-path-co-authority",
         "specStatus": "approved"
       }
     ],

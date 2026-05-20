@@ -6,8 +6,10 @@ status: approved
 implementation: complete
 kind: constitutional-bootstrap
 created: "2026-03-22"
-amended: "2026-05-13"
-amendment_record: "147-spec-kind-grammar"
+amended: "2026-05-20"
+amendment_record: "130-spec-coupling-primary-owner"
+origin:
+  retroactive: true
 unamendable:
    - "V-001"
    - "V-002"

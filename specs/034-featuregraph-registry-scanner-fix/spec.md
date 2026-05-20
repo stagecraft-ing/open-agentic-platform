@@ -18,6 +18,8 @@ code_aliases:
   - GOVERNANCE_ENGINE
 owner: bart
 risk: low
+origin:
+  retroactive: true
 ---
 
 # Feature Specification: featuregraph registry scanner fix

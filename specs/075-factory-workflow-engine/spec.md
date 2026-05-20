@@ -14,6 +14,8 @@ summary: >
   Build Spec to manifest generation, post-step verification hooks, and Rust-native
   verification harness integration.
 code_aliases: ["FACTORY_WORKFLOW", "FACTORY_FANOUT"]
+origin:
+  retroactive: true
 ---
 
 # Feature Specification: Factory Workflow Engine

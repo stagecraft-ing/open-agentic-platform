@@ -12,6 +12,11 @@ language: en
 summary: >
   Add explicit `show --json <id>` for single-feature retrieval with a stable
   pretty-printed JSON object contract, without changing default show output or trust semantics.
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
 implements:
   - path: tools/registry-consumer
 ---

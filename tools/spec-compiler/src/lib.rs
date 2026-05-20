@@ -220,7 +220,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         let superseded_by = optional_str(fm, "superseded_by");
         let retirement_rationale = fm.get("retirement_rationale").and_then(yaml_to_json);
         // ── Spec 147 — per-kind structural fields ──
-        let implements = parse_implements(fm);
+        let mut implements = parse_implements(fm);
         let provides = fm.get("provides").and_then(yaml_to_json);
         let selectable_by = optional_str(fm, "selectable_by");
         let composition = fm.get("composition").and_then(yaml_to_json);
@@ -231,6 +231,38 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         let identity = fm.get("identity").and_then(yaml_to_json);
         let selects = fm.get("selects").and_then(yaml_to_json);
         let policy = fm.get("policy").and_then(yaml_to_json);
+
+        // ── Spec 130 (relationship graph) — six new structural fields.
+        // `supersedes` and `amends` retain their existing list-of-ids
+        // semantics; the relationship graph extends them implicitly
+        // (supersedes-list = scope:full, amends-list = paths
+        // unspecified at the graph layer). The six new fields below
+        // carry the additional structured edges.
+        let establishes = optional_string_list(fm, "establishes");
+        let extends = fm.get("extends").and_then(yaml_to_json);
+        let refines = fm.get("refines").and_then(yaml_to_json);
+        let co_authority = fm.get("co_authority").and_then(yaml_to_json);
+        let constrains = fm.get("constrains").and_then(yaml_to_json);
+        let origin = fm.get("origin").and_then(yaml_to_json);
+
+        // ── Spec 130 — derived `implements:` view.
+        // When relationship fields are present and no explicit
+        // `implements:` is authored, derive it from the union of
+        // establishes + extends.paths + refines.paths + co_authority.paths.
+        // The derived view preserves backward compatibility for every
+        // consumer that reads `implements:` from the registry (codebase-
+        // indexer, registry-consumer, coupling-check) without forcing
+        // authors to maintain two representations.
+        if implements.is_none() {
+            let derived = derive_implements_paths(&establishes, &extends, &refines, &co_authority);
+            if !derived.is_empty() {
+                let items: Vec<Value> = derived
+                    .into_iter()
+                    .map(|p| json!({ "path": p }))
+                    .collect();
+                implements = Some(Value::Array(items));
+            }
+        }
 
         // ── V-012 (Spec 147): kind enum membership ──
         // Promoted to error severity in Phase 2 after corpus-wide
@@ -399,6 +431,12 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
             identity,
             selects,
             policy,
+            establishes,
+            extends,
+            refines,
+            co_authority,
+            constrains,
+            origin,
             extra_frontmatter: extra,
         });
     }
@@ -850,6 +888,25 @@ struct FeatureRecord {
     selects: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     policy: Option<Value>,
+    // ── Spec 130 — relationship-graph structural fields ───────────────
+    /// Code paths this spec brought into existence.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    establishes: Option<Vec<String>>,
+    /// Extensions to another spec's authority surface.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    extends: Option<Value>,
+    /// Refinements that tighten behavior across paths.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    refines: Option<Value>,
+    /// Co-authority on named sections of shared paths.
+    #[serde(rename = "coAuthority", skip_serializing_if = "Option::is_none")]
+    co_authority: Option<Value>,
+    /// Meta-authority over how others may shape code (e.g. invariant-freeze).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    constrains: Option<Value>,
+    /// Bootstrap / retroactive marker.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    origin: Option<Value>,
     #[serde(rename = "extraFrontmatter", skip_serializing_if = "Option::is_none")]
     extra_frontmatter: Option<Map<String, Value>>,
 }
@@ -1388,6 +1445,57 @@ fn yaml_to_json(v: &serde_yaml::Value) -> Option<Value> {
 /// (V-014); list form carries `{path, primary?}` items.
 fn parse_implements(m: &serde_yaml::Mapping) -> Option<Value> {
     yaml_to_json(m.get("implements")?)
+}
+
+/// Spec 130 — compute the derived `implements:` path set from the
+/// relationship-graph fields. Used when a spec declares relationship
+/// fields but no explicit `implements:`. Backward compat: consumers
+/// that read `implements:` (codebase-indexer, coupling-check,
+/// registry-consumer) see the same shape regardless of whether the
+/// spec was authored in legacy mode (explicit `implements:`) or the
+/// new model (relationship fields).
+fn derive_implements_paths(
+    establishes: &Option<Vec<String>>,
+    extends: &Option<Value>,
+    refines: &Option<Value>,
+    co_authority: &Option<Value>,
+) -> Vec<String> {
+    let mut out: BTreeSet<String> = BTreeSet::new();
+    if let Some(paths) = establishes {
+        for p in paths {
+            out.insert(p.clone());
+        }
+    }
+    let extract_paths = |v: &Value, key: &str| -> Vec<String> {
+        let Some(items) = v.as_array() else { return Vec::new() };
+        let mut collected = Vec::new();
+        for item in items {
+            let Some(obj) = item.as_object() else { continue };
+            let Some(paths) = obj.get(key).and_then(|p| p.as_array()) else { continue };
+            for p in paths {
+                if let Some(s) = p.as_str() {
+                    collected.push(s.to_string());
+                }
+            }
+        }
+        collected
+    };
+    if let Some(v) = extends {
+        for p in extract_paths(v, "paths") {
+            out.insert(p);
+        }
+    }
+    if let Some(v) = refines {
+        for p in extract_paths(v, "paths") {
+            out.insert(p);
+        }
+    }
+    if let Some(v) = co_authority {
+        for p in extract_paths(v, "paths") {
+            out.insert(p);
+        }
+    }
+    out.into_iter().collect()
 }
 
 fn yaml_scalar_to_json(v: &serde_yaml::Value) -> Option<Value> {

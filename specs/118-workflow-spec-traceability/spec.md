@@ -24,6 +24,8 @@ summary: >
   index.json, rendered as a new "Layer 5: CI Workflow Traceability" section
   of CODEBASE-INDEX.md. Closes the gap where Rust crates trace to specs via
   `[package.metadata.oap]` but workflows have no equivalent.
+origin:
+  retroactive: true
 ---
 
 # 118 — Workflow-to-Spec Traceability

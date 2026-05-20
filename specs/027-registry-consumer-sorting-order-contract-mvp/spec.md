@@ -12,6 +12,15 @@ language: en
 summary: >
   Lock deterministic sorting-order behavior for list and status-report outputs,
   including feature-id ordering, status row ordering, and sorted ids within rows.
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/registry-consumer
+    aspect: contract-tests
 implements:
   - path: tools/registry-consumer
 ---

@@ -13,6 +13,15 @@ summary: >
   Lock argument-layer behavior contracts for registry-consumer by asserting exact
   exit codes and stderr transcripts for flag conflicts, missing required args,
   and invalid enum values.
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/registry-consumer
+    aspect: contract-tests
 implements:
   - path: tools/registry-consumer
 ---

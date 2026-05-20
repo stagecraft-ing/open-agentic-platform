@@ -31,6 +31,8 @@ summary: >
   `spec_code_coherence` added to its allowlist; amends spec 047). The
   rule is behavioral — the policy kernel does not gate it at tool-call
   time; enforcement is via the orchestrated-workflow protocol.
+origin:
+  retroactive: true
 ---
 
 # 131 — CONST-005 Adversarial-prompt refusal policy

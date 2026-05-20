@@ -16,6 +16,8 @@ summary: >
 code_aliases:
   - XRAY_ANALYSIS
   - XRAY_SCAN_POLICY
+origin:
+  retroactive: true
 ---
 
 # Feature Specification: OPC inspect + governance wiring

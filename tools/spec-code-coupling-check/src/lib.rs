@@ -11,14 +11,56 @@ use open_agentic_codebase_indexer::{IndexReaderError, load as load_codebase_inde
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-/// Built-in bypass-prefix default. Cut D W-08 (spec 127 follow-up):
-/// the hardcoded list was OAP-shaped (`.github/`, `docs/`, etc.) and
-/// is now empty (fail-closed). The OAP-specific allowlist lives at
-/// `.github/spec-coupling-bypass.txt` and is loaded at runtime via
-/// `--bypass-prefix-file`. Callers without the flag operate
-/// strictly: every diff path must be claimed (per the spec 127
-/// invariant) unless explicitly bypassed.
-pub const BYPASS_PREFIXES: &[&str] = &[];
+/// Empty-authority-by-rule patterns (spec 152 §3.2). These paths are
+/// exempt from the authority requirement — the gate skips them without
+/// requiring a claimant edit. Spec 152's body is the canonical
+/// description of *why* each pattern is exempt; this constant is the
+/// runtime materialisation co-authored by spec 152's
+/// `empty-authority-by-rule` section.
+///
+/// Each entry is matched as a prefix (trailing `/` matches a directory)
+/// or as an exact path (no trailing `/`). Modifying this list requires
+/// an amendment to spec 152 — patterns are durable architectural
+/// commitments, not per-PR exceptions.
+///
+/// History: Cut D W-08 externalised this list to
+/// `.github/spec-coupling-bypass.txt`; spec 152 (2026-05-20) deletes
+/// that file and codifies the patterns here so the rationale lives in
+/// a reviewable spec body rather than an outside-the-spine config file.
+/// The `--bypass-prefix-file` CLI flag remains supported for
+/// transitional callers; new patterns belong in this constant via
+/// spec 152 amendment.
+pub const BYPASS_PREFIXES: &[&str] = &[
+    // CI metadata governed by spec 118's `# Spec:` header convention,
+    // not by this diff-based gate.
+    ".github/",
+    // Human-authored documentation tree.
+    "docs/",
+    // Root-level repo metadata files.
+    "README.md",
+    "CLAUDE.md",
+    "DEVELOPERS.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "CODEOWNERS",
+    ".gitignore",
+    ".gitattributes",
+    // Constitutional declarations — governed by the amendment process
+    // described in spec 000 §3, not by this gate.
+    ".specify/memory/constitution.md",
+    // Compiled artifact output (governed by the compiler spec, not by
+    // file-level coupling).
+    "build/",
+    // Vendored grammars (imported third-party material).
+    "grammars/",
+    // Lockfiles — authoritative dependency resolution; the
+    // corresponding manifest carries the spec claim. `**/` tail-suffix
+    // patterns match any Cargo.lock or node lockfile regardless of
+    // depth in the tree.
+    "**/Cargo.lock",
+    "**/pnpm-lock.yaml",
+    "**/package-lock.json",
+];
 
 /// Case-sensitive PR-body waiver keyword. Spec 127 FR-005.
 pub const WAIVER_KEYWORD: &str = "Spec-Drift-Waiver:";
@@ -109,9 +151,17 @@ impl Outcome {
 /// supplied prefix list. Cut D W-08: callers pass an explicit slice
 /// (`BypassConfig::prefixes` or `BYPASS_PREFIXES` for legacy paths)
 /// so the bypass surface is data, not source code.
+///
+/// Pattern shapes (spec 152 §3.1):
+///   - Trailing `/` → directory prefix match (`docs/` matches `docs/x.md`).
+///   - Leading `**/` → tail-suffix match anywhere in the tree
+///     (`**/Cargo.lock` matches every Cargo.lock regardless of depth).
+///   - Otherwise → exact file match.
 pub fn is_bypass_against(path: &str, prefixes: &[&str]) -> bool {
     prefixes.iter().any(|prefix| {
-        if prefix.ends_with('/') {
+        if let Some(tail) = prefix.strip_prefix("**/") {
+            path == tail || path.ends_with(&format!("/{tail}"))
+        } else if prefix.ends_with('/') {
             path.starts_with(prefix)
         } else {
             // Exact match on root files; defensively allow trailing-slash variants.
@@ -296,9 +346,14 @@ pub fn check_coupling_with_bypass(
 
     // Path-centric aggregation: for each non-bypass diff path, collect
     // every legitimate owner across the three source classes.
+    //
+    // Spec 152: BYPASS_PREFIXES (the codified empty-authority-by-rule
+    // patterns) always apply. The runtime `bypass` overlay (loaded via
+    // `--bypass-prefix-file`) is additive — it can add patterns for
+    // transitional callers but cannot remove the codified ones.
     let mut path_owners: BTreeMap<String, OwnerSet> = BTreeMap::new();
     for path in diff_paths {
-        if bypass.matches(path) {
+        if is_bypass(path) || bypass.matches(path) {
             continue;
         }
         let owners = legitimate_owners(path, &claim_index, index);
@@ -551,15 +606,23 @@ mod tests {
     }
 
     #[test]
-    fn bypass_default_is_fail_closed_after_w08() {
-        // Cut D W-08: the hardcoded BYPASS_PREFIXES list is empty by
-        // default. Every path falls through to the coupling rule
-        // unless explicitly bypassed via --bypass-prefix-file.
-        assert!(!is_bypass(".github/workflows/foo.yml"));
-        assert!(!is_bypass("docs/ARCHITECTURE.md"));
-        assert!(!is_bypass("README.md"));
+    fn bypass_default_matches_spec_152_patterns() {
+        // Spec 152 §3.2: the codified empty-authority-by-rule patterns
+        // (formerly the .github/spec-coupling-bypass.txt file). These
+        // are durable architectural commitments; the gate exempts them
+        // by default. Modifying this list requires amending spec 152.
+        assert!(is_bypass(".github/workflows/foo.yml"));
+        assert!(is_bypass("docs/ARCHITECTURE.md"));
+        assert!(is_bypass("README.md"));
+        assert!(is_bypass("CLAUDE.md"));
+        assert!(is_bypass(".specify/memory/constitution.md"));
+        assert!(is_bypass("crates/Cargo.lock"));
+        assert!(is_bypass("Cargo.lock"));
+        assert!(is_bypass("build/codebase-index/index.json"));
+        // Non-bypassed: real code paths and AGENTS.md (claimed by spec 103).
         assert!(!is_bypass("Makefile"));
         assert!(!is_bypass("AGENTS.md"));
+        assert!(!is_bypass("crates/orchestrator/src/lib.rs"));
     }
 
     #[test]

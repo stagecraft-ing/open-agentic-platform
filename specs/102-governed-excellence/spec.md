@@ -33,6 +33,8 @@ implements:
   - path: crates/orchestrator
   - path: tools/spec-compiler
   - path: Makefile
+origin:
+  retroactive: true
 ---
 
 # 102 — Governed Excellence

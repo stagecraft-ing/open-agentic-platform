@@ -12,6 +12,11 @@ language: en
 summary: >
   Add `list --json` so scripts and tooling receive a stable JSON array of feature
   objects, reusing existing filters and sort order without changing registry schema.
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
 implements:
   - path: tools/registry-consumer
 ---

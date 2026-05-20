@@ -16,6 +16,8 @@ summary: >
   non-macOS hosts.
 implements:
   - path: crates/axiomregent
+origin:
+  retroactive: true
 ---
 
 # Feature Specification: cross-platform axiomregent binaries

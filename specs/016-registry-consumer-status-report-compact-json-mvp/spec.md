@@ -12,6 +12,11 @@ language: en
 summary: >
   Add `status-report --compact` for single-line JSON array output, mutually exclusive
   with `--json`, completing compact symmetry with list and show.
+extends:
+  - spec: "008-registry-consumer-status-report-json-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
 implements:
   - path: tools/registry-consumer
 ---

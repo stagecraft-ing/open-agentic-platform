@@ -12,6 +12,11 @@ language: en
 summary: >
   Internal refactor only: centralize output/error/exit emission in helper paths
   while preserving all observable CLI behavior under existing contracts.
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
 implements:
   - path: tools/registry-consumer
 ---

@@ -12,6 +12,11 @@ language: en
 summary: >
   Add `--status <value>` to `status-report` so operators and scripts can request a
   single lifecycle row in text or JSON mode while preserving existing defaults.
+extends:
+  - spec: "007-registry-consumer-status-report-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
 implements:
   - path: tools/registry-consumer
 ---

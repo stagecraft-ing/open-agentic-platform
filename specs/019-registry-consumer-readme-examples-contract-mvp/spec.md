@@ -13,6 +13,15 @@ summary: >
   Keep README command examples aligned with verified fixture output: human-facing
   text vs automation JSON/compact, with integration tests that assert CLI output
   and README fenced blocks match committed transcripts.
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/registry-consumer
+    aspect: contract-tests
 implements:
   - path: tools/registry-consumer
 ---

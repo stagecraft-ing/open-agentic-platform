@@ -13,6 +13,8 @@ depends_on:
   - "002"  # registry-consumer-mvp
   - "101"  # codebase-index-mvp (render/check subcommands)
 code_aliases: ["INIT_GOVERNED_READS"]
+origin:
+  retroactive: true
 implements:
   - path: AGENTS.md
   - path: .claude/rules/governed-artifact-reads.md

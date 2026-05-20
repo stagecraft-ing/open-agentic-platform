@@ -26,6 +26,8 @@ summary: >
   extended with `cargo-metadata-crate` (renamed from `cargo-metadata`),
   `cargo-metadata-module` (reserved), `comment-header` (new), and
   `multiple` (replacing the legacy `both`).
+origin:
+  retroactive: true
 ---
 
 # 129 — Granular `[package.metadata.oap]`

@@ -139,40 +139,108 @@ fn parse_depends_on(fm: &serde_yaml::Mapping) -> Vec<String> {
     ids
 }
 
-/// Parse the `implements` field from raw YAML frontmatter.
+/// Parse the `implements` field from raw YAML frontmatter, with the
+/// spec-130 relationship-graph derivation applied: when the spec carries
+/// no explicit `implements:` (or carries one alongside relationship
+/// fields), the indexer also surfaces paths from `establishes`,
+/// `extends[].paths`, `refines[].paths`, and `co_authority[].paths` so
+/// the gate sees the full claim surface for the new relationship-graph
+/// authoring mode.
+///
 /// This reads the YAML directly because the spec-compiler's extraFrontmatter
 /// rejects nested mappings (V-002). The indexer has its own read path.
 fn parse_implements(fm: &serde_yaml::Mapping) -> Vec<ImplementsEntry> {
-    let Some(val) = fm.get("implements") else {
-        return vec![];
-    };
-    let Some(seq) = val.as_sequence() else {
-        return vec![];
-    };
-
     let mut entries = Vec::new();
-    for item in seq {
-        if let Some(mapping) = item.as_mapping() {
-            let crate_name = mapping
-                .get("crate")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string());
-            let path = mapping
-                .get("path")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string());
-            // Spec 147 — optional `primary: true` per implements item.
-            // Only Some(true) is meaningful; explicit `false` is treated
-            // identically to absent (the corpus default).
-            let primary = mapping
-                .get("primary")
-                .and_then(|v| v.as_bool())
-                .filter(|b| *b)
-                .map(|_| true);
-            if let Some(path) = path {
-                entries.push(ImplementsEntry { crate_name, path, primary });
+    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+
+    // Explicit `implements:` (legacy authoring shape) — preserved.
+    if let Some(val) = fm.get("implements") {
+        if let Some(seq) = val.as_sequence() {
+            for item in seq {
+                if let Some(mapping) = item.as_mapping() {
+                    let crate_name = mapping
+                        .get("crate")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    let path = mapping
+                        .get("path")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    // Spec 147 — optional `primary: true` per implements item.
+                    // Only Some(true) is meaningful; explicit `false` is treated
+                    // identically to absent (the corpus default).
+                    let primary = mapping
+                        .get("primary")
+                        .and_then(|v| v.as_bool())
+                        .filter(|b| *b)
+                        .map(|_| true);
+                    if let Some(path) = path {
+                        if seen.insert(path.clone()) {
+                            entries.push(ImplementsEntry { crate_name, path, primary });
+                        }
+                    }
+                }
             }
         }
     }
+
+    // Spec 130 relationship-graph derivation. Each helper extracts
+    // paths from a specific field and pushes any new ones into the
+    // entry list with no crate hint and no primary flag.
+    let mut push_path = |path: String| {
+        if seen.insert(path.clone()) {
+            entries.push(ImplementsEntry {
+                crate_name: None,
+                path,
+                primary: None,
+            });
+        }
+    };
+
+    // `establishes:` — flat string list.
+    if let Some(val) = fm.get("establishes") {
+        if let Some(seq) = val.as_sequence() {
+            for item in seq {
+                if let Some(s) = item.as_str() {
+                    push_path(s.to_string());
+                }
+            }
+        }
+    }
+
+    // Extract `paths:` from each item in a structured field
+    // (`extends`, `refines`, `co_authority`).
+    let extract_paths_from = |fm: &serde_yaml::Mapping, key: &str| -> Vec<String> {
+        let mut out = Vec::new();
+        if let Some(val) = fm.get(key) {
+            if let Some(seq) = val.as_sequence() {
+                for item in seq {
+                    if let Some(mapping) = item.as_mapping() {
+                        if let Some(paths_val) = mapping.get("paths") {
+                            if let Some(paths_seq) = paths_val.as_sequence() {
+                                for p in paths_seq {
+                                    if let Some(s) = p.as_str() {
+                                        out.push(s.to_string());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        out
+    };
+
+    for path in extract_paths_from(fm, "extends") {
+        push_path(path);
+    }
+    for path in extract_paths_from(fm, "refines") {
+        push_path(path);
+    }
+    for path in extract_paths_from(fm, "co_authority") {
+        push_path(path);
+    }
+
     entries
 }

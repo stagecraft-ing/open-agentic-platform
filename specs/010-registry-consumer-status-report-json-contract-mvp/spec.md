@@ -12,6 +12,15 @@ language: en
 summary: >
   Declare and verify `status-report --json` as a stable automation interface using
   fixture-based contract tests, without changing runtime behavior.
+extends:
+  - spec: "008-registry-consumer-status-report-json-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/registry-consumer
+    aspect: contract-tests
 implements:
   - path: tools/registry-consumer
 ---

@@ -13,6 +13,11 @@ summary: >
   Define the first official read-only consumer of build/spec-registry/registry.json:
   who may read it, what guarantees downstream tools rely on, and a normative CLI for
   listing, filtering, and lookups; optional Rust library is non-normative for MVP.
+establishes:
+  - tools/registry-consumer
+  - tools/registry-consumer/src/lib.rs
+  - tools/registry-consumer/src/main.rs
+  - tools/registry-consumer/Cargo.toml
 ---
 
 # Feature Specification: Registry consumer MVP

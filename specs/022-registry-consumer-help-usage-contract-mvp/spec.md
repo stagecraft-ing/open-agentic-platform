@@ -12,6 +12,15 @@ language: en
 summary: >
   Lock top-level and subcommand help output for registry-consumer using fixture
   transcripts and integration tests, preventing silent ergonomics drift.
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/registry-consumer
+    aspect: contract-tests
 implements:
   - path: tools/registry-consumer
 ---

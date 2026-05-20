@@ -12,6 +12,11 @@ language: en
 summary: >
   Add `show <id> --compact` for single-line compact JSON feature output, mutually
   exclusive with `--json`, without changing default or pretty `--json` behavior.
+extends:
+  - spec: "013-registry-consumer-show-json-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
 implements:
   - path: tools/registry-consumer
 ---

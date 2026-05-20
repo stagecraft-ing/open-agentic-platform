@@ -13,6 +13,15 @@ summary: >
   Lock object-shape invariants for list/show/status-report JSON outputs: required
   keys, no unexpected keys, null omission behavior, and stable key ordering where
   current serialization implies it.
+extends:
+  - spec: "002-registry-consumer-mvp"
+    paths:
+      - tools/registry-consumer
+    nature: additive
+refines:
+  - paths:
+      - tools/registry-consumer
+    aspect: contract-tests
 implements:
   - path: tools/registry-consumer
 ---
