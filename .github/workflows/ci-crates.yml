@@ -48,6 +48,30 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
+      # The spec-152 section-aware verification tests under
+      # tools/spec-spine/spec-code-coupling-check/tests/ read the live
+      # `.derived/spec-registry/registry.json` and
+      # `.derived/codebase-index/index.json`. Both are gitignored, so
+      # cargo test --workspace on a fresh CI clone fails with ENOENT
+      # unless we compile them first. The build/run pair mirrors the
+      # Makefile `ci-tools` recipe so ci-parity-check stays satisfied.
+      - name: Rust toolchain (pre-compile fixtures)
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # pinned for rust-toolchain.toml lockstep
+        with:
+          toolchain: '1.95.0'
+
+      - name: Compile spec-compiler (fixture producer)
+        run: cargo build --release --manifest-path tools/spec-spine/spec-compiler/Cargo.toml --target-dir tools/spec-spine/spec-compiler/target
+
+      - name: Emit spec registry (test fixture)
+        run: ./tools/spec-spine/spec-compiler/target/release/spec-compiler compile
+
+      - name: Compile codebase-indexer (fixture producer)
+        run: cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
+
+      - name: Emit codebase index (test fixture)
+        run: ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
+
       - name: CI crates workspace
         uses: ./.github/actions/rust-ci
         with:
