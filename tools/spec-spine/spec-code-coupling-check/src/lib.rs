@@ -56,8 +56,9 @@ pub const BYPASS_PREFIXES: &[&str] = &[
     ".gitignore",
     ".gitattributes",
     // Constitutional declarations — governed by the amendment process
-    // described in spec 000 §3, not by this gate.
-    ".specify/memory/constitution.md",
+    // described in spec 000 §3, not by this gate. (Epic 2 I3 graduated
+    // the constitution from .specify/memory/ to standards/spec/.)
+    "standards/spec/constitution.md",
     // Compiled artifact output (governed by the compiler spec, not by
     // file-level coupling). I9 renamed build/ to .derived/.
     ".derived/",
@@ -840,7 +841,7 @@ mod tests {
         assert!(is_bypass("docs/ARCHITECTURE.md"));
         assert!(is_bypass("README.md"));
         assert!(is_bypass("CLAUDE.md"));
-        assert!(is_bypass(".specify/memory/constitution.md"));
+        assert!(is_bypass("standards/spec/constitution.md"));
         assert!(is_bypass("crates/Cargo.lock"));
         assert!(is_bypass("Cargo.lock"));
         assert!(is_bypass(".derived/codebase-index/index.json"));
