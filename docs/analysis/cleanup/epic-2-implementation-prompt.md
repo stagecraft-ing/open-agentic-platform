@@ -69,18 +69,18 @@ each before Epic 2 fires; the agent reads these resolutions and
 proceeds accordingly. Recommended defaults are provided where the
 discovery audits made one explicit.
 
-| # | Decision | Discovery ref | Recommended default | **Operator resolution**                                             |
-|---|---|---|---|---------------------------------------------------------------------|
-| 1 | `apps/desktop/src-tauri/` Cargo workspace isolation | D2 OQ-1, D3 | Keep `src-tauri/` as a standalone workspace (preserves SQLite isolation, Tauri build idioms); I1 consolidates everything *except* `src-tauri/` | `correct`                                                           |
-| 2 | `platform/services/deployd-api-rs/` standalone disposition | D2 OQ-2 | Leave standalone (platform layer is structurally untouched per master plan §Locked target layout) | `correct`                                                           |
-| 3 | Coding-standard schema duplicate resolution | D5 | Keep `packages/yaml-standards-schema/schema/standard.schema.json` (npm-side consumer); delete `standards/schema/standard.schema.json`; update remaining refs to point at the kept copy | `correct`                                                           |
-| 4 | `crates/agent/src/schemas/` dormancy | D5 OQ | If unreferenced by any consumer, delete in I4; if referenced, co-locate under `standards/schemas/agent/` per master plan | `correct`                                                           |
-| 5 | `pnpm-workspace.yaml` runtime read location | D3 OQ-1, D6 OQ-4 | Workspace YAML lives at `product/pnpm-workspace.yaml` (per master plan §Locked target layout); `codebase-indexer` loader (`tools/codebase-indexer/src/lib.rs:446-447`, `manifest.rs:377-378`) updates to read from `product/pnpm-workspace.yaml` in the same I7 commit | `workspace YAML at repo root with product/apps/* globs) is correct` |
-| 6 | V-010 dormancy in `spec-types` | D7 OQ-1 | Out of scope for Epic 2; surface as follow-up. Leave the constant in place; do not remove or change emission semantics | `<pending>`                                                         |
-| 7 | V-002 (b) truncation order for `extraFrontmatter` over-size | D7 OQ-2 | Alphabetical key order for the kept 8 entries (deterministic, predictable) | `correct`                                                           |
-| 8 | I1 root workspace style — `manifest-path` vs `--package` | D6 OQ-1 | Keep existing `manifest-path tools/<tool>/Cargo.toml` style in Makefile and workflows; root workspace consolidation does not require rewriting invocations | `correct`                                                           |
-| 9 | I5 per-tool spec-spine vs OAP categorisation | D6 OQ-2 | Use the master plan §Locked target layout categorisation verbatim (spec-spine: spec-compiler, registry-consumer, codebase-indexer, spec-lint, spec-code-coupling-check; OAP: oap-registry-enrich, oap-code-index-enrich, policy-compiler, adapter-scopes-compiler, assumption-cascade-check, ci-parity-check, schema-parity-check, stakeholder-doc-lint) | `correct`                                                           |
-| 10 | `@opc/root` package `oap.spec` field at root `package.json` | D3 OQ-3 | Do not add; root `package.json` is a workspace orchestrator and not subject to spec 127 coupling | `correct`                                                           |
+| # | Decision | Discovery ref | Recommended default | **Operator resolution** |
+|---|---|---|---|-------------------------|
+| 1 | `apps/desktop/src-tauri/` Cargo workspace isolation | D2 OQ-1, D3 | Keep `src-tauri/` as a standalone workspace (preserves SQLite isolation, Tauri build idioms); I1 consolidates everything *except* `src-tauri/` | `correct`               |
+| 2 | `platform/services/deployd-api-rs/` standalone disposition | D2 OQ-2 | Leave standalone (platform layer is structurally untouched per master plan §Locked target layout) | `correct`               |
+| 3 | Coding-standard schema duplicate resolution | D5 | Keep `packages/yaml-standards-schema/schema/standard.schema.json` (npm-side consumer); delete `standards/schema/standard.schema.json`; update remaining refs to point at the kept copy | `correct`               |
+| 4 | `crates/agent/src/schemas/` dormancy | D5 OQ | If unreferenced by any consumer, delete in I4; if referenced, co-locate under `standards/schemas/agent/` per master plan | `correct`               |
+| 5 | `pnpm-workspace.yaml` runtime read location | D3 OQ-1, D6 OQ-4 | Workspace YAML lives at `product/pnpm-workspace.yaml` (per master plan §Locked target layout); `codebase-indexer` loader (`tools/codebase-indexer/src/lib.rs:446-447`, `manifest.rs:377-378`) updates to read from `product/pnpm-workspace.yaml` in the same I7 commit | `correct`               |
+| 6 | V-010 dormancy in `spec-types` | D7 OQ-1 | Out of scope for Epic 2; surface as follow-up. Leave the constant in place; do not remove or change emission semantics | `correct`               |
+| 7 | V-002 (b) truncation order for `extraFrontmatter` over-size | D7 OQ-2 | Alphabetical key order for the kept 8 entries (deterministic, predictable) | `correct`               |
+| 8 | I1 root workspace style — `manifest-path` vs `--package` | D6 OQ-1 | Keep existing `manifest-path tools/<tool>/Cargo.toml` style in Makefile and workflows; root workspace consolidation does not require rewriting invocations | `correct`               |
+| 9 | I5 per-tool spec-spine vs OAP categorisation | D6 OQ-2 | Use the master plan §Locked target layout categorisation verbatim (spec-spine: spec-compiler, registry-consumer, codebase-indexer, spec-lint, spec-code-coupling-check; OAP: oap-registry-enrich, oap-code-index-enrich, policy-compiler, adapter-scopes-compiler, assumption-cascade-check, ci-parity-check, schema-parity-check, stakeholder-doc-lint) | `correct`               |
+| 10 | `@opc/root` package `oap.spec` field at root `package.json` | D3 OQ-3 | Do not add; root `package.json` is a workspace orchestrator and not subject to spec 127 coupling | `correct`               |
 
 If any `<pending>` remains when Epic 2 fires, halt immediately and
 surface — do not infer.
