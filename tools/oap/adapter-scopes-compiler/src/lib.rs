@@ -115,10 +115,8 @@ fn extract_commands(value: &serde_yaml::Value) -> Vec<String> {
     for (k, v) in mapping {
         let Some(key) = k.as_str() else { continue };
         match v {
-            serde_yaml::Value::String(s) => {
-                if TOP_LEVEL_COMMAND_KEYS.contains(&key) {
-                    out.push(s.trim().to_string());
-                }
+            serde_yaml::Value::String(s) if TOP_LEVEL_COMMAND_KEYS.contains(&key) => {
+                out.push(s.trim().to_string());
             }
             serde_yaml::Value::Sequence(seq) => {
                 for item in seq {

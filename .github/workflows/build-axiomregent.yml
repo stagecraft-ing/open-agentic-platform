@@ -76,8 +76,8 @@ jobs:
       - name: Copy binary (Windows)
         if: runner.os == 'Windows'
         run: |
-          copy crates\target\${{ matrix.target }}\release\axiomregent.exe apps\desktop\src-tauri\binaries\${{ matrix.binary }}
-          dir apps\desktop\src-tauri\binaries\${{ matrix.binary }}
+          copy target\${{ matrix.target }}\release\axiomregent.exe product\apps\desktop\src-tauri\binaries\${{ matrix.binary }}
+          dir product\apps\desktop\src-tauri\binaries\${{ matrix.binary }}
         shell: cmd
 
       - name: Smoke test

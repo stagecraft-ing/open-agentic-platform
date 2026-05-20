@@ -87,8 +87,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          if not exist apps\desktop\src-tauri\binaries mkdir apps\desktop\src-tauri\binaries
-          copy crates\target\${{ matrix.target }}\release\axiomregent.exe apps\desktop\src-tauri\binaries\axiomregent-${{ matrix.target }}.exe
+          if not exist product\apps\desktop\src-tauri\binaries mkdir product\apps\desktop\src-tauri\binaries
+          copy target\${{ matrix.target }}\release\axiomregent.exe product\apps\desktop\src-tauri\binaries\axiomregent-${{ matrix.target }}.exe
 
       - name: Upload sidecar artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
