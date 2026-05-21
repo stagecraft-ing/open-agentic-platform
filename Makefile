@@ -504,9 +504,9 @@ ci-desktop:
 	 fi
 	@echo ""
 	@echo "==> ci-desktop: typescript"
-	pnpm install --frozen-lockfile
-	pnpm --filter @opc/desktop exec tsc --noEmit
-	pnpm --filter @opc/desktop test
+	cd product && pnpm install --frozen-lockfile
+	cd product && pnpm --filter @opc/desktop exec tsc --noEmit
+	cd product && pnpm --filter @opc/desktop test
 
 ci-stagecraft: ci-agent-frontmatter-ts
 	@echo "==> ci-stagecraft: npm ci + tsc + vitest"
@@ -593,7 +593,7 @@ ci-supply-chain-cargo:
 
 ci-supply-chain-pnpm:
 	@echo "==> ci-supply-chain: pnpm audit"
-	pnpm audit --audit-level=high
+	cd product && pnpm audit --audit-level=high
 
 ci-supply-chain-npm:
 	@echo "==> ci-supply-chain: npm audit (stagecraft)"
@@ -761,11 +761,14 @@ ci-fast-desktop:
 	   cargo $(CIFAST_CARGO_TEST) --manifest-path product/apps/desktop/src-tauri/Cargo.toml --lib && \
 	   cargo test --manifest-path product/apps/desktop/src-tauri/Cargo.toml --doc \
 	) & RUST_PID=$$!; \
-	  pnpm install --frozen-lockfile; PI=$$?; \
+	  ( cd product && pnpm install --frozen-lockfile ); PI=$$?; \
 	  wait $$RUST_PID; R=$$?; exit $$((R | PI))
 	@echo "==> ci-fast-desktop: tsc | vitest (concurrent)"
-	@( pnpm --filter @opc/desktop exec tsc --noEmit ) & TSC_PID=$$!; \
-	  ( pnpm --filter @opc/desktop test ) & VT_PID=$$!; \
+	@# Each backgrounded compound needs its own `cd` (same lesson as
+	@# ci-fast-stagecraft above): `cd X && cmd &` runs in a subshell, so the
+	@# parent shell's CWD doesn't change between the two jobs.
+	@( cd product && pnpm --filter @opc/desktop exec tsc --noEmit ) & TSC_PID=$$!; \
+	  ( cd product && pnpm --filter @opc/desktop test ) & VT_PID=$$!; \
 	  wait $$TSC_PID; T=$$?; wait $$VT_PID; V=$$?; exit $$((T | V))
 	@CARGO_V=$$(grep '^version' product/apps/desktop/src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/'); \
 	 PKG_V=$$(node -p "require('./product/apps/desktop/package.json').version"); \
@@ -803,7 +806,7 @@ ci-fast-spec-coupling:
 ci-fast-supply-chain:
 	@command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny --locked --version '^0.19'
 	@echo "==> ci-fast-supply-chain: cargo-deny -P$(CIFAST_JOBS) | pnpm audit | npm audit"
-	@( pnpm audit --audit-level=high ) & PNPM_PID=$$!; \
+	@( cd product && pnpm audit --audit-level=high ) & PNPM_PID=$$!; \
 	  ( cd platform/services/stagecraft && npm audit --audit-level=high ) & NPM_PID=$$!; \
 	  printf '%s\n' $(SUPPLY_CHAIN_RUST_MANIFESTS) | \
 	    xargs -n1 -P$(CIFAST_JOBS) -I{} cargo deny --manifest-path {} check; \
