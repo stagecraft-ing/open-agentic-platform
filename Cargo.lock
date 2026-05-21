@@ -4681,6 +4681,7 @@ dependencies = [
  "serde_yaml",
  "sha2 0.11.0",
  "tempfile",
+ "toml 0.8.23",
  "walkdir",
 ]
 
@@ -4692,6 +4693,7 @@ dependencies = [
  "open_agentic_spec_types",
  "serde_yaml",
  "tempfile",
+ "toml 0.8.23",
 ]
 
 [[package]]
@@ -4700,6 +4702,8 @@ version = "0.1.0"
 dependencies = [
  "canonical-json",
  "clap",
+ "open_agentic_spec_compiler",
+ "open_agentic_spec_types",
  "serde",
  "serde_json",
  "tempfile",
@@ -4710,6 +4714,7 @@ name = "open_agentic_spec_types"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
  "serde_yaml",
 ]
 

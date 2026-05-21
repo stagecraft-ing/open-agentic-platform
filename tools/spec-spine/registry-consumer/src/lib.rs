@@ -12,6 +12,8 @@ use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::path::Path;
 
+pub use open_agentic_spec_types::LogicalUnit;
+
 // ─────────────────────────────────────────────────────────────────────
 // Backwards-compatible Value-based surface (kept additive for W-03;
 // callers migrate over W-04..W-06b.)
@@ -349,6 +351,13 @@ pub struct Feature {
     /// `compliance`.
     #[serde(default)]
     pub adapter: Option<Value>,
+    /// Spec 154 — ninth relationship (`references:`). Items are
+    /// declaratively non-owning: surfaced for navigation / provenance
+    /// by the indexer but ignored by the coupling gate. Canonical
+    /// shape is `[{role?: <str>, unit: <logical-unit>}]`; bare path
+    /// strings are normalised by the compiler.
+    #[serde(default)]
+    pub references: Option<Value>,
     /// Verbatim Value as parsed from `features[]`. Used by callers that
     /// re-emit feature records byte-identically.
     #[serde(skip)]
@@ -993,6 +1002,203 @@ fn outgoing_edges(raw: &Value) -> Vec<OutgoingEdge> {
     }
 
     edges
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Spec 154 — typed logical-unit extraction surface
+// ─────────────────────────────────────────────────────────────────────
+
+/// One typed logical-unit declaration extracted from a feature's
+/// relationship fields. The discriminated `LogicalUnit` replaces the
+/// path-string view used by [`OutgoingEdge::paths`]; consumers that
+/// previously enumerated path lists can switch to enumerating units.
+///
+/// `relationship` is one of `establishes` | `extends` | `refines` |
+/// `supersedes` | `co_authority` | `constrains` | `references`.
+/// `legacy` is `true` when the unit was synthesised from a bare-string
+/// path (legacy authoring) and `false` when the author declared the
+/// unit explicitly via `unit:` or a `{kind: ...}` mapping. The
+/// distinction lets callers — notably the coupling gate (Tier 2
+/// Segment 4) — prefer typed authority where it has been declared
+/// while preserving the legacy path-list authority surface for
+/// un-migrated specs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnitEdge {
+    pub relationship: String,
+    pub unit: LogicalUnit,
+    pub role: Option<String>,
+    pub legacy: bool,
+}
+
+/// Return every [`UnitEdge`] declared by `feature`. Order is the
+/// declaration order within each relationship list; relationships are
+/// processed in a stable sequence (establishes → extends → refines
+/// → supersedes → co_authority → constrains → references) so the
+/// output is deterministic.
+pub fn unit_edges(feature: &Feature) -> Vec<UnitEdge> {
+    let mut out: Vec<UnitEdge> = Vec::new();
+    let raw = &feature.raw;
+
+    if let Some(seq) = raw.get("establishes").and_then(|v| v.as_array()) {
+        for item in seq {
+            collect_unit_from_establishes_item(item, &mut out);
+        }
+    }
+    for rel in &["extends", "refines", "supersedes", "co_authority", "constrains"] {
+        let Some(seq) = raw.get(*rel).and_then(|v| v.as_array()) else {
+            continue;
+        };
+        for item in seq {
+            collect_unit_from_relationship_item(rel, item, &mut out);
+        }
+    }
+    if let Some(seq) = raw.get("references").and_then(|v| v.as_array()) {
+        for item in seq {
+            collect_unit_from_reference_item(item, &mut out);
+        }
+    }
+    out
+}
+
+fn collect_unit_from_establishes_item(item: &Value, out: &mut Vec<UnitEdge>) {
+    // Bare path string — legacy `file:` unit.
+    if let Some(s) = item.as_str() {
+        out.push(UnitEdge {
+            relationship: "establishes".to_string(),
+            unit: LogicalUnit::File {
+                path: s.to_string(),
+            },
+            role: None,
+            legacy: true,
+        });
+        return;
+    }
+    // `{unit: {...}}` — explicit, typed.
+    if let Some(unit_v) = item.get("unit") {
+        if let Ok(u) = LogicalUnit::from_json(unit_v) {
+            out.push(UnitEdge {
+                relationship: "establishes".to_string(),
+                unit: u,
+                role: None,
+                legacy: false,
+            });
+        }
+        return;
+    }
+    // Item shaped as a unit itself (`{kind: ..., id|path|...}`) —
+    // also explicit.
+    if item.get("kind").is_some() {
+        if let Ok(u) = LogicalUnit::from_json(item) {
+            out.push(UnitEdge {
+                relationship: "establishes".to_string(),
+                unit: u,
+                role: None,
+                legacy: false,
+            });
+        }
+    }
+}
+
+fn collect_unit_from_relationship_item(rel: &str, item: &Value, out: &mut Vec<UnitEdge>) {
+    // Bare-string list entries are spec-id references, not units. Skip.
+    if item.is_string() {
+        return;
+    }
+    let Some(map) = item.as_object() else {
+        return;
+    };
+    // Explicit `unit:` field.
+    if let Some(unit_v) = map.get("unit") {
+        if let Ok(u) = LogicalUnit::from_json(unit_v) {
+            out.push(UnitEdge {
+                relationship: rel.to_string(),
+                unit: u,
+                role: None,
+                legacy: false,
+            });
+        }
+    }
+    // Legacy `paths:` array → file: units (legacy origin).
+    if let Some(paths) = map.get("paths").and_then(|v| v.as_array()) {
+        for p in paths {
+            if let Some(s) = p.as_str() {
+                out.push(UnitEdge {
+                    relationship: rel.to_string(),
+                    unit: LogicalUnit::File {
+                        path: s.to_string(),
+                    },
+                    role: None,
+                    legacy: true,
+                });
+            }
+        }
+    }
+    // Legacy `co_authority` synthesis: `paths` + `section` →
+    // section: units (legacy origin). Symbol-anchor resolution
+    // lands in the indexer (Segment 3).
+    if rel == "co_authority" {
+        if let (Some(paths), Some(section)) = (
+            map.get("paths").and_then(|v| v.as_array()),
+            map.get("section").and_then(|v| v.as_str()),
+        ) {
+            for p in paths {
+                if let Some(s) = p.as_str() {
+                    out.push(UnitEdge {
+                        relationship: rel.to_string(),
+                        unit: LogicalUnit::Section {
+                            file: s.to_string(),
+                            anchor: section.to_string(),
+                        },
+                        role: None,
+                        legacy: true,
+                    });
+                }
+            }
+        }
+    }
+}
+
+fn collect_unit_from_reference_item(item: &Value, out: &mut Vec<UnitEdge>) {
+    // Bare path string — legacy/shorthand `file:` unit.
+    if let Some(s) = item.as_str() {
+        out.push(UnitEdge {
+            relationship: "references".to_string(),
+            unit: LogicalUnit::File {
+                path: s.to_string(),
+            },
+            role: None,
+            legacy: true,
+        });
+        return;
+    }
+    // `{role?: <str>, unit: <logical-unit>}` — canonical.
+    let Some(map) = item.as_object() else {
+        return;
+    };
+    let role = map
+        .get("role")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+    if let Some(unit_v) = map.get("unit") {
+        if let Ok(u) = LogicalUnit::from_json(unit_v) {
+            out.push(UnitEdge {
+                relationship: "references".to_string(),
+                unit: u,
+                role,
+                legacy: false,
+            });
+        }
+    }
+}
+
+impl Feature {
+    /// Spec 154 — return every typed logical-unit this spec declares
+    /// across its relationship fields, in declaration order. See
+    /// [`UnitEdge`] for the per-edge metadata (relationship,
+    /// optional role, legacy-vs-explicit origin).
+    pub fn units(&self) -> Vec<UnitEdge> {
+        unit_edges(self)
+    }
 }
 
 impl Registry {

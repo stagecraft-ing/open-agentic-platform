@@ -122,6 +122,12 @@ pub const KNOWN_KEYS: &[&str] = &[
     "co_authority",
     "constrains",
     "origin",
+    // Spec 154 (logical-unit ownership grammar) — ninth relationship,
+    // declaratively non-owning. Items are units the spec mentions for
+    // evidence / illustration / provenance without claiming authority
+    // over them. The coupling gate ignores references; the indexer
+    // surfaces them for navigation.
+    "references",
 ];
 
 /// Valid values for the `risk` frontmatter field.
@@ -245,6 +251,29 @@ pub const V_019: ViolationCode = ViolationCode("V-019");
 /// annotation pass.
 pub const V_020: ViolationCode = ViolationCode("V-020");
 
+/// Spec 154 — fired by spec-compiler when a `crate:` unit's `id` does
+/// not appear in the root workspace manifest's `[workspace] members`
+/// array. Hard error: the crate id is the unit's stable identifier
+/// and an unresolvable id means the spec is referring to a
+/// workspace member that does not exist.
+pub const V_021: ViolationCode = ViolationCode("V-021");
+
+/// Spec 154 — fired by spec-compiler when a `directory:` unit's
+/// `path` does not exist as a directory in the worktree. Hard error.
+pub const V_022: ViolationCode = ViolationCode("V-022");
+
+/// Spec 154 — fired by spec-compiler when a `file:` unit's `path`
+/// does not exist as a file in the worktree. Hard error. (Git rename
+/// trace handling is deferred to the codebase-indexer resolver in
+/// Tier 2 Segment 3; today the check is literal-existence only.)
+pub const V_023: ViolationCode = ViolationCode("V-023");
+
+/// Spec 154 — fired by spec-compiler when a logical-unit declaration
+/// in a relationship field is malformed (unknown `kind:` value,
+/// missing required field for the declared kind, or not a string /
+/// mapping shape). Hard error.
+pub const V_024: ViolationCode = ViolationCode("V-024");
+
 // Lint W-codes (emitted by spec-lint).
 pub const W_001: ViolationCode = ViolationCode("W-001");
 pub const W_002: ViolationCode = ViolationCode("W-002");
@@ -256,6 +285,240 @@ pub const W_007: ViolationCode = ViolationCode("W-007");
 pub const W_130: ViolationCode = ViolationCode("W-130");
 pub const W_131: ViolationCode = ViolationCode("W-131");
 pub const W_132: ViolationCode = ViolationCode("W-132");
+
+/// Spec 154 — advisory soft lint emitted by spec-lint when a legacy
+/// path-string (or explicit `file:` unit) sits inside a workspace
+/// member's directory tree and could be expressed as the higher-level
+/// `crate:` unit. The hint is advisory; corpus migration to the unit
+/// grammar is Tier 2 Segment 5. Info severity; does NOT participate
+/// in `--fail-on-warn`.
+pub const L_005: ViolationCode = ViolationCode("L-005");
+
+// ─────────────────────────────────────────────────────────────────────
+// Spec 154 — Logical-unit ownership grammar
+// ─────────────────────────────────────────────────────────────────────
+
+/// One logical unit declared inside a relationship-graph field
+/// (`establishes`, `extends.unit`, `refines.unit`, `supersedes.unit`,
+/// `co_authority.unit`, `constrains.unit`, `references.unit`).
+///
+/// The six kinds correspond to the six observed ownership shapes
+/// across the spec corpus (spec 154 §2). Resolution from a unit to a
+/// concrete `(file, span)` set lives in the codebase-indexer (spec 154
+/// Tier 2 Segment 3); spec-compiler stops at parsing and basic
+/// type-checking.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LogicalUnit {
+    /// `{ kind: crate, id: <workspace-member-name> }`. Stable under
+    /// crate-directory relocation; changes on manifest-name rename.
+    Crate { id: String },
+    /// `{ kind: symbol, id: <rust-path> }`. Stable under in-module
+    /// reorderings; changes on symbol rename or cross-module move.
+    Symbol { id: String },
+    /// `{ kind: module, id: <rust-path> }`. Stable under symbol
+    /// additions; changes on module rename or restructure.
+    Module { id: String },
+    /// `{ kind: section, file: <path>, anchor: <anchor-name> }`. Per-
+    /// file-kind anchor semantics live in spec 152 (path-co-authority).
+    Section { file: String, anchor: String },
+    /// `{ kind: directory, path: <workspace-relative-path> }`. Resolves
+    /// to `<path>/**` with the standard exclusion set (spec 154 §3.7).
+    Directory { path: String },
+    /// `{ kind: file, path: <file-path> }`. Literal worktree path; the
+    /// legacy bare-string form parses to this variant.
+    File { path: String },
+}
+
+/// Failures from [`LogicalUnit::from_yaml`] / [`LogicalUnit::from_json`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LogicalUnitParseError {
+    /// Value was neither a string nor a mapping.
+    NotStringOrMapping,
+    /// `kind:` discriminator was missing on a mapping.
+    MissingKind,
+    /// `kind:` discriminator was not one of the six accepted values.
+    UnknownKind(String),
+    /// Required field for the declared kind was absent.
+    MissingField {
+        kind: &'static str,
+        field: &'static str,
+    },
+    /// Required field was present but not a string.
+    FieldNotString {
+        kind: &'static str,
+        field: &'static str,
+    },
+}
+
+impl std::fmt::Display for LogicalUnitParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LogicalUnitParseError::NotStringOrMapping => {
+                write!(
+                    f,
+                    "logical unit must be a string (legacy file-path form) or a mapping with `kind:`"
+                )
+            }
+            LogicalUnitParseError::MissingKind => {
+                write!(f, "logical unit mapping is missing `kind:`")
+            }
+            LogicalUnitParseError::UnknownKind(k) => write!(
+                f,
+                "logical unit kind {k:?} is not one of: crate, symbol, module, section, directory, file"
+            ),
+            LogicalUnitParseError::MissingField { kind, field } => {
+                write!(f, "logical unit kind={kind:?} requires field `{field}:`")
+            }
+            LogicalUnitParseError::FieldNotString { kind, field } => {
+                write!(
+                    f,
+                    "logical unit kind={kind:?} field `{field}:` must be a string"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for LogicalUnitParseError {}
+
+impl LogicalUnit {
+    /// Stable kind discriminator string.
+    pub fn kind_str(&self) -> &'static str {
+        match self {
+            LogicalUnit::Crate { .. } => "crate",
+            LogicalUnit::Symbol { .. } => "symbol",
+            LogicalUnit::Module { .. } => "module",
+            LogicalUnit::Section { .. } => "section",
+            LogicalUnit::Directory { .. } => "directory",
+            LogicalUnit::File { .. } => "file",
+        }
+    }
+
+    /// Parse from a YAML value. A bare string maps to
+    /// [`LogicalUnit::File`]; a mapping dispatches on `kind:`.
+    pub fn from_yaml(v: &serde_yaml::Value) -> Result<Self, LogicalUnitParseError> {
+        if let Some(s) = v.as_str() {
+            return Ok(LogicalUnit::File {
+                path: s.to_string(),
+            });
+        }
+        let map = v
+            .as_mapping()
+            .ok_or(LogicalUnitParseError::NotStringOrMapping)?;
+        let kind = map
+            .get("kind")
+            .and_then(|x| x.as_str())
+            .ok_or(LogicalUnitParseError::MissingKind)?;
+        Self::from_mapping(kind, |k| map.get(k).and_then(|x| x.as_str()))
+    }
+
+    /// Parse from a JSON value. Mirrors [`Self::from_yaml`].
+    pub fn from_json(v: &serde_json::Value) -> Result<Self, LogicalUnitParseError> {
+        if let Some(s) = v.as_str() {
+            return Ok(LogicalUnit::File {
+                path: s.to_string(),
+            });
+        }
+        let map = v
+            .as_object()
+            .ok_or(LogicalUnitParseError::NotStringOrMapping)?;
+        let kind = map
+            .get("kind")
+            .and_then(|x| x.as_str())
+            .ok_or(LogicalUnitParseError::MissingKind)?;
+        Self::from_mapping(kind, |k| map.get(k).and_then(|x| x.as_str()))
+    }
+
+    fn from_mapping<'a>(
+        kind: &str,
+        get: impl Fn(&str) -> Option<&'a str>,
+    ) -> Result<Self, LogicalUnitParseError> {
+        match kind {
+            "crate" => {
+                let id = get("id").ok_or(LogicalUnitParseError::MissingField {
+                    kind: "crate",
+                    field: "id",
+                })?;
+                Ok(LogicalUnit::Crate { id: id.to_string() })
+            }
+            "symbol" => {
+                let id = get("id").ok_or(LogicalUnitParseError::MissingField {
+                    kind: "symbol",
+                    field: "id",
+                })?;
+                Ok(LogicalUnit::Symbol { id: id.to_string() })
+            }
+            "module" => {
+                let id = get("id").ok_or(LogicalUnitParseError::MissingField {
+                    kind: "module",
+                    field: "id",
+                })?;
+                Ok(LogicalUnit::Module { id: id.to_string() })
+            }
+            "section" => {
+                let file = get("file").ok_or(LogicalUnitParseError::MissingField {
+                    kind: "section",
+                    field: "file",
+                })?;
+                let anchor = get("anchor").ok_or(LogicalUnitParseError::MissingField {
+                    kind: "section",
+                    field: "anchor",
+                })?;
+                Ok(LogicalUnit::Section {
+                    file: file.to_string(),
+                    anchor: anchor.to_string(),
+                })
+            }
+            "directory" => {
+                let path = get("path").ok_or(LogicalUnitParseError::MissingField {
+                    kind: "directory",
+                    field: "path",
+                })?;
+                Ok(LogicalUnit::Directory {
+                    path: path.to_string(),
+                })
+            }
+            "file" => {
+                let path = get("path").ok_or(LogicalUnitParseError::MissingField {
+                    kind: "file",
+                    field: "path",
+                })?;
+                Ok(LogicalUnit::File {
+                    path: path.to_string(),
+                })
+            }
+            other => Err(LogicalUnitParseError::UnknownKind(other.to_string())),
+        }
+    }
+
+    /// Canonical JSON representation. Round-trips through [`Self::from_json`].
+    pub fn to_json(&self) -> serde_json::Value {
+        use serde_json::json;
+        match self {
+            LogicalUnit::Crate { id } => json!({ "kind": "crate", "id": id }),
+            LogicalUnit::Symbol { id } => json!({ "kind": "symbol", "id": id }),
+            LogicalUnit::Module { id } => json!({ "kind": "module", "id": id }),
+            LogicalUnit::Section { file, anchor } => {
+                json!({ "kind": "section", "file": file, "anchor": anchor })
+            }
+            LogicalUnit::Directory { path } => json!({ "kind": "directory", "path": path }),
+            LogicalUnit::File { path } => json!({ "kind": "file", "path": path }),
+        }
+    }
+}
+
+/// Standard exclusion set applied by the codebase-indexer's resolver
+/// when materialising a `crate:` or `directory:` unit into a glob
+/// (spec 154 §3.7). Owned here so consumers downstream of spec-compiler
+/// (codebase-indexer, coupling gate) share one truth.
+pub const RESOLVER_EXCLUSIONS: &[&str] = &[
+    "target/**",
+    "node_modules/**",
+    ".derived/**",
+    "dist/**",
+    "build/**",
+    ".next/**",
+];
 
 #[cfg(test)]
 mod frontmatter_tests {
@@ -281,5 +544,92 @@ mod frontmatter_tests {
     #[test]
     fn optional_returns_none_when_absent() {
         assert!(split_frontmatter_optional("no frontmatter").is_none());
+    }
+}
+
+#[cfg(test)]
+mod logical_unit_tests {
+    use super::*;
+
+    fn yaml(s: &str) -> serde_yaml::Value {
+        serde_yaml::from_str(s).expect("parse YAML")
+    }
+
+    #[test]
+    fn bare_string_parses_as_file_unit() {
+        let v = yaml("crates/foo/src/lib.rs");
+        let u = LogicalUnit::from_yaml(&v).unwrap();
+        assert_eq!(
+            u,
+            LogicalUnit::File {
+                path: "crates/foo/src/lib.rs".into()
+            }
+        );
+    }
+
+    #[test]
+    fn crate_unit_requires_id() {
+        let v = yaml("{ kind: crate }");
+        let err = LogicalUnit::from_yaml(&v).unwrap_err();
+        assert_eq!(
+            err,
+            LogicalUnitParseError::MissingField {
+                kind: "crate",
+                field: "id"
+            }
+        );
+    }
+
+    #[test]
+    fn crate_unit_with_id() {
+        let v = yaml("{ kind: crate, id: canonical-json }");
+        let u = LogicalUnit::from_yaml(&v).unwrap();
+        assert_eq!(
+            u,
+            LogicalUnit::Crate {
+                id: "canonical-json".into()
+            }
+        );
+    }
+
+    #[test]
+    fn section_unit_requires_file_and_anchor() {
+        let v = yaml("{ kind: section, file: Makefile }");
+        let err = LogicalUnit::from_yaml(&v).unwrap_err();
+        assert_eq!(
+            err,
+            LogicalUnitParseError::MissingField {
+                kind: "section",
+                field: "anchor"
+            }
+        );
+    }
+
+    #[test]
+    fn unknown_kind_is_rejected() {
+        let v = yaml("{ kind: invented, id: x }");
+        let err = LogicalUnit::from_yaml(&v).unwrap_err();
+        assert_eq!(err, LogicalUnitParseError::UnknownKind("invented".into()));
+    }
+
+    #[test]
+    fn to_json_round_trips() {
+        for u in [
+            LogicalUnit::Crate { id: "x".into() },
+            LogicalUnit::Symbol { id: "x::y".into() },
+            LogicalUnit::Module { id: "x::y".into() },
+            LogicalUnit::Section {
+                file: "Makefile".into(),
+                anchor: "deploy".into(),
+            },
+            LogicalUnit::Directory { path: "infra".into() },
+            LogicalUnit::File {
+                path: "deny.toml".into(),
+            },
+        ] {
+            let j = u.to_json();
+            let back = LogicalUnit::from_json(&j).unwrap();
+            assert_eq!(back, u);
+        }
     }
 }

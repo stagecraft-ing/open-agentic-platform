@@ -137,7 +137,13 @@ code_aliases:
 }
 
 #[test]
-fn repo_spec_version_is_2_0_0() {
+fn repo_spec_version_is_2_1_0() {
+    // 2.1.0 (spec 154, Tier 2 Segment 2): additive evolution per
+    // spec 153's amendment to spec 130 §2.7 — adds the `references:`
+    // first-class field, accepts logical-unit value typing across the
+    // relationship fields, emits V-021..V-024 for the resolver-free
+    // type-checks. Strictly additive: every 2.0.0-valid registry
+    // remains valid under 2.1.0.
     // 2.0.0 (Cut D W-06c): removes top-level `factoryProjects` and
     // per-feature `compliance:` from registry.json. Those fields moved
     // to oap-registry-enrich's registry-oap.json overlay.
@@ -147,5 +153,5 @@ fn repo_spec_version_is_2_0_0() {
     // 1.4.0 (spec 132): added amends/amends_sections/unamendable + V-011.
     let out = open_agentic_spec_compiler::compile(&repo_root()).expect("compile");
     let v: Value = serde_json::from_slice(&out.registry_json).unwrap();
-    assert_eq!(v["specVersion"], "2.0.0");
+    assert_eq!(v["specVersion"], "2.1.0");
 }

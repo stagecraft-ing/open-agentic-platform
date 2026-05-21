@@ -18,6 +18,7 @@ path = "src/lib.rs"
 clap = { version = "4", features = ["derive"] }
 open_agentic_spec_types = { path = "../../shared/spec-types" }
 serde_yaml = "0.9"
+toml = "0.8"
 
 [dev-dependencies]
 tempfile = "3.27.0"
