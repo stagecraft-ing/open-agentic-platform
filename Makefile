@@ -43,7 +43,7 @@ check-deps:
 setup: check-deps
 	@echo ""
 	@echo "==> Installing pnpm workspace dependencies..."
-	pnpm install
+	cd product && pnpm install
 	@echo ""
 	@echo "==> Building spec compiler..."
 	cargo build --release --manifest-path tools/spec-spine/spec-compiler/Cargo.toml --target-dir tools/spec-spine/spec-compiler/target
