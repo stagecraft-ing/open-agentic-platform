@@ -7,6 +7,8 @@ implementation: pending
 owner: bart
 created: "2026-05-20"
 approved: "2026-05-20"
+amended: "2026-05-21"
+amendment_record: "155-logical-unit-resolution-semantics"
 kind: governance
 risk: medium
 depends_on:
@@ -153,7 +155,17 @@ manifest, not the language).
 ```
 
 Identifies a single named symbol (function, type, constant, trait) by
-fully-qualified Rust path. Resolution:
+**fully-qualified Rust item path**. The `id` carries the path only —
+the sequence of `::`-separated identifiers naming the item. `id`
+values containing `<` or `>` are rejected at parse time. These
+characters appear only in type-expression, turbofish, or
+qualified-path syntax — none of which are part of an item's path
+identity. V-024 (malformed unit declaration) fires on `kind: symbol`
+units whose `id` contains `<` or `>`.
+
+*Amended 2026-05-21 by [spec 155](../155-logical-unit-resolution-semantics/spec.md) — see §2.1 for amendment rationale.*
+
+Resolution:
 
 - Look up the symbol in the codebase-indexer's symbol index
   (consuming xray's symbol-extraction pass).
@@ -179,8 +191,13 @@ Identifies a Rust module by fully-qualified path. Resolution:
 
 - Look up the module in the codebase-indexer's module index.
 - Resolves to the file range corresponding to the module's
-  declaration (either the file for `mod tests { ... }` inline modules
-  or `<module>.rs` / `<module>/mod.rs` for file-modules).
+  declaration. For file-modules, the range is the whole file
+  (`<module>.rs` or `<module>/mod.rs`). For inline modules, the
+  range is bounded by the module's declaration site; exact span
+  boundary is a resolver implementation concern. **Missing module
+  is a hard error.**
+
+*Amended 2026-05-21 by [spec 155](../155-logical-unit-resolution-semantics/spec.md) — see §2.2 for amendment rationale.*
 
 Use when a spec governs a coherent module subtree without claiming
 every symbol within it. Refactor invariance: adding new symbols to
@@ -224,7 +241,9 @@ Identifies a coherent tree of files that does not correspond to a
 workspace-member crate. Resolution:
 
 - Resolves to the glob `<path>/**` excluding the resolver's standard
-  exclusion set (§3.7).
+  exclusion set (§3.7). **Missing directory is a hard error.**
+
+*Amended 2026-05-21 by [spec 155](../155-logical-unit-resolution-semantics/spec.md) — see §2.3 for amendment rationale.*
 
 Use when a spec governs a non-crate tree as a unit (canonical cases:
 TypeScript modules within a stagecraft API, infrastructure manifest
@@ -250,7 +269,12 @@ with concrete evidence.
 Identifies a single file. Resolution: literal path match in the
 worktree. Missing file is a hard error unless the diff has a git
 rename trace covering it (in which case the resolver follows the
-rename).
+rename). **Rename-trace evaluation is a property of the coupling
+gate's diff context, not the resolver's compile context: during
+`codebase-indexer compile`, where no diff is available, a missing
+file is unconditionally a hard error.**
+
+*Amended 2026-05-21 by [spec 155](../155-logical-unit-resolution-semantics/spec.md) — see §2.4 for amendment rationale.*
 
 Use when no other unit kind fits — single-file ownership of a
 configuration artifact, schema file, dotfile, etc. The legacy

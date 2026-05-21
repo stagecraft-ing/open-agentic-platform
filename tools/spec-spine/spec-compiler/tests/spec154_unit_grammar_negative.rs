@@ -191,3 +191,86 @@ fn bare_strings_remain_unvalidated() {
     assert!(violations_with_code(&reg, "V-023").is_empty());
     assert_eq!(reg["validation"]["passed"].as_bool(), Some(true));
 }
+
+/// V-024 (spec 155 §2.1) — `kind: symbol` id containing generic
+/// type-parameter syntax is rejected at parse time.
+#[test]
+fn v024_fires_on_symbol_id_with_generics() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    fs::create_dir_all(root.join("specs/806-symbol-generics")).unwrap();
+    write_spec(
+        &root.join("specs/806-symbol-generics"),
+        "806-symbol-generics",
+        "establishes:\n  - unit: { kind: symbol, id: \"Foo<T>\" }\n",
+        "# Symbol with generic\n",
+    );
+    let reg = compile(root);
+    let vs = violations_with_code(&reg, "V-024");
+    assert_eq!(vs.len(), 1);
+    let msg = vs[0]["message"].as_str().unwrap();
+    assert!(msg.contains("Foo<T>"), "message should name the bad id: {msg}");
+    assert!(
+        msg.contains("`<`") || msg.contains("`>`"),
+        "message should name the rule: {msg}"
+    );
+    assert_eq!(reg["validation"]["passed"].as_bool(), Some(false));
+}
+
+/// V-024 (spec 155 §2.1) — `kind: symbol` id containing lifetime
+/// syntax is rejected at parse time (lifetimes are not part of
+/// item-path identity any more than generic parameters are).
+#[test]
+fn v024_fires_on_symbol_id_with_lifetime() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    fs::create_dir_all(root.join("specs/807-symbol-lifetime")).unwrap();
+    write_spec(
+        &root.join("specs/807-symbol-lifetime"),
+        "807-symbol-lifetime",
+        "establishes:\n  - unit: { kind: symbol, id: \"Foo<'a>\" }\n",
+        "# Symbol with lifetime\n",
+    );
+    let reg = compile(root);
+    let vs = violations_with_code(&reg, "V-024");
+    assert_eq!(vs.len(), 1);
+    assert!(vs[0]["message"].as_str().unwrap().contains("Foo<'a>"));
+    assert_eq!(reg["validation"]["passed"].as_bool(), Some(false));
+}
+
+/// Negative control — a cleanly-pathed symbol id does NOT trigger
+/// V-024. Asserts the predicate isn't accidentally rejecting valid
+/// item paths.
+#[test]
+fn v024_does_not_fire_on_clean_symbol_path() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    fs::create_dir_all(root.join("specs/808-symbol-clean")).unwrap();
+    write_spec(
+        &root.join("specs/808-symbol-clean"),
+        "808-symbol-clean",
+        "establishes:\n  - unit: { kind: symbol, id: canonical_json::canonicalize_value }\n",
+        "# Clean symbol path\n",
+    );
+    let reg = compile(root);
+    assert!(violations_with_code(&reg, "V-024").is_empty());
+}
+
+/// Negative control — a symbol id containing underscores and digits
+/// (legal Rust identifier characters) does NOT trigger V-024. Guards
+/// against an over-broad predicate that might reject identifier
+/// content beyond `<` / `>`.
+#[test]
+fn v024_does_not_fire_on_symbol_with_underscore_and_digit() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    fs::create_dir_all(root.join("specs/809-symbol-underscore-digit")).unwrap();
+    write_spec(
+        &root.join("specs/809-symbol-underscore-digit"),
+        "809-symbol-underscore-digit",
+        "establishes:\n  - unit: { kind: symbol, id: foo_2::bar_baz_3 }\n",
+        "# Symbol with underscore and digit\n",
+    );
+    let reg = compile(root);
+    assert!(violations_with_code(&reg, "V-024").is_empty());
+}

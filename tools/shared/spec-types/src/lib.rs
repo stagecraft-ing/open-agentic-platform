@@ -348,6 +348,11 @@ pub enum LogicalUnitParseError {
         kind: &'static str,
         field: &'static str,
     },
+    /// Spec 155 §2.1 — `kind: symbol` id contains `<` or `>`. These
+    /// characters appear only in type-expression, turbofish, or
+    /// qualified-path syntax, none of which are part of an item's
+    /// path identity.
+    SymbolIdNotItemPath { id: String },
 }
 
 impl std::fmt::Display for LogicalUnitParseError {
@@ -373,6 +378,14 @@ impl std::fmt::Display for LogicalUnitParseError {
                 write!(
                     f,
                     "logical unit kind={kind:?} field `{field}:` must be a string"
+                )
+            }
+            LogicalUnitParseError::SymbolIdNotItemPath { id } => {
+                write!(
+                    f,
+                    "logical unit kind=\"symbol\" id {id:?} contains `<` or `>`; \
+                     symbol ids carry a Rust item path only, not type expressions \
+                     or turbofish / qualified-path syntax (see spec 155 §2.1)"
                 )
             }
         }
@@ -446,6 +459,11 @@ impl LogicalUnit {
                     kind: "symbol",
                     field: "id",
                 })?;
+                if id.contains('<') || id.contains('>') {
+                    return Err(LogicalUnitParseError::SymbolIdNotItemPath {
+                        id: id.to_string(),
+                    });
+                }
                 Ok(LogicalUnit::Symbol { id: id.to_string() })
             }
             "module" => {

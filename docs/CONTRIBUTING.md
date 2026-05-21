@@ -132,6 +132,56 @@ Specific subsets:
 - Never commit `.env`, credentials, private keys, or anything matched
   by the secrets scanner (CONST-002).
 
+## PR-time gotchas
+
+Two non-obvious failure modes around `make pr-prep` and the PR-time
+coupling gate. Both have bitten this repo at least once; both have
+clean workarounds you should know before your first multi-commit PR.
+
+### 1. Re-run `make pr-prep` after the **final** commit of a multi-commit PR
+
+`make pr-prep` runs the coupling gate against `origin/main` using the
+*current worktree state*. If you split a PR into multiple commits and
+run `make pr-prep` between them, the check validates the partial diff
+— not the branch-level diff CI will see.
+
+Example failure: a PR splits into Commit A (spec) and Commit B (code).
+`make pr-prep` is run after A, passes, then B is committed without
+re-running. CI then fails the coupling-check because B's code paths
+aren't claimed by A's spec edit. The local run never saw B in scope.
+
+**Rule:** treat `make pr-prep` as a **pre-push** gate, not a
+**per-commit** gate. After the last commit of any PR, re-run before
+`git push`. Two-commit splits are the most vulnerable; the false
+confidence from "I just ran it" is the trap.
+
+### 2. `Spec-Drift-Waiver:` must be in the PR body **before** the push that should pick it up
+
+The `coupling-check` workflow reads the PR body via
+`env: PR_BODY: ${{ github.event.pull_request.body }}`, which captures
+the body at workflow trigger time. Body edits made *after* the push
+do not propagate to the running workflow.
+
+**Triggers that refire CI with the current body:**
+
+- `git push` to the PR branch (any commit, including
+  `git commit --allow-empty`).
+
+**Triggers that do NOT refire CI:**
+
+- `gh pr edit --body-file ...` — fires `pull_request: edited`, which
+  is not in the workflow's trigger set.
+- `gh run rerun --failed` — reuses the original event payload.
+
+**Rule:** if you anticipate needing a `Spec-Drift-Waiver: <reason>`
+line in the PR body, add it when you open the PR
+(`gh pr create --body ...`). If you discover post-push that a waiver
+is needed, push an empty commit
+(`git commit --allow-empty -m "ci: re-trigger to pick up waiver"`)
+to fire a fresh `pull_request: synchronize` with the current body.
+Do not `--amend` + force-push to add the waiver (rewrites shared
+history) and do not rely on `gh run rerun` (doesn't help).
+
 ## Architecture documents
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — compiler architecture
