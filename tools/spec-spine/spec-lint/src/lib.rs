@@ -258,7 +258,150 @@ pub fn lint_repo(repo_root: &Path) -> Vec<Warning> {
         all.extend(lint_feature_dir(repo_root, d));
     }
     all.extend(corpus_lint_pass(repo_root, &dirs));
+    all.extend(spec154_l005_pass(repo_root, &dirs));
     all
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Spec 154 — L-005 advisory soft lint
+// ─────────────────────────────────────────────────────────────────────
+
+/// Discover workspace-member directory paths from the root Cargo.toml.
+/// Returns a sorted set of relative directory paths (e.g.
+/// `"crates/canonical-json"`, `"tools/spec-spine/spec-compiler"`).
+/// Empty when the manifest is absent or unparseable.
+fn workspace_member_dirs(repo_root: &Path) -> Vec<String> {
+    let manifest = repo_root.join("Cargo.toml");
+    let Ok(raw) = fs::read_to_string(&manifest) else {
+        return Vec::new();
+    };
+    let Ok(parsed) = raw.parse::<toml::Value>() else {
+        return Vec::new();
+    };
+    let Some(members) = parsed
+        .get("workspace")
+        .and_then(|w| w.get("members"))
+        .and_then(|m| m.as_array())
+    else {
+        return Vec::new();
+    };
+    let mut out: Vec<String> = members
+        .iter()
+        .filter_map(|m| m.as_str().map(String::from))
+        .collect();
+    out.sort();
+    out
+}
+
+/// L-005 — advisory soft lint (info severity) emitted when a legacy
+/// bare-string path inside any relationship field falls inside a
+/// workspace-member directory and could be expressed as a `crate:`
+/// unit (spec 154 §3.1). Lint, not error: corpus migration is
+/// Tier 2 Segment 5; this surface lets reviewers steer authors in
+/// the meantime.
+///
+/// Does not fire on:
+///   * explicit `unit: {kind: ...}` declarations (already typed);
+///   * paths outside any workspace member directory (legitimate
+///     `file:` cases — `Makefile`, `deny.toml`, `standards/...`).
+fn spec154_l005_pass(repo_root: &Path, feature_dirs: &[PathBuf]) -> Vec<Warning> {
+    let members = workspace_member_dirs(repo_root);
+    if members.is_empty() {
+        return Vec::new();
+    }
+    let mut out: Vec<Warning> = Vec::new();
+    for d in feature_dirs {
+        let spec_path = d.join("spec.md");
+        let Ok(raw) = fs::read_to_string(&spec_path) else {
+            continue;
+        };
+        let Some((fm, _)) = split_frontmatter_optional(&raw) else {
+            continue;
+        };
+        let mapping = match fm.as_mapping() {
+            Some(m) => m,
+            None => continue,
+        };
+        let mut seen_paths: std::collections::BTreeSet<String> =
+            std::collections::BTreeSet::new();
+        collect_legacy_paths(mapping, &mut seen_paths);
+        for path in &seen_paths {
+            if let Some(member) = match_workspace_member(path, &members) {
+                out.push(Warning {
+                    code: "L-005",
+                    severity: "info",
+                    path: rel(repo_root, &spec_path),
+                    message: format!(
+                        "legacy bare-string path {path:?} sits inside workspace member {member:?}; consider migrating to `unit: {{ kind: crate, id: <manifest-name> }}` per spec 154 §3.1 (Tier 2 Segment 5 corpus migration)",
+                    ),
+                });
+            }
+        }
+    }
+    out
+}
+
+/// Walk a frontmatter mapping, collecting every bare-string path that
+/// appears in a relationship field (`establishes`, `extends.paths`,
+/// `refines.paths`, `co_authority.paths`, `constrains.paths`,
+/// `references`). Strings inside explicit `unit:` fields are not
+/// collected — they are already typed.
+fn collect_legacy_paths(
+    fm: &serde_yaml::Mapping,
+    out: &mut std::collections::BTreeSet<String>,
+) {
+    // `establishes:` — array, items are strings or `{unit:...}`/`{kind:...}`.
+    if let Some(seq) = fm.get("establishes").and_then(|v| v.as_sequence()) {
+        for item in seq {
+            if let Some(s) = item.as_str() {
+                out.insert(s.to_string());
+            }
+        }
+    }
+    // Item-based relationships with legacy `paths:` plural form.
+    for key in &["extends", "refines", "supersedes", "co_authority", "constrains"] {
+        let Some(seq) = fm.get(*key).and_then(|v| v.as_sequence()) else {
+            continue;
+        };
+        for item in seq {
+            let Some(map) = item.as_mapping() else {
+                continue;
+            };
+            if let Some(paths) = map.get("paths").and_then(|v| v.as_sequence()) {
+                for p in paths {
+                    if let Some(s) = p.as_str() {
+                        out.insert(s.to_string());
+                    }
+                }
+            }
+        }
+    }
+    // `references:` — bare strings (legacy / shorthand form).
+    if let Some(seq) = fm.get("references").and_then(|v| v.as_sequence()) {
+        for item in seq {
+            if let Some(s) = item.as_str() {
+                out.insert(s.to_string());
+            }
+        }
+    }
+}
+
+/// Return the workspace-member directory that contains `path`, if
+/// any. `path` is a repo-relative posix path (e.g.
+/// `"crates/foo/src/lib.rs"` or `"crates/foo/"`); `members` is the
+/// sorted list of workspace-member directory paths.
+fn match_workspace_member(path: &str, members: &[String]) -> Option<String> {
+    let normalised = path.trim_end_matches('/');
+    for m in members {
+        if normalised == m {
+            return Some(m.clone());
+        }
+        let prefix = format!("{m}/");
+        if normalised.starts_with(&prefix) || path.starts_with(&prefix) {
+            return Some(m.clone());
+        }
+    }
+    None
 }
 
 /// Spec 147 — corpus-level W-codes that need to see every spec at once.

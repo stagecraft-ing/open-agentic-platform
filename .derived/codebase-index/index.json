@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "387a1d8f10b52549075e40362cf80099efe07fbede5b057a2637df8f371abcbd",
+    "contentHash": "fd816737e07d509798e5f169f71b17f3328b11e2eb0e5cea85d8619015253a05",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1448,6 +1448,7 @@
       ],
       "externalDeps": [
         "serde",
+        "serde_json",
         "serde_yaml"
       ],
       "kind": "rust-lib",
@@ -1494,7 +1495,8 @@
         "serde_json"
       ],
       "internalDeps": [
-        "canonical-json"
+        "canonical-json",
+        "open_agentic_spec_types"
       ],
       "kind": "rust-lib-bin",
       "name": "open_agentic_spec_registry_reader",
@@ -1536,6 +1538,7 @@
         "serde_json",
         "serde_yaml",
         "sha2",
+        "toml",
         "walkdir"
       ],
       "internalDeps": [
@@ -1555,7 +1558,8 @@
       ],
       "externalDeps": [
         "clap",
-        "serde_yaml"
+        "serde_yaml",
+        "toml"
       ],
       "internalDeps": [
         "open_agentic_spec_types"
