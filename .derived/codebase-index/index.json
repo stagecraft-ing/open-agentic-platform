@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "fd816737e07d509798e5f169f71b17f3328b11e2eb0e5cea85d8619015253a05",
+    "contentHash": "1d94d2d220cca6e9aa2e59fc3616c04ba70881b4a1a378462fc3b09fd4f7f4bd",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -5799,6 +5799,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "155-logical-unit-resolution-semantics",
         "dependsOn": [
           "130",
           "153"
@@ -5810,6 +5811,17 @@
           }
         ],
         "specId": "154-logical-unit-ownership-grammar",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "154-logical-unit-ownership-grammar"
+        ],
+        "dependsOn": [
+          "154"
+        ],
+        "implementingPaths": [],
+        "specId": "155-logical-unit-resolution-semantics",
         "specStatus": "approved"
       }
     ],
