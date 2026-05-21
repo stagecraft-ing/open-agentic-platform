@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "1d94d2d220cca6e9aa2e59fc3616c04ba70881b4a1a378462fc3b09fd4f7f4bd",
+    "contentHash": "1d4bc8edb57e622e0748580b45c4d586c6b903b12667a53e0f2c6436c896fc6a",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -5820,7 +5820,16 @@
         "dependsOn": [
           "154"
         ],
-        "implementingPaths": [],
+        "implementingPaths": [
+          {
+            "path": "tools/shared/spec-types/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/tests/spec154_unit_grammar_negative.rs",
+            "source": "spec-implements"
+          }
+        ],
         "specId": "155-logical-unit-resolution-semantics",
         "specStatus": "approved"
       }
