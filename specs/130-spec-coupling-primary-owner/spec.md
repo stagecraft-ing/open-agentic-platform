@@ -4,6 +4,8 @@ slug: spec-relationship-graph
 title: "Spec Relationship Graph — eight first-class edges between specs and code"
 status: approved
 implementation: complete
+amended: "2026-05-20"
+amendment_record: "153-invariant-freeze-additive-evolution"
 owner: bart
 created: "2026-05-02"
 approved: "2026-05-19"
@@ -198,9 +200,24 @@ authorities; the coupling gate evaluates them as a separate satisfaction
 condition (spec 133 §4).
 
 `kind` is open-vocabulary. The initial idiom is `invariant-freeze`,
-exemplified by spec 132 (constitutional-invariant-freeze): once a
-registry field or schema element is declared frozen, future amendments
-cannot widen it.
+exemplified by spec 132 (constitutional-invariant-freeze).
+
+> **Amended by spec 153 (2026-05-20):** the frozen-evolution clause
+> below replaces the original "future amendments cannot widen it."
+> The original wording conflated *widening* (a schema-evolution
+> operation) with *breaking* (a stability outcome). See spec 153 §1
+> for the diagnosis.
+
+Once a registry field or schema element is declared frozen, future
+amendments must preserve backward compatibility: every document valid
+under the frozen form must remain valid under the amended form, and
+the semantics of previously-valid documents must be unchanged.
+Strictly additive evolution — accepting new document shapes while
+preserving all previously-valid documents and their semantics —
+preserves the invariant. Non-additive changes (narrowing the accepted
+set, redefining the semantics of existing documents, or removing
+surface) require explicit re-freeze via a new `constrains:`
+declaration or supersession of the constraining spec.
 
 ### 2.8 `origin:` — bootstrap marker
 

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:df18daeefcd6fbc5deea12388d85de6401af8216ebd74d151dcff14866309524",
+  "graph_fingerprint": "sha256:e88d79be800479f44a07c30f3d76271f19dae601b05be2fe6230a6b2be592bc2",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2882,6 +2882,22 @@
       "depends_on": [
         "130",
         "133"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "153-invariant-freeze-additive-evolution",
+      "title": "Invariant-freeze semantics — backward-compatibility framing",
+      "spec_path": "specs/153-invariant-freeze-additive-evolution/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "130"
       ],
       "impl_files": [],
       "test_files": [],
