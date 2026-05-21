@@ -135,9 +135,8 @@ fn print_json_or_exit<T: serde::Serialize>(value: &T, compact: bool) -> Result<(
     // Route every CLI JSON emission through `serialize_json_canonical` so
     // object keys are lex-ordered regardless of `serde_json`'s
     // `preserve_order` feature (active workspace-wide via `crates/xray`).
-    // See `open_agentic_spec_registry_reader::canonicalize_value` for
-    // the full rationale; this is the single emission boundary for
-    // CLI stdout JSON.
+    // See `canonical_json` crate module docs for the full rationale; this
+    // is the single emission boundary for CLI stdout JSON.
     match serialize_json_canonical(value, compact) {
         Ok(s) => {
             println!("{s}");

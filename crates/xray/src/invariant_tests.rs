@@ -180,26 +180,59 @@ fn test_language_unknown_policy() {
 }
 
 #[test]
-fn test_serde_preserve_order_feature_is_active() {
-    // This test ensures that the "preserve_order" feature of serde_json is active.
-    // If it is NOT active, `Map` iteration order is undefined (or not insertion order),
-    // which breaks our canonicalization assumptions if we ever rely on it implicitly.
-    // While our canonicalize_object sorts explicitly, we still build the output Map
-    // expecting that *that* map will be iterated in insertion order (which we made sorted).
+fn to_canonical_json_emits_lex_sorted_keys_recursively() {
+    // The invariant xray actually enforces: `to_canonical_json` MUST emit
+    // JSON object keys in lexicographic order at every nesting depth, so
+    // the output bytes are deterministic across `serde_json`'s
+    // `preserve_order` feature state and across struct field-declaration
+    // changes. The previous version of this test asserted `serde_json::Map`
+    // insertion-order semantics, which is incidental — xray sorts
+    // explicitly via `canonical_json::canonicalize_value`.
+    //
+    // Build a valid `XrayIndex`, round-trip through the public emission
+    // boundary, and recursively check every JSON object level.
 
-    use serde_json::{Map, Value};
-    let mut map = Map::new();
-    map.insert("z".to_string(), Value::Null);
-    map.insert("a".to_string(), Value::Null);
-    map.insert("c".to_string(), Value::Null);
+    let mut index = make_valid_index();
+    // The languages/top_dirs maps already sort via BTreeMap, but we
+    // deliberately keep `make_valid_index`'s defaults — the point is the
+    // OUTPUT bytes, not the input shape. XrayIndex's struct field order
+    // is non-lex (e.g. `schema_version` before `digest`), so without an
+    // explicit sort the output would not be lex-ordered.
+    index.digest = calculate_digest(&index).expect("digest should compute on valid index");
 
-    // Insertion order: z, a, c
-    let keys: Vec<&String> = map.keys().collect();
-    assert_eq!(
-        keys,
-        vec!["z", "a", "c"],
-        "serde_json::Map must preserve insertion order! Check Cargo.toml features."
-    );
+    let bytes = to_canonical_json(&index).expect("canonical serialization should succeed");
+    let value: serde_json::Value = serde_json::from_slice(&bytes)
+        .expect("canonical JSON must be parseable as Value");
+
+    // With `preserve_order` active, `serde_json::Map` preserves the order
+    // it parsed from the input bytes. So if `bytes` is lex-sorted, the
+    // resulting Map iterates lex-sorted, and our recursive walker is a
+    // direct check on the emitted byte order at every level.
+    assert_keys_sorted(&value, "$");
+}
+
+#[cfg(test)]
+fn assert_keys_sorted(v: &serde_json::Value, path: &str) {
+    match v {
+        serde_json::Value::Object(map) => {
+            let keys: Vec<&String> = map.keys().collect();
+            let mut sorted = keys.clone();
+            sorted.sort();
+            assert_eq!(
+                keys, sorted,
+                "JSON object at {path} has keys in non-lex order: got {keys:?}"
+            );
+            for (k, child) in map {
+                assert_keys_sorted(child, &format!("{path}.{k}"));
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            for (i, child) in arr.iter().enumerate() {
+                assert_keys_sorted(child, &format!("{path}[{i}]"));
+            }
+        }
+        _ => {}
+    }
 }
 
 #[test]

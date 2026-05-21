@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "f5a59baabb0a4025d3252229eac3d9dbd45419ebe396811a779eee1a4a1f7b5a",
+    "contentHash": "09456f085abb513c979b66d2302753aeff47125a553cd787d775d5d229fb22c2",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -131,6 +131,10 @@
       {
         "code": "I-101",
         "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/clone.test.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"118-workflow-spec-traceability\" declares implements path \".derived/codebase-index/CODEBASE-INDEX.md\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
@@ -303,6 +307,19 @@
       "path": "crates/axiomregent",
       "specRef": "073-axiomregent-unification",
       "version": "0.1.5"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "serde_json"
+      ],
+      "kind": "rust-lib",
+      "name": "canonical-json",
+      "path": "crates/canonical-json",
+      "version": "0.1.0"
     },
     {
       "edition": "2024",
@@ -670,6 +687,9 @@
         "tree-sitter",
         "typenum",
         "walkdir"
+      ],
+      "internalDeps": [
+        "canonical-json"
       ],
       "kind": "rust-lib-bin",
       "name": "xray",
@@ -1472,6 +1492,9 @@
         "clap",
         "serde",
         "serde_json"
+      ],
+      "internalDeps": [
+        "canonical-json"
       ],
       "kind": "rust-lib-bin",
       "name": "open_agentic_spec_registry_reader",
@@ -5765,6 +5788,7 @@
       "150-example-tenant-profile"
     ],
     "untracedCode": [
+      "crates/canonical-json",
       "product/apps/desktop/src-tauri"
     ]
   }

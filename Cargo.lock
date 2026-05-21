@@ -1303,6 +1303,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "canonical-json"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "cargo-platform"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4691,6 +4698,7 @@ dependencies = [
 name = "open_agentic_spec_registry_reader"
 version = "0.1.0"
 dependencies = [
+ "canonical-json",
  "clap",
  "serde",
  "serde_json",
@@ -8354,6 +8362,7 @@ name = "xray"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "canonical-json",
  "cc",
  "clap",
  "fastembed",

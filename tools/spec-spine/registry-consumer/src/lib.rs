@@ -236,41 +236,17 @@ pub(crate) fn serialize_json_compact_or_pretty<T: Serialize>(
     }
 }
 
-/// Canonicalize a `serde_json::Value` to lexicographically-sorted object keys,
-/// recursively.
+/// Re-export of the shared canonicalization helper.
 ///
-/// `serde_json`'s `preserve_order` feature is currently load-neutral for
-/// `crates/xray`'s observable output (xray's `to_canonical_json` does its
-/// own explicit lex sort in `crates/xray/src/canonical.rs:21-51`, so the
-/// emitted bytes are alphabetical with or without `preserve_order`), but
-/// the feature cannot be locally disabled under resolver 2 because xray's
-/// `crates/xray/Cargo.toml:15` requests it and feature unification is
-/// monotonic.
-///
-/// Without explicit canonicalization at registry-consumer's emission
-/// boundary, the workspace-wide activation of `preserve_order` would
-/// flip CLI key order from lex (BTreeMap-style) to struct-declaration
-/// order (IndexMap-style). The principle this helper encodes: ordering
-/// requirements are explicit at the serialization boundary, never
-/// implicit via shared-dep feature flags. A future follow-up may remove
-/// `preserve_order` from xray (since xray's observable output doesn't
-/// need it) and retire this helper — but the explicit-ordering principle
-/// remains the better hardened contract regardless.
-pub fn canonicalize_value(v: Value) -> Value {
-    match v {
-        Value::Object(map) => {
-            let mut entries: Vec<(String, Value)> = map.into_iter().collect();
-            entries.sort_by(|a, b| a.0.cmp(&b.0));
-            let mut out = serde_json::Map::new();
-            for (k, v) in entries {
-                out.insert(k, canonicalize_value(v));
-            }
-            Value::Object(out)
-        }
-        Value::Array(arr) => Value::Array(arr.into_iter().map(canonicalize_value).collect()),
-        other => other,
-    }
-}
+/// `serde_json`'s `preserve_order` feature, enabled transitively via
+/// `crates/xray`, would otherwise flip this binary's emitted key order
+/// from lex (BTreeMap-style) to struct-declaration order (IndexMap-style)
+/// under resolver 2's monotonic feature unification. Routing every JSON
+/// emission through this helper makes the lex-key-order contract
+/// explicit at the serialization boundary, independent of feature state
+/// elsewhere in the workspace. The full principle lives in the
+/// `canonical-json` crate's module docs.
+pub use canonical_json::canonicalize_value;
 
 /// Convenience wrapper: convert `value` to canonical JSON (object keys
 /// sorted lexicographically, recursively), then serialize compact or pretty.
