@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "09456f085abb513c979b66d2302753aeff47125a553cd787d775d5d229fb22c2",
+    "contentHash": "387a1d8f10b52549075e40362cf80099efe07fbede5b057a2637df8f371abcbd",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -4569,6 +4569,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "153-invariant-freeze-additive-evolution",
         "dependsOn": [
           "000",
           "001",
@@ -5780,6 +5781,31 @@
           }
         ],
         "specId": "152-path-co-authority",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "130-spec-coupling-primary-owner"
+        ],
+        "dependsOn": [
+          "130"
+        ],
+        "implementingPaths": [],
+        "specId": "153-invariant-freeze-additive-evolution",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "130",
+          "153"
+        ],
+        "implementingPaths": [
+          {
+            "path": "standards/schemas/spec-spine/registry.schema.json",
+            "source": "spec-implements"
+          }
+        ],
+        "specId": "154-logical-unit-ownership-grammar",
         "specStatus": "approved"
       }
     ],

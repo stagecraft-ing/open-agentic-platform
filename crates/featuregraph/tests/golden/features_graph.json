@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:df18daeefcd6fbc5deea12388d85de6401af8216ebd74d151dcff14866309524",
+  "graph_fingerprint": "sha256:f616a952e9026e983a8fc78d067b6c01ff86ba0de3d4ba36bf89bcd5d6ac9177",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2882,6 +2882,39 @@
       "depends_on": [
         "130",
         "133"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "153-invariant-freeze-additive-evolution",
+      "title": "Invariant-freeze semantics — backward-compatibility framing",
+      "spec_path": "specs/153-invariant-freeze-additive-evolution/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "130"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "154-logical-unit-ownership-grammar",
+      "title": "Logical-unit ownership grammar — value typing for relationship-graph fields",
+      "spec_path": "specs/154-logical-unit-ownership-grammar/spec.md",
+      "status": "approved",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "130",
+        "153"
       ],
       "impl_files": [],
       "test_files": [],
