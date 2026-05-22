@@ -14,7 +14,7 @@ summary: >
   bundle compilation, audit trail capture, and deployment handoff.
 code_aliases: ["STAGECRAFT_FACTORY", "FACTORY_API"]
 establishes:
-  - platform/services/stagecraft/api/factory
+  - unit: { kind: directory, path: platform/services/stagecraft/api/factory }
 ---
 
 # Feature Specification: Stagecraft Factory Lifecycle API

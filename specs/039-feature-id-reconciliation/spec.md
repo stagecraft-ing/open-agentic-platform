@@ -15,10 +15,11 @@ summary: >
   spec-compiler, and featuregraph scanner. Implements ADR 0001.
 extends:
   - spec: "001-spec-compiler-mvp"
-    paths:
-      - tools/spec-spine/spec-compiler/src/lib.rs
-      - standards/schemas/spec-spine/registry.schema.json
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
+  - spec: "001-spec-compiler-mvp"
+    nature: additive
+    unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
 ---
 
 # Feature Specification: Feature ID reconciliation (codeAliases)

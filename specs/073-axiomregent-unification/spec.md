@@ -12,9 +12,8 @@ code_aliases: ["AXIOM_UNIFY", "HIQLITE_MIGRATION", "GITHUB_ORG"]
 sources: ["gitctx", "blockoli", "stackwalk", "titor", "github-app"]
 extends:
   - spec: "037-cross-platform-axiomregent"
-    paths:
-      - crates/axiomregent
     nature: wrapping
+    unit: { kind: crate, id: axiomregent }
 supersedes:
   - spec: "038-titor-tauri-command-wiring"
     scope: full
@@ -25,7 +24,7 @@ supersedes:
     paths:
       - product/apps/desktop/src-tauri/src/commands/search.rs
 establishes:
-  - platform/services/deployd-api-rs
+  - unit: { kind: directory, path: platform/services/deployd-api-rs }
 summary: >
   Consolidates five standalone crates and services (gitctx, blockoli, stackwalk, titor, github-app)
   into axiomregent and stagecraft. Migrates axiomregent from synchronous rusqlite to async hiqlite

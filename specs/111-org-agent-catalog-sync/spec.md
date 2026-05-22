@@ -25,19 +25,19 @@ depends_on:
   - "090"  # governance-non-optionality (no bypass of policy bundle)
   - "110"  # stagecraft-to-opc-factory-trigger (establishes the dispatcher pattern)
 establishes:
-  - platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql
-  - platform/services/stagecraft/api/agents/
-  - platform/services/stagecraft/api/agents/catalog.ts
-  - platform/services/stagecraft/api/agents/relay.ts
-  - platform/services/stagecraft/api/agents/frontmatter/
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql }
+  - unit: { kind: directory, path: platform/services/stagecraft/api/agents }
+  - unit: { kind: file, path: platform/services/stagecraft/api/agents/catalog.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/agents/relay.ts }
+  - unit: { kind: directory, path: platform/services/stagecraft/api/agents/frontmatter }
   - platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx
-  - platform/services/stagecraft/api/sync/types.ts
-  - platform/services/stagecraft/api/sync/service.ts
-  - platform/services/stagecraft/api/sync/duplex.ts
-  - platform/services/stagecraft/api/sync/relay.ts
-  - product/apps/desktop/src-tauri/src/commands/agents.rs
-  - product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs
-  - product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs
+  - unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/sync/duplex.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/sync/relay.ts }
+  - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/agents.rs }
+  - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs }
+  - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs }
 ---
 
 # 111 — Org-managed Agent Catalog Synced from Stagecraft to OPC

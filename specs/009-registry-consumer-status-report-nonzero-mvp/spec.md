@@ -14,9 +14,8 @@ summary: >
   omit empty lifecycle buckets in both human-readable and JSON output modes.
 extends:
   - spec: "007-registry-consumer-status-report-mvp"
-    paths:
-      - tools/spec-spine/registry-consumer
     nature: additive
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Registry consumer status-report nonzero filtering

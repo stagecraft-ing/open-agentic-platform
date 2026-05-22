@@ -17,7 +17,7 @@ summary: >
 code_aliases:
   - TOOL_RENDERER_SYSTEM
 establishes:
-  - product/packages/tool-renderer
+  - unit: { kind: crate, id: "@opc/tool-renderer" }
 ---
 
 # Feature Specification: Config-Driven Tool Rendering System

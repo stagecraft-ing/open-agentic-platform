@@ -18,7 +18,7 @@ summary: >
 code_aliases: ["SKILL_COMMAND_FACTORY"]
 sources: ["claude-code"]
 establishes:
-  - crates/skill-factory
+  - unit: { kind: crate, id: skill-factory }
 ---
 
 # Feature Specification: Skill and Command Factory

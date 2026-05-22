@@ -27,41 +27,36 @@ summary: >
   compliance mapping, traceability unification, OWASP ASI 2026 coverage, policy
   composition, registry freshness, and platform policy seams.
 establishes:
-  - crates/factory-engine/src/governance_certificate.rs
+  - unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
   - factory/contract/schemas/governance-certificate.schema.json
   - factory/contract/checks
 extends:
   - spec: "075-factory-workflow-engine"
-    paths:
-      - crates/factory-engine/src/lib.rs
-      - crates/factory-engine/src/bin/factory_run.rs
     nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/lib.rs }
+  - spec: "075-factory-workflow-engine"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/bin/factory_run.rs }
   - spec: "067-tool-definition-registry"
-    paths:
-      - crates/tool-registry
     nature: additive
+    unit: { kind: crate, id: tool-registry }
   - spec: "068-permission-runtime"
-    paths:
-      - crates/policy-kernel/src/lib.rs
     nature: additive
+    unit: { kind: file, path: crates/policy-kernel/src/lib.rs }
   - spec: "052-state-persistence"
-    paths:
-      - crates/orchestrator/src/lib.rs
     nature: additive
+    unit: { kind: file, path: crates/orchestrator/src/lib.rs }
   - spec: "001-spec-compiler-mvp"
-    paths:
-      - tools/spec-spine/spec-compiler/src/lib.rs
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
 co_authority:
-  - paths:
-      - Makefile
-    section: registry
-    with_specs:
+  - with_specs:
       - "102-governed-excellence"
       - "104-makefile-ci-parity-contract"
       - "127-spec-code-coupling-gate"
       - "134-fast-local-ci-mode"
       - "135-fast-ci-as-default"
+    unit: { kind: section, file: Makefile, anchor: registry }
 ---
 
 # 102 — Governed Excellence

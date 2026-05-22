@@ -33,18 +33,20 @@ depends_on:
   - "118"  # workflow-spec-traceability (claim records are traceable artifacts)
   - "120"  # factory-extraction-stage (typed corpus to cite against)
 establishes:
-  - crates/provenance-validator/Cargo.toml
-  - crates/provenance-validator/src/lib.rs
-  - crates/provenance-validator/src/allowlist.rs
+  - unit: { kind: file, path: crates/provenance-validator/Cargo.toml }
+  - unit: { kind: file, path: crates/provenance-validator/src/lib.rs }
+  - unit: { kind: file, path: crates/provenance-validator/src/allowlist.rs }
   - crates/provenance-validator/src/anchor.rs
-  - crates/provenance-validator/src/citation.rs
-  - crates/factory-contracts/src/provenance.rs
+  - unit: { kind: file, path: crates/provenance-validator/src/citation.rs }
+  - unit: { kind: file, path: crates/factory-contracts/src/provenance.rs }
   - platform/services/stagecraft/api/governance/provenancePolicy.ts
 extends:
   - spec: "075-factory-workflow-engine"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/stages/quality_gates.rs }
+  - spec: "075-factory-workflow-engine"
     paths:
       - crates/factory-engine/src/stages/s1_business_requirements.rs
-      - crates/factory-engine/src/stages/quality_gates.rs
       - crates/factory-engine/skills/business-requirements-analyst.md
       - crates/factory-engine/skills/validate.md
     nature: additive

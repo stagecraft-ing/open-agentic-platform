@@ -18,18 +18,17 @@ summary: >
 code_aliases: ["GOVERNANCE_NON_OPTION"]
 extends:
   - spec: "033-axiomregent-activation"
-    paths:
-      - crates/axiomregent/src/lease.rs
     nature: additive
+    unit: { kind: file, path: crates/axiomregent/src/lease.rs }
   - spec: "068-permission-runtime"
-    paths:
-      - crates/policy-kernel/src/permission.rs
-      - crates/policy-kernel/src/merge.rs
     nature: additive
+    unit: { kind: file, path: crates/policy-kernel/src/permission.rs }
+  - spec: "068-permission-runtime"
+    nature: additive
+    unit: { kind: file, path: crates/policy-kernel/src/merge.rs }
   - spec: "035-agent-governed-execution"
-    paths:
-      - product/apps/desktop/src-tauri/src/commands/orchestrator.rs
     nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/orchestrator.rs }
 ---
 
 # 090 — Governance Non-Optionality

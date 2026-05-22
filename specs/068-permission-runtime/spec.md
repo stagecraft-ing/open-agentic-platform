@@ -19,13 +19,11 @@ code_aliases: ["PERMISSION_RUNTIME"]
 sources: ["claude-code"]
 extends:
   - spec: "036-safety-tier-governance"
-    paths:
-      - crates/policy-kernel
     nature: additive
+    unit: { kind: crate, id: open_agentic_policy_kernel }
   - spec: "049-permission-system"
-    paths:
-      - crates/policy-kernel
     nature: wrapping
+    unit: { kind: crate, id: open_agentic_policy_kernel }
 compliance:
   - framework: "owasp-asi-2026"
     # ASI03 via FR-008 (enterprise policy `deny` is immutable across tiers,

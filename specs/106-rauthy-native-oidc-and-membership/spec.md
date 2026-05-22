@@ -16,20 +16,22 @@ depends_on:
 code_aliases: ["RAUTHY_OIDC_NATIVE", "A2C_MEMBERSHIP"]
 establishes:
   - platform/services/stagecraft/api/auth/rauthySeed.ts
-  - platform/services/stagecraft/api/auth/membershipResolver.ts
-  - platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml
-  - platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml
+  - unit: { kind: file, path: platform/services/stagecraft/api/auth/membershipResolver.ts }
+  - unit: { kind: file, path: platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml }
+  - unit: { kind: file, path: platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml }
 extends:
   - spec: "080-github-identity-onboarding"
-    paths:
-      - platform/services/stagecraft/api/auth/rauthy.ts
     nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthy.ts }
   - spec: "087-unified-workspace-architecture"
-    paths:
-      - platform/charts/rauthy
-      - platform/infra/hetzner/setup.sh
-      - platform/infra/hetzner/.env.example
     nature: additive
+    unit: { kind: directory, path: platform/charts/rauthy }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/infra/hetzner/setup.sh }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/infra/hetzner/.env.example }
 summary: >
   Close the implementation gap between spec 080's design and what actually
   shipped. Move GitHub from stagecraft-direct OAuth to Rauthy's upstream IDP,

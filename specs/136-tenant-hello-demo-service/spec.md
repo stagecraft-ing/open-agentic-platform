@@ -13,23 +13,34 @@ depends_on:
   - "087"  # unified-workspace-architecture (stagecraft as the web governance plane)
   - "078"  # platform-completion-plan (the broader platform-finishing context)
 establishes:
-  - platform/services/tenant-hello
-  - platform/charts/tenant-hello
-  - platform/services/stagecraft/api/deploy/chartSelector.ts
-  - platform/services/stagecraft/api/deploy/chartSelector.test.ts
-  - .github/workflows/cd-tenant-hello.yml
-  - .github/workflows/ci-tenant-hello.yml
+  - unit: { kind: directory, path: platform/services/tenant-hello }
+  - unit: { kind: directory, path: platform/charts/tenant-hello }
+  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/chartSelector.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/chartSelector.test.ts }
+  - unit: { kind: file, path: .github/workflows/cd-tenant-hello.yml }
+  - unit: { kind: file, path: .github/workflows/ci-tenant-hello.yml }
 extends:
   - spec: "073-axiomregent-unification"
-    paths:
-      - platform/services/deployd-api-rs/src/helm.rs
-      - platform/services/deployd-api-rs/src/k8s.rs
-      - platform/services/deployd-api-rs/src/routes.rs
-      - platform/services/deployd-api-rs/src/main.rs
-      - platform/services/deployd-api-rs/Dockerfile
-      - .github/workflows/cd-deployd-api-rs.yml
-      - .github/workflows/ci-deployd-api-rs.yml
     nature: additive
+    unit: { kind: file, path: platform/services/deployd-api-rs/src/helm.rs }
+  - spec: "073-axiomregent-unification"
+    nature: additive
+    unit: { kind: file, path: platform/services/deployd-api-rs/src/k8s.rs }
+  - spec: "073-axiomregent-unification"
+    nature: additive
+    unit: { kind: file, path: platform/services/deployd-api-rs/src/routes.rs }
+  - spec: "073-axiomregent-unification"
+    nature: additive
+    unit: { kind: file, path: platform/services/deployd-api-rs/src/main.rs }
+  - spec: "073-axiomregent-unification"
+    nature: additive
+    unit: { kind: file, path: platform/services/deployd-api-rs/Dockerfile }
+  - spec: "073-axiomregent-unification"
+    nature: additive
+    unit: { kind: file, path: .github/workflows/cd-deployd-api-rs.yml }
+  - spec: "073-axiomregent-unification"
+    nature: additive
+    unit: { kind: file, path: .github/workflows/ci-deployd-api-rs.yml }
 summary: >
   Document `platform/services/tenant-hello` as the deliberately-minimal
   reference of what a project codebase looks like when stagecraft is

@@ -17,21 +17,18 @@ depends_on:
   - "101"
 code_aliases: ["SPEC_RELATIONSHIP_GRAPH"]
 establishes:
-  - tools/shared/spec-types/src/lib.rs
-  - standards/schemas/spec-spine/registry.schema.json
+  - unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
+  - unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
 extends:
   - spec: "001-spec-compiler-mvp"
-    paths:
-      - tools/spec-spine/spec-compiler/src/lib.rs
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
   - spec: "101-codebase-index-mvp"
-    paths:
-      - tools/spec-spine/codebase-indexer/src/spec_scanner.rs
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/spec_scanner.rs }
 constrains:
-  - kind: invariant-freeze
-    paths:
-      - standards/schemas/spec-spine/registry.schema.json
+  - flavor: invariant-freeze
+    unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
 summary: >
   Spec governance operates over an explicit relationship graph. Eight
   frontmatter fields — establishes, extends, refines, supersedes, amends,

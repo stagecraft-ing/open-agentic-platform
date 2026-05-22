@@ -23,7 +23,7 @@ sources:
   - developer-cc-commands
 establishes:
   - .claude/agents/conductor.md
-  - .claude/commands/implement-plan.md
+  - unit: { kind: file, path: .claude/commands/implement-plan.md }
 ---
 
 # Feature Specification: Conductor Track Lifecycle

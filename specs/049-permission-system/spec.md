@@ -18,7 +18,7 @@ summary: >
 code_aliases:
   - PERMISSION_SYSTEM
 establishes:
-  - product/packages/permission-system
+  - unit: { kind: crate, id: "@opc/permission-system" }
 ---
 
 # Feature Specification: Permission Request System with Memory and Wildcards

@@ -72,10 +72,13 @@ impl ResolverContext {
     }
 }
 
-/// Filter the inventory to Rust crates and read each member's `[package].name`
-/// from disk. Mirrors spec-compiler's `discover_workspace_crate_ids` so the
-/// indexer's resolver and the compiler's type-checker share one truth about
-/// which crate ids are valid (spec 154 §3.1).
+/// Read each workspace member's manifest `name` from disk into the
+/// resolver's lookup table. Mirrors spec-compiler's
+/// `discover_workspace_crate_ids` so the indexer's resolver and the
+/// compiler's type-checker share one truth about which crate ids are
+/// valid (spec 154 §3.1 — workspace membership is the manifest
+/// boundary, not the language; Rust crates AND npm packages declared
+/// as workspace members of `product/` both contribute).
 fn collect_workspace_members(
     _repo_root: &Path,
     packages: &[crate::types::PackageRecord],
@@ -85,14 +88,16 @@ fn collect_workspace_members(
     for pkg in packages {
         if !matches!(
             pkg.kind,
-            PackageKind::RustLib | PackageKind::RustBin | PackageKind::RustLibBin
+            PackageKind::RustLib
+                | PackageKind::RustBin
+                | PackageKind::RustLibBin
+                | PackageKind::NpmPackage
         ) {
             continue;
         }
-        // `PackageRecord.name` is the canonical [package].name read by
-        // `manifest::parse_cargo_toml`, which is what spec-compiler's
-        // workspace-member discovery uses as the crate id. Reuse it
-        // directly rather than re-reading the manifests.
+        // `PackageRecord.name` is the manifest's canonical name field
+        // (Rust `[package].name` or npm `package.json:name`). Both
+        // serve as `crate:` unit ids under spec 154 §3.1.
         out.insert(pkg.name.clone(), pkg.path.clone());
     }
     out

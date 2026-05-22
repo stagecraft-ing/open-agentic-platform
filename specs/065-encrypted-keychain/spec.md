@@ -25,9 +25,8 @@ establishes:
   - product/apps/desktop/src/components/CredentialPicker.tsx
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
-    paths:
-      - product/apps/desktop
     nature: additive
+    unit: { kind: crate, id: "@opc/desktop" }
 ---
 
 # Feature Specification: Encrypted Keychain and Credential Storage

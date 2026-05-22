@@ -28,37 +28,42 @@ amends:
   - "099"
 code_aliases: ["PROJECT_AS_GOVERNANCE_UNIT"]
 establishes:
-  - platform/services/stagecraft/api/db
-  - platform/services/stagecraft/api/projects
-  - platform/services/stagecraft/api/knowledge
-  - platform/services/stagecraft/api/sync
-  - standards/spec/contract.md
+  - unit: { kind: directory, path: platform/services/stagecraft/api/db }
+  - unit: { kind: directory, path: platform/services/stagecraft/api/projects }
+  - unit: { kind: directory, path: platform/services/stagecraft/api/knowledge }
+  - unit: { kind: directory, path: platform/services/stagecraft/api/sync }
+  - unit: { kind: file, path: standards/spec/contract.md }
 extends:
+  - spec: "087-unified-workspace-architecture"
+    nature: wrapping
+    unit: { kind: directory, path: specs/087-unified-workspace-architecture }
   - spec: "087-unified-workspace-architecture"
     paths:
       - platform/services/stagecraft/api/workspaces
-      - specs/087-unified-workspace-architecture
     nature: wrapping
   - spec: "092-workspace-runtime-threading"
-    paths:
-      - crates/orchestrator
-      - specs/092-workspace-runtime-threading
     nature: wrapping
+    unit: { kind: crate, id: orchestrator }
+  - spec: "092-workspace-runtime-threading"
+    nature: wrapping
+    unit: { kind: directory, path: specs/092-workspace-runtime-threading }
   - spec: "094-unified-artifact-store"
-    paths:
-      - crates/factory-contracts
-      - specs/094-unified-artifact-store
     nature: wrapping
+    unit: { kind: crate, id: factory-contracts }
+  - spec: "094-unified-artifact-store"
+    nature: wrapping
+    unit: { kind: directory, path: specs/094-unified-artifact-store }
   - spec: "099-workspace-scoped-persistence"
-    paths:
-      - crates/run
-      - specs/099-workspace-scoped-persistence
     nature: wrapping
+    unit: { kind: crate, id: run }
+  - spec: "099-workspace-scoped-persistence"
+    nature: wrapping
+    unit: { kind: directory, path: specs/099-workspace-scoped-persistence }
 refines:
-  - aspect: project-scoped-governance
-    paths:
-      - product/apps/desktop
-      - specs/000-bootstrap-spec-system
+  - aspect: "project-scoped-governance"
+    unit: { kind: crate, id: "@opc/desktop" }
+  - aspect: "project-scoped-governance"
+    unit: { kind: directory, path: specs/000-bootstrap-spec-system }
 summary: >
   Collapse the workspace abstraction into project. Workspace was introduced
   (spec 087) as a multi-project governance container with a shared knowledge

@@ -19,13 +19,11 @@ owner: bart
 risk: high
 extends:
   - spec: "074-factory-ingestion"
-    paths:
-      - crates/factory-contracts
     nature: additive
+    unit: { kind: crate, id: factory-contracts }
   - spec: "004-spec-to-execution-bridge-mvp"
-    paths:
-      - crates/orchestrator
     nature: additive
+    unit: { kind: crate, id: orchestrator }
 ---
 
 # Feature Specification: Artifact Integrity and Platform Hardening

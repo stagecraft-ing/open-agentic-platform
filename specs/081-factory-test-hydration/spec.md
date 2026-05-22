@@ -21,11 +21,9 @@ code_aliases: ["FACTORY_HYDRATION", "TEST_SEED"]
 # moved factory state into `factory_adapters` / `factory_contracts` /
 # `factory_processes` and removed the in-tree mirror.
 refines:
-  - aspect: factory-seed-data
+  - aspect: "factory-seed-data"
     paths:
       - factory
-    refines_specs:
-      - "074-factory-ingestion"
 ---
 
 # 081 — Factory Test Data Hydration

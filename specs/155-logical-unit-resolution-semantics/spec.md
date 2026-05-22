@@ -20,10 +20,11 @@ depends_on:
 code_aliases: ["UNIT_RESOLUTION_SEMANTICS"]
 extends:
   - spec: "001-spec-compiler-mvp"
-    paths:
-      - tools/shared/spec-types/src/lib.rs
-      - tools/spec-spine/spec-compiler/tests/spec154_unit_grammar_negative.rs
     nature: additive
+    unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
+  - spec: "001-spec-compiler-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/tests/spec154_unit_grammar_negative.rs }
 references:
   - role: motivating-case
     unit: { kind: file, path: specs/154-logical-unit-ownership-grammar/segment-3-design.md }

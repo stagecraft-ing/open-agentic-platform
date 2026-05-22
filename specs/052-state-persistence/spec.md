@@ -21,9 +21,8 @@ code_aliases:
   - WORKFLOW_RESUME
 extends:
   - spec: "004-spec-to-execution-bridge-mvp"
-    paths:
-      - crates/orchestrator
     nature: additive
+    unit: { kind: crate, id: orchestrator }
 sources:
   - agents
   - claudepal

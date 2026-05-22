@@ -14,15 +14,11 @@ depends_on:
 code_aliases: ["RAUTHY_CLIENT_REDIRECTS"]
 extends:
   - spec: "106-rauthy-native-oidc-and-membership"
-    paths:
-      - platform/services/stagecraft/scripts/seed-rauthy.mjs
     nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/scripts/seed-rauthy.mjs }
 refines:
-  - paths:
-      - platform/services/stagecraft/web/README.md
-    aspect: redirect-uri-ownership
-    refines_specs:
-      - "106-rauthy-native-oidc-and-membership"
+  - aspect: "redirect-uri-ownership"
+    unit: { kind: file, path: platform/services/stagecraft/web/README.md }
 summary: >
   Close spec 106 FR-002's remaining manual gap: the seeder grants the `oap`
   scope to stagecraft-server / SPA / OPC clients but does not manage their

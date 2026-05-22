@@ -19,7 +19,7 @@ summary: >
 code_aliases: ["MULTI_CLOUD_K8S"]
 sources: ["platform-infra"]
 establishes:
-  - platform/infra
+  - unit: { kind: directory, path: platform/infra }
 ---
 
 # Feature Specification: Multi-Cloud Kubernetes Portability

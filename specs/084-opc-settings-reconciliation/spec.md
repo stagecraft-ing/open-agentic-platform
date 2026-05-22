@@ -18,14 +18,17 @@ code_aliases:
   - OPC_SETTINGS
   - SETTINGS_RECONCILIATION
 establishes:
-  - product/apps/desktop/src/lib/settingsManager.ts
+  - unit: { kind: file, path: product/apps/desktop/src/lib/settingsManager.ts }
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
-    paths:
-      - product/apps/desktop/src-tauri/src/commands/claude.rs
-      - product/apps/desktop/src/lib/api.ts
-      - product/apps/desktop/src/components/ProjectSettings.tsx
     nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/claude.rs }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/lib/api.ts }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/components/ProjectSettings.tsx }
 ---
 
 # 084 — OPC Scoped Settings Reconciliation

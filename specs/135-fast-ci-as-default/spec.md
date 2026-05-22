@@ -16,10 +16,7 @@ depends_on:
   - "134"  # fast-local-ci-mode (the sibling target being promoted)
   - "130"  # spec-coupling-primary-owner (claim resolution for shared paths)
 co_authority:
-  - paths:
-      - Makefile
-    section: ci-default-rename
-    with_specs:
+  - with_specs:
       - "102-governed-excellence"
       - "104-makefile-ci-parity-contract"
       - "105-axiomregent-sidecar"
@@ -27,17 +24,20 @@ co_authority:
       - "127-spec-code-coupling-gate"
       - "128-spec-lint-default-fail-on-warn"
       - "134-fast-local-ci-mode"
+    unit: { kind: section, file: Makefile, anchor: ci-default-rename }
 extends:
   - spec: "104-makefile-ci-parity-contract"
-    paths:
-      - tools/oap/ci-parity-check/src/lib.rs
-      - .github/workflows/ci-crates.yml
-      - specs/104-makefile-ci-parity-contract/spec.md
     nature: wrapping
+    unit: { kind: file, path: tools/oap/ci-parity-check/src/lib.rs }
+  - spec: "104-makefile-ci-parity-contract"
+    nature: wrapping
+    unit: { kind: file, path: .github/workflows/ci-crates.yml }
+  - spec: "104-makefile-ci-parity-contract"
+    nature: wrapping
+    unit: { kind: file, path: specs/104-makefile-ci-parity-contract/spec.md }
   - spec: "134-fast-local-ci-mode"
-    paths:
-      - .claude/commands/validate-and-fix.md
     nature: wrapping
+    unit: { kind: file, path: .claude/commands/validate-and-fix.md }
 summary: >
   Amend spec 104 to (a) collapse the per-manifest crates/* loop in `ci-rust`
   into a single `cargo --workspace` invocation, closing the ghost-crate

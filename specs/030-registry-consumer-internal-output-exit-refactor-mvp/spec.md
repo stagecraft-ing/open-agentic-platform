@@ -14,9 +14,8 @@ summary: >
   while preserving all observable CLI behavior under existing contracts.
 extends:
   - spec: "002-registry-consumer-mvp"
-    paths:
-      - tools/spec-spine/registry-consumer
     nature: additive
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Internal output/exit refactor

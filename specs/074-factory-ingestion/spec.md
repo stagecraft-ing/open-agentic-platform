@@ -15,7 +15,7 @@ summary: >
   structure, Rust contract types, adapter registry, and integration seams.
 code_aliases: ["FACTORY_INGESTION", "FACTORY_CONTRACTS"]
 establishes:
-  - crates/factory-contracts
+  - unit: { kind: crate, id: factory-contracts }
   - factory
 ---
 

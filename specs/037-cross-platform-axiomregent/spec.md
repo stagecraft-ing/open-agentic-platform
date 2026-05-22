@@ -16,10 +16,11 @@ summary: >
   non-macOS hosts.
 extends:
   - spec: "033-axiomregent-activation"
-    paths:
-      - crates/axiomregent
-      - product/apps/desktop/src-tauri/binaries
     nature: additive
+    unit: { kind: crate, id: axiomregent }
+  - spec: "033-axiomregent-activation"
+    nature: additive
+    unit: { kind: directory, path: product/apps/desktop/src-tauri/binaries }
 ---
 
 # Feature Specification: cross-platform axiomregent binaries

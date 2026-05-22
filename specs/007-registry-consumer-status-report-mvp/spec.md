@@ -15,9 +15,8 @@ summary: >
   trust/exit semantics, and verify behavior with integration tests.
 extends:
   - spec: "002-registry-consumer-mvp"
-    paths:
-      - tools/spec-spine/registry-consumer
     nature: additive
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Registry consumer status reporting UX

@@ -18,13 +18,11 @@ depends_on:
 code_aliases: ["CONSTITUTIONAL_FREEZE"]
 extends:
   - spec: "001-spec-compiler-mvp"
-    paths:
-      - tools/spec-spine/spec-compiler
     nature: additive
+    unit: { kind: crate, id: open_agentic_spec_compiler }
 constrains:
-  - kind: invariant-freeze
-    paths:
-      - standards/schemas/spec-spine/registry.schema.json
+  - flavor: invariant-freeze
+    unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
 summary: >
   Spec 000 is itself amendable, including the amendment protocol. This
   spec adds a frontmatter convention — `unamendable: [<anchor>, ...]`

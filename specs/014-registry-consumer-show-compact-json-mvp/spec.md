@@ -14,9 +14,8 @@ summary: >
   exclusive with `--json`, without changing default or pretty `--json` behavior.
 extends:
   - spec: "013-registry-consumer-show-json-mvp"
-    paths:
-      - tools/spec-spine/registry-consumer
     nature: additive
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Registry consumer show compact JSON

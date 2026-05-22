@@ -27,13 +27,11 @@ co_authority:
       - "135-fast-ci-as-default"
 extends:
   - spec: "104-makefile-ci-parity-contract"
-    paths:
-      - tools/oap/ci-parity-check/src/lib.rs
     nature: additive
+    unit: { kind: file, path: tools/oap/ci-parity-check/src/lib.rs }
 refines:
-  - aspect: ci-fast-validation
-    paths:
-      - .claude/commands/validate-and-fix.md
+  - aspect: "ci-fast-validation"
+    unit: { kind: file, path: .claude/commands/validate-and-fix.md }
 summary: >
   Amend spec 104 to introduce a two-mode CI contract: the parity-bound
   recipe (renamed `make ci-strict` by spec 135) retains strict

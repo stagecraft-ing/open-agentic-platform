@@ -14,9 +14,8 @@ summary: >
   pretty-printed JSON object contract, without changing default show output or trust semantics.
 extends:
   - spec: "002-registry-consumer-mvp"
-    paths:
-      - tools/spec-spine/registry-consumer
     nature: additive
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Registry consumer show JSON contract

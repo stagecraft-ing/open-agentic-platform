@@ -14,9 +14,8 @@ summary: >
   with `--json`, completing compact symmetry with list and show.
 extends:
   - spec: "008-registry-consumer-status-report-json-mvp"
-    paths:
-      - tools/spec-spine/registry-consumer
     nature: additive
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Registry consumer status-report compact JSON

@@ -17,28 +17,41 @@ depends_on:
 code_aliases: ["LOGICAL_UNIT_OWNERSHIP", "UNIT_GRAMMAR"]
 extends:
   - spec: "130-spec-coupling-primary-owner"
-    paths:
-      - standards/schemas/spec-spine/registry.schema.json
     nature: additive
+    unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
   - spec: "101-codebase-index-mvp"
-    paths:
-      - tools/spec-spine/codebase-indexer/Cargo.toml
-      - tools/spec-spine/codebase-indexer/src/lib.rs
-      - tools/spec-spine/codebase-indexer/src/spec_scanner.rs
-      - tools/spec-spine/codebase-indexer/src/types.rs
-      - tools/spec-spine/codebase-indexer/src/xref.rs
-      - tools/spec-spine/codebase-indexer/src/resolver
-      - tools/spec-spine/codebase-indexer/tests/resolver.rs
-      - tools/spec-spine/codebase-indexer/benches/resolver.rs
-      - standards/schemas/spec-spine/codebase-index.schema.json
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/Cargo.toml }
+  - spec: "101-codebase-index-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
+  - spec: "101-codebase-index-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/spec_scanner.rs }
+  - spec: "101-codebase-index-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/types.rs }
+  - spec: "101-codebase-index-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/xref.rs }
+  - spec: "101-codebase-index-mvp"
+    nature: additive
+    unit: { kind: directory, path: tools/spec-spine/codebase-indexer/src/resolver }
+  - spec: "101-codebase-index-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/tests/resolver.rs }
+  - spec: "101-codebase-index-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/benches/resolver.rs }
+  - spec: "101-codebase-index-mvp"
+    nature: additive
+    unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
   - spec: "127-spec-code-coupling-gate"
-    paths:
-      - tools/spec-spine/spec-code-coupling-check/src/lib.rs
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/lib.rs }
 references:
-  - "tools/spec-spine/spec-compiler"
-  - "tools/spec-spine/codebase-indexer"
+  - unit: { kind: crate, id: open_agentic_spec_compiler }
+  - unit: { kind: crate, id: open_agentic_codebase_indexer }
 summary: >
   Spec 130 §2 defines eight relationship fields (establishes, extends,
   refines, supersedes, amends, co_authority, constrains, origin) that

@@ -15,14 +15,15 @@ depends_on:
 code_aliases: ["WORKFLOW_TRACEABILITY"]
 extends:
   - spec: "101-codebase-index-mvp"
+    nature: additive
+    unit: { kind: crate, id: open_agentic_codebase_indexer }
+  - spec: "101-codebase-index-mvp"
     paths:
-      - tools/spec-spine/codebase-indexer
       - .derived/codebase-index/CODEBASE-INDEX.md
     nature: additive
 refines:
-  - paths:
-      - .github/workflows
-    aspect: spec-header-convention
+  - aspect: "spec-header-convention"
+    unit: { kind: directory, path: .github/workflows }
 summary: >
   Adopt a header-line convention `# Spec: NNN-slug` in every
   .github/workflows/*.yml. Extend tools/spec-spine/codebase-indexer to scan workflow

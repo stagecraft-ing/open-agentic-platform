@@ -19,21 +19,21 @@ depends_on:
   - "106"  # rauthy-native-oidc-and-membership (patCrypto, PAT primitives)
   - "108"  # factory-as-platform-feature (tables, UI shell)
 establishes:
-  - platform/services/stagecraft/api/factory/upstreamPat.ts
-  - platform/services/stagecraft/api/factory/syncWorker.ts
-  - platform/services/stagecraft/api/factory/syncRuns.ts
-  - platform/services/stagecraft/api/factory/tokenResolver.ts
-  - platform/services/stagecraft/api/projects/projectPat.ts
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/upstreamPat.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/syncWorker.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/syncRuns.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/tokenResolver.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/projectPat.ts }
 extends:
   - spec: "108-factory-as-platform-feature"
-    paths:
-      - platform/services/stagecraft/api/factory/factory.ts
-      - platform/services/stagecraft/web/app/routes/app.factory.upstreams.tsx
     nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/factory.ts }
+  - spec: "108-factory-as-platform-feature"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.factory.upstreams.tsx }
   - spec: "106-rauthy-native-oidc-and-membership"
-    paths:
-      - platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx
     nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx }
 ---
 
 # 109 — Factory PAT Broker + PubSub Sync Worker

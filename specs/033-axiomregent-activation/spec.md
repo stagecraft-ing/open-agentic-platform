@@ -22,7 +22,7 @@ owner: bart
 risk: medium
 establishes:
   - product/apps/desktop/src-tauri/src/commands/sidecars.rs
-  - crates/axiomregent/src/lib.rs
+  - unit: { kind: file, path: crates/axiomregent/src/lib.rs }
 ---
 
 # Feature Specification: axiomregent activation

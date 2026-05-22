@@ -15,12 +15,10 @@ summary: >
   and explicit non-goals so 004+ can build on stable lifecycle language without
   reopening 000/001 unless a constitutional amendment is required.
 refines:
-  - paths:
-      - tools/spec-spine/spec-compiler/src/lib.rs
-      - tools/spec-spine/registry-consumer/src/lib.rs
-    aspect: status-semantics
-    refines_specs:
-      - "001-spec-compiler-mvp"
+  - aspect: "status-semantics"
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
+  - aspect: "status-semantics"
+    unit: { kind: file, path: tools/spec-spine/registry-consumer/src/lib.rs }
 ---
 
 # Feature Specification: Feature lifecycle & status semantics

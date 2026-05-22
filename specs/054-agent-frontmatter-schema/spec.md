@@ -29,8 +29,8 @@ code_aliases:
   - AGENT_FRONTMATTER
   - SKILL_SCHEMA
 establishes:
-  - crates/agent-frontmatter
-  - standards/schemas/frontmatter/agent-frontmatter.schema.json
+  - unit: { kind: crate, id: agent-frontmatter }
+  - unit: { kind: file, path: standards/schemas/frontmatter/agent-frontmatter.schema.json }
 ---
 
 # Feature Specification: Unified Agent and Skill Frontmatter Schema

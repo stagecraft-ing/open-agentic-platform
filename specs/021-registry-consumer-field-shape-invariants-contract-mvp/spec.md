@@ -15,13 +15,11 @@ summary: >
   current serialization implies it.
 extends:
   - spec: "002-registry-consumer-mvp"
-    paths:
-      - tools/spec-spine/registry-consumer
     nature: additive
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 refines:
-  - paths:
-      - tools/spec-spine/registry-consumer
-    aspect: contract-tests
+  - aspect: "contract-tests"
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Field-shape invariants contract

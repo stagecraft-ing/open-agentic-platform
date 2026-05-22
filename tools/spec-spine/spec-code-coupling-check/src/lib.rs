@@ -450,6 +450,24 @@ pub fn build_section_claim_index(registry: &SpecRegistry) -> SectionClaimIndex {
             None => continue,
         };
         for entry in entries {
+            // Spec 154 §5 typed-unit form: `unit: { kind: section,
+            // file: <path>, anchor: <name> }`. Read this first so the
+            // migrated corpus surfaces section claims under the gate's
+            // section-aware authority check. Legacy `section: <name>`
+            // + `paths: [...]` is the fallback for items the migration
+            // tool kept in pre-§5 form (orphan anchors).
+            if let Some(unit) = entry.get("unit").and_then(|v| v.as_object()) {
+                if unit.get("kind").and_then(Value::as_str) == Some("section") {
+                    let file = unit.get("file").and_then(Value::as_str);
+                    let anchor = unit.get("anchor").and_then(Value::as_str);
+                    if let (Some(f), Some(a)) = (file, anchor) {
+                        idx.entry((f.to_string(), a.to_string()))
+                            .or_default()
+                            .insert(feature.id.clone());
+                    }
+                    continue;
+                }
+            }
             let section = match entry.get("section").and_then(Value::as_str) {
                 Some(s) if !s.is_empty() => s.to_string(),
                 _ => continue,

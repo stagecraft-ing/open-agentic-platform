@@ -14,9 +14,8 @@ summary: >
   objects, reusing existing filters and sort order without changing registry schema.
 extends:
   - spec: "002-registry-consumer-mvp"
-    paths:
-      - tools/spec-spine/registry-consumer
     nature: additive
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Registry consumer list JSON output

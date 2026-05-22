@@ -14,12 +14,13 @@ depends_on:
   - "143"  # presigned-upload-public-endpoint (FU-021 diagnostic chair)
 code_aliases: ["DEPLOYD_API_MEMORY_HARDENING"]
 establishes:
-  - platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts
+  - unit: { kind: file, path: platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts }
 co_authority:
   - paths:
       - platform/charts/deployd-api/values.yaml
     section: resources
-    with_specs: ["145-deployd-durability"]
+    with_specs:
+      - "145-deployd-durability"
 summary: >
   `platform/charts/deployd-api/values.yaml:20` declares
   `resources: {}` — empty. The deployment.yaml template renders the

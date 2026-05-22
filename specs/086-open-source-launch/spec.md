@@ -19,7 +19,7 @@ code_aliases:
   - OPEN_SOURCE
   - OSS_LAUNCH
 establishes:
-  - docs/ARCHITECTURE.md
+  - unit: { kind: file, path: docs/ARCHITECTURE.md }
   - CONTRIBUTING.md
   - SECURITY.md
   - CODE_OF_CONDUCT.md

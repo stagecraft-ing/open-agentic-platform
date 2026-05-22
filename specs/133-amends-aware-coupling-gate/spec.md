@@ -14,20 +14,17 @@ depends_on:
   - "130"
 code_aliases: ["COUPLING_GATE"]
 establishes:
-  - tools/spec-spine/spec-code-coupling-check/src/lib.rs
-  - tools/spec-spine/spec-code-coupling-check/src/main.rs
+  - unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/lib.rs }
+  - unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/main.rs }
 extends:
   - spec: "101-codebase-index-mvp"
-    paths:
-      - tools/spec-spine/codebase-indexer/src/lib.rs
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
 co_authority:
-  - paths:
-      - tools/spec-spine/spec-code-coupling-check/src/lib.rs
-    section: authority-derivation
-    with_specs:
+  - with_specs:
       - "130-spec-coupling-primary-owner"
       - "152-path-co-authority"
+    unit: { kind: section, file: tools/spec-spine/spec-code-coupling-check/src/lib.rs, anchor: authority-derivation }
 summary: >
   The derivation algorithm, satisfaction semantics, constraint evaluation,
   and output format of the spec/code coupling gate. Given a diff and the

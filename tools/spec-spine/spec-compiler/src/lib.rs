@@ -1635,49 +1635,76 @@ fn atx_h2(line: &str) -> Option<&str> {
 // Spec 154 — workspace-member discovery + logical-unit type-checks
 // ─────────────────────────────────────────────────────────────────────
 
-/// Discover the set of valid `crate:` unit ids from the root Cargo.toml.
+/// Discover the set of valid `crate:` unit ids from the root Cargo.toml
+/// AND the npm workspace under `product/`.
 ///
-/// For every workspace member, the canonical id is the member's
+/// For every Rust workspace member, the canonical id is the member's
 /// `[package] name` (spec 154 §3.1 — manifest name, not directory
-/// tail). Missing `Cargo.toml` returns an empty set; missing or
-/// malformed member manifests are silently skipped (the per-member
-/// errors are not the spec-compiler's concern — cargo itself will
-/// surface them).
+/// tail). Spec 154 §3.1 also extends `crate:` to npm packages declared
+/// as workspace members of `product/` ("the workspace boundary is the
+/// manifest, not the language"); each `product/{apps,packages}/*/package.json`
+/// contributes its top-level `name:` field. Missing manifests at any
+/// level produce no entry; malformed manifests are silently skipped
+/// (the per-member errors are not the spec-compiler's concern —
+/// cargo / pnpm will surface them).
 fn discover_workspace_crate_ids(repo_root: &Path) -> Result<BTreeSet<String>, CompileError> {
-    let manifest_path = repo_root.join("Cargo.toml");
-    if !manifest_path.is_file() {
-        return Ok(BTreeSet::new());
-    }
-    let raw = fs::read_to_string(&manifest_path)?;
-    let parsed: toml::Value = match raw.parse() {
-        Ok(v) => v,
-        Err(_) => return Ok(BTreeSet::new()),
-    };
     let mut out: BTreeSet<String> = BTreeSet::new();
-    let Some(members) = parsed
-        .get("workspace")
-        .and_then(|w| w.get("members"))
-        .and_then(|m| m.as_array())
-    else {
-        return Ok(out);
-    };
-    for member in members {
-        let Some(rel) = member.as_str() else {
+    // Rust workspace members from the root Cargo.toml.
+    let manifest_path = repo_root.join("Cargo.toml");
+    if manifest_path.is_file() {
+        let raw = fs::read_to_string(&manifest_path)?;
+        if let Ok(parsed) = raw.parse::<toml::Value>() {
+            if let Some(members) = parsed
+                .get("workspace")
+                .and_then(|w| w.get("members"))
+                .and_then(|m| m.as_array())
+            {
+                for member in members {
+                    let Some(rel) = member.as_str() else {
+                        continue;
+                    };
+                    let member_manifest = repo_root.join(rel).join("Cargo.toml");
+                    let Ok(member_raw) = fs::read_to_string(&member_manifest) else {
+                        continue;
+                    };
+                    let Ok(member_parsed) = member_raw.parse::<toml::Value>() else {
+                        continue;
+                    };
+                    if let Some(name) = member_parsed
+                        .get("package")
+                        .and_then(|p| p.get("name"))
+                        .and_then(|n| n.as_str())
+                    {
+                        out.insert(name.to_string());
+                    }
+                }
+            }
+        }
+    }
+    // NPM workspace members under product/ (spec 154 §3.1 second
+    // paragraph). Glob patterns in pnpm-workspace.yaml expand to
+    // `product/apps/*` and `product/packages/*` in this repo; we walk
+    // those directories directly. Going one level deep matches the
+    // standard pnpm/npm flat workspace layout; nested workspaces (rare
+    // in this corpus) are not currently supported.
+    for pkg_root in ["product/apps", "product/packages"] {
+        let dir = repo_root.join(pkg_root);
+        let Ok(entries) = fs::read_dir(&dir) else {
             continue;
         };
-        let member_manifest = repo_root.join(rel).join("Cargo.toml");
-        let Ok(member_raw) = fs::read_to_string(&member_manifest) else {
-            continue;
-        };
-        let Ok(member_parsed) = member_raw.parse::<toml::Value>() else {
-            continue;
-        };
-        if let Some(name) = member_parsed
-            .get("package")
-            .and_then(|p| p.get("name"))
-            .and_then(|n| n.as_str())
-        {
-            out.insert(name.to_string());
+        let mut sorted: Vec<_> = entries.flatten().collect();
+        sorted.sort_by_key(|e| e.file_name());
+        for entry in sorted {
+            let pkg_json = entry.path().join("package.json");
+            let Ok(raw) = fs::read_to_string(&pkg_json) else {
+                continue;
+            };
+            let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&raw) else {
+                continue;
+            };
+            if let Some(name) = parsed.get("name").and_then(|n| n.as_str()) {
+                out.insert(name.to_string());
+            }
         }
     }
     Ok(out)

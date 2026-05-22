@@ -21,8 +21,8 @@ summary: >
   Phase 1), VALID_KINDS enum, SHAPE_TABLE reservation, and `implements:` scalar/list
   serialization. SPEC_VERSION bumps 1.4.0 → 1.5.0.
 establishes:
-  - tools/spec-spine/spec-compiler/src/lib.rs
-  - tools/spec-spine/spec-compiler/src/main.rs
+  - unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
+  - unit: { kind: file, path: tools/spec-spine/spec-compiler/src/main.rs }
   - .derived/spec-registry/registry.json
 ---
 

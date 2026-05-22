@@ -14,14 +14,23 @@ depends_on:
 code_aliases: ["REFERENCES_EDGE_PROVENANCE", "PROVENANCE_GRAMMAR"]
 extends:
   - spec: "154-logical-unit-ownership-grammar"
-    paths:
-      - tools/shared/spec-types/src/lib.rs
-      - tools/spec-spine/spec-compiler/src/lib.rs
-      - tools/spec-spine/codebase-indexer/src/spec_scanner.rs
-      - tools/spec-spine/codebase-indexer/src/types.rs
-      - standards/schemas/spec-spine/codebase-index.schema.json
-      - standards/schemas/spec-spine/registry.schema.json
     nature: additive
+    unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
+  - spec: "154-logical-unit-ownership-grammar"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
+  - spec: "154-logical-unit-ownership-grammar"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/spec_scanner.rs }
+  - spec: "154-logical-unit-ownership-grammar"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/types.rs }
+  - spec: "154-logical-unit-ownership-grammar"
+    nature: additive
+    unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
+  - spec: "154-logical-unit-ownership-grammar"
+    nature: additive
+    unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
 references:
   - role: precedent
     unit: { kind: file, path: specs/155-logical-unit-resolution-semantics/spec.md }

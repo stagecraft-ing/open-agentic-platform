@@ -25,10 +25,9 @@ depends_on:
   - "122"  # stakeholder-doc-inversion (third parity surface)
 amends:
   - spec: "120-factory-extraction-stage"
-    change_type: correction
-    paths:
-      - tools/oap/schema-parity-check/index.mjs
-      - platform/services/stagecraft/api/knowledge/extractionOutput.ts
+    unit: { kind: file, path: tools/oap/schema-parity-check/index.mjs }
+  - spec: "120-factory-extraction-stage"
+    unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionOutput.ts }
 ---
 
 # 125 — Schema-Parity Walker — Rebuild for Hand-Rolled Validators

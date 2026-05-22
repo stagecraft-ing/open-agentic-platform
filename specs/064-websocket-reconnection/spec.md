@@ -23,9 +23,8 @@ establishes:
   - product/apps/desktop/src/lib/wsReconnection.ts
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
-    paths:
-      - product/apps/desktop
     nature: additive
+    unit: { kind: crate, id: "@opc/desktop" }
 ---
 
 # Feature Specification: WebSocket Session Reconnection

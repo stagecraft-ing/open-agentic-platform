@@ -15,16 +15,14 @@ depends_on:
   - "104"  # makefile-ci-parity-contract (the enforcement surface)
 code_aliases: ["SCRIPTS_RETIRE"]
 establishes:
-  - tools/oap/adapter-scopes-compiler/src/main.rs
-  - tools/oap/adapter-scopes-compiler/src/lib.rs
+  - unit: { kind: file, path: tools/oap/adapter-scopes-compiler/src/main.rs }
+  - unit: { kind: file, path: tools/oap/adapter-scopes-compiler/src/lib.rs }
 co_authority:
-  - paths:
-      - Makefile
-    section: axiomregent-build
-    with_specs:
+  - with_specs:
       - "037-cross-platform-axiomregent"
       - "073-axiomregent-unification"
       - "104-makefile-ci-parity-contract"
+    unit: { kind: section, file: Makefile, anchor: axiomregent-build }
 summary: >
   Retire the repo-root `scripts/` directory. Each script moves to the
   venue that matches its nature: scripts that perform real logic

@@ -28,12 +28,12 @@ depends_on:
 kind: architecture
 risk: high
 establishes:
-  - platform/services/stagecraft/api/sync/types.ts
-  - platform/services/stagecraft/api/sync/service.ts
-  - platform/services/stagecraft/api/sync/duplex.ts
-  - platform/services/stagecraft/api/sync/relay.ts
-  - platform/services/stagecraft/api/sync/store.ts
-  - platform/services/stagecraft/api/sync/registry.ts
+  - unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/sync/duplex.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/sync/relay.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/sync/store.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/sync/registry.ts }
   - product/packages/project-sdk
 ---
 

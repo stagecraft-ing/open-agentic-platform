@@ -15,10 +15,11 @@ depends_on:
 code_aliases: ["GRANULAR_OAP_METADATA"]
 extends:
   - spec: "101-codebase-index-mvp"
-    paths:
-      - tools/spec-spine/codebase-indexer
-      - standards/schemas/spec-spine/codebase-index.schema.json
     nature: additive
+    unit: { kind: crate, id: open_agentic_codebase_indexer }
+  - spec: "101-codebase-index-mvp"
+    nature: additive
+    unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
 summary: >
   Crate-level `[package.metadata.oap].spec` is too coarse — adding a 500-
   line module to an already-tagged crate carries no traceability friction.

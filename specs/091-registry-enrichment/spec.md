@@ -16,14 +16,14 @@ summary: >
 code_aliases: ["REGISTRY_ENRICHMENT"]
 extends:
   - spec: "001-spec-compiler-mvp"
-    paths:
-      - tools/spec-spine/spec-compiler/src/lib.rs
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
   - spec: "034-featuregraph-registry-scanner-fix"
-    paths:
-      - crates/featuregraph/src/registry_source.rs
-      - crates/featuregraph/src/scanner.rs
     nature: additive
+    unit: { kind: file, path: crates/featuregraph/src/registry_source.rs }
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/src/scanner.rs }
 ---
 
 # 091 — Spec Registry Enrichment
