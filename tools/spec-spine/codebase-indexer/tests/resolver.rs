@@ -606,11 +606,11 @@ body
         .collect();
 
     assert!(
-        warnings.iter().any(|c| *c == "I-108"),
+        warnings.contains(&"I-108"),
         "bare-string MissingFile must emit I-108 (warning)"
     );
     assert!(
-        errors.iter().any(|c| *c == "I-008"),
+        errors.contains(&"I-008"),
         "explicit MissingFile must emit I-008 (error)"
     );
 }

@@ -23,10 +23,10 @@ impl AnchorParser for MakefileAnchorParser {
             let lineno = (idx as u32) + 1;
             end_line = lineno;
             if let Some(tag) = parse_tag_line(line) {
-                if start.is_some() {
+                if let Some(s) = start {
                     // Closing on the next tag — end at the previous line.
                     return Ok(Some(LineSpan {
-                        start_line: start.unwrap(),
+                        start_line: s,
                         end_line: lineno - 1,
                     }));
                 }
