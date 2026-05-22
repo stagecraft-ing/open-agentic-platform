@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "2409fac26b7c0620e7fb40cbd8a940f54185cd471008460fbb14cd34d0e59b38",
+    "contentHash": "d25161d320f4737080541627e1ac10d18a20d77766906b16ef0559206743d480",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15341,6 +15341,139 @@
           }
         ],
         "specId": "155-logical-unit-resolution-semantics",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "154"
+        ],
+        "implementingPaths": [
+          {
+            "path": "standards/schemas/spec-spine/codebase-index.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "standards/schemas/spec-spine/registry.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/shared/spec-types/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/codebase-indexer/src/spec_scanner.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/codebase-indexer/src/types.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "standards/schemas/spec-spine/codebase-index.schema.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "standards/schemas/spec-spine/codebase-index.schema.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "standards/schemas/spec-spine/registry.schema.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "standards/schemas/spec-spine/registry.schema.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/shared/spec-types/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/shared/spec-types/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/codebase-indexer/src/spec_scanner.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/codebase-indexer/src/spec_scanner.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/codebase-indexer/src/types.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/codebase-indexer/src/types.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-compiler/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-compiler/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/155-logical-unit-resolution-semantics/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/155-logical-unit-resolution-semantics/spec.md"
+            }
+          }
+        ],
+        "specId": "156-references-edge-provenance-grammar",
         "specStatus": "approved"
       }
     ],

@@ -273,6 +273,15 @@ file produces `requirements.md` and the link between them is
 operational convention; in OAP the link is a typed
 relationship-graph edge.
 
+> *Updated 2026-05-22.* Spec 156
+> (`references-edge-provenance-grammar`) formalises this as a
+> **sibling `provenance:` field** on `references:` entries,
+> mutually exclusive with `unit:` — the two kinds (`knowledge`,
+> `code-fingerprint`) live in `provenance.kind`, not in spec 154's
+> `unit.kind` (see spec 156 §3 for the rationale; the six in-tree
+> unit kinds share refactor-invariance machinery the new external-
+> pointer kinds do not).
+
 ---
 
 ## 4. The OPC project surface
