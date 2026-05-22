@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "de435f9da385c9860d5e8bacde87cacd53ace875aaeafe646a54db0e5ff1b1b1",
+    "contentHash": "7f480340b7cb78a321842182acbd3b52765a4b58dcaa0c56dd72fd37fd9d79fc",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -560,7 +560,7 @@
         "ed25519-dalek",
         "infer",
         "jsonschema",
-        "rand",
+        "rand_core",
         "regex",
         "reqwest",
         "serde",
@@ -714,7 +714,7 @@
         "glob",
         "hex",
         "notify",
-        "rand",
+        "rand_core",
         "regex",
         "serde",
         "serde_json",
