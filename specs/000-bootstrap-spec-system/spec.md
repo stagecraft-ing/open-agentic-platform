@@ -6,8 +6,8 @@ status: approved
 implementation: complete
 kind: constitutional-bootstrap
 created: "2026-03-22"
-amended: "2026-05-20"
-amendment_record: "130-spec-coupling-primary-owner"
+amended: "2026-05-22"
+amendment_record: "159-v004-lint-fixture-exemption"
 origin:
   retroactive: true
 unamendable:
@@ -41,6 +41,11 @@ summary: >
    Amended by spec 147 (2026-05-13) to promote `kind` to a validated enum, introduce per-kind
    structural grammar (`shape`, `category`, capability/registry/profile kinds), and add
    governance-lifecycle frontmatter fields.
+   Amended by spec 159 (2026-05-22) to extend V-004's scan-path policy
+   (the "explicitly listed third-party vendored paths in a later amendment"
+   extension point in this spec) with a path-shaped exemption for
+   `tools/*/tests/fixtures/**`. V-004's `unamendable` anchor is unchanged;
+   only the policy is refined.
 ---
 
 # Feature Specification: Bootstrap spec system

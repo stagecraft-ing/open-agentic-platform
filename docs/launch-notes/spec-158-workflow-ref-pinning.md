@@ -369,7 +369,36 @@ cite them.
   independent differential ("did the lint look at anything?")
   rather than by the lint's own self-report.
 
-Both observations rhyme: a defense built on discipline is a
-defense whose absence is invisible. The lint and the hardening
-sprint exist to make that absence visible — by the lint failing
-loudly, or by the platform refusing the push.
+- **V-004 fired on the PR's own lint fixtures (2026-05-22, CI
+  re-run after rebase).** The `spec-compiler` and
+  `featuregraph / golden graph` CI jobs both failed on the first
+  push with `exit code 1` and zero diagnostic output. Root cause:
+  the V-004 walker in the spec-compiler classified
+  `tools/lint/tests/fixtures/{passing,failing}/action.yml` as
+  "standalone authored YAML" and refused them; validation failed,
+  the registry became non-authoritative, the compile step exited 1.
+  Constitutional Principle I (markdown-only authored truth) is
+  correctly enforced by V-004 against authored spec material; the
+  fixtures, however, derive their authority from spec 158 (which
+  establishes the lint that consumes them), not from themselves.
+  The PR landed a sibling amendment — [spec 159, V-004 carve-out
+  for lint test fixtures](../../specs/159-v004-lint-fixture-exemption/spec.md)
+  — exempting `tools/*/tests/fixtures/**` from V-004 walker
+  scanning. The carve-out is path-shaped (not filename-shaped) so
+  future spec-established lints with non-YAML fixtures
+  (JSON-schema validators, TOML parsers) inherit the exemption
+  without further ceremony. The principle didn't bend — its
+  boundary got the refinement the new spec class required. The
+  separate spec-compiler bug — that V-004 violations exit 1 with
+  no eprint of the violations list — was the diagnostic noise
+  that initially made this look like #194; it is orthogonal and
+  unfixed here. (Without the fixture exemption, #194 would
+  surface the V-004 lines on stderr and the same blocker would
+  remain; the silent-exit bug was a magnifier, not the cause.)
+
+All three observations rhyme: a defense built on discipline is a
+defense whose absence is invisible. The lint, the hardening
+sprint, and the V-004 carve-out each exist to make that absence
+visible — by the lint failing loudly, by the platform refusing
+the push, or by the constitution sharpening its own boundary
+when a new artifact class demands it.

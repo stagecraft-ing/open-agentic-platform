@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:5fe1246d12406ab9c45676865c5aa4e7b41cac97ad3c6c592cdcd7c24aa4be70",
+  "graph_fingerprint": "sha256:d2a790b8d18be1a30a293ba8439d19db15ef47f9e3f3ce13d3b63eef8a7a3b5d",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2967,6 +2967,41 @@
       "impl_files": [],
       "test_files": [],
       "violations": []
+    },
+    {
+      "feature_id": "158-workflow-ref-sha-pinning-lint",
+      "title": "Workflow-ref SHA-pinning lint — promote convention to contract (amends 116)",
+      "spec_path": "specs/158-workflow-ref-sha-pinning-lint/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "116",
+        "104"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "159-v004-lint-fixture-exemption",
+      "title": "V-004 carve-out for lint test fixtures (amends 000)",
+      "spec_path": "specs/159-v004-lint-fixture-exemption/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "000",
+        "001",
+        "158"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
     }
   ],
   "violations": [
@@ -3990,6 +4025,20 @@
       "severity": "error",
       "path": "product/packages/skill-command-factory/src/types.ts",
       "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "tools/lint/workflow-pins-test.sh",
+      "message": "Malformed Spec directive: # Spec: 158-workflow-ref-sha-pinning-lint (amends 116)",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "tools/lint/workflow-pins.sh",
+      "message": "Malformed Spec directive: # Spec: 158-workflow-ref-sha-pinning-lint (amends 116)",
       "suggested_fix": "Fix header format"
     },
     {

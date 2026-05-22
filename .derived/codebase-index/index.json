@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "1b8cfb2de00c49eccb1457554e7847cfa51b7ec634ec5e42769b34e0eac99727",
+    "contentHash": "787333332985cb7ce8240b4ccda409f1c63c45e76f4341a8b043fc4ff79ef056",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1765,7 +1765,7 @@
   "traceability": {
     "mappings": [
       {
-        "amendmentRecord": "130-spec-coupling-primary-owner",
+        "amendmentRecord": "159-v004-lint-fixture-exemption",
         "implementingPaths": [
           {
             "name": "open_agentic_spec_types",
@@ -15734,6 +15734,40 @@
           }
         ],
         "specId": "158-workflow-ref-sha-pinning-lint",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "000-bootstrap-spec-system"
+        ],
+        "dependsOn": [
+          "000",
+          "001",
+          "158"
+        ],
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-compiler/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-compiler/src/lib.rs"
+            }
+          }
+        ],
+        "specId": "159-v004-lint-fixture-exemption",
         "specStatus": "approved"
       }
     ],
