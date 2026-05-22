@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:1bd4843eae136bf2148a8f68b4e1862fc2f98371370a4bc098ff956f926cd298",
+  "graph_fingerprint": "sha256:41a0e84ec1c09c8148915a9e796dacce8a94026d4f768c6723f0fef040c27411",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2912,7 +2912,7 @@
       "title": "Logical-unit ownership grammar — value typing for relationship-graph fields",
       "spec_path": "specs/154-logical-unit-ownership-grammar/spec.md",
       "status": "approved",
-      "implementation": "pending",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",

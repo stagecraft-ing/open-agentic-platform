@@ -851,7 +851,7 @@ fn migrate_co_authority_item(
     let mut orphans: Vec<String> = Vec::new();
     for p in &paths {
         let Some(path_str) = p.as_str() else {
-            warnings.push(format!("non-string path in co_authority item"));
+            warnings.push("non-string path in co_authority item".to_string());
             continue;
         };
         let unit = if let Some(anchor) = &section {
@@ -958,7 +958,7 @@ fn migrate_constrains_item(
     let mut orphans: Vec<String> = Vec::new();
     for p in &paths {
         let Some(path_str) = p.as_str() else {
-            warnings.push(format!("non-string path in constrains item"));
+            warnings.push("non-string path in constrains item".to_string());
             continue;
         };
         let Some(unit) = ctx.classify(path_str) else {
@@ -1034,7 +1034,7 @@ fn migrate_supersedes_item(
     let mut orphans: Vec<String> = Vec::new();
     for p in &paths {
         let Some(path_str) = p.as_str() else {
-            warnings.push(format!("non-string path in supersedes item"));
+            warnings.push("non-string path in supersedes item".to_string());
             continue;
         };
         let Some(unit) = ctx.classify(path_str) else {
@@ -1130,7 +1130,7 @@ fn migrate_amends_item(
     let mut orphans: Vec<String> = Vec::new();
     for p in &paths {
         let Some(path_str) = p.as_str() else {
-            warnings.push(format!("non-string path in amends item"));
+            warnings.push("non-string path in amends item".to_string());
             continue;
         };
         let Some(unit) = ctx.classify(path_str) else {
