@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:cf787761759bd83cd9fbf947b96f441f686623e8cc940130a51bdd45b2a902a0",
+  "graph_fingerprint": "sha256:5fe1246d12406ab9c45676865c5aa4e7b41cac97ad3c6c592cdcd7c24aa4be70",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2931,6 +2931,38 @@
       "group": "",
       "depends_on": [
         "154"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "156-references-edge-provenance-grammar",
+      "title": "References-edge provenance grammar — typed external pointers as a sibling field",
+      "spec_path": "specs/156-references-edge-provenance-grammar/spec.md",
+      "status": "approved",
+      "implementation": "pending",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "154"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "157-opc-session-model",
+      "title": "OPC session model — multi-session-per-project-path, JSONL-authoritative",
+      "spec_path": "specs/157-opc-session-model/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "045"
       ],
       "impl_files": [],
       "test_files": [],
