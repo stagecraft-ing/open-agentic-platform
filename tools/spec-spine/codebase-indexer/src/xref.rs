@@ -205,6 +205,7 @@ fn mapping_skeleton(
         amends,
         amendment_record,
         implementing_paths: Vec::new(),
+        resolved_units: Vec::new(),
     }
 }
 

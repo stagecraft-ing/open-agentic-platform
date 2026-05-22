@@ -23,7 +23,12 @@ use serde::{Deserialize, Serialize};
 /// 1 (crate/package inventory) + Layer 2 (spec-to-code traceability)
 /// only. Consumers needing Layers 3-5 read `index-oap.json` from the
 /// OAP enricher, validated by `standards/schemas/spec-spine/codebase-index-oap.schema.json`.
-pub const SCHEMA_VERSION: &str = "2.0.0";
+/// Bumped to 2.1.0 in spec 154 Segment 3 (additive: `resolvedUnits` array
+/// on `traceMapping`; each entry pairs a logical-unit declaration with
+/// the deterministic set of `(file, span)` physical locations the
+/// resolver emits). The field defaults to empty under serde, so 2.0.0
+/// consumers keep deserializing 2.1.0 indices unchanged.
+pub const SCHEMA_VERSION: &str = "2.1.0";
 pub const INDEXER_ID: &str = "codebase-indexer";
 
 // ── Top-level output ────────────────────────────────────────────────────────
@@ -109,6 +114,78 @@ pub struct TraceMapping {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub amendment_record: Option<String>,
     pub implementing_paths: Vec<ImplementingPath>,
+    /// Spec 154 Segment 3: per-spec logical-unit declarations paired
+    /// with the deterministic set of `(file, span)` physical locations
+    /// the resolver emits. Defaults to empty under serde so a spec with
+    /// no logical-unit grammar in its frontmatter — or a 2.0.0 consumer
+    /// reading a 2.1.0 index — sees the same shape it always has. The
+    /// resolver populates this field after path-list traceability is
+    /// built; the coupling gate (Segment 4) reads `locations` for
+    /// diff-hunk → owning-spec reverse lookup.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub resolved_units: Vec<ResolvedUnit>,
+}
+
+// ── Spec 154 Segment 3 — Resolved logical-unit graph ────────────────────────
+
+/// A resolved logical unit: the unit declaration as authored, paired
+/// with the deterministic set of physical locations the resolver
+/// emitted for it.
+///
+/// `locations` is sorted by the derived `Ord` of `ResolvedLocation`
+/// (file lexicographic, then span). For ownership-bearing units the
+/// list is non-empty when resolution succeeded; resolution failures
+/// are downgraded to `Diagnostic` entries and produce an empty
+/// `locations` list (the failing unit is still preserved here so
+/// consumers can correlate the diagnostic back to its declaration).
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolvedUnit {
+    /// The logical-unit declaration as it appeared in frontmatter,
+    /// serialized via the canonical `{ kind, ... }` shape (mirrors
+    /// `LogicalUnit::to_json`).
+    pub unit: serde_json::Value,
+    /// Stable kind discriminator (`crate` / `symbol` / `module` /
+    /// `section` / `directory` / `file`). Duplicates `unit.kind` for
+    /// consumers that want the discriminator without re-parsing.
+    pub kind: String,
+    /// Which relationship field carried the declaration. One of
+    /// `establishes`, `extends`, `refines`, `supersedes`, `amends`,
+    /// `co_authority`, `constrains`, `references`. `ownership` is
+    /// `false` only for `references`; the coupling gate ignores
+    /// non-ownership units.
+    pub source_field: String,
+    /// Whether this unit confers authority over its locations.
+    /// `true` for the seven ownership-bearing relationships;
+    /// `false` for `references`.
+    pub ownership: bool,
+    /// Deterministic, sorted list of physical locations.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub locations: Vec<ResolvedLocation>,
+}
+
+/// A single resolved physical location for a logical unit.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolvedLocation {
+    /// Workspace-relative file path (POSIX separators).
+    pub file: String,
+    /// Optional span within the file. `None` means "whole file"; the
+    /// coupling gate's line-range overlap check treats `None` as
+    /// `[1, ∞]`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub span: Option<LineSpan>,
+}
+
+/// Inclusive 1-indexed line range. Aligned with the `@@ -a,b +c,d @@`
+/// shape of `git diff -U0` hunks so the Segment 4 gate can do a
+/// line-range overlap check without byte-offset conversion or any
+/// tree-sitter dependency in the gate itself.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "camelCase")]
+pub struct LineSpan {
+    pub start_line: u32,
+    pub end_line: u32,
 }
 
 #[derive(Serialize, Deserialize)]
