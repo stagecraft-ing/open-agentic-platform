@@ -823,6 +823,7 @@ mod tests {
                     primary: None,
                 })
                 .collect(),
+            resolved_units: Vec::new(),
         });
         idx
     }
@@ -965,6 +966,7 @@ mod tests {
                 source: Some(TraceSource::SpecImplements),
                 primary: None,
             }],
+            resolved_units: Vec::new(),
         });
         // Two paths, each with a single distinct claimant. Both fire.
         let diff = diffset(&[
@@ -999,6 +1001,7 @@ mod tests {
                 source: Some(TraceSource::SpecImplements),
                 primary: None,
             }],
+            resolved_units: Vec::new(),
         });
         // Diff edits an orchestrator file but only ONE of the two claimant
         // spec.md files. Heuristic accepts.
@@ -1033,6 +1036,7 @@ mod tests {
                     source: Some(TraceSource::SpecImplements),
                     primary: None,
                 }],
+                resolved_units: Vec::new(),
             });
         }
         let diff = diffset(&["crates/orchestrator/src/lib.rs"]);
@@ -1125,6 +1129,7 @@ mod tests {
                     source: Some(TraceSource::SpecImplements),
                     primary: None,
                 }],
+                resolved_units: Vec::new(),
             });
         }
 
@@ -1180,6 +1185,7 @@ mod tests {
                     source: Some(TraceSource::SpecImplements),
                     primary: None,
                 }],
+                resolved_units: Vec::new(),
             });
         }
 
@@ -1232,6 +1238,7 @@ mod tests {
                 source: Some(TraceSource::SpecImplements),
                 primary: None,
             }],
+            resolved_units: Vec::new(),
         });
 
         let section_claims = section_claim_index(&[(
@@ -1352,6 +1359,7 @@ mod tests {
                 source: Some(TraceSource::SpecImplements),
                 primary: None,
             }],
+            resolved_units: Vec::new(),
         });
 
         let section_claims = section_claim_index(&[(
@@ -1409,6 +1417,7 @@ mod tests {
                 source: Some(TraceSource::SpecImplements),
                 primary: None,
             }],
+            resolved_units: Vec::new(),
         });
 
         let section_claims = section_claim_index(&[
