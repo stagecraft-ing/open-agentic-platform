@@ -1,7 +1,10 @@
 # Spec: 116-supply-chain-policy-gates
+# Spec: 158-workflow-ref-sha-pinning-lint (amends 116)
 #
-# Supply-chain gates: cargo-deny across every Rust manifest, plus pnpm/npm
-# audit at the package-manager layer. Mirrored in Makefile `ci-supply-chain`.
+# Supply-chain gates: cargo-deny across every Rust manifest, pnpm/npm
+# audit at the package-manager layer, and workflow-ref SHA-pinning
+# enforcement across `.github/workflows/**` and `.github/actions/**`.
+# Mirrored in Makefile `ci-supply-chain`.
 #
 # Posture: blocking from day 0. The 30-day warn-only window planned in the
 # original spec was collapsed on 2026-05-02 after a clean dry-run (zero
@@ -21,7 +24,9 @@ on:
       - '**/pnpm-lock.yaml'
       - '**/package-lock.json'
       - 'deny.toml'
-      - '.github/workflows/ci-supply-chain.yml'
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - 'tools/lint/**'
   pull_request:
     paths:
       - '**/Cargo.toml'
@@ -30,7 +35,9 @@ on:
       - '**/pnpm-lock.yaml'
       - '**/package-lock.json'
       - 'deny.toml'
-      - '.github/workflows/ci-supply-chain.yml'
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - 'tools/lint/**'
   schedule:
     - cron: '0 12 * * 1'
   workflow_dispatch:
@@ -134,3 +141,16 @@ jobs:
       - name: npm audit
         working-directory: platform/services/stagecraft
         run: npm audit --audit-level=high
+
+  workflow-pins:
+    runs-on: ubuntu-latest
+    name: workflow-pins / SHA-pin enforcement
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Run workflow-pins lint (tree-wide scan)
+        run: tools/lint/workflow-pins.sh
+
+      - name: Run workflow-pins regression tests (fixtures)
+        run: tools/lint/workflow-pins-test.sh
