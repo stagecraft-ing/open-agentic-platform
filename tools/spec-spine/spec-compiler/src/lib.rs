@@ -1229,6 +1229,22 @@ fn v004_yaml_scan_exempt(repo_root: &Path, p: &Path) -> bool {
             }
         }
     }
+    // Spec 159: lint test fixtures under `tools/*/tests/fixtures/**` derive
+    // their authority from the spec that establishes the consuming tool
+    // (e.g. spec 158 for tools/lint/), not from themselves. They are not
+    // "standalone authored YAML" in the V-004 sense. Exempt by path shape,
+    // not by extension — the same principle covers JSON/TOML/INI fixtures
+    // that future spec-established lints may need.
+    if let Ok(rel) = p.strip_prefix(repo_root) {
+        let parts: Vec<_> = rel.components().collect();
+        if parts.len() >= 4
+            && parts[0].as_os_str() == "tools"
+            && parts[2].as_os_str() == "tests"
+            && parts[3].as_os_str() == "fixtures"
+        {
+            return true;
+        }
+    }
     let Some(parent) = p.parent() else {
         return false;
     };

@@ -27,7 +27,7 @@
 
 set -eu
 
-INDEXER=tools/codebase-indexer/target/release/codebase-indexer
+INDEXER=tools/spec-spine/codebase-indexer/target/release/codebase-indexer
 
 if [ ! -x "$INDEXER" ]; then
   cat >&2 <<'EOF'
@@ -55,5 +55,40 @@ if ! "$INDEXER" check >/dev/null 2>&1; then
   Bypass (NOT recommended — CI will fail):
     git commit --no-verify
 EOF
+  exit 1
+fi
+
+# ── Spec 158: workflow-ref SHA-pin enforcement ────────────────────────
+# Same script invoked from ci-supply-chain.yml. Rejects un-pinned
+# `uses:` refs at commit time so the contract holds across pushed
+# history, not only at merge. The hook fails closed: if the lint
+# script is missing or unexecutable, the commit is refused.
+WORKFLOW_PINS=tools/lint/workflow-pins.sh
+
+if [ ! -x "$WORKFLOW_PINS" ]; then
+  cat >&2 <<'EOF'
+[pre-commit] workflow-pins lint missing or not executable.
+            Expected: tools/lint/workflow-pins.sh
+            To bypass for this commit only: git commit --no-verify
+EOF
+  exit 1
+fi
+
+WORKFLOW_PINS_ERR="$(mktemp -t workflow-pins.XXXXXX)"
+trap 'rm -f "$WORKFLOW_PINS_ERR"' EXIT
+
+if ! "$WORKFLOW_PINS" >"$WORKFLOW_PINS_ERR" 2>&1; then
+  {
+    echo "[pre-commit] workflow-pins lint refused this commit."
+    echo
+    cat "$WORKFLOW_PINS_ERR"
+    echo
+    echo "  Fix: replace each un-pinned ref with its full 40-hex commit SHA."
+    echo "  Resolve the SHA with:"
+    echo "    gh api repos/<owner>/<repo>/commits/<tag-or-branch> -q .sha"
+    echo
+    echo "  Bypass (NOT recommended — CI will fail):"
+    echo "    git commit --no-verify"
+  } >&2
   exit 1
 fi

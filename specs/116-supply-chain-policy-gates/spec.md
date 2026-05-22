@@ -8,6 +8,8 @@ owner: bart
 created: "2026-04-28"
 approved: "2026-05-02"
 closed: "2026-05-02"
+amended: "2026-05-22"
+amendment_record: "158-workflow-ref-sha-pinning-lint"
 kind: governance
 risk: medium
 depends_on:
@@ -47,6 +49,17 @@ summary: >
 ---
 
 # 116 — Supply-Chain Policy Gates
+
+> **Amended 2026-05-22 by [158-workflow-ref-sha-pinning-lint](../158-workflow-ref-sha-pinning-lint/spec.md).**
+> Spec 158 promotes the workflow-ref SHA-pinning convention from
+> discipline to merge-blocking and commit-blocking contract.
+> `.github/workflows/ci-supply-chain.yml` (this spec's
+> `establishes:` path) gains a new `workflow-pins` job that runs
+> `tools/lint/workflow-pins.sh`; the same lint also lands in
+> `.githooks/pre-commit`. The amendment closes the convention-vs-
+> contract gap that existed at the time of this spec's
+> 2026-05-02 closure — every external Action ref was already SHA-
+> pinned by hand, but no gate would have refused a regression.
 
 ## 1. Problem Statement
 

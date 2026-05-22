@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "1076a00d0c580e23a8d5d4afc46e96584d988acb5f0936a1557dcac0ae6945e7",
+    "contentHash": "787333332985cb7ce8240b4ccda409f1c63c45e76f4341a8b043fc4ff79ef056",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1765,7 +1765,7 @@
   "traceability": {
     "mappings": [
       {
-        "amendmentRecord": "130-spec-coupling-primary-owner",
+        "amendmentRecord": "159-v004-lint-fixture-exemption",
         "implementingPaths": [
           {
             "name": "open_agentic_spec_types",
@@ -8608,6 +8608,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "158-workflow-ref-sha-pinning-lint",
         "dependsOn": [
           "000",
           "047",
@@ -15592,6 +15593,181 @@
           }
         ],
         "specId": "157-opc-session-model",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "116-supply-chain-policy-gates"
+        ],
+        "dependsOn": [
+          "104",
+          "116"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".githooks/pre-commit",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci-supply-chain.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "docs/launch-notes/spec-158-workflow-ref-pinning.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/lint/tests/fixtures/failing/action.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/lint/tests/fixtures/passing/action.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/lint/workflow-pins-test.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/lint/workflow-pins.sh",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/launch-notes/spec-158-workflow-ref-pinning.md"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "docs/launch-notes/spec-158-workflow-ref-pinning.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/lint/tests/fixtures/failing/action.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/lint/tests/fixtures/failing/action.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/lint/tests/fixtures/passing/action.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/lint/tests/fixtures/passing/action.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/lint/workflow-pins-test.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/lint/workflow-pins-test.sh"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/lint/workflow-pins.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/lint/workflow-pins.sh"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".githooks/pre-commit"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": ".githooks/pre-commit"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-supply-chain.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-supply-chain.yml"
+            }
+          }
+        ],
+        "specId": "158-workflow-ref-sha-pinning-lint",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "000-bootstrap-spec-system"
+        ],
+        "dependsOn": [
+          "000",
+          "001",
+          "158"
+        ],
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-compiler/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-compiler/src/lib.rs"
+            }
+          }
+        ],
+        "specId": "159-v004-lint-fixture-exemption",
         "specStatus": "approved"
       }
     ],
