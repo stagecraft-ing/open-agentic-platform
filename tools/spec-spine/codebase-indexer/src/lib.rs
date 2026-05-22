@@ -236,10 +236,11 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
     // scanning moved to tools/oap-code-index-enrich (Layers 3-5).
     // xref still accepts an `extra_known_paths` argument for
     // implements-path validation; the OAP enricher's index-oap.json
-    // overlays Layers 3-5 separately. Adapter paths on disk fall
-    // through to the existing-file validation branch in xref so
-    // implements claims targeting factory/adapters/* continue to
-    // resolve.
+    // overlays Layers 3-5 separately. Spec 160: the legacy
+    // `factory/adapters/*` directory was retired with spec 108's
+    // relocation; the stagecraft-resident
+    // `platform/services/stagecraft/api/factory/adapter-scopes.json`
+    // is the file-backed snapshot the input-hash walk reads now.
     let adapter_paths: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
 
     // ── Layer 2: Spec scanning + traceability ────────────────────────────
@@ -533,21 +534,25 @@ fn collect_input_files(
         }
     }
 
-    // Factory adapter manifests
-    let adapters_dir = repo_root.join("factory/adapters");
-    if adapters_dir.is_dir() {
-        if let Ok(dir) = fs::read_dir(&adapters_dir) {
-            for ent in dir.flatten() {
-                let manifest = ent.path().join("manifest.yaml");
-                if manifest.is_file() {
-                    files.push(manifest);
-                }
-            }
-        }
+    // Factory adapter manifests (spec 160: repointed from the legacy
+    // repo-root `factory/adapters/*/manifest.yaml` to the stagecraft-resident
+    // static fallback after spec 108 dropped the `factory_adapters` table —
+    // the authoritative store is `factory_artifact_substrate` in stagecraft's
+    // Postgres per spec 139, and `adapter-scopes.json` is the file-backed
+    // snapshot the indexer can hash).
+    let adapter_scopes = repo_root
+        .join("platform/services/stagecraft/api/factory/adapter-scopes.json");
+    if adapter_scopes.is_file() {
+        files.push(adapter_scopes);
     }
 
-    // Factory process stages
-    let stages_dir = repo_root.join("factory/process/stages");
+    // Factory process stages (spec 160: repointed from the legacy
+    // `factory/process/stages/*` to the stagecraft-resident forward-compatible
+    // directory. Today the substrate is DB-resident and no file-backed
+    // representation exists, so this walk hashes empty until a future
+    // refinement of spec 077 / 108 lands stage-template files here.)
+    let stages_dir = repo_root
+        .join("platform/services/stagecraft/api/factory/process-stages");
     if stages_dir.is_dir() {
         if let Ok(dir) = fs::read_dir(&stages_dir) {
             for ent in dir.flatten() {
