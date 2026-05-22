@@ -32,10 +32,13 @@ extends:
       - tools/spec-spine/codebase-indexer/benches/resolver.rs
       - standards/schemas/spec-spine/codebase-index.schema.json
     nature: additive
+  - spec: "127-spec-code-coupling-gate"
+    paths:
+      - tools/spec-spine/spec-code-coupling-check/src/lib.rs
+    nature: additive
 references:
   - "tools/spec-spine/spec-compiler"
   - "tools/spec-spine/codebase-indexer"
-  - "tools/spec-spine/spec-code-coupling-check"
 summary: >
   Spec 130 §2 defines eight relationship fields (establishes, extends,
   refines, supersedes, amends, co_authority, constrains, origin) that

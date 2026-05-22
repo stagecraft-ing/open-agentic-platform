@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "787333332985cb7ce8240b4ccda409f1c63c45e76f4341a8b043fc4ff79ef056",
+    "contentHash": "ae08e4a56560053a24f8e32e0fe78dfa215bbe9a847d5dcebe629a2736b1cf27",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15088,6 +15088,10 @@
           {
             "path": "tools/spec-spine/codebase-indexer/tests/resolver.rs",
             "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
@@ -15235,6 +15239,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-code-coupling-check/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "tools/spec-spine/codebase-indexer"
               }
             ],
@@ -15243,20 +15261,6 @@
             "unit": {
               "kind": "file",
               "path": "tools/spec-spine/codebase-indexer"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "tools/spec-spine/spec-code-coupling-check"
-              }
-            ],
-            "ownership": false,
-            "sourceField": "references",
-            "unit": {
-              "kind": "file",
-              "path": "tools/spec-spine/spec-code-coupling-check"
             }
           },
           {
