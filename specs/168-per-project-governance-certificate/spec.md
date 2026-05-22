@@ -13,10 +13,6 @@ depends_on:
   - "102"  # governed-excellence (the certificate substrate spec 168 extends)
   - "167"  # born-with kernel emission (tenants inherit the emission discipline)
 code_aliases: ["TENANT_GOVERNANCE_CERTIFICATE", "PER_PROJECT_CERT_EMISSION"]
-extends:
-  - spec: "102-governed-excellence"
-    nature: additive
-    unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

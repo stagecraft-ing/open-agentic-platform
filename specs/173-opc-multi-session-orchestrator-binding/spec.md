@@ -15,7 +15,7 @@ depends_on:
 code_aliases: ["MULTI_SESSION_ORCHESTRATOR_BINDING"]
 refines:
   - aspect: "orchestrator-session-binding"
-    unit: { kind: file, path: specs/052-state-persistence/spec.md }
+    unit: { kind: directory, path: crates/orchestrator }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

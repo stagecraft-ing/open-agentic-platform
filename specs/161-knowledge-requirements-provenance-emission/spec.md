@@ -13,9 +13,6 @@ depends_on:
   - "156"  # references-edge provenance grammar (the typed external pointer)
   - "120"  # factory extraction stage (the knowledge → ExtractionOutput substrate)
 code_aliases: ["KNOWLEDGE_REQUIREMENTS_PROVENANCE", "PROVENANCE_EMISSION_RENDERING"]
-refines:
-  - aspect: "provenance-emission-and-rendering"
-    unit: { kind: file, path: specs/156-references-edge-provenance-grammar/spec.md }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

@@ -16,7 +16,7 @@ depends_on:
 code_aliases: ["INTER_STAGE_SIGNED_MANIFEST", "FACTORY_STAGE_SIGNATURE_CHAIN"]
 refines:
   - aspect: "inter-stage-handoff-signing"
-    unit: { kind: file, path: specs/075-factory-workflow-engine/spec.md }
+    unit: { kind: directory, path: crates/factory-engine }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

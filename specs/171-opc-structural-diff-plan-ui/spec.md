@@ -16,7 +16,7 @@ depends_on:
 code_aliases: ["OPC_STRUCTURAL_DIFF_PLAN", "ANTI_ANTHROPOMORPHIC_PLAN_UI"]
 refines:
   - aspect: "agent-plan-rendering"
-    unit: { kind: file, path: specs/076-factory-desktop-panel/spec.md }
+    unit: { kind: directory, path: product/apps/desktop/src/components/factory }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

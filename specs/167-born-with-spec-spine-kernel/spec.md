@@ -20,7 +20,7 @@ code_aliases: ["BORN_WITH_KERNEL", "SPEC_SPINE_KERNEL_EMISSION"]
 extends:
   - spec: "120-factory-extraction-stage"
     nature: additive
-    unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
+    unit: { kind: directory, path: crates/factory-engine }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

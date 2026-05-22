@@ -16,7 +16,7 @@ depends_on:
 code_aliases: ["TOOL_SCHEMA_STRICTNESS", "PERMISSIVE_SCHEMA_REJECTION"]
 refines:
   - aspect: "schema-strictness-validation"
-    unit: { kind: file, path: specs/067-tool-definition-registry/spec.md }
+    unit: { kind: file, path: crates/tool-registry/src/lib.rs }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

@@ -18,9 +18,6 @@ depends_on:
   - "134"  # fast-local-ci-mode
   - "135"  # fast-ci-as-default
 code_aliases: ["OPC_STOP_GATES", "CONVERSATION_TIME_GATES"]
-refines:
-  - aspect: "gate-firing-seam"
-    unit: { kind: file, path: specs/127-spec-code-coupling-gate/spec.md }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
