@@ -136,18 +136,29 @@ unless you put it there.
 ## Adapters
 
 The factory engine generates code through pluggable adapters that
-implement a shared contract.
+implement a shared contract. Adapter manifests historically lived in
+the repo-root `factory/adapters/*/manifest.yaml` directory; spec 108
+retired that directory and moved the canonical store into stagecraft's
+`factory_adapters` table, then spec 139 absorbed those rows into the
+universal `factory_artifact_substrate` table. The file-backed scope
+snapshot at `platform/services/stagecraft/api/factory/adapter-scopes.json`
+is the static fallback the codebase-indexer hashes per spec 160; per-org
+content is materialised at runtime via the substrate.
 
-- **`aim-vue-node`** — production-supported. The active scaffold target;
-  recent specs ([138](specs/138-stagecraft-create-realised-scaffold/spec.md),
+- **`aim-vue-node`** — production-supported scope entry in
+  `adapter-scopes.json`. The active scaffold target; recent specs
+  ([138](specs/138-stagecraft-create-realised-scaffold/spec.md),
   [140](specs/140-aim-vue-node-scaffold-source-id-cutover/spec.md),
   [141](specs/141-aim-vue-node-source-id-template-name-alignment/spec.md))
   drive its hardening. Used end-to-end by the tenant onboarding path.
-- **`next-prisma`**, **`rust-axum`**, **`encore-react`** — factory-contract
-  validated. Each registers against the same adapter manifest contract
-  the production adapter implements; their scaffolds exist but are not
-  the current production target. Treat as parity validators for the
-  contract, not drop-in alternatives.
+- **`next-prisma`**, **`rust-axum`**, **`encore-react`** — registered
+  scope entries in `adapter-scopes.json` (file_write_scope +
+  allowed_commands only at this layer). Their full manifest content
+  lives upstream in the factory-template repository and lands in each
+  org's substrate via the sync worker (spec 108 Phase 4); the in-tree
+  state of this repository carries only the scope fallback, not the
+  per-adapter manifest. Treat them as parity validators for the
+  factory contract, not drop-in alternatives.
 
 ## License (and why AGPL)
 

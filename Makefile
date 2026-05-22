@@ -151,8 +151,9 @@ oap-registry-enrich:
 	./tools/oap/oap-registry-enrich/target/release/oap-registry-enrich
 
 ## Cut D W-07a: emit .derived/codebase-index/index-oap.json from the
-## generic index.json + walks over factory/adapters,
-## .claude/{agents,commands,rules,schemas}, .github/workflows
+## generic index.json + walks over
+## platform/services/stagecraft/api/factory/ (post-spec-160 relocation,
+## see CLAUDE.md), .claude/{agents,commands,rules,schemas}, .github/workflows
 ## (specs 101 + 118). OAP-internal CI artifact; never shipped via
 ## release-tools.yml.
 oap-code-index-enrich:
@@ -166,8 +167,11 @@ oap-code-index-enrich:
 ##
 ## Index inputs (see tools/spec-spine/codebase-indexer/src/lib.rs `collect_input_files`):
 ##   Cargo.toml, workspace + tool Cargo.tomls, package.json, pnpm-workspace.yaml,
-##   specs/*/spec.md, factory/adapters/*/manifest.yaml,
-##   factory/process/stages/*, .claude/{agents,commands,rules}/**/*.md,
+##   specs/*/spec.md, platform/services/stagecraft/api/factory/adapter-scopes.json
+##   (post-spec-160; was factory/adapters/*/manifest.yaml),
+##   platform/services/stagecraft/api/factory/process-stages/*
+##   (post-spec-160; was factory/process/stages/*),
+##   .claude/{agents,commands,rules}/**/*.md,
 ##   standards/schemas/**/*.{json,yaml,yml}, .github/workflows/*.yml — i.e. most of what you'd
 ##   normally edit in a non-trivial PR.
 pr-prep: index ci-fast-spec-coupling
@@ -305,13 +309,17 @@ index-render:
 	./tools/oap/oap-code-index-enrich/target/release/oap-code-index-enrich render
 
 # ============================================================
-# Adapter Scopes (removed in spec 108 — see factory_adapters table)
+# Adapter Scopes (removed in spec 108 — see factory_adapters table;
+# repointed by spec 160 — see factory_artifact_substrate table)
 # ============================================================
-# adapter-scopes.json was compiled from factory/adapters/*/manifest.yaml.
-# Spec 108 moves adapter manifests into the factory_adapters table, so the
-# offline compiler is obsolete; the bundled snapshot in
+# adapter-scopes.json was historically compiled from the legacy
+# `factory/adapters/*/manifest.yaml` directory (retired in the spec 108
+# relocation). Spec 108 moved adapter manifests into the `factory_adapters`
+# table; spec 139 then absorbed those rows into the universal
+# `factory_artifact_substrate` table. The bundled snapshot at
 # platform/services/stagecraft/api/factory/adapter-scopes.json is retained
-# as a static fallback until the Phase 3 sync worker populates the table.
+# as a static fallback and is the file the codebase-indexer hashes per
+# spec 160 (replacing the legacy in-tree manifest walk).
 
 # ============================================================
 # Development — Desktop App
