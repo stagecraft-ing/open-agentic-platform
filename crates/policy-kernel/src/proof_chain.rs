@@ -259,7 +259,7 @@ pub fn resolve_signing_material() -> (SigningKey, GenesisAttestation) {
             },
         );
     }
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rand_core::OsRng;
     (
         SigningKey::generate(&mut rng),
         GenesisAttestation {
