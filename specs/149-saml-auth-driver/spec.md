@@ -1,14 +1,15 @@
 ---
 id: "149-saml-auth-driver"
 title: "SAML auth driver capability — IdP integration for SAML 2.0 tenants"
-status: draft
+status: approved
 created: "2026-05-17"
+approved: "2026-05-22"
 authors: ["open-agentic-platform"]
 kind: capability
 shape: driver
 risk: medium
 owner: "open-agentic-platform"
-implementation: pending
+implementation: complete
 category: ["auth", "identity", "security"]
 implements: "148-auth-driver-registry"
 selectable_by: AUTH_DRIVER
