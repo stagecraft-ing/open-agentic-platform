@@ -14,6 +14,8 @@ depends_on:
   - "077"  # stagecraft-factory-api
   - "108"  # factory-as-platform-feature
 code_aliases: ["FACTORY_STAGECRAFT_RELOCATION", "ADAPTERS_IN_STAGECRAFT"]
+amends:
+  - "101-codebase-index-mvp"
 extends:
   - spec: "108-factory-as-platform-feature"
     nature: additive
@@ -226,3 +228,33 @@ synthetic recreation of manifests for adapters that never had them.
 - **`tools/spec-spine/codebase-indexer/src/lib.rs`** — the
   `collect_input_files` list that names the legacy paths today;
   the load-bearing fossil this spec excises.
+
+## 9. Amendment to spec 101 (codebase-index-mvp)
+
+Spec 101 §2.2 *Layer 3 — Factory Adapter Inventory* and §FR-07
+*Factory Adapter Scanning* both declare that the indexer reads
+adapter manifests from `factory/adapters/*/manifest.yaml` and
+process stage templates from `factory/process/stages/*.md`. Those
+locations have been removed from the repo as part of the spec 108
+relocation. This spec amends spec 101's input-set declaration in
+place: the indexer reads adapter manifests from the
+stagecraft-resident location
+`platform/services/stagecraft/api/factory/adapter-scopes.json`
+(the static fallback snapshot retained per spec 108's drop of the
+`factory_adapters` table). Process stage templates have no
+file-backed representation in stagecraft today — the substrate is
+DB-resident per spec 139 — so the indexer's process-stage walk
+points at
+`platform/services/stagecraft/api/factory/process-stages/` (a
+forward-compatible directory walk that hashes empty until a future
+refinement of spec 077 / 108 lands stage-template files there).
+
+Spec 101's broader design (four-layer model, manifest parsing,
+spec-frontmatter scanning, cross-reference engine, JSON Schema
+validation, staleness check) stays operative. Only the on-disk
+locations cited in §2.2 / §FR-07 are amended. Layer 3 is no longer
+emitted by the generic indexer (Cut D W-07c moved factory /
+infrastructure / workflow scanning into
+`tools/oap/oap-code-index-enrich`); the input-hash walk is the only
+remaining surface where these paths are named, and that is what
+this spec repoints.
