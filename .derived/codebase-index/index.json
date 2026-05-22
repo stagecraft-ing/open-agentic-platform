@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "0138ebaa311cc88a0ccfb925f862b05d34d8e39ef69bcd2f1b73efa9c9d1e9cb",
+    "contentHash": "ec172d5a2182bf78600b91054d350574ec7e664518a12f043015331ece99c8c1",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -28485,7 +28485,7 @@
           }
         ],
         "specId": "148-auth-driver-registry",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "implementingPaths": [],
@@ -28501,7 +28501,7 @@
           }
         ],
         "specId": "149-saml-auth-driver",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -29673,6 +29673,10 @@
         ],
         "implementingPaths": [
           {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
             "path": "standards/schemas/spec-spine/codebase-index.schema.json",
             "source": "spec-implements"
           },
@@ -29714,6 +29718,20 @@
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
           {
             "kind": "file",
             "locations": [

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:c5a0b359260366bfa93751ceaf6cdac3ec0afd89e6434e1970912ba773815c85",
+  "graph_fingerprint": "sha256:20c7a6f73bdcfb9b01a8ca62695b14fa7a1e7a1023ee09117ee4dd8c52b6905a",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2945,7 +2945,7 @@
       "title": "References-edge provenance grammar — typed external pointers as a sibling field",
       "spec_path": "specs/156-references-edge-provenance-grammar/spec.md",
       "status": "approved",
-      "implementation": "pending",
+      "implementation": "complete",
       "governance": "low",
       "owner": "bart",
       "group": "",

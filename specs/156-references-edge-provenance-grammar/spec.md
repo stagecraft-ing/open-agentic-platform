@@ -43,6 +43,9 @@ extends:
   - spec: "154-logical-unit-ownership-grammar"
     nature: additive
     unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
+  - spec: "154-logical-unit-ownership-grammar"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 references:
   - role: precedent
     unit: { kind: file, path: specs/155-logical-unit-resolution-semantics/spec.md }
