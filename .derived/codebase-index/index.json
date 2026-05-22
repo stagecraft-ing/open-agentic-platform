@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "b80dad899d1713b07f0b3b197abc6a2fe5dec08feda659f5a8d74fbfbf79bfa1",
+    "contentHash": "1cb1e96549d24b0dbe35e5fad7cd3d2b53db3db5bc62435165ad359377986806",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -28596,7 +28596,7 @@
           }
         ],
         "specId": "148-auth-driver-registry",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "implementingPaths": [],
@@ -28612,7 +28612,7 @@
           }
         ],
         "specId": "149-saml-auth-driver",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [

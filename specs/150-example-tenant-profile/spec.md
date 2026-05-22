@@ -1,13 +1,14 @@
 ---
 id: "150-example-tenant-profile"
 title: "Example tenant profile — proving-ground tenant for spec-kind grammar"
-status: draft
+status: approved
 created: "2026-05-17"
+approved: "2026-05-22"
 authors: ["open-agentic-platform"]
 kind: profile
 risk: low
 owner: "open-agentic-platform"
-implementation: pending
+implementation: complete
 category: ["identity", "policy"]
 identity:
   name: "Example Tenant"
