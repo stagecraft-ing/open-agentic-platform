@@ -3,8 +3,8 @@
 pub mod schema;
 
 use open_agentic_spec_types::{
-    FrontmatterError, KNOWN_KEYS, LogicalUnit, LogicalUnitParseError, VALID_KINDS,
-    VALID_RISK_LEVELS, split_frontmatter_required,
+    FrontmatterError, KNOWN_KEYS, LogicalUnit, LogicalUnitParseError, ProvenanceKind,
+    ProvenanceParseError, VALID_KINDS, VALID_RISK_LEVELS, split_frontmatter_required,
 };
 use serde::Serialize;
 use serde_json::{Map, Value, json};
@@ -70,11 +70,22 @@ const COMPILER_ID: &str = "open-agentic-spec-compiler";
 ///     are both accepted (spec 154 §5); corpus migration to
 ///     `flavor:` is Tier 2 Segment 5.
 ///
+/// 2.2.0 (spec 156) — additive evolution on `references:` entries:
+///   * Sibling `provenance:` field on `references:` items, mutually
+///     exclusive with `unit:` (V-025). Two initial kinds:
+///     `knowledge` (stagecraft `knowledge_objects` URI shape) and
+///     `code-fingerprint` (xray content-addressed SHA-256). V-026
+///     enforces the kind enum; V-027 enforces scheme/segment
+///     alignment; V-028 enforces URI body well-formedness; V-029 is
+///     an advisory recommending `role: derivation`.
+///   * The seven owning relationship fields are unchanged —
+///     provenance is references-only.
+///
 /// The bump is permissible under spec 130 §2.7's `invariant-freeze`
 /// on `registry.schema.json` as amended by spec 153 (additive
 /// evolution — every previously-valid registry.json remains valid
-/// under 2.1.0; the schema gains accepted shapes without losing any).
-const SPEC_VERSION: &str = "2.1.0";
+/// under 2.2.0; the schema gains accepted shapes without losing any).
+const SPEC_VERSION: &str = "2.2.0";
 
 #[derive(Debug)]
 pub enum CompileError {
@@ -1736,15 +1747,18 @@ fn parse_references_field(
     let seq = raw.as_sequence()?;
     let mut out: Vec<Value> = Vec::with_capacity(seq.len());
     for item in seq {
-        // Two accepted shapes:
-        //   - bare path string                       (legacy / shorthand)
-        //   - { role?: <str>, unit: <logical-unit> } (canonical)
+        // Three accepted shapes:
+        //   - bare path string                          (legacy / shorthand)
+        //   - { role?: <str>, unit: <logical-unit> }    (spec 154 canonical)
+        //   - { role?: <str>, provenance: {kind, ref} } (spec 156 provenance arm)
+        // `unit:` and `provenance:` are mutually exclusive (V-025).
         // The emitted shape is verbatim — bare strings remain
         // strings, structured items remain objects — so the typed
-        // reader can tell the two apart by JSON shape and route each
-        // through the appropriate consumer (the legacy form skips
-        // existence validation here; the explicit form gets the
-        // strict V-021..V-023 type-check).
+        // reader can tell the three apart by JSON shape and route
+        // each through the appropriate consumer (the legacy form
+        // skips existence validation here; the explicit unit form
+        // gets the strict V-021..V-023 type-check; the provenance
+        // form gets V-025..V-029).
         if let Some(s) = item.as_str() {
             out.push(Value::String(s.to_string()));
             continue;
@@ -1759,30 +1773,55 @@ fn parse_references_field(
             continue;
         };
         let role = map.get("role").and_then(|v| v.as_str()).map(String::from);
-        let unit_v = match map.get("unit") {
-            Some(v) => v,
-            None => {
-                push_unit_violation(
+        let has_unit = map.get("unit").is_some();
+        let has_provenance = map.get("provenance").is_some();
+        match (has_unit, has_provenance) {
+            (true, true) => {
+                push_provenance_violation(
                     violations,
                     repo_root,
                     spec_path,
-                    LogicalUnitParseError::MissingKind,
+                    "V-025",
+                    "references entry carries both `unit:` and `provenance:`; the two arms are mutually exclusive",
                 );
-                continue;
             }
-        };
-        match LogicalUnit::from_yaml(unit_v) {
-            Ok(unit) => {
-                // 4': skip existence validation for references entries.
-                // Only V-024 (shape errors via `Err(e)` below) fires.
-                let mut obj = Map::new();
-                if let Some(r) = role {
-                    obj.insert("role".into(), Value::String(r));
+            (false, false) => {
+                push_provenance_violation(
+                    violations,
+                    repo_root,
+                    spec_path,
+                    "V-025",
+                    "references entry carries neither `unit:` nor `provenance:`; one is required",
+                );
+            }
+            (true, false) => {
+                let unit_v = map.get("unit").expect("has_unit");
+                match LogicalUnit::from_yaml(unit_v) {
+                    Ok(unit) => {
+                        // 4': skip existence validation for references entries.
+                        // Only V-024 (shape errors via `Err(e)` below) fires.
+                        let mut obj = Map::new();
+                        if let Some(r) = role {
+                            obj.insert("role".into(), Value::String(r));
+                        }
+                        obj.insert("unit".into(), unit.to_json());
+                        out.push(Value::Object(obj));
+                    }
+                    Err(e) => push_unit_violation(violations, repo_root, spec_path, e),
                 }
-                obj.insert("unit".into(), unit.to_json());
-                out.push(Value::Object(obj));
             }
-            Err(e) => push_unit_violation(violations, repo_root, spec_path, e),
+            (false, true) => {
+                let prov_v = map.get("provenance").expect("has_provenance");
+                if let Some(emit) = parse_provenance_entry(
+                    prov_v,
+                    role,
+                    repo_root,
+                    spec_path,
+                    violations,
+                ) {
+                    out.push(emit);
+                }
+            }
         }
     }
     if out.is_empty() {
@@ -1790,6 +1829,129 @@ fn parse_references_field(
     } else {
         Some(Value::Array(out))
     }
+}
+
+/// Parse a single `provenance:` value into the emitted JSON shape, or
+/// `None` when the value is malformed (the appropriate V-026/V-027/
+/// V-028 has already been pushed). `role` is the optional sibling
+/// from the outer entry; absence emits the V-029 advisory.
+fn parse_provenance_entry(
+    prov_v: &serde_yaml::Value,
+    role: Option<String>,
+    repo_root: &Path,
+    spec_path: &Path,
+    violations: &mut Vec<Violation>,
+) -> Option<Value> {
+    let Some(map) = prov_v.as_mapping() else {
+        push_provenance_violation(
+            violations,
+            repo_root,
+            spec_path,
+            "V-026",
+            "provenance value must be a mapping with `kind:` and `ref:` fields",
+        );
+        return None;
+    };
+    let kind_str = match map.get("kind").and_then(|v| v.as_str()) {
+        Some(s) if !s.is_empty() => s,
+        _ => {
+            push_provenance_violation(
+                violations,
+                repo_root,
+                spec_path,
+                "V-026",
+                "provenance entry is missing the required `kind:` field (expected `knowledge` or `code-fingerprint`)",
+            );
+            return None;
+        }
+    };
+    let ref_str = match map.get("ref").and_then(|v| v.as_str()) {
+        Some(s) => s,
+        None => {
+            push_provenance_violation(
+                violations,
+                repo_root,
+                spec_path,
+                "V-028",
+                &format!(
+                    "provenance entry kind={kind_str:?} is missing the required `ref:` field"
+                ),
+            );
+            return None;
+        }
+    };
+    if ref_str.is_empty() {
+        push_provenance_violation(
+            violations,
+            repo_root,
+            spec_path,
+            "V-028",
+            &format!("provenance entry kind={kind_str:?} carries an empty `ref:` value"),
+        );
+        return None;
+    }
+    match ProvenanceKind::parse(kind_str, ref_str) {
+        Ok(p) => {
+            // V-029 advisory: recommend `role: derivation` for
+            // provenance entries that omit `role:`. Warning severity
+            // (does NOT flip validation.passed).
+            if role.is_none() {
+                violations.push(Violation {
+                    code: "V-029".to_string(),
+                    severity: "warning".to_string(),
+                    message: format!(
+                        "provenance entry (kind={kind_str:?}) omits `role:`; spec 156 recommends `role: derivation` for searchability and consistent rendering"
+                    ),
+                    path: Some(normalize_repo_path(repo_root, spec_path)),
+                });
+            }
+            let mut obj = Map::new();
+            if let Some(r) = role {
+                obj.insert("role".into(), Value::String(r));
+            }
+            let mut inner = Map::new();
+            inner.insert("kind".into(), Value::String(p.kind_str().to_string()));
+            inner.insert("ref".into(), Value::String(p.to_uri()));
+            obj.insert("provenance".into(), Value::Object(inner));
+            Some(Value::Object(obj))
+        }
+        Err(e) => {
+            let code = match &e {
+                ProvenanceParseError::UnknownKind { .. } => "V-026",
+                ProvenanceParseError::SchemeMismatch { .. }
+                | ProvenanceParseError::MissingProjectSegment { .. } => "V-027",
+                ProvenanceParseError::EmptyBody { .. }
+                | ProvenanceParseError::MalformedUuid { .. }
+                | ProvenanceParseError::MalformedDigest { .. }
+                | ProvenanceParseError::MalformedUri { .. } => "V-028",
+            };
+            push_provenance_violation(
+                violations,
+                repo_root,
+                spec_path,
+                code,
+                &format!("malformed provenance entry: {e}"),
+            );
+            None
+        }
+    }
+}
+
+/// Emit a spec 156 provenance-grammar violation (V-025..V-028 hard
+/// errors). V-029 is emitted inline above (advisory severity).
+fn push_provenance_violation(
+    violations: &mut Vec<Violation>,
+    repo_root: &Path,
+    spec_path: &Path,
+    code: &str,
+    message: &str,
+) {
+    violations.push(Violation {
+        code: code.to_string(),
+        severity: "error".to_string(),
+        message: message.to_string(),
+        path: Some(normalize_repo_path(repo_root, spec_path)),
+    });
 }
 
 /// Walk every logical-unit declaration inside the owning relationship

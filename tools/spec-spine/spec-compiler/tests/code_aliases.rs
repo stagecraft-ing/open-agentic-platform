@@ -137,7 +137,12 @@ code_aliases:
 }
 
 #[test]
-fn repo_spec_version_is_2_1_0() {
+fn repo_spec_version_is_2_2_0() {
+    // 2.2.0 (spec 156): additive evolution on `references:` entries —
+    // sibling `provenance:` field (mutually exclusive with `unit:`)
+    // carries typed external derivation pointers. V-025..V-029 enforce
+    // exclusivity, the closed kind enum, scheme alignment, URI body
+    // well-formedness, and the role: derivation advisory.
     // 2.1.0 (spec 154, Tier 2 Segment 2): additive evolution per
     // spec 153's amendment to spec 130 §2.7 — adds the `references:`
     // first-class field, accepts logical-unit value typing across the
@@ -153,5 +158,5 @@ fn repo_spec_version_is_2_1_0() {
     // 1.4.0 (spec 132): added amends/amends_sections/unamendable + V-011.
     let out = open_agentic_spec_compiler::compile(&repo_root()).expect("compile");
     let v: Value = serde_json::from_slice(&out.registry_json).unwrap();
-    assert_eq!(v["specVersion"], "2.1.0");
+    assert_eq!(v["specVersion"], "2.2.0");
 }
