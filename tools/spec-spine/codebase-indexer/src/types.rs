@@ -28,7 +28,11 @@ use serde::{Deserialize, Serialize};
 /// the deterministic set of `(file, span)` physical locations the
 /// resolver emits). The field defaults to empty under serde, so 2.0.0
 /// consumers keep deserializing 2.1.0 indices unchanged.
-pub const SCHEMA_VERSION: &str = "2.1.0";
+/// Bumped to 2.2.0 in spec 156 (additive: `resolvedUnit.kind` accepts
+/// two additional values, `knowledge` and `code-fingerprint`, for
+/// the references-edge provenance arm; emitted with `ownership: false`
+/// and empty `locations` per spec 156 §6.3).
+pub const SCHEMA_VERSION: &str = "2.2.0";
 pub const INDEXER_ID: &str = "codebase-indexer";
 
 // ── Top-level output ────────────────────────────────────────────────────────
@@ -145,15 +149,18 @@ pub struct ResolvedUnit {
     /// serialized via the canonical `{ kind, ... }` shape (mirrors
     /// `LogicalUnit::to_json`).
     pub unit: serde_json::Value,
-    /// Stable kind discriminator (`crate` / `symbol` / `module` /
-    /// `section` / `directory` / `file`). Duplicates `unit.kind` for
-    /// consumers that want the discriminator without re-parsing.
+    /// Stable kind discriminator. Spec 154's six in-tree kinds (`crate`
+    /// / `symbol` / `module` / `section` / `directory` / `file`) and
+    /// spec 156's two external provenance kinds (`knowledge` /
+    /// `code-fingerprint`). Duplicates `unit.kind` for consumers that
+    /// want the discriminator without re-parsing.
     pub kind: String,
     /// Which relationship field carried the declaration. One of
     /// `establishes`, `extends`, `refines`, `supersedes`, `amends`,
     /// `co_authority`, `constrains`, `references`. `ownership` is
     /// `false` only for `references`; the coupling gate ignores
-    /// non-ownership units.
+    /// non-ownership units. Spec 156 provenance entries always carry
+    /// `source_field = "references"` and `ownership = false`.
     pub source_field: String,
     /// Whether this unit confers authority over its locations.
     /// `true` for the seven ownership-bearing relationships;
