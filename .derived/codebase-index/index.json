@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "1e9d37506482852c730e0def739ec9da742035e59cefc8c8d972b7b0fb813f87",
+    "contentHash": "1076a00d0c580e23a8d5d4afc46e96584d988acb5f0936a1557dcac0ae6945e7",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -131,10 +131,6 @@
       {
         "code": "I-101",
         "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/clone.test.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"118-workflow-spec-traceability\" declares implements path \".derived/codebase-index/CODEBASE-INDEX.md\" which is not a known package, adapter, or existing file/directory"
       },
       {
         "code": "I-101",
@@ -319,10 +315,6 @@
       {
         "code": "I-108",
         "message": "113-stagecraft-projects-rename-and-clone: file: path \"platform/services/stagecraft/api/projects/clone.test.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "118-workflow-spec-traceability: file: path \".derived/codebase-index/CODEBASE-INDEX.md\" does not exist on disk"
       },
       {
         "code": "I-108",
@@ -8787,6 +8779,11 @@
         "resolvedUnits": [
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": ".derived/codebase-index/CODEBASE-INDEX.md"
+              }
+            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
