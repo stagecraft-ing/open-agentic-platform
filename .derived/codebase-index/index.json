@@ -1,29 +1,12 @@
 {
   "build": {
-    "contentHash": "faec67b58e255fa7b73e3c523a3985a5266796e763ea69175d4f0b50b1996daa",
+    "contentHash": "de435f9da385c9860d5e8bacde87cacd53ace875aaeafe646a54db0e5ff1b1b1",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
   },
   "diagnostics": {
-    "errors": [
-      {
-        "code": "I-004",
-        "message": "157-opc-session-model: symbol: id \"claude::decode_project_path\" not found in workspace symbol index"
-      },
-      {
-        "code": "I-004",
-        "message": "157-opc-session-model: symbol: id \"claude::get_project_path_from_sessions\" not found in workspace symbol index"
-      },
-      {
-        "code": "I-004",
-        "message": "157-opc-session-model: symbol: id \"claude::get_project_sessions\" not found in workspace symbol index"
-      },
-      {
-        "code": "I-004",
-        "message": "157-opc-session-model: symbol: id \"claude::list_projects\" not found in workspace symbol index"
-      }
-    ],
+    "errors": [],
     "warnings": [
       {
         "code": "I-101",
@@ -15498,37 +15481,73 @@
         "resolvedUnits": [
           {
             "kind": "symbol",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/src/commands/claude.rs",
+                "span": {
+                  "endLine": 209,
+                  "startLine": 204
+                }
+              }
+            ],
             "ownership": true,
             "sourceField": "establishes",
             "unit": {
-              "id": "claude::decode_project_path",
+              "id": "opc::commands::claude::decode_project_path",
               "kind": "symbol"
             }
           },
           {
             "kind": "symbol",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/src/commands/claude.rs",
+                "span": {
+                  "endLine": 199,
+                  "startLine": 172
+                }
+              }
+            ],
             "ownership": true,
             "sourceField": "establishes",
             "unit": {
-              "id": "claude::get_project_path_from_sessions",
+              "id": "opc::commands::claude::get_project_path_from_sessions",
               "kind": "symbol"
             }
           },
           {
             "kind": "symbol",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/src/commands/claude.rs",
+                "span": {
+                  "endLine": 587,
+                  "startLine": 503
+                }
+              }
+            ],
             "ownership": true,
             "sourceField": "establishes",
             "unit": {
-              "id": "claude::get_project_sessions",
+              "id": "opc::commands::claude::get_project_sessions",
               "kind": "symbol"
             }
           },
           {
             "kind": "symbol",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/src/commands/claude.rs",
+                "span": {
+                  "endLine": 452,
+                  "startLine": 346
+                }
+              }
+            ],
             "ownership": true,
             "sourceField": "establishes",
             "unit": {
-              "id": "claude::list_projects",
+              "id": "opc::commands::claude::list_projects",
               "kind": "symbol"
             }
           },

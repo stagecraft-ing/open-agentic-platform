@@ -13,10 +13,10 @@ depends_on:
   - "045"
 code_aliases: ["OPC_SESSION_MODEL"]
 establishes:
-  - unit: { kind: symbol, id: claude::list_projects }
-  - unit: { kind: symbol, id: claude::get_project_sessions }
-  - unit: { kind: symbol, id: claude::decode_project_path }
-  - unit: { kind: symbol, id: claude::get_project_path_from_sessions }
+  - unit: { kind: symbol, id: opc::commands::claude::list_projects }
+  - unit: { kind: symbol, id: opc::commands::claude::get_project_sessions }
+  - unit: { kind: symbol, id: opc::commands::claude::decode_project_path }
+  - unit: { kind: symbol, id: opc::commands::claude::get_project_path_from_sessions }
 references:
   - role: implementation-witness
     unit: { kind: file, path: product/apps/desktop/src/stores/sessionStore.ts }
@@ -145,10 +145,10 @@ analogous transformations for cross-platform path components).
 Each `.jsonl` file inside is one *session* — a Claude Code
 conversation log with a UUID filename.
 
-The Tauri command `claude::list_projects` enumerates project
+The Tauri command `opc::commands::claude::list_projects` enumerates project
 directories and returns `Project` records carrying the *decoded*
 path, a list of session UUIDs, and the most-recent-session
-timestamp. `claude::get_project_sessions` returns the `.jsonl`
+timestamp. `opc::commands::claude::get_project_sessions` returns the `.jsonl`
 session records for a given project.
 
 ### 3.2 Many sessions per project
@@ -184,8 +184,8 @@ the path *as the agent saw it* at session-start time.
 
 The contract: **JSONL content is the source of truth for project
 path; the directory name is a lookup index, not the identity**. The
-resolution order in `claude::get_project_path_from_sessions` reads
-the JSONL content first and falls back to `claude::decode_project_path`
+resolution order in `opc::commands::claude::get_project_path_from_sessions` reads
+the JSONL content first and falls back to `opc::commands::claude::decode_project_path`
 only if no session content is available. On disagreement between
 the two views, the JSONL wins.
 
@@ -197,7 +197,7 @@ identity assertion.
 
 ### 3.4 OPC project identity vs stagecraft project identity
 
-The `Project` record returned by `claude::list_projects` is bound
+The `Project` record returned by `opc::commands::claude::list_projects` is bound
 to a filesystem path, not to a stagecraft project UUID. Two
 distinct stagecraft projects in two different orgs may share the
 same filesystem path on a developer's workstation; OPC sees one
@@ -312,16 +312,16 @@ layer and documents the inheritance.
 This is a closure spec for shipped code. Acceptance criteria are
 assertions about current reality, not future verifications:
 
-- The four symbols `claude::list_projects`,
-  `claude::get_project_sessions`, `claude::decode_project_path`,
-  and `claude::get_project_path_from_sessions` exist in
+- The four symbols `opc::commands::claude::list_projects`,
+  `opc::commands::claude::get_project_sessions`, `opc::commands::claude::decode_project_path`,
+  and `opc::commands::claude::get_project_path_from_sessions` exist in
   [`product/apps/desktop/src-tauri/src/commands/claude.rs`](../../product/apps/desktop/src-tauri/src/commands/claude.rs)
   at the time this spec lands.
-- `claude::list_projects` enumerates directories under
+- `opc::commands::claude::list_projects` enumerates directories under
   `~/.claude/projects/` and returns one `Project` per directory.
-- `claude::get_project_sessions` returns the `.jsonl` files inside
+- `opc::commands::claude::get_project_sessions` returns the `.jsonl` files inside
   a project directory.
-- `claude::get_project_path_from_sessions` resolves a project's
+- `opc::commands::claude::get_project_path_from_sessions` resolves a project's
   path by reading JSONL content first and falls back to
   `decode_project_path` only if no session content is available.
   The JSONL path is authoritative on disagreement.
