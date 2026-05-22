@@ -17,14 +17,15 @@ extends:
 supersedes:
   - spec: "038-titor-tauri-command-wiring"
     scope: full
-    paths:
-      - product/apps/desktop/src-tauri/src/commands/titor.rs
   - spec: "040-blockoli-semantic-search-wiring"
     scope: full
-    paths:
-      - product/apps/desktop/src-tauri/src/commands/search.rs
 establishes:
   - unit: { kind: directory, path: platform/services/deployd-api-rs }
+references:
+  - role: historical
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/titor.rs }
+  - role: historical
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/search.rs }
 summary: >
   Consolidates five standalone crates and services (gitctx, blockoli, stackwalk, titor, github-app)
   into axiomregent and stagecraft. Migrates axiomregent from synchronous rusqlite to async hiqlite

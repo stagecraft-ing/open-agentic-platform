@@ -15,8 +15,10 @@ depends_on:
   - "087"  # unified-workspace-architecture (Phase 5 session model)
 code_aliases: ["RAUTHY_OIDC_NATIVE", "A2C_MEMBERSHIP"]
 establishes:
-  - platform/services/stagecraft/api/auth/rauthySeed.ts
   - unit: { kind: file, path: platform/services/stagecraft/api/auth/membershipResolver.ts }
+references:
+  - role: historical
+    unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthySeed.ts }
   - unit: { kind: file, path: platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml }
   - unit: { kind: file, path: platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml }
 extends:

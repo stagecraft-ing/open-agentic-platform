@@ -20,10 +20,15 @@ code_aliases:
   - OSS_LAUNCH
 establishes:
   - unit: { kind: file, path: docs/ARCHITECTURE.md }
-  - CONTRIBUTING.md
-  - SECURITY.md
-  - CODE_OF_CONDUCT.md
-  - CHANGELOG.md
+references:
+  - role: planned
+    unit: { kind: file, path: CONTRIBUTING.md }
+  - role: planned
+    unit: { kind: file, path: SECURITY.md }
+  - role: planned
+    unit: { kind: file, path: CODE_OF_CONDUCT.md }
+  - role: planned
+    unit: { kind: file, path: CHANGELOG.md }
 ---
 
 > **Deferred** — partial progress has landed (`docs/ARCHITECTURE.md` is

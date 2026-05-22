@@ -23,7 +23,9 @@ summary: >
 establishes:
   - unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
   - unit: { kind: file, path: tools/spec-spine/spec-compiler/src/main.rs }
-  - .derived/spec-registry/registry.json
+references:
+  - role: artifact
+    unit: { kind: file, path: .derived/spec-registry/registry.json }
 ---
 
 # Feature Specification: Spec compiler MVP

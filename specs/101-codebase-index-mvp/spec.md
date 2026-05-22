@@ -29,7 +29,9 @@ establishes:
   - unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
   - unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/spec_scanner.rs }
   - unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/manifest.rs }
-  - .derived/codebase-index/index.json
+references:
+  - role: artifact
+    unit: { kind: file, path: .derived/codebase-index/index.json }
   - unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
 ---
 

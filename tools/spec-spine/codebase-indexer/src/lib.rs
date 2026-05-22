@@ -72,15 +72,13 @@ impl std::fmt::Display for IndexError {
 /// `locations` — but `check` refuses to certify the index until the
 /// corpus is fixed.
 ///
-/// `I-108` (bare-string MissingFile, compat-window warning) is
-/// deliberately NOT listed here. The resolver routes bare-string
-/// MissingFile to `I-108` per the V-023 bare-vs-explicit split:
-/// explicit `{kind: file, path: X}` whose X is absent is a blocking
-/// `I-008`, but the legacy bare-string form gets a non-blocking
-/// `I-108` warning during the compat window. Segment 6's
-/// explicit-only flip lifts `I-108 → I-008` in lockstep with the
-/// V-021..V-024 promotion (auto-memory:
-/// `project_spec_154_segment_6_explicit_only_flip`).
+/// `I-108` retired in spec 154 Segment 6 (the explicit-only flip):
+/// the bare-string parse arm was excised from spec-compiler, so every
+/// owning-field unit reaching the resolver is explicit by construction.
+/// `MissingFile` now always emits the blocking `I-008` regardless of
+/// the surface syntax the unit was authored with. The `was_explicit`
+/// bit on `UnitEntry` is preserved for historical analyses but no
+/// longer drives diagnostic severity.
 const BLOCKING_DIAGNOSTIC_CODES: &[&str] = &[
     "I-003", "I-004", "I-005", "I-006", "I-007", "I-008", "I-009",
 ];

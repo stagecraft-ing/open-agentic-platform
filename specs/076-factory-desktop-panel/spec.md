@@ -13,8 +13,9 @@ summary: >
   real-time progress tracking, artifact inspection, gate confirm/reject dialogs,
   token spend dashboard, and scaffolding fan-out monitoring.
 code_aliases: ["FACTORY_DESKTOP", "FACTORY_PANEL"]
-establishes:
-  - product/apps/desktop/src/components/FactoryPipelinePanel.tsx
+references:
+  - role: historical
+    unit: { kind: file, path: product/apps/desktop/src/components/FactoryPipelinePanel.tsx }
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive

@@ -19,8 +19,9 @@ code_aliases:
   - WS_RECONNECT
 sources:
   - claudecodeui
-establishes:
-  - product/apps/desktop/src/lib/wsReconnection.ts
+references:
+  - role: historical
+    unit: { kind: file, path: product/apps/desktop/src/lib/wsReconnection.ts }
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive

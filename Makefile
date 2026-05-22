@@ -617,10 +617,12 @@ ci-cross:
 # `make ci-strict` mirrors every enforcing workflow's `run:` blocks. Not
 # included in `ci-strict` to avoid circular failure — CI runs it
 # independently via .github/workflows/ci-parity.yml.
+## tag: ci-parity
 ci-parity:
 	cargo build --release --manifest-path tools/oap/ci-parity-check/Cargo.toml --target-dir tools/oap/ci-parity-check/target
 	./tools/oap/ci-parity-check/target/release/ci-parity-check
 
+## tag: ci-fast
 # BEGIN ci-fast (spec 134)
 # ============================================================
 # Fast local CI (spec 134) — performance-optimised local validation.

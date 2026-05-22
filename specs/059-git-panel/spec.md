@@ -17,8 +17,10 @@ summary: >
 code_aliases:
   - GIT_PANEL
 establishes:
-  - product/apps/desktop/src/components/GitPanel.tsx
   - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/git.rs }
+references:
+  - role: historical
+    unit: { kind: file, path: product/apps/desktop/src/components/GitPanel.tsx }
 ---
 
 # Feature Specification: Comprehensive Git Panel

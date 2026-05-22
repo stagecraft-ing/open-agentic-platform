@@ -10,8 +10,6 @@ created: "2026-03-29"
 authors:
   - "open-agentic-platform"
 language: en
-establishes:
-  - product/apps/desktop/src-tauri/src/commands/titor.rs
 summary: >
   Wire the five stubbed titor Tauri commands (checkpoint, list, restore, diff,
   verify) to the production-ready titor library crate via a new TitorState in

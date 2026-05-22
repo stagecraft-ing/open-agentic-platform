@@ -1713,13 +1713,23 @@ fn discover_workspace_crate_ids(repo_root: &Path) -> Result<BTreeSet<String>, Co
 /// Parse the `references:` field (spec 154 §4). Returns the normalized
 /// JSON array. Bare-string items expand to `{unit: {kind: file,
 /// path: <s>}}`; structured items pass through with the optional
-/// `role:` preserved. Type-check side-effects (V-021..V-024) fire as
-/// the units are walked.
+/// `role:` preserved.
+///
+/// References are **non-owning by design** (§4: "the coupling gate
+/// treats every `references:` entry uniformly: a referenced unit is
+/// NOT part of the spec's authority surface"). Per Segment 6's 4'
+/// clarification, existence validation routes off the wrapping field,
+/// not the unit's surface syntax: V-021..V-023 are suppressed for
+/// references regardless of bare-string vs explicit form. Only
+/// V-024 (unit-grammar parse errors) fires here, since a malformed
+/// unit declaration is a shape error, not an existence claim.
+/// `role:` stays open-vocabulary — `planned`, `evidence`, `precedent`
+/// all behave identically to the validator.
 fn parse_references_field(
     fm: &serde_yaml::Mapping,
     repo_root: &Path,
     spec_path: &Path,
-    workspace_crate_ids: &BTreeSet<String>,
+    _workspace_crate_ids: &BTreeSet<String>,
     violations: &mut Vec<Violation>,
 ) -> Option<Value> {
     let raw = fm.get("references")?;
@@ -1763,13 +1773,8 @@ fn parse_references_field(
         };
         match LogicalUnit::from_yaml(unit_v) {
             Ok(unit) => {
-                check_unit_typechecks(
-                    &unit,
-                    repo_root,
-                    spec_path,
-                    workspace_crate_ids,
-                    violations,
-                );
+                // 4': skip existence validation for references entries.
+                // Only V-024 (shape errors via `Err(e)` below) fires.
                 let mut obj = Map::new();
                 if let Some(r) = role {
                     obj.insert("role".into(), Value::String(r));
@@ -1873,7 +1878,8 @@ fn collect_units_from_relationship_item(
 
     // Bare-string list entries at the relationship-list level are
     // spec-id references (e.g. `supersedes: ["040-spec"]`), not file
-    // paths or units. Ignore.
+    // paths or units. Ignore — the spec-id resolution lives on a
+    // separate path.
     if item.as_str().is_some() {
         return (units, errors);
     }
@@ -1881,7 +1887,7 @@ fn collect_units_from_relationship_item(
         return (units, errors);
     };
 
-    // New singular `unit:` field — explicit, validated.
+    // Canonical singular `unit:` field — explicit, strictly validated.
     if let Some(unit_v) = map.get("unit") {
         match LogicalUnit::from_yaml(unit_v) {
             Ok(u) => units.push((u, true)),
@@ -1889,82 +1895,50 @@ fn collect_units_from_relationship_item(
         }
     }
 
-    // Legacy plural `paths:` — each entry is a bare file path; legacy
-    // origin, no V-021..V-023 fired.
-    if let Some(paths) = map.get("paths").and_then(|v| v.as_sequence()) {
-        for p in paths {
-            if let Some(s) = p.as_str() {
-                units.push((
-                    LogicalUnit::File {
-                        path: s.to_string(),
-                    },
-                    false,
-                ));
-            }
-        }
-    }
-
-    // Legacy `co_authority` synthesis: when `paths:` + `section:`
-    // appear together, each `(path, section)` materialises a
-    // `section:` unit. Section anchor resolution lands in Segment 3;
-    // until then this is the legacy origin and no strict check fires.
-    if let (Some(paths), Some(section)) = (
-        map.get("paths").and_then(|v| v.as_sequence()),
-        map.get("section").and_then(|v| v.as_str()),
-    ) {
-        for p in paths {
-            if let Some(s) = p.as_str() {
-                units.push((
-                    LogicalUnit::Section {
-                        file: s.to_string(),
-                        anchor: section.to_string(),
-                    },
-                    false,
-                ));
-            }
-        }
+    // Segment 6 excision: legacy `paths:` sub-list (and the
+    // `paths + section:` synthesis form) are no longer accepted on
+    // owning relationship items. The corpus migrated to explicit
+    // `unit:` declarations in Tier 2 Segment 5; encountering
+    // `paths:` post-excision is a V-024 surface.
+    if map.get("paths").is_some() {
+        errors.push(LogicalUnitParseError::NotStringOrMapping);
     }
 
     (units, errors)
 }
 
-/// Best-effort parse of an `establishes:`-style item into one or more
-/// `(unit, explicit)` pairs. `explicit=true` indicates the author
-/// wrote an explicit `{kind: ..., ...}` declaration; `explicit=false`
-/// is a legacy form (bare string or legacy `paths:` list) that
-/// downstream readers see as `file:` units but spec-compiler does NOT
-/// type-check.
+/// Parse an `establishes:`-style item into one or more `(unit, explicit)`
+/// pairs. After Segment 6's explicit-only flip, only typed shapes are
+/// accepted on owning fields: `{ unit: <logical-unit> }` (canonical) or
+/// `{ kind: ..., ...}` (shorthand). Bare strings and legacy `paths:`
+/// sub-lists are rejected at parse time so V-024 surfaces them to the
+/// author — the compat window closed when the corpus migrated to
+/// explicit `unit:` declarations in Tier 2 Segment 5.
 fn parse_item_to_unit(
     item: &serde_yaml::Value,
 ) -> Result<Vec<(LogicalUnit, bool)>, LogicalUnitParseError> {
+    // Segment 6 excision: bare-string items are no longer accepted on
+    // owning fields. The legacy form parsed as `file:` units and skipped
+    // existence validation; the explicit-only flip lifts this into a
+    // V-024 parse error so the author migrates to typed form.
     if item.as_str().is_some() {
-        return LogicalUnit::from_yaml(item).map(|u| vec![(u, false)]);
+        return Err(LogicalUnitParseError::NotStringOrMapping);
     }
     let Some(map) = item.as_mapping() else {
         return Err(LogicalUnitParseError::NotStringOrMapping);
     };
-    // New: explicit `unit:` field.
+    // Canonical: explicit `unit:` field.
     if let Some(unit_v) = map.get("unit") {
         return LogicalUnit::from_yaml(unit_v).map(|u| vec![(u, true)]);
     }
-    // New: item is itself shaped like a unit (`{kind, id|path|...}`).
+    // Shorthand: item is itself shaped like a unit (`{kind, id|path|...}`).
     if map.get("kind").is_some() {
         return LogicalUnit::from_yaml(item).map(|u| vec![(u, true)]);
     }
-    // Legacy: `paths:` array of strings.
-    if let Some(paths) = map.get("paths").and_then(|v| v.as_sequence()) {
-        let mut out = Vec::with_capacity(paths.len());
-        for p in paths {
-            if let Some(s) = p.as_str() {
-                out.push((
-                    LogicalUnit::File {
-                        path: s.to_string(),
-                    },
-                    false,
-                ));
-            }
-        }
-        return Ok(out);
+    // Segment 6 excision: `paths:` sub-lists are no longer accepted on
+    // `establishes:`. The legacy form is excised so V-024 surfaces it.
+    if map.get("paths").is_some() {
+        return Err(LogicalUnitParseError::NotStringOrMapping);
     }
     // Unknown shape — fail soft (other validators will flag missing
     // fields per existing schema rules).

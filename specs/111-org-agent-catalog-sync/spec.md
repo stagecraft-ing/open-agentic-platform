@@ -30,7 +30,6 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/agents/catalog.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/agents/relay.ts }
   - unit: { kind: directory, path: platform/services/stagecraft/api/agents/frontmatter }
-  - platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx
   - unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/sync/duplex.ts }
@@ -38,6 +37,9 @@ establishes:
   - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/agents.rs }
   - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs }
   - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs }
+references:
+  - role: historical
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx }
 ---
 
 # 111 — Org-managed Agent Catalog Synced from Stagecraft to OPC

@@ -17,8 +17,9 @@ summary: >
   policies, and project scoping.
 code_aliases:
   - SESSION_MEMORY
-establishes:
-  - product/packages/memory-mcp
+references:
+  - role: historical
+    unit: { kind: directory, path: product/packages/memory-mcp }
 ---
 
 # Feature Specification: Session Memory / Project-Object Persistence

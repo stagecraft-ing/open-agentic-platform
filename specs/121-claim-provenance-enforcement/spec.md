@@ -36,20 +36,23 @@ establishes:
   - unit: { kind: file, path: crates/provenance-validator/Cargo.toml }
   - unit: { kind: file, path: crates/provenance-validator/src/lib.rs }
   - unit: { kind: file, path: crates/provenance-validator/src/allowlist.rs }
-  - crates/provenance-validator/src/anchor.rs
   - unit: { kind: file, path: crates/provenance-validator/src/citation.rs }
   - unit: { kind: file, path: crates/factory-contracts/src/provenance.rs }
-  - platform/services/stagecraft/api/governance/provenancePolicy.ts
+references:
+  - role: historical
+    unit: { kind: file, path: crates/provenance-validator/src/anchor.rs }
+  - role: historical
+    unit: { kind: file, path: platform/services/stagecraft/api/governance/provenancePolicy.ts }
+  - role: historical
+    unit: { kind: file, path: crates/factory-engine/src/stages/s1_business_requirements.rs }
+  - role: historical
+    unit: { kind: file, path: crates/factory-engine/skills/business-requirements-analyst.md }
+  - role: historical
+    unit: { kind: file, path: crates/factory-engine/skills/validate.md }
 extends:
   - spec: "075-factory-workflow-engine"
     nature: additive
     unit: { kind: file, path: crates/factory-engine/src/stages/quality_gates.rs }
-  - spec: "075-factory-workflow-engine"
-    paths:
-      - crates/factory-engine/src/stages/s1_business_requirements.rs
-      - crates/factory-engine/skills/business-requirements-analyst.md
-      - crates/factory-engine/skills/validate.md
-    nature: additive
 compliance:
   - framework: "owasp-asi-2026"
     # ASI01 via FR-001/FR-024 (validator + QG-13_ExternalProvenance enforce

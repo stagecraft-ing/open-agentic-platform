@@ -21,8 +21,9 @@ code_aliases:
 sources:
   - deepreasoning
   - ruflo
-establishes:
-  - crates/agent/src/chain.rs
+references:
+  - role: historical
+    unit: { kind: file, path: crates/agent/src/chain.rs }
 ---
 
 # Feature Specification: Multi-Model Chaining

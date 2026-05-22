@@ -36,44 +36,26 @@ extends:
     nature: additive
     unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
 co_authority:
-  - paths:
-      - platform/infra/hetzner/setup.sh
-    section: bootstrap
-    with_specs:
+  - with_specs:
       - "072-multi-cloud-k8s-portability"
       - "106-rauthy-native-oidc-and-membership"
       - "137-tenant-environment-access-gates"
       - "143-presigned-upload-public-endpoint"
-  - paths:
-      - platform/infra/hetzner/.env.example
-    section: env-vars
-    with_specs:
+    unit: { kind: section, file: platform/infra/hetzner/setup.sh, anchor: bootstrap }
+  - with_specs:
       - "072-multi-cloud-k8s-portability"
       - "106-rauthy-native-oidc-and-membership"
       - "143-presigned-upload-public-endpoint"
-  - paths:
-      - platform/infra/hetzner/cluster.yaml
-    section: k3s-version
-    with_specs:
+    unit: { kind: section, file: platform/infra/hetzner/.env.example, anchor: env-vars }
+  - with_specs:
       - "072-multi-cloud-k8s-portability"
-  - paths:
-      - platform/infra/hetzner/post-create.sh
-    section: cert-nginx-strikes
-    with_specs:
+    unit: { kind: section, file: platform/infra/hetzner/cluster.yaml, anchor: k3s-version }
+  - with_specs:
       - "106-rauthy-native-oidc-and-membership"
+    unit: { kind: section, file: platform/infra/hetzner/post-create.sh, anchor: cert-nginx-strikes }
   - with_specs:
       - "104-makefile-ci-parity-contract"
     unit: { kind: section, file: platform/Makefile, anchor: rauthy-deploy }
-  - paths:
-      - specs/137-tenant-environment-access-gates/tasks.md
-    section: phase2-migration
-    with_specs:
-      - "137-tenant-environment-access-gates"
-  - paths:
-      - platform/charts/rauthy/values-hetzner.yaml
-    section: hetzner-overrides
-    with_specs:
-      - "106-rauthy-native-oidc-and-membership"
 summary: >
   Replace `platform/infra/hetzner/setup.sh`'s imperative cluster-mutation
   monolith with a declarative GitOps reconciliation layer. Flux v2 runs

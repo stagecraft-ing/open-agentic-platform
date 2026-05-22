@@ -37,10 +37,6 @@ extends:
   - spec: "087-unified-workspace-architecture"
     nature: wrapping
     unit: { kind: directory, path: specs/087-unified-workspace-architecture }
-  - spec: "087-unified-workspace-architecture"
-    paths:
-      - platform/services/stagecraft/api/workspaces
-    nature: wrapping
   - spec: "092-workspace-runtime-threading"
     nature: wrapping
     unit: { kind: crate, id: orchestrator }
@@ -64,6 +60,9 @@ refines:
     unit: { kind: crate, id: "@opc/desktop" }
   - aspect: "project-scoped-governance"
     unit: { kind: directory, path: specs/000-bootstrap-spec-system }
+references:
+  - role: historical
+    unit: { kind: directory, path: platform/services/stagecraft/api/workspaces }
 summary: >
   Collapse the workspace abstraction into project. Workspace was introduced
   (spec 087) as a multi-project governance container with a shared knowledge

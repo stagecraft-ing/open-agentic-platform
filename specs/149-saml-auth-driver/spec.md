@@ -12,13 +12,9 @@ implementation: pending
 category: ["auth", "identity", "security"]
 implements: "148-auth-driver-registry"
 selectable_by: AUTH_DRIVER
-establishes:
-  - crates/auth-driver-saml/
-extends:
-  - spec: "148-auth-driver-registry"
-    paths:
-      - crates/auth-driver-saml/
-    nature: additive
+references:
+  - role: planned
+    unit: { kind: directory, path: crates/auth-driver-saml/ }
 provides:
   registrations:
     - kind: auth-driver

@@ -18,16 +18,14 @@ establishes:
   - unit: { kind: file, path: tools/oap/ci-parity-check/src/main.rs }
   - unit: { kind: file, path: .github/workflows/ci-parity.yml }
 co_authority:
-  - paths:
-      - Makefile
-    section: ci-parity
-    with_specs:
+  - with_specs:
       - "102-governed-excellence"
       - "127-spec-code-coupling-gate"
       - "116-supply-chain-policy-gates"
       - "128-spec-lint-default-fail-on-warn"
       - "134-fast-local-ci-mode"
       - "135-fast-ci-as-default"
+    unit: { kind: section, file: Makefile, anchor: ci-parity }
   - with_specs:
       - "000-bootstrap-spec-system"
     unit: { kind: section, file: .claude/commands/validate-and-fix.md, anchor: process }

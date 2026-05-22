@@ -199,12 +199,61 @@ fn references_first_class_field() {
     assert_eq!(refs[1]["unit"]["kind"].as_str(), Some("symbol"));
 }
 
-/// §8 — bare-string entries inside `establishes:` continue to parse
-/// without firing V-023, even when they don't resolve to a file
-/// (compat window — the legacy authoring channel doesn't validate
-/// existence; explicit `{kind: file, ...}` does).
+/// §4 (Segment 6, 4' clarification) — references are non-owning by
+/// design. Explicit `{kind: crate|directory|file, ...}` units inside
+/// `references:` whose targets do NOT exist must parse without firing
+/// V-021/V-022/V-023. Bare-string entries already skip existence
+/// validation; this test pins the same exemption for the explicit
+/// form so the surface-syntax bit (`was_explicit`) stops driving
+/// existence semantics on the non-owning field. Owning-field strictness
+/// is asserted in `spec154_unit_grammar_negative.rs`.
 #[test]
-fn bare_string_establishes_does_not_fire_v023() {
+fn references_explicit_units_skip_existence_validation() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    write_synthetic_workspace(root, &[("crates/foo", "foo-crate")]);
+    fs::create_dir_all(root.join("specs/720-references-aspirational")).unwrap();
+    write_spec(
+        &root.join("specs/720-references-aspirational"),
+        "720-references-aspirational",
+        concat!(
+            "references:\n",
+            "  - role: planned\n",
+            "    unit: { kind: crate, id: not-a-workspace-member }\n",
+            "  - role: planned\n",
+            "    unit: { kind: directory, path: nope/never/landed/ }\n",
+            "  - role: planned\n",
+            "    unit: { kind: file, path: nope/never/landed.rs }\n",
+            "  - \"some/legacy/bare-string/path.rs\"\n",
+        ),
+        "# References-as-aspirational\n",
+    );
+    let reg = compile(root);
+    assert_eq!(reg["validation"]["passed"].as_bool(), Some(true));
+    assert!(
+        violations_with_code(&reg, "V-021").is_empty(),
+        "references entry must not fire V-021 even with unknown crate id"
+    );
+    assert!(
+        violations_with_code(&reg, "V-022").is_empty(),
+        "references entry must not fire V-022 even with missing directory"
+    );
+    assert!(
+        violations_with_code(&reg, "V-023").is_empty(),
+        "references entry must not fire V-023 even with missing file"
+    );
+    let feat = find_feature(&reg, "720-references-aspirational");
+    let refs = feat["references"].as_array().expect("references emitted");
+    assert_eq!(refs.len(), 4, "all four references entries normalise");
+}
+
+/// §8 — Segment 6 excision: bare-string entries inside `establishes:`
+/// are no longer accepted. The legacy form used to parse as a
+/// `file:` unit and skip existence validation; the explicit-only flip
+/// lifts this to V-024 (malformed unit declaration) at parse time so
+/// authors migrate to the typed `unit: { kind: ..., ... }` shape.
+#[test]
+fn bare_string_establishes_now_rejected() {
     let dir = tempfile::tempdir().expect("tempdir");
     let root = dir.path();
     fs::create_dir_all(root.join("specs/706-legacy-bare-string")).unwrap();
@@ -215,38 +264,49 @@ fn bare_string_establishes_does_not_fire_v023() {
         "# Legacy bare-string\n",
     );
     let reg = compile(root);
-    assert_eq!(reg["validation"]["passed"].as_bool(), Some(true));
-    assert!(violations_with_code(&reg, "V-023").is_empty());
+    let vs = violations_with_code(&reg, "V-024");
+    assert_eq!(
+        vs.len(),
+        1,
+        "expected V-024 on bare-string establishes after Segment 6 excision; got {:?}",
+        reg["validation"]["violations"]
+    );
+    assert_eq!(reg["validation"]["passed"].as_bool(), Some(false));
 }
 
 /// §5 — `constrains:` accepts both legacy `kind:` and new `flavor:`
-/// discriminator without splitting the spec. Parser is tolerant of
-/// both forms during the compat window.
+/// relationship-level discriminator (the field's value, not the unit's
+/// kind). Inner targeting moves from legacy `paths:` to typed `unit:`
+/// after Segment 6's excision; the discriminator itself stays tolerant.
 #[test]
 fn constrains_accepts_both_kind_and_flavor() {
     let dir = tempfile::tempdir().expect("tempdir");
     let root = dir.path();
+    fs::write(root.join("some-file.json"), "{}").unwrap();
     fs::create_dir_all(root.join("specs/707-legacy-kind")).unwrap();
     fs::create_dir_all(root.join("specs/708-new-flavor")).unwrap();
     write_spec(
         &root.join("specs/707-legacy-kind"),
         "707-legacy-kind",
-        "constrains:\n  - kind: invariant-freeze\n    paths:\n      - some/file.json\n",
+        "constrains:\n  - kind: invariant-freeze\n    unit: { kind: file, path: some-file.json }\n",
         "# Legacy kind discriminator\n",
     );
     write_spec(
         &root.join("specs/708-new-flavor"),
         "708-new-flavor",
-        "constrains:\n  - flavor: invariant-freeze\n    paths:\n      - some/file.json\n",
+        "constrains:\n  - flavor: invariant-freeze\n    unit: { kind: file, path: some-file.json }\n",
         "# New flavor discriminator\n",
     );
     let reg = compile(root);
     assert_eq!(reg["validation"]["passed"].as_bool(), Some(true));
 }
 
-/// Mixed lists — legacy + new in one relationship field — parse cleanly.
+/// Mixed lists — a legacy bare-string alongside typed `unit:` entries
+/// no longer parses cleanly after Segment 6's excision. The bare-string
+/// item fires V-024 even when its siblings are valid, so authors must
+/// migrate every item in the list to the typed form.
 #[test]
-fn establishes_mixed_legacy_and_typed() {
+fn establishes_mixed_legacy_and_typed_rejected() {
     let dir = tempfile::tempdir().expect("tempdir");
     let root = dir.path();
     write_synthetic_workspace(root, &[("crates/foo", "foo-crate")]);
@@ -263,16 +323,23 @@ fn establishes_mixed_legacy_and_typed() {
         "# Mixed list\n",
     );
     let reg = compile(root);
-    assert_eq!(reg["validation"]["passed"].as_bool(), Some(true));
+    assert_eq!(reg["validation"]["passed"].as_bool(), Some(false));
+    assert_eq!(
+        violations_with_code(&reg, "V-024").len(),
+        1,
+        "bare-string item still rejected even when other items are valid",
+    );
 }
 
-/// Legacy `co_authority.section:` synthesis path — parser accepts the
-/// legacy form during the compat window.
+/// Segment 6 excision: the legacy `co_authority.paths + section`
+/// synthesis path is removed. Authors must declare a typed
+/// `unit: { kind: section, file: <path>, anchor: <name> }` instead;
+/// the legacy form fires V-024 at parse time.
 #[test]
-fn legacy_co_authority_section_synthesis() {
+fn legacy_co_authority_section_synthesis_rejected() {
     let dir = tempfile::tempdir().expect("tempdir");
     let root = dir.path();
-    fs::write(root.join("Makefile"), "deploy:\n\techo deploy\n").unwrap();
+    fs::write(root.join("Makefile"), "## tag: deploy\ndeploy:\n\techo deploy\n").unwrap();
     fs::create_dir_all(root.join("specs/710-legacy-co-authority")).unwrap();
     write_spec(
         &root.join("specs/710-legacy-co-authority"),
@@ -287,5 +354,6 @@ fn legacy_co_authority_section_synthesis() {
         "# Legacy co_authority\n",
     );
     let reg = compile(root);
-    assert_eq!(reg["validation"]["passed"].as_bool(), Some(true));
+    assert_eq!(reg["validation"]["passed"].as_bool(), Some(false));
+    assert!(!violations_with_code(&reg, "V-024").is_empty());
 }

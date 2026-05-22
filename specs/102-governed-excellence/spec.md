@@ -28,8 +28,11 @@ summary: >
   composition, registry freshness, and platform policy seams.
 establishes:
   - unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
-  - factory/contract/schemas/governance-certificate.schema.json
-  - factory/contract/checks
+references:
+  - role: planned
+    unit: { kind: file, path: factory/contract/schemas/governance-certificate.schema.json }
+  - role: planned
+    unit: { kind: directory, path: factory/contract/checks }
 extends:
   - spec: "075-factory-workflow-engine"
     nature: additive

@@ -17,13 +17,12 @@ extends:
   - spec: "101-codebase-index-mvp"
     nature: additive
     unit: { kind: crate, id: open_agentic_codebase_indexer }
-  - spec: "101-codebase-index-mvp"
-    paths:
-      - .derived/codebase-index/CODEBASE-INDEX.md
-    nature: additive
 refines:
   - aspect: "spec-header-convention"
     unit: { kind: directory, path: .github/workflows }
+references:
+  - role: artifact
+    unit: { kind: file, path: .derived/codebase-index/CODEBASE-INDEX.md }
 summary: >
   Adopt a header-line convention `# Spec: NNN-slug` in every
   .github/workflows/*.yml. Extend tools/spec-spine/codebase-indexer to scan workflow

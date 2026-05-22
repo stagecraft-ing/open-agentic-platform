@@ -172,12 +172,13 @@ fn v024_fires_on_missing_required_field() {
     assert_eq!(reg["validation"]["passed"].as_bool(), Some(false));
 }
 
-/// Bare-string `establishes:` entries do NOT fire V-023 even when
-/// they reference non-existent paths — the legacy authoring channel
-/// is unvalidated during the compat window. (Companion to the
-/// positive `bare_string_establishes_does_not_fire_v023` test.)
+/// Segment 6 excision: bare-string `establishes:` entries are no
+/// longer accepted at all. V-023 still doesn't fire (because no
+/// `file:` unit was successfully parsed) — V-024 fires at parse time
+/// instead. This test pins the post-excision contract: bare strings
+/// emit V-024 (not V-023) and fail validation.
 #[test]
-fn bare_strings_remain_unvalidated() {
+fn bare_strings_fire_v024_post_excision() {
     let dir = tempfile::tempdir().expect("tempdir");
     let root = dir.path();
     fs::create_dir_all(root.join("specs/805-bare-string-unvalidated")).unwrap();
@@ -188,8 +189,16 @@ fn bare_strings_remain_unvalidated() {
         "# Bare-string legacy\n",
     );
     let reg = compile(root);
-    assert!(violations_with_code(&reg, "V-023").is_empty());
-    assert_eq!(reg["validation"]["passed"].as_bool(), Some(true));
+    assert!(
+        violations_with_code(&reg, "V-023").is_empty(),
+        "V-023 (file-existence) does not fire — bare strings never produce a parsed file: unit"
+    );
+    assert_eq!(
+        violations_with_code(&reg, "V-024").len(),
+        1,
+        "V-024 (malformed unit) fires at parse time on bare-string establishes"
+    );
+    assert_eq!(reg["validation"]["passed"].as_bool(), Some(false));
 }
 
 /// V-024 (spec 155 §2.1) — `kind: symbol` id containing generic

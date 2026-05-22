@@ -3,11 +3,12 @@ id: "154-logical-unit-ownership-grammar"
 slug: logical-unit-ownership-grammar
 title: "Logical-unit ownership grammar — value typing for relationship-graph fields"
 status: approved
-implementation: pending
+implementation: complete
+closed: "2026-05-22"
 owner: bart
 created: "2026-05-20"
 approved: "2026-05-20"
-amended: "2026-05-21"
+amended: "2026-05-22"
 amendment_record: "155-logical-unit-resolution-semantics"
 kind: governance
 risk: medium
@@ -49,6 +50,21 @@ extends:
   - spec: "127-spec-code-coupling-gate"
     nature: additive
     unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/lib.rs }
+  - spec: "001-spec-compiler-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
+  - spec: "001-spec-compiler-mvp"
+    nature: additive
+    unit: { kind: directory, path: tools/spec-spine/spec-compiler/tests }
+  - spec: "006-conformance-lint-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-lint/src/lib.rs }
+  - spec: "006-conformance-lint-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-lint/tests/lint.rs }
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 references:
   - unit: { kind: crate, id: open_agentic_spec_compiler }
   - unit: { kind: crate, id: open_agentic_codebase_indexer }
@@ -348,6 +364,25 @@ uniformly: a referenced unit is NOT part of the spec's authority
 surface, and edits to a referenced unit do NOT require an edit to
 this spec.
 
+**Existence is also non-owning** *(clarified by Segment 6, the "4'"
+repair)*. Because `references:` declares no ownership, the validator
+does NOT enforce target existence: an explicit
+`{ kind: directory|file|crate, ... }` unit inside `references:`
+whose target is absent from the worktree does NOT fire V-021/V-022/
+V-023, and the codebase-indexer does NOT emit I-008/I-108/I-007 for
+the same absence. Bare-string and explicit-typed entries behave
+identically on the non-owning field — the surface-syntax bit
+(`was_explicit`) drives existence semantics only on owning fields
+(`establishes`, `extends`, `refines`, `supersedes`, `amends`,
+`co_authority`, `constrains`). This makes `role: planned` (and any
+other open-vocabulary role value) a viable authoring channel for
+aspirational targets the spec gestures at without claiming.
+Resolution still runs structurally — a `references:` unit whose
+target *does* exist surfaces its `locations` in the resolved-unit
+list; one whose target is absent surfaces with empty `locations`
+and no diagnostic, mirroring spec 156's dangling-provenance
+treatment.
+
 The codebase-indexer surfaces references in the codebase index for
 navigation and provenance (a unit might be referenced as evidence by
 multiple specs without being owned by any of them).
@@ -552,3 +587,68 @@ parse error pointing to this spec.
 - **Tier 1 cleanup PR** (open at commit time) — motivating empirical
   case for the redesign; carries the canonical Spec-Drift-Waiver
   precedent that the unit grammar eliminates structurally.
+
+## 12. Closure — Segments 1–6 landed
+
+Spec 154 ships across six segments, each landing as a separate commit
+on `main`. This section is the close-out record (amendment 2026-05-22
+flipping `implementation: pending → complete`).
+
+| Segment | Surface | Commit |
+|---|---|---|
+| 1 | `LogicalUnit` enum on `tools/shared/spec-types` and round-trip serialisation | (initial spec landing) |
+| 2 | Spec-compiler typed-unit parser + V-021..V-024 validation rules | (compiler integration) |
+| 3 | Codebase-indexer resolver — per-kind dispatch, symbol/module index, anchor parsers (Makefile, workflow YAML, region marker, markdown heading) | `bfa6e060` (resolved-unit API surface, Segment 4 commit groups Segment 3 lands too) |
+| 4 | `tools/spec-spine/spec-code-coupling-check` resolved-unit API surface; coupling gate consumes the resolver | `bfa6e060` feat(spec-code-coupling-check): spec 154 Segment 4 |
+| 5 | Corpus migration to typed logical-unit declarations (142 spec.md files migrated; one-shot `tools/oap/spec-unit-migrate` retained as historical artifact) | `beb1e3e6` feat(spec-154): Segment 5 — corpus migration |
+| 6 | Orphan resolution + legacy excision (this segment) | (this commit) |
+
+**Segment 6 in detail.** Eighty I-101 / I-108 orphans cleared across
+the corpus, then the bare-string `establishes:` parse arm and the
+legacy `extends/refines/supersedes/co_authority/constrains/amends.paths`
+sub-list arms were excised from `tools/spec-spine/spec-compiler/src/lib.rs`.
+L-005 promoted from `info` to `error` severity; I-108 retired
+(`MissingFile` now always emits the blocking I-008 regardless of
+authoring shape). `RegionMarkerParser` extended to accept the
+`# region:` prefix for shell / YAML / TOML / `.env` files per spec 152 §2.1.
+The anchor-parser dispatch routes `.yaml` files by path: workflow YAML
+(`.github/workflows/`) gets the `jobs.<name>` parser; every other YAML
+gets the region-marker parser.
+
+**The 4' refinement.** Mid-segment, the original handoff's
+recommendation that aspirational paths move to `references:role:planned`
+collided with the existing validator: explicit-typed units inside
+`references:` fired V-021..V-023 just like owning fields. The user
+clarified the intended semantics — references is non-owning by design
+(spec 154 §4), so existence validation should route off the wrapping
+field rather than the unit's surface syntax. §4 was amended with an
+"existence is also non-owning" paragraph; `parse_references_field` in
+the spec-compiler and `build_resolved_unit` in the codebase-indexer
+were both updated to skip existence diagnostics for `references:`
+entries. Tests pin both layers
+(`references_explicit_units_skip_existence_validation`,
+`references_field_skips_existence_diagnostics`).
+
+**V-020 widened.** Spec-lint's V-020 ("spec lacks relationship fields")
+was a seven-edge check; spec 154 §4 added `references:` as the ninth
+edge. Segment 6 widened V-020 to count `references:` (and
+`superseded_by:` / `composition.requires:` / `selects:` for the
+governance-lifecycle and profile-spec cases) as relationship-satisfying.
+This keeps the corpus clean after approved-complete specs move their
+eroded code surface from `establishes:` to `references:role:historical`.
+
+**Post-excision orphan disposition.** Drafts that intend to land
+crates use `references:role:planned`. Approved-complete specs whose
+code paths were refactored away use `references:role:historical`.
+Approved-deferred use `references:role:deferred`. Path-moved cases
+were fixed in place (typo in spec 144 — `crates/Cargo.lock` →
+`Cargo.lock`). Superseded specs (038, 040, 088) had their bare-string
+`establishes:` entries deleted entirely. Spec 151 lost its
+`values-hetzner.yaml` co-authority entry (the file is intentionally
+deleted as part of its own migration; the spec body documents this in
+§13 — the co-authority claim was vestigial).
+
+**Toolchain state at closure.** `make pr-prep` clean. `cargo test
+--release --workspace` clean (1469 tests passed, 0 failed). Compiler
+validation passes with zero violations. Codebase index has zero
+warnings and zero errors. Spec-lint `--fail-on-warn` exits 0.

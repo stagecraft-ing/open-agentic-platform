@@ -173,12 +173,18 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
         // ── Spec 130 — V-020: spec lacks relationship fields ──
         //
         // Fires when a spec declares no relationship to code or other specs
-        // (none of `establishes`, `extends`, `refines`, `supersedes`,
-        // `amends`, `co_authority`, `constrains`) and does not carry the
-        // bootstrap marker `origin: retroactive: true`. The eight
-        // relationship fields are the corpus's machine-readable governance
-        // model (spec 130). V-020 prevents new specs from accreting
-        // without declaring their relationships.
+        // (none of the eight owning relationships: `establishes`, `extends`,
+        // `refines`, `supersedes`, `amends`, `co_authority`, `constrains`;
+        // none of the ninth non-owning relationship `references` either)
+        // and does not carry the bootstrap marker `origin: retroactive:
+        // true`. The relationship fields are the corpus's machine-readable
+        // governance model (spec 130, extended to nine edges by spec 154 §4).
+        // V-020 prevents new specs from accreting without declaring their
+        // relationships. Spec 154 Segment 6 widened the check to include
+        // `references:` — a spec whose authority surface has eroded into
+        // historical / planned pointers (the post-excision pattern for
+        // approved-complete specs whose code paths were refactored away)
+        // still declares an honest non-owning relationship.
         let has_relationship_field = [
             "establishes",
             "extends",
@@ -187,6 +193,7 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
             "amends",
             "co_authority",
             "constrains",
+            "references",
         ]
         .iter()
         .any(|k| fm.get(*k).is_some());
@@ -198,12 +205,40 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
 
-        if !has_relationship_field && !is_retroactive_bootstrap {
+        // `superseded_by:` is the inverse pointer to `supersedes:` and
+        // is itself a declared relationship — a spec that says "I am
+        // superseded by X" has named its place in the graph. Treated
+        // as relationship-satisfying alongside the eight ownership
+        // edges and `references`. (Segment 6 lift: superseded-spec
+        // hygiene becomes consistent across the corpus once the bare-
+        // string `establishes:` arm is excised.)
+        let is_superseded = fm.get("superseded_by").is_some();
+
+        // `kind: profile` (spec 147) declares its relationships via
+        // `composition.requires:` (capability spec ids) and `selects:`
+        // (registry → capability bindings). Either is an honest place
+        // in the graph — V-020 accepts both as relationship-satisfying
+        // for profile specs without forcing a synthetic `references:`
+        // block. Spec 147 §`kind: profile` requires `composition.requires`
+        // so this check is well-grounded.
+        let has_composition_requires = fm
+            .get("composition")
+            .and_then(|v| v.as_mapping())
+            .and_then(|m| m.get("requires"))
+            .is_some();
+        let has_selects = fm.get("selects").is_some();
+
+        if !has_relationship_field
+            && !is_retroactive_bootstrap
+            && !is_superseded
+            && !has_composition_requires
+            && !has_selects
+        {
             w.push(Warning {
                 code: "V-020",
                 severity: "warning",
                 path: rel(repo_root, &spec_path),
-                message: "spec carries no relationship fields (establishes / extends / refines / supersedes / amends / co_authority / constrains) and is not marked `origin: retroactive: true`; declare an honest relationship per spec 130".into(),
+                message: "spec carries no relationship fields (establishes / extends / refines / supersedes / amends / co_authority / constrains / references) and is not marked `origin: retroactive: true`; declare an honest relationship per spec 130".into(),
             });
         }
     }
@@ -293,12 +328,13 @@ fn workspace_member_dirs(repo_root: &Path) -> Vec<String> {
     out
 }
 
-/// L-005 — advisory soft lint (info severity) emitted when a legacy
-/// bare-string path inside any relationship field falls inside a
-/// workspace-member directory and could be expressed as a `crate:`
-/// unit (spec 154 §3.1). Lint, not error: corpus migration is
-/// Tier 2 Segment 5; this surface lets reviewers steer authors in
-/// the meantime.
+/// L-005 — corpus-migration enforcement lint. Promoted from `info` to
+/// `error` severity by spec 154 Segment 6's explicit-only flip: once
+/// the bare-string parse arm is excised from spec-compiler, any
+/// remaining bare-string path that resolves into a workspace member
+/// must be rewritten as `unit: { kind: crate, id: <manifest-name> }`
+/// (spec 154 §3.1). The compat window closed when the corpus migrated
+/// to explicit declarations in Tier 2 Segment 5.
 ///
 /// Does not fire on:
 ///   * explicit `unit: {kind: ...}` declarations (already typed);
@@ -329,10 +365,10 @@ fn spec154_l005_pass(repo_root: &Path, feature_dirs: &[PathBuf]) -> Vec<Warning>
             if let Some(member) = match_workspace_member(path, &members) {
                 out.push(Warning {
                     code: "L-005",
-                    severity: "info",
+                    severity: "error",
                     path: rel(repo_root, &spec_path),
                     message: format!(
-                        "legacy bare-string path {path:?} sits inside workspace member {member:?}; consider migrating to `unit: {{ kind: crate, id: <manifest-name> }}` per spec 154 §3.1 (Tier 2 Segment 5 corpus migration)",
+                        "legacy bare-string path {path:?} sits inside workspace member {member:?}; rewrite as `unit: {{ kind: crate, id: <manifest-name> }}` per spec 154 §3.1 (corpus migration completed in Tier 2 Segment 6)",
                     ),
                 });
             }

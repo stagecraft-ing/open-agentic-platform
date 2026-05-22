@@ -1,386 +1,13 @@
 {
   "build": {
-    "contentHash": "abce3fc444fe023b3ca187da226f9b285a6badc375471a8ccc2c5efb6ef3f16a",
+    "contentHash": "b80dad899d1713b07f0b3b197abc6a2fe5dec08feda659f5a8d74fbfbf79bfa1",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
   },
   "diagnostics": {
     "errors": [],
-    "warnings": [
-      {
-        "code": "I-101",
-        "message": "spec \"033-axiomregent-activation\" declares implements path \"product/apps/desktop/src-tauri/src/commands/sidecars.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"038-titor-tauri-command-wiring\" declares implements path \"product/apps/desktop/src-tauri/src/commands/titor.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"040-blockoli-semantic-search-wiring\" declares implements path \"product/apps/desktop/src-tauri/src/commands/search.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"056-session-memory\" declares implements path \"product/packages/memory-mcp\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"057-notification-system\" declares implements path \"product/apps/desktop/src/lib/notificationChannels.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"057-notification-system\" declares implements path \"product/apps/desktop/src/lib/notificationOrchestrator.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"058-file-mention-system\" declares implements path \"product/apps/desktop/src/components/FileMentionAutocomplete.tsx\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"058-file-mention-system\" declares implements path \"product/apps/desktop/src/lib/fileMentionSystem.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"059-git-panel\" declares implements path \"product/apps/desktop/src/components/GitPanel.tsx\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"060-panel-event-bus\" declares implements path \"product/apps/desktop/src/lib/panelEventBus.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"061-conductor-track-lifecycle\" declares implements path \".claude/agents/conductor.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"062-multi-model-chaining\" declares implements path \"crates/agent/src/chain.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"064-websocket-reconnection\" declares implements path \"product/apps/desktop/src/lib/wsReconnection.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"065-encrypted-keychain\" declares implements path \"product/apps/desktop/src-tauri/src/keychain.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"065-encrypted-keychain\" declares implements path \"product/apps/desktop/src/components/CredentialPicker.tsx\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"066-vscode-extension\" declares implements path \"product/packages/vscode-extension\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"070-prompt-assembly-cache\" declares implements path \"crates/agent/src/prompt_assembly.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"073-axiomregent-unification\" declares implements path \"product/apps/desktop/src-tauri/src/commands/search.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"073-axiomregent-unification\" declares implements path \"product/apps/desktop/src-tauri/src/commands/titor.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"074-factory-ingestion\" declares implements path \"factory\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"076-factory-desktop-panel\" declares implements path \"product/apps/desktop/src/components/FactoryPipelinePanel.tsx\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"081-factory-test-hydration\" declares implements path \"factory\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"086-open-source-launch\" declares implements path \"CHANGELOG.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"086-open-source-launch\" declares implements path \"CODE_OF_CONDUCT.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"086-open-source-launch\" declares implements path \"CONTRIBUTING.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"086-open-source-launch\" declares implements path \"SECURITY.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"087-unified-workspace-architecture\" declares implements path \"product/packages/project-sdk\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"088-factory-upstream-sync\" declares implements path \"factory/upstream-map.yaml\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"102-governed-excellence\" declares implements path \"factory/contract/checks\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"102-governed-excellence\" declares implements path \"factory/contract/schemas/governance-certificate.schema.json\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"106-rauthy-native-oidc-and-membership\" declares implements path \"platform/services/stagecraft/api/auth/rauthySeed.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"111-org-agent-catalog-sync\" declares implements path \"platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"113-stagecraft-projects-rename-and-clone\" declares implements path \"platform/services/stagecraft/api/projects/clone.test.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"119-project-as-unit-of-governance\" declares implements path \"platform/services/stagecraft/api/workspaces\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-engine/skills/business-requirements-analyst.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-engine/skills/validate.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/factory-engine/src/stages/s1_business_requirements.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"crates/provenance-validator/src/anchor.rs\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"121-claim-provenance-enforcement\" declares implements path \"platform/services/stagecraft/api/governance/provenancePolicy.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/client-document-comparator.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"122-stakeholder-doc-inversion\" declares implements path \"crates/factory-engine/skills/project-charter-comparator.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"144-hiqlite-default-features\" declares implements path \"crates/Cargo.lock\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"148-auth-driver-registry\" declares implements path \"crates/auth-driver/\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"149-saml-auth-driver\" declares implements path \"crates/auth-driver-saml/\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"151-declarative-cluster-reconciliation\" declares implements path \"platform/charts/rauthy/values-hetzner.yaml\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-108",
-        "message": "033-axiomregent-activation: file: path \"product/apps/desktop/src-tauri/src/commands/sidecars.rs\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "038-titor-tauri-command-wiring: file: path \"product/apps/desktop/src-tauri/src/commands/titor.rs\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "040-blockoli-semantic-search-wiring: file: path \"product/apps/desktop/src-tauri/src/commands/search.rs\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "056-session-memory: file: path \"product/packages/memory-mcp\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "057-notification-system: file: path \"product/apps/desktop/src/lib/notificationChannels.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "057-notification-system: file: path \"product/apps/desktop/src/lib/notificationOrchestrator.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "058-file-mention-system: file: path \"product/apps/desktop/src/components/FileMentionAutocomplete.tsx\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "058-file-mention-system: file: path \"product/apps/desktop/src/lib/fileMentionSystem.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "059-git-panel: file: path \"product/apps/desktop/src/components/GitPanel.tsx\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "060-panel-event-bus: file: path \"product/apps/desktop/src/lib/panelEventBus.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "061-conductor-track-lifecycle: file: path \".claude/agents/conductor.md\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "062-multi-model-chaining: file: path \"crates/agent/src/chain.rs\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "064-websocket-reconnection: file: path \"product/apps/desktop/src/lib/wsReconnection.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "065-encrypted-keychain: file: path \"product/apps/desktop/src-tauri/src/keychain.rs\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "065-encrypted-keychain: file: path \"product/apps/desktop/src/components/CredentialPicker.tsx\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "066-vscode-extension: file: path \"product/packages/vscode-extension\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "070-prompt-assembly-cache: file: path \"crates/agent/src/prompt_assembly.rs\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "073-axiomregent-unification: file: path \"product/apps/desktop/src-tauri/src/commands/search.rs\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "073-axiomregent-unification: file: path \"product/apps/desktop/src-tauri/src/commands/titor.rs\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "074-factory-ingestion: file: path \"factory\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "076-factory-desktop-panel: file: path \"product/apps/desktop/src/components/FactoryPipelinePanel.tsx\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "081-factory-test-hydration: file: path \"factory\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "086-open-source-launch: file: path \"CHANGELOG.md\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "086-open-source-launch: file: path \"CODE_OF_CONDUCT.md\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "086-open-source-launch: file: path \"CONTRIBUTING.md\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "086-open-source-launch: file: path \"SECURITY.md\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "087-unified-workspace-architecture: file: path \"product/packages/project-sdk\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "088-factory-upstream-sync: file: path \"factory/upstream-map.yaml\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "088-factory-upstream-sync: file: path \"factory/upstream-map.yaml\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "102-governed-excellence: file: path \"factory/contract/checks\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "102-governed-excellence: file: path \"factory/contract/schemas/governance-certificate.schema.json\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "106-rauthy-native-oidc-and-membership: file: path \"platform/services/stagecraft/api/auth/rauthySeed.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "111-org-agent-catalog-sync: file: path \"platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "113-stagecraft-projects-rename-and-clone: file: path \"platform/services/stagecraft/api/projects/clone.test.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "119-project-as-unit-of-governance: file: path \"platform/services/stagecraft/api/workspaces\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "121-claim-provenance-enforcement: file: path \"crates/factory-engine/skills/business-requirements-analyst.md\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "121-claim-provenance-enforcement: file: path \"crates/factory-engine/skills/validate.md\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "121-claim-provenance-enforcement: file: path \"crates/factory-engine/src/stages/s1_business_requirements.rs\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "121-claim-provenance-enforcement: file: path \"crates/provenance-validator/src/anchor.rs\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "121-claim-provenance-enforcement: file: path \"platform/services/stagecraft/api/governance/provenancePolicy.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "122-stakeholder-doc-inversion: file: path \"crates/factory-engine/skills/client-document-comparator.md\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "122-stakeholder-doc-inversion: file: path \"crates/factory-engine/skills/project-charter-comparator.md\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "144-hiqlite-default-features: file: path \"crates/Cargo.lock\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "148-auth-driver-registry: file: path \"crates/auth-driver/\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "148-auth-driver-registry: file: path \"crates/auth-driver/\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "149-saml-auth-driver: file: path \"crates/auth-driver-saml/\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "149-saml-auth-driver: file: path \"crates/auth-driver-saml/\" does not exist on disk"
-      },
-      {
-        "code": "I-108",
-        "message": "151-declarative-cluster-reconciliation: file: path \"platform/charts/rauthy/values-hetzner.yaml\" does not exist on disk"
-      }
-    ]
+    "warnings": []
   },
   "inventory": [
     {
@@ -1807,10 +1434,6 @@
         "amendmentRecord": "147-spec-kind-grammar",
         "implementingPaths": [
           {
-            "path": ".derived/spec-registry/registry.json",
-            "source": "spec-implements"
-          },
-          {
             "name": "open_agentic_spec_compiler",
             "path": "tools/spec-spine/spec-compiler",
             "source": "cargo-metadata-crate"
@@ -1825,20 +1448,6 @@
           }
         ],
         "resolvedUnits": [
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": ".derived/spec-registry/registry.json"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": ".derived/spec-registry/registry.json"
-            }
-          },
           {
             "kind": "file",
             "locations": [
@@ -1865,6 +1474,20 @@
             "unit": {
               "kind": "file",
               "path": "tools/spec-spine/spec-compiler/src/main.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".derived/spec-registry/registry.json"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".derived/spec-registry/registry.json"
             }
           }
         ],
@@ -9017,10 +8640,6 @@
           {
             "path": "crates/axiomregent/src/lib.rs",
             "source": "spec-implements"
-          },
-          {
-            "path": "product/apps/desktop/src-tauri/src/commands/sidecars.rs",
-            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
@@ -9040,8 +8659,8 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": "product/apps/desktop/src-tauri/src/commands/sidecars.rs"
@@ -9563,27 +9182,6 @@
       {
         "implementingPaths": [
           {
-            "path": "product/apps/desktop/src-tauri/src/commands/titor.rs",
-            "source": "spec-implements"
-          }
-        ],
-        "resolvedUnits": [
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "product/apps/desktop/src-tauri/src/commands/titor.rs"
-            }
-          }
-        ],
-        "specId": "038-titor-tauri-command-wiring",
-        "specStatus": "superseded"
-      },
-      {
-        "implementingPaths": [
-          {
             "path": "standards/schemas/spec-spine/registry.schema.json",
             "source": "spec-implements"
           },
@@ -9624,27 +9222,6 @@
         ],
         "specId": "039-feature-id-reconciliation",
         "specStatus": "approved"
-      },
-      {
-        "implementingPaths": [
-          {
-            "path": "product/apps/desktop/src-tauri/src/commands/search.rs",
-            "source": "spec-implements"
-          }
-        ],
-        "resolvedUnits": [
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "product/apps/desktop/src-tauri/src/commands/search.rs"
-            }
-          }
-        ],
-        "specId": "040-blockoli-semantic-search-wiring",
-        "specStatus": "superseded"
       },
       {
         "implementingPaths": [
@@ -10935,10 +10512,6 @@
       {
         "implementingPaths": [
           {
-            "path": "product/packages/memory-mcp",
-            "source": "spec-implements"
-          },
-          {
             "name": "@opc/session-memory",
             "path": "product/packages/session-memory",
             "source": "cargo-metadata-crate"
@@ -10946,11 +10519,11 @@
         ],
         "resolvedUnits": [
           {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "kind": "directory",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
-              "kind": "file",
+              "kind": "directory",
               "path": "product/packages/memory-mcp"
             }
           }
@@ -10961,14 +10534,6 @@
       {
         "implementingPaths": [
           {
-            "path": "product/apps/desktop/src/lib/notificationChannels.ts",
-            "source": "spec-implements"
-          },
-          {
-            "path": "product/apps/desktop/src/lib/notificationOrchestrator.ts",
-            "source": "spec-implements"
-          },
-          {
             "name": "@opc/notification-orchestrator",
             "path": "product/packages/notification-orchestrator",
             "source": "cargo-metadata-crate"
@@ -10977,8 +10542,8 @@
         "resolvedUnits": [
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": "product/apps/desktop/src/lib/notificationChannels.ts"
@@ -10986,8 +10551,8 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": "product/apps/desktop/src/lib/notificationOrchestrator.ts"
@@ -11000,14 +10565,6 @@
       {
         "implementingPaths": [
           {
-            "path": "product/apps/desktop/src/components/FileMentionAutocomplete.tsx",
-            "source": "spec-implements"
-          },
-          {
-            "path": "product/apps/desktop/src/lib/fileMentionSystem.ts",
-            "source": "spec-implements"
-          },
-          {
             "name": "@opc/file-mention",
             "path": "product/packages/file-mention",
             "source": "cargo-metadata-crate"
@@ -11016,8 +10573,8 @@
         "resolvedUnits": [
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": "product/apps/desktop/src/components/FileMentionAutocomplete.tsx"
@@ -11025,8 +10582,8 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": "product/apps/desktop/src/lib/fileMentionSystem.ts"
@@ -11040,10 +10597,6 @@
         "implementingPaths": [
           {
             "path": "product/apps/desktop/src-tauri/src/commands/git.rs",
-            "source": "spec-implements"
-          },
-          {
-            "path": "product/apps/desktop/src/components/GitPanel.tsx",
             "source": "spec-implements"
           },
           {
@@ -11069,8 +10622,8 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": "product/apps/desktop/src/components/GitPanel.tsx"
@@ -11083,10 +10636,6 @@
       {
         "implementingPaths": [
           {
-            "path": "product/apps/desktop/src/lib/panelEventBus.ts",
-            "source": "spec-implements"
-          },
-          {
             "name": "@opc/panel-event-bus",
             "path": "product/packages/panel-event-bus",
             "source": "cargo-metadata-crate"
@@ -11095,8 +10644,8 @@
         "resolvedUnits": [
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": "product/apps/desktop/src/lib/panelEventBus.ts"
@@ -11108,10 +10657,6 @@
       },
       {
         "implementingPaths": [
-          {
-            "path": ".claude/agents/conductor.md",
-            "source": "spec-implements"
-          },
           {
             "path": ".claude/commands/implement-plan.md",
             "source": "spec-implements"
@@ -11125,15 +10670,6 @@
         "resolvedUnits": [
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": ".claude/agents/conductor.md"
-            }
-          },
-          {
-            "kind": "file",
             "locations": [
               {
                 "file": ".claude/commands/implement-plan.md"
@@ -11145,6 +10681,15 @@
               "kind": "file",
               "path": ".claude/commands/implement-plan.md"
             }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".claude/agents/conductor.md"
+            }
           }
         ],
         "specId": "061-conductor-track-lifecycle",
@@ -11152,10 +10697,6 @@
       },
       {
         "implementingPaths": [
-          {
-            "path": "crates/agent/src/chain.rs",
-            "source": "spec-implements"
-          },
           {
             "name": "@opc/multi-model-chaining",
             "path": "product/packages/multi-model-chaining",
@@ -11165,8 +10706,8 @@
         "resolvedUnits": [
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": "crates/agent/src/chain.rs"
@@ -11272,22 +10813,9 @@
           {
             "path": "product/apps/desktop",
             "source": "spec-implements"
-          },
-          {
-            "path": "product/apps/desktop/src/lib/wsReconnection.ts",
-            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "product/apps/desktop/src/lib/wsReconnection.ts"
-            }
-          },
           {
             "kind": "crate",
             "locations": [
@@ -12293,6 +11821,15 @@
             "unit": {
               "id": "@opc/desktop",
               "kind": "crate"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/lib/wsReconnection.ts"
             }
           }
         ],
@@ -12304,35 +11841,9 @@
           {
             "path": "product/apps/desktop",
             "source": "spec-implements"
-          },
-          {
-            "path": "product/apps/desktop/src-tauri/src/keychain.rs",
-            "source": "spec-implements"
-          },
-          {
-            "path": "product/apps/desktop/src/components/CredentialPicker.tsx",
-            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "product/apps/desktop/src-tauri/src/keychain.rs"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "product/apps/desktop/src/components/CredentialPicker.tsx"
-            }
-          },
           {
             "kind": "crate",
             "locations": [
@@ -13339,25 +12850,38 @@
               "id": "@opc/desktop",
               "kind": "crate"
             }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/src/keychain.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/CredentialPicker.tsx"
+            }
           }
         ],
         "specId": "065-encrypted-keychain",
         "specStatus": "approved"
       },
       {
-        "implementingPaths": [
-          {
-            "path": "product/packages/vscode-extension",
-            "source": "spec-implements"
-          }
-        ],
+        "implementingPaths": [],
         "resolvedUnits": [
           {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "kind": "directory",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
-              "kind": "file",
+              "kind": "directory",
               "path": "product/packages/vscode-extension"
             }
           }
@@ -13689,10 +13213,6 @@
             "source": "comment-header"
           },
           {
-            "path": "crates/agent/src/prompt_assembly.rs",
-            "source": "spec-implements"
-          },
-          {
             "name": "@opc/prompt-assembly",
             "path": "product/packages/prompt-assembly",
             "source": "cargo-metadata-crate"
@@ -13701,8 +13221,8 @@
         "resolvedUnits": [
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": "crates/agent/src/prompt_assembly.rs"
@@ -13989,14 +13509,6 @@
           {
             "path": "platform/services/deployd-api-rs",
             "source": "multiple"
-          },
-          {
-            "path": "product/apps/desktop/src-tauri/src/commands/search.rs",
-            "source": "spec-implements"
-          },
-          {
-            "path": "product/apps/desktop/src-tauri/src/commands/titor.rs",
-            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
@@ -14285,8 +13797,8 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "supersedes",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": "product/apps/desktop/src-tauri/src/commands/search.rs"
@@ -14294,8 +13806,8 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "supersedes",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": "product/apps/desktop/src-tauri/src/commands/titor.rs"
@@ -14310,10 +13822,6 @@
           {
             "path": "crates/factory-contracts",
             "source": "multiple"
-          },
-          {
-            "path": "factory",
-            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
@@ -14383,11 +13891,11 @@
             }
           },
           {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "kind": "directory",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
-              "kind": "file",
+              "kind": "directory",
               "path": "factory"
             }
           }
@@ -14463,22 +13971,9 @@
           {
             "path": "product/apps/desktop",
             "source": "spec-implements"
-          },
-          {
-            "path": "product/apps/desktop/src/components/FactoryPipelinePanel.tsx",
-            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "product/apps/desktop/src/components/FactoryPipelinePanel.tsx"
-            }
-          },
           {
             "kind": "crate",
             "locations": [
@@ -15484,6 +14979,15 @@
             "unit": {
               "id": "@opc/desktop",
               "kind": "crate"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/FactoryPipelinePanel.tsx"
             }
           }
         ],
@@ -15915,19 +15419,14 @@
         "specStatus": "approved"
       },
       {
-        "implementingPaths": [
-          {
-            "path": "factory",
-            "source": "spec-implements"
-          }
-        ],
+        "implementingPaths": [],
         "resolvedUnits": [
           {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "refines",
+            "kind": "directory",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
-              "kind": "file",
+              "kind": "directory",
               "path": "factory"
             }
           }
@@ -17273,63 +16772,11 @@
       {
         "implementingPaths": [
           {
-            "path": "CHANGELOG.md",
-            "source": "spec-implements"
-          },
-          {
-            "path": "CODE_OF_CONDUCT.md",
-            "source": "spec-implements"
-          },
-          {
-            "path": "CONTRIBUTING.md",
-            "source": "spec-implements"
-          },
-          {
-            "path": "SECURITY.md",
-            "source": "spec-implements"
-          },
-          {
             "path": "docs/ARCHITECTURE.md",
             "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "CHANGELOG.md"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "CODE_OF_CONDUCT.md"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "CONTRIBUTING.md"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "SECURITY.md"
-            }
-          },
           {
             "kind": "file",
             "locations": [
@@ -17342,6 +16789,42 @@
             "unit": {
               "kind": "file",
               "path": "docs/ARCHITECTURE.md"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "CHANGELOG.md"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "CODE_OF_CONDUCT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "CONTRIBUTING.md"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "SECURITY.md"
             }
           }
         ],
@@ -17387,10 +16870,6 @@
           },
           {
             "path": "platform/services/stagecraft/api/sync/types.ts",
-            "source": "spec-implements"
-          },
-          {
-            "path": "product/packages/project-sdk",
             "source": "spec-implements"
           },
           {
@@ -17485,51 +16964,17 @@
             }
           },
           {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "kind": "directory",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
-              "kind": "file",
+              "kind": "directory",
               "path": "product/packages/project-sdk"
             }
           }
         ],
         "specId": "087-unified-workspace-architecture",
         "specStatus": "approved"
-      },
-      {
-        "dependsOn": [
-          "074",
-          "075"
-        ],
-        "implementingPaths": [
-          {
-            "path": "factory/upstream-map.yaml",
-            "source": "spec-implements"
-          }
-        ],
-        "resolvedUnits": [
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "factory/upstream-map.yaml"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "supersedes",
-            "unit": {
-              "kind": "file",
-              "path": "factory/upstream-map.yaml"
-            }
-          }
-        ],
-        "specId": "088-factory-upstream-sync",
-        "specStatus": "superseded"
       },
       {
         "dependsOn": [
@@ -18652,14 +18097,6 @@
         ],
         "implementingPaths": [
           {
-            "path": ".derived/codebase-index/index.json",
-            "source": "spec-implements"
-          },
-          {
-            "path": "standards/schemas/spec-spine/codebase-index.schema.json",
-            "source": "spec-implements"
-          },
-          {
             "name": "open_agentic_code_index_enrich",
             "path": "tools/oap/oap-code-index-enrich",
             "source": "cargo-metadata-crate"
@@ -18687,34 +18124,6 @@
           }
         ],
         "resolvedUnits": [
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": ".derived/codebase-index/index.json"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": ".derived/codebase-index/index.json"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "standards/schemas/spec-spine/codebase-index.schema.json"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "standards/schemas/spec-spine/codebase-index.schema.json"
-            }
-          },
           {
             "kind": "file",
             "locations": [
@@ -18769,6 +18178,34 @@
             "unit": {
               "kind": "file",
               "path": "tools/spec-spine/codebase-indexer/src/spec_scanner.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".derived/codebase-index/index.json"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".derived/codebase-index/index.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "standards/schemas/spec-spine/codebase-index.schema.json"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "standards/schemas/spec-spine/codebase-index.schema.json"
             }
           }
         ],
@@ -18839,14 +18276,6 @@
             "source": "comment-header"
           },
           {
-            "path": "factory/contract/checks",
-            "source": "spec-implements"
-          },
-          {
-            "path": "factory/contract/schemas/governance-certificate.schema.json",
-            "source": "spec-implements"
-          },
-          {
             "name": "open_agentic_registry_enrich",
             "path": "tools/oap/oap-registry-enrich",
             "source": "cargo-metadata-crate"
@@ -18888,24 +18317,6 @@
             "unit": {
               "kind": "file",
               "path": "crates/factory-engine/src/governance_certificate.rs"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "factory/contract/checks"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "factory/contract/schemas/governance-certificate.schema.json"
             }
           },
           {
@@ -19021,6 +18432,24 @@
               "kind": "file",
               "path": "tools/spec-spine/spec-compiler/src/lib.rs"
             }
+          },
+          {
+            "kind": "directory",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "factory/contract/checks"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "factory/contract/schemas/governance-certificate.schema.json"
+            }
           }
         ],
         "specId": "102-governed-excellence",
@@ -19111,17 +18540,22 @@
         ],
         "resolvedUnits": [
           {
-            "kind": "file",
+            "kind": "section",
             "locations": [
               {
-                "file": "Makefile"
+                "file": "Makefile",
+                "span": {
+                  "endLine": 624,
+                  "startLine": 620
+                }
               }
             ],
             "ownership": true,
             "sourceField": "co_authority",
             "unit": {
-              "kind": "file",
-              "path": "Makefile"
+              "anchor": "ci-parity",
+              "file": "Makefile",
+              "kind": "section"
             }
           },
           {
@@ -19283,14 +18717,6 @@
             "source": "spec-implements"
           },
           {
-            "path": "platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml",
-            "source": "spec-implements"
-          },
-          {
             "path": "platform/infra/hetzner/setup.sh",
             "source": "spec-implements"
           },
@@ -19301,41 +18727,9 @@
           {
             "path": "platform/services/stagecraft/api/auth/rauthy.ts",
             "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/api/auth/rauthySeed.ts",
-            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml"
-            }
-          },
           {
             "kind": "file",
             "locations": [
@@ -19348,15 +18742,6 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/auth/membershipResolver.ts"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/auth/rauthySeed.ts"
             }
           },
           {
@@ -19434,6 +18819,43 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/auth/rauthy.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/auth/rauthySeed.ts"
             }
           }
         ],
@@ -19831,10 +19253,6 @@
             "source": "spec-implements"
           },
           {
-            "path": "platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx",
-            "source": "spec-implements"
-          },
-          {
             "path": "product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs",
             "source": "spec-implements"
           },
@@ -20045,15 +19463,6 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx"
-            }
-          },
-          {
-            "kind": "file",
             "locations": [
               {
                 "file": "product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs"
@@ -20092,6 +19501,15 @@
             "unit": {
               "kind": "file",
               "path": "product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.workspace.agents.tsx"
             }
           }
         ],
@@ -20435,10 +19853,6 @@
         ],
         "implementingPaths": [
           {
-            "path": "platform/services/stagecraft/api/projects/clone.test.ts",
-            "source": "spec-implements"
-          },
-          {
             "path": "platform/services/stagecraft/api/projects/clone.ts",
             "source": "spec-implements"
           },
@@ -20476,15 +19890,6 @@
           }
         ],
         "resolvedUnits": [
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/projects/clone.test.ts"
-            }
-          },
           {
             "kind": "file",
             "locations": [
@@ -20609,6 +20014,15 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/web/app/routes/app.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projects/clone.test.ts"
             }
           }
         ],
@@ -21269,7 +20683,7 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 663,
+                  "endLine": 619,
                   "startLine": 573
                 }
               }
@@ -21404,10 +20818,6 @@
         ],
         "implementingPaths": [
           {
-            "path": ".derived/codebase-index/CODEBASE-INDEX.md",
-            "source": "spec-implements"
-          },
-          {
             "path": ".github/workflows",
             "source": "spec-implements"
           },
@@ -21528,8 +20938,8 @@
                 "file": ".derived/codebase-index/CODEBASE-INDEX.md"
               }
             ],
-            "ownership": true,
-            "sourceField": "extends",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": ".derived/codebase-index/CODEBASE-INDEX.md"
@@ -21665,10 +21075,6 @@
           },
           {
             "path": "platform/services/stagecraft/api/sync",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/api/workspaces",
             "source": "spec-implements"
           },
           {
@@ -22518,11 +21924,11 @@
             }
           },
           {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "extends",
+            "kind": "directory",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
-              "kind": "file",
+              "kind": "directory",
               "path": "platform/services/stagecraft/api/workspaces"
             }
           },
@@ -23817,14 +23223,6 @@
             "source": "comment-header"
           },
           {
-            "path": "crates/factory-engine/skills/business-requirements-analyst.md",
-            "source": "spec-implements"
-          },
-          {
-            "path": "crates/factory-engine/skills/validate.md",
-            "source": "spec-implements"
-          },
-          {
             "path": "crates/factory-engine/src/project_config.rs",
             "source": "comment-header"
           },
@@ -23835,10 +23233,6 @@
           {
             "path": "crates/factory-engine/src/stages/quality_gates.rs",
             "source": "multiple"
-          },
-          {
-            "path": "crates/factory-engine/src/stages/s1_business_requirements.rs",
-            "source": "spec-implements"
           },
           {
             "path": "crates/policy-kernel/src/provenance_policy.rs",
@@ -23856,10 +23250,6 @@
           {
             "path": "crates/provenance-validator/src/allowlist.rs",
             "source": "multiple"
-          },
-          {
-            "path": "crates/provenance-validator/src/anchor.rs",
-            "source": "spec-implements"
           },
           {
             "path": "crates/provenance-validator/src/bin/audit.rs",
@@ -23884,10 +23274,6 @@
           {
             "path": "crates/provenance-validator/src/validator.rs",
             "source": "comment-header"
-          },
-          {
-            "path": "platform/services/stagecraft/api/governance/provenancePolicy.ts",
-            "source": "spec-implements"
           },
           {
             "path": "product/apps/desktop/src-tauri/src/commands/provenance.rs",
@@ -23952,15 +23338,6 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "crates/provenance-validator/src/anchor.rs"
-            }
-          },
-          {
-            "kind": "file",
             "locations": [
               {
                 "file": "crates/provenance-validator/src/citation.rs"
@@ -23989,33 +23366,6 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/governance/provenancePolicy.ts"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
-              "path": "crates/factory-engine/skills/business-requirements-analyst.md"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
-              "path": "crates/factory-engine/skills/validate.md"
-            }
-          },
-          {
-            "kind": "file",
             "locations": [
               {
                 "file": "crates/factory-engine/src/stages/quality_gates.rs"
@@ -24030,11 +23380,47 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "extends",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/skills/business-requirements-analyst.md"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/skills/validate.md"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": "crates/factory-engine/src/stages/s1_business_requirements.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "crates/provenance-validator/src/anchor.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/governance/provenancePolicy.ts"
             }
           }
         ],
@@ -24053,14 +23439,6 @@
           {
             "path": "crates/factory-contracts/src/stakeholder_docs.rs",
             "source": "multiple"
-          },
-          {
-            "path": "crates/factory-engine/skills/client-document-comparator.md",
-            "source": "spec-implements"
-          },
-          {
-            "path": "crates/factory-engine/skills/project-charter-comparator.md",
-            "source": "spec-implements"
           },
           {
             "path": "crates/factory-engine/src/bin/migrate_stakeholder_docs.rs",
@@ -24117,24 +23495,6 @@
           }
         ],
         "resolvedUnits": [
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "crates/factory-engine/skills/client-document-comparator.md"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "crates/factory-engine/skills/project-charter-comparator.md"
-            }
-          },
           {
             "kind": "file",
             "locations": [
@@ -24203,6 +23563,24 @@
             "unit": {
               "kind": "file",
               "path": "crates/factory-engine/src/stages/stage_cd.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/skills/client-document-comparator.md"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/skills/project-charter-comparator.md"
             }
           }
         ],
@@ -25375,17 +24753,22 @@
         ],
         "resolvedUnits": [
           {
-            "kind": "file",
+            "kind": "section",
             "locations": [
               {
-                "file": "Makefile"
+                "file": "Makefile",
+                "span": {
+                  "endLine": 665,
+                  "startLine": 625
+                }
               }
             ],
             "ownership": true,
             "sourceField": "co_authority",
             "unit": {
-              "kind": "file",
-              "path": "Makefile"
+              "anchor": "ci-fast",
+              "file": "Makefile",
+              "kind": "section"
             }
           },
           {
@@ -25458,8 +24841,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 892,
-                  "startLine": 664
+                  "endLine": 894,
+                  "startLine": 666
                 }
               }
             ],
@@ -25918,59 +25301,41 @@
         ],
         "resolvedUnits": [
           {
-            "kind": "file",
+            "kind": "section",
             "locations": [
               {
-                "file": "platform/charts/tenant-hello/templates/ingress.yaml"
+                "file": "platform/charts/tenant-hello/templates/ingress.yaml",
+                "span": {
+                  "endLine": 23,
+                  "startLine": 8
+                }
               }
             ],
             "ownership": true,
             "sourceField": "co_authority",
             "unit": {
-              "kind": "file",
-              "path": "platform/charts/tenant-hello/templates/ingress.yaml"
+              "anchor": "access-gate",
+              "file": "platform/charts/tenant-hello/templates/ingress.yaml",
+              "kind": "section"
             }
           },
           {
-            "kind": "file",
+            "kind": "section",
             "locations": [
               {
-                "file": "platform/charts/tenant-hello/values.yaml"
+                "file": "platform/charts/tenant-hello/values.yaml",
+                "span": {
+                  "endLine": 58,
+                  "startLine": 43
+                }
               }
             ],
             "ownership": true,
             "sourceField": "co_authority",
             "unit": {
-              "kind": "file",
-              "path": "platform/charts/tenant-hello/values.yaml"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "co_authority",
-            "unit": {
-              "kind": "file",
-              "path": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "platform/infra/hetzner/setup.sh"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "co_authority",
-            "unit": {
-              "kind": "file",
-              "path": "platform/infra/hetzner/setup.sh"
+              "anchor": "access-gate",
+              "file": "platform/charts/tenant-hello/values.yaml",
+              "kind": "section"
             }
           },
           {
@@ -26027,6 +25392,44 @@
             "unit": {
               "anchor": "gate-overlay",
               "file": "platform/services/deployd-api-rs/src/routes.rs",
+              "kind": "section"
+            }
+          },
+          {
+            "kind": "section",
+            "locations": [
+              {
+                "file": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml",
+                "span": {
+                  "endLine": 61,
+                  "startLine": 46
+                }
+              }
+            ],
+            "ownership": true,
+            "sourceField": "co_authority",
+            "unit": {
+              "anchor": "reflector-annotations",
+              "file": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml",
+              "kind": "section"
+            }
+          },
+          {
+            "kind": "section",
+            "locations": [
+              {
+                "file": "platform/infra/hetzner/setup.sh",
+                "span": {
+                  "endLine": 237,
+                  "startLine": 228
+                }
+              }
+            ],
+            "ownership": true,
+            "sourceField": "co_authority",
+            "unit": {
+              "anchor": "reflector-install",
+              "file": "platform/infra/hetzner/setup.sh",
               "kind": "section"
             }
           },
@@ -28641,7 +28044,7 @@
         ],
         "implementingPaths": [
           {
-            "path": "crates/Cargo.lock",
+            "path": "Cargo.lock",
             "source": "spec-implements"
           },
           {
@@ -28656,11 +28059,16 @@
         "resolvedUnits": [
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": "Cargo.lock"
+              }
+            ],
             "ownership": true,
             "sourceField": "refines",
             "unit": {
               "kind": "file",
-              "path": "crates/Cargo.lock"
+              "path": "Cargo.lock"
             }
           },
           {
@@ -29013,17 +28421,22 @@
         ],
         "resolvedUnits": [
           {
-            "kind": "file",
+            "kind": "section",
             "locations": [
               {
-                "file": "platform/charts/deployd-api/values.yaml"
+                "file": "platform/charts/deployd-api/values.yaml",
+                "span": {
+                  "endLine": 31,
+                  "startLine": 20
+                }
               }
             ],
             "ownership": true,
             "sourceField": "co_authority",
             "unit": {
-              "kind": "file",
-              "path": "platform/charts/deployd-api/values.yaml"
+              "anchor": "resources",
+              "file": "platform/charts/deployd-api/values.yaml",
+              "kind": "section"
             }
           },
           {
@@ -29170,28 +28583,14 @@
         "specStatus": "approved"
       },
       {
-        "implementingPaths": [
-          {
-            "path": "crates/auth-driver/",
-            "source": "spec-implements"
-          }
-        ],
+        "implementingPaths": [],
         "resolvedUnits": [
           {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "kind": "directory",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
-              "kind": "file",
-              "path": "crates/auth-driver/"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
+              "kind": "directory",
               "path": "crates/auth-driver/"
             }
           }
@@ -29200,28 +28599,14 @@
         "specStatus": "draft"
       },
       {
-        "implementingPaths": [
-          {
-            "path": "crates/auth-driver-saml/",
-            "source": "spec-implements"
-          }
-        ],
+        "implementingPaths": [],
         "resolvedUnits": [
           {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
+            "kind": "directory",
+            "ownership": false,
+            "sourceField": "references",
             "unit": {
-              "kind": "file",
-              "path": "crates/auth-driver-saml/"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
+              "kind": "directory",
               "path": "crates/auth-driver-saml/"
             }
           }
@@ -29241,10 +28626,6 @@
           },
           {
             "path": "platform/Makefile",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/charts/rauthy/values-hetzner.yaml",
             "source": "spec-implements"
           },
           {
@@ -29324,10 +28705,6 @@
             "source": "spec-implements"
           },
           {
-            "path": "specs/137-tenant-environment-access-gates/tasks.md",
-            "source": "spec-implements"
-          },
-          {
             "path": "specs/151-declarative-cluster-reconciliation/execution/drift-detection.md",
             "source": "spec-implements"
           },
@@ -29342,82 +28719,79 @@
         ],
         "resolvedUnits": [
           {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "co_authority",
-            "unit": {
-              "kind": "file",
-              "path": "platform/charts/rauthy/values-hetzner.yaml"
-            }
-          },
-          {
-            "kind": "file",
+            "kind": "section",
             "locations": [
               {
-                "file": "platform/infra/hetzner/.env.example"
+                "file": "platform/infra/hetzner/setup.sh",
+                "span": {
+                  "endLine": 219,
+                  "startLine": 187
+                }
               }
             ],
             "ownership": true,
             "sourceField": "co_authority",
             "unit": {
-              "kind": "file",
-              "path": "platform/infra/hetzner/.env.example"
+              "anchor": "bootstrap",
+              "file": "platform/infra/hetzner/setup.sh",
+              "kind": "section"
             }
           },
           {
-            "kind": "file",
+            "kind": "section",
             "locations": [
               {
-                "file": "platform/infra/hetzner/cluster.yaml"
+                "file": "platform/infra/hetzner/post-create.sh",
+                "span": {
+                  "endLine": 62,
+                  "startLine": 25
+                }
               }
             ],
             "ownership": true,
             "sourceField": "co_authority",
             "unit": {
-              "kind": "file",
-              "path": "platform/infra/hetzner/cluster.yaml"
+              "anchor": "cert-nginx-strikes",
+              "file": "platform/infra/hetzner/post-create.sh",
+              "kind": "section"
             }
           },
           {
-            "kind": "file",
+            "kind": "section",
             "locations": [
               {
-                "file": "platform/infra/hetzner/post-create.sh"
+                "file": "platform/infra/hetzner/.env.example",
+                "span": {
+                  "endLine": 20,
+                  "startLine": 11
+                }
               }
             ],
             "ownership": true,
             "sourceField": "co_authority",
             "unit": {
-              "kind": "file",
-              "path": "platform/infra/hetzner/post-create.sh"
+              "anchor": "env-vars",
+              "file": "platform/infra/hetzner/.env.example",
+              "kind": "section"
             }
           },
           {
-            "kind": "file",
+            "kind": "section",
             "locations": [
               {
-                "file": "platform/infra/hetzner/setup.sh"
+                "file": "platform/infra/hetzner/cluster.yaml",
+                "span": {
+                  "endLine": 9,
+                  "startLine": 7
+                }
               }
             ],
             "ownership": true,
             "sourceField": "co_authority",
             "unit": {
-              "kind": "file",
-              "path": "platform/infra/hetzner/setup.sh"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "specs/137-tenant-environment-access-gates/tasks.md"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "co_authority",
-            "unit": {
-              "kind": "file",
-              "path": "specs/137-tenant-environment-access-gates/tasks.md"
+              "anchor": "k3s-version",
+              "file": "platform/infra/hetzner/cluster.yaml",
+              "kind": "section"
             }
           },
           {
@@ -29795,6 +29169,10 @@
         ],
         "implementingPaths": [
           {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
             "path": "standards/schemas/spec-spine/codebase-index.schema.json",
             "source": "spec-implements"
           },
@@ -29841,6 +29219,22 @@
           },
           {
             "path": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/tests",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-lint/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-lint/tests/lint.rs",
             "source": "spec-implements"
           }
         ],
@@ -29896,6 +29290,67 @@
             "unit": {
               "kind": "directory",
               "path": "tools/spec-spine/codebase-indexer/src/resolver"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/code_aliases.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/exit_codes.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/github_yaml_excluded.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/golden.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/risk_validation.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/schema_conformance.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec154_unit_grammar.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec154_unit_grammar_negative.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v004_consolidation_excludes.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v011_unamendable.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v014_implements_list_rejected.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "directory",
+              "path": "tools/spec-spine/spec-compiler/tests"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
             }
           },
           {
@@ -30036,6 +29491,48 @@
             "unit": {
               "kind": "file",
               "path": "tools/spec-spine/spec-code-coupling-check/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-compiler/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-compiler/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-lint/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-lint/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-lint/tests/lint.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-lint/tests/lint.rs"
             }
           },
           {
@@ -30703,6 +30200,11 @@
       }
     ],
     "orphanedSpecs": [
+      "066-vscode-extension",
+      "081-factory-test-hydration",
+      "088-factory-upstream-sync",
+      "148-auth-driver-registry",
+      "149-saml-auth-driver",
       "150-example-tenant-profile",
       "157-opc-session-model"
     ],

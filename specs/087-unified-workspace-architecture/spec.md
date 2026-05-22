@@ -34,7 +34,9 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/sync/relay.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/sync/store.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/sync/registry.ts }
-  - product/packages/project-sdk
+references:
+  - role: historical
+    unit: { kind: directory, path: product/packages/project-sdk }
 ---
 
 # 087 — Unified Project Architecture

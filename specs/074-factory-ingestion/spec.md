@@ -16,7 +16,9 @@ summary: >
 code_aliases: ["FACTORY_INGESTION", "FACTORY_CONTRACTS"]
 establishes:
   - unit: { kind: crate, id: factory-contracts }
-  - factory
+references:
+  - role: historical
+    unit: { kind: directory, path: factory }
 ---
 
 # Feature Specification: Factory Ingestion as First-Class Delivery Engine

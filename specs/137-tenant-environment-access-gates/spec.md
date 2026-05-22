@@ -42,12 +42,12 @@ extends:
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
 co_authority:
-  - paths:
-      - platform/charts/tenant-hello/values.yaml
-      - platform/charts/tenant-hello/templates/ingress.yaml
-    section: access-gate
-    with_specs:
+  - with_specs:
       - "136-tenant-hello-demo-service"
+    unit: { kind: section, file: platform/charts/tenant-hello/values.yaml, anchor: access-gate }
+  - with_specs:
+      - "136-tenant-hello-demo-service"
+    unit: { kind: section, file: platform/charts/tenant-hello/templates/ingress.yaml, anchor: access-gate }
   - with_specs:
       - "073-axiomregent-unification"
       - "136-tenant-hello-demo-service"
@@ -59,18 +59,14 @@ co_authority:
   - with_specs:
       - "077-stagecraft-factory-api"
     unit: { kind: section, file: platform/services/stagecraft/api/deploy/deploy.ts, anchor: access-gate-wire }
-  - paths:
-      - platform/infra/hetzner/setup.sh
-    section: reflector-install
-    with_specs:
+  - with_specs:
       - "072-multi-cloud-k8s-portability"
       - "106-rauthy-native-oidc-and-membership"
       - "143-presigned-upload-public-endpoint"
-  - paths:
-      - platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml
-    section: reflector-annotations
-    with_specs:
+    unit: { kind: section, file: platform/infra/hetzner/setup.sh, anchor: reflector-install }
+  - with_specs:
       - "106-rauthy-native-oidc-and-membership"
+    unit: { kind: section, file: platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml, anchor: reflector-annotations }
 summary: >
   Per-environment access gating for projects deployed via deployd-api,
   applied above the tenant app so tenant codebases carry no auth logic.

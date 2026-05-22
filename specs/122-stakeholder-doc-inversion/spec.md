@@ -35,10 +35,13 @@ depends_on:
   - "121"  # claim-provenance-enforcement (validator + allowlist reused at Stage CD comparator)
 establishes:
   - unit: { kind: file, path: crates/factory-engine/src/stages/stage_cd_comparator.rs }
-  - crates/factory-engine/skills/client-document-comparator.md
-  - crates/factory-engine/skills/project-charter-comparator.md
   - unit: { kind: file, path: tools/oap/stakeholder-doc-lint/Cargo.toml }
   - unit: { kind: file, path: product/apps/desktop/src/components/factory/StageCdReview.tsx }
+references:
+  - role: historical
+    unit: { kind: file, path: crates/factory-engine/skills/client-document-comparator.md }
+  - role: historical
+    unit: { kind: file, path: crates/factory-engine/skills/project-charter-comparator.md }
 extends:
   - spec: "075-factory-workflow-engine"
     nature: wrapping

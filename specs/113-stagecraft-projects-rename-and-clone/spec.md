@@ -53,10 +53,9 @@ extends:
   - spec: "112-factory-project-lifecycle"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneAvailability.test.ts }
-  - spec: "112-factory-project-lifecycle"
-    paths:
-      - platform/services/stagecraft/api/projects/clone.test.ts
-    nature: additive
+references:
+  - role: historical
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/clone.test.ts }
 ---
 
 # 113 — Stagecraft Projects Rename + In-Org Project Clone

@@ -402,7 +402,9 @@ establishes:
     let w = lint_repo(root);
     let l005: Vec<_> = w.iter().filter(|x| x.code == "L-005").collect();
     assert_eq!(l005.len(), 1, "expected one L-005, got: {:?}", w);
-    assert_eq!(l005[0].severity, "info");
+    // Spec 154 Segment 6: L-005 severity promoted info → error in
+    // lockstep with the bare-string parse-arm excision.
+    assert_eq!(l005[0].severity, "error");
     assert!(l005[0].message.contains("crates/foo"));
 }
 

@@ -17,9 +17,11 @@ summary: >
   to the selected agent.
 code_aliases:
   - FILE_MENTION
-establishes:
-  - product/apps/desktop/src/components/FileMentionAutocomplete.tsx
-  - product/apps/desktop/src/lib/fileMentionSystem.ts
+references:
+  - role: historical
+    unit: { kind: file, path: product/apps/desktop/src/components/FileMentionAutocomplete.tsx }
+  - role: historical
+    unit: { kind: file, path: product/apps/desktop/src/lib/fileMentionSystem.ts }
 ---
 
 # Feature Specification: @-Mention Autocomplete for Files and Agents

@@ -14,10 +14,7 @@ amends:
 depends_on:
   - "104"
 co_authority:
-  - paths:
-      - Makefile
-    section: ci-fast
-    with_specs:
+  - with_specs:
       - "102-governed-excellence"
       - "104-makefile-ci-parity-contract"
       - "105-axiomregent-sidecar"
@@ -25,6 +22,7 @@ co_authority:
       - "127-spec-code-coupling-gate"
       - "128-spec-lint-default-fail-on-warn"
       - "135-fast-ci-as-default"
+    unit: { kind: section, file: Makefile, anchor: ci-fast }
 extends:
   - spec: "104-makefile-ci-parity-contract"
     nature: additive

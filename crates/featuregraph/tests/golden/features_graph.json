@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:d2a790b8d18be1a30a293ba8439d19db15ef47f9e3f3ce13d3b63eef8a7a3b5d",
+  "graph_fingerprint": "sha256:1bd4843eae136bf2148a8f68b4e1862fc2f98371370a4bc098ff956f926cd298",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2820,7 +2820,9 @@
       "governance": "medium",
       "owner": "open-agentic-platform",
       "group": "",
-      "depends_on": [],
+      "depends_on": [
+        "147"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []
@@ -2848,7 +2850,9 @@
       "governance": "low",
       "owner": "open-agentic-platform",
       "group": "",
-      "depends_on": [],
+      "depends_on": [
+        "147"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []

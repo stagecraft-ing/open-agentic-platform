@@ -20,9 +20,11 @@ code_aliases:
 sources:
   - claudepal
   - claudecodeui
-establishes:
-  - product/apps/desktop/src-tauri/src/keychain.rs
-  - product/apps/desktop/src/components/CredentialPicker.tsx
+references:
+  - role: historical
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/keychain.rs }
+  - role: historical
+    unit: { kind: file, path: product/apps/desktop/src/components/CredentialPicker.tsx }
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
