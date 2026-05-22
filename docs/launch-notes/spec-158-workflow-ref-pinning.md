@@ -159,6 +159,78 @@ true.
 
 ---
 
+## Block 5 — CI evidence, platform-side
+
+The local blocks above prove the lint works. Block 5 proves the
+platform runs it the same way at the merge boundary — same script,
+same exit-code discipline, rendered job name as it appears in the
+GitHub UI captured for downstream `required_status_checks` binding.
+
+- **Branch:** `158-workflow-ref-sha-pinning-lint`
+- **Head SHA:** `54ba6a3fe9cd74a1a92a516742f3416cfcf4b9da`
+- **Workflow:** `CI supply-chain` (`.github/workflows/ci-supply-chain.yml`)
+- **Run ID:** `26277186106`
+- **Run URL:** https://github.com/stagecraft-ing/open-agentic-platform/actions/runs/26277186106
+- **Trigger:** `workflow_dispatch` (see process observation below)
+- **Conclusion:** success
+- **Rendered job name (the binding key for required_status_checks):**
+  `workflow-pins / SHA-pin enforcement`
+
+### Job log excerpt (lint + test runner steps)
+
+```
+Complete job name: workflow-pins / SHA-pin enforcement
+##[group]Run tools/lint/workflow-pins.sh
+tools/lint/workflow-pins.sh
+##[group]Run tools/lint/workflow-pins-test.sh
+tools/lint/workflow-pins-test.sh
+PASS: passing fixture → exit 0, silent
+PASS: failing fixture → exit 1, 5 violations on stderr
+PASS: bash 4+ gate present in lint source
+PASS: tree-wide scan → exit 0 (all current refs SHA-pinned)
+workflow-pins-test: all assertions passed
+```
+
+All four jobs in the run completed with conclusion `success`:
+`cargo-deny / advisories + bans + licenses + sources`,
+`pnpm-audit / desktop + packages`,
+`npm-audit / stagecraft`,
+`workflow-pins / SHA-pin enforcement`.
+
+### Process observation — auto-trigger gap
+
+On opening PR #195 (draft, then converted ready, then reverted to
+draft), zero workflows fired against the head SHA via the
+`pull_request:` event. `gh api repos/.../actions/runs?head_sha=...`
+returned an empty workflow run list across multiple polling
+intervals. `workflow_dispatch` against the same branch fired the
+expected jobs immediately, which is how Block 5's evidence was
+captured.
+
+Root cause not yet identified. Hypotheses worth checking before
+the launch-hardening sprint:
+
+1. A repo-level Actions approval policy that suppresses
+   `pull_request:` triggers for branches that modify workflow
+   files (a security posture some orgs enable).
+2. A queue or quota condition not visible from the gh CLI API
+   surface used here.
+3. Specific interaction between the path-glob expansion in this
+   PR (`.github/workflows/**`, `.github/actions/**`,
+   `tools/lint/**`) and GitHub's pull-request workflow scheduler.
+
+Captured here because it's directly relevant to the falsifier
+discipline: a CI gate that exists but does not fire is
+indistinguishable from a CI gate that does not exist. The
+required_status_checks binding (hardening step 3) MUST be
+configured against jobs that actually run on the relevant
+events, not jobs that exist in the workflow file but are silently
+skipped. Until the auto-trigger gap is diagnosed and resolved,
+the workflow_dispatch fallback is the verifiable path; merge-time
+enforcement via `required_status_checks` should not be enabled
+against a workflow whose `pull_request:` firing is not yet
+reliable.
+
 ## What the bundle authorises
 
 This file is not a press release. It is the evidence base for
