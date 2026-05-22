@@ -236,7 +236,7 @@ export async function validateJwt(token: string): Promise<OapClaims | null> {
       verifier.update(signatureInput);
       valid = verifier.verify(pubKey, signature);
     } else if (header.alg === "EdDSA" && key.kty === "OKP" && key.crv === "Ed25519" && key.x) {
-      const pubKey = createPublicKey({ key: key as unknown as import("crypto").JsonWebKey, format: "jwk" });
+      const pubKey = createPublicKey({ key: key as unknown as import("crypto").webcrypto.JsonWebKey, format: "jwk" });
       valid = cryptoVerify(null, signatureInput, pubKey, signature);
     } else {
       log.warn("JWT rejected: unsupported alg / JWK combination", {

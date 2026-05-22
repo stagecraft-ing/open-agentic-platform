@@ -132,7 +132,7 @@ export async function validateM2mJwt(token: string): Promise<M2mClaims | null> {
       (key as { crv?: string }).crv === "Ed25519" &&
       (key as { x?: string }).x
     ) {
-      const pubKey = createPublicKey({ key: key as unknown as import("node:crypto").JsonWebKey, format: "jwk" });
+      const pubKey = createPublicKey({ key: key as unknown as import("node:crypto").webcrypto.JsonWebKey, format: "jwk" });
       valid = cryptoVerify(null, signatureInput, pubKey, signature);
     } else {
       log.warn("Unsupported M2M JWT alg / JWK combination", {
