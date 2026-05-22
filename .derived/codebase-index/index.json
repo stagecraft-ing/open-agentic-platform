@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "ec172d5a2182bf78600b91054d350574ec7e664518a12f043015331ece99c8c1",
+    "contentHash": "44e902bc0104dc79cea40182e5f0796b80b671266aba3eee93afff5193cc7ebe",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -30199,6 +30199,4097 @@
         ],
         "specId": "159-v004-lint-fixture-exemption",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "074",
+          "075",
+          "077",
+          "108"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/.encore/manifest.json"
+              },
+              {
+                "file": "platform/services/stagecraft/.github/workflows/deploy.yml"
+              },
+              {
+                "file": "platform/services/stagecraft/.gitignore"
+              },
+              {
+                "file": "platform/services/stagecraft/CLAUDE.md"
+              },
+              {
+                "file": "platform/services/stagecraft/Dockerfile"
+              },
+              {
+                "file": "platform/services/stagecraft/Dockerfile.base"
+              },
+              {
+                "file": "platform/services/stagecraft/README.md"
+              },
+              {
+                "file": "platform/services/stagecraft/api/admin/admin.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/admin/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/admin/storage.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/agents.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/bindings.integration.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/bindings.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/bindings.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/catalog.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/catalog.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/dispatch.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/frontmatter/AgentType.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/frontmatter/GovernanceRequirement.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/frontmatter/HookDeclaration.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/frontmatter/HookHandlerType.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/frontmatter/MutationCapability.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/frontmatter/SafetyTier.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/frontmatter/UnifiedFrontmatter.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/frontmatter/index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/relay.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/agents/relay.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/audit/audit.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/auth.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/desktop-state.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/desktop.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/errorLog.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/github.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/handler.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/m2mAuth.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/m2mAuth.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/membership.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/membershipResolver.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/oidc.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/pat.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/patCrypto-pure.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/patCrypto.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/patCrypto.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/patProbe.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/rate-limit.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/rauthy-pure.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/rauthy.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/rauthy.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/rauthyAdminClients.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/rauthyCallback-pure.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/rauthyCallback.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/rauthyCallback.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/refreshCookie-pure.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/refreshCookie-pure.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/refreshCookie.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/refreshCookie.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/auth/sessionMint.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/drizzle.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/10_create_knowledge_intake.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/11_create_sync_runs.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/12_artifact_provenance.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/13_promotions.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/14_desktop_refresh_tokens.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/15_github_team_role_mappings.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/16_enterprise_oidc_federation.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/17_user_github_pats.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/18_factory_platform_feature.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/19_factory_pat_and_sync_runs.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/1_create_auth_tables.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/20_factory_pipeline_source.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/22_factory_project_lifecycle.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/23_document_bindings_cascade.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/26_clone_run_error_detail.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/27_collapse_workspace_into_project.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/28_collapse_workspace_phase_c.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/29_project_fk_cascade.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/2_seed_system_user.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/31_create_factory_runs.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/32_factory_artifact_substrate.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/32_factory_artifact_substrate.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/33_migrate_agent_catalog.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/33_migrate_agent_catalog.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/34_drop_legacy_factory_tables.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/34_drop_legacy_factory_tables.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/35_drop_legacy_agent_catalog_family.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/35_drop_legacy_agent_catalog_family.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/3_create_workspace_grants.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/5_create_project_tables.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/6_create_factory_tables.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/7_github_identity_onboarding.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/8_factory_artifact_persistence.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/9_create_workspaces.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/schema.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/test-fixtures/30_test_canonical.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/test-fixtures/30_test_canonical_assertions.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/test-fixtures/30_test_divergence.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/deploy/chartSelector.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/deploy/chartSelector.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/deploy/deploy.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/deploy/deploydClient.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/deploy/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/deploy/oidcM2m.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/deploy/secrets.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/environments/accessGates.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/environments/accessGates.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/environments/accessGatesDeploy.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/environments/accessGatesHelpers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/environments/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/adapter-scopes.json"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/agentCatalogMigration.dryrun.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/agentCatalogMigration.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/agentCatalogMigration.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/agentRefWalker.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/artifacts.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/artifacts.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/auditActions.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/bindings.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/browse.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/clone.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/conflicts.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/conflicts.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/events.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/factory.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/oapContracts.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/oapNativeIngest.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/oapNativeIngest.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/oapNativeSanitise.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/projection.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/projection.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/runAgentRefs.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/runAgentRefs.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/runDuplexHandlers.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/runDuplexHandlers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/runs.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/runs.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/runsMigration.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/runsScheduler.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/runsScheduler.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/stream.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/stream.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/substrate.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/substrate.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/substrateBrowser.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/sync.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/syncPipeline.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/syncRuns.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/syncWorker.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/tokenResolver.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/translator.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/translator.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/upstreamPat.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/upstreams.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/github/appJwt.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/github/repoInit.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/github/teamSync.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/github/token.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/github/webhook.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/grants/grants.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/auditActions.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/connectors/azure-blob.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/connectors/gcs.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/connectors/index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/connectors/registry.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/connectors/s3.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/connectors/sharepoint.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/connectors/types.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/connectors/upload.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractionCore.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractionEvents.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractionExternal.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractionExternal.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractionOutput.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractionOutput.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractionPolicy.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractionWorker.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/agent-base-cost.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/agent-base.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/agent-cost-helpers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/agent-image-vision.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/agent-pdf-vision.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/deterministic-docx.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/deterministic-text-helpers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/deterministic-text.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/deterministic-text.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/dispatch.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/dispatch.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractors/types.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/knowledge.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/listKnowledgeObjects.integration.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/magic.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/orphanSweeper.integration.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/orphanSweeper.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/prompts.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/prompts.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/requestUpload.integration.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/scheduler.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/storage.dualClient.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/storage.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/storage.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/uploadLimits.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/knowledge/uploadLimits.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/monitor/check.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/monitor/check.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/monitor/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/monitor/migrations/1_create_tables.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/monitor/ping.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/monitor/ping.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/monitor/status.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/policy/policy.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/clone.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/cloneAvailability.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/cloneAvailability.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/cloneAvailabilityHelpers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/cloneCore.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/cloneEvents.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/cloneHelpers.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/cloneHelpers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/cloneRunStatus.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/cloneWorker.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/create.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/create.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/import.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/import.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/importArtifacts.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/importHelpers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/importInstallations.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/opcBundle.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/opcBundle.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/opcBundleHelpers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/projectKnowledge.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/projectPat.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/projects.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/artifactExtract.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/createOapNative.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/deepLink.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/gitInitAndPush.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/githubOpenPr.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/githubOpenPr.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/githubRepoCreate.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/scheduler.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/scheduler.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/seedPipelineState.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/types.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffoldReadiness.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffoldReadiness.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/tokenResolver.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/site/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/site/migrations/1_create_tables.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/site/site.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/slack/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/slack/slack.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/duplex.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/projectCatalog.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/projectCatalog.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/projectCatalogRelay.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/reflection.md"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/registry.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/registry.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/relay.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/relay.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/store.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/store.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/sync.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/types.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/sync/types.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/bin/.gitignore"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/001_frontend_migration/00-meta.json"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/001_frontend_migration/01-implementation_plan.md"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/001_frontend_migration/02-task.md"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/001_frontend_migration/03-walkthrough.md"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/001_frontend_migration/05-status.json"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/002_saas_template/00-meta.json"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/002_saas_template/01-implementation_plan.md"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/002_saas_template/02-task.md"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/002_saas_template/03-walkthrough.md"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/002_saas_template/05-status.json"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/003_encore_react_integration/00-meta.json"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/003_encore_react_integration/01-implementation_plan.md"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/003_encore_react_integration/02-task.md"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/003_encore_react_integration/03-walkthrough.md"
+              },
+              {
+                "file": "platform/services/stagecraft/changes/003_encore_react_integration/05-status.json"
+              },
+              {
+                "file": "platform/services/stagecraft/docs/encore-custom-dockerfile.md"
+              },
+              {
+                "file": "platform/services/stagecraft/docs/encore-ts-reference.md"
+              },
+              {
+                "file": "platform/services/stagecraft/docs/factory/adapter-agent-examples.md"
+              },
+              {
+                "file": "platform/services/stagecraft/docs/factory/architecture.md"
+              },
+              {
+                "file": "platform/services/stagecraft/docs/factory/factory-evolution.md"
+              },
+              {
+                "file": "platform/services/stagecraft/docs/factory/how-to.md"
+              },
+              {
+                "file": "platform/services/stagecraft/docs/factory/oap-integration.md"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.app"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/auth/index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/clients/index.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/clients/index.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/auth/auth.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/combined/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/gateways/api-gateway/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/admin/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/agents/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/audit/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/auth/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/db/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/deploy/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/environments/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/factory/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/frontend/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/github/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/grants/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/knowledge/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/monitor/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/policy/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/projects/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/site/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/slack/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/sync/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/infra.config.hetzner.json"
+              },
+              {
+                "file": "platform/services/stagecraft/infra.config.json"
+              },
+              {
+                "file": "platform/services/stagecraft/package-lock.json"
+              },
+              {
+                "file": "platform/services/stagecraft/package.json"
+              },
+              {
+                "file": "platform/services/stagecraft/scripts/docker-build.sh"
+              },
+              {
+                "file": "platform/services/stagecraft/scripts/migrate.mjs"
+              },
+              {
+                "file": "platform/services/stagecraft/scripts/rekey-pats.mjs"
+              },
+              {
+                "file": "platform/services/stagecraft/scripts/seed-rauthy.mjs"
+              },
+              {
+                "file": "platform/services/stagecraft/spec/architecture.md"
+              },
+              {
+                "file": "platform/services/stagecraft/spec/core/audit.md"
+              },
+              {
+                "file": "platform/services/stagecraft/spec/core/auth.md"
+              },
+              {
+                "file": "platform/services/stagecraft/spec/core/rbac.md"
+              },
+              {
+                "file": "platform/services/stagecraft/spec/core/routing.md"
+              },
+              {
+                "file": "platform/services/stagecraft/spec/core/uptime-monitoring.md"
+              },
+              {
+                "file": "platform/services/stagecraft/spec/features.yaml"
+              },
+              {
+                "file": "platform/services/stagecraft/test/__mocks__/encore-api.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/test/__mocks__/encore-auth.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/test/__mocks__/encore-config.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/test/__mocks__/encore-log.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/test/__mocks__/encore-pubsub.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/test/spec143-fu015.config.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/test/spec145-deployd-scrub.config.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/tsconfig.json"
+              },
+              {
+                "file": "platform/services/stagecraft/tsconfig.tsbuildinfo"
+              },
+              {
+                "file": "platform/services/stagecraft/vite.config.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.gitignore"
+              },
+              {
+                "file": "platform/services/stagecraft/web/README.md"
+              },
+              {
+                "file": "platform/services/stagecraft/web/api.gateway.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/api.tools.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/app.css"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/components/OpenInOpcButton.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/components/artifact-body-viewer.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/components/artifact-body-viewer.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/components/artifact-merge-editor.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/components/factory-browser.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/agents-api.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/auth-api.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/auth.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/client.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/encore.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/factory-api.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/factory-run-helpers.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/factory-run-helpers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/fetchWithRefresh.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/fetchWithRefresh.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/form-data.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/pat-api.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/project-api.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/root.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/_index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.audit.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.oidc-providers.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.projects.$id.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.projects._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.projects.new.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.projects.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.sessions.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.signin.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.users.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.agents._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.agents.new.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.agents.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.adapters.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.contracts.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.processes.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.runs.$runId.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.runs._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.upstreams.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.agents._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.agents.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.connectors.$id.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.connectors.new.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.connectors.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.repos.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.projects.clone-availability.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.projects.import.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/auth.no-org.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/auth.org-select.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/signin.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/signup.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/assets/.gitkeep"
+              },
+              {
+                "file": "platform/services/stagecraft/web/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/public/favicon.ico"
+              },
+              {
+                "file": "platform/services/stagecraft/web/react-router.config.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/tsconfig.json"
+              },
+              {
+                "file": "platform/services/stagecraft/web/vite.config.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "directory",
+              "path": "platform/services/stagecraft"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/074-factory-ingestion/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/074-factory-ingestion/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/077-stagecraft-factory-api/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/077-stagecraft-factory-api/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/108-factory-as-platform-feature/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/108-factory-as-platform-feature/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/codebase-indexer/src/lib.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/codebase-indexer/src/lib.rs"
+            }
+          }
+        ],
+        "specId": "160-factory-adapter-stagecraft-relocation",
+        "specStatus": "draft"
+      },
+      {
+        "implementingPaths": [],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/120-factory-extraction-stage/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/120-factory-extraction-stage/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/156-references-edge-provenance-grammar/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/156-references-edge-provenance-grammar/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/163-stagecraft-requirements-view/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/163-stagecraft-requirements-view/spec.md"
+            }
+          }
+        ],
+        "specId": "161-knowledge-requirements-provenance-emission",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "072",
+          "075",
+          "102",
+          "108"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-engine",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "crates/factory-engine/Cargo.toml"
+              },
+              {
+                "file": "crates/factory-engine/src/agent_bridge.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/agent_resolver.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/artifact_store.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/build_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/factory_run.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/harness.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/migrate_stakeholder_docs.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/verify_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/checks.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/engine.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/factory_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/gate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/harness_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/lib.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/manifest_gen.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/migration/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/migration/stakeholder_docs.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/pipeline_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/policy_shard.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/preflight.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/project_config.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stagecraft_client.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/cascade_check.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/quality_gates.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/s_minus_1_extract.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_actions.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_comparator.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_gate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/standards_resolver.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/substrate_version.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/topo_sort.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/verify_harness.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/virtual_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/agent_resolver_test.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/requirements/stakeholder/charter.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/requirements/stakeholder/client-document.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/runs/run-001/stage-cd/charter.candidate.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/runs/run-001/stage-cd/client-document.candidate.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/integration_078_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/run_replay.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec-122-coverage.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_122_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/virtual_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/virtual_root_offline.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "constrains",
+            "unit": {
+              "kind": "directory",
+              "path": "crates/factory-engine"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "platform/k8s/policies/namespace-baseline/limitrange.yaml"
+              },
+              {
+                "file": "platform/k8s/policies/namespace-baseline/networkpolicy-default-deny.yaml"
+              },
+              {
+                "file": "platform/k8s/policies/namespace-baseline/resourcequota.yaml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "platform/k8s/policies/namespace-baseline"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/075-factory-workflow-engine/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/075-factory-workflow-engine/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/102-governed-excellence/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/102-governed-excellence/spec.md"
+            }
+          }
+        ],
+        "specId": "162-dockerised-execution-substrate",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "087",
+          "103",
+          "130",
+          "147",
+          "152",
+          "154",
+          "156",
+          "161"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/web/app/routes",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/_index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.audit.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.oidc-providers.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.projects.$id.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.projects._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.projects.new.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.projects.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.sessions.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.signin.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/admin.users.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.agents._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.agents.new.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.agents.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.adapters.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.contracts.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.processes.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.runs.$runId.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.runs._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.upstreams.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.agents._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.agents.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings._index.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.connectors.$id.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.connectors.new.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.connectors.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.repos.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.projects.clone-availability.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.projects.import.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/auth.no-org.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/auth.org-select.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/signin.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/signup.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "directory",
+              "path": "platform/services/stagecraft/web/app/routes"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/103-init-protocol-governed-reads/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/103-init-protocol-governed-reads/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/164-stagecraft-development-lifecycle-board/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/164-stagecraft-development-lifecycle-board/spec.md"
+            }
+          }
+        ],
+        "specId": "163-stagecraft-requirements-view",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "075",
+          "077",
+          "102",
+          "127",
+          "133",
+          "147",
+          "163"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/163-stagecraft-requirements-view/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/163-stagecraft-requirements-view/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx"
+            }
+          }
+        ],
+        "specId": "164-stagecraft-development-lifecycle-board",
+        "specStatus": "draft"
+      },
+      {
+        "implementingPaths": [],
+        "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "crates/axiomregent/Cargo.toml"
+              },
+              {
+                "file": "crates/axiomregent/src/agent_tools.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/blobs.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/diff.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/merkle.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/provider.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/store.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/types.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/verify.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/config/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/db/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/events.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/feature_tools.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/github/client.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/github/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/github/provider.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/internal_client.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/io/fs.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/io/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/lease.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/lib.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/main.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/platform_config.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/registry_bridge.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/audit_http.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/dlock.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/legacy_provider.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/oidc_client.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/permissions.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/policy_bundle.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/policy_http.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/provider.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/run_tools.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/search/embeddings.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/search/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/search/parser.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/search/provider.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/search/store.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/skill_provider.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/util/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/util/paths.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/util/stable.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/workspace/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/agent_integration.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/bin/encore"
+              },
+              {
+                "file": "crates/axiomregent/tests/golden/tools_list.json"
+              },
+              {
+                "file": "crates/axiomregent/tests/governed_dispatch_latency.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/mcp_contract.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/mcp_featuregraph_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/mcp_router_contract_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/mcp_tools_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/no_stdout_pollution.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/persistence.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/policy_preflight_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/run_streaming_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/snapshot_determinism.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/snapshot_pagination.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/snapshot_workspace_integration.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/stale_lease_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/stdio_integrity.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/test_helpers.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/tool_tier_coverage.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/verify_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/workspace_discovery_test.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "crates/axiomregent"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "crates/xray/Cargo.toml"
+              },
+              {
+                "file": "crates/xray/build.rs"
+              },
+              {
+                "file": "crates/xray/src/analysis/call_graph/mod.rs"
+              },
+              {
+                "file": "crates/xray/src/analysis/deps/mod.rs"
+              },
+              {
+                "file": "crates/xray/src/analysis/embeddings/mod.rs"
+              },
+              {
+                "file": "crates/xray/src/analysis/mod.rs"
+              },
+              {
+                "file": "crates/xray/src/analysis/structure/mod.rs"
+              },
+              {
+                "file": "crates/xray/src/canonical.rs"
+              },
+              {
+                "file": "crates/xray/src/context.rs"
+              },
+              {
+                "file": "crates/xray/src/digest.rs"
+              },
+              {
+                "file": "crates/xray/src/docs.rs"
+              },
+              {
+                "file": "crates/xray/src/fingerprint.rs"
+              },
+              {
+                "file": "crates/xray/src/hash.rs"
+              },
+              {
+                "file": "crates/xray/src/history.rs"
+              },
+              {
+                "file": "crates/xray/src/invariant_tests.rs"
+              },
+              {
+                "file": "crates/xray/src/language.rs"
+              },
+              {
+                "file": "crates/xray/src/lib.rs"
+              },
+              {
+                "file": "crates/xray/src/loc.rs"
+              },
+              {
+                "file": "crates/xray/src/main.rs"
+              },
+              {
+                "file": "crates/xray/src/policy.rs"
+              },
+              {
+                "file": "crates/xray/src/schema.rs"
+              },
+              {
+                "file": "crates/xray/src/tools.rs"
+              },
+              {
+                "file": "crates/xray/src/traversal.rs"
+              },
+              {
+                "file": "crates/xray/src/write.rs"
+              },
+              {
+                "file": "crates/xray/tests/fixtures/min_repo/README.md"
+              },
+              {
+                "file": "crates/xray/tests/fixtures/min_repo/cmd/main.rs"
+              },
+              {
+                "file": "crates/xray/tests/fixtures/min_repo/main.go"
+              },
+              {
+                "file": "crates/xray/tests/fixtures/min_repo/package.json"
+              },
+              {
+                "file": "crates/xray/tests/fixtures/min_repo/vendor/ignored.txt"
+              },
+              {
+                "file": "crates/xray/tests/golden_scan.rs"
+              },
+              {
+                "file": "crates/xray/tests/index_format_test.rs"
+              },
+              {
+                "file": "crates/xray/tests/outputs/index_format/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/index_format/index.json"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run1/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run1/index.json"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run2/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run2/index.json"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "crates/xray"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/120-factory-extraction-stage/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/120-factory-extraction-stage/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/161-knowledge-requirements-provenance-emission/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/161-knowledge-requirements-provenance-emission/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/163-stagecraft-requirements-view/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/163-stagecraft-requirements-view/spec.md"
+            }
+          }
+        ],
+        "specId": "165-opc-decomposition-pipeline",
+        "specStatus": "draft"
+      },
+      {
+        "implementingPaths": [],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "Makefile"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "Makefile"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-HARNESS-blueprint-spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-HARNESS-blueprint-spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/103-init-protocol-governed-reads/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/103-init-protocol-governed-reads/spec.md"
+            }
+          }
+        ],
+        "specId": "166-opc-stop-hook-gate-chain",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "000",
+          "001",
+          "075",
+          "120",
+          "127",
+          "147",
+          "165"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-engine",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "crates/factory-engine/Cargo.toml"
+              },
+              {
+                "file": "crates/factory-engine/src/agent_bridge.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/agent_resolver.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/artifact_store.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/build_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/factory_run.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/harness.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/migrate_stakeholder_docs.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/verify_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/checks.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/engine.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/factory_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/gate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/harness_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/lib.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/manifest_gen.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/migration/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/migration/stakeholder_docs.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/pipeline_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/policy_shard.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/preflight.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/project_config.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stagecraft_client.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/cascade_check.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/quality_gates.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/s_minus_1_extract.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_actions.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_comparator.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_gate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/standards_resolver.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/substrate_version.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/topo_sort.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/verify_harness.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/virtual_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/agent_resolver_test.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/requirements/stakeholder/charter.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/requirements/stakeholder/client-document.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/runs/run-001/stage-cd/charter.candidate.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/runs/run-001/stage-cd/client-document.candidate.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/integration_078_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/run_replay.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec-122-coverage.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_122_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/virtual_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/virtual_root_offline.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "directory",
+              "path": "crates/factory-engine"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "standards/spec/codes/.gitkeep"
+              },
+              {
+                "file": "standards/spec/constitution.md"
+              },
+              {
+                "file": "standards/spec/contract.md"
+              },
+              {
+                "file": "standards/spec/grammar/.gitkeep"
+              },
+              {
+                "file": "standards/spec/semver-policy.md"
+              },
+              {
+                "file": "standards/spec/spec-format.md"
+              },
+              {
+                "file": "standards/spec/templates/agent-file-template.md"
+              },
+              {
+                "file": "standards/spec/templates/checklist-template.md"
+              },
+              {
+                "file": "standards/spec/templates/constitution-template.md"
+              },
+              {
+                "file": "standards/spec/templates/plan-template.md"
+              },
+              {
+                "file": "standards/spec/templates/spec-template.md"
+              },
+              {
+                "file": "standards/spec/templates/tasks-template.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "standards/spec"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/000-bootstrap-spec-system/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/000-bootstrap-spec-system/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-code-coupling-check/Cargo.toml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-code-coupling-check/Cargo.toml"
+            }
+          }
+        ],
+        "specId": "167-born-with-spec-spine-kernel",
+        "specStatus": "draft"
+      },
+      {
+        "implementingPaths": [],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/102-governed-excellence/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/102-governed-excellence/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/167-born-with-spec-spine-kernel/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/167-born-with-spec-spine-kernel/spec.md"
+            }
+          }
+        ],
+        "specId": "168-per-project-governance-certificate",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "036",
+          "049",
+          "067",
+          "068"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/tool-registry/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/067-tool-definition-registry/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/067-tool-definition-registry/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/tool-registry/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/tool-registry/src/lib.rs"
+            }
+          }
+        ],
+        "specId": "169-tool-schema-strictness",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "035",
+          "074",
+          "075",
+          "102"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-engine",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/075-factory-workflow-engine/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/075-factory-workflow-engine/spec.md"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "crates/factory-engine/Cargo.toml"
+              },
+              {
+                "file": "crates/factory-engine/src/agent_bridge.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/agent_resolver.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/artifact_store.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/build_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/factory_run.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/harness.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/migrate_stakeholder_docs.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/verify_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/checks.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/engine.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/factory_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/gate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/harness_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/lib.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/manifest_gen.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/migration/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/migration/stakeholder_docs.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/pipeline_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/policy_shard.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/preflight.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/project_config.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stagecraft_client.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/cascade_check.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/quality_gates.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/s_minus_1_extract.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_actions.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_comparator.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_gate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/standards_resolver.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/substrate_version.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/topo_sort.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/verify_harness.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/virtual_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/agent_resolver_test.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/requirements/stakeholder/charter.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/requirements/stakeholder/client-document.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/runs/run-001/stage-cd/charter.candidate.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/runs/run-001/stage-cd/client-document.candidate.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/integration_078_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/run_replay.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec-122-coverage.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_122_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/virtual_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/virtual_root_offline.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "directory",
+              "path": "crates/factory-engine"
+            }
+          }
+        ],
+        "specId": "170-signed-inter-stage-manifests",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "032",
+          "076",
+          "102",
+          "126"
+        ],
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src/components/factory",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/102-governed-excellence/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/102-governed-excellence/spec.md"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/components/factory/ArtifactInspector.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/BuildSpecStructuredView.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/FactoryPipelineContext.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/FactoryPipelinePanel.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/FactoryProjectPicker.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/GateDialog.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/LiveAgentOutput.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PipelineDAG.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PipelineHistory.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PipelineSelector.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/ProjectContextOverview.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/ProjectOpenInbox.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/ProvenanceHealthPanel.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/ProvenanceReport.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/ScaffoldMonitor.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/StageCdReview.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/TokenDashboard.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/ProvenanceReport.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/StageCdReview.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/types.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/desktop/src/components/factory"
+            }
+          }
+        ],
+        "specId": "171-opc-structural-diff-plan-ui",
+        "specStatus": "draft"
+      },
+      {
+        "implementingPaths": [],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/052-state-persistence/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/052-state-persistence/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/157-opc-session-model/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/157-opc-session-model/spec.md"
+            }
+          }
+        ],
+        "specId": "172-opc-live-agent-session-introspection",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "052",
+          "095",
+          "157"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/orchestrator",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/095-checkpoint-branch-of-thought/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/095-checkpoint-branch-of-thought/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/157-opc-session-model/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/157-opc-session-model/spec.md"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "crates/orchestrator/Cargo.toml"
+              },
+              {
+                "file": "crates/orchestrator/src/agent_identity.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/artifact.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/circuit_breaker.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/claude_executor.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/cli_gate.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/effort.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/gates.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/hiqlite_store.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/http.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/lib.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/manifest.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/output_filter.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/promotion.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/provider_executor.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/scheduler/engine.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/scheduler/mod.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/scheduler/sqlite_store.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/scheduler/store.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/sqlite_state.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/sse.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/state.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/store.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/store_config.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/verify.rs"
+              },
+              {
+                "file": "crates/orchestrator/tests/integration_052.rs"
+              },
+              {
+                "file": "crates/orchestrator/tests/store_conformance.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "directory",
+              "path": "crates/orchestrator"
+            }
+          }
+        ],
+        "specId": "173-opc-multi-session-orchestrator-binding",
+        "specStatus": "draft"
+      },
+      {
+        "implementingPaths": [],
+        "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "crates/axiomregent/Cargo.toml"
+              },
+              {
+                "file": "crates/axiomregent/src/agent_tools.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/blobs.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/diff.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/merkle.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/provider.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/store.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/types.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/checkpoint/verify.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/config/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/db/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/events.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/feature_tools.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/github/client.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/github/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/github/provider.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/internal_client.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/io/fs.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/io/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/lease.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/lib.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/main.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/platform_config.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/registry_bridge.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/audit_http.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/dlock.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/legacy_provider.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/oidc_client.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/permissions.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/policy_bundle.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/policy_http.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/router/provider.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/run_tools.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/search/embeddings.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/search/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/search/parser.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/search/provider.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/search/store.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/skill_provider.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/util/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/util/paths.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/util/stable.rs"
+              },
+              {
+                "file": "crates/axiomregent/src/workspace/mod.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/agent_integration.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/bin/encore"
+              },
+              {
+                "file": "crates/axiomregent/tests/golden/tools_list.json"
+              },
+              {
+                "file": "crates/axiomregent/tests/governed_dispatch_latency.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/mcp_contract.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/mcp_featuregraph_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/mcp_router_contract_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/mcp_tools_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/no_stdout_pollution.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/persistence.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/policy_preflight_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/run_streaming_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/snapshot_determinism.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/snapshot_pagination.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/snapshot_workspace_integration.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/stale_lease_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/stdio_integrity.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/test_helpers.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/tool_tier_coverage.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/verify_test.rs"
+              },
+              {
+                "file": "crates/axiomregent/tests/workspace_discovery_test.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "crates/axiomregent"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "crates/policy-kernel/Cargo.toml"
+              },
+              {
+                "file": "crates/policy-kernel/benches/kernel_eval.rs"
+              },
+              {
+                "file": "crates/policy-kernel/src/audit.rs"
+              },
+              {
+                "file": "crates/policy-kernel/src/bin/verify_proof_chain.rs"
+              },
+              {
+                "file": "crates/policy-kernel/src/coherence.rs"
+              },
+              {
+                "file": "crates/policy-kernel/src/denial.rs"
+              },
+              {
+                "file": "crates/policy-kernel/src/lib.rs"
+              },
+              {
+                "file": "crates/policy-kernel/src/merge.rs"
+              },
+              {
+                "file": "crates/policy-kernel/src/permission.rs"
+              },
+              {
+                "file": "crates/policy-kernel/src/proof_chain.rs"
+              },
+              {
+                "file": "crates/policy-kernel/src/provenance_policy.rs"
+              },
+              {
+                "file": "crates/policy-kernel/src/settings.rs"
+              },
+              {
+                "file": "crates/policy-kernel/src/watcher.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "crates/policy-kernel"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "crates/provenance-validator/Cargo.toml"
+              },
+              {
+                "file": "crates/provenance-validator/data/core-allowlist.txt"
+              },
+              {
+                "file": "crates/provenance-validator/src/allowlist.rs"
+              },
+              {
+                "file": "crates/provenance-validator/src/bin/audit.rs"
+              },
+              {
+                "file": "crates/provenance-validator/src/citation.rs"
+              },
+              {
+                "file": "crates/provenance-validator/src/corpus.rs"
+              },
+              {
+                "file": "crates/provenance-validator/src/lib.rs"
+              },
+              {
+                "file": "crates/provenance-validator/src/manifest.rs"
+              },
+              {
+                "file": "crates/provenance-validator/src/validator.rs"
+              },
+              {
+                "file": "crates/provenance-validator/tests/fixtures/cfs-1gx-fabrication/.artifacts/extracted/business-case.txt"
+              },
+              {
+                "file": "crates/provenance-validator/tests/fixtures/cfs-1gx-fabrication/requirements/business-requirements-document.md"
+              },
+              {
+                "file": "crates/provenance-validator/tests/no_llm_deps.rs"
+              },
+              {
+                "file": "crates/provenance-validator/tests/sc001_cfs_audit.rs"
+              },
+              {
+                "file": "crates/provenance-validator/tests/spec-121-coverage.md"
+              },
+              {
+                "file": "crates/provenance-validator/tests/validator_tests.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "crates/provenance-validator"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-HARNESS-blueprint-spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-HARNESS-blueprint-spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/166-opc-stop-hook-gate-chain/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/166-opc-stop-hook-gate-chain/spec.md"
+            }
+          }
+        ],
+        "specId": "174-codification-gate",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [
@@ -30208,7 +34299,13 @@
       "148-auth-driver-registry",
       "149-saml-auth-driver",
       "150-example-tenant-profile",
-      "157-opc-session-model"
+      "157-opc-session-model",
+      "161-knowledge-requirements-provenance-emission",
+      "165-opc-decomposition-pipeline",
+      "166-opc-stop-hook-gate-chain",
+      "168-per-project-governance-certificate",
+      "172-opc-live-agent-session-introspection",
+      "174-codification-gate"
     ],
     "untracedCode": [
       "crates/canonical-json",

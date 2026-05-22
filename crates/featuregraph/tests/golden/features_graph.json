@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:20c7a6f73bdcfb9b01a8ca62695b14fa7a1e7a1023ee09117ee4dd8c52b6905a",
+  "graph_fingerprint": "sha256:5fb42731acad5819be771462b2bb615632771b1233cadc88dfb4b34be25bffe2",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3002,6 +3002,311 @@
         "000",
         "001",
         "158"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "160-factory-adapter-stagecraft-relocation",
+      "title": "Factory / adapter relocation into stagecraft",
+      "spec_path": "specs/160-factory-adapter-stagecraft-relocation/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "074",
+        "075",
+        "077",
+        "108"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "161-knowledge-requirements-provenance-emission",
+      "title": "Knowledge → Requirements provenance: emission contract and Requirements-view rendering",
+      "spec_path": "specs/161-knowledge-requirements-provenance-emission/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "154",
+        "156",
+        "120"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "162-dockerised-execution-substrate",
+      "title": "Dockerised execution substrate — ephemeral micro-sandbox runtime for factory-engine codegen (ASI05)",
+      "spec_path": "specs/162-dockerised-execution-substrate/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "072",
+        "075",
+        "102",
+        "108"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "163-stagecraft-requirements-view",
+      "title": "Spec-spine Requirements view in stagecraft",
+      "spec_path": "specs/163-stagecraft-requirements-view/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "087",
+        "103",
+        "130",
+        "147",
+        "152",
+        "154",
+        "156",
+        "161"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "164-stagecraft-development-lifecycle-board",
+      "title": "Pipelines → Development rename, lifecycle-state board over spec-spine states",
+      "spec_path": "specs/164-stagecraft-development-lifecycle-board/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "075",
+        "077",
+        "102",
+        "127",
+        "133",
+        "147",
+        "163"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "165-opc-decomposition-pipeline",
+      "title": "OPC decomposition pipeline — reverse-engineering and born-with spec spawning",
+      "spec_path": "specs/165-opc-decomposition-pipeline/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "032",
+        "073",
+        "095",
+        "115",
+        "120",
+        "147",
+        "154",
+        "156",
+        "161"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "166-opc-stop-hook-gate-chain",
+      "title": "OPC Stop-hook gate chain — conversation-time drift gates",
+      "spec_path": "specs/166-opc-stop-hook-gate-chain/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "101",
+        "103",
+        "127",
+        "128",
+        "131",
+        "133",
+        "134",
+        "135"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "167-born-with-spec-spine-kernel",
+      "title": "Born-with spec-spine kernel emission — every produced project ships with a spine",
+      "spec_path": "specs/167-born-with-spec-spine-kernel/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "high",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "000",
+        "001",
+        "075",
+        "120",
+        "127",
+        "147",
+        "165"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "168-per-project-governance-certificate",
+      "title": "Per-project governance certificate emission and tenant-side verifier",
+      "spec_path": "specs/168-per-project-governance-certificate/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "075",
+        "102",
+        "167"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "169-tool-schema-strictness",
+      "title": "Per-tool JSON-Schema strictness enforcement — reject permissive ToolDef schemas",
+      "spec_path": "specs/169-tool-schema-strictness/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "036",
+        "049",
+        "067",
+        "068"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "170-signed-inter-stage-manifests",
+      "title": "Signed inter-stage manifests in factory-engine — cryptographic identity between stages (ASI07)",
+      "spec_path": "specs/170-signed-inter-stage-manifests/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "035",
+        "074",
+        "075",
+        "102"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "171-opc-structural-diff-plan-ui",
+      "title": "Deterministic structural-diff plan UI in OPC — anti-anthropomorphic-trust rendering (ASI09)",
+      "spec_path": "specs/171-opc-structural-diff-plan-ui/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "032",
+        "076",
+        "102",
+        "126"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "172-opc-live-agent-session-introspection",
+      "title": "Live agent-session introspection in OPC — connected-agent visibility and force-disconnect (ASI10)",
+      "spec_path": "specs/172-opc-live-agent-session-introspection/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "032",
+        "043",
+        "052",
+        "057",
+        "067",
+        "157"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "173-opc-multi-session-orchestrator-binding",
+      "title": "OPC multi-session-by-project-path — orchestrator binding (formalisation)",
+      "spec_path": "specs/173-opc-multi-session-orchestrator-binding/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "052",
+        "095",
+        "157"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "174-codification-gate",
+      "title": "Codification gate — every CRITICAL/HIGH finding writes itself into the spec spine before closure",
+      "spec_path": "specs/174-codification-gate/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "033",
+        "047",
+        "073",
+        "121",
+        "127",
+        "166"
       ],
       "impl_files": [],
       "test_files": [],
