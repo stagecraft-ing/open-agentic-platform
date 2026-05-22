@@ -1,13 +1,14 @@
 ---
 id: "148-auth-driver-registry"
 title: "Auth driver registry — pluggable identity-provider integration contract"
-status: draft
+status: approved
 created: "2026-05-17"
+approved: "2026-05-22"
 authors: ["open-agentic-platform"]
 kind: registry
 risk: medium
 owner: "open-agentic-platform"
-implementation: pending
+implementation: complete
 category: ["auth", "identity"]
 selector: AUTH_DRIVER
 member_contract: auth-driver

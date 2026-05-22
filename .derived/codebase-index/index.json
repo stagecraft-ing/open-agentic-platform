@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "b80dad899d1713b07f0b3b197abc6a2fe5dec08feda659f5a8d74fbfbf79bfa1",
+    "contentHash": "71a5b6aa422c60e79b2434cae4175dd13f16d6943ec0b4d176fbf222743a9120",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -28596,7 +28596,7 @@
           }
         ],
         "specId": "148-auth-driver-registry",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "implementingPaths": [],
