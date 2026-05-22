@@ -223,7 +223,7 @@ auto-trigger gap is resolved) — runner-environment correctness is
 necessary but not sufficient evidence for merge-boundary
 enforcement.
 
-### Process observation — auto-trigger gap
+### Process observation — auto-trigger gap (RESOLVED 2026-05-22)
 
 On opening PR #195 (draft, then converted ready, then reverted to
 draft), zero workflows fired against the head SHA via the
@@ -251,11 +251,68 @@ indistinguishable from a CI gate that does not exist. The
 required_status_checks binding (hardening step 3) MUST be
 configured against jobs that actually run on the relevant
 events, not jobs that exist in the workflow file but are silently
-skipped. Until the auto-trigger gap is diagnosed and resolved,
-the workflow_dispatch fallback is the verifiable path; merge-time
-enforcement via `required_status_checks` should not be enabled
-against a workflow whose `pull_request:` firing is not yet
-reliable.
+skipped.
+
+**Resolution (2026-05-22).** Hypothesis #2 was correct. Pushing a
+follow-up commit to the same branch (the merge of `origin/main` +
+launch-notes refinements, head `e744793e`) fired all `pull_request:`
+workflows on the new SHA, including `CI supply-chain` /
+`workflow-pins / SHA-pin enforcement`. The initial silence was a
+create-time event-firing artifact specific to the
+`gh pr create`-against-an-existing-head-SHA path, not a repo-level
+policy gate. The diagnostic API surface (`actions/permissions`,
+`actions/permissions/workflow`) showed no approval gate consistent
+with the symptom; the empty-commit / new-push probe confirmed.
+
+This resolution upgrades the falsifier-4 evidence from "partial
+credit (dispatch only)" to "full credit (pull_request firing
+verified)." See Block 6 below.
+
+## Block 6 — falsifier #4 (full): pull_request-triggered firing
+
+This is the platform-side falsifier in its actual binding shape —
+the event `required_status_checks` consumes when it gates a merge.
+Block 5 proved runner-environment correctness; Block 6 proves the
+gate fires on the event the merge boundary consumes.
+
+- **Branch:** `158-workflow-ref-sha-pinning-lint`
+- **Head SHA:** `e744793ec19699f1b4043fe7fce74e5111a8d756`
+- **Workflow:** `CI supply-chain` (`.github/workflows/ci-supply-chain.yml`)
+- **Run ID:** `26278316201`
+- **Run URL:** https://github.com/stagecraft-ing/open-agentic-platform/actions/runs/26278316201
+- **Trigger:** `pull_request` (not workflow_dispatch — this is the binding-shape evidence)
+- **Conclusion:** success
+- **Rendered job name:** `workflow-pins / SHA-pin enforcement`
+- **Duration:** 5 seconds
+
+All six `pull_request:`-triggered workflows fired at this SHA. The
+five that depend only on this PR's contract surface ran green:
+
+| Workflow | Conclusion |
+|----------|-----------|
+| AI PR Review | success |
+| CI Parity | success |
+| CI codebase-index | success |
+| CI spec/code coupling | success |
+| **CI supply-chain** (incl. `workflow-pins`) | **success** |
+| CI featuregraph golden | failure — see note |
+| Spec conformance | failure — see note |
+
+**Two failures, both diagnosed as the pre-existing `spec-compiler`
+silent exit-1 (#194), independent of this PR's contract surface.**
+Both failing workflows invoke `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`
+as a setup step. The compiler exits 1 with zero output to stdout
+or stderr, halting the workflow before any logic specific to
+featuregraph or spec-conformance runs. Reproduces on pristine
+`main`, on this PR, and on the CI runner. Issue #194 has been
+updated with the CI reproducer. The failures are not defects in
+this PR; they are surfaced by this PR because the `pull_request:`
+trigger now fires (Block 6) and exercises the full CI surface.
+
+This is the *good* failure mode the spec-spine framing predicts:
+broken silent gates become loud, discoverable, and assignable to
+their actual cause. The contract surface this PR adds is green;
+the surface it surfaces was broken before this PR existed.
 
 ## What the bundle authorises
 
