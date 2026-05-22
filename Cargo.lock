@@ -2525,17 +2525,6 @@ dependencies = [
 
 [[package]]
 name = "fancy-regex"
-version = "0.16.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "998b056554fbe42e03ae0e152895cd1a7e1002aec800fdc6635d20270260c46f"
-dependencies = [
- "bit-set",
- "regex-automata",
- "regex-syntax",
-]
-
-[[package]]
-name = "fancy-regex"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1e1dacd0d2082dfcf1351c4bdd566bbe89a2b263235a2b50058f1e130a47277"
@@ -3834,32 +3823,6 @@ dependencies = [
 
 [[package]]
 name = "jsonschema"
-version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d46662859bc5f60a145b75f4632fbadc84e829e45df6c5de74cfc8e05acb96b5"
-dependencies = [
- "ahash 0.8.12",
- "base64 0.22.1",
- "bytecount",
- "email_address",
- "fancy-regex 0.16.2",
- "fraction",
- "idna",
- "itoa",
- "num-cmp",
- "num-traits",
- "once_cell",
- "percent-encoding",
- "referencing 0.33.0",
- "regex",
- "regex-syntax",
- "serde",
- "serde_json",
- "uuid-simd",
-]
-
-[[package]]
-name = "jsonschema"
 version = "0.46.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a5fe5206f06e589caf25e79fc05ccdf91fca745685fe9fe1a13bbdfb479a631"
@@ -4625,7 +4588,7 @@ dependencies = [
  "chrono",
  "clap",
  "criterion 0.7.0",
- "jsonschema 0.33.0",
+ "jsonschema 0.46.5",
  "open_agentic_spec_types",
  "serde",
  "serde_json",
@@ -4709,7 +4672,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "clap",
- "jsonschema 0.33.0",
+ "jsonschema 0.46.5",
  "open_agentic_spec_types",
  "serde",
  "serde_json",
@@ -5683,20 +5646,6 @@ dependencies = [
  "ahash 0.8.12",
  "fluent-uri 0.3.2",
  "once_cell",
- "percent-encoding",
- "serde_json",
-]
-
-[[package]]
-name = "referencing"
-version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e9c261f7ce75418b3beadfb3f0eb1299fe8eb9640deba45ffa2cb783098697d"
-dependencies = [
- "ahash 0.8.12",
- "fluent-uri 0.3.2",
- "once_cell",
- "parking_lot",
  "percent-encoding",
  "serde_json",
 ]
