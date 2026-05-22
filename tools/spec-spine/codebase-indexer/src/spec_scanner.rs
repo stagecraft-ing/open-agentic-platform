@@ -1,6 +1,6 @@
 //! Spec frontmatter reader (Layer 2 input).
 
-use open_agentic_spec_types::{LogicalUnit, split_frontmatter_required};
+use open_agentic_spec_types::{LogicalUnit, ProvenanceKind, split_frontmatter_required};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -25,6 +25,15 @@ pub struct SpecRecord {
     /// resolver pass; orthogonal to `implements` (which feeds the
     /// path-list traceability layer).
     pub units: Vec<UnitEntry>,
+    /// Spec 156: provenance entries harvested from `references:`. The
+    /// indexer parses the `provenance:` arm into typed `ProvenanceKind`
+    /// values; spec-compiler is the authoritative validator
+    /// (V-025..V-028). Entries that fail to parse here are silently
+    /// dropped — the indexer stays permissive and only consumes what
+    /// parses cleanly. Resolver short-circuits these into
+    /// `ResolvedUnit { ownership: false, locations: [] }` per spec 156
+    /// §6.3.
+    pub provenance: Vec<ProvenanceEntry>,
 }
 
 /// A logical-unit declaration with the relationship field that carried
@@ -48,6 +57,22 @@ pub struct UnitEntry {
     pub source_field: &'static str,
     pub ownership: bool,
     pub was_explicit: bool,
+}
+
+/// Spec 156 — one provenance entry from a `references:` item carrying
+/// the typed `provenance:` arm. Mutually exclusive with `UnitEntry`
+/// at the references-entry level (V-025); the two populations flow
+/// through the resolver in parallel and emerge as `ResolvedUnit`
+/// values with distinct `kind` discriminators.
+pub struct ProvenanceEntry {
+    /// Typed external derivation pointer (knowledge URI or xray
+    /// fingerprint digest). Always parses to a kind in the closed
+    /// V-026 enum.
+    pub kind: ProvenanceKind,
+    /// Optional `role:` from the outer references entry. `None` is
+    /// the V-029 advisory case (warning at spec-compiler time;
+    /// indexer carries it through verbatim).
+    pub role: Option<String>,
 }
 
 /// A single entry from the `implements` frontmatter field.
@@ -200,6 +225,7 @@ fn parse_spec(
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
     let units = parse_units(fm);
+    let provenance = parse_provenance_entries(fm);
 
     Some(SpecRecord {
         id,
@@ -210,6 +236,7 @@ fn parse_spec(
         amends,
         amendment_record,
         units,
+        provenance,
     })
 }
 
@@ -513,4 +540,48 @@ fn push_structured_units(
 /// affordance that parses to `LogicalUnit::File`).
 fn is_explicit_unit_shape(v: &serde_yaml::Value) -> bool {
     v.is_mapping()
+}
+
+/// Spec 156 — harvest provenance entries from `references:`. Each
+/// entry carries `{role?, provenance: {kind, ref}}`; the two arms
+/// (`unit:` vs `provenance:`) are mutually exclusive per V-025, so
+/// this walker only fires on items that carry a `provenance:` key.
+///
+/// The indexer is the permissive layer here — entries that fail to
+/// parse (bad scheme, malformed UUID, etc.) are silently dropped.
+/// Spec-compiler is the authoritative validator and emits the
+/// corresponding V-026/V-027/V-028.
+fn parse_provenance_entries(fm: &serde_yaml::Mapping) -> Vec<ProvenanceEntry> {
+    let mut out = Vec::new();
+    let Some(seq) = fm.get("references").and_then(|v| v.as_sequence()) else {
+        return out;
+    };
+    for item in seq {
+        let Some(map) = item.as_mapping() else {
+            continue;
+        };
+        let Some(prov) = map.get("provenance").and_then(|v| v.as_mapping()) else {
+            continue;
+        };
+        // V-025 defence-in-depth: skip items that carry both arms.
+        // Spec-compiler emitted V-025; the indexer treats the item
+        // as a no-op so the resolved-unit list stays clean.
+        if map.get("unit").is_some() {
+            continue;
+        }
+        let kind = prov.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+        let uri = prov.get("ref").and_then(|v| v.as_str()).unwrap_or("");
+        let Ok(parsed) = ProvenanceKind::parse(kind, uri) else {
+            continue;
+        };
+        let role = map
+            .get("role")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        out.push(ProvenanceEntry {
+            kind: parsed,
+            role,
+        });
+    }
+    out
 }

@@ -425,7 +425,7 @@
       }
     },
     "referenceItem": {
-      "description": "Spec 154 — one entry in `references:`. Canonical shape is `{role?: <str>, unit: <logical-unit>}`. The optional `role:` is open-vocabulary and presentation-only — the coupling gate treats every `references:` item uniformly as non-owning. Bare path strings (legacy / hand-authored shorthand) are also accepted and normalised to `{unit: {kind: file, path}}` by the compiler.",
+      "description": "Spec 154 — one entry in `references:`. Three accepted shapes: bare path string (legacy / hand-authored shorthand), `{role?, unit: <logical-unit>}` (spec 154 canonical), or `{role?, provenance: {kind, ref}}` (spec 156 — typed external derivation pointer, mutually exclusive with `unit:` per V-025). The optional `role:` is open-vocabulary and presentation-only — the coupling gate treats every `references:` item uniformly as non-owning.",
       "oneOf": [
         { "type": "string", "minLength": 1 },
         {
@@ -436,8 +436,34 @@
             "role": { "type": "string", "minLength": 1 },
             "unit": { "$ref": "#/$defs/logicalUnit" }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance"],
+          "properties": {
+            "role": { "type": "string", "minLength": 1 },
+            "provenance": { "$ref": "#/$defs/provenanceEntry" }
+          }
         }
       ]
+    },
+    "provenanceEntry": {
+      "description": "Spec 156 — typed external derivation pointer. Two initial kinds: `knowledge` (stagecraft `knowledge_objects` URI shape) and `code-fingerprint` (xray content-addressed SHA-256). Adding a new kind requires an amendment spec that widens both this enum and V-027's scheme alignment table.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["knowledge", "code-fingerprint"]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "URI matching the declared kind's scheme. `knowledge`: `stagecraft://project/<uuid>/knowledge/<uuid>`; `code-fingerprint`: `xray-fingerprint://<sha256>`. Scheme alignment is enforced at compile time by V-027; body well-formedness by V-028."
+        }
+      }
     },
     "extraFrontmatterValue": {
       "description": "Scalar or string-list only; no nested objects or heterogeneous arrays.",

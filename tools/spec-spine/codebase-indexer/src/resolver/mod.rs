@@ -6,9 +6,10 @@
 //! (`ResolverContext`, `ResolveError`), the dispatch function, and the
 //! `resolve_all` batch entry point the indexer's `compile` pass calls.
 
-use crate::spec_scanner::{SpecRecord, UnitEntry};
+use crate::spec_scanner::{ProvenanceEntry, SpecRecord, UnitEntry};
 use crate::types::{Diagnostic, ResolvedLocation, ResolvedUnit};
 use open_agentic_spec_types::LogicalUnit;
+use serde_json::json;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -249,13 +250,25 @@ pub fn resolve_all(
     let mut diagnostics: Vec<Diagnostic> = Vec::new();
 
     for spec in specs {
-        if spec.units.is_empty() {
+        if spec.units.is_empty() && spec.provenance.is_empty() {
             continue;
         }
         let entries = by_spec.entry(spec.id.clone()).or_default();
         for unit_entry in &spec.units {
             let resolved = build_resolved_unit(unit_entry, ctx, &spec.id, &mut diagnostics);
             entries.push(resolved);
+        }
+        // Spec 156 §6.3 — provenance entries short-circuit the
+        // resolver walk. No filesystem / DB / xray lookup; emit a
+        // `ResolvedUnit` with the declared kind, source_field:
+        // "references", ownership: false, locations: []. Empty
+        // locations by design, not by failure — the resolver records
+        // that the spec carries the provenance edge without claiming
+        // any in-tree location for it. No diagnostic fires; the
+        // dangling-provenance lax rule from spec 156 §4 lives
+        // entirely in this short-circuit.
+        for prov_entry in &spec.provenance {
+            entries.push(build_resolved_provenance(prov_entry));
         }
         // Determinism: sort the per-spec resolved-unit list by a stable
         // composite key so the index round-trips byte-identically.
@@ -268,6 +281,27 @@ pub fn resolve_all(
     }
 
     (by_spec, diagnostics)
+}
+
+/// Spec 156 §6.3 — build a short-circuited `ResolvedUnit` for one
+/// provenance entry. Locations is empty by design (provenance is
+/// non-owning by inheritance from spec 154 §4); ownership is false;
+/// the canonical `unit` JSON carries the kind + ref so reverse
+/// lookup queries against `.derived/codebase-index/index.json`
+/// match the same URI value `git grep` finds in `specs/`.
+fn build_resolved_provenance(entry: &ProvenanceEntry) -> ResolvedUnit {
+    let kind = entry.kind.kind_str().to_string();
+    let unit_json = json!({
+        "kind": kind,
+        "ref": entry.kind.to_uri(),
+    });
+    ResolvedUnit {
+        unit: unit_json,
+        kind,
+        source_field: "references".to_string(),
+        ownership: false,
+        locations: Vec::new(),
+    }
 }
 
 fn build_resolved_unit(

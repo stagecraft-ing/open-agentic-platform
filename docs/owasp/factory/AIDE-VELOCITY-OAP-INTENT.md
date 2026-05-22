@@ -263,18 +263,17 @@ spec 080.
 
 When a draft spec was derived from a particular knowledge item or
 a reverse-engineering pass over a particular codebase snapshot, the
-spec's frontmatter carries a provenance reference (the existing
-`references:` edge with a `kind:` of `knowledge` or
-`code-fingerprint`, per the unit grammar in spec 154). The
-Requirements view renders this provenance as a clickable link back
-to the originating Knowledge item or xray fingerprint snapshot.
-This closes the loop AIDE leaves implicit: in AIDE the SharePoint
-file produces `requirements.md` and the link between them is
-operational convention; in OAP the link is a typed
+spec's frontmatter carries a provenance reference: the `references:`
+edge with a sibling `provenance:` field (spec 156), kind `knowledge`
+or `code-fingerprint`. The Requirements view renders this provenance
+as a clickable link back to the originating Knowledge item or xray
+fingerprint snapshot. This closes the loop AIDE leaves implicit: in
+AIDE the SharePoint file produces `requirements.md` and the link
+between them is operational convention; in OAP the link is a typed
 relationship-graph edge.
 
 > *Updated 2026-05-22.* Spec 156
-> (`references-edge-provenance-grammar`) formalises this as a
+> (`references-edge-provenance-grammar`) defines this as a
 > **sibling `provenance:` field** on `references:` entries,
 > mutually exclusive with `unit:` — the two kinds (`knowledge`,
 > `code-fingerprint`) live in `provenance.kind`, not in spec 154's

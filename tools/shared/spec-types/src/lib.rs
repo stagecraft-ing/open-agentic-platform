@@ -274,6 +274,40 @@ pub const V_023: ViolationCode = ViolationCode("V-023");
 /// mapping shape). Hard error.
 pub const V_024: ViolationCode = ViolationCode("V-024");
 
+/// Spec 156 — fired by spec-compiler when a `references:` entry
+/// carries both `unit:` and `provenance:` (mutually exclusive) or
+/// neither (the entry has no target). Hard error. The two arms are
+/// declaratively distinct: `unit:` points at an in-tree logical unit
+/// (spec 154 grammar); `provenance:` points at an external derivation
+/// source (knowledge item, code fingerprint).
+pub const V_025: ViolationCode = ViolationCode("V-025");
+
+/// Spec 156 — fired by spec-compiler when `provenance.kind` is not
+/// one of the two accepted values (`knowledge`, `code-fingerprint`).
+/// The enum is closed; adding a kind requires an amendment spec that
+/// widens both this enum and V-027's scheme alignment table.
+pub const V_026: ViolationCode = ViolationCode("V-026");
+
+/// Spec 156 — fired by spec-compiler when `provenance.ref` scheme
+/// does not align with the declared `provenance.kind`. `knowledge`
+/// requires the `stagecraft://project/<uuid>/knowledge/<uuid>` shape;
+/// `code-fingerprint` requires `xray-fingerprint://<sha256>`. Scheme
+/// mismatch, missing project segment, or malformed UUID/digest is a
+/// hard error.
+pub const V_027: ViolationCode = ViolationCode("V-027");
+
+/// Spec 156 — fired by spec-compiler when `provenance.ref` is not a
+/// well-formed URI for its kind, or when the opaque body (UUID-pair
+/// for `knowledge`, hex digest for `code-fingerprint`) is empty.
+/// Hard error.
+pub const V_028: ViolationCode = ViolationCode("V-028");
+
+/// Spec 156 — advisory emitted by spec-compiler when a `provenance:`
+/// entry omits `role:`. Recommends `role: derivation` for
+/// searchability and consistent rendering. Severity: warning (not
+/// blocking — does NOT flip `validation.passed`).
+pub const V_029: ViolationCode = ViolationCode("V-029");
+
 // Lint W-codes (emitted by spec-lint).
 pub const W_001: ViolationCode = ViolationCode("W-001");
 pub const W_002: ViolationCode = ViolationCode("W-002");
@@ -525,6 +559,229 @@ impl LogicalUnit {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// Spec 156 — References-edge provenance grammar
+// ─────────────────────────────────────────────────────────────────────
+
+/// One provenance entry — the sibling arm on `references:` entries
+/// introduced by spec 156. Mutually exclusive with `unit:` at the
+/// references-entry level (V-025).
+///
+/// Provenance entries are declaratively non-owning by inheritance
+/// from spec 154 §4 (`references:` is the ninth, non-owning
+/// relationship). Two initial kinds carry typed URI references to
+/// external derivation sources:
+///
+/// - `Knowledge { project_uuid, knowledge_uuid }` — stagecraft's
+///   `knowledge_objects` table. The URI is
+///   `stagecraft://project/<project-uuid>/knowledge/<knowledge-uuid>`.
+/// - `CodeFingerprint { digest }` — content-addressed SHA-256 over an
+///   imported tree (`crates/xray/src/tools.rs::xray_fingerprint`). The
+///   URI is `xray-fingerprint://<sha256>`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ProvenanceKind {
+    Knowledge {
+        project_uuid: String,
+        knowledge_uuid: String,
+    },
+    CodeFingerprint {
+        digest: String,
+    },
+}
+
+impl ProvenanceKind {
+    /// Stable kind discriminator string. Matches the value the author
+    /// writes under `provenance.kind:`.
+    pub fn kind_str(&self) -> &'static str {
+        match self {
+            ProvenanceKind::Knowledge { .. } => "knowledge",
+            ProvenanceKind::CodeFingerprint { .. } => "code-fingerprint",
+        }
+    }
+
+    /// Re-emit the canonical URI string. Round-trips through
+    /// [`ProvenanceKind::parse_uri`].
+    pub fn to_uri(&self) -> String {
+        match self {
+            ProvenanceKind::Knowledge {
+                project_uuid,
+                knowledge_uuid,
+            } => format!("stagecraft://project/{project_uuid}/knowledge/{knowledge_uuid}"),
+            ProvenanceKind::CodeFingerprint { digest } => {
+                format!("xray-fingerprint://{digest}")
+            }
+        }
+    }
+
+    /// Parse a `(kind_str, uri)` pair into a typed [`ProvenanceKind`].
+    /// Surfaces the precise violation code on failure so callers can
+    /// route each into the right V-code emission path.
+    pub fn parse(kind_str: &str, uri: &str) -> Result<Self, ProvenanceParseError> {
+        match kind_str {
+            "knowledge" => parse_knowledge_uri(uri),
+            "code-fingerprint" => parse_fingerprint_uri(uri),
+            other => Err(ProvenanceParseError::UnknownKind {
+                kind: other.to_string(),
+            }),
+        }
+    }
+}
+
+/// Provenance parse failures. Each variant maps to one V-code:
+/// - `UnknownKind` → V-026
+/// - `SchemeMismatch`, `MissingProjectSegment` → V-027
+/// - `EmptyBody`, `MalformedUuid`, `MalformedDigest`, `MalformedUri` → V-028
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ProvenanceParseError {
+    /// `provenance.kind:` is not one of `{knowledge, code-fingerprint}`.
+    UnknownKind { kind: String },
+    /// `kind:` and the URI scheme disagree (e.g. `kind: knowledge`
+    /// paired with `xray-fingerprint://...`).
+    SchemeMismatch { kind: String, scheme: String },
+    /// `kind: knowledge` URI is missing the `/project/<uuid>/knowledge/<uuid>/`
+    /// shape required by V-027.
+    MissingProjectSegment { uri: String },
+    /// URI opaque body is empty (UUID-pair for `knowledge`, hex digest
+    /// for `code-fingerprint`).
+    EmptyBody { kind: String },
+    /// URI carries something that should be a canonical UUID but
+    /// isn't (8-4-4-4-12 hex, case-insensitive).
+    MalformedUuid { value: String },
+    /// URI carries something that should be a 64-char hex SHA-256
+    /// digest but isn't.
+    MalformedDigest { value: String },
+    /// URI is structurally unparseable (e.g. missing `://`).
+    MalformedUri { uri: String },
+}
+
+impl std::fmt::Display for ProvenanceParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProvenanceParseError::UnknownKind { kind } => write!(
+                f,
+                "provenance kind {kind:?} is not one of: knowledge, code-fingerprint"
+            ),
+            ProvenanceParseError::SchemeMismatch { kind, scheme } => write!(
+                f,
+                "provenance kind {kind:?} does not align with URI scheme {scheme:?}"
+            ),
+            ProvenanceParseError::MissingProjectSegment { uri } => write!(
+                f,
+                "knowledge URI {uri:?} is missing the required `/project/<uuid>/knowledge/<uuid>` segment shape"
+            ),
+            ProvenanceParseError::EmptyBody { kind } => {
+                write!(f, "provenance kind {kind:?} has an empty URI body")
+            }
+            ProvenanceParseError::MalformedUuid { value } => write!(
+                f,
+                "{value:?} is not a canonical UUID (expected 8-4-4-4-12 hex, case-insensitive)"
+            ),
+            ProvenanceParseError::MalformedDigest { value } => write!(
+                f,
+                "{value:?} is not a 64-character hex SHA-256 digest"
+            ),
+            ProvenanceParseError::MalformedUri { uri } => {
+                write!(f, "URI {uri:?} is structurally malformed")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ProvenanceParseError {}
+
+fn parse_knowledge_uri(uri: &str) -> Result<ProvenanceKind, ProvenanceParseError> {
+    let rest = uri
+        .strip_prefix("stagecraft://")
+        .ok_or_else(|| match uri.split_once("://") {
+            Some((scheme, _)) => ProvenanceParseError::SchemeMismatch {
+                kind: "knowledge".to_string(),
+                scheme: scheme.to_string(),
+            },
+            None => ProvenanceParseError::MalformedUri {
+                uri: uri.to_string(),
+            },
+        })?;
+    // Required shape: project/<uuid>/knowledge/<uuid>
+    let parts: Vec<&str> = rest.split('/').collect();
+    if parts.len() != 4 || parts[0] != "project" || parts[2] != "knowledge" {
+        return Err(ProvenanceParseError::MissingProjectSegment {
+            uri: uri.to_string(),
+        });
+    }
+    let project_uuid = parts[1];
+    let knowledge_uuid = parts[3];
+    if project_uuid.is_empty() || knowledge_uuid.is_empty() {
+        return Err(ProvenanceParseError::EmptyBody {
+            kind: "knowledge".to_string(),
+        });
+    }
+    if !is_canonical_uuid(project_uuid) {
+        return Err(ProvenanceParseError::MalformedUuid {
+            value: project_uuid.to_string(),
+        });
+    }
+    if !is_canonical_uuid(knowledge_uuid) {
+        return Err(ProvenanceParseError::MalformedUuid {
+            value: knowledge_uuid.to_string(),
+        });
+    }
+    Ok(ProvenanceKind::Knowledge {
+        project_uuid: project_uuid.to_string(),
+        knowledge_uuid: knowledge_uuid.to_string(),
+    })
+}
+
+fn parse_fingerprint_uri(uri: &str) -> Result<ProvenanceKind, ProvenanceParseError> {
+    let rest = uri
+        .strip_prefix("xray-fingerprint://")
+        .ok_or_else(|| match uri.split_once("://") {
+            Some((scheme, _)) => ProvenanceParseError::SchemeMismatch {
+                kind: "code-fingerprint".to_string(),
+                scheme: scheme.to_string(),
+            },
+            None => ProvenanceParseError::MalformedUri {
+                uri: uri.to_string(),
+            },
+        })?;
+    if rest.is_empty() {
+        return Err(ProvenanceParseError::EmptyBody {
+            kind: "code-fingerprint".to_string(),
+        });
+    }
+    if !is_sha256_digest(rest) {
+        return Err(ProvenanceParseError::MalformedDigest {
+            value: rest.to_string(),
+        });
+    }
+    Ok(ProvenanceKind::CodeFingerprint {
+        digest: rest.to_string(),
+    })
+}
+
+/// Canonical UUID shape: 8-4-4-4-12 lowercase or uppercase hex.
+fn is_canonical_uuid(s: &str) -> bool {
+    let b = s.as_bytes();
+    if b.len() != 36 {
+        return false;
+    }
+    for (i, &c) in b.iter().enumerate() {
+        let want_hyphen = matches!(i, 8 | 13 | 18 | 23);
+        if want_hyphen {
+            if c != b'-' {
+                return false;
+            }
+        } else if !c.is_ascii_hexdigit() {
+            return false;
+        }
+    }
+    true
+}
+
+/// 64 hex characters (case-insensitive).
+fn is_sha256_digest(s: &str) -> bool {
+    s.len() == 64 && s.bytes().all(|c| c.is_ascii_hexdigit())
+}
+
 /// Standard exclusion set applied by the codebase-indexer's resolver
 /// when materialising a `crate:` or `directory:` unit into a glob
 /// (spec 154 §3.7). Owned here so consumers downstream of spec-compiler
@@ -649,5 +906,125 @@ mod logical_unit_tests {
             let back = LogicalUnit::from_json(&j).unwrap();
             assert_eq!(back, u);
         }
+    }
+}
+
+#[cfg(test)]
+mod provenance_tests {
+    use super::*;
+
+    const PROJ: &str = "8c4f1234-1234-4abc-9def-1234567890ab";
+    const KNOWLEDGE: &str = "2a91abcd-1111-4222-a333-444555666777";
+    const DIGEST: &str = "5e3b00112233445566778899aabbccddeeff00112233445566778899aabbccdd";
+
+    #[test]
+    fn knowledge_uri_parses_and_round_trips() {
+        let uri = format!("stagecraft://project/{PROJ}/knowledge/{KNOWLEDGE}");
+        let p = ProvenanceKind::parse("knowledge", &uri).unwrap();
+        assert_eq!(
+            p,
+            ProvenanceKind::Knowledge {
+                project_uuid: PROJ.into(),
+                knowledge_uuid: KNOWLEDGE.into(),
+            }
+        );
+        assert_eq!(p.to_uri(), uri);
+        assert_eq!(p.kind_str(), "knowledge");
+    }
+
+    #[test]
+    fn fingerprint_uri_parses_and_round_trips() {
+        let uri = format!("xray-fingerprint://{DIGEST}");
+        let p = ProvenanceKind::parse("code-fingerprint", &uri).unwrap();
+        assert_eq!(
+            p,
+            ProvenanceKind::CodeFingerprint {
+                digest: DIGEST.into(),
+            }
+        );
+        assert_eq!(p.to_uri(), uri);
+        assert_eq!(p.kind_str(), "code-fingerprint");
+    }
+
+    #[test]
+    fn unknown_kind_rejected() {
+        let err = ProvenanceKind::parse("sbom", "sbom://anything").unwrap_err();
+        assert_eq!(
+            err,
+            ProvenanceParseError::UnknownKind {
+                kind: "sbom".into(),
+            }
+        );
+    }
+
+    #[test]
+    fn knowledge_scheme_mismatch() {
+        let uri = format!("xray-fingerprint://{DIGEST}");
+        let err = ProvenanceKind::parse("knowledge", &uri).unwrap_err();
+        assert_eq!(
+            err,
+            ProvenanceParseError::SchemeMismatch {
+                kind: "knowledge".into(),
+                scheme: "xray-fingerprint".into(),
+            }
+        );
+    }
+
+    #[test]
+    fn knowledge_missing_project_segment() {
+        let err = ProvenanceKind::parse(
+            "knowledge",
+            "stagecraft://item/8c4f1234-1234-4abc-9def-1234567890ab",
+        )
+        .unwrap_err();
+        assert!(matches!(
+            err,
+            ProvenanceParseError::MissingProjectSegment { .. }
+        ));
+    }
+
+    #[test]
+    fn knowledge_malformed_uuid() {
+        let err = ProvenanceKind::parse(
+            "knowledge",
+            "stagecraft://project/not-a-uuid/knowledge/also-not-a-uuid",
+        )
+        .unwrap_err();
+        assert!(matches!(err, ProvenanceParseError::MalformedUuid { .. }));
+    }
+
+    #[test]
+    fn fingerprint_short_digest_rejected() {
+        let err = ProvenanceKind::parse("code-fingerprint", "xray-fingerprint://abc123")
+            .unwrap_err();
+        assert!(matches!(err, ProvenanceParseError::MalformedDigest { .. }));
+    }
+
+    #[test]
+    fn fingerprint_empty_body_rejected() {
+        let err = ProvenanceKind::parse("code-fingerprint", "xray-fingerprint://").unwrap_err();
+        assert!(matches!(err, ProvenanceParseError::EmptyBody { .. }));
+    }
+
+    #[test]
+    fn fingerprint_scheme_mismatch() {
+        let err = ProvenanceKind::parse(
+            "code-fingerprint",
+            "stagecraft://project/aaaa/knowledge/bbbb",
+        )
+        .unwrap_err();
+        assert_eq!(
+            err,
+            ProvenanceParseError::SchemeMismatch {
+                kind: "code-fingerprint".into(),
+                scheme: "stagecraft".into(),
+            }
+        );
+    }
+
+    #[test]
+    fn malformed_uri_no_scheme() {
+        let err = ProvenanceKind::parse("knowledge", "no-scheme-here").unwrap_err();
+        assert!(matches!(err, ProvenanceParseError::MalformedUri { .. }));
     }
 }
