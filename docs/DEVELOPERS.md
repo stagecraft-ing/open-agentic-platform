@@ -13,7 +13,7 @@
 
 Run `make check-deps` to verify the core tools are installed.
 
-**Alternative:** Open in VS Code with the [devcontainer](.devcontainer/devcontainer.json) for a pre-configured environment.
+**Alternative:** Open in VS Code with the [devcontainer](../.devcontainer/devcontainer.json) for a pre-configured environment.
 
 ### Hetzner GitOps operator (spec 151)
 
@@ -67,7 +67,7 @@ To use a different admin email, override the env var:
 BOOTSTRAP_ADMIN_EMAIL=you@company.com npm run encore
 ```
 
-See [`platform/services/stagecraft/api/auth/auth.ts:120-122`](platform/services/stagecraft/api/auth/auth.ts) for the bootstrap logic.
+See [`platform/services/stagecraft/api/auth/auth.ts:120-122`](../platform/services/stagecraft/api/auth/auth.ts) for the bootstrap logic.
 
 ## Platform Services
 
@@ -89,7 +89,7 @@ Platform services are excluded from `pnpm-workspace.yaml`. Do not run `pnpm inst
 
 ## Further Reading
 
-- [README.md](README.md) — architecture overview and system vision
-- [platform/CLAUDE.md](platform/CLAUDE.md) — platform layer technical reference
-- [platform/services/stagecraft/README.md](platform/services/stagecraft/README.md) — full stagecraft service docs
-- [product/apps/desktop/README.md](product/apps/desktop/README.md) — OPC desktop app
+- [README.md](../README.md) — architecture overview and system vision
+- [platform/CLAUDE.md](../platform/CLAUDE.md) — platform layer technical reference
+- [platform/services/stagecraft/README.md](../platform/services/stagecraft/README.md) — full stagecraft service docs
+- [product/apps/desktop/README.md](../product/apps/desktop/README.md) — OPC desktop app

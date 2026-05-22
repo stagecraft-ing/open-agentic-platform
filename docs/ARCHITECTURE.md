@@ -5,7 +5,7 @@
 Open Agentic Platform (OAP) is a governed operating system for AI-native software delivery. Three layers:
 
 1. **OPC Desktop** (`product/apps/desktop/`) — Local Tauri v2 + React cockpit for inspection, governance, and git context
-2. **Spec Spine** (`specs/`, `tools/`, `build/`) — Canonical contract system: markdown specs compile to JSON registries
+2. **Spec Spine** (`specs/`, `tools/`, `.derived/`) — Canonical contract system: markdown specs compile to JSON registries
 3. **Platform** (`platform/`) — Organisational control plane: identity, policy, approvals, deployments, audit
 
 ## Crate Map
@@ -107,7 +107,7 @@ The spec-first workflow (defined in spec 000):
 3. **Query** — `registry-consumer list|show` reads the compiled registry
 4. **Lint** — `spec-lint` checks conformance (W-xxx warnings)
 
-Status lifecycle: `draft` -> `active` (ratified and delivered) -> `superseded` | `retired`
+Status lifecycle: `draft` -> `approved` (ratified and delivered) -> `superseded` | `retired`
 
 Human-authored truth is always markdown. Machine-consumed truth is always compiler-emitted JSON.
 
@@ -125,8 +125,8 @@ The `.claude/` directory ships development infrastructure as a first-class part 
 
 | Path | Contents |
 |------|---------|
-| `.claude/agents/` | architect, explorer, implementer, reviewer |
-| `.claude/commands/` | init, commit, code-review, validate-and-fix, research, implement-plan, cleanup |
+| `.claude/agents/` | architect, explorer, implementer, reviewer, encore-expert |
+| `.claude/commands/` | init, setup, commit, code-review, review-branch, implement-plan, research, validate-and-fix, cleanup, refactor-claude-md |
 | `.claude/rules/` | Orchestrator behavioral rules (6 rules for multi-step workflows) |
 | `CLAUDE.md` | Project conventions, build commands, extension points |
 | `AGENTS.md` | Agent protocol and session initialization |

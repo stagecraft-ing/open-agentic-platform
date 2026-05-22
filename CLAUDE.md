@@ -11,8 +11,8 @@ Open Agentic Platform (OAP) is a governed operating system for AI-native softwar
 ## Repository Structure
 
 ```
-specs/              — Feature specifications (000–088), the authoritative design record
-tools/              — Rust CLI tools (subdivided by ownership)
+specs/              — Feature specifications (000–159), the authoritative design record
+tools/              — CLI tools and lints (subdivided by ownership)
   spec-spine/       — Generic spec-spine binaries (spec-compiler,
                       registry-consumer, codebase-indexer, spec-lint,
                       spec-code-coupling-check)
@@ -21,6 +21,7 @@ tools/              — Rust CLI tools (subdivided by ownership)
                       adapter-scopes-compiler, assumption-cascade-check,
                       ci-parity-check, schema-parity-check (JS),
                       stakeholder-doc-lint)
+  lint/             — Shell-based lints (workflow-ref SHA pinning, spec 158)
   shared/spec-types/— Shared frontmatter / spec-shape types
   vendor/           — Vendored third-party (e.g. tree-sitter grammars)
 crates/             — Rust library crates
@@ -142,7 +143,7 @@ cd platform && make tf-apply   # Full Azure deployment
 ## Claude Code Extension Points
 
 - **`.claude/agents/`** — architect, explorer, implementer, reviewer, encore-expert
-- **`.claude/commands/`** — /init, /commit, /code-review, /review-branch, /implement-plan, /research, /validate-and-fix, /cleanup, /factory-sync, /refactor-claude-md
+- **`.claude/commands/`** — /init, /setup, /commit, /code-review, /review-branch, /implement-plan, /research, /validate-and-fix, /cleanup, /refactor-claude-md
 - **`.claude/rules/`** — Reusable rule files (loaded automatically)
 - **`AGENTS.md`** — Self-extending agent protocol and session init
 - **`CLAUDE.md`** — Scoped at root, `platform/`, and `platform/services/stagecraft/`
