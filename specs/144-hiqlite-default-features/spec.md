@@ -14,14 +14,12 @@ depends_on:
   - "052"  # state-persistence (orchestrator's hiqlite-backed distributed mode)
 code_aliases: ["HIQLITE_DEFAULT_FEATURES"]
 refines:
-  - paths:
-      - crates/orchestrator/Cargo.toml
-      - crates/axiomregent/Cargo.toml
-      - crates/Cargo.lock
-    aspect: cargo-manifest-hygiene
-    refines_specs:
-      - "073-axiomregent-unification"
-      - "052-state-persistence"
+  - aspect: "cargo-manifest-hygiene"
+    unit: { kind: file, path: crates/orchestrator/Cargo.toml }
+  - aspect: "cargo-manifest-hygiene"
+    unit: { kind: file, path: crates/axiomregent/Cargo.toml }
+  - aspect: "cargo-manifest-hygiene"
+    unit: { kind: file, path: Cargo.lock }
 summary: >
   `crates/orchestrator/Cargo.toml:20` declares the `hiqlite` dependency
   without `default-features = false`. Cargo unifies features across the

@@ -13,9 +13,9 @@ summary: >
   temporal safety capabilities through a project-scoped UI: initialize tracking,
   create named checkpoints, list/restore/diff/verify checkpoints.
 establishes:
-  - product/apps/desktop/src/features/checkpoint/CheckpointSurface.tsx
-  - product/apps/desktop/src/features/checkpoint/useCheckpointFlow.ts
-  - product/apps/desktop/src/features/checkpoint/types.ts
+  - unit: { kind: file, path: product/apps/desktop/src/features/checkpoint/CheckpointSurface.tsx }
+  - unit: { kind: file, path: product/apps/desktop/src/features/checkpoint/useCheckpointFlow.ts }
+  - unit: { kind: file, path: product/apps/desktop/src/features/checkpoint/types.ts }
 ---
 
 # Feature Specification: Checkpoint / Restore UI — desktop panel

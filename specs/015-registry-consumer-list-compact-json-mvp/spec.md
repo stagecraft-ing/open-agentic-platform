@@ -14,9 +14,8 @@ summary: >
   with `list --json`, mirroring Feature 014 for `show`.
 extends:
   - spec: "012-registry-consumer-list-json-mvp"
-    paths:
-      - tools/spec-spine/registry-consumer
     nature: additive
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Registry consumer list compact JSON

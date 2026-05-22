@@ -20,12 +20,8 @@ code_aliases:
   - VERIFICATION_PROFILES
   - VERIFY_GATES
 refines:
-  - paths:
-      - crates/orchestrator
-    aspect: verification-gates
-    refines_specs:
-      - "005-verification-reconciliation-mvp"
-      - "004-spec-to-execution-bridge-mvp"
+  - aspect: "verification-gates"
+    unit: { kind: crate, id: orchestrator }
 sources:
   - claudepal
   - asterisk-mcp-server

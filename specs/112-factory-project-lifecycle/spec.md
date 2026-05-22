@@ -30,23 +30,24 @@ depends_on:
   - "110"  # stagecraft-to-opc-factory-trigger (run dispatch envelope)
   - "111"  # org-agent-catalog-sync (establishes the workspace-scoped sync pattern reused here)
 establishes:
-  - crates/factory-project-detect/
-  - platform/services/stagecraft/api/projects/create.ts
-  - platform/services/stagecraft/api/projects/import.ts
-  - platform/services/stagecraft/api/projects/opcBundle.ts
-  - platform/services/stagecraft/api/projects/opcBundleHelpers.ts
-  - platform/services/stagecraft/api/projects/scaffold/
-  - platform/services/stagecraft/web/app/routes/app.projects.new.tsx
-  - platform/services/stagecraft/web/app/routes/app.projects.import.tsx
-  - product/apps/desktop/src-tauri/src/commands/factory_project.rs
-  - product/apps/desktop/src-tauri/src/commands/keychain.rs
-  - product/apps/desktop/src/routes/factory/ProjectCockpit.tsx
+  - unit: { kind: crate, id: factory-project-detect }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/import.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundle.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundleHelpers.ts }
+  - unit: { kind: directory, path: platform/services/stagecraft/api/projects/scaffold }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.import.tsx }
+  - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/factory_project.rs }
+  - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/keychain.rs }
+  - unit: { kind: file, path: product/apps/desktop/src/routes/factory/ProjectCockpit.tsx }
 extends:
   - spec: "108-factory-as-platform-feature"
-    paths:
-      - platform/services/stagecraft/api/factory/translator.ts
-      - standards/schemas/factory/
     nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }
+  - spec: "108-factory-as-platform-feature"
+    nature: additive
+    unit: { kind: directory, path: standards/schemas/factory }
 ---
 
 # 112 — Factory Project Lifecycle — Create, Import, Open

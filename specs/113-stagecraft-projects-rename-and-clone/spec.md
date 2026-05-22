@@ -27,18 +27,35 @@ depends_on:
   - "112"  # factory-project-lifecycle (import + scaffold reusable primitives)
 extends:
   - spec: "112-factory-project-lifecycle"
-    paths:
-      - platform/services/stagecraft/web/app/routes/app._index.tsx
-      - platform/services/stagecraft/web/app/routes/app.tsx
-      - platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx
-      - platform/services/stagecraft/web/app/lib/projects-api.server.ts
-      - platform/services/stagecraft/api/projects/clone.ts
-      - platform/services/stagecraft/api/projects/cloneHelpers.ts
-      - platform/services/stagecraft/api/projects/cloneAvailability.ts
-      - platform/services/stagecraft/api/projects/encore.service.ts
-      - platform/services/stagecraft/api/projects/clone.test.ts
-      - platform/services/stagecraft/api/projects/cloneAvailability.test.ts
     nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app._index.tsx }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.tsx }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/clone.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneHelpers.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneAvailability.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/encore.service.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneAvailability.test.ts }
+references:
+  - role: historical
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/clone.test.ts }
 ---
 
 # 113 — Stagecraft Projects Rename + In-Org Project Clone

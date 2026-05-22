@@ -91,8 +91,14 @@ pub fn scan_specs(repo_root: &Path) -> Vec<SpecRecord> {
     }
     entries.sort();
 
+    // Spec 154 §3.1: build the manifest-name → workspace-member-path
+    // map once per scan. Used by `parse_implements` to expand `crate:`
+    // unit declarations into the same path-list traceability the
+    // legacy bare-path declarations contributed.
+    let workspace_members = collect_workspace_members(repo_root);
+
     for spec_path in &entries {
-        if let Some(rec) = parse_spec(spec_path) {
+        if let Some(rec) = parse_spec(spec_path, &workspace_members) {
             records.push(rec);
         }
     }
@@ -100,12 +106,81 @@ pub fn scan_specs(repo_root: &Path) -> Vec<SpecRecord> {
     records
 }
 
+/// Map crate `id` (Rust `[package].name` or npm `package.json:name`)
+/// → workspace-relative directory. Mirrors spec-compiler's
+/// `discover_workspace_crate_ids` shape (spec 154 §3.1 — workspace
+/// boundary is the manifest, not the language).
+fn collect_workspace_members(
+    repo_root: &Path,
+) -> std::collections::BTreeMap<String, String> {
+    let mut out = std::collections::BTreeMap::new();
+    // Rust workspace members.
+    let root_manifest = repo_root.join("Cargo.toml");
+    if let Ok(raw) = fs::read_to_string(&root_manifest) {
+        if let Ok(parsed) = raw.parse::<toml::Value>() {
+            if let Some(members) = parsed
+                .get("workspace")
+                .and_then(|w| w.get("members"))
+                .and_then(|m| m.as_array())
+            {
+                for member in members {
+                    let Some(rel) = member.as_str() else {
+                        continue;
+                    };
+                    let member_manifest = repo_root.join(rel).join("Cargo.toml");
+                    let Ok(member_raw) = fs::read_to_string(&member_manifest) else {
+                        continue;
+                    };
+                    let Ok(member_parsed) = member_raw.parse::<toml::Value>() else {
+                        continue;
+                    };
+                    if let Some(name) = member_parsed
+                        .get("package")
+                        .and_then(|p| p.get("name"))
+                        .and_then(|n| n.as_str())
+                    {
+                        out.insert(name.to_string(), rel.to_string());
+                    }
+                }
+            }
+        }
+    }
+    // npm packages under product/.
+    for pkg_root in ["product/apps", "product/packages"] {
+        let dir = repo_root.join(pkg_root);
+        let Ok(entries) = fs::read_dir(&dir) else {
+            continue;
+        };
+        let mut sorted: Vec<_> = entries.flatten().collect();
+        sorted.sort_by_key(|e| e.file_name());
+        for entry in sorted {
+            let pkg_json = entry.path().join("package.json");
+            let Ok(raw) = fs::read_to_string(&pkg_json) else {
+                continue;
+            };
+            let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&raw) else {
+                continue;
+            };
+            if let Some(name) = parsed.get("name").and_then(|n| n.as_str()) {
+                if let Ok(rel) = entry.path().strip_prefix(repo_root) {
+                    let rel_str = rel.to_string_lossy().replace('\\', "/");
+                    out.insert(name.to_string(), rel_str);
+                }
+            }
+        }
+    }
+    out
+}
+
 fn is_spec_dir(name: &str) -> bool {
     let b = name.as_bytes();
     b.len() >= 5 && b[..3].iter().all(|u| u.is_ascii_digit()) && b[3] == b'-'
 }
 
-fn parse_spec(path: &Path) -> Option<SpecRecord> {
+fn parse_spec(
+    path: &Path,
+    workspace_members: &std::collections::BTreeMap<String, String>,
+) -> Option<SpecRecord> {
     let raw = fs::read_to_string(path).ok()?;
     let (yaml_val, _body) = split_frontmatter_required(&raw).ok()?;
     let fm = yaml_val.as_mapping()?;
@@ -118,7 +193,7 @@ fn parse_spec(path: &Path) -> Option<SpecRecord> {
         .map(|s| s.to_string());
 
     let depends_on = parse_depends_on(fm);
-    let implements = parse_implements(fm);
+    let implements = parse_implements(fm, workspace_members);
     let amends = parse_string_list(fm, "amends");
     let amendment_record = fm
         .get("amendment_record")
@@ -181,7 +256,10 @@ fn parse_depends_on(fm: &serde_yaml::Mapping) -> Vec<String> {
 /// is intentionally not read here. The indexer reads relationship
 /// fields directly because the spec-compiler's extraFrontmatter rejects
 /// nested mappings (V-002); the indexer has its own read path.
-fn parse_implements(fm: &serde_yaml::Mapping) -> Vec<ImplementsEntry> {
+fn parse_implements(
+    fm: &serde_yaml::Mapping,
+    workspace_members: &std::collections::BTreeMap<String, String>,
+) -> Vec<ImplementsEntry> {
     let mut entries = Vec::new();
     let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
 
@@ -198,21 +276,66 @@ fn parse_implements(fm: &serde_yaml::Mapping) -> Vec<ImplementsEntry> {
         }
     };
 
-    // `establishes:` — flat string list.
+    // Spec 154 §3 typed-unit extractor: walks a `unit:` mapping and
+    // emits the resolved path. `crate:` maps to its workspace-member
+    // directory via `workspace_members`. `symbol:` / `module:` carry
+    // sub-file-level identity that does not map to a flat path; the
+    // resolver's symbol/module index is the authority for those and
+    // the gate consumes them via `resolved_units`, not via the
+    // path-list traceability.
+    let unit_path = |unit: &serde_yaml::Value| -> Option<String> {
+        let map = unit.as_mapping()?;
+        let kind = map
+            .get(serde_yaml::Value::String("kind".to_string()))?
+            .as_str()?;
+        match kind {
+            "crate" => {
+                let id = map
+                    .get(serde_yaml::Value::String("id".to_string()))?
+                    .as_str()?;
+                workspace_members.get(id).cloned()
+            }
+            "directory" | "file" => map
+                .get(serde_yaml::Value::String("path".to_string()))?
+                .as_str()
+                .map(|s| s.to_string()),
+            "section" => map
+                .get(serde_yaml::Value::String("file".to_string()))?
+                .as_str()
+                .map(|s| s.to_string()),
+            _ => None,
+        }
+    };
+
+    // `establishes:` — flat list. Items can be bare strings (legacy
+    // `file:` form), `{ unit: <unit> }`, or a direct unit mapping (per
+    // spec 154 §5 the canonical form is `{ unit: <unit> }`).
     if let Some(val) = fm.get("establishes") {
         if let Some(seq) = val.as_sequence() {
             for item in seq {
                 if let Some(s) = item.as_str() {
                     push_path(s.to_string());
+                    continue;
+                }
+                if let Some(mapping) = item.as_mapping() {
+                    if let Some(unit_val) = mapping.get("unit") {
+                        if let Some(p) = unit_path(unit_val) {
+                            push_path(p);
+                        }
+                    }
                 }
             }
         }
     }
 
-    // Extract `paths:` from each item in a structured field
-    // (`extends`, `refines`, `co_authority`).
-    let extract_paths_from = |fm: &serde_yaml::Mapping, key: &str| -> Vec<String> {
-        let mut out = Vec::new();
+    // Extract paths from each item in a structured field (`extends`,
+    // `refines`, `co_authority`, `constrains`, `supersedes`, `amends`).
+    // Items may carry legacy `paths: [...]` (string list) OR typed
+    // `unit: <unit>`; both sources contribute to the traceability
+    // path list.
+    let extract_paths_from = |fm: &serde_yaml::Mapping,
+                              key: &str,
+                              push: &mut dyn FnMut(String)| {
         if let Some(val) = fm.get(key) {
             if let Some(seq) = val.as_sequence() {
                 for item in seq {
@@ -221,26 +344,24 @@ fn parse_implements(fm: &serde_yaml::Mapping) -> Vec<ImplementsEntry> {
                             if let Some(paths_seq) = paths_val.as_sequence() {
                                 for p in paths_seq {
                                     if let Some(s) = p.as_str() {
-                                        out.push(s.to_string());
+                                        push(s.to_string());
                                     }
                                 }
+                            }
+                        }
+                        if let Some(unit_val) = mapping.get("unit") {
+                            if let Some(p) = unit_path(unit_val) {
+                                push(p);
                             }
                         }
                     }
                 }
             }
         }
-        out
     };
 
-    for path in extract_paths_from(fm, "extends") {
-        push_path(path);
-    }
-    for path in extract_paths_from(fm, "refines") {
-        push_path(path);
-    }
-    for path in extract_paths_from(fm, "co_authority") {
-        push_path(path);
+    for field in &["extends", "refines", "supersedes", "amends", "co_authority", "constrains"] {
+        extract_paths_from(fm, field, &mut push_path);
     }
 
     entries

@@ -55,7 +55,14 @@ summary: "Spec 154 typed-reader fixture."
 }
 
 #[test]
-fn units_extracts_explicit_and_legacy_with_origin_flag() {
+fn units_extracts_explicit_with_legacy_references() {
+    // Spec 154 Segment 6: bare-string entries are rejected on the
+    // owning fields (establishes/extends/refines/...) but remain
+    // accepted on `references:` per 4' (references is non-owning by
+    // design — see spec 154 §4). The `legacy` flag persists for the
+    // remaining bare-string `references:` channel so downstream
+    // consumers can distinguish surface syntax even after the
+    // owning-field excision.
     let dir = tempfile::tempdir().expect("tempdir");
     let root = dir.path();
     write_synthetic_workspace(root, &[("crates/foo", "foo-crate")]);
@@ -65,7 +72,6 @@ fn units_extracts_explicit_and_legacy_with_origin_flag() {
         "900-mixed-units",
         concat!(
             "establishes:\n",
-            "  - \"legacy/path.rs\"\n",
             "  - unit: { kind: crate, id: foo-crate }\n",
             "references:\n",
             "  - \"some/legacy/ref\"\n",
@@ -81,61 +87,53 @@ fn units_extracts_explicit_and_legacy_with_origin_flag() {
         .expect("feature in registry");
     let edges = feature.units();
 
-    // Four edges in declaration order: legacy establishes file,
-    // explicit crate, legacy reference file, explicit symbol reference.
-    assert_eq!(edges.len(), 4, "got {:?}", edges);
+    // Three edges in declaration order: explicit crate, legacy
+    // reference file (bare-string in references is still valid), explicit
+    // symbol reference.
+    assert_eq!(edges.len(), 3, "got {:?}", edges);
 
     assert_eq!(edges[0].relationship, "establishes");
     assert_eq!(
         edges[0].unit,
-        LogicalUnit::File {
-            path: "legacy/path.rs".into()
-        }
-    );
-    assert!(edges[0].legacy, "bare-string entries are legacy origin");
-
-    assert_eq!(edges[1].relationship, "establishes");
-    assert_eq!(
-        edges[1].unit,
         LogicalUnit::Crate {
             id: "foo-crate".into()
         }
     );
-    assert!(!edges[1].legacy, "explicit unit declarations are not legacy");
+    assert!(!edges[0].legacy, "explicit unit declarations are not legacy");
 
-    assert_eq!(edges[2].relationship, "references");
+    assert_eq!(edges[1].relationship, "references");
     assert_eq!(
-        edges[2].unit,
+        edges[1].unit,
         LogicalUnit::File {
             path: "some/legacy/ref".into()
         }
     );
-    assert!(edges[2].legacy);
-    assert!(edges[2].role.is_none());
+    assert!(edges[1].legacy);
+    assert!(edges[1].role.is_none());
 
-    assert_eq!(edges[3].relationship, "references");
+    assert_eq!(edges[2].relationship, "references");
     assert_eq!(
-        edges[3].unit,
+        edges[2].unit,
         LogicalUnit::Symbol {
             id: "foo::bar".into()
         }
     );
-    assert!(!edges[3].legacy);
-    assert_eq!(edges[3].role.as_deref(), Some("evidence"));
+    assert!(!edges[2].legacy);
+    assert_eq!(edges[2].role.as_deref(), Some("evidence"));
 }
 
 #[test]
-fn units_walks_legacy_paths_lists() {
-    // Legacy `extends.paths` / `refines.paths` / `co_authority.paths`
-    // each materialise into UnitEdge entries with `legacy=true` so
-    // downstream consumers see one unified surface.
+fn legacy_paths_lists_now_rejected() {
+    // Spec 154 Segment 6: the `extends.paths` / `refines.paths` /
+    // `co_authority.paths` legacy sub-list shapes are excised. Items
+    // must be authored as typed `unit:` mappings.
     let dir = tempfile::tempdir().expect("tempdir");
     let root = dir.path();
     fs::create_dir_all(root.join("specs/901-other")).unwrap();
     write_spec(
         &root.join("specs/901-other"),
         "901-other",
-        "establishes:\n  - \"some/path.rs\"\n",
+        "establishes:\n  - unit: { kind: file, path: some/path.rs }\n",
     );
     fs::create_dir_all(root.join("specs/902-legacy-paths")).unwrap();
     write_spec(
@@ -150,22 +148,12 @@ fn units_walks_legacy_paths_lists() {
         ),
     );
 
-    run_spec_compiler(root);
+    // Compile but allow non-passing validation — we expect rejection.
+    let out = open_agentic_spec_compiler::compile_and_write(root).expect("compile");
+    assert!(
+        !out.validation_passed,
+        "compiler must reject legacy `extends.paths:` shape post-excision"
+    );
     let registry = load(&root.join(".derived/spec-registry/registry.json")).expect("load");
-    let feature = registry
-        .find_by_id("902-legacy-paths")
-        .expect("feature in registry");
-    let edges = feature.units();
-    let extend_edges: Vec<_> = edges
-        .iter()
-        .filter(|e| e.relationship == "extends")
-        .collect();
-    assert_eq!(extend_edges.len(), 2);
-    for e in &extend_edges {
-        assert!(e.legacy);
-        match &e.unit {
-            LogicalUnit::File { path } => assert!(path.starts_with("a/")),
-            other => panic!("expected file: unit, got {other:?}"),
-        }
-    }
+    assert!(!registry.validation.passed);
 }

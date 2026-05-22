@@ -14,13 +14,11 @@ summary: >
   stderr bytes and exit codes from deterministic fixtures, without changing CLI behavior.
 extends:
   - spec: "002-registry-consumer-mvp"
-    paths:
-      - tools/spec-spine/registry-consumer
     nature: additive
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 refines:
-  - paths:
-      - tools/spec-spine/registry-consumer
-    aspect: error-shape
+  - aspect: "error-shape"
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Error contract tests

@@ -16,24 +16,23 @@ code_aliases: ["ASYNC_PROJECT_CLONE"]
 supersedes:
   - spec: "113-stagecraft-projects-rename-and-clone"
     scope: partial
-    paths:
-      - platform/services/stagecraft/api/projects/clone.ts
-    rationale: replaces synchronous clone endpoint with async PubSub worker pipeline
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/clone.ts }
 establishes:
-  - platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql
-  - platform/services/stagecraft/api/db/schema.ts
-  - platform/services/stagecraft/api/projects/cloneCore.ts
-  - platform/services/stagecraft/api/projects/cloneEvents.ts
-  - platform/services/stagecraft/api/projects/cloneWorker.ts
-  - platform/services/stagecraft/api/projects/cloneRunStatus.ts
-  - platform/services/stagecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx
-  - platform/services/stagecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneCore.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneEvents.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneWorker.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneRunStatus.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx }
 extends:
   - spec: "113-stagecraft-projects-rename-and-clone"
-    paths:
-      - platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx
-      - platform/services/stagecraft/web/app/lib/projects-api.server.ts
     nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx }
+  - spec: "113-stagecraft-projects-rename-and-clone"
+    nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
 summary: >
   Spec 113's `POST /api/projects/:id/clone` does the full mirror-clone +
   mirror-push + raw-artifact hydration synchronously inside the HTTP

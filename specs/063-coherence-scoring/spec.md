@@ -21,12 +21,11 @@ code_aliases:
 sources:
   - ruflo
 establishes:
-  - crates/policy-kernel/src/coherence.rs
+  - unit: { kind: file, path: crates/policy-kernel/src/coherence.rs }
 extends:
   - spec: "036-safety-tier-governance"
-    paths:
-      - crates/policy-kernel
     nature: additive
+    unit: { kind: crate, id: open_agentic_policy_kernel }
 ---
 
 # Feature Specification: Coherence Scoring with Privilege Degradation

@@ -18,7 +18,7 @@ summary: >
 code_aliases:
   - HOOKIFY_RULE_ENGINE
 establishes:
-  - product/packages/hookify-rule-engine
+  - unit: { kind: crate, id: "@opc/hookify-rule-engine" }
 ---
 
 # Feature Specification: Declarative Hook Rule Engine

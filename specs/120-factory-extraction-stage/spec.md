@@ -32,23 +32,29 @@ depends_on:
   - "110"  # stagecraft-to-opc-factory-trigger (KnowledgeBundle + duplex auth)
   - "115"  # knowledge-extraction-pipeline (ExtractionOutput schema source)
 establishes:
-  - crates/factory-contracts/src/knowledge.rs
-  - crates/factory-engine/src/stages/s_minus_1_extract.rs
-  - platform/services/stagecraft/api/knowledge/extractionExternal.ts
-  - product/apps/desktop/src/components/factory/ArtifactInspector.tsx
+  - unit: { kind: file, path: crates/factory-contracts/src/knowledge.rs }
+  - unit: { kind: file, path: crates/factory-engine/src/stages/s_minus_1_extract.rs }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionExternal.ts }
+  - unit: { kind: file, path: product/apps/desktop/src/components/factory/ArtifactInspector.tsx }
 extends:
   - spec: "075-factory-workflow-engine"
-    paths:
-      - crates/factory-engine/src/manifest_gen.rs
-      - crates/artifact-extract/Cargo.toml
-      - crates/artifact-extract/src/lib.rs
     nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/manifest_gen.rs }
+  - spec: "075-factory-workflow-engine"
+    nature: additive
+    unit: { kind: file, path: crates/artifact-extract/Cargo.toml }
+  - spec: "075-factory-workflow-engine"
+    nature: additive
+    unit: { kind: file, path: crates/artifact-extract/src/lib.rs }
   - spec: "108-factory-as-platform-feature"
-    paths:
-      - product/apps/desktop/src-tauri/src/commands/factory.rs
-      - product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs
-      - platform/services/stagecraft/api/knowledge/extractionOutput.ts
     nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/factory.rs }
+  - spec: "108-factory-as-platform-feature"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs }
+  - spec: "108-factory-as-platform-feature"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionOutput.ts }
 ---
 
 # 120 — Factory Extraction Stage

@@ -18,23 +18,50 @@ depends_on:
 code_aliases: ["STAGECRAFT_CREATE_REALISED"]
 extends:
   - spec: "112-factory-project-lifecycle"
-    paths:
-      - platform/services/stagecraft/api/projects/create.ts
-      - platform/services/stagecraft/api/projects/scaffoldReadiness.ts
-      - platform/services/stagecraft/api/projects/scaffold/templateCache.ts
-      - platform/services/stagecraft/api/projects/scaffold/scheduler.ts
-      - platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts
-      - platform/services/stagecraft/api/projects/scaffold/gitInitAndPush.ts
-      - platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts
-      - platform/services/stagecraft/web/app/routes/app.projects.new.tsx
-      - platform/charts/stagecraft/templates/workspace-pvc.yaml
-      - platform/services/stagecraft/api/factory/syncPipeline.ts
-      - platform/services/stagecraft/api/factory/syncWorker.ts
-      - platform/services/stagecraft/api/factory/translator.test.ts
-      - platform/services/stagecraft/api/github/repoInit.ts
-      - platform/services/stagecraft/web/app/lib/projects-api.server.ts
-      - platform/services/stagecraft/CLAUDE.md
     nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffoldReadiness.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/templateCache.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/scheduler.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/gitInitAndPush.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/charts/stagecraft/templates/workspace-pvc.yaml }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/syncPipeline.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/syncWorker.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.test.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/github/repoInit.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/CLAUDE.md }
 summary: >
   Spec 112 §5 specified Create at the contract level but left four points
   where the landed implementation diverged from the literal spec text:

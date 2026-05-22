@@ -18,12 +18,17 @@ code_aliases:
   - AGENT_ORGANIZER
 extends:
   - spec: "004-spec-to-execution-bridge-mvp"
-    paths:
-      - crates/agent/src/complexity.rs
-      - crates/agent/src/dispatch.rs
-      - crates/agent/src/plan.rs
-      - crates/orchestrator
     nature: additive
+    unit: { kind: file, path: crates/agent/src/complexity.rs }
+  - spec: "004-spec-to-execution-bridge-mvp"
+    nature: additive
+    unit: { kind: file, path: crates/agent/src/dispatch.rs }
+  - spec: "004-spec-to-execution-bridge-mvp"
+    nature: additive
+    unit: { kind: file, path: crates/agent/src/plan.rs }
+  - spec: "004-spec-to-execution-bridge-mvp"
+    nature: additive
+    unit: { kind: crate, id: orchestrator }
 ---
 
 # Feature Specification: agent organizer and meta-orchestrator

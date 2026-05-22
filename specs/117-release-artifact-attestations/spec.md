@@ -16,15 +16,15 @@ depends_on:
 code_aliases: ["RELEASE_ATTESTATIONS"]
 extends:
   - spec: "037-cross-platform-axiomregent"
-    paths:
-      - .github/workflows/release-axiomregent.yml
     nature: additive
+    unit: { kind: file, path: .github/workflows/release-axiomregent.yml }
 refines:
-  - paths:
-      - .github/workflows/release-axiomregent.yml
-      - .github/workflows/release-desktop.yml
-      - .github/workflows/release-tools.yml
-    aspect: artifact-attestation
+  - aspect: "artifact-attestation"
+    unit: { kind: file, path: .github/workflows/release-axiomregent.yml }
+  - aspect: "artifact-attestation"
+    unit: { kind: file, path: .github/workflows/release-desktop.yml }
+  - aspect: "artifact-attestation"
+    unit: { kind: file, path: .github/workflows/release-tools.yml }
 summary: >
   Every binary shipped via release-{axiomregent,desktop,tools}.yml is paired
   with a CycloneDX SBOM and a GitHub-signed build provenance attestation.

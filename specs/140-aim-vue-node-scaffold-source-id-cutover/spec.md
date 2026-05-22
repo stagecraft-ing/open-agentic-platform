@@ -19,25 +19,44 @@ depends_on:
   - "139"  # factory-artifact-substrate (§7.2 declared scaffold_source_id replaces template_remote)
 code_aliases: ["AIM_VUE_NODE_SCAFFOLD_SOURCE_ID_CUTOVER"]
 establishes:
-  - platform/services/stagecraft/api/factory/oapNativeAdapters.ts
-  - platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql
-  - platform/services/stagecraft/api/projects/scaffold/types.ts
-  - platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/oapNativeAdapters.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/types.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts }
 extends:
   - spec: "139-factory-artifact-substrate"
-    paths:
-      - platform/services/stagecraft/api/factory/projection.ts
-      - platform/services/stagecraft/api/factory/translator.ts
-      - platform/services/stagecraft/api/factory/substrateBrowser.ts
-      - platform/services/stagecraft/api/factory/syncWorker.ts
-      - platform/services/stagecraft/api/projects/scaffold/scheduler.ts
-      - platform/services/stagecraft/api/projects/scaffold/templateCache.ts
-      - platform/services/stagecraft/api/projects/create.ts
-      - platform/services/stagecraft/api/projects/scaffoldReadiness.ts
-      - platform/services/stagecraft/web/app/routes/app.projects.new.tsx
-      - platform/services/stagecraft/web/app/lib/projects-api.server.ts
-      - platform/services/stagecraft/CLAUDE.md
     nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/projection.ts }
+  - spec: "139-factory-artifact-substrate"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }
+  - spec: "139-factory-artifact-substrate"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/substrateBrowser.ts }
+  - spec: "139-factory-artifact-substrate"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/syncWorker.ts }
+  - spec: "139-factory-artifact-substrate"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/scheduler.ts }
+  - spec: "139-factory-artifact-substrate"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/templateCache.ts }
+  - spec: "139-factory-artifact-substrate"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
+  - spec: "139-factory-artifact-substrate"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffoldReadiness.ts }
+  - spec: "139-factory-artifact-substrate"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx }
+  - spec: "139-factory-artifact-substrate"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
+  - spec: "139-factory-artifact-substrate"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/CLAUDE.md }
 summary: >
   Spec 139 §7.2 declared `template_remote` is replaced by
   `orchestration_source_id` + `scaffold_source_id`. Phase 2 landed the

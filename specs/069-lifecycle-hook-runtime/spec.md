@@ -19,9 +19,8 @@ code_aliases: ["LIFECYCLE_HOOK_RUNTIME"]
 sources: ["claude-code"]
 extends:
   - spec: "048-hookify-rule-engine"
-    paths:
-      - product/packages/hookify-rule-engine
     nature: wrapping
+    unit: { kind: crate, id: "@opc/hookify-rule-engine" }
 compliance:
   - framework: "owasp-asi-2026"
     # The Architecture §"Hook definition schema" ships canonical worked

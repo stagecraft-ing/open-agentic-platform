@@ -19,12 +19,11 @@ code_aliases:
 sources:
   - claudepal
 establishes:
-  - product/packages/oap-ctl/src/cli.js
+  - unit: { kind: file, path: product/packages/oap-ctl/src/cli.js }
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
-    paths:
-      - product/apps/desktop/src-tauri/src/web_server.rs
     nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/web_server.rs }
 ---
 
 # 085 — Remote Control CLI (oap-ctl)

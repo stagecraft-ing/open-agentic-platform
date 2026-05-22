@@ -14,11 +14,14 @@ pub mod hunk_attribution;
 pub mod section_parser;
 
 use hunk_attribution::HunkAttributionMap;
-use open_agentic_codebase_indexer::types::{CodebaseIndex, SCHEMA_VERSION};
+use open_agentic_codebase_indexer::types::{
+    CodebaseIndex, LineSpan, ResolvedUnit, SCHEMA_VERSION,
+};
 use open_agentic_codebase_indexer::{IndexReaderError, load as load_codebase_index};
 use open_agentic_spec_registry_reader::Registry as SpecRegistry;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
+use std::ops::Range;
 use std::path::Path;
 
 /// Empty-authority-by-rule patterns (spec 152 §3.2). These paths are
@@ -447,6 +450,24 @@ pub fn build_section_claim_index(registry: &SpecRegistry) -> SectionClaimIndex {
             None => continue,
         };
         for entry in entries {
+            // Spec 154 §5 typed-unit form: `unit: { kind: section,
+            // file: <path>, anchor: <name> }`. Read this first so the
+            // migrated corpus surfaces section claims under the gate's
+            // section-aware authority check. Legacy `section: <name>`
+            // + `paths: [...]` is the fallback for items the migration
+            // tool kept in pre-§5 form (orphan anchors).
+            if let Some(unit) = entry.get("unit").and_then(|v| v.as_object()) {
+                if unit.get("kind").and_then(Value::as_str) == Some("section") {
+                    let file = unit.get("file").and_then(Value::as_str);
+                    let anchor = unit.get("anchor").and_then(Value::as_str);
+                    if let (Some(f), Some(a)) = (file, anchor) {
+                        idx.entry((f.to_string(), a.to_string()))
+                            .or_default()
+                            .insert(feature.id.clone());
+                    }
+                    continue;
+                }
+            }
             let section = match entry.get("section").and_then(Value::as_str) {
                 Some(s) if !s.is_empty() => s.to_string(),
                 _ => continue,
@@ -592,6 +613,159 @@ pub fn check_coupling_section_aware(
 }
 
 // endregion section-matching
+
+// region: unit-aware-authority
+//
+// Spec 154 Segment 4 — gate consumption of the resolved logical-unit
+// graph emitted by the codebase-indexer's Segment 3 resolver. The
+// authority data here is sourced from `mapping.resolved_units` instead
+// of the flat `implementing_paths` list (spec 154 §6).
+//
+// Behavioural parity with the legacy corpus: every legacy `implements:`
+// path resolves to a `file:` unit with `span: None` (whole-file). The
+// `claimants_for_hunk` lookup below treats `span: None` as the whole
+// file, so a corpus still using path-string declarations sees
+// identical authority sets to the pre-Segment-4 gate. Segment 5
+// migrates the corpus to typed unit declarations; Segment 6 excises
+// the legacy parse path. Edits to this region's machinery require an
+// edit to specs/154-logical-unit-ownership-grammar.
+
+/// One unit-sourced claim entry: the unit's resolved span on a given
+/// file (None = whole-file) paired with the claiming spec's id.
+pub type UnitClaim = (Option<LineSpan>, String);
+
+/// File path → unit-sourced claims for that file. Built from
+/// `mapping.resolved_units` (ownership-bearing kinds only); each
+/// resolved location contributes one entry. Sorted and deduped per
+/// file so iteration order is deterministic for downstream consumers.
+pub type UnitClaimIndex = BTreeMap<String, Vec<UnitClaim>>;
+
+/// Build the unit-aware claim index from `index.traceability.mappings`
+/// (spec 154 §6 step 2 — forward-resolution of spec → units → files).
+///
+/// Walks every mapping's `resolved_units`, skipping `references:`
+/// (ownership=false). Each `ResolvedLocation` contributes a
+/// `(span, spec_id)` entry for its file. The optional `span` carries
+/// the unit's line range when the unit kind narrows below whole-file
+/// (symbol, module, section); whole-file kinds (`crate`, `directory`,
+/// `file`) emit `span: None`.
+///
+/// Spec 154 §3 backwards-compatibility: a legacy `implements:` path
+/// is resolved by the indexer as a `file:` unit with `span: None`,
+/// so this index reproduces the legacy whole-file authority set
+/// without a fallback branch here.
+pub fn build_unit_claim_index(index: &CodebaseIndex) -> UnitClaimIndex {
+    let mut idx: UnitClaimIndex = BTreeMap::new();
+    for mapping in &index.traceability.mappings {
+        for unit in &mapping.resolved_units {
+            if !unit.ownership {
+                continue;
+            }
+            for loc in &unit.locations {
+                idx.entry(loc.file.clone())
+                    .or_default()
+                    .push((loc.span.clone(), mapping.spec_id.clone()));
+            }
+        }
+    }
+    for claims in idx.values_mut() {
+        claims.sort();
+        claims.dedup();
+    }
+    idx
+}
+
+/// True when a `(span, hunk_lines)` pair overlaps. `span: None` means
+/// "whole file" and overlaps every hunk; `span: Some(s)` overlaps
+/// `hunk_lines` iff their inclusive ranges intersect. The hunk range
+/// from `git diff -U0` is half-open `[new_start, new_start + new_count)`
+/// in 1-based line numbers (see `main::parse_hunk_header`); the span
+/// range is inclusive (`[start_line, end_line]` per
+/// `LineSpan::start_line` / `LineSpan::end_line`). The check below
+/// converts to a common inclusive comparison: `hunk` is `[start,
+/// end-1]` inclusive (with `end-1` saturating at 0 for empty ranges).
+fn span_overlaps_hunk(span: &Option<LineSpan>, hunk_lines: &Range<usize>) -> bool {
+    let Some(s) = span else {
+        return true;
+    };
+    if hunk_lines.is_empty() {
+        return false;
+    }
+    let hunk_start = hunk_lines.start;
+    let hunk_end = hunk_lines.end - 1;
+    let span_start = s.start_line as usize;
+    let span_end = s.end_line as usize;
+    span_start <= hunk_end && hunk_start <= span_end
+}
+
+/// Spec 154 §6 step 1: reverse-resolve a hunk on `file:[hunk_start,
+/// hunk_end]` to the set of specs whose resolved units overlap that
+/// hunk. Inputs are inclusive line numbers (1-indexed).
+///
+/// Returned tuples are `(spec_id, &ResolvedUnit)`. A spec appears at
+/// most once per overlapping unit; a spec with multiple overlapping
+/// units (e.g. both a `crate:` and a `symbol:` inside it) appears
+/// once per unit so consumers can present the precise authority basis.
+///
+/// This is the public API seam the Segment 6 coupling-gate refactor
+/// will consume; until then, [`claimants_for_hunk`] is the
+/// authority-only flattening over the same data.
+pub fn units_touched_by_hunk<'a>(
+    index: &'a CodebaseIndex,
+    file: &str,
+    hunk_start: u32,
+    hunk_end: u32,
+) -> Vec<(&'a str, &'a ResolvedUnit)> {
+    let mut out: Vec<(&str, &ResolvedUnit)> = Vec::new();
+    let hunk_lines = (hunk_start as usize)..(hunk_end as usize + 1);
+    for mapping in &index.traceability.mappings {
+        for unit in &mapping.resolved_units {
+            if !unit.ownership {
+                continue;
+            }
+            for loc in &unit.locations {
+                if loc.file != file {
+                    continue;
+                }
+                if span_overlaps_hunk(&loc.span, &hunk_lines) {
+                    out.push((mapping.spec_id.as_str(), unit));
+                    break;
+                }
+            }
+        }
+    }
+    out.sort_by(|a, b| a.0.cmp(b.0));
+    out
+}
+
+/// Spec 154 §6 step 3 authority-only flattening: given a precomputed
+/// [`UnitClaimIndex`] and a hunk's `[start, end)` half-open line range,
+/// return the set of spec ids whose resolved units overlap the hunk.
+///
+/// This is the per-hunk equivalent of the path-based whole-file
+/// claimant lookup in [`build_claim_index`]. The two indices agree on
+/// every legacy corpus today (Segment 5 has not yet migrated specs to
+/// typed unit declarations, so every unit is a whole-file `file:`
+/// unit). The lookup gains span narrowing only after Segment 5 lands
+/// symbol-, module-, and section-kind declarations.
+pub fn claimants_for_hunk(
+    unit_claim_index: &UnitClaimIndex,
+    file: &str,
+    hunk_lines: &Range<usize>,
+) -> BTreeSet<String> {
+    let mut out: BTreeSet<String> = BTreeSet::new();
+    let Some(claims) = unit_claim_index.get(file) else {
+        return out;
+    };
+    for (span, spec_id) in claims {
+        if span_overlaps_hunk(span, hunk_lines) {
+            out.insert(spec_id.clone());
+        }
+    }
+    out
+}
+
+// endregion unit-aware-authority
 
 // region: authority-derivation
 //
@@ -1469,4 +1643,291 @@ mod tests {
         assert_eq!(outcome.violations.len(), 1);
         assert_eq!(outcome.exit_code(), 1);
     }
+
+    // region: unit-aware-tests
+    //
+    // Spec 154 Segment 4 — coverage for the resolved-graph consumption
+    // path. Each test constructs a synthetic `TraceMapping` with a
+    // populated `resolved_units` list and asserts the new public API
+    // (`build_unit_claim_index`, `claimants_for_hunk`,
+    // `units_touched_by_hunk`) returns the expected authority set.
+
+    use open_agentic_codebase_indexer::types::{ResolvedLocation, ResolvedUnit};
+
+    fn resolved_unit(
+        kind: &str,
+        source_field: &str,
+        locations: Vec<ResolvedLocation>,
+    ) -> ResolvedUnit {
+        ResolvedUnit {
+            unit: serde_json::json!({ "kind": kind }),
+            kind: kind.to_string(),
+            source_field: source_field.to_string(),
+            ownership: source_field != "references",
+            locations,
+        }
+    }
+
+    fn whole_file_location(path: &str) -> ResolvedLocation {
+        ResolvedLocation {
+            file: path.to_string(),
+            span: None,
+        }
+    }
+
+    fn span_location(path: &str, start: u32, end: u32) -> ResolvedLocation {
+        ResolvedLocation {
+            file: path.to_string(),
+            span: Some(LineSpan {
+                start_line: start,
+                end_line: end,
+            }),
+        }
+    }
+
+    fn index_with_units(spec_id: &str, units: Vec<ResolvedUnit>) -> CodebaseIndex {
+        let mut idx = empty_index();
+        idx.traceability.mappings.push(TraceMapping {
+            spec_id: spec_id.to_string(),
+            spec_status: Some("approved".to_string()),
+            depends_on: Vec::new(),
+            amends: Vec::new(),
+            amendment_record: None,
+            implementing_paths: Vec::new(),
+            resolved_units: units,
+        });
+        idx
+    }
+
+    #[test]
+    fn unit_claim_index_aggregates_whole_file_units() {
+        let idx = index_with_units(
+            "044-multi-agent-orchestration",
+            vec![resolved_unit(
+                "crate",
+                "establishes",
+                vec![
+                    whole_file_location("crates/orchestrator/src/lib.rs"),
+                    whole_file_location("crates/orchestrator/src/dag.rs"),
+                ],
+            )],
+        );
+        let unit_idx = build_unit_claim_index(&idx);
+        assert_eq!(unit_idx.len(), 2);
+        let lib_claims = unit_idx.get("crates/orchestrator/src/lib.rs").unwrap();
+        assert_eq!(lib_claims.len(), 1);
+        assert!(lib_claims[0].0.is_none(), "whole-file unit has no span");
+        assert_eq!(lib_claims[0].1, "044-multi-agent-orchestration");
+    }
+
+    #[test]
+    fn unit_claim_index_skips_references_kind() {
+        let idx = index_with_units(
+            "153-invariant-freeze-additive-evolution",
+            vec![resolved_unit(
+                "symbol",
+                "references",
+                vec![span_location("crates/canonical-json/src/lib.rs", 35, 50)],
+            )],
+        );
+        let unit_idx = build_unit_claim_index(&idx);
+        assert!(
+            unit_idx.is_empty(),
+            "references: units must not contribute to claim index (ownership=false)"
+        );
+    }
+
+    #[test]
+    fn claimants_for_hunk_whole_file_unit_matches_any_hunk() {
+        let idx = index_with_units(
+            "044-multi-agent-orchestration",
+            vec![resolved_unit(
+                "file",
+                "establishes",
+                vec![whole_file_location("crates/orchestrator/src/lib.rs")],
+            )],
+        );
+        let unit_idx = build_unit_claim_index(&idx);
+        let claimants = claimants_for_hunk(
+            &unit_idx,
+            "crates/orchestrator/src/lib.rs",
+            &(100..105),
+        );
+        assert_eq!(claimants.len(), 1);
+        assert!(claimants.contains("044-multi-agent-orchestration"));
+    }
+
+    #[test]
+    fn claimants_for_hunk_span_unit_narrows_by_overlap() {
+        // Spec A claims symbol foo at lines 10–30; spec B claims symbol
+        // bar at lines 50–80; both in the same file.
+        let mut idx = empty_index();
+        idx.traceability.mappings.push(TraceMapping {
+            spec_id: "spec-a".to_string(),
+            spec_status: Some("approved".to_string()),
+            depends_on: Vec::new(),
+            amends: Vec::new(),
+            amendment_record: None,
+            implementing_paths: Vec::new(),
+            resolved_units: vec![resolved_unit(
+                "symbol",
+                "establishes",
+                vec![span_location("crates/foo/src/lib.rs", 10, 30)],
+            )],
+        });
+        idx.traceability.mappings.push(TraceMapping {
+            spec_id: "spec-b".to_string(),
+            spec_status: Some("approved".to_string()),
+            depends_on: Vec::new(),
+            amends: Vec::new(),
+            amendment_record: None,
+            implementing_paths: Vec::new(),
+            resolved_units: vec![resolved_unit(
+                "symbol",
+                "establishes",
+                vec![span_location("crates/foo/src/lib.rs", 50, 80)],
+            )],
+        });
+        let unit_idx = build_unit_claim_index(&idx);
+
+        // Hunk inside foo's span only.
+        let a_only = claimants_for_hunk(&unit_idx, "crates/foo/src/lib.rs", &(15..20));
+        assert_eq!(a_only.iter().collect::<Vec<_>>(), vec!["spec-a"]);
+
+        // Hunk inside bar's span only.
+        let b_only = claimants_for_hunk(&unit_idx, "crates/foo/src/lib.rs", &(60..65));
+        assert_eq!(b_only.iter().collect::<Vec<_>>(), vec!["spec-b"]);
+
+        // Hunk spanning both.
+        let both = claimants_for_hunk(&unit_idx, "crates/foo/src/lib.rs", &(20..70));
+        let names: Vec<&String> = both.iter().collect();
+        assert_eq!(names, vec!["spec-a", "spec-b"]);
+
+        // Hunk in neither — no claimants.
+        let neither = claimants_for_hunk(&unit_idx, "crates/foo/src/lib.rs", &(100..110));
+        assert!(neither.is_empty());
+    }
+
+    #[test]
+    fn claimants_for_hunk_empty_range_is_no_overlap() {
+        // Pure-deletion hunks normalise to a 1-line range upstream;
+        // the helper still guards against degenerate empty ranges.
+        let idx = index_with_units(
+            "044-multi-agent-orchestration",
+            vec![resolved_unit(
+                "symbol",
+                "establishes",
+                vec![span_location("crates/orchestrator/src/lib.rs", 10, 30)],
+            )],
+        );
+        let unit_idx = build_unit_claim_index(&idx);
+        let claimants =
+            claimants_for_hunk(&unit_idx, "crates/orchestrator/src/lib.rs", &(15..15));
+        assert!(
+            claimants.is_empty(),
+            "empty range overlaps no span by construction"
+        );
+    }
+
+    #[test]
+    fn units_touched_by_hunk_returns_overlapping_units_with_unit_data() {
+        let idx = index_with_units(
+            "spec-a",
+            vec![
+                resolved_unit(
+                    "crate",
+                    "establishes",
+                    vec![whole_file_location("crates/foo/src/lib.rs")],
+                ),
+                resolved_unit(
+                    "symbol",
+                    "refines",
+                    vec![span_location("crates/foo/src/lib.rs", 20, 40)],
+                ),
+            ],
+        );
+        // Hunk inside the symbol span — both units overlap (the crate
+        // unit is whole-file, the symbol unit overlaps the span).
+        let touched = units_touched_by_hunk(&idx, "crates/foo/src/lib.rs", 25, 30);
+        assert_eq!(touched.len(), 2);
+        let kinds: Vec<&str> = touched.iter().map(|(_, u)| u.kind.as_str()).collect();
+        assert!(kinds.contains(&"crate"));
+        assert!(kinds.contains(&"symbol"));
+
+        // Hunk outside the symbol span — only the whole-file crate
+        // unit overlaps.
+        let touched_outside = units_touched_by_hunk(&idx, "crates/foo/src/lib.rs", 100, 105);
+        assert_eq!(touched_outside.len(), 1);
+        assert_eq!(touched_outside[0].1.kind, "crate");
+    }
+
+    #[test]
+    fn units_touched_by_hunk_ignores_references() {
+        let idx = index_with_units(
+            "153-invariant-freeze-additive-evolution",
+            vec![resolved_unit(
+                "symbol",
+                "references",
+                vec![span_location("crates/canonical-json/src/lib.rs", 35, 50)],
+            )],
+        );
+        let touched = units_touched_by_hunk(&idx, "crates/canonical-json/src/lib.rs", 40, 45);
+        assert!(
+            touched.is_empty(),
+            "references: units carry ownership=false and must not appear"
+        );
+    }
+
+    #[test]
+    fn unit_claim_index_parity_with_path_claim_index_for_file_units() {
+        // The legacy `implementing_paths` source and the new
+        // `resolved_units` source must produce the same authority set
+        // when every resolved unit is a whole-file `file:` unit (the
+        // shape the indexer emits for a corpus that still uses
+        // path-string declarations). This is the spec 154 §3
+        // backwards-compatibility contract Segment 4 must preserve.
+        let path = "crates/orchestrator/src/lib.rs";
+        let spec_id = "044-multi-agent-orchestration";
+
+        // Path-sourced index (today's gate).
+        let mut path_idx = empty_index();
+        path_idx.traceability.mappings.push(TraceMapping {
+            spec_id: spec_id.to_string(),
+            spec_status: Some("approved".to_string()),
+            depends_on: Vec::new(),
+            amends: Vec::new(),
+            amendment_record: None,
+            implementing_paths: vec![ImplementingPath {
+                path: path.to_string(),
+                name: None,
+                source: Some(TraceSource::SpecImplements),
+                primary: None,
+            }],
+            resolved_units: Vec::new(),
+        });
+        let claim_idx_path = build_claim_index(&path_idx);
+
+        // Unit-sourced index (the Segment 4 target shape).
+        let unit_idx = index_with_units(
+            spec_id,
+            vec![resolved_unit(
+                "file",
+                "establishes",
+                vec![whole_file_location(path)],
+            )],
+        );
+        let unit_claim_idx = build_unit_claim_index(&unit_idx);
+
+        // Path-sourced claim is keyed by the claim string; unit-sourced
+        // claim is keyed by the resolved file. For whole-file units of
+        // a leaf file these collapse to the same key.
+        let path_claimants: BTreeSet<String> = claim_idx_path
+            .get(path)
+            .cloned()
+            .unwrap_or_default();
+        let unit_claimants = claimants_for_hunk(&unit_claim_idx, path, &(1..1_000_000));
+        assert_eq!(path_claimants, unit_claimants);
+    }
+
+    // endregion unit-aware-tests
 }

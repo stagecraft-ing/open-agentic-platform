@@ -18,16 +18,20 @@ summary: >
 code_aliases: ["CHECKPOINT_BRANCHING"]
 extends:
   - spec: "041-checkpoint-restore-ui"
-    paths:
-      - crates/axiomregent/src/checkpoint/provider.rs
-      - crates/axiomregent/src/checkpoint/types.rs
-      - crates/axiomregent/src/checkpoint/store.rs
     nature: additive
+    unit: { kind: file, path: crates/axiomregent/src/checkpoint/provider.rs }
+  - spec: "041-checkpoint-restore-ui"
+    nature: additive
+    unit: { kind: file, path: crates/axiomregent/src/checkpoint/types.rs }
+  - spec: "041-checkpoint-restore-ui"
+    nature: additive
+    unit: { kind: file, path: crates/axiomregent/src/checkpoint/store.rs }
   - spec: "052-state-persistence"
-    paths:
-      - crates/orchestrator/src/gates.rs
-      - crates/orchestrator/src/manifest.rs
     nature: additive
+    unit: { kind: file, path: crates/orchestrator/src/gates.rs }
+  - spec: "052-state-persistence"
+    nature: additive
+    unit: { kind: file, path: crates/orchestrator/src/manifest.rs }
 ---
 
 # 095 — Checkpoint Branch-of-Thought

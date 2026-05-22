@@ -21,9 +21,8 @@ code_aliases:
   - INSPECT_SURFACE
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
-    paths:
-      - product/apps/desktop
     nature: additive
+    unit: { kind: crate, id: "@opc/desktop" }
 ---
 
 # 083 — Xray v1.2.0 UI Surface

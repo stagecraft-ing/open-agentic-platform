@@ -29,13 +29,16 @@ members = [
     "tools/spec-spine/spec-compiler",
     "tools/spec-spine/spec-lint",
 
-    # 7 OAP-specific Rust tools (schema-parity-check is JS-only).
+    # 8 OAP-specific Rust tools (schema-parity-check is JS-only;
+    # spec-unit-migrate is a one-shot Segment 5 migrator under spec 154,
+    # retained as historical artifact post-Segment-6 excision).
     "tools/oap/adapter-scopes-compiler",
     "tools/oap/assumption-cascade-check",
     "tools/oap/ci-parity-check",
     "tools/oap/oap-code-index-enrich",
     "tools/oap/oap-registry-enrich",
     "tools/oap/policy-compiler",
+    "tools/oap/spec-unit-migrate",
     "tools/oap/stakeholder-doc-lint",
 
     # Shared spec types crate.

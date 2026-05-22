@@ -28,28 +28,28 @@ depends_on:
   - "087"  # unified-workspace-architecture (knowledge intake domain, lifecycle)
   - "114"  # async-project-clone-pipeline (Topic + Subscription + run-row pattern reused here)
 establishes:
-  - platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql
-  - platform/services/stagecraft/api/knowledge/extractionEvents.ts
-  - platform/services/stagecraft/api/knowledge/extractionWorker.ts
-  - platform/services/stagecraft/api/knowledge/extractionCore.ts
-  - platform/services/stagecraft/api/knowledge/extractionOutput.ts
-  - platform/services/stagecraft/api/knowledge/extractionPolicy.ts
-  - platform/services/stagecraft/api/knowledge/auditActions.ts
-  - platform/services/stagecraft/api/knowledge/prompts.ts
-  - platform/services/stagecraft/api/knowledge/magic.ts
-  - platform/services/stagecraft/api/knowledge/extractors/types.ts
-  - platform/services/stagecraft/api/knowledge/extractors/dispatch.ts
-  - platform/services/stagecraft/api/knowledge/extractors/index.ts
-  - platform/services/stagecraft/api/knowledge/extractors/deterministic-text.ts
-  - platform/services/stagecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts
-  - platform/services/stagecraft/api/knowledge/extractors/deterministic-docx.ts
-  - platform/services/stagecraft/api/knowledge/extractors/agent-base.ts
-  - platform/services/stagecraft/api/knowledge/extractors/agent-cost-helpers.ts
-  - platform/services/stagecraft/api/knowledge/extractors/agent-pdf-vision.ts
-  - platform/services/stagecraft/api/knowledge/extractors/agent-image-vision.ts
-  - platform/services/stagecraft/api/knowledge/knowledge.ts
-  - platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx
-  - platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionEvents.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionWorker.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionCore.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionOutput.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionPolicy.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/auditActions.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/prompts.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/magic.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/types.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/dispatch.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/index.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/deterministic-text.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/deterministic-pdf-embedded.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/deterministic-docx.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/agent-base.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/agent-cost-helpers.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/agent-pdf-vision.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractors/agent-image-vision.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/knowledge.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx }
 ---
 
 # 115 — Knowledge Extraction Pipeline

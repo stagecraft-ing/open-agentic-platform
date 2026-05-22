@@ -18,11 +18,8 @@ code_aliases:
   - VERIFICATION_SKILLS
   - VERIFY_PROTOCOL
 refines:
-  - paths:
-      - crates/orchestrator
-    aspect: verification-protocol
-    refines_specs:
-      - "004-spec-to-execution-bridge-mvp"
+  - aspect: "verification-protocol"
+    unit: { kind: crate, id: orchestrator }
 ---
 
 # Feature Specification: Verification and reconciliation

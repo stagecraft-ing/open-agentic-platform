@@ -17,9 +17,8 @@ depends_on:
   - "158"  # workflow-ref-sha-pinning-lint (the motivating case)
 code_aliases: ["V004_FIXTURE_EXEMPTION"]
 refines:
-  - paths:
-      - tools/spec-spine/spec-compiler/src/lib.rs
-    aspect: v004-scan-path-policy
+  - aspect: "v004-scan-path-policy"
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
 summary: >
   Refine V-004's scan-path policy (defined in spec 000) to exempt lint
   test fixtures under `tools/*/tests/fixtures/**`. The exemption rests on

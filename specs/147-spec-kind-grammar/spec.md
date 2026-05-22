@@ -25,29 +25,23 @@ amends: ["000", "128", "001", "006", "101", "132", "133"]
 amends_sections: []
 extends:
   - spec: "001-spec-compiler-mvp"
-    paths:
-      - tools/spec-spine/spec-compiler/src/lib.rs
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
   - spec: "006-conformance-lint-mvp"
-    paths:
-      - tools/spec-spine/spec-lint/src/lib.rs
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-lint/src/lib.rs }
   - spec: "101-codebase-index-mvp"
-    paths:
-      - tools/spec-spine/codebase-indexer/src/spec_scanner.rs
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/spec_scanner.rs }
   - spec: "132-constitutional-invariant-freeze"
-    paths:
-      - standards/schemas/spec-spine/registry.schema.json
     nature: additive
+    unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
   - spec: "133-amends-aware-coupling-gate"
-    paths:
-      - tools/spec-spine/codebase-indexer/src/lib.rs
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
 refines:
-  - aspect: kind-grammar-corpus-backfill
-    paths:
-      - tools/shared/spec-types/src/lib.rs
+  - aspect: "kind-grammar-corpus-backfill"
+    unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
 compliance:
   - framework: owasp-asi-2026
     controls: ["ASI01", "ASI03"]

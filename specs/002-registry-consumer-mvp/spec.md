@@ -14,10 +14,10 @@ summary: >
   who may read it, what guarantees downstream tools rely on, and a normative CLI for
   listing, filtering, and lookups; optional Rust library is non-normative for MVP.
 establishes:
-  - tools/spec-spine/registry-consumer
-  - tools/spec-spine/registry-consumer/src/lib.rs
-  - tools/spec-spine/registry-consumer/src/main.rs
-  - tools/spec-spine/registry-consumer/Cargo.toml
+  - unit: { kind: crate, id: open_agentic_spec_registry_reader }
+  - unit: { kind: file, path: tools/spec-spine/registry-consumer/src/lib.rs }
+  - unit: { kind: file, path: tools/spec-spine/registry-consumer/src/main.rs }
+  - unit: { kind: file, path: tools/spec-spine/registry-consumer/Cargo.toml }
 ---
 
 # Feature Specification: Registry consumer MVP

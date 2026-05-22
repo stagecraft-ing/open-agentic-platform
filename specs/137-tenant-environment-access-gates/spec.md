@@ -12,53 +12,61 @@ depends_on:
   - "136"  # tenant-hello as reference; gates are added per-environment
   - "087"  # unified-workspace-architecture (environments are stagecraft entities)
 establishes:
-  - platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql
-  - platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql
-  - platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts
-  - platform/services/stagecraft/api/environments/accessGates.ts
-  - platform/services/stagecraft/api/environments/accessGatesHelpers.ts
-  - platform/services/stagecraft/api/environments/accessGates.test.ts
-  - platform/services/stagecraft/api/environments/encore.service.ts
-  - platform/services/stagecraft/api/auth/rauthyAdminClients.ts
-  - platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts
-  - platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts
-  - platform/charts/oauth2-proxy-gate
-  - platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql
-  - platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.down.sql
-  - platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts
-  - platform/services/stagecraft/api/environments/accessGatesDeploy.ts
-  - platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/environments/accessGates.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/environments/accessGatesHelpers.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/environments/accessGates.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/environments/encore.service.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthyAdminClients.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts }
+  - unit: { kind: directory, path: platform/charts/oauth2-proxy-gate }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.down.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/environments/accessGatesDeploy.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx }
 extends:
   - spec: "136-tenant-hello-demo-service"
-    paths:
-      - platform/services/stagecraft/api/db/schema.ts
-      - platform/services/stagecraft/vite.config.ts
-      - platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx
-      - platform/services/stagecraft/web/app/lib/projects-api.server.ts
     nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx }
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
 co_authority:
-  - paths:
-      - platform/charts/tenant-hello/values.yaml
-      - platform/charts/tenant-hello/templates/ingress.yaml
-    section: access-gate
-    with_specs: ["136-tenant-hello-demo-service"]
-  - paths:
-      - platform/services/deployd-api-rs/src/helm.rs
-      - platform/services/deployd-api-rs/src/routes.rs
-    section: gate-overlay
-    with_specs: ["073-axiomregent-unification", "136-tenant-hello-demo-service"]
-  - paths:
-      - platform/services/stagecraft/api/deploy/deploy.ts
-    section: access-gate-wire
-    with_specs: ["077-stagecraft-factory-api"]
-  - paths:
-      - platform/infra/hetzner/setup.sh
-    section: reflector-install
-    with_specs: ["072-multi-cloud-k8s-portability", "106-rauthy-native-oidc-and-membership", "143-presigned-upload-public-endpoint"]
-  - paths:
-      - platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml
-    section: reflector-annotations
-    with_specs: ["106-rauthy-native-oidc-and-membership"]
+  - with_specs:
+      - "136-tenant-hello-demo-service"
+    unit: { kind: section, file: platform/charts/tenant-hello/values.yaml, anchor: access-gate }
+  - with_specs:
+      - "136-tenant-hello-demo-service"
+    unit: { kind: section, file: platform/charts/tenant-hello/templates/ingress.yaml, anchor: access-gate }
+  - with_specs:
+      - "073-axiomregent-unification"
+      - "136-tenant-hello-demo-service"
+    unit: { kind: section, file: platform/services/deployd-api-rs/src/helm.rs, anchor: gate-overlay }
+  - with_specs:
+      - "073-axiomregent-unification"
+      - "136-tenant-hello-demo-service"
+    unit: { kind: section, file: platform/services/deployd-api-rs/src/routes.rs, anchor: gate-overlay }
+  - with_specs:
+      - "077-stagecraft-factory-api"
+    unit: { kind: section, file: platform/services/stagecraft/api/deploy/deploy.ts, anchor: access-gate-wire }
+  - with_specs:
+      - "072-multi-cloud-k8s-portability"
+      - "106-rauthy-native-oidc-and-membership"
+      - "143-presigned-upload-public-endpoint"
+    unit: { kind: section, file: platform/infra/hetzner/setup.sh, anchor: reflector-install }
+  - with_specs:
+      - "106-rauthy-native-oidc-and-membership"
+    unit: { kind: section, file: platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml, anchor: reflector-annotations }
 summary: >
   Per-environment access gating for projects deployed via deployd-api,
   applied above the tenant app so tenant codebases carry no auth logic.

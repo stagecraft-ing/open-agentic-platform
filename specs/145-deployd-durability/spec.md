@@ -16,27 +16,53 @@ depends_on:
 code_aliases: ["DEPLOYD_DURABILITY"]
 extends:
   - spec: "073-axiomregent-unification"
-    paths:
-      - platform/services/deployd-api-rs/Cargo.toml
-      - platform/services/deployd-api-rs/Cargo.lock
-      - platform/services/deployd-api-rs/src/main.rs
-      - platform/services/deployd-api-rs/src/store.rs
-      - platform/services/deployd-api-rs/src/config.rs
-      - platform/services/deployd-api-rs/src/auth.rs
     nature: additive
+    unit: { kind: file, path: platform/services/deployd-api-rs/Cargo.toml }
+  - spec: "073-axiomregent-unification"
+    nature: additive
+    unit: { kind: file, path: platform/services/deployd-api-rs/Cargo.lock }
+  - spec: "073-axiomregent-unification"
+    nature: additive
+    unit: { kind: file, path: platform/services/deployd-api-rs/src/main.rs }
+  - spec: "073-axiomregent-unification"
+    nature: additive
+    unit: { kind: file, path: platform/services/deployd-api-rs/src/store.rs }
+  - spec: "073-axiomregent-unification"
+    nature: additive
+    unit: { kind: file, path: platform/services/deployd-api-rs/src/config.rs }
+  - spec: "073-axiomregent-unification"
+    nature: additive
+    unit: { kind: file, path: platform/services/deployd-api-rs/src/auth.rs }
   - spec: "136-tenant-hello-demo-service"
-    paths:
-      - platform/charts/deployd-api/values.yaml
-      - platform/charts/deployd-api/values-hetzner.yaml
-      - platform/charts/deployd-api/values-azure.yaml
-      - platform/charts/deployd-api/values-aws.yaml
-      - platform/charts/deployd-api/values-gcp.yaml
-      - platform/charts/deployd-api/values-do.yaml
-      - platform/charts/deployd-api/values-local.yaml
-      - platform/charts/deployd-api/templates/deployment.yaml
-      - platform/charts/deployd-api/templates/external-secret.yaml
-      - .github/workflows/cd-deployd-api-rs.yml
     nature: additive
+    unit: { kind: file, path: platform/charts/deployd-api/values.yaml }
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
+    unit: { kind: file, path: platform/charts/deployd-api/values-hetzner.yaml }
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
+    unit: { kind: file, path: platform/charts/deployd-api/values-azure.yaml }
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
+    unit: { kind: file, path: platform/charts/deployd-api/values-aws.yaml }
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
+    unit: { kind: file, path: platform/charts/deployd-api/values-gcp.yaml }
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
+    unit: { kind: file, path: platform/charts/deployd-api/values-do.yaml }
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
+    unit: { kind: file, path: platform/charts/deployd-api/values-local.yaml }
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
+    unit: { kind: file, path: platform/charts/deployd-api/templates/deployment.yaml }
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
+    unit: { kind: file, path: platform/charts/deployd-api/templates/external-secret.yaml }
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
+    unit: { kind: file, path: .github/workflows/cd-deployd-api-rs.yml }
 summary: >
   The `deployments` and `deployment_events` tables in deployd-api-rs's
   Hiqlite store are the audit trail of who deployed what, when, with

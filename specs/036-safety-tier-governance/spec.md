@@ -15,15 +15,13 @@ summary: >
   dual SafetyTier enums, and surface per-tool tier assignments in the governance UI.
 code_aliases: ["SAFETY_TIER_GOVERNANCE"]
 refines:
-  - paths:
-      - crates/agent/src/safety.rs
-      - crates/axiomregent/src/router
-    aspect: safety-tier-classification
-    refines_specs:
-      - "035-agent-governed-execution"
+  - aspect: "safety-tier-classification"
+    unit: { kind: file, path: crates/agent/src/safety.rs }
+  - aspect: "safety-tier-classification"
+    unit: { kind: directory, path: crates/axiomregent/src/router }
 establishes:
-  - crates/tool-registry
-  - crates/policy-kernel
+  - unit: { kind: crate, id: tool-registry }
+  - unit: { kind: crate, id: open_agentic_policy_kernel }
 ---
 
 # Feature Specification: safety tier governance

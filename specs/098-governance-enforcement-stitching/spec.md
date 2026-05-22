@@ -14,15 +14,17 @@ depends_on:
 code_aliases: ["GOVERNANCE_ENFORCEMENT_STITCHING"]
 extends:
   - spec: "097-promotion-grade-mirror"
-    paths:
-      - crates/orchestrator/src/promotion.rs
-      - crates/orchestrator/src/lib.rs
     nature: additive
+    unit: { kind: file, path: crates/orchestrator/src/promotion.rs }
+  - spec: "097-promotion-grade-mirror"
+    nature: additive
+    unit: { kind: file, path: crates/orchestrator/src/lib.rs }
   - spec: "033-axiomregent-activation"
-    paths:
-      - crates/axiomregent/src/router/mod.rs
-      - crates/axiomregent/src/router/permissions.rs
     nature: additive
+    unit: { kind: file, path: crates/axiomregent/src/router/mod.rs }
+  - spec: "033-axiomregent-activation"
+    nature: additive
+    unit: { kind: file, path: crates/axiomregent/src/router/permissions.rs }
 summary: >
   Wire governance mode into live workflow metadata and make MCP router preflight
   blocking for mutation tools. Closes two stitching defects that leave governance

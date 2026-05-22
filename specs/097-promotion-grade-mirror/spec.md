@@ -19,13 +19,14 @@ summary: >
   checks into the orchestrator completion path.
 code_aliases: ["PROMOTION_GRADE_MIRROR"]
 establishes:
-  - crates/orchestrator/src/promotion.rs
+  - unit: { kind: file, path: crates/orchestrator/src/promotion.rs }
 extends:
   - spec: "052-state-persistence"
-    paths:
-      - crates/orchestrator/src/state.rs
-      - crates/orchestrator/src/lib.rs
     nature: additive
+    unit: { kind: file, path: crates/orchestrator/src/state.rs }
+  - spec: "052-state-persistence"
+    nature: additive
+    unit: { kind: file, path: crates/orchestrator/src/lib.rs }
 ---
 
 # 097 — Promotion-Grade Platform Mirror

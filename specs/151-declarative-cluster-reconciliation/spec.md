@@ -13,58 +13,49 @@ depends_on:
   - "143"  # presigned-upload-public-endpoint (FU-008 names the setup.sh-monolith seam this spec retires)
 code_aliases: ["GITOPS_RECONCILIATION"]
 establishes:
-  - platform/gitops/clusters/hetzner-prod/README.md
-  - platform/gitops/clusters/hetzner-prod/infrastructure/README.md
-  - platform/gitops/clusters/hetzner-prod/manifests/README.md
-  - platform/gitops/clusters/hetzner-prod/secrets/README.md
-  - .sops.yaml
-  - tools/spec-spine/spec-compiler/tests/v004_consolidation_excludes.rs
-  - platform/gitops/clusters/hetzner-prod/infrastructure/reflector.yaml
-  - platform/gitops/clusters/hetzner-prod/manifests/tenants-wildcard-certificate.yaml
-  - platform/gitops/clusters/hetzner-prod/infrastructure/cert-manager.yaml
-  - platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml
-  - platform/gitops/clusters/hetzner-prod/manifests/cert-manager-clusterissuers.yaml
-  - platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml
-  - platform/gitops/clusters/hetzner-prod/kustomization.yaml
-  - platform/gitops/clusters/hetzner-prod/infrastructure-kustomization.yaml
-  - platform/gitops/clusters/hetzner-prod/manifests-kustomization.yaml
-  - platform/gitops/clusters/hetzner-dr-stage2/README.md
-  - platform/gitops/clusters/hetzner-dr-stage2/kustomization.yaml
-  - specs/151-declarative-cluster-reconciliation/execution/drift-detection.md
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/README.md }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/infrastructure/README.md }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/manifests/README.md }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/secrets/README.md }
+  - unit: { kind: file, path: .sops.yaml }
+  - unit: { kind: file, path: tools/spec-spine/spec-compiler/tests/v004_consolidation_excludes.rs }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/infrastructure/reflector.yaml }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/manifests/tenants-wildcard-certificate.yaml }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/infrastructure/cert-manager.yaml }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/manifests/cert-manager-clusterissuers.yaml }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/kustomization.yaml }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/infrastructure-kustomization.yaml }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/manifests-kustomization.yaml }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-dr-stage2/README.md }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-dr-stage2/kustomization.yaml }
+  - unit: { kind: file, path: specs/151-declarative-cluster-reconciliation/execution/drift-detection.md }
 extends:
   - spec: "001-spec-compiler-mvp"
-    paths:
-      - tools/spec-spine/spec-compiler/src/lib.rs
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
 co_authority:
-  - paths:
-      - platform/infra/hetzner/setup.sh
-    section: bootstrap
-    with_specs: ["072-multi-cloud-k8s-portability", "106-rauthy-native-oidc-and-membership", "137-tenant-environment-access-gates", "143-presigned-upload-public-endpoint"]
-  - paths:
-      - platform/infra/hetzner/.env.example
-    section: env-vars
-    with_specs: ["072-multi-cloud-k8s-portability", "106-rauthy-native-oidc-and-membership", "143-presigned-upload-public-endpoint"]
-  - paths:
-      - platform/infra/hetzner/cluster.yaml
-    section: k3s-version
-    with_specs: ["072-multi-cloud-k8s-portability"]
-  - paths:
-      - platform/infra/hetzner/post-create.sh
-    section: cert-nginx-strikes
-    with_specs: ["106-rauthy-native-oidc-and-membership"]
-  - paths:
-      - platform/Makefile
-    section: rauthy-deploy
-    with_specs: ["104-makefile-ci-parity-contract"]
-  - paths:
-      - specs/137-tenant-environment-access-gates/tasks.md
-    section: phase2-migration
-    with_specs: ["137-tenant-environment-access-gates"]
-  - paths:
-      - platform/charts/rauthy/values-hetzner.yaml
-    section: hetzner-overrides
-    with_specs: ["106-rauthy-native-oidc-and-membership"]
+  - with_specs:
+      - "072-multi-cloud-k8s-portability"
+      - "106-rauthy-native-oidc-and-membership"
+      - "137-tenant-environment-access-gates"
+      - "143-presigned-upload-public-endpoint"
+    unit: { kind: section, file: platform/infra/hetzner/setup.sh, anchor: bootstrap }
+  - with_specs:
+      - "072-multi-cloud-k8s-portability"
+      - "106-rauthy-native-oidc-and-membership"
+      - "143-presigned-upload-public-endpoint"
+    unit: { kind: section, file: platform/infra/hetzner/.env.example, anchor: env-vars }
+  - with_specs:
+      - "072-multi-cloud-k8s-portability"
+    unit: { kind: section, file: platform/infra/hetzner/cluster.yaml, anchor: k3s-version }
+  - with_specs:
+      - "106-rauthy-native-oidc-and-membership"
+    unit: { kind: section, file: platform/infra/hetzner/post-create.sh, anchor: cert-nginx-strikes }
+  - with_specs:
+      - "104-makefile-ci-parity-contract"
+    unit: { kind: section, file: platform/Makefile, anchor: rauthy-deploy }
 summary: >
   Replace `platform/infra/hetzner/setup.sh`'s imperative cluster-mutation
   monolith with a declarative GitOps reconciliation layer. Flux v2 runs

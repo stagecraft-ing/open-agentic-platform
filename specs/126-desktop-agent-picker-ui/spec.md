@@ -27,10 +27,11 @@ depends_on:
   - "124"  # primary consumer (Run reservation builds AgentReferences from picker output)
 extends:
   - spec: "123-agent-catalog-org-rescope"
-    paths:
-      - product/apps/desktop/src/components/AgentPicker.tsx
-      - product/apps/desktop/src/lib/agentPicker.ts
     nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/components/AgentPicker.tsx }
+  - spec: "123-agent-catalog-org-rescope"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/lib/agentPicker.ts }
 ---
 
 # 126 — Desktop Agent Picker — Bindings vs Full Catalog

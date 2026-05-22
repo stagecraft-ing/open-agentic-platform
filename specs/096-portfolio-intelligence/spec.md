@@ -17,16 +17,14 @@ summary: >
   test coverage data.
 code_aliases: ["PORTFOLIO_INTELLIGENCE"]
 establishes:
-  - crates/featuregraph/src/enrichment.rs
+  - unit: { kind: file, path: crates/featuregraph/src/enrichment.rs }
 extends:
   - spec: "034-featuregraph-registry-scanner-fix"
-    paths:
-      - crates/featuregraph/src/preflight.rs
     nature: additive
+    unit: { kind: file, path: crates/featuregraph/src/preflight.rs }
   - spec: "083-xray-ui-upgrade"
-    paths:
-      - crates/xray
     nature: additive
+    unit: { kind: crate, id: xray }
 ---
 
 # 096 — Portfolio Intelligence

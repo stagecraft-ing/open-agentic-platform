@@ -1635,49 +1635,76 @@ fn atx_h2(line: &str) -> Option<&str> {
 // Spec 154 — workspace-member discovery + logical-unit type-checks
 // ─────────────────────────────────────────────────────────────────────
 
-/// Discover the set of valid `crate:` unit ids from the root Cargo.toml.
+/// Discover the set of valid `crate:` unit ids from the root Cargo.toml
+/// AND the npm workspace under `product/`.
 ///
-/// For every workspace member, the canonical id is the member's
+/// For every Rust workspace member, the canonical id is the member's
 /// `[package] name` (spec 154 §3.1 — manifest name, not directory
-/// tail). Missing `Cargo.toml` returns an empty set; missing or
-/// malformed member manifests are silently skipped (the per-member
-/// errors are not the spec-compiler's concern — cargo itself will
-/// surface them).
+/// tail). Spec 154 §3.1 also extends `crate:` to npm packages declared
+/// as workspace members of `product/` ("the workspace boundary is the
+/// manifest, not the language"); each `product/{apps,packages}/*/package.json`
+/// contributes its top-level `name:` field. Missing manifests at any
+/// level produce no entry; malformed manifests are silently skipped
+/// (the per-member errors are not the spec-compiler's concern —
+/// cargo / pnpm will surface them).
 fn discover_workspace_crate_ids(repo_root: &Path) -> Result<BTreeSet<String>, CompileError> {
-    let manifest_path = repo_root.join("Cargo.toml");
-    if !manifest_path.is_file() {
-        return Ok(BTreeSet::new());
-    }
-    let raw = fs::read_to_string(&manifest_path)?;
-    let parsed: toml::Value = match raw.parse() {
-        Ok(v) => v,
-        Err(_) => return Ok(BTreeSet::new()),
-    };
     let mut out: BTreeSet<String> = BTreeSet::new();
-    let Some(members) = parsed
-        .get("workspace")
-        .and_then(|w| w.get("members"))
-        .and_then(|m| m.as_array())
-    else {
-        return Ok(out);
-    };
-    for member in members {
-        let Some(rel) = member.as_str() else {
+    // Rust workspace members from the root Cargo.toml.
+    let manifest_path = repo_root.join("Cargo.toml");
+    if manifest_path.is_file() {
+        let raw = fs::read_to_string(&manifest_path)?;
+        if let Ok(parsed) = raw.parse::<toml::Value>() {
+            if let Some(members) = parsed
+                .get("workspace")
+                .and_then(|w| w.get("members"))
+                .and_then(|m| m.as_array())
+            {
+                for member in members {
+                    let Some(rel) = member.as_str() else {
+                        continue;
+                    };
+                    let member_manifest = repo_root.join(rel).join("Cargo.toml");
+                    let Ok(member_raw) = fs::read_to_string(&member_manifest) else {
+                        continue;
+                    };
+                    let Ok(member_parsed) = member_raw.parse::<toml::Value>() else {
+                        continue;
+                    };
+                    if let Some(name) = member_parsed
+                        .get("package")
+                        .and_then(|p| p.get("name"))
+                        .and_then(|n| n.as_str())
+                    {
+                        out.insert(name.to_string());
+                    }
+                }
+            }
+        }
+    }
+    // NPM workspace members under product/ (spec 154 §3.1 second
+    // paragraph). Glob patterns in pnpm-workspace.yaml expand to
+    // `product/apps/*` and `product/packages/*` in this repo; we walk
+    // those directories directly. Going one level deep matches the
+    // standard pnpm/npm flat workspace layout; nested workspaces (rare
+    // in this corpus) are not currently supported.
+    for pkg_root in ["product/apps", "product/packages"] {
+        let dir = repo_root.join(pkg_root);
+        let Ok(entries) = fs::read_dir(&dir) else {
             continue;
         };
-        let member_manifest = repo_root.join(rel).join("Cargo.toml");
-        let Ok(member_raw) = fs::read_to_string(&member_manifest) else {
-            continue;
-        };
-        let Ok(member_parsed) = member_raw.parse::<toml::Value>() else {
-            continue;
-        };
-        if let Some(name) = member_parsed
-            .get("package")
-            .and_then(|p| p.get("name"))
-            .and_then(|n| n.as_str())
-        {
-            out.insert(name.to_string());
+        let mut sorted: Vec<_> = entries.flatten().collect();
+        sorted.sort_by_key(|e| e.file_name());
+        for entry in sorted {
+            let pkg_json = entry.path().join("package.json");
+            let Ok(raw) = fs::read_to_string(&pkg_json) else {
+                continue;
+            };
+            let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&raw) else {
+                continue;
+            };
+            if let Some(name) = parsed.get("name").and_then(|n| n.as_str()) {
+                out.insert(name.to_string());
+            }
         }
     }
     Ok(out)
@@ -1686,13 +1713,23 @@ fn discover_workspace_crate_ids(repo_root: &Path) -> Result<BTreeSet<String>, Co
 /// Parse the `references:` field (spec 154 §4). Returns the normalized
 /// JSON array. Bare-string items expand to `{unit: {kind: file,
 /// path: <s>}}`; structured items pass through with the optional
-/// `role:` preserved. Type-check side-effects (V-021..V-024) fire as
-/// the units are walked.
+/// `role:` preserved.
+///
+/// References are **non-owning by design** (§4: "the coupling gate
+/// treats every `references:` entry uniformly: a referenced unit is
+/// NOT part of the spec's authority surface"). Per Segment 6's 4'
+/// clarification, existence validation routes off the wrapping field,
+/// not the unit's surface syntax: V-021..V-023 are suppressed for
+/// references regardless of bare-string vs explicit form. Only
+/// V-024 (unit-grammar parse errors) fires here, since a malformed
+/// unit declaration is a shape error, not an existence claim.
+/// `role:` stays open-vocabulary — `planned`, `evidence`, `precedent`
+/// all behave identically to the validator.
 fn parse_references_field(
     fm: &serde_yaml::Mapping,
     repo_root: &Path,
     spec_path: &Path,
-    workspace_crate_ids: &BTreeSet<String>,
+    _workspace_crate_ids: &BTreeSet<String>,
     violations: &mut Vec<Violation>,
 ) -> Option<Value> {
     let raw = fm.get("references")?;
@@ -1736,13 +1773,8 @@ fn parse_references_field(
         };
         match LogicalUnit::from_yaml(unit_v) {
             Ok(unit) => {
-                check_unit_typechecks(
-                    &unit,
-                    repo_root,
-                    spec_path,
-                    workspace_crate_ids,
-                    violations,
-                );
+                // 4': skip existence validation for references entries.
+                // Only V-024 (shape errors via `Err(e)` below) fires.
                 let mut obj = Map::new();
                 if let Some(r) = role {
                     obj.insert("role".into(), Value::String(r));
@@ -1846,7 +1878,8 @@ fn collect_units_from_relationship_item(
 
     // Bare-string list entries at the relationship-list level are
     // spec-id references (e.g. `supersedes: ["040-spec"]`), not file
-    // paths or units. Ignore.
+    // paths or units. Ignore — the spec-id resolution lives on a
+    // separate path.
     if item.as_str().is_some() {
         return (units, errors);
     }
@@ -1854,7 +1887,7 @@ fn collect_units_from_relationship_item(
         return (units, errors);
     };
 
-    // New singular `unit:` field — explicit, validated.
+    // Canonical singular `unit:` field — explicit, strictly validated.
     if let Some(unit_v) = map.get("unit") {
         match LogicalUnit::from_yaml(unit_v) {
             Ok(u) => units.push((u, true)),
@@ -1862,82 +1895,50 @@ fn collect_units_from_relationship_item(
         }
     }
 
-    // Legacy plural `paths:` — each entry is a bare file path; legacy
-    // origin, no V-021..V-023 fired.
-    if let Some(paths) = map.get("paths").and_then(|v| v.as_sequence()) {
-        for p in paths {
-            if let Some(s) = p.as_str() {
-                units.push((
-                    LogicalUnit::File {
-                        path: s.to_string(),
-                    },
-                    false,
-                ));
-            }
-        }
-    }
-
-    // Legacy `co_authority` synthesis: when `paths:` + `section:`
-    // appear together, each `(path, section)` materialises a
-    // `section:` unit. Section anchor resolution lands in Segment 3;
-    // until then this is the legacy origin and no strict check fires.
-    if let (Some(paths), Some(section)) = (
-        map.get("paths").and_then(|v| v.as_sequence()),
-        map.get("section").and_then(|v| v.as_str()),
-    ) {
-        for p in paths {
-            if let Some(s) = p.as_str() {
-                units.push((
-                    LogicalUnit::Section {
-                        file: s.to_string(),
-                        anchor: section.to_string(),
-                    },
-                    false,
-                ));
-            }
-        }
+    // Segment 6 excision: legacy `paths:` sub-list (and the
+    // `paths + section:` synthesis form) are no longer accepted on
+    // owning relationship items. The corpus migrated to explicit
+    // `unit:` declarations in Tier 2 Segment 5; encountering
+    // `paths:` post-excision is a V-024 surface.
+    if map.get("paths").is_some() {
+        errors.push(LogicalUnitParseError::NotStringOrMapping);
     }
 
     (units, errors)
 }
 
-/// Best-effort parse of an `establishes:`-style item into one or more
-/// `(unit, explicit)` pairs. `explicit=true` indicates the author
-/// wrote an explicit `{kind: ..., ...}` declaration; `explicit=false`
-/// is a legacy form (bare string or legacy `paths:` list) that
-/// downstream readers see as `file:` units but spec-compiler does NOT
-/// type-check.
+/// Parse an `establishes:`-style item into one or more `(unit, explicit)`
+/// pairs. After Segment 6's explicit-only flip, only typed shapes are
+/// accepted on owning fields: `{ unit: <logical-unit> }` (canonical) or
+/// `{ kind: ..., ...}` (shorthand). Bare strings and legacy `paths:`
+/// sub-lists are rejected at parse time so V-024 surfaces them to the
+/// author — the compat window closed when the corpus migrated to
+/// explicit `unit:` declarations in Tier 2 Segment 5.
 fn parse_item_to_unit(
     item: &serde_yaml::Value,
 ) -> Result<Vec<(LogicalUnit, bool)>, LogicalUnitParseError> {
+    // Segment 6 excision: bare-string items are no longer accepted on
+    // owning fields. The legacy form parsed as `file:` units and skipped
+    // existence validation; the explicit-only flip lifts this into a
+    // V-024 parse error so the author migrates to typed form.
     if item.as_str().is_some() {
-        return LogicalUnit::from_yaml(item).map(|u| vec![(u, false)]);
+        return Err(LogicalUnitParseError::NotStringOrMapping);
     }
     let Some(map) = item.as_mapping() else {
         return Err(LogicalUnitParseError::NotStringOrMapping);
     };
-    // New: explicit `unit:` field.
+    // Canonical: explicit `unit:` field.
     if let Some(unit_v) = map.get("unit") {
         return LogicalUnit::from_yaml(unit_v).map(|u| vec![(u, true)]);
     }
-    // New: item is itself shaped like a unit (`{kind, id|path|...}`).
+    // Shorthand: item is itself shaped like a unit (`{kind, id|path|...}`).
     if map.get("kind").is_some() {
         return LogicalUnit::from_yaml(item).map(|u| vec![(u, true)]);
     }
-    // Legacy: `paths:` array of strings.
-    if let Some(paths) = map.get("paths").and_then(|v| v.as_sequence()) {
-        let mut out = Vec::with_capacity(paths.len());
-        for p in paths {
-            if let Some(s) = p.as_str() {
-                out.push((
-                    LogicalUnit::File {
-                        path: s.to_string(),
-                    },
-                    false,
-                ));
-            }
-        }
-        return Ok(out);
+    // Segment 6 excision: `paths:` sub-lists are no longer accepted on
+    // `establishes:`. The legacy form is excised so V-024 surfaces it.
+    if map.get("paths").is_some() {
+        return Err(LogicalUnitParseError::NotStringOrMapping);
     }
     // Unknown shape — fail soft (other validators will flag missing
     // fields per existing schema rules).

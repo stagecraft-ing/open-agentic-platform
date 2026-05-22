@@ -18,9 +18,9 @@ summary: >
 code_aliases:
   - MULTI_AGENT_ORCHESTRATION
 establishes:
-  - crates/orchestrator/src/lib.rs
-  - crates/orchestrator/src/artifact.rs
-  - crates/orchestrator/src/manifest.rs
+  - unit: { kind: file, path: crates/orchestrator/src/lib.rs }
+  - unit: { kind: file, path: crates/orchestrator/src/artifact.rs }
+  - unit: { kind: file, path: crates/orchestrator/src/manifest.rs }
 ---
 
 # Feature Specification: multi-agent orchestration with file-based artifact passing

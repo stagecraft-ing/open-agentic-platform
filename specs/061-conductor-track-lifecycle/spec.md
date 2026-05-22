@@ -22,8 +22,10 @@ sources:
   - skills/plan-implementer
   - developer-cc-commands
 establishes:
-  - .claude/agents/conductor.md
-  - .claude/commands/implement-plan.md
+  - unit: { kind: file, path: .claude/commands/implement-plan.md }
+references:
+  - role: historical
+    unit: { kind: file, path: .claude/agents/conductor.md }
 ---
 
 # Feature Specification: Conductor Track Lifecycle

@@ -17,17 +17,14 @@ kind: governance
 risk: high
 extends:
   - spec: "068-permission-runtime"
-    paths:
-      - crates/policy-kernel/src/lib.rs
     nature: additive
+    unit: { kind: file, path: crates/policy-kernel/src/lib.rs }
   - spec: "034-featuregraph-registry-scanner-fix"
-    paths:
-      - crates/featuregraph/src/preflight.rs
     nature: additive
+    unit: { kind: file, path: crates/featuregraph/src/preflight.rs }
   - spec: "036-safety-tier-governance"
-    paths:
-      - crates/agent/src/safety.rs
     nature: additive
+    unit: { kind: file, path: crates/agent/src/safety.rs }
 ---
 
 # 093 — Spec-Driven Preflight and Gating

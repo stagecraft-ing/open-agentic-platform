@@ -17,17 +17,13 @@ depends_on:
   - "133"
 code_aliases: ["SPEC_CODE_COUPLING_WORKFLOW"]
 establishes:
-  - .github/workflows/ci-spec-code-coupling.yml
+  - unit: { kind: file, path: .github/workflows/ci-spec-code-coupling.yml }
 extends:
   - spec: "133-amends-aware-coupling-gate"
-    paths:
-      - tools/spec-spine/spec-code-coupling-check
     nature: additive
+    unit: { kind: crate, id: open_agentic_spec_code_coupling_check }
 co_authority:
-  - paths:
-      - Makefile
-    section: spec-code-coupling
-    with_specs:
+  - with_specs:
       - "102-governed-excellence"
       - "104-makefile-ci-parity-contract"
       - "105-axiomregent-sidecar"
@@ -35,6 +31,7 @@ co_authority:
       - "128-spec-lint-default-fail-on-warn"
       - "134-fast-local-ci-mode"
       - "135-fast-ci-as-default"
+    unit: { kind: section, file: Makefile, anchor: spec-code-coupling }
 summary: >
   The CI job, make target, exit-code contract, and contributor-facing
   affordances of the spec/code coupling check. Defines what `make pr-prep`

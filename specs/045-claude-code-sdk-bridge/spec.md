@@ -10,12 +10,11 @@ authors:
   - "open-agentic-platform"
 language: en
 establishes:
-  - product/packages/claude-code-bridge
+  - unit: { kind: crate, id: "@opc/claude-code-bridge" }
 extends:
   - spec: "035-agent-governed-execution"
-    paths:
-      - product/apps/desktop/src-tauri/src/commands/claude.rs
     nature: wrapping
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/claude.rs }
 summary: >
   Replace the current CLI-subprocess integration with a first-class bridge to
   the @anthropic-ai/claude-code SDK, providing typed message streaming, session

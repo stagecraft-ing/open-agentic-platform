@@ -17,7 +17,7 @@ summary: >
 code_aliases:
   - TASK_RUNNER
 establishes:
-  - crates/orchestrator
+  - unit: { kind: crate, id: orchestrator }
 ---
 
 # Feature Specification: Spec-to-execution bridge

@@ -72,10 +72,13 @@ impl ResolverContext {
     }
 }
 
-/// Filter the inventory to Rust crates and read each member's `[package].name`
-/// from disk. Mirrors spec-compiler's `discover_workspace_crate_ids` so the
-/// indexer's resolver and the compiler's type-checker share one truth about
-/// which crate ids are valid (spec 154 §3.1).
+/// Read each workspace member's manifest `name` from disk into the
+/// resolver's lookup table. Mirrors spec-compiler's
+/// `discover_workspace_crate_ids` so the indexer's resolver and the
+/// compiler's type-checker share one truth about which crate ids are
+/// valid (spec 154 §3.1 — workspace membership is the manifest
+/// boundary, not the language; Rust crates AND npm packages declared
+/// as workspace members of `product/` both contribute).
 fn collect_workspace_members(
     _repo_root: &Path,
     packages: &[crate::types::PackageRecord],
@@ -85,14 +88,16 @@ fn collect_workspace_members(
     for pkg in packages {
         if !matches!(
             pkg.kind,
-            PackageKind::RustLib | PackageKind::RustBin | PackageKind::RustLibBin
+            PackageKind::RustLib
+                | PackageKind::RustBin
+                | PackageKind::RustLibBin
+                | PackageKind::NpmPackage
         ) {
             continue;
         }
-        // `PackageRecord.name` is the canonical [package].name read by
-        // `manifest::parse_cargo_toml`, which is what spec-compiler's
-        // workspace-member discovery uses as the crate id. Reuse it
-        // directly rather than re-reading the manifests.
+        // `PackageRecord.name` is the manifest's canonical name field
+        // (Rust `[package].name` or npm `package.json:name`). Both
+        // serve as `crate:` unit ids under spec 154 §3.1.
         out.insert(pkg.name.clone(), pkg.path.clone());
     }
     out
@@ -144,7 +149,11 @@ impl ResolveError {
     /// `section:`, and `directory:` units have no bare-string form
     /// in the corpus (they require an explicit `kind:`), so the
     /// bit is informational for them.
-    pub fn diagnostic_code(&self, was_explicit: bool) -> &'static str {
+    ///
+    /// Note: only invoked for owning-field units. References-field
+    /// entries skip diagnostic emission entirely (4' clarification —
+    /// see `build_resolved_unit`).
+    pub fn diagnostic_code(&self, _was_explicit: bool) -> &'static str {
         match self {
             ResolveError::UnknownCrate { .. } => "I-003",
             ResolveError::UnknownSymbol { .. } => "I-004",
@@ -152,9 +161,13 @@ impl ResolveError {
             ResolveError::AnchorNotFound { .. } => "I-006",
             ResolveError::SectionFileMissing { .. } => "I-006",
             ResolveError::MissingDirectory { .. } => "I-007",
-            ResolveError::MissingFile { .. } => {
-                if was_explicit { "I-008" } else { "I-108" }
-            }
+            // Segment 6 explicit-only flip: I-108 (the bare-string
+            // MissingFile compat-window warning) is retired. The
+            // bare-string parse arm is excised from spec-compiler;
+            // every owning-field unit reaching the resolver is
+            // explicit by construction. Missing files fire the
+            // blocking I-008 on both shapes.
+            ResolveError::MissingFile { .. } => "I-008",
             ResolveError::MalformedAnchorFile { .. } => "I-009",
         }
     }
@@ -268,11 +281,20 @@ fn build_resolved_unit(
     let locations = match resolve(&entry.unit, ctx) {
         Ok(locs) => locs,
         Err(err) => {
-            diagnostics.push(Diagnostic {
-                code: err.diagnostic_code(entry.was_explicit).to_string(),
-                message: format!("{spec_id}: {err}"),
-                path: None,
-            });
+            // Spec 154 §4 (Segment 6, 4' clarification): references
+            // are non-owning by design. Resolution failure for a
+            // references entry is not a diagnostic — the spec gestures
+            // at a target without claiming ownership. The bare-vs-
+            // explicit split (I-008 / I-108) routes only on owning
+            // fields. Mirrors spec 156's dangling-provenance
+            // treatment: empty `locations`, no diagnostic.
+            if entry.ownership {
+                diagnostics.push(Diagnostic {
+                    code: err.diagnostic_code(entry.was_explicit).to_string(),
+                    message: format!("{spec_id}: {err}"),
+                    path: None,
+                });
+            }
             Vec::new()
         }
     };

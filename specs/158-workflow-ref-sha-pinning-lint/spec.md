@@ -16,16 +16,16 @@ depends_on:
   - "104"  # makefile-ci-parity-contract (CI mirror requirement)
 code_aliases: ["WORKFLOW_PINS"]
 establishes:
-  - tools/lint/workflow-pins.sh
-  - tools/lint/workflow-pins-test.sh
-  - tools/lint/tests/fixtures/passing/action.yml
-  - tools/lint/tests/fixtures/failing/action.yml
-  - docs/launch-notes/spec-158-workflow-ref-pinning.md
+  - unit: { kind: file, path: tools/lint/workflow-pins.sh }
+  - unit: { kind: file, path: tools/lint/workflow-pins-test.sh }
+  - unit: { kind: file, path: tools/lint/tests/fixtures/passing/action.yml }
+  - unit: { kind: file, path: tools/lint/tests/fixtures/failing/action.yml }
+  - unit: { kind: file, path: docs/launch-notes/spec-158-workflow-ref-pinning.md }
 refines:
-  - paths:
-      - .github/workflows/ci-supply-chain.yml
-      - .githooks/pre-commit
-    aspect: workflow-ref-pin-enforcement
+  - aspect: "workflow-ref-pin-enforcement"
+    unit: { kind: file, path: .github/workflows/ci-supply-chain.yml }
+  - aspect: "workflow-ref-pin-enforcement"
+    unit: { kind: file, path: .githooks/pre-commit }
 compliance:
   - framework: "owasp-asi-2026"
     # ASI04 (supply-chain compromise). Closes the convention-vs-contract

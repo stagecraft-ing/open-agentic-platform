@@ -25,12 +25,14 @@ depends_on:
 code_aliases: ["CODEBASE_INDEX"]
 risk: low
 establishes:
-  - tools/spec-spine/codebase-indexer/src/main.rs
-  - tools/spec-spine/codebase-indexer/src/lib.rs
-  - tools/spec-spine/codebase-indexer/src/spec_scanner.rs
-  - tools/spec-spine/codebase-indexer/src/manifest.rs
-  - .derived/codebase-index/index.json
-  - standards/schemas/spec-spine/codebase-index.schema.json
+  - unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/main.rs }
+  - unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
+  - unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/spec_scanner.rs }
+  - unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/manifest.rs }
+references:
+  - role: artifact
+    unit: { kind: file, path: .derived/codebase-index/index.json }
+  - unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
 ---
 
 # 101 — Codebase Index MVP

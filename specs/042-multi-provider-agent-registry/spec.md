@@ -27,7 +27,7 @@ summary: >
 code_aliases:
   - PROVIDER_REGISTRY
 establishes:
-  - crates/provider-registry
+  - unit: { kind: crate, id: provider-registry }
 ---
 
 # Feature Specification: Multi-Provider Agent Registry

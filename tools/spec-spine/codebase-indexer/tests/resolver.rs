@@ -546,32 +546,24 @@ body
     assert!(section_units.iter().all(|u| !u.locations.is_empty()));
 }
 
-// ── Bare-vs-explicit MissingFile severity split (S3-DROP-1 capture) ─────────
+// ── MissingFile severity post Segment-6 explicit-only flip ──────────────────
 
 #[test]
-fn missing_file_severity_splits_on_authoring_shape() {
-    // Two specs against the same fixture: one declares the missing
-    // path as a bare string, the other as an explicit `{kind: file}`
-    // unit. The compat-window severity diverges per the V-023 mirror:
-    // bare → I-108 (non-blocking); explicit → I-008 (blocking).
+fn missing_file_emits_blocking_i008_regardless_of_authoring_shape() {
+    // Spec 154 Segment 6 retired the I-108 (bare-string) severity. The
+    // spec-compiler's bare-string parse arm is excised, so every
+    // owning-field unit reaching the resolver is explicit by
+    // construction; MissingFile always emits the blocking I-008. The
+    // fixture below mirrors the pre-Segment-6 shape (one bare-string
+    // establishes, one explicit-typed extends) and asserts both
+    // contribute to the I-008 error band — the bare-string spec via
+    // spec-compiler's V-024 parse-rejection upstream of the resolver,
+    // the explicit spec via the resolver's MissingFile diagnostic.
     let dir = TempDir::new().unwrap();
     let root = dir.path().to_path_buf();
     install_schemas(&root);
     write(&root.join("Cargo.toml"), "[workspace]\nmembers = []\n");
 
-    write(
-        &root.join("specs/300-bare-missing/spec.md"),
-        r#"---
-id: "300-bare-missing"
-title: "Bare-string missing path"
-status: approved
-kind: tooling
-establishes:
-  - does/not/exist/here.rs
----
-body
-"#,
-    );
     write(
         &root.join("specs/301-explicit-missing/spec.md"),
         r#"---
@@ -592,13 +584,13 @@ body
     let parsed: open_agentic_codebase_indexer::types::CodebaseIndex =
         serde_json::from_slice(&out.index_json).unwrap();
 
-    let warnings: Vec<&str> = parsed
+    let warning_codes: Vec<&str> = parsed
         .diagnostics
         .warnings
         .iter()
         .map(|d| d.code.as_str())
         .collect();
-    let errors: Vec<&str> = parsed
+    let error_codes: Vec<&str> = parsed
         .diagnostics
         .errors
         .iter()
@@ -606,12 +598,97 @@ body
         .collect();
 
     assert!(
-        warnings.contains(&"I-108"),
-        "bare-string MissingFile must emit I-108 (warning)"
+        !warning_codes.contains(&"I-108"),
+        "I-108 retired post Segment 6 — bare-string MissingFile no longer emits a warning code"
     );
     assert!(
-        errors.contains(&"I-008"),
+        error_codes.contains(&"I-008"),
         "explicit MissingFile must emit I-008 (error)"
+    );
+}
+
+// ── References-field exemption from existence diagnostics (Segment 6, 4') ────
+
+#[test]
+fn references_field_skips_existence_diagnostics() {
+    // Spec 154 §4 + Segment 6 4' clarification: references entries
+    // are non-owning by design and must not emit I-008 / I-108 / I-007
+    // (etc.) when their targets are absent, regardless of bare-string
+    // vs explicit-typed surface syntax. Owning-field strictness is
+    // covered by `missing_file_severity_splits_on_authoring_shape`.
+    let dir = TempDir::new().unwrap();
+    let root = dir.path().to_path_buf();
+    install_schemas(&root);
+    write(&root.join("Cargo.toml"), "[workspace]\nmembers = []\n");
+
+    write(
+        &root.join("specs/310-references-aspirational/spec.md"),
+        r#"---
+id: "310-references-aspirational"
+title: "Aspirational references"
+status: draft
+kind: tooling
+references:
+  - role: planned
+    unit: { kind: directory, path: crates/never-built/ }
+  - role: planned
+    unit: { kind: file, path: crates/never-built/src/lib.rs }
+  - "some/legacy/bare-string/path.rs"
+---
+body
+"#,
+    );
+
+    let out = open_agentic_codebase_indexer::compile(&root).expect("compile fixture");
+    let parsed: open_agentic_codebase_indexer::types::CodebaseIndex =
+        serde_json::from_slice(&out.index_json).unwrap();
+
+    let warn_codes: Vec<&str> = parsed
+        .diagnostics
+        .warnings
+        .iter()
+        .map(|d| d.code.as_str())
+        .collect();
+    let err_codes: Vec<&str> = parsed
+        .diagnostics
+        .errors
+        .iter()
+        .map(|d| d.code.as_str())
+        .collect();
+    let resolver_codes = ["I-003", "I-004", "I-005", "I-006", "I-007", "I-008", "I-108"];
+    for code in resolver_codes {
+        assert!(
+            !warn_codes.contains(&code),
+            "references-field entry must not emit warning {code}; got warnings {warn_codes:?}"
+        );
+        assert!(
+            !err_codes.contains(&code),
+            "references-field entry must not emit error {code}; got errors {err_codes:?}"
+        );
+    }
+
+    // The resolved-unit list still surfaces the entries (with empty
+    // locations) so downstream consumers can reverse-lookup
+    // "which specs gesture at this future target?".
+    let mapping = parsed
+        .traceability
+        .mappings
+        .iter()
+        .find(|m| m.spec_id == "310-references-aspirational")
+        .expect("references-aspirational spec is mapped");
+    let non_owning: Vec<_> = mapping
+        .resolved_units
+        .iter()
+        .filter(|u| !u.ownership)
+        .collect();
+    assert!(
+        non_owning.iter().all(|u| u.locations.is_empty()),
+        "aspirational reference units carry empty `locations`"
+    );
+    assert_eq!(
+        non_owning.len(),
+        3,
+        "all three references entries surface in the resolved-unit list"
     );
 }
 

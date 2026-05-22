@@ -17,8 +17,8 @@ code_aliases: ["GITHUB_IDENTITY", "ORG_ONBOARDING"]
 owner: bart
 risk: medium
 establishes:
-  - platform/services/stagecraft/api/github
-  - platform/services/stagecraft/api/auth
+  - unit: { kind: directory, path: platform/services/stagecraft/api/github }
+  - unit: { kind: directory, path: platform/services/stagecraft/api/auth }
 ---
 
 # Feature Specification: GitHub Identity and Org Onboarding

@@ -14,13 +14,11 @@ summary: >
   fixture-based contract tests, without changing runtime behavior.
 extends:
   - spec: "008-registry-consumer-status-report-json-mvp"
-    paths:
-      - tools/spec-spine/registry-consumer
     nature: additive
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 refines:
-  - paths:
-      - tools/spec-spine/registry-consumer
-    aspect: contract-tests
+  - aspect: "contract-tests"
+    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Registry consumer status-report JSON contract tests

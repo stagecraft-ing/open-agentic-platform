@@ -16,55 +16,84 @@ amends:
   - "115"  # annotates FR-003 as load-bearing for spec 143 FR-010 race contract
 code_aliases: ["PRESIGNED_UPLOAD_PUBLIC_ENDPOINT"]
 establishes:
-  - platform/services/stagecraft/api/knowledge/storage.ts
-  - platform/services/stagecraft/api/knowledge/uploadLimits.ts
-  - platform/services/stagecraft/api/knowledge/uploadLimits.test.ts
-  - platform/services/stagecraft/api/knowledge/requestUpload.integration.test.ts
-  - platform/services/stagecraft/api/auth/refreshCookie.ts
-  - platform/services/stagecraft/api/auth/refreshCookie-pure.ts
-  - platform/services/stagecraft/api/auth/refreshCookie.test.ts
-  - platform/services/stagecraft/api/auth/refreshCookie-pure.test.ts
-  - platform/services/stagecraft/web/app/lib/fetchWithRefresh.ts
-  - platform/services/stagecraft/web/app/lib/fetchWithRefresh.test.ts
-  - platform/infra/hetzner/validate/spec-143.sh
-  - platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml
-  - platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/storage.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/uploadLimits.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/uploadLimits.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/requestUpload.integration.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/auth/refreshCookie.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/auth/refreshCookie-pure.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/auth/refreshCookie.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/auth/refreshCookie-pure.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/fetchWithRefresh.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/fetchWithRefresh.test.ts }
+  - unit: { kind: file, path: platform/infra/hetzner/validate/spec-143.sh }
+  - unit: { kind: file, path: platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml }
+  - unit: { kind: file, path: platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml }
 extends:
   - spec: "087-unified-workspace-architecture"
-    paths:
-      - platform/services/stagecraft/api/knowledge/knowledge.ts
-      - platform/services/stagecraft/api/knowledge/auditActions.ts
-      - platform/services/stagecraft/api/knowledge/orphanSweeper.ts
-      - platform/services/stagecraft/api/knowledge/orphanSweeper.integration.test.ts
-      - platform/services/stagecraft/api/knowledge/scheduler.ts
-      - platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx
-      - platform/charts/stagecraft/templates/deployment.yaml
-      - platform/charts/stagecraft/values.yaml
-      - platform/charts/stagecraft/values-hetzner.yaml
     nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/knowledge/knowledge.ts }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/knowledge/auditActions.ts }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/knowledge/orphanSweeper.ts }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/knowledge/orphanSweeper.integration.test.ts }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/knowledge/scheduler.ts }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.tsx }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/charts/stagecraft/templates/deployment.yaml }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/charts/stagecraft/values.yaml }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/charts/stagecraft/values-hetzner.yaml }
   - spec: "115-knowledge-extraction-pipeline"
-    paths:
-      - platform/services/stagecraft/api/knowledge/extractionCore.ts
-      - platform/services/stagecraft/api/knowledge/extractionWorker.ts
     nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionCore.ts }
+  - spec: "115-knowledge-extraction-pipeline"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionWorker.ts }
 refines:
-  - aspect: presigned-upload-public-endpoint
-    paths:
-      - platform/services/stagecraft/api/knowledge/storage.dualClient.test.ts
-      - platform/infra/hetzner/setup.sh
-      - platform/infra/hetzner/post-create.sh
-      - platform/infra/hetzner/.env.example
-      - platform/services/stagecraft/infra.config.hetzner.json
-      - platform/services/stagecraft/infra.config.json
-      - platform/charts/deployd-api/values-hetzner.yaml
-      - platform/charts/deployd-api/templates/deployment.yaml
-      - platform/services/stagecraft/test/__mocks__/encore-config.ts
-      - platform/services/stagecraft/vite.config.ts
-      - platform/services/stagecraft/test/spec143-fu015.config.test.ts
-      - platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx
-      - platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.up.sql
-      - platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.down.sql
-      - platform/services/stagecraft/api/db/schema.ts
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/services/stagecraft/api/knowledge/storage.dualClient.test.ts }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/infra/hetzner/setup.sh }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/infra/hetzner/post-create.sh }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/infra/hetzner/.env.example }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/services/stagecraft/infra.config.hetzner.json }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/services/stagecraft/infra.config.json }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/charts/deployd-api/values-hetzner.yaml }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/charts/deployd-api/templates/deployment.yaml }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/services/stagecraft/test/__mocks__/encore-config.ts }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/services/stagecraft/test/spec143-fu015.config.test.ts }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.up.sql }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.down.sql }
+  - aspect: "presigned-upload-public-endpoint"
+    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
 summary: >
   Browser uploads via presigned PUT have never landed in MinIO on the
   Hetzner deployment because the server-issued presigned URL points at
@@ -4815,4 +4844,3 @@ verified Always (hetzner) / IfNotPresent (default);
 two chart paths added to `implements:` as co-claims;
 test-7-dual rows pinned as leave-as-historical. FU-024
 drops from outstanding.
-

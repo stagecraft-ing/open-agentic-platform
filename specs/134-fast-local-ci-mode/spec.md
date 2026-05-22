@@ -14,10 +14,7 @@ amends:
 depends_on:
   - "104"
 co_authority:
-  - paths:
-      - Makefile
-    section: ci-fast
-    with_specs:
+  - with_specs:
       - "102-governed-excellence"
       - "104-makefile-ci-parity-contract"
       - "105-axiomregent-sidecar"
@@ -25,15 +22,14 @@ co_authority:
       - "127-spec-code-coupling-gate"
       - "128-spec-lint-default-fail-on-warn"
       - "135-fast-ci-as-default"
+    unit: { kind: section, file: Makefile, anchor: ci-fast }
 extends:
   - spec: "104-makefile-ci-parity-contract"
-    paths:
-      - tools/oap/ci-parity-check/src/lib.rs
     nature: additive
+    unit: { kind: file, path: tools/oap/ci-parity-check/src/lib.rs }
 refines:
-  - aspect: ci-fast-validation
-    paths:
-      - .claude/commands/validate-and-fix.md
+  - aspect: "ci-fast-validation"
+    unit: { kind: file, path: .claude/commands/validate-and-fix.md }
 summary: >
   Amend spec 104 to introduce a two-mode CI contract: the parity-bound
   recipe (renamed `make ci-strict` by spec 135) retains strict

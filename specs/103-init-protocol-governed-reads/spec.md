@@ -14,13 +14,10 @@ depends_on:
   - "101"  # codebase-index-mvp (render/check subcommands)
 code_aliases: ["INIT_GOVERNED_READS"]
 establishes:
-  - .claude/rules/governed-artifact-reads.md
+  - unit: { kind: file, path: .claude/rules/governed-artifact-reads.md }
 refines:
-  - paths:
-      - AGENTS.md
-    aspect: governed-reads
-    refines_specs:
-      - "000-bootstrap-spec-system"
+  - aspect: "governed-reads"
+    unit: { kind: file, path: AGENTS.md }
 summary: >
   Replace ad-hoc parsing of compiled JSON artifacts in orchestrated workflows
   (starting with /init) with governed reads through the consumer binaries

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:d2a790b8d18be1a30a293ba8439d19db15ef47f9e3f3ce13d3b63eef8a7a3b5d",
+  "graph_fingerprint": "sha256:41a0e84ec1c09c8148915a9e796dacce8a94026d4f768c6723f0fef040c27411",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2820,7 +2820,9 @@
       "governance": "medium",
       "owner": "open-agentic-platform",
       "group": "",
-      "depends_on": [],
+      "depends_on": [
+        "147"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []
@@ -2848,7 +2850,9 @@
       "governance": "low",
       "owner": "open-agentic-platform",
       "group": "",
-      "depends_on": [],
+      "depends_on": [
+        "147"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []
@@ -2908,7 +2912,7 @@
       "title": "Logical-unit ownership grammar — value typing for relationship-graph fields",
       "spec_path": "specs/154-logical-unit-ownership-grammar/spec.md",
       "status": "approved",
-      "implementation": "pending",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",

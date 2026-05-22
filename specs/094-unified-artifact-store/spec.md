@@ -19,17 +19,17 @@ summary: >
   persisted dispatch path.
 code_aliases: ["UNIFIED_ARTIFACT_STORE"]
 establishes:
-  - crates/orchestrator/src/promotion.rs
+  - unit: { kind: file, path: crates/orchestrator/src/promotion.rs }
 extends:
   - spec: "052-state-persistence"
-    paths:
-      - crates/orchestrator/src/artifact.rs
-      - crates/orchestrator/src/lib.rs
     nature: additive
+    unit: { kind: file, path: crates/orchestrator/src/artifact.rs }
+  - spec: "052-state-persistence"
+    nature: additive
+    unit: { kind: file, path: crates/orchestrator/src/lib.rs }
   - spec: "075-factory-workflow-engine"
-    paths:
-      - crates/factory-engine/src/artifact_store.rs
     nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/artifact_store.rs }
 ---
 
 # 094 — Unified Artifact Store with Provenance

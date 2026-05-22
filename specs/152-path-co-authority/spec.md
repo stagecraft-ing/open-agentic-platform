@@ -15,20 +15,16 @@ depends_on:
 code_aliases: ["PATH_CO_AUTHORITY"]
 extends:
   - spec: "130-spec-coupling-primary-owner"
-    paths:
-      - tools/shared/spec-types/src/lib.rs
     nature: additive
+    unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
   - spec: "133-amends-aware-coupling-gate"
-    paths:
-      - tools/spec-spine/spec-code-coupling-check/src/lib.rs
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/lib.rs }
 co_authority:
-  - paths:
-      - tools/spec-spine/spec-code-coupling-check/src/lib.rs
-    section: section-matching
-    with_specs:
+  - with_specs:
       - "130-spec-coupling-primary-owner"
       - "133-amends-aware-coupling-gate"
+    unit: { kind: section, file: tools/spec-spine/spec-code-coupling-check/src/lib.rs, anchor: section-matching }
 summary: >
   Named-anchor sectioning, diff-to-section matching, and the
   empty-authority-by-rule mechanism. The substrate that lets one path be

@@ -26,25 +26,50 @@ amends:
   - "119"
 code_aliases: ["AGENT_CATALOG_ORG"]
 establishes:
-  - platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql }
 extends:
   - spec: "119-project-as-unit-of-governance"
-    paths:
-      - platform/services/stagecraft/api/agents/catalog.ts
-      - platform/services/stagecraft/api/agents/relay.ts
-      - platform/services/stagecraft/api/agents/bindings.ts
-      - platform/services/stagecraft/api/sync/duplex.ts
-      - platform/services/stagecraft/web/app/routes/app.agents._index.tsx
-      - platform/services/stagecraft/web/app/routes/app.agents.tsx
-      - platform/services/stagecraft/web/app/routes/app.agents.new.tsx
-      - platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx
-      - platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx
-      - platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx
-      - platform/services/stagecraft/web/app/routes/app.project.$projectId.agents._index.tsx
-      - platform/services/stagecraft/web/app/routes/app.project.$projectId.agents.tsx
-      - product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs
-      - crates/factory-engine/src/agent_resolver.rs
     nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/api/agents/catalog.ts }
+  - spec: "119-project-as-unit-of-governance"
+    nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/api/agents/relay.ts }
+  - spec: "119-project-as-unit-of-governance"
+    nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/api/agents/bindings.ts }
+  - spec: "119-project-as-unit-of-governance"
+    nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/api/sync/duplex.ts }
+  - spec: "119-project-as-unit-of-governance"
+    nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.agents._index.tsx }
+  - spec: "119-project-as-unit-of-governance"
+    nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.agents.tsx }
+  - spec: "119-project-as-unit-of-governance"
+    nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.agents.new.tsx }
+  - spec: "119-project-as-unit-of-governance"
+    nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.agents.$agentId.tsx }
+  - spec: "119-project-as-unit-of-governance"
+    nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.agents.$agentId.publish.tsx }
+  - spec: "119-project-as-unit-of-governance"
+    nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.agents.$agentId.history.tsx }
+  - spec: "119-project-as-unit-of-governance"
+    nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.agents._index.tsx }
+  - spec: "119-project-as-unit-of-governance"
+    nature: wrapping
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.agents.tsx }
+  - spec: "119-project-as-unit-of-governance"
+    nature: wrapping
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs }
+  - spec: "119-project-as-unit-of-governance"
+    nature: wrapping
+    unit: { kind: file, path: crates/factory-engine/src/agent_resolver.rs }
 summary: >
   Move the agent catalog back to org scope. Spec 119 collapsed workspace into
   project and rescoped agents to project_id along with knowledge, runs, grants,

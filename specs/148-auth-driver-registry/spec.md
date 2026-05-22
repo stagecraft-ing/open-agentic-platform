@@ -13,13 +13,11 @@ selector: AUTH_DRIVER
 member_contract: auth-driver
 default: rauthy-oidc
 production_forbidden: ["example-tenant-mock"]
-establishes:
-  - crates/auth-driver/
-extends:
-  - spec: "147-spec-kind-grammar"
-    paths:
-      - crates/auth-driver/
-    nature: additive
+depends_on:
+  - "147"
+references:
+  - role: planned
+    unit: { kind: directory, path: crates/auth-driver/ }
 summary: >
   Registry kind: defines the pluggable identity-provider integration
   point. Members are `kind: capability` specs implementing the
