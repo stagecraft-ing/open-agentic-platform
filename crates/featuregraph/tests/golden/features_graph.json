@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:f4f693f4c284cd5be353143cacb90c023316fd94ca9ddbb287388553b1b86671",
+  "graph_fingerprint": "sha256:c5a0b359260366bfa93751ceaf6cdac3ec0afd89e6434e1970912ba773815c85",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2929,7 +2929,7 @@
       "title": "Logical-unit resolution semantics — precision fixes surfaced by Segment 3 design",
       "spec_path": "specs/155-logical-unit-resolution-semantics/spec.md",
       "status": "approved",
-      "implementation": "pending",
+      "implementation": "complete",
       "governance": "low",
       "owner": "bart",
       "group": "",
