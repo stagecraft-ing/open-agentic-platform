@@ -3,7 +3,7 @@ id: "156-references-edge-provenance-grammar"
 slug: references-edge-provenance-grammar
 title: "References-edge provenance grammar — typed external pointers as a sibling field"
 status: approved
-implementation: pending
+implementation: complete
 owner: bart
 created: "2026-05-22"
 approved: "2026-05-22"
@@ -21,10 +21,22 @@ extends:
     unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
   - spec: "154-logical-unit-ownership-grammar"
     nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/tests/spec156_provenance_grammar.rs }
+  - spec: "154-logical-unit-ownership-grammar"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/tests/code_aliases.rs }
+  - spec: "154-logical-unit-ownership-grammar"
+    nature: additive
     unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/spec_scanner.rs }
   - spec: "154-logical-unit-ownership-grammar"
     nature: additive
     unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/types.rs }
+  - spec: "154-logical-unit-ownership-grammar"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/resolver/mod.rs }
+  - spec: "154-logical-unit-ownership-grammar"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/tests/spec156_provenance.rs }
   - spec: "154-logical-unit-ownership-grammar"
     nature: additive
     unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
@@ -34,6 +46,8 @@ extends:
 references:
   - role: precedent
     unit: { kind: file, path: specs/155-logical-unit-resolution-semantics/spec.md }
+  - role: precedent
+    unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
 summary: >
   Spec 154 §4 introduces the ninth, non-owning `references:` edge:
   each entry carries a `unit:` pointing at a logical unit in the

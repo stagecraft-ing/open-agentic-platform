@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "b4533c0c8c2bdca68c7ef74b68555c3fbb78f30daa848033f4c7a997d6ae86eb",
+    "contentHash": "0138ebaa311cc88a0ccfb925f862b05d34d8e39ef69bcd2f1b73efa9c9d1e9cb",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1415,7 +1415,7 @@
       "version": "0.1.0"
     }
   ],
-  "schemaVersion": "2.1.0",
+  "schemaVersion": "2.2.0",
   "traceability": {
     "mappings": [
       {
@@ -1774,12 +1774,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "crates/orchestrator/.DS_Store"
-              },
-              {
-                "file": "crates/orchestrator/Cargo.lock"
-              },
-              {
                 "file": "crates/orchestrator/Cargo.toml"
               },
               {
@@ -1883,12 +1877,6 @@
           {
             "kind": "crate",
             "locations": [
-              {
-                "file": "crates/orchestrator/.DS_Store"
-              },
-              {
-                "file": "crates/orchestrator/Cargo.lock"
-              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -8758,12 +8746,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "crates/policy-kernel/.DS_Store"
-              },
-              {
-                "file": "crates/policy-kernel/Cargo.lock"
-              },
-              {
                 "file": "crates/policy-kernel/Cargo.toml"
               },
               {
@@ -8813,12 +8795,6 @@
           {
             "kind": "crate",
             "locations": [
-              {
-                "file": "crates/tool-registry/.DS_Store"
-              },
-              {
-                "file": "crates/tool-registry/Cargo.lock"
-              },
               {
                 "file": "crates/tool-registry/Cargo.toml"
               },
@@ -8925,33 +8901,6 @@
           {
             "kind": "crate",
             "locations": [
-              {
-                "file": "crates/axiomregent/.DS_Store"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/logs/0000000000000001.wal"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/logs/lock.hql"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/logs/meta.hql"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/logs_cache/0000000000000001.wal"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/logs_cache/lock.hql"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/logs_cache/meta.hql"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/state_machine/db/axiomregent.db"
-              },
-              {
-                "file": "crates/axiomregent/Cargo.lock"
-              },
               {
                 "file": "crates/axiomregent/Cargo.toml"
               },
@@ -9379,12 +9328,6 @@
           {
             "kind": "crate",
             "locations": [
-              {
-                "file": "crates/orchestrator/.DS_Store"
-              },
-              {
-                "file": "crates/orchestrator/Cargo.lock"
-              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -10154,12 +10097,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "crates/orchestrator/.DS_Store"
-              },
-              {
-                "file": "crates/orchestrator/Cargo.lock"
-              },
-              {
                 "file": "crates/orchestrator/Cargo.toml"
               },
               {
@@ -10268,12 +10205,6 @@
           {
             "kind": "crate",
             "locations": [
-              {
-                "file": "crates/orchestrator/.DS_Store"
-              },
-              {
-                "file": "crates/orchestrator/Cargo.lock"
-              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -10752,12 +10683,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "crates/policy-kernel/.DS_Store"
-              },
-              {
-                "file": "crates/policy-kernel/Cargo.lock"
-              },
-              {
                 "file": "crates/policy-kernel/Cargo.toml"
               },
               {
@@ -10875,6 +10800,18 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -11190,6 +11127,9 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
+              },
+              {
+                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -11905,6 +11845,18 @@
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
               },
               {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
               },
               {
@@ -12218,6 +12170,9 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
+              },
+              {
+                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -12901,12 +12856,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "crates/tool-registry/.DS_Store"
-              },
-              {
-                "file": "crates/tool-registry/Cargo.lock"
-              },
-              {
                 "file": "crates/tool-registry/Cargo.toml"
               },
               {
@@ -12957,12 +12906,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "crates/policy-kernel/.DS_Store"
-              },
-              {
-                "file": "crates/policy-kernel/Cargo.lock"
-              },
-              {
                 "file": "crates/policy-kernel/Cargo.toml"
               },
               {
@@ -13012,12 +12955,6 @@
           {
             "kind": "crate",
             "locations": [
-              {
-                "file": "crates/policy-kernel/.DS_Store"
-              },
-              {
-                "file": "crates/policy-kernel/Cargo.lock"
-              },
               {
                 "file": "crates/policy-kernel/Cargo.toml"
               },
@@ -13300,15 +13237,6 @@
             "kind": "directory",
             "locations": [
               {
-                "file": "platform/infra/.DS_Store"
-              },
-              {
-                "file": "platform/infra/hetzner/.DS_Store"
-              },
-              {
-                "file": "platform/infra/hetzner/.env"
-              },
-              {
                 "file": "platform/infra/hetzner/.env.example"
               },
               {
@@ -13318,16 +13246,10 @@
                 "file": "platform/infra/hetzner/cluster.yaml"
               },
               {
-                "file": "platform/infra/hetzner/kubeconfig"
-              },
-              {
                 "file": "platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml"
               },
               {
                 "file": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml"
-              },
-              {
-                "file": "platform/infra/hetzner/mirrord/.stagecraft.env"
               },
               {
                 "file": "platform/infra/hetzner/mirrord/deployd-api.yaml"
@@ -13516,9 +13438,6 @@
             "kind": "directory",
             "locations": [
               {
-                "file": "platform/services/deployd-api-rs/.DS_Store"
-              },
-              {
                 "file": "platform/services/deployd-api-rs/.dockerignore"
               },
               {
@@ -13562,33 +13481,6 @@
           {
             "kind": "crate",
             "locations": [
-              {
-                "file": "crates/axiomregent/.DS_Store"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/logs/0000000000000001.wal"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/logs/lock.hql"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/logs/meta.hql"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/logs_cache/0000000000000001.wal"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/logs_cache/lock.hql"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/logs_cache/meta.hql"
-              },
-              {
-                "file": "crates/axiomregent/.axiomregent/data/state_machine/db/axiomregent.db"
-              },
-              {
-                "file": "crates/axiomregent/Cargo.lock"
-              },
               {
                 "file": "crates/axiomregent/Cargo.toml"
               },
@@ -13829,9 +13721,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "crates/factory-contracts/.DS_Store"
-              },
-              {
                 "file": "crates/factory-contracts/Cargo.toml"
               },
               {
@@ -14033,6 +13922,18 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -14348,6 +14249,9 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
+              },
+              {
+                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -15171,12 +15075,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "crates/orchestrator/.DS_Store"
-              },
-              {
-                "file": "crates/orchestrator/Cargo.lock"
-              },
-              {
                 "file": "crates/orchestrator/Cargo.toml"
               },
               {
@@ -15458,9 +15356,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "crates/factory-contracts/.DS_Store"
-              },
-              {
                 "file": "crates/factory-contracts/Cargo.toml"
               },
               {
@@ -15522,12 +15417,6 @@
           {
             "kind": "crate",
             "locations": [
-              {
-                "file": "crates/orchestrator/.DS_Store"
-              },
-              {
-                "file": "crates/orchestrator/Cargo.lock"
-              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -15688,6 +15577,18 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -16003,6 +15904,9 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
+              },
+              {
+                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -17537,27 +17441,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "crates/xray/.DS_Store"
-              },
-              {
-                "file": "crates/xray/.axiomregent/data/logs/0000000000000001.wal"
-              },
-              {
-                "file": "crates/xray/.axiomregent/data/logs/meta.hql"
-              },
-              {
-                "file": "crates/xray/.axiomregent/data/logs_cache/0000000000000001.wal"
-              },
-              {
-                "file": "crates/xray/.axiomregent/data/logs_cache/meta.hql"
-              },
-              {
-                "file": "crates/xray/.axiomregent/data/state_machine/db/axiomregent.db"
-              },
-              {
-                "file": "crates/xray/Cargo.lock"
-              },
-              {
                 "file": "crates/xray/Cargo.toml"
               },
               {
@@ -18322,12 +18205,6 @@
           {
             "kind": "crate",
             "locations": [
-              {
-                "file": "crates/tool-registry/.DS_Store"
-              },
-              {
-                "file": "crates/tool-registry/Cargo.lock"
-              },
               {
                 "file": "crates/tool-registry/Cargo.toml"
               },
@@ -20921,6 +20798,9 @@
                 "file": "tools/spec-spine/codebase-indexer/tests/schema_conformance.rs"
               },
               {
+                "file": "tools/spec-spine/codebase-indexer/tests/spec156_provenance.rs"
+              },
+              {
                 "file": "tools/spec-spine/codebase-indexer/workflow-allowlist.toml"
               }
             ],
@@ -21679,9 +21559,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "crates/factory-contracts/.DS_Store"
-              },
-              {
                 "file": "crates/factory-contracts/Cargo.toml"
               },
               {
@@ -21743,12 +21620,6 @@
           {
             "kind": "crate",
             "locations": [
-              {
-                "file": "crates/orchestrator/.DS_Store"
-              },
-              {
-                "file": "crates/orchestrator/Cargo.lock"
-              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -21991,6 +21862,18 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -22306,6 +22189,9 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
+              },
+              {
+                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -22942,9 +22828,6 @@
           {
             "kind": "directory",
             "locations": [
-              {
-                "file": "specs/000-bootstrap-spec-system/.DS_Store"
-              },
               {
                 "file": "specs/000-bootstrap-spec-system/checklists/requirements.md"
               },
@@ -24337,6 +24220,9 @@
                 "file": "tools/spec-spine/codebase-indexer/tests/schema_conformance.rs"
               },
               {
+                "file": "tools/spec-spine/codebase-indexer/tests/spec156_provenance.rs"
+              },
+              {
                 "file": "tools/spec-spine/codebase-indexer/workflow-allowlist.toml"
               }
             ],
@@ -24619,6 +24505,9 @@
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/spec154_unit_grammar_negative.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec156_provenance_grammar.rs"
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
@@ -28596,7 +28485,7 @@
           }
         ],
         "specId": "148-auth-driver-registry",
-        "specStatus": "approved"
+        "specStatus": "draft"
       },
       {
         "implementingPaths": [],
@@ -28612,7 +28501,7 @@
           }
         ],
         "specId": "149-saml-auth-driver",
-        "specStatus": "approved"
+        "specStatus": "draft"
       },
       {
         "dependsOn": [
@@ -29320,6 +29209,9 @@
                 "file": "tools/spec-spine/spec-compiler/tests/spec154_unit_grammar_negative.rs"
               },
               {
+                "file": "tools/spec-spine/spec-compiler/tests/spec156_provenance_grammar.rs"
+              },
+              {
                 "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
               },
               {
@@ -29629,6 +29521,9 @@
                 "file": "tools/spec-spine/codebase-indexer/tests/schema_conformance.rs"
               },
               {
+                "file": "tools/spec-spine/codebase-indexer/tests/spec156_provenance.rs"
+              },
+              {
                 "file": "tools/spec-spine/codebase-indexer/workflow-allowlist.toml"
               }
             ],
@@ -29680,6 +29575,9 @@
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/spec154_unit_grammar_negative.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec156_provenance_grammar.rs"
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
@@ -29787,6 +29685,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "tools/spec-spine/codebase-indexer/src/resolver/mod.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "tools/spec-spine/codebase-indexer/src/spec_scanner.rs",
             "source": "spec-implements"
           },
@@ -29795,7 +29697,19 @@
             "source": "spec-implements"
           },
           {
+            "path": "tools/spec-spine/codebase-indexer/tests/spec156_provenance.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/tests/code_aliases.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/tests/spec156_provenance_grammar.rs",
             "source": "spec-implements"
           }
         ],
@@ -29846,6 +29760,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "tools/spec-spine/codebase-indexer/src/resolver/mod.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/codebase-indexer/src/resolver/mod.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "tools/spec-spine/codebase-indexer/src/spec_scanner.rs"
               }
             ],
@@ -29874,6 +29802,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "tools/spec-spine/codebase-indexer/tests/spec156_provenance.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/codebase-indexer/tests/spec156_provenance.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "tools/spec-spine/spec-compiler/src/lib.rs"
               }
             ],
@@ -29882,6 +29824,48 @@
             "unit": {
               "kind": "file",
               "path": "tools/spec-spine/spec-compiler/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/code_aliases.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-compiler/tests/code_aliases.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec156_provenance_grammar.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-compiler/tests/spec156_provenance_grammar.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
             }
           },
           {
