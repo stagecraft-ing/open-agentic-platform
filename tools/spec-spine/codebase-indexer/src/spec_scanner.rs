@@ -1,6 +1,6 @@
 //! Spec frontmatter reader (Layer 2 input).
 
-use open_agentic_spec_types::split_frontmatter_required;
+use open_agentic_spec_types::{LogicalUnit, split_frontmatter_required};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -18,6 +18,36 @@ pub struct SpecRecord {
     /// Spec 133: raw `amendment_record:` value from frontmatter (single
     /// id today; resolved to a full id by `xref::build_traceability`).
     pub amendment_record: Option<String>,
+    /// Spec 154 Segment 3: logical-unit declarations harvested from
+    /// every relationship-graph field, tagged with which field carried
+    /// each entry. Bare strings parse to `LogicalUnit::File` per spec
+    /// 154 §3.6's legacy-form affordance. Drives the codebase-indexer
+    /// resolver pass; orthogonal to `implements` (which feeds the
+    /// path-list traceability layer).
+    pub units: Vec<UnitEntry>,
+}
+
+/// A logical-unit declaration with the relationship field that carried
+/// it. `ownership` discriminates the seven ownership-bearing fields
+/// from `references` (declaratively non-owning per spec 154).
+///
+/// `was_explicit` carries the surface-syntax distinction the
+/// spec-compiler's V-023 already encodes: `true` when the unit was
+/// authored as `{ kind: file, path: ... }` (or any other explicit
+/// `{ kind: ... }` mapping); `false` for the legacy bare-string form
+/// that parses to `LogicalUnit::File` via the spec 154 §3.6 compat
+/// affordance. The resolver routes diagnostic severity off this bit
+/// — explicit MissingFile is a blocking I-008 (mirroring V-023);
+/// bare-string MissingFile is a non-blocking I-108 warning during
+/// the compat window, lifted to I-008 by Segment 6's explicit-only
+/// flip. Lives indexer-side rather than on `LogicalUnit` because the
+/// unit *shape* per spec 154 §3.6 doesn't depend on authoring; only
+/// the compat severity does.
+pub struct UnitEntry {
+    pub unit: LogicalUnit,
+    pub source_field: &'static str,
+    pub ownership: bool,
+    pub was_explicit: bool,
 }
 
 /// A single entry from the `implements` frontmatter field.
@@ -94,6 +124,7 @@ fn parse_spec(path: &Path) -> Option<SpecRecord> {
         .get("amendment_record")
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
+    let units = parse_units(fm);
 
     Some(SpecRecord {
         id,
@@ -103,6 +134,7 @@ fn parse_spec(path: &Path) -> Option<SpecRecord> {
         implements,
         amends,
         amendment_record,
+        units,
     })
 }
 
@@ -212,4 +244,152 @@ fn parse_implements(fm: &serde_yaml::Mapping) -> Vec<ImplementsEntry> {
     }
 
     entries
+}
+
+/// Spec 154 Segment 3: harvest logical-unit declarations from every
+/// relationship-graph field. Each entry is paired with the field name
+/// that carried it and an `ownership` flag (`false` only for
+/// `references`). Parse failures are silently dropped — the
+/// spec-compiler is the authoritative validator of unit grammar
+/// (V-021..V-024); this indexer-side reader stays permissive and only
+/// consumes what parses cleanly.
+fn parse_units(fm: &serde_yaml::Mapping) -> Vec<UnitEntry> {
+    let mut out = Vec::new();
+
+    // Flat fields: each item is a unit (string, mapping with `kind:`,
+    // or — only for `references` — a mapping with a `unit:` key).
+    push_flat_units(fm, "establishes", true, &mut out);
+    push_flat_units(fm, "references", false, &mut out);
+
+    // Structured fields: each item is a relationship-edge mapping with
+    // a nested `paths: [...]` (string list) and/or `unit: <unit>` /
+    // `units: [<unit>]` member that carries the logical-unit forms.
+    for field in &["extends", "refines", "supersedes", "amends", "co_authority", "constrains"] {
+        let ownership = true;
+        push_structured_units(fm, field, ownership, &mut out);
+    }
+
+    out
+}
+
+/// Walk a flat list field (each entry is itself a unit declaration).
+fn push_flat_units(
+    fm: &serde_yaml::Mapping,
+    field: &'static str,
+    ownership: bool,
+    out: &mut Vec<UnitEntry>,
+) {
+    let Some(seq) = fm.get(field).and_then(|v| v.as_sequence()) else {
+        return;
+    };
+    for item in seq {
+        // `references` entries can take the role-tagged form
+        // (`- role: <r>\n  unit: <u>`); the resolver only cares about
+        // `unit:`. Detect by presence of the `unit:` key. The
+        // role-tagged form's compat severity is governed by the
+        // *inner* `unit:` value's shape (mapping → explicit;
+        // string → bare), not the outer wrapper.
+        if let Some(m) = item.as_mapping() {
+            if let Some(unit_val) = m.get("unit") {
+                let was_explicit = is_explicit_unit_shape(unit_val);
+                if let Ok(u) = LogicalUnit::from_yaml(unit_val) {
+                    out.push(UnitEntry {
+                        unit: u,
+                        source_field: field,
+                        ownership,
+                        was_explicit,
+                    });
+                    continue;
+                }
+            }
+        }
+        let was_explicit = is_explicit_unit_shape(item);
+        if let Ok(u) = LogicalUnit::from_yaml(item) {
+            out.push(UnitEntry {
+                unit: u,
+                source_field: field,
+                ownership,
+                was_explicit,
+            });
+        }
+    }
+}
+
+/// Walk a structured relationship field. Each item is a mapping like:
+/// ```yaml
+/// extends:
+///   - spec: 130
+///     paths: [<string>, ...]    # legacy path-list form
+///     unit: <unit>              # spec 154 unit form (singular)
+///     units: [<unit>, ...]      # spec 154 unit form (plural)
+/// ```
+/// We harvest from `paths` (each path → File unit via legacy parsing),
+/// `unit` (singular), and `units` (plural). Other keys (`spec`,
+/// `nature`, `aspect`, etc.) are ignored — they are relationship-graph
+/// metadata, not ownership claims.
+fn push_structured_units(
+    fm: &serde_yaml::Mapping,
+    field: &'static str,
+    ownership: bool,
+    out: &mut Vec<UnitEntry>,
+) {
+    let Some(seq) = fm.get(field).and_then(|v| v.as_sequence()) else {
+        return;
+    };
+    for item in seq {
+        let Some(m) = item.as_mapping() else {
+            continue;
+        };
+        // `paths:` entries are always bare strings (the legacy
+        // path-list authoring form). The compat-window severity
+        // applies — `was_explicit = false`.
+        if let Some(paths) = m.get("paths").and_then(|v| v.as_sequence()) {
+            for p in paths {
+                let was_explicit = is_explicit_unit_shape(p);
+                if let Ok(u) = LogicalUnit::from_yaml(p) {
+                    out.push(UnitEntry {
+                        unit: u,
+                        source_field: field,
+                        ownership,
+                        was_explicit,
+                    });
+                }
+            }
+        }
+        // `unit:` / `units:` carry the explicit spec 154 form
+        // (mapping shape with `kind:`). `was_explicit` follows the
+        // value's surface shape, not the wrapper.
+        if let Some(unit_val) = m.get("unit") {
+            let was_explicit = is_explicit_unit_shape(unit_val);
+            if let Ok(u) = LogicalUnit::from_yaml(unit_val) {
+                out.push(UnitEntry {
+                    unit: u,
+                    source_field: field,
+                    ownership,
+                    was_explicit,
+                });
+            }
+        }
+        if let Some(units_seq) = m.get("units").and_then(|v| v.as_sequence()) {
+            for unit_val in units_seq {
+                let was_explicit = is_explicit_unit_shape(unit_val);
+                if let Ok(u) = LogicalUnit::from_yaml(unit_val) {
+                    out.push(UnitEntry {
+                        unit: u,
+                        source_field: field,
+                        ownership,
+                        was_explicit,
+                    });
+                }
+            }
+        }
+    }
+}
+
+/// Surface-syntax test that mirrors V-023's bare-vs-explicit split.
+/// `true` when the YAML value is a mapping (explicit `{ kind: ..., ... }`
+/// form); `false` when it is a bare string (the legacy compat
+/// affordance that parses to `LogicalUnit::File`).
+fn is_explicit_unit_shape(v: &serde_yaml::Value) -> bool {
+    v.is_mapping()
 }

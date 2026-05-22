@@ -20,6 +20,18 @@ extends:
     paths:
       - standards/schemas/spec-spine/registry.schema.json
     nature: additive
+  - spec: "101-codebase-index-mvp"
+    paths:
+      - tools/spec-spine/codebase-indexer/Cargo.toml
+      - tools/spec-spine/codebase-indexer/src/lib.rs
+      - tools/spec-spine/codebase-indexer/src/spec_scanner.rs
+      - tools/spec-spine/codebase-indexer/src/types.rs
+      - tools/spec-spine/codebase-indexer/src/xref.rs
+      - tools/spec-spine/codebase-indexer/src/resolver
+      - tools/spec-spine/codebase-indexer/tests/resolver.rs
+      - tools/spec-spine/codebase-indexer/benches/resolver.rs
+      - standards/schemas/spec-spine/codebase-index.schema.json
+    nature: additive
 references:
   - "tools/spec-spine/spec-compiler"
   - "tools/spec-spine/codebase-indexer"

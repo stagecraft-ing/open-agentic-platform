@@ -4,6 +4,7 @@ pub mod comment_scanner;
 pub mod hash;
 pub mod manifest;
 pub mod render;
+pub mod resolver;
 pub mod schema;
 pub mod spec_scanner;
 pub mod types;
@@ -61,9 +62,28 @@ impl std::fmt::Display for IndexError {
 /// I-101) stay as informational entries in the index. Cut D W-07c:
 /// I-105 (workflow-without-spec-header) moved to the OAP enricher
 /// — the generic indexer no longer carries any blocking diagnostic
-/// codes. The const stays for forward-compat; new codes can be added
-/// here when needed.
-const BLOCKING_DIAGNOSTIC_CODES: &[&str] = &[];
+/// codes.
+///
+/// Spec 154 Segment 3 adds the resolver hard-error band
+/// (`I-003..I-009`): every code in this range corresponds to a unit
+/// that could not be resolved to a physical location per spec 154
+/// §3.1..§3.6 (as amended by spec 155). The codebase index still
+/// emits when these fire — the failing unit just has empty
+/// `locations` — but `check` refuses to certify the index until the
+/// corpus is fixed.
+///
+/// `I-108` (bare-string MissingFile, compat-window warning) is
+/// deliberately NOT listed here. The resolver routes bare-string
+/// MissingFile to `I-108` per the V-023 bare-vs-explicit split:
+/// explicit `{kind: file, path: X}` whose X is absent is a blocking
+/// `I-008`, but the legacy bare-string form gets a non-blocking
+/// `I-108` warning during the compat window. Segment 6's
+/// explicit-only flip lifts `I-108 → I-008` in lockstep with the
+/// V-021..V-024 promotion (auto-memory:
+/// `project_spec_154_segment_6_explicit_only_flip`).
+const BLOCKING_DIAGNOSTIC_CODES: &[&str] = &[
+    "I-003", "I-004", "I-005", "I-006", "I-007", "I-008", "I-009",
+];
 
 impl std::error::Error for IndexError {}
 
@@ -243,7 +263,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
         .collect();
     let comment_headers = comment_scanner::scan_packages(repo_root, &crate_paths);
 
-    let (traceability, xref_diags) = xref::build_traceability(
+    let (mut traceability, xref_diags) = xref::build_traceability(
         &specs,
         &packages,
         &adapter_paths,
@@ -251,6 +271,46 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
         repo_root,
     );
     all_diagnostics.extend(xref_diags);
+
+    // Spec 154 Segment 3 — resolve every logical-unit declaration to
+    // its `(file, span)` set. The unit pass is orthogonal to the
+    // path-list traceability above: it walks the same spec corpus,
+    // but pairs declarations with deterministic locations the
+    // coupling gate (Segment 4) consumes for diff-hunk → owning-spec
+    // reverse lookup. Resolution failures are downgraded to
+    // diagnostics (`I-003..I-009`) so the index still emits with the
+    // failing units carrying empty `locations`; `check` blocks the
+    // gate on any such failure via `BLOCKING_DIAGNOSTIC_CODES`.
+    let ctx = resolver::ResolverContext::build(repo_root, &packages);
+    let (mut resolved_by_spec, resolver_diags) = resolver::resolve_all(&specs, &ctx);
+    all_diagnostics.extend(resolver_diags);
+    for mapping in &mut traceability.mappings {
+        if let Some(units) = resolved_by_spec.remove(&mapping.spec_id) {
+            mapping.resolved_units = units;
+        }
+    }
+    // Pick up specs that have units but no implementing_paths (no
+    // mapping was created by xref). Synthesise a minimal mapping so
+    // their resolved units make it into the index.
+    if !resolved_by_spec.is_empty() {
+        let by_id: std::collections::BTreeMap<&str, &spec_scanner::SpecRecord> =
+            specs.iter().map(|s| (s.id.as_str(), s)).collect();
+        for (spec_id, units) in resolved_by_spec {
+            let status = by_id.get(spec_id.as_str()).map(|s| s.status.clone());
+            traceability.mappings.push(types::TraceMapping {
+                spec_id,
+                spec_status: status,
+                depends_on: Vec::new(),
+                amends: Vec::new(),
+                amendment_record: None,
+                implementing_paths: Vec::new(),
+                resolved_units: units,
+            });
+        }
+        traceability
+            .mappings
+            .sort_by(|a, b| a.spec_id.cmp(&b.spec_id));
+    }
 
     // Cut D W-07c: Layer 4 (infrastructure) + Layer 5 (workflow
     // traceability) emission moved to tools/oap-code-index-enrich.
@@ -347,17 +407,26 @@ pub fn check(repo_root: &Path) -> Result<(), IndexError> {
     }
 
     // Spec 118 AC-4 / §8 step 3 — blocking diagnostics gate.
+    //
+    // Spec 154 Segment 3: the resolver hard-error band (`I-003..I-009`)
+    // lands in `diagnostics.errors` because the codes start with
+    // `I-0` (the existing severity-routing rule). Earlier blocking
+    // codes (I-105) were warnings under that same rule. `check`
+    // looks in both arrays so any registered blocking code fires
+    // regardless of which severity bucket carries it.
     for code in BLOCKING_DIAGNOSTIC_CODES {
-        let count = doc
-            .get("diagnostics")
-            .and_then(|d| d.get("warnings"))
-            .and_then(|w| w.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter(|d| d.get("code").and_then(|c| c.as_str()) == Some(*code))
-                    .count()
-            })
-            .unwrap_or(0);
+        let count_in = |key: &str| {
+            doc.get("diagnostics")
+                .and_then(|d| d.get(key))
+                .and_then(|w| w.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter(|d| d.get("code").and_then(|c| c.as_str()) == Some(*code))
+                        .count()
+                })
+                .unwrap_or(0)
+        };
+        let count = count_in("warnings") + count_in("errors");
         if count > 0 {
             return Err(IndexError::Blocking {
                 code: (*code).to_string(),
