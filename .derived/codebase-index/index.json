@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "1076a00d0c580e23a8d5d4afc46e96584d988acb5f0936a1557dcac0ae6945e7",
+    "contentHash": "1b8cfb2de00c49eccb1457554e7847cfa51b7ec634ec5e42769b34e0eac99727",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -8608,6 +8608,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "158-workflow-ref-sha-pinning-lint",
         "dependsOn": [
           "000",
           "047",
@@ -15592,6 +15593,147 @@
           }
         ],
         "specId": "157-opc-session-model",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "116-supply-chain-policy-gates"
+        ],
+        "dependsOn": [
+          "104",
+          "116"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".githooks/pre-commit",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci-supply-chain.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "docs/launch-notes/spec-158-workflow-ref-pinning.md",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/lint/tests/fixtures/failing/action.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/lint/tests/fixtures/passing/action.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/lint/workflow-pins-test.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/lint/workflow-pins.sh",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/launch-notes/spec-158-workflow-ref-pinning.md"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "docs/launch-notes/spec-158-workflow-ref-pinning.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/lint/tests/fixtures/failing/action.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/lint/tests/fixtures/failing/action.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/lint/tests/fixtures/passing/action.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/lint/tests/fixtures/passing/action.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/lint/workflow-pins-test.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/lint/workflow-pins-test.sh"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/lint/workflow-pins.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/lint/workflow-pins.sh"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".githooks/pre-commit"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": ".githooks/pre-commit"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-supply-chain.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-supply-chain.yml"
+            }
+          }
+        ],
+        "specId": "158-workflow-ref-sha-pinning-lint",
         "specStatus": "approved"
       }
     ],
