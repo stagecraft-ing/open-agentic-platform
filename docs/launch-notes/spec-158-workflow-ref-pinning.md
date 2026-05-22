@@ -197,6 +197,32 @@ All four jobs in the run completed with conclusion `success`:
 `npm-audit / stagecraft`,
 `workflow-pins / SHA-pin enforcement`.
 
+### What Block 5 proves and does not prove
+
+Be precise about which claim each piece of evidence supports. Block
+5 establishes:
+
+- The lint runs correctly in the GitHub Actions runner environment
+  on `ubuntu-24.04` (not just on the maintainer's macOS).
+- The job renders in the GitHub UI with the literal name
+  `workflow-pins / SHA-pin enforcement` — the binding key for
+  `required_status_checks.contexts`.
+- The script exits 0 against the current tree state in CI.
+
+Block 5 does NOT prove:
+
+- That the gate fires on the `pull_request:` event, which is the
+  event `required_status_checks` binds against at the merge
+  boundary. The CI run was triggered via `workflow_dispatch`
+  fallback (see auto-trigger gap below).
+
+The distinction matters for the auditability claim. The
+required_status_checks binding step of the hardening sprint MUST
+wait for an additional falsifier (Block 6, below, once the
+auto-trigger gap is resolved) — runner-environment correctness is
+necessary but not sufficient evidence for merge-boundary
+enforcement.
+
 ### Process observation — auto-trigger gap
 
 On opening PR #195 (draft, then converted ready, then reverted to
@@ -250,3 +276,43 @@ Each block is reproducible from a fresh clone with `make setup`
 plus the invocations shown. The "noncompilable attack surface"
 framing only counts where the compile exists; this is the
 compile.
+
+---
+
+## Process observations
+
+Small notes captured during the work that produced this bundle.
+Each is a piece of evidence about *how* the contract was built,
+not the contract itself; the essay's methodology section may
+cite them.
+
+- **Direct commit to main, caught by discipline, not enforcement
+  (2026-05-22).** During the three-commit landing of this PR, the
+  initial commits were authored against the local `main` branch
+  rather than against a feature branch. The error was caught by
+  discipline (a sanity check before pushing) and repaired without
+  remote impact via `git branch <feature>` + `git reset --hard
+  <previous-tip>` + `git checkout <feature>`. The current branch
+  protection on `main` (`required_signatures.enabled: false`,
+  `required_approving_review_count: 0`,
+  `required_status_checks.contexts: []`) would not have refused
+  the push had the commits been pushed before the error was
+  caught. The hardened state (this PR's purpose, plus the rest of
+  the launch-hardening sprint) would have refused it at the
+  platform layer rather than relying on the maintainer's
+  discipline. The proof of why the hardening matters is written
+  in the act of doing the hardening — exactly the failure mode
+  the contract exists to refuse, observed and repaired during the
+  work that builds the contract.
+
+- **The first-draft lint scanned zero lines (see Block 0).**
+  Counted separately as the load-bearing methodology note above,
+  not duplicated here. Same shape of finding: discipline caught
+  a bug that no in-place check would have, surfaced by an
+  independent differential ("did the lint look at anything?")
+  rather than by the lint's own self-report.
+
+Both observations rhyme: a defense built on discipline is a
+defense whose absence is invisible. The lint and the hardening
+sprint exist to make that absence visible — by the lint failing
+loudly, or by the platform refusing the push.
