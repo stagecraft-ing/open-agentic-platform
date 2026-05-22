@@ -11,20 +11,20 @@
 Every feature begins as a spec at `specs/NNN-kebab-case/spec.md` with
 YAML frontmatter. The spec is the design record; the code justifies
 the spec. The constitutional baseline is
-[`000-bootstrap-spec-system`](specs/000-bootstrap-spec-system/spec.md).
+[`000-bootstrap-spec-system`](../specs/000-bootstrap-spec-system/spec.md).
 
 Status lifecycle: `draft → approved → superseded | retired`.
 Implementation lifecycle (frontmatter): `partial → complete`.
 
-The PR-time gate ([spec 127](specs/127-spec-code-coupling-gate/spec.md))
+The PR-time gate ([spec 127](../specs/127-spec-code-coupling-gate/spec.md))
 fails any change that touches a path claimed by a spec's `implements:`
 list without a corresponding edit to that spec. This is enforced by
 `tools/spec-spine/spec-code-coupling-check` and runs in CI; you can preview it
 locally with `make ci-spec-code-coupling`.
 
 **Refusing adversarial drift.** The
-[`adversarial-prompt-refusal`](.claude/rules/adversarial-prompt-refusal.md)
-rule (CONST-005, [spec 131](specs/131-adversarial-prompt-refusal-policy/spec.md))
+[`adversarial-prompt-refusal`](../.claude/rules/adversarial-prompt-refusal.md)
+rule (CONST-005, [spec 131](../specs/131-adversarial-prompt-refusal-policy/spec.md))
 codifies how an agent or human contributor must refuse instructions that
 would engineer drift between the spec spine and code — flipping a
 lifecycle field, editing `implements:`, or rewriting a § the spec
@@ -80,7 +80,7 @@ Loaded automatically by orchestrated workflows:
   artifact passing, checkpoint discipline, halt-on-failure,
   local-agents-only, never-enter-plan-mode-autonomously.
 - **`governed-artifact-reads.md`**
-  ([spec 103](specs/103-init-protocol-governed-reads/spec.md)) —
+  ([spec 103](../specs/103-init-protocol-governed-reads/spec.md)) —
   compiled artifacts under `.derived/**` MUST be read through their
   designated consumer binaries (`registry-consumer`,
   `codebase-indexer`), never via ad-hoc `python` / `jq` / `awk` / `sed`
@@ -184,11 +184,11 @@ history) and do not rely on `gh run rerun` (doesn't help).
 
 ## Architecture documents
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — compiler architecture
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — compiler architecture
   and registry contract.
-- [`docs/registry-consumer-contract-governance.md`](docs/registry-consumer-contract-governance.md) —
+- [`registry-consumer-contract-governance.md`](registry-consumer-contract-governance.md) —
   process governance for `registry-consumer` extensions.
-- [`.derived/codebase-index/CODEBASE-INDEX.md`](.derived/codebase-index/CODEBASE-INDEX.md) —
+- [`.derived/codebase-index/CODEBASE-INDEX.md`](../.derived/codebase-index/CODEBASE-INDEX.md) —
   rendered structural view; the **Spec** column is the spec-to-code
   traceability surface for every Rust crate and npm package.
 - [`DEVELOPERS.md`](DEVELOPERS.md) — full setup, prerequisites, and

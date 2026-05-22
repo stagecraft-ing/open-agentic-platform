@@ -27,7 +27,7 @@ Run `/init` as the mandatory first action of every new session. The command read
      `.derived/codebase-index/CODEBASE-INDEX.md` (Layers 3-5; spec 101+118)
    - `registry-consumer status-report --json --nonzero-only` — lifecycle counts per spec status
    - `registry-consumer list --ids-only` — spec id list (for latest-spec detection)
-   - `ls tools/` — top-level tool subdivision (spec-spine/, oap/, shared/, vendor/)
+   - `ls tools/` — top-level tool subdivision (spec-spine/, oap/, lint/, shared/, vendor/)
    - `ls product/apps/` — desktop app discovery
    - `ls docs/` — graduated docs surface
    - `git log --oneline -10` — recent history
@@ -72,11 +72,10 @@ Commands live in `.claude/commands/`:
 - `/validate-and-fix` — Run quality checks and automatically fix issues
 - `/cleanup` — Dead code and duplicate detection with categorized recommendations
 - `/refactor-claude-md` — Modularize large CLAUDE.md files with path-scoped rules
-- `/factory-sync` — Detect and translate upstream factory changes into OAP
 
 ## Conventions
 
 - Items added to the "New Sessions" init protocol are auto-loaded by `/init`.
 - Agents must be self-contained within `.claude/agents/` — no cross-project dependencies (Rule 5).
 - Commands must produce output files for downstream steps — no context-window-only state (Rule 2).
-- Orchestrated workflows must read compiled artifacts (`build/**`) through consumer binaries, never via ad-hoc parsers — see `.claude/rules/governed-artifact-reads.md` (spec 103).
+- Orchestrated workflows must read compiled artifacts (`.derived/**`) through consumer binaries, never via ad-hoc parsers — see `.claude/rules/governed-artifact-reads.md` (spec 103).
