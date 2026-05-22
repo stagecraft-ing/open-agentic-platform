@@ -38,6 +38,13 @@ struct Step {
 
 /// Workflows whose gates `make ci-strict` must mirror. Order is stable for reporting.
 /// Keep in sync with spec 104 §2.2 (post-spec-135 amendment).
+///
+/// Workflows that exist as **coverage** (running tests already mirrored by an
+/// enforcing workflow, on triggers the enforcing workflow's path filter
+/// misses) belong in [`COVERAGE_WORKFLOWS`] below. They are intentionally NOT
+/// in this list because the tests they run are already covered by the
+/// enforcing workflow's broader job — adding them here would over-count the
+/// `make ci-strict` mirror obligation.
 pub const ENFORCING_WORKFLOWS: &[&str] = &[
     "ci-axiomregent.yml",
     "ci-codebase-index.yml",
@@ -50,6 +57,43 @@ pub const ENFORCING_WORKFLOWS: &[&str] = &[
     "ci-stagecraft.yml",
     "ci-supply-chain.yml",
     "spec-conformance.yml",
+];
+
+/// Workflows that run **existing** tests on triggers the enforcing set
+/// misses — closing path-filter gaps without adding new test surface.
+///
+/// These exist as durable coverage for cases where a test's actual input
+/// surface (e.g. `specs/**`) doesn't match the path filter of the enforcing
+/// workflow that owns the test (e.g. `ci-crates.yml`, which filters on
+/// `crates/**` + `Cargo.toml`/`Cargo.lock` + workspace tool roots). On PRs
+/// that trigger both an enforcing workflow and a coverage workflow, both
+/// fire and both run the same test — the redundancy is the price of
+/// structural drift-prevention.
+///
+/// Why they are NOT in [`ENFORCING_WORKFLOWS`]:
+///
+/// 1. `make ci-strict` already mirrors the underlying test via the enforcing
+///    workflow that runs it as part of a broader job. Listing the coverage
+///    workflow here would falsely claim a *second* mirror obligation for
+///    a test that's already in the strict-mirror set once.
+/// 2. Adding a coverage entry would force authoring a Makefile target that
+///    duplicates work already covered by the enforcing target's broader
+///    job — the kind of redundancy spec 135 §2 explicitly refused.
+///
+/// Forward-looking gap: no automated check today asserts that every
+/// `.github/workflows/*.yml` lands in exactly one of these two sets.
+/// A future "ghost workflow" gate analogous to spec 135's "ghost crate"
+/// closure could add that assertion. For now, the lists are
+/// authored-and-reviewed plus a unit test below (`enforcing_and_coverage_disjoint`)
+/// asserts they're at least non-overlapping.
+pub const COVERAGE_WORKFLOWS: &[&str] = &[
+    // Issue #192 / PR #193. Runs
+    // `crates/featuregraph/tests/golden.rs::test_golden_graph` on changes
+    // under `specs/**`, which `ci-crates.yml`'s path filter misses. The
+    // golden test is also run by `ci-crates.yml` as part of
+    // `cargo test --workspace`; `make ci-strict` mirrors that via
+    // `ci-rust`. No new mirror obligation lands with this entry.
+    "ci-featuregraph-golden.yml",
 ];
 
 /// Lines that appear in an enforcing workflow but have no local analogue.
@@ -420,6 +464,22 @@ pub fn significant_tokens(line: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Workflows must land in exactly one of `ENFORCING_WORKFLOWS` or
+    /// `COVERAGE_WORKFLOWS`. Overlap would mean both a mirror obligation
+    /// AND a coverage classification on the same workflow — incoherent.
+    #[test]
+    fn enforcing_and_coverage_disjoint() {
+        for wf in COVERAGE_WORKFLOWS {
+            assert!(
+                !ENFORCING_WORKFLOWS.contains(wf),
+                "{wf} is in both ENFORCING_WORKFLOWS and COVERAGE_WORKFLOWS — \
+                 a workflow is either mirrored to `make ci-strict` (enforcing) \
+                 or runs an already-mirrored test on a missed trigger \
+                 (coverage), never both",
+            );
+        }
+    }
 
     #[test]
     fn tokens_cargo_test_with_manifest_path_and_filter() {
