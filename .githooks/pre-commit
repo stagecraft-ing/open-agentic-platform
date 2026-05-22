@@ -27,7 +27,7 @@
 
 set -eu
 
-INDEXER=tools/codebase-indexer/target/release/codebase-indexer
+INDEXER=tools/spec-spine/codebase-indexer/target/release/codebase-indexer
 
 if [ ! -x "$INDEXER" ]; then
   cat >&2 <<'EOF'
