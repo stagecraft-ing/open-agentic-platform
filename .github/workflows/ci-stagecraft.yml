@@ -30,7 +30,7 @@ permissions:
   contents: read
 
 env:
-  ENCORE_VERSION: '1.56.7'
+  ENCORE_VERSION: '1.57.5'
 
 jobs:
   check-and-test:
