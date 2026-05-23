@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:14553451953bdc2fa02bc1979ef46876c98b7f90f7746f50852d73351c941900",
+  "graph_fingerprint": "sha256:56e5b84918c1c02b2e2eb21146746385df9cc5e2e8ad8819b1bfe5d4d127da48",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3255,8 +3255,8 @@
       "feature_id": "172-opc-live-agent-session-introspection",
       "title": "Live agent-session introspection in OPC — connected-agent visibility and force-disconnect (ASI10)",
       "spec_path": "specs/172-opc-live-agent-session-introspection/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",
