@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:5fb42731acad5819be771462b2bb615632771b1233cadc88dfb4b34be25bffe2",
+  "graph_fingerprint": "sha256:c89d759c527fdbfdb1fc9c01c7e74fe90c21cb75f59b26623d0fa8a0c23301ce",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3011,8 +3011,8 @@
       "feature_id": "160-factory-adapter-stagecraft-relocation",
       "title": "Factory / adapter relocation into stagecraft",
       "spec_path": "specs/160-factory-adapter-stagecraft-relocation/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",
