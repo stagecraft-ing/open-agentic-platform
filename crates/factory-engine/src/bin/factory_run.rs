@@ -524,6 +524,9 @@ async fn main() -> ExitCode {
         governance_mode: None,
         sync_tracker: None,
         on_gate_checkpoint: None,
+        // factory-run is a non-OPC origin per spec 173 FR-001.
+        project_path: None,
+        originating_session: None,
     };
 
     eprintln!("\nDispatching Phase 1...\n");
@@ -638,6 +641,9 @@ async fn main() -> ExitCode {
         governance_mode: None,
         sync_tracker: None,
         on_gate_checkpoint: None,
+        // factory-run is a non-OPC origin per spec 173 FR-001.
+        project_path: None,
+        originating_session: None,
     };
 
     let summary2 = match dispatch_manifest(

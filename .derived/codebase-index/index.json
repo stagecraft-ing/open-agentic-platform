@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "ad3b833355214aa0cd75f548fd5da0f6cac808c6ef4b3933b812a2301521c4d5",
+    "contentHash": "0c51e590eadd1a3469e6fdfe744528cacaf6be7ef1535d4254471f134c570ca5",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -35597,7 +35597,7 @@
           }
         ],
         "specId": "173-opc-multi-session-orchestrator-binding",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "implementingPaths": [],

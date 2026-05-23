@@ -2,10 +2,11 @@
 id: "173-opc-multi-session-orchestrator-binding"
 slug: opc-multi-session-orchestrator-binding
 title: "OPC multi-session-by-project-path — orchestrator binding (formalisation)"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
+approved: "2026-05-23"
 kind: governance
 risk: low
 depends_on:

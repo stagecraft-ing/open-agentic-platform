@@ -1431,4 +1431,272 @@ mod tests {
             .expect("append after double open");
         assert!(eid > 0);
     }
+
+    // -----------------------------------------------------------------------
+    // Spec 173: OPC multi-session orchestrator binding
+    // -----------------------------------------------------------------------
+
+    /// Helper: persist a workflow row with optional origin fields.
+    async fn seed_workflow_with_origin(
+        store: &SqliteWorkflowStore,
+        workflow_id: Uuid,
+        started_at: &str,
+        project_path: Option<&str>,
+        originating_session: Option<&str>,
+    ) {
+        let state = WorkflowState::new(
+            workflow_id,
+            "spec-173-workflow",
+            started_at.to_string(),
+            Vec::<(String, String)>::new(),
+            serde_json::Map::new(),
+        )
+        .with_origin(
+            project_path.map(String::from),
+            originating_session.map(String::from),
+        );
+        store
+            .write_workflow_state(&state)
+            .await
+            .expect("seed workflow row");
+    }
+
+    /// SC-001: an OPC-initiated workflow carries `project_path` matching the
+    /// spec 157 JSONL-authoritative path.
+    #[tokio::test]
+    async fn spec_173_sc001_opc_origin_round_trips() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+        let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+
+        let workflow_id = Uuid::new_v4();
+        let session_id = Uuid::new_v4().to_string();
+        let project_path = "/Users/bart/Dev/open-agentic-platform";
+
+        seed_workflow_with_origin(
+            &store,
+            workflow_id,
+            "2026-05-23T10:00:00Z",
+            Some(project_path),
+            Some(&session_id),
+        )
+        .await;
+
+        let loaded = store
+            .load_workflow_state(workflow_id)
+            .await
+            .expect("load")
+            .expect("workflow row present");
+
+        assert_eq!(loaded.project_path.as_deref(), Some(project_path));
+        assert_eq!(loaded.originating_session.as_deref(), Some(session_id.as_str()));
+    }
+
+    /// SC-002: querying workflows by project path returns all workflows for
+    /// that path, across sessions and developers, sorted by recency.
+    #[tokio::test]
+    async fn spec_173_sc002_list_by_project_path_sorted_by_recency() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+        let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+
+        let project_path = "/Users/bart/Dev/open-agentic-platform";
+        let other_path = "/Users/bart/Dev/other-repo";
+
+        // Two OPC sessions for the same project — represents the spec 157
+        // multi-session-per-path discipline.
+        let session_a = Uuid::new_v4().to_string();
+        let session_b = Uuid::new_v4().to_string();
+
+        let wf_old = Uuid::new_v4();
+        let wf_mid = Uuid::new_v4();
+        let wf_new = Uuid::new_v4();
+        let wf_other = Uuid::new_v4();
+
+        seed_workflow_with_origin(
+            &store,
+            wf_old,
+            "2026-05-20T10:00:00Z",
+            Some(project_path),
+            Some(&session_a),
+        )
+        .await;
+        seed_workflow_with_origin(
+            &store,
+            wf_mid,
+            "2026-05-21T10:00:00Z",
+            Some(project_path),
+            Some(&session_b),
+        )
+        .await;
+        seed_workflow_with_origin(
+            &store,
+            wf_new,
+            "2026-05-22T10:00:00Z",
+            Some(project_path),
+            Some(&session_a),
+        )
+        .await;
+        seed_workflow_with_origin(
+            &store,
+            wf_other,
+            "2026-05-22T10:00:00Z",
+            Some(other_path),
+            Some(&session_a),
+        )
+        .await;
+
+        let results = store
+            .list_workflows_by_project_path(project_path, None)
+            .await
+            .expect("list_workflows_by_project_path");
+
+        // FR-005 non-disambiguation: both sessions' workflows accumulate in
+        // the same bucket.
+        assert_eq!(results.len(), 3);
+
+        // Sorted by recency (most recent first).
+        assert_eq!(results[0].workflow_id, wf_new.to_string());
+        assert_eq!(results[1].workflow_id, wf_mid.to_string());
+        assert_eq!(results[2].workflow_id, wf_old.to_string());
+
+        // The other-path workflow is excluded — distinct buckets.
+        assert!(
+            !results.iter().any(|r| r.workflow_id == wf_other.to_string()),
+            "list_workflows_by_project_path must not leak across project paths"
+        );
+
+        // originating_session round-trips on the summary surface so spec 172
+        // can render the "Originating agent / session" column.
+        assert!(
+            results.iter().all(|r| r.originating_session.is_some()),
+            "originating_session must be carried on the summary surface for spec 172"
+        );
+    }
+
+    /// SC-003: a workflow initiated outside OPC persists with
+    /// `project_path: null` and surfaces correctly through existing consumer
+    /// surfaces (load_workflow_state).
+    #[tokio::test]
+    async fn spec_173_sc003_non_opc_origin_persists_null() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+        let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+
+        let workflow_id = Uuid::new_v4();
+        // CLI / factory-engine origin: both fields None.
+        seed_workflow_with_origin(
+            &store,
+            workflow_id,
+            "2026-05-23T10:00:00Z",
+            None,
+            None,
+        )
+        .await;
+
+        let loaded = store
+            .load_workflow_state(workflow_id)
+            .await
+            .expect("load")
+            .expect("workflow row present");
+
+        assert!(loaded.project_path.is_none(), "non-OPC origin -> NULL project_path");
+        assert!(
+            loaded.originating_session.is_none(),
+            "non-OPC origin -> NULL originating_session"
+        );
+
+        // Non-OPC origins are excluded from the by-project-path surface
+        // (it filters on project_path = $1) but remain reachable via
+        // load_workflow_state — proving "surfaces correctly through existing
+        // consumer surfaces" in SC-003.
+        let empty = store
+            .list_workflows_by_project_path("/no/such/path", None)
+            .await
+            .expect("list_workflows_by_project_path");
+        assert!(empty.is_empty());
+    }
+
+    /// SC-004: the persistence schema is backward-compatible — existing
+    /// pre-spec-173 workflow rows remain readable.
+    ///
+    /// Simulates an existing row by writing a workflow without origin fields
+    /// directly through the SQL surface (NULLs for the new columns), then
+    /// asserts the loader surfaces them as None and the by-project-path
+    /// surface does not crash.
+    #[tokio::test]
+    async fn spec_173_sc004_backward_compatible_load() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+        let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+
+        // Insert a row using the legacy column set only (no project_path /
+        // originating_session) — mirrors what a pre-spec-173 binary writes
+        // after running the additive migration.
+        let workflow_id = Uuid::new_v4();
+        {
+            let guard = store.conn.lock().unwrap();
+            guard
+                .execute(
+                    "INSERT INTO workflows (workflow_id, workflow_name, status, started_at)
+                     VALUES (?1, ?2, ?3, ?4)",
+                    rusqlite::params![
+                        workflow_id.to_string(),
+                        "legacy-workflow",
+                        "running",
+                        "2026-05-19T10:00:00Z",
+                    ],
+                )
+                .expect("insert legacy row");
+        }
+
+        // FR-006: SQL NULL must surface as Rust Option::None without
+        // explicit handling or migration.
+        let loaded = store
+            .load_workflow_state(workflow_id)
+            .await
+            .expect("load legacy workflow")
+            .expect("legacy row present");
+
+        assert_eq!(loaded.workflow_name, "legacy-workflow");
+        assert!(loaded.project_path.is_none());
+        assert!(loaded.originating_session.is_none());
+
+        // The new consumer surface does not match this row but does not
+        // panic — proving the column was added cleanly to the legacy table.
+        let empty = store
+            .list_workflows_by_project_path("/Users/bart/Dev/open-agentic-platform", None)
+            .await
+            .expect("list_workflows_by_project_path on legacy DB");
+        assert!(empty.is_empty());
+    }
+
+    /// FR-006: the spec 173 migration is idempotent — opening the store
+    /// twice MUST NOT fail or duplicate columns.
+    #[tokio::test]
+    async fn spec_173_migration_is_idempotent() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+
+        let _store1 = SqliteWorkflowStore::open(&db_path).expect("first open");
+        let store2 = SqliteWorkflowStore::open(&db_path).expect("second open");
+
+        // After re-open, writes that exercise the new columns still succeed.
+        let workflow_id = Uuid::new_v4();
+        seed_workflow_with_origin(
+            &store2,
+            workflow_id,
+            "2026-05-23T10:00:00Z",
+            Some("/tmp/proj"),
+            Some("session-x"),
+        )
+        .await;
+        let loaded = store2
+            .load_workflow_state(workflow_id)
+            .await
+            .expect("load")
+            .expect("row present");
+        assert_eq!(loaded.project_path.as_deref(), Some("/tmp/proj"));
+        assert_eq!(loaded.originating_session.as_deref(), Some("session-x"));
+    }
 }
