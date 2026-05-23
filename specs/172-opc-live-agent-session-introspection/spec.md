@@ -2,8 +2,8 @@
 id: "172-opc-live-agent-session-introspection"
 slug: opc-live-agent-session-introspection
 title: "Live agent-session introspection in OPC — connected-agent visibility and force-disconnect (ASI10)"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: platform
@@ -16,6 +16,65 @@ depends_on:
   - "067"  # tool-definition-registry
   - "157"  # opc-session-model
 code_aliases: ["OPC_AGENT_SESSION_PANEL", "FORCE_DISCONNECT"]
+establishes:
+  - unit: { kind: file, path: product/apps/desktop/src-tauri/src/process/activity.rs }
+  - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/live_sessions.rs }
+  - unit: { kind: file, path: product/apps/desktop/src/components/LiveSessionsPanel.tsx }
+  - unit: { kind: directory, path: product/apps/desktop/src/features/live-sessions }
+extends:
+  # The OPC desktop crate + frontend are co-authored under spec 032
+  # (OPC inspect + governance wiring MVP). Spec 172 additively adds:
+  #   - a new `activity` module + ActivityTracker fields to the existing
+  #     process registry,
+  #   - new Tauri command surfaces (list_live_sessions,
+  #     get_live_session_thresholds, force_disconnect_session) wired
+  #     through commands/mod.rs and lib.rs,
+  #   - a new tab type / tab factory / TabContent case / ProjectToolbar
+  #     entry on the frontend.
+  # No behavioural change to spec 032's own claims.
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/process/mod.rs }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/process/registry.rs }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/mod.rs }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/lib.rs }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/Cargo.toml }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/components/TabContent.tsx }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/components/ProjectToolbar.tsx }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/contexts/TabContext.tsx }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/hooks/useTabState.ts }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/lib/api.ts }
+  # Spec 052 (state-persistence) owns the orchestrator's workflow store.
+  # Spec 172 additively adds SqliteWorkflowStore::list_active_workflows,
+  # the consumer surface per FR-008, plus optional live-state fields on
+  # WorkflowStateSummary. No behavioural change to spec 052's claims.
+  - spec: "052-state-persistence"
+    nature: additive
+    unit: { kind: file, path: crates/orchestrator/src/sqlite_state.rs }
+  - spec: "052-state-persistence"
+    nature: additive
+    unit: { kind: file, path: crates/orchestrator/src/state.rs }
+  - spec: "052-state-persistence"
+    nature: additive
+    unit: { kind: file, path: crates/orchestrator/src/hiqlite_store.rs }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
@@ -261,6 +320,19 @@ deferred concern); it surfaces what exists.
   deferred this; spec 172 does not solve it. The
   panel may show sessions belonging to different
   developers without distinguishing them.
+
+## 5.1 Implementation note — audit-chain emission
+
+FR-007 names the governance certificate as the destination for
+force-disconnect emissions. Governance certificates are produced at
+end-of-run by `factory-engine` per spec 102; they are not append-only
+during a session's lifetime. The substrate the certificate seals is
+the orchestrator's scoped event store (`scope="audit"`).
+Force-disconnect therefore writes via
+`SqliteWorkflowStore::append_scoped_event` keyed by a deterministic
+UUIDv5 of the session id; the certificate verifier replays these
+events at seal time. The implementation is faithful to FR-007: the
+audit chain is the substrate, not a separate artifact.
 
 ## 6. Compliance
 
