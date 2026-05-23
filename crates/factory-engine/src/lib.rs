@@ -107,4 +107,18 @@ pub enum FactoryError {
         category: &'static str,
         diagnostic: String,
     },
+
+    /// Spec 170 §FR-003 — inter-stage manifest signing or validation
+    /// failed. Includes signature mismatch, unknown signer, cross-run
+    /// swap, persistence I/O failure.
+    #[error("signed inter-stage manifest error: {reason}")]
+    SignedHandoff { reason: String },
+}
+
+impl From<inter_stage_manifest::ManifestError> for FactoryError {
+    fn from(value: inter_stage_manifest::ManifestError) -> Self {
+        FactoryError::SignedHandoff {
+            reason: value.to_string(),
+        }
+    }
 }
