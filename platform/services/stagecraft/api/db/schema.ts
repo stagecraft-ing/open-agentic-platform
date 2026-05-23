@@ -1331,3 +1331,34 @@ export const knowledgeExtractionRuns = pgTable(
     ),
   ],
 );
+
+// ---------------------------------------------------------------------------
+// Project spec-spine group names (spec 163 FR-004)
+// ---------------------------------------------------------------------------
+//
+// Cosmetic display names attached to derived-group identities for the
+// Requirements view. The `group_id` is the projection-prefixed stable
+// id the grouping function emits (e.g. `by-category:lifecycle` or
+// `by-supersession-chain:042-old-spec`). Custom names are presentation
+// metadata only — they do not change spec ownership, authority, or
+// gate behaviour.
+
+export const projectSpecGroupNames = pgTable(
+  "project_spec_group_names",
+  {
+    projectId: uuid("project_id").notNull(),
+    groupId: text("group_id").notNull(),
+    displayName: text("display_name").notNull(),
+    createdBy: uuid("created_by"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.projectId, t.groupId] }),
+    index("project_spec_group_names_by_project").on(t.projectId),
+  ],
+);

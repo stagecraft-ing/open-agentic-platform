@@ -4538,6 +4538,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 
 [[package]]
+name = "opc-decomposition-pipeline"
+version = "0.1.0"
+dependencies = [
+ "artifact-extract",
+ "chrono",
+ "factory-contracts",
+ "hex",
+ "open_agentic_spec_lint",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2 0.10.9",
+ "tempfile",
+ "thiserror 2.0.18",
+ "walkdir",
+ "xray",
+]
+
+[[package]]
 name = "open_agentic_adapter_scopes_compiler"
 version = "0.1.0"
 dependencies = [

@@ -2,8 +2,8 @@
 id: "163-stagecraft-requirements-view"
 slug: stagecraft-requirements-view
 title: "Spec-spine Requirements view in stagecraft"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: platform
@@ -18,10 +18,25 @@ depends_on:
   - "156"  # references-edge-provenance-grammar (the provenance badges)
   - "161"  # knowledge-requirements-provenance-emission (rendering contract)
 code_aliases: ["STAGECRAFT_REQUIREMENTS_VIEW", "SPEC_SPINE_DASHBOARD"]
+establishes:
+  - unit: { kind: directory, path: platform/services/stagecraft/api/specRegistry }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.down.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-api.server.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-grouping.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.tsx }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx }
 extends:
   - spec: "087-unified-workspace-architecture"
     nature: additive
     unit: { kind: directory, path: platform/services/stagecraft/web/app/routes }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes.ts }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

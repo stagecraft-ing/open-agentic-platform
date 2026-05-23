@@ -11,7 +11,10 @@ pub struct Warning {
     /// the W-code's site. `"warning"` participates in `--fail-on-warn`
     /// gating; `"info"` is informational only and is exempt from
     /// fail-on-warn. A future `--fail-on-info` flag may gate info-tier
-    /// diagnostics independently.
+    /// diagnostics independently. Spec 161 §2.3 / SC-004 added the
+    /// `"error"` tier — V-026-equivalent, fails spec-lint unconditionally
+    /// (independent of `--fail-on-warn`) so a reserved-role contract
+    /// violation cannot be silenced by omitting the gate flag.
     pub severity: &'static str,
     pub path: String,
     pub message: String,
@@ -241,6 +244,19 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
                 message: "spec carries no relationship fields (establishes / extends / refines / supersedes / amends / co_authority / constrains / references) and is not marked `origin: retroactive: true`; declare an honest relationship per spec 130".into(),
             });
         }
+
+        // ── Spec 161 — W-161: decomposition-origin role reservation ──
+        //
+        // The role `decomposition-origin` is reserved by spec 161 for
+        // `references:` entries emitted by the OPC decomposition
+        // pipeline (spec 165). Such entries MUST use the `provenance:`
+        // arm (spec 156 grammar) and MUST carry `provenance.derived_at:`
+        // as a non-empty ISO-8601 timestamp recording when the pipeline
+        // read the source artifact. Severity is `error` (SC-004 calls
+        // for V-026-equivalent semantics); fails spec-lint
+        // unconditionally regardless of `--fail-on-warn`. Hand-authored
+        // specs that do not carry the role are unaffected (SC-003).
+        check_decomposition_origin_role(&fm, repo_root, &spec_path, &mut w);
     }
 
     if let Ok(tasks_raw) = fs::read_to_string(&tasks_path) {
@@ -284,6 +300,126 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
     }
 
     w
+}
+
+/// Spec 161 §2.1/§2.3 — enforce the `role: decomposition-origin`
+/// reservation on `references:` entries. Emits W-161 (severity `error`)
+/// in any of these conditions:
+///
+/// 1. Entry carries `role: decomposition-origin` and uses the `unit:`
+///    arm instead of `provenance:` (the role is reserved for entries
+///    derived from external sources; in-tree units cannot carry it).
+/// 2. Entry carries `role: decomposition-origin` and has neither
+///    `unit:` nor `provenance:` (V-025 also fires from spec-compiler;
+///    W-161 names the role-specific contract).
+/// 3. Entry carries `role: decomposition-origin` and `provenance:` but
+///    `provenance.derived_at:` is missing or empty (FR-007).
+/// 4. Entry carries `role: decomposition-origin` and a `derived_at:`
+///    value that is not a syntactically plausible ISO-8601 date — the
+///    check requires a `YYYY-MM-DD` prefix; a full RFC-3339 timestamp
+///    is accepted, a bare year or a free-form string is rejected.
+///
+/// Hand-authored specs that do not carry the role are unaffected
+/// (SC-003). The check is keyed on the role string, not on the kind
+/// of source artifact — both `kind: knowledge` and
+/// `kind: code-fingerprint` entries flow through the same gate.
+fn check_decomposition_origin_role(
+    fm: &serde_yaml::Value,
+    repo_root: &Path,
+    spec_path: &Path,
+    warnings: &mut Vec<Warning>,
+) {
+    const RESERVED_ROLE: &str = "decomposition-origin";
+    let Some(seq) = fm.get("references").and_then(|v| v.as_sequence()) else {
+        return;
+    };
+    for item in seq {
+        let Some(map) = item.as_mapping() else {
+            continue;
+        };
+        let role = map.get("role").and_then(|v| v.as_str()).unwrap_or("");
+        if role != RESERVED_ROLE {
+            continue;
+        }
+        let has_unit = map.get("unit").is_some();
+        let provenance = map.get("provenance");
+        if has_unit {
+            warnings.push(Warning {
+                code: "W-161",
+                severity: "error",
+                path: rel(repo_root, spec_path),
+                message: format!(
+                    "references entry carries `role: {RESERVED_ROLE}` with a `unit:` arm; the role is reserved by spec 161 for `provenance:` entries (knowledge or code-fingerprint sources)"
+                ),
+            });
+            continue;
+        }
+        let Some(prov_map) = provenance.and_then(|v| v.as_mapping()) else {
+            warnings.push(Warning {
+                code: "W-161",
+                severity: "error",
+                path: rel(repo_root, spec_path),
+                message: format!(
+                    "references entry carries `role: {RESERVED_ROLE}` without a `provenance:` sibling; spec 161 §2.1 requires a populated provenance arm on every decomposition-origin entry"
+                ),
+            });
+            continue;
+        };
+        let derived_at = prov_map
+            .get("derived_at")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .trim();
+        if derived_at.is_empty() {
+            warnings.push(Warning {
+                code: "W-161",
+                severity: "error",
+                path: rel(repo_root, spec_path),
+                message: format!(
+                    "references entry with `role: {RESERVED_ROLE}` is missing `provenance.derived_at:`; spec 161 FR-007 requires an ISO-8601 timestamp recording when the decomposition pipeline read the source"
+                ),
+            });
+            continue;
+        }
+        if !is_iso8601_date_prefix(derived_at) {
+            warnings.push(Warning {
+                code: "W-161",
+                severity: "error",
+                path: rel(repo_root, spec_path),
+                message: format!(
+                    "references entry with `role: {RESERVED_ROLE}` has `provenance.derived_at: {derived_at:?}` which is not a well-formed ISO-8601 timestamp (expected `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM:SSZ`)"
+                ),
+            });
+        }
+    }
+}
+
+/// Cheap ISO-8601 well-formedness check: accept any string whose first
+/// ten bytes match `YYYY-MM-DD` with ASCII digits, and whose remaining
+/// content (if any) starts with `T` followed by digits/colons/period or
+/// is exactly empty. Avoids pulling in a date-parsing crate — the goal
+/// is to reject obviously wrong values (`"yesterday"`, `"2026"`,
+/// `"05/22/2026"`), not to be a complete RFC-3339 validator.
+fn is_iso8601_date_prefix(s: &str) -> bool {
+    let b = s.as_bytes();
+    if b.len() < 10 {
+        return false;
+    }
+    let ok_date = b[..4].iter().all(|c| c.is_ascii_digit())
+        && b[4] == b'-'
+        && b[5].is_ascii_digit()
+        && b[6].is_ascii_digit()
+        && b[7] == b'-'
+        && b[8].is_ascii_digit()
+        && b[9].is_ascii_digit();
+    if !ok_date {
+        return false;
+    }
+    if b.len() == 10 {
+        return true;
+    }
+    // Anything beyond the date prefix must begin with `T` (per ISO-8601).
+    b[10] == b'T'
 }
 
 pub fn lint_repo(repo_root: &Path) -> Vec<Warning> {

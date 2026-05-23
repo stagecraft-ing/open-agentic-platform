@@ -97,6 +97,7 @@ factory-contracts = { path = "../../../../crates/factory-contracts" }
 factory-platform-client = { path = "../../../../crates/factory-platform-client" }
 factory-project-detect = { path = "../../../../crates/factory-project-detect" }
 provenance-validator = { path = "../../../../crates/provenance-validator" }
+opc-decomposition-pipeline = { path = "../../../../crates/opc-decomposition-pipeline" }
 
 
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
