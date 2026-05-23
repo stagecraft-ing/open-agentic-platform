@@ -16,11 +16,20 @@ export interface SpecListRow {
   status: string;
   implementation: string;
   kind: string | null;
-  category?: string | null;
+  /** Spec 147 grammar — categories are an array (a spec can be multi-tagged). */
+  categories: string[];
   summary?: string | null;
   specPath: string;
   /** Frontmatter fields not promoted to typed columns. */
   extraFrontmatter?: Record<string, unknown>;
+  /**
+   * Spec 130 relationship-graph edges captured for grouping projections
+   * (FR-003). Each edge value is opaque to the typed layer — the
+   * grouping logic does the structural walk. We carry raw arrays here
+   * rather than re-shaping them so future relationship fields surface
+   * automatically.
+   */
+  relationshipFields: Record<string, unknown[]>;
   /** Presence-only signal for the provenance badge (FR-005). */
   hasDecompositionOrigin: boolean;
 }

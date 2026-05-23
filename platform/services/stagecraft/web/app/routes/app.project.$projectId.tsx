@@ -40,6 +40,8 @@ export default function ProjectLayout() {
   const subnav = [
     { to: base, label: "Overview", end: true },
     { to: `${base}/knowledge`, label: "Knowledge", end: false },
+    // Spec 163 — Requirements view (read-shaped spec-spine surface).
+    { to: `${base}/requirements`, label: "Requirements", end: false },
     { to: `${base}/agents`, label: "Agents", end: false },
     { to: `${base}/pipelines`, label: "Pipelines", end: false },
     { to: `${base}/deploys`, label: "Deploys", end: false },

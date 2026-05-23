@@ -87,12 +87,41 @@ interface RawListRow {
   specPath: string;
   extraFrontmatter?: Record<string, unknown>;
   references?: Array<{ role?: string; unit?: unknown }>;
+  category?: string[] | string | null;
+  // Spec 130 relationship-graph fields — opaque arrays passed through
+  // for the grouping projections. Indexed access in
+  // `relationshipFieldsFor` below.
+  [k: string]: unknown;
+}
+
+const RELATIONSHIP_FIELD_NAMES = [
+  "establishes",
+  "extends",
+  "refines",
+  "supersedes",
+  "amends",
+  "coAuthority",
+  "constrains",
+] as const;
+
+function relationshipFieldsFor(raw: RawListRow): Record<string, unknown[]> {
+  const out: Record<string, unknown[]> = {};
+  for (const name of RELATIONSHIP_FIELD_NAMES) {
+    const v = (raw as Record<string, unknown>)[name];
+    if (Array.isArray(v) && v.length > 0) {
+      out[name] = v;
+    }
+  }
+  return out;
 }
 
 function projectListRow(raw: RawListRow): SpecListRow {
   const extra = raw.extraFrontmatter ?? {};
-  const category =
-    (typeof extra.category === "string" ? extra.category : null) ?? null;
+  const categories = Array.isArray(raw.category)
+    ? raw.category.filter((s): s is string => typeof s === "string")
+    : typeof raw.category === "string"
+      ? [raw.category]
+      : [];
   const hasDecompositionOrigin = Array.isArray(raw.references)
     ? raw.references.some((r) => r?.role === "decomposition-origin")
     : false;
@@ -102,10 +131,11 @@ function projectListRow(raw: RawListRow): SpecListRow {
     status: raw.status,
     implementation: raw.implementation,
     kind: raw.kind ?? null,
-    category,
+    categories,
     summary: raw.summary ?? null,
     specPath: raw.specPath,
     extraFrontmatter: extra,
+    relationshipFields: relationshipFieldsFor(raw),
     hasDecompositionOrigin,
   };
 }
