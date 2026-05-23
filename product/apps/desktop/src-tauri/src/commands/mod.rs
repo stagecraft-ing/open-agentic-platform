@@ -10,6 +10,7 @@ pub mod factory_platform;
 pub mod factory_project;
 pub mod git;
 pub mod keychain;
+pub mod live_sessions;
 pub mod mcp;
 pub mod orchestrator;
 pub mod project_catalog_sync;

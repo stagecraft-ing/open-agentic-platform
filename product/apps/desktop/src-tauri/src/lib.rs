@@ -55,6 +55,7 @@ use commands::keychain::{
     clone_token_clear, clone_token_load, clone_token_store, keychain_clear, keychain_retrieve,
     keychain_store,
 };
+use commands::live_sessions::{get_live_session_thresholds, list_live_sessions};
 use commands::mcp::{
     mcp_add, mcp_add_from_claude_desktop, mcp_add_json, mcp_get, mcp_get_server_status, mcp_list,
     mcp_read_project_config, mcp_remove, mcp_reset_project_choices, mcp_save_project_config,
@@ -516,6 +517,9 @@ pub fn run() {
             cancel_run,
             cleanup_artifacts,
             list_workspace_workflows,
+            // Live agent-session introspection (spec 172)
+            list_live_sessions,
+            get_live_session_thresholds,
             // Factory Pipeline (076)
             start_factory_pipeline,
             get_factory_pipeline_status,

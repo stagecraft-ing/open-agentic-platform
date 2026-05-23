@@ -152,6 +152,10 @@ impl HiqliteWorkflowStore {
                 status: r.status,
                 started_at: r.started_at,
                 project_id: r.project_id,
+                current_step_name: None,
+                current_step_index: None,
+                current_step_started_at: None,
+                step_count: None,
             })
             .collect())
     }
