@@ -42,7 +42,9 @@ impl ToolDef for EchoTool {
     }
 }
 
-/// Tool that always denies.
+/// Tool that always denies. Schema is intentionally permissive (no
+/// properties) to keep the fixture minimal; opts in via
+/// `permissive(): true` per spec 169.
 struct DeniedTool;
 
 impl ToolDef for DeniedTool {
@@ -54,6 +56,9 @@ impl ToolDef for DeniedTool {
     }
     fn input_schema(&self) -> Value {
         json!({ "type": "object" })
+    }
+    fn permissive(&self) -> bool {
+        true
     }
     fn can_use(&self, _ctx: &ToolContext) -> anyhow::Result<PermissionResult> {
         Ok(PermissionResult::Deny("blocked by policy".into()))
@@ -179,6 +184,9 @@ fn no_policy_kernel_returns_deny() {
         }
         fn input_schema(&self) -> Value {
             json!({ "type": "object" })
+        }
+        fn permissive(&self) -> bool {
+            true
         }
         fn execute(&self, _input: Value, _ctx: &mut ToolContext) -> anyhow::Result<ToolResult> {
             Ok(ToolResult::success(json!("ok")))
@@ -314,6 +322,242 @@ fn bad_schema_rejected_at_registration() {
 }
 
 // ---------------------------------------------------------------------------
+// Spec 169 — schema strictness enforcement
+// ---------------------------------------------------------------------------
+
+/// Permissive tool that does NOT opt in via `permissive(): true`. The
+/// registry must reject it.
+struct StrictRejectTool;
+impl ToolDef for StrictRejectTool {
+    fn name(&self) -> &str {
+        "strict_reject"
+    }
+    fn description(&self) -> &str {
+        "tool whose schema is permissive and does not opt in"
+    }
+    fn input_schema(&self) -> Value {
+        json!({ "type": "object", "additionalProperties": true,
+                "properties": { "x": { "type": "string" } } })
+    }
+    fn execute(&self, _: Value, _: &mut ToolContext) -> anyhow::Result<ToolResult> {
+        unreachable!()
+    }
+}
+
+#[test]
+fn permissive_schema_rejected_when_not_opted_in() {
+    let mut reg = ToolRegistry::new();
+    let err = reg.register(Box::new(StrictRejectTool)).unwrap_err();
+    match err {
+        RegistryError::PermissiveSchema { ref tool, ref pattern } => {
+            assert_eq!(tool, "strict_reject");
+            assert!(matches!(
+                pattern,
+                crate::strictness::PermissivePattern::AdditionalPropertiesTrue { .. }
+            ));
+        }
+        other => panic!("expected PermissiveSchema, got {other:?}"),
+    }
+    assert_eq!(reg.len(), 0);
+}
+
+/// Permissive tool that opts in via `permissive(): true`. Must be
+/// accepted and surfaced in the permissive-registrations inventory.
+struct OptInPermissiveTool;
+impl ToolDef for OptInPermissiveTool {
+    fn name(&self) -> &str {
+        "legacy_thing"
+    }
+    fn description(&self) -> &str {
+        "permissive tool that opts in"
+    }
+    fn input_schema(&self) -> Value {
+        json!({ "type": "object", "additionalProperties": true })
+    }
+    fn permissive(&self) -> bool {
+        true
+    }
+    fn execute(&self, _: Value, _: &mut ToolContext) -> anyhow::Result<ToolResult> {
+        unreachable!()
+    }
+}
+
+#[test]
+fn permissive_schema_accepted_when_opted_in() {
+    let mut reg = ToolRegistry::new();
+    reg.register(Box::new(OptInPermissiveTool)).unwrap();
+    assert_eq!(reg.len(), 1);
+    let inventory = reg.permissive_registrations();
+    assert_eq!(inventory.len(), 1);
+    assert_eq!(inventory[0].tool, "legacy_thing");
+    assert!(matches!(
+        inventory[0].pattern,
+        crate::strictness::PermissivePattern::AdditionalPropertiesTrue { .. }
+    ));
+}
+
+/// Strict-schema tool: accepted, not recorded in the permissive inventory.
+struct StrictTool;
+impl ToolDef for StrictTool {
+    fn name(&self) -> &str {
+        "strict_one"
+    }
+    fn description(&self) -> &str {
+        "strict-schema tool"
+    }
+    fn input_schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": { "x": { "type": "string" } },
+            "required": ["x"]
+        })
+    }
+    fn execute(&self, _: Value, _: &mut ToolContext) -> anyhow::Result<ToolResult> {
+        unreachable!()
+    }
+}
+
+#[test]
+fn strict_tool_accepted_and_not_recorded() {
+    let mut reg = ToolRegistry::new();
+    reg.register(Box::new(StrictTool)).unwrap();
+    assert_eq!(reg.len(), 1);
+    assert_eq!(reg.permissive_registrations().len(), 0);
+}
+
+#[test]
+fn type_any_rejected_at_registration() {
+    struct TypeAnyTool;
+    impl ToolDef for TypeAnyTool {
+        fn name(&self) -> &str {
+            "type_any"
+        }
+        fn description(&self) -> &str {
+            "tool with type: any"
+        }
+        fn input_schema(&self) -> Value {
+            json!({
+                "type": "object",
+                "properties": { "payload": { "type": "any" } }
+            })
+        }
+        fn execute(&self, _: Value, _: &mut ToolContext) -> anyhow::Result<ToolResult> {
+            unreachable!()
+        }
+    }
+    let mut reg = ToolRegistry::new();
+    let err = reg.register(Box::new(TypeAnyTool)).unwrap_err();
+    assert!(matches!(
+        err,
+        RegistryError::PermissiveSchema {
+            pattern: crate::strictness::PermissivePattern::TypeAny { .. },
+            ..
+        }
+    ));
+}
+
+#[test]
+fn computed_schema_validation_runs_at_registration_time() {
+    // FR-002: rejection at runtime registration time for computed schemas.
+    struct ComputedSchemaTool {
+        // Pretend the schema was computed from runtime input.
+        runtime_schema: Value,
+    }
+    impl ToolDef for ComputedSchemaTool {
+        fn name(&self) -> &str {
+            "computed"
+        }
+        fn description(&self) -> &str {
+            "schema computed at construction time"
+        }
+        fn input_schema(&self) -> Value {
+            self.runtime_schema.clone()
+        }
+        fn execute(&self, _: Value, _: &mut ToolContext) -> anyhow::Result<ToolResult> {
+            unreachable!()
+        }
+    }
+    let mut reg = ToolRegistry::new();
+    let permissive = ComputedSchemaTool {
+        runtime_schema: json!({ "type": "object" }),
+    };
+    let err = reg.register(Box::new(permissive)).unwrap_err();
+    assert!(matches!(
+        err,
+        RegistryError::PermissiveSchema {
+            pattern: crate::strictness::PermissivePattern::ObjectWithoutProperties { .. },
+            ..
+        }
+    ));
+}
+
+#[test]
+fn async_registry_rejects_permissive_async_tool() {
+    use crate::async_registry::{AsyncToolDef, AsyncToolRegistry};
+    use std::sync::Arc;
+
+    struct AsyncPermissive;
+    #[async_trait::async_trait]
+    impl AsyncToolDef for AsyncPermissive {
+        fn name(&self) -> &str {
+            "async_permissive"
+        }
+        fn description(&self) -> &str {
+            "permissive async tool"
+        }
+        fn input_schema(&self) -> Value {
+            json!({ "type": "object" })
+        }
+        async fn execute(
+            &self,
+            _: Value,
+            _: &mut ToolContext,
+        ) -> anyhow::Result<ToolResult> {
+            unreachable!()
+        }
+    }
+
+    let mut reg = AsyncToolRegistry::new();
+    let err = reg.register(Arc::new(AsyncPermissive)).unwrap_err();
+    assert!(matches!(err, RegistryError::PermissiveSchema { .. }));
+}
+
+#[test]
+fn async_registry_accepts_opted_in_permissive_async_tool() {
+    use crate::async_registry::{AsyncToolDef, AsyncToolRegistry};
+    use std::sync::Arc;
+
+    struct AsyncOptIn;
+    #[async_trait::async_trait]
+    impl AsyncToolDef for AsyncOptIn {
+        fn name(&self) -> &str {
+            "async_opt_in"
+        }
+        fn description(&self) -> &str {
+            "permissive async tool that opts in"
+        }
+        fn input_schema(&self) -> Value {
+            json!({ "type": "object" })
+        }
+        fn permissive(&self) -> bool {
+            true
+        }
+        async fn execute(
+            &self,
+            _: Value,
+            _: &mut ToolContext,
+        ) -> anyhow::Result<ToolResult> {
+            unreachable!()
+        }
+    }
+
+    let mut reg = AsyncToolRegistry::new();
+    reg.register(Arc::new(AsyncOptIn)).unwrap();
+    assert_eq!(reg.permissive_registrations().len(), 1);
+    assert_eq!(reg.permissive_registrations()[0].tool, "async_opt_in");
+}
+
+// ---------------------------------------------------------------------------
 // Performance: 200 tools register quickly (NF-001)
 // ---------------------------------------------------------------------------
 
@@ -332,6 +576,9 @@ fn register_200_tools_under_50ms() {
         }
         fn input_schema(&self) -> Value {
             json!({ "type": "object" })
+        }
+        fn permissive(&self) -> bool {
+            true
         }
         fn execute(&self, _: Value, _: &mut ToolContext) -> anyhow::Result<ToolResult> {
             Ok(ToolResult::success(json!(null)))
