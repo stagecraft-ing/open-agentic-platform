@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "58f4b844f2b597601aa17e4c8f74223e11e1035a5f70c83dfdf07833fa6fb0e3",
+    "contentHash": "437254d54bb68606cf1694aedcf5dcfaf0c57368250dbbc0dee31197b8ef8aa3",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -35313,6 +35313,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/factory-engine/src/kernel_emission/mod.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/factory-engine/src/kernel_emission/templates.rs",
             "source": "spec-implements"
           },
@@ -35426,6 +35430,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "crates/factory-engine/src/kernel_emission/mod.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/kernel_emission/mod.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "crates/factory-engine/src/kernel_emission/templates.rs"
               }
             ],
@@ -35522,7 +35540,7 @@
           }
         ],
         "specId": "168-per-project-governance-certificate",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [

@@ -7,7 +7,11 @@
 // surface, exercised through the published `build-certificate` and
 // `verify-certificate` binaries.
 
-use factory_engine::GovernanceCertificate;
+use factory_contracts::AdapterRegistry;
+use factory_contracts::adapter_manifest::*;
+use factory_engine::factory_root::FactoryRoot;
+use factory_engine::kernel_emission::ToolchainMode;
+use factory_engine::{FactoryEngine, FactoryEngineConfig, GovernanceCertificate};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -209,6 +213,265 @@ fn tenant_emission_is_artifact_hash_deterministic_fr009() {
     for (sa, sb) in a.stages.iter().zip(b.stages.iter()) {
         assert_eq!(sa.stage_id, sb.stage_id);
         assert_eq!(sa.artifact_hashes, sb.artifact_hashes);
+    }
+}
+
+/// SC-001 through SC-005 end-to-end — the closure narrative.
+///
+/// 1. FactoryEngine emits a born-with kernel into a tenant project root,
+///    laying down `.factory/toolchain.yaml` + `.kernel-version` with
+///    the certificate-toolchain field populated.
+/// 2. The tenant project then runs its own pipeline (synthesised here
+///    as a `.factory/runs/<run-id>/` directory with two stage outputs).
+/// 3. `build-certificate --tenant-mode` against that run dir produces
+///    a `governance-certificate.json` carrying the signer (SC-001).
+/// 4. `verify-certificate` against the produced cert exits 0 (SC-002).
+/// 5. Tampering an artifact and re-verifying exits 1 with the
+///    artifact-hash-mismatch diagnostic (SC-003).
+/// 6. The verifier consumes only local files — no network — so an
+///    auditor can reproduce the verification offline using only the
+///    tenant's working tree and the verifier binary (SC-004).
+/// 7. `build-certificate --tenant-mode` without signer flags halts
+///    before writing a certificate, exiting 2 with the FR-007
+///    diagnostic (SC-005).
+#[test]
+fn spec_168_sc_001_through_005_end_to_end() {
+    // ── Born-with kernel emission ──
+    let oap_source = tempfile::tempdir().unwrap();
+    write_oap_kernel_source(oap_source.path());
+    let tenant = tempfile::tempdir().unwrap();
+
+    let registry = AdapterRegistry::from_manifests(vec![minimal_aim_vue_node_manifest()]);
+    let cfg = FactoryEngineConfig {
+        factory_root: FactoryRoot::Filesystem(PathBuf::from("factory")),
+        project_path: PathBuf::from("."),
+        concurrency_limit: 1,
+        max_total_tokens: None,
+    };
+    let engine = FactoryEngine::with_adapters(cfg, registry);
+
+    let report = engine
+        .emit_project_kernel(
+            "aim-vue-node",
+            tenant.path(),
+            oap_source.path(),
+            vec!["apps/".into(), "packages/".into()],
+            Some("file://adapter-scopes.json#aim-vue-node".into()),
+            ToolchainMode::PinnedToolchain,
+            "fixturecommit".into(),
+        )
+        .expect("kernel emission succeeded");
+
+    // FR-001 + FR-008: kernel records the toolchain identity.
+    let cert_tc = report
+        .kernel_version
+        .certificate_toolchain
+        .as_ref()
+        .expect("certificate_toolchain populated");
+    assert_eq!(cert_tc.emitter, "build-certificate");
+    assert_eq!(cert_tc.verifier, "verify-certificate");
+    assert!(tenant.path().join(".factory/toolchain.yaml").exists());
+    let toolchain_body =
+        std::fs::read_to_string(tenant.path().join(".factory/toolchain.yaml")).unwrap();
+    assert!(toolchain_body.contains("mode: \"pinned-toolchain\""));
+
+    // ── Synthesised tenant pipeline run ──
+    let run_dir = tenant.path().join(".factory/runs/run-abc");
+    write_stage_artifact(&run_dir, "tenant-codegen", "app.rs", b"fn main(){}");
+    write_stage_artifact(&run_dir, "tenant-bundle", "bundle.tar", b"<bytes>");
+
+    // SC-005: emission without signer flags halts.
+    let halt = Command::new(bin_path("build-certificate"))
+        .arg(&run_dir)
+        .args(["--tenant-mode"])
+        .output()
+        .expect("spawn build-certificate (halt path)");
+    assert_eq!(halt.status.code(), Some(2), "SC-005 halt expected");
+    assert!(
+        !run_dir.join("governance-certificate.json").exists(),
+        "SC-005: no certificate may exist after halt"
+    );
+
+    // SC-001: emission with signer flags writes the certificate.
+    let emit = Command::new(bin_path("build-certificate"))
+        .arg(&run_dir)
+        .args(["--tenant-mode"])
+        .args(["--signer-subject", "alice@tenant.example"])
+        .args(["--signer-identity-provider", "rauthy@tenant-org"])
+        .args(["--signer-session-id", "sess-e2e"])
+        .args(["--stage-ids", "tenant-codegen,tenant-bundle"])
+        .output()
+        .expect("spawn build-certificate (emit path)");
+    assert!(
+        emit.status.success(),
+        "SC-001 emission failed: {}",
+        String::from_utf8_lossy(&emit.stderr)
+    );
+    let cert_path = run_dir.join("governance-certificate.json");
+    assert!(cert_path.exists(), "SC-001: certificate file expected");
+
+    let cert = read_certificate(&cert_path);
+    let signer = cert.signer.as_ref().expect("signer populated");
+    assert_eq!(signer.subject, "alice@tenant.example");
+    assert_eq!(signer.identity_provider, "rauthy@tenant-org");
+
+    // SC-002 + SC-004 (offline): verify-certificate accepts the clean cert
+    // using only the tenant's working tree and the verifier binary.
+    let ok = Command::new(bin_path("verify-certificate"))
+        .arg(&cert_path)
+        .args(["--artifact-dir", run_dir.to_str().unwrap()])
+        .output()
+        .expect("spawn verify-certificate (clean)");
+    assert!(
+        ok.status.success(),
+        "SC-002 clean verify failed: {}",
+        String::from_utf8_lossy(&ok.stderr)
+    );
+
+    // SC-003: tampering an artifact causes the verifier to exit 1 with
+    // a specific artifact-hash-mismatch diagnostic.
+    std::fs::write(run_dir.join("tenant-codegen/app.rs"), b"fn evil(){}").unwrap();
+    let bad = Command::new(bin_path("verify-certificate"))
+        .arg(&cert_path)
+        .args(["--artifact-dir", run_dir.to_str().unwrap()])
+        .output()
+        .expect("spawn verify-certificate (tampered)");
+    assert!(!bad.status.success(), "SC-003: tampered verify must fail");
+    let bad_out = format!(
+        "{}{}",
+        String::from_utf8_lossy(&bad.stdout),
+        String::from_utf8_lossy(&bad.stderr),
+    );
+    assert!(
+        bad_out.contains("hash mismatch"),
+        "SC-003: diagnostic must name the hash mismatch: {bad_out}"
+    );
+}
+
+// ── Helpers reused by the end-to-end test ──
+
+fn write_oap_kernel_source(root: &Path) {
+    for (rel, body) in &[
+        (
+            "specs/000-bootstrap-spec-system/spec.md",
+            "# spec 000\nfixture content\n",
+        ),
+        ("standards/spec/constitution.md", "# c\n"),
+        ("standards/spec/contract.md", "# k\n"),
+        ("standards/spec/templates/spec-template.md", "# tmpl\n"),
+        (
+            ".derived/spec-registry/registry.json",
+            r#"{"specVersion":"0.1.0","specs":[]}"#,
+        ),
+    ] {
+        let p = root.join(rel);
+        std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+        std::fs::write(p, body).unwrap();
+    }
+}
+
+fn minimal_aim_vue_node_manifest() -> AdapterManifest {
+    AdapterManifest {
+        schema_version: "1.0.0".into(),
+        adapter: AdapterIdentity {
+            name: "aim-vue-node".into(),
+            display_name: "AIM Vue Node".into(),
+            version: "0.1.0".into(),
+            description: None,
+        },
+        stack: StackSpec {
+            language: "typescript".into(),
+            runtime: "node-22".into(),
+            backend: BackendSpec {
+                framework: "express-5".into(),
+                description: "minimal".into(),
+            },
+            frontend: FrontendSpec {
+                framework: "vue-3".into(),
+                state_management: "pinia".into(),
+                design_system: "none".into(),
+                description: "minimal".into(),
+            },
+            database: None,
+        },
+        capabilities: Capabilities {
+            dual_stack: false,
+            bff_pattern: false,
+            single_stack: true,
+            session_auth: false,
+            token_auth: false,
+            api_key_auth: false,
+            module_system: false,
+            file_uploads: false,
+            background_jobs: false,
+            realtime: false,
+            email_notifications: false,
+            audit_logging: false,
+            direct_sql: false,
+            orm_based: false,
+            api_proxy: false,
+            extra: Default::default(),
+        },
+        supported_auth: vec![],
+        supported_session_stores: None,
+        commands: Commands {
+            install: "npm install".into(),
+            compile: "npm run build".into(),
+            test: "npm test".into(),
+            lint: "npm run lint".into(),
+            dev: "npm run dev".into(),
+            format_check: None,
+            type_check: None,
+            feature_verify: vec![],
+            extra: Default::default(),
+        },
+        directory_conventions: DirectoryConventions {
+            api_service: None,
+            api_controller: None,
+            api_route: None,
+            api_test: None,
+            api_types: None,
+            api_middleware: None,
+            ui_view: None,
+            ui_store: None,
+            ui_route_config: None,
+            ui_test: None,
+            ui_component: None,
+            migration: None,
+            seed: None,
+            schema_types: None,
+            env_file: None,
+            env_file_per_stack: None,
+            extra: Default::default(),
+        },
+        patterns: Patterns {
+            api: None,
+            ui: None,
+            data: None,
+            page_types: None,
+        },
+        agents: Agents {
+            api_scaffolder: "agents/api.md".into(),
+            ui_scaffolder: "agents/ui.md".into(),
+            data_scaffolder: "agents/data.md".into(),
+            configurer: "agents/configurer.md".into(),
+            trimmer: "agents/trimmer.md".into(),
+            seed_generator: None,
+            reviewer: None,
+            security_auditor: None,
+        },
+        scaffold: Scaffold {
+            source: ScaffoldSource::Local("scaffold/".into()),
+            description: "base".into(),
+            modules: std::collections::HashMap::new(),
+            setup_commands: vec![],
+            ..Default::default()
+        },
+        validation: Validation {
+            invariants: vec![],
+            invariants_file: None,
+        },
+        dual_stack: None,
     }
 }
 

@@ -2,8 +2,8 @@
 id: "168-per-project-governance-certificate"
 slug: per-project-governance-certificate
 title: "Per-project governance certificate emission and tenant-side verifier"
-status: draft
-implementation: in-progress
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: capability
@@ -29,6 +29,9 @@ extends:
   - spec: "102-governed-excellence"
     nature: additive
     unit: { kind: file, path: crates/factory-engine/src/bin/factory_run.rs }
+  - spec: "167-born-with-spec-spine-kernel"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/kernel_emission/mod.rs }
   - spec: "167-born-with-spec-spine-kernel"
     nature: additive
     unit: { kind: file, path: crates/factory-engine/src/kernel_emission/version.rs }
