@@ -27,7 +27,7 @@ if [ -z "$bin" ]; then
   exit 2
 fi
 
-cd "$root"
+cd "$root" || exit 2
 output=$("$bin" --fail-on-warn 2>&1)
 rc=$?
 if [ $rc -ne 0 ]; then

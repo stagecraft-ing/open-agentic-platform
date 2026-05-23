@@ -31,7 +31,7 @@ if [ -z "$bin" ]; then
   exit 0
 fi
 
-cd "$root"
+cd "$root" || exit 2
 # Capture stderr+stdout so we can attach a one-line summary to the
 # structured diagnostic. spec-lint emits W-### codes; surfacing the first
 # few lines is enough to orient the agent.

@@ -39,7 +39,7 @@ if [ -z "$bin" ]; then
   exit 2
 fi
 
-cd "$root"
+cd "$root" || exit 2
 
 # Working-tree diff: compare HEAD against the index+untracked changes.
 # `git status --porcelain=v1` enumerates modified, added, deleted, and
