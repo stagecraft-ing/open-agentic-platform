@@ -58,7 +58,10 @@
       "icons/icon.ico",
       "icons/icon.icns"
     ],
-    "resources": [],
+    "resources": [
+      "resources/claude-hooks.json",
+      "resources/claude-hooks/*.sh"
+    ],
     "externalBin": [
       "binaries/axiomregent"
     ],
