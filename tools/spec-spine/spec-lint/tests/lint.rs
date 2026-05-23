@@ -2,6 +2,7 @@
 
 use open_agentic_spec_lint::{lint_feature_dir, lint_repo};
 use std::fs;
+use std::process::Command;
 
 #[test]
 fn w002_superseded_without_pointer() {
@@ -471,6 +472,264 @@ establishes:
     assert!(
         !w.iter().any(|x| x.code == "L-005"),
         "L-005 must NOT fire on explicit unit declarations: {:?}",
+        w
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Spec 161 — W-161 decomposition-origin role reservation
+// ─────────────────────────────────────────────────────────────────────
+
+fn write_minimal_spec(root: &std::path::Path, id: &str, references_yaml: &str) -> std::path::PathBuf {
+    let feat = root.join(format!("specs/{id}"));
+    fs::create_dir_all(&feat).unwrap();
+    let body = format!(
+        r#"---
+id: "{id}"
+title: "t"
+status: draft
+created: "2026-05-22"
+summary: "spec 161 fixture"
+{references_yaml}
+---
+# Body
+"#
+    );
+    fs::write(feat.join("spec.md"), body).unwrap();
+    feat
+}
+
+#[test]
+fn w161_happy_path_knowledge_provenance_with_derived_at() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let refs = r#"references:
+  - role: decomposition-origin
+    provenance:
+      kind: knowledge
+      ref: "stagecraft://project/00000000-0000-0000-0000-000000000001/knowledge/00000000-0000-0000-0000-000000000002"
+      derived_at: "2026-05-22T10:30:00Z"
+"#;
+    let feat = write_minimal_spec(root, "900-w161-ok", refs);
+    let w = lint_feature_dir(root, &feat);
+    assert!(
+        !w.iter().any(|x| x.code == "W-161"),
+        "W-161 must NOT fire on well-formed decomposition-origin entry: {:?}",
+        w
+    );
+}
+
+#[test]
+fn w161_happy_path_code_fingerprint_with_date_only_derived_at() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let refs = r#"references:
+  - role: decomposition-origin
+    provenance:
+      kind: code-fingerprint
+      ref: "xray-fingerprint://e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      derived_at: "2026-05-22"
+"#;
+    let feat = write_minimal_spec(root, "901-w161-fp-ok", refs);
+    let w = lint_feature_dir(root, &feat);
+    assert!(
+        !w.iter().any(|x| x.code == "W-161"),
+        "W-161 must NOT fire on code-fingerprint decomposition-origin entry with date-only derived_at: {:?}",
+        w
+    );
+}
+
+#[test]
+fn w161_missing_provenance_is_error() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let refs = r#"references:
+  - role: decomposition-origin
+"#;
+    let feat = write_minimal_spec(root, "902-w161-missing-prov", refs);
+    let w = lint_feature_dir(root, &feat);
+    let hits: Vec<&_> = w.iter().filter(|x| x.code == "W-161").collect();
+    assert_eq!(hits.len(), 1, "expected exactly one W-161 hit: {:?}", w);
+    assert_eq!(hits[0].severity, "error");
+    assert!(
+        hits[0].message.contains("provenance:"),
+        "message should name the missing field: {:?}",
+        hits[0].message
+    );
+}
+
+#[test]
+fn w161_unit_arm_with_reserved_role_is_error() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let refs = r#"references:
+  - role: decomposition-origin
+    unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
+"#;
+    let feat = write_minimal_spec(root, "903-w161-unit-arm", refs);
+    let w = lint_feature_dir(root, &feat);
+    let hits: Vec<&_> = w.iter().filter(|x| x.code == "W-161").collect();
+    assert_eq!(hits.len(), 1, "expected exactly one W-161 hit: {:?}", w);
+    assert_eq!(hits[0].severity, "error");
+    assert!(
+        hits[0].message.contains("unit:"),
+        "message should name the disallowed arm: {:?}",
+        hits[0].message
+    );
+}
+
+#[test]
+fn w161_missing_derived_at_is_error() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let refs = r#"references:
+  - role: decomposition-origin
+    provenance:
+      kind: knowledge
+      ref: "stagecraft://project/00000000-0000-0000-0000-000000000001/knowledge/00000000-0000-0000-0000-000000000002"
+"#;
+    let feat = write_minimal_spec(root, "904-w161-no-date", refs);
+    let w = lint_feature_dir(root, &feat);
+    let hits: Vec<&_> = w.iter().filter(|x| x.code == "W-161").collect();
+    assert_eq!(hits.len(), 1, "expected exactly one W-161 hit: {:?}", w);
+    assert_eq!(hits[0].severity, "error");
+    assert!(
+        hits[0].message.contains("derived_at"),
+        "message should name the missing field: {:?}",
+        hits[0].message
+    );
+}
+
+#[test]
+fn w161_malformed_derived_at_is_error() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let refs = r#"references:
+  - role: decomposition-origin
+    provenance:
+      kind: knowledge
+      ref: "stagecraft://project/00000000-0000-0000-0000-000000000001/knowledge/00000000-0000-0000-0000-000000000002"
+      derived_at: "yesterday"
+"#;
+    let feat = write_minimal_spec(root, "905-w161-bad-date", refs);
+    let w = lint_feature_dir(root, &feat);
+    let hits: Vec<&_> = w.iter().filter(|x| x.code == "W-161").collect();
+    assert_eq!(hits.len(), 1, "expected exactly one W-161 hit: {:?}", w);
+    assert_eq!(hits[0].severity, "error");
+    assert!(
+        hits[0].message.contains("ISO-8601"),
+        "message should reference ISO-8601: {:?}",
+        hits[0].message
+    );
+}
+
+#[test]
+fn w161_other_role_with_unit_arm_does_not_fire_sc003() {
+    // SC-003: hand-authored specs with `references:` entries that do
+    // NOT carry `role: decomposition-origin` are unaffected by W-161,
+    // regardless of whether they use the `unit:` or `provenance:` arm.
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let refs = r#"references:
+  - role: precedent
+    unit: { kind: file, path: docs/ARCHITECTURE.md }
+  - role: derivation
+    provenance:
+      kind: knowledge
+      ref: "stagecraft://project/00000000-0000-0000-0000-000000000001/knowledge/00000000-0000-0000-0000-000000000002"
+"#;
+    let feat = write_minimal_spec(root, "906-w161-other-roles", refs);
+    let w = lint_feature_dir(root, &feat);
+    assert!(
+        !w.iter().any(|x| x.code == "W-161"),
+        "W-161 must only fire on `role: decomposition-origin` entries (SC-003): {:?}",
+        w
+    );
+}
+
+#[test]
+fn w161_error_tier_fails_binary_without_fail_on_warn() {
+    // Spec 161 §2.3 / SC-004: `error`-tier diagnostics fail spec-lint
+    // unconditionally. The binary must exit non-zero on a W-161 hit
+    // even when --fail-on-warn is absent.
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let refs = r#"references:
+  - role: decomposition-origin
+"#;
+    write_minimal_spec(root, "910-w161-bin-error", refs);
+
+    let bin = env!("CARGO_BIN_EXE_spec-lint");
+    let output = Command::new(bin)
+        .arg("--repo")
+        .arg(root)
+        .output()
+        .expect("spawn spec-lint");
+    assert!(
+        !output.status.success(),
+        "spec-lint must exit non-zero on W-161 error tier; stderr was:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("W-161"),
+        "stderr should mention W-161; got:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn warning_tier_alone_does_not_fail_binary_without_fail_on_warn() {
+    // Companion to the error-tier test above: a spec that emits only
+    // warning-tier diagnostics (e.g. V-020 — missing relationship
+    // fields) must NOT fail the binary unless --fail-on-warn is set.
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let feat = root.join("specs/911-warn-only");
+    fs::create_dir_all(&feat).unwrap();
+    // Spec has no relationship fields and no retroactive marker — emits
+    // V-020 at warning tier.
+    fs::write(
+        feat.join("spec.md"),
+        r#"---
+id: "911-warn-only"
+title: "t"
+status: draft
+created: "2026-05-22"
+summary: "warning-tier-only fixture"
+---
+# Body
+"#,
+    )
+    .unwrap();
+
+    let bin = env!("CARGO_BIN_EXE_spec-lint");
+    let output = Command::new(bin)
+        .arg("--repo")
+        .arg(root)
+        .output()
+        .expect("spawn spec-lint");
+    assert!(
+        output.status.success(),
+        "spec-lint must exit zero on warning-tier-only diagnostics without --fail-on-warn; stderr was:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn w161_no_references_field_does_not_fire() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    // Spec with no references field at all — common shape for early
+    // bootstrap or self-contained specs. Must not trigger W-161.
+    let feat = write_minimal_spec(
+        root,
+        "907-w161-no-refs",
+        "establishes:\n  - unit: { kind: file, path: docs/example.md }",
+    );
+    let w = lint_feature_dir(root, &feat);
+    assert!(
+        !w.iter().any(|x| x.code == "W-161"),
+        "W-161 must not fire on specs without a `references:` field: {:?}",
         w
     );
 }

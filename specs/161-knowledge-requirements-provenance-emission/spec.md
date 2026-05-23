@@ -3,7 +3,7 @@ id: "161-knowledge-requirements-provenance-emission"
 slug: knowledge-requirements-provenance-emission
 title: "Knowledge → Requirements provenance: emission contract and Requirements-view rendering"
 status: draft
-implementation: pending
+implementation: in-progress
 owner: bart
 created: "2026-05-22"
 kind: governance
@@ -13,6 +13,22 @@ depends_on:
   - "156"  # references-edge provenance grammar (the typed external pointer)
   - "120"  # factory extraction stage (the knowledge → ExtractionOutput substrate)
 code_aliases: ["KNOWLEDGE_REQUIREMENTS_PROVENANCE", "PROVENANCE_EMISSION_RENDERING"]
+extends:
+  - spec: "006-conformance-lint-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
+  - spec: "006-conformance-lint-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-lint/src/lib.rs }
+  - spec: "006-conformance-lint-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-lint/src/main.rs }
+  - spec: "006-conformance-lint-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-lint/tests/lint.rs }
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "44e902bc0104dc79cea40182e5f0796b80b671266aba3eee93afff5193cc7ebe",
+    "contentHash": "dcf82287c1bdf6e1ff1bf8e4a55299ec1dfd490471ad7f8bdd8e2c81b057710d",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -31866,8 +31866,104 @@
         "specStatus": "draft"
       },
       {
-        "implementingPaths": [],
+        "dependsOn": [
+          "120",
+          "154",
+          "156"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/shared/spec-types/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-lint/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-lint/src/main.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-lint/tests/lint.rs",
+            "source": "spec-implements"
+          }
+        ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/shared/spec-types/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/shared/spec-types/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-lint/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-lint/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-lint/src/main.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-lint/src/main.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-lint/tests/lint.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-lint/tests/lint.rs"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -34300,7 +34396,6 @@
       "149-saml-auth-driver",
       "150-example-tenant-profile",
       "157-opc-session-model",
-      "161-knowledge-requirements-provenance-emission",
       "165-opc-decomposition-pipeline",
       "166-opc-stop-hook-gate-chain",
       "168-per-project-governance-certificate",
