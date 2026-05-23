@@ -183,6 +183,38 @@ impl SqliteWorkflowStore {
             );
         }
 
+        // Migration: add `project_path` and `originating_session` columns
+        // for the OPC multi-session orchestrator binding (spec 173 FR-006).
+        // Idempotent — column presence checked via PRAGMA table_info before
+        // issuing the ALTER. Pre-spec-173 rows surface as SQL NULL → Rust
+        // `Option::None` without backfill.
+        let workflow_cols: std::collections::HashSet<String> = conn
+            .prepare("PRAGMA table_info(workflows)")
+            .and_then(|mut stmt| {
+                let rows = stmt.query_map([], |row| {
+                    let name: String = row.get(1)?;
+                    Ok(name)
+                })?;
+                let mut set = std::collections::HashSet::new();
+                for name in rows.flatten() {
+                    set.insert(name);
+                }
+                Ok(set)
+            })
+            .unwrap_or_default();
+
+        if !workflow_cols.contains("project_path") {
+            let _ = conn.execute_batch(
+                "ALTER TABLE workflows ADD COLUMN project_path TEXT;
+                 CREATE INDEX IF NOT EXISTS idx_workflows_project_path ON workflows(project_path);",
+            );
+        }
+        if !workflow_cols.contains("originating_session") {
+            let _ = conn.execute_batch(
+                "ALTER TABLE workflows ADD COLUMN originating_session TEXT;",
+            );
+        }
+
         Ok(SqliteWorkflowStore {
             conn: Arc::new(StdMutex::new(conn)),
         })
@@ -222,16 +254,19 @@ impl SqliteWorkflowStore {
         tx.execute(
             r#"
             INSERT INTO workflows (
-              workflow_id, workflow_name, status, started_at, completed_at, metadata, project_id
+              workflow_id, workflow_name, status, started_at, completed_at, metadata,
+              project_id, project_path, originating_session
             )
-            VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?6)
+            VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?6, ?7, ?8)
             ON CONFLICT(workflow_id) DO UPDATE SET
-              workflow_name = excluded.workflow_name,
-              status        = excluded.status,
-              started_at    = excluded.started_at,
-              completed_at  = excluded.completed_at,
-              metadata      = excluded.metadata,
-              project_id    = excluded.project_id
+              workflow_name       = excluded.workflow_name,
+              status              = excluded.status,
+              started_at          = excluded.started_at,
+              completed_at        = excluded.completed_at,
+              metadata            = excluded.metadata,
+              project_id          = excluded.project_id,
+              project_path        = excluded.project_path,
+              originating_session = excluded.originating_session
             "#,
             params![
                 wf_id_str,
@@ -239,7 +274,9 @@ impl SqliteWorkflowStore {
                 status_str,
                 state.started_at,
                 metadata_json,
-                project_id
+                project_id,
+                state.project_path,
+                state.originating_session,
             ],
         )
         .map_err(|e| OrchestratorError::StatePersistence {
@@ -324,7 +361,8 @@ impl SqliteWorkflowStore {
         let mut stmt = conn
             .prepare(
                 r#"
-                SELECT workflow_name, status, started_at, completed_at, metadata
+                SELECT workflow_name, status, started_at, completed_at, metadata,
+                       project_path, originating_session
                 FROM workflows
                 WHERE workflow_id = ?1
                 "#,
@@ -340,14 +378,31 @@ impl SqliteWorkflowStore {
                 let started_at: String = row.get(2)?;
                 let _completed_at: Option<String> = row.get(3)?;
                 let metadata_text: Option<String> = row.get(4)?;
-                Ok((name, status_str, started_at, metadata_text))
+                let project_path: Option<String> = row.get(5)?;
+                let originating_session: Option<String> = row.get(6)?;
+                Ok((
+                    name,
+                    status_str,
+                    started_at,
+                    metadata_text,
+                    project_path,
+                    originating_session,
+                ))
             })
             .optional()
             .map_err(|e| OrchestratorError::StatePersistence {
                 reason: format!("query workflow row in sqlite: {e}"),
             })?;
 
-        let Some((workflow_name, status_str, started_at, metadata_text)) = wf_row else {
+        let Some((
+            workflow_name,
+            status_str,
+            started_at,
+            metadata_text,
+            project_path,
+            originating_session,
+        )) = wf_row
+        else {
             return Ok(None);
         };
 
@@ -487,6 +542,8 @@ impl SqliteWorkflowStore {
             current_step_index: None,
             steps,
             metadata,
+            project_path,
+            originating_session,
         };
 
         Ok(Some(state))
@@ -682,7 +739,8 @@ impl SqliteWorkflowStore {
                 })?;
             let mut stmt = guard
                 .prepare(
-                    "SELECT workflow_id, workflow_name, status, started_at, project_id
+                    "SELECT workflow_id, workflow_name, status, started_at, project_id,
+                            project_path, originating_session
                      FROM workflows
                      WHERE project_id = ?1
                      ORDER BY started_at DESC
@@ -699,6 +757,8 @@ impl SqliteWorkflowStore {
                         status: row.get(2)?,
                         started_at: row.get(3)?,
                         project_id: row.get(4)?,
+                        project_path: row.get(5)?,
+                        originating_session: row.get(6)?,
                     })
                 })
                 .map_err(|e| OrchestratorError::StatePersistence {

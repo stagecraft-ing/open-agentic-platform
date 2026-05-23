@@ -85,6 +85,14 @@ pub struct WorkflowStateSummary {
     pub status: String,
     pub started_at: String,
     pub project_id: Option<String>,
+    /// Filesystem project-path identity (spec 173 FR-001).
+    /// `None` for workflows initiated outside OPC.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project_path: Option<String>,
+    /// OPC session UUID that initiated this workflow (spec 173 FR-001, trace field).
+    /// `None` for workflows initiated outside OPC.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub originating_session: Option<String>,
 }
 
 /// JSON state file schema (FR-001, FR-002, FR-007, SC-006).
@@ -102,6 +110,19 @@ pub struct WorkflowState {
     /// Free-form metadata (branch, trigger, etc.).
     #[serde(default)]
     pub metadata: serde_json::Map<String, JsonValue>,
+    /// Filesystem project-path identity inherited from the spec 157 OPC
+    /// session model. Identity key for spec 173 FR-001 / FR-003.
+    /// `None` for workflows initiated outside OPC (CLI, scheduled tasks,
+    /// factory-engine).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project_path: Option<String>,
+    /// OPC session UUID that initiated this workflow. Trace field only;
+    /// the orchestrator does not key persistence on it (spec 173 §2.5,
+    /// FR-004). Consumed by spec 172's Live Sessions panel as the
+    /// "Originating agent / session" column.
+    /// `None` for workflows initiated outside OPC.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub originating_session: Option<String>,
 }
 
 impl WorkflowState {
@@ -136,7 +157,31 @@ impl WorkflowState {
             current_step_index: None,
             steps,
             metadata,
+            project_path: None,
+            originating_session: None,
         }
+    }
+
+    /// Binds an OPC origin to the workflow (spec 173 §2.1).
+    ///
+    /// `project_path` is the spec 157 JSONL-authoritative filesystem path the
+    /// initiating OPC session was bound to (spec 173 FR-002); it becomes the
+    /// identity key for the [`SqliteWorkflowStore::list_workflows_by_project_path`]
+    /// consumer surface (FR-003).
+    ///
+    /// `originating_session` is the OPC session UUID — a trace breadcrumb
+    /// (spec 173 §2.5) consumed by spec 172's Live Sessions panel.
+    ///
+    /// Workflows initiated outside OPC (CLI, scheduled tasks, factory-engine)
+    /// leave both fields `None`; the surface degrades gracefully (FR-001).
+    pub fn with_origin(
+        mut self,
+        project_path: Option<String>,
+        originating_session: Option<String>,
+    ) -> Self {
+        self.project_path = project_path;
+        self.originating_session = originating_session;
+        self
     }
 
     /// Marks a step as started and updates `current_step_index`.
