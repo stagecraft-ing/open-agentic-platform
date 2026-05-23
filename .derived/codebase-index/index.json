@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "90dc3c7ed6165d4383c99b48ace63f081c3bd19840626bbda5b397177c530336",
+    "contentHash": "94c27f88d183486daeebcec28ce4cac9bde3b41d51b006c4632cb06627f87de2",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -10991,6 +10991,33 @@
                 "file": "product/apps/desktop/src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png"
               },
               {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/_lib.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-index.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-index.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-workflow-pins.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/tests/run-tests.sh"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/bindings.rs"
               },
               {
@@ -11157,9 +11184,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -11694,6 +11718,9 @@
               },
               {
                 "file": "product/apps/desktop/src/lib/date-utils.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/lib/hooksManager.spec166.test.ts"
               },
               {
                 "file": "product/apps/desktop/src/lib/hooksManager.ts"
@@ -12037,6 +12064,33 @@
                 "file": "product/apps/desktop/src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png"
               },
               {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/_lib.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-index.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-index.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-workflow-pins.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/tests/run-tests.sh"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/bindings.rs"
               },
               {
@@ -12203,9 +12257,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -12740,6 +12791,9 @@
               },
               {
                 "file": "product/apps/desktop/src/lib/date-utils.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/lib/hooksManager.spec166.test.ts"
               },
               {
                 "file": "product/apps/desktop/src/lib/hooksManager.ts"
@@ -14123,6 +14177,33 @@
                 "file": "product/apps/desktop/src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png"
               },
               {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/_lib.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-index.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-index.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-workflow-pins.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/tests/run-tests.sh"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/bindings.rs"
               },
               {
@@ -14289,9 +14370,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -14826,6 +14904,9 @@
               },
               {
                 "file": "product/apps/desktop/src/lib/date-utils.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/lib/hooksManager.spec166.test.ts"
               },
               {
                 "file": "product/apps/desktop/src/lib/hooksManager.ts"
@@ -15784,6 +15865,33 @@
                 "file": "product/apps/desktop/src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png"
               },
               {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/_lib.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-index.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-index.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-workflow-pins.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/tests/run-tests.sh"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/bindings.rs"
               },
               {
@@ -15950,9 +16058,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -16487,6 +16592,9 @@
               },
               {
                 "file": "product/apps/desktop/src/lib/date-utils.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/lib/hooksManager.spec166.test.ts"
               },
               {
                 "file": "product/apps/desktop/src/lib/hooksManager.ts"
@@ -17578,24 +17686,6 @@
               },
               {
                 "file": "crates/xray/tests/index_format_test.rs"
-              },
-              {
-                "file": "crates/xray/tests/outputs/index_format/history.jsonl"
-              },
-              {
-                "file": "crates/xray/tests/outputs/index_format/index.json"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run1/history.jsonl"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run1/index.json"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run2/history.jsonl"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run2/index.json"
               }
             ],
             "ownership": true,
@@ -20859,11 +20949,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": ".derived/codebase-index/CODEBASE-INDEX.md"
-              }
-            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -22081,6 +22166,33 @@
                 "file": "product/apps/desktop/src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png"
               },
               {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/_lib.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-index.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-index.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-workflow-pins.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/tests/run-tests.sh"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/bindings.rs"
               },
               {
@@ -22247,9 +22359,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -22784,6 +22893,9 @@
               },
               {
                 "file": "product/apps/desktop/src/lib/date-utils.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/lib/hooksManager.spec166.test.ts"
               },
               {
                 "file": "product/apps/desktop/src/lib/hooksManager.ts"
@@ -30302,9 +30414,6 @@
             "kind": "directory",
             "locations": [
               {
-                "file": "platform/services/stagecraft/.encore/manifest.json"
-              },
-              {
                 "file": "platform/services/stagecraft/.github/workflows/deploy.yml"
               },
               {
@@ -31325,240 +31434,6 @@
                 "file": "platform/services/stagecraft/encore.app"
               },
               {
-                "file": "platform/services/stagecraft/encore.gen/auth/index.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/clients/index.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/clients/index.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/auth/auth.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/combined/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/gateways/api-gateway/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/admin/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/agents/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/audit/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/auth/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/db/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/deploy/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/environments/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/factory/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/frontend/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/github/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/grants/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/knowledge/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/monitor/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/policy/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/projects/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/site/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/slack/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/sync/main.ts"
-              },
-              {
                 "file": "platform/services/stagecraft/infra.config.hetzner.json"
               },
               {
@@ -31629,9 +31504,6 @@
               },
               {
                 "file": "platform/services/stagecraft/tsconfig.json"
-              },
-              {
-                "file": "platform/services/stagecraft/tsconfig.tsbuildinfo"
               },
               {
                 "file": "platform/services/stagecraft/vite.config.ts"
@@ -33666,24 +33538,6 @@
               },
               {
                 "file": "crates/xray/tests/index_format_test.rs"
-              },
-              {
-                "file": "crates/xray/tests/outputs/index_format/history.jsonl"
-              },
-              {
-                "file": "crates/xray/tests/outputs/index_format/index.json"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run1/history.jsonl"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run1/index.json"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run2/history.jsonl"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run2/index.json"
               }
             ],
             "ownership": false,
@@ -33754,8 +33608,148 @@
         "specStatus": "draft"
       },
       {
-        "implementingPaths": [],
+        "dependsOn": [
+          "101",
+          "103",
+          "127",
+          "128",
+          "131",
+          "133",
+          "134",
+          "135"
+        ],
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src-tauri/resources/claude-hooks",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/resources/claude-hooks.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/tauri.conf.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/lib/hooksManager.spec166.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/lib/hooksManager.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/types/hooks.ts",
+            "source": "spec-implements"
+          }
+        ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/_lib.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-index.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-index.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-workflow-pins.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/tests/run-tests.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/desktop/src-tauri/resources/claude-hooks"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/resources/claude-hooks.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/tauri.conf.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/tauri.conf.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/lib/hooksManager.spec166.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/lib/hooksManager.spec166.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/lib/hooksManager.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/lib/hooksManager.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/types/hooks.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/types/hooks.ts"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -33814,7 +33808,7 @@
           }
         ],
         "specId": "166-opc-stop-hook-gate-chain",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -35449,7 +35443,6 @@
       "149-saml-auth-driver",
       "150-example-tenant-profile",
       "157-opc-session-model",
-      "166-opc-stop-hook-gate-chain",
       "168-per-project-governance-certificate",
       "172-opc-live-agent-session-introspection",
       "174-codification-gate"

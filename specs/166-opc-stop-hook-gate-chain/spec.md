@@ -21,6 +21,26 @@ code_aliases: ["OPC_STOP_GATES", "CONVERSATION_TIME_GATES"]
 establishes:
   - unit: { kind: file, path: product/apps/desktop/src-tauri/resources/claude-hooks.json }
   - unit: { kind: directory, path: product/apps/desktop/src-tauri/resources/claude-hooks }
+extends:
+  # The OPC desktop crate is co-authored under spec 032 (OPC inspect +
+  # governance wiring MVP). Spec 166 additively adds:
+  #   - a platform tier + platform-mandatory floor to the existing
+  #     hooks merge surface (hooksManager.ts, types/hooks.ts), and
+  #   - a new bundle.resources entry pointing at the bundled hook
+  #     configuration (tauri.conf.json).
+  # No behavioural change to spec 032's existing claims.
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/lib/hooksManager.ts }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/lib/hooksManager.spec166.test.ts }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/types/hooks.ts }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/tauri.conf.json }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
