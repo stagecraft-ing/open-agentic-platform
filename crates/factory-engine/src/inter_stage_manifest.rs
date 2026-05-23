@@ -60,7 +60,9 @@ pub struct ManifestSigner {
 pub enum ManifestError {
     #[error("manifest signature verification failed: {0}")]
     SignatureInvalid(String),
-    #[error("signer's ephemeral_key_id {fingerprint} is not registered in run {run_id}'s key chain")]
+    #[error(
+        "signer's ephemeral_key_id {fingerprint} is not registered in run {run_id}'s key chain"
+    )]
     UnknownSigner { run_id: String, fingerprint: String },
     #[error(
         "manifest's run_id {manifest_run_id} does not match expected run {expected_run_id} (cross-run swap)"
@@ -69,7 +71,9 @@ pub enum ManifestError {
         expected_run_id: String,
         manifest_run_id: String,
     },
-    #[error("manifest's to_stage {actual_to_stage} does not match expected receiver {expected_to_stage}")]
+    #[error(
+        "manifest's to_stage {actual_to_stage} does not match expected receiver {expected_to_stage}"
+    )]
     StageMismatch {
         expected_to_stage: String,
         actual_to_stage: String,
@@ -321,13 +325,10 @@ pub fn compute_manifest_signature(manifest: &InterStageManifest, key: &SigningKe
     B64.encode(sig.to_bytes())
 }
 
-fn canonical_bytes_for_signing(
-    manifest: &InterStageManifest,
-) -> Result<Vec<u8>, ManifestError> {
+fn canonical_bytes_for_signing(manifest: &InterStageManifest) -> Result<Vec<u8>, ManifestError> {
     let mut clone = manifest.clone();
     clone.signature = String::new();
-    serde_json::to_vec(&clone)
-        .map_err(|e| ManifestError::Serialization(format!("{e}")))
+    serde_json::to_vec(&clone).map_err(|e| ManifestError::Serialization(format!("{e}")))
 }
 
 // ── Persistence helpers ──────────────────────────────────────────────
@@ -349,7 +350,8 @@ pub fn persist_manifest(
 
 /// Load a manifest from a JSON file.
 pub fn load_manifest(path: &Path) -> Result<InterStageManifest, ManifestError> {
-    let json = std::fs::read_to_string(path).map_err(|e| ManifestError::Io(format!("read: {e}")))?;
+    let json =
+        std::fs::read_to_string(path).map_err(|e| ManifestError::Io(format!("read: {e}")))?;
     serde_json::from_str(&json).map_err(|e| ManifestError::Serialization(format!("{e}")))
 }
 
@@ -596,12 +598,8 @@ pub fn generate_chain_from_run_dir(
                 continue;
             }
             if let Some(hashes) = collect_stage_artifact_hashes(run_dir, from) {
-                let m = signer.sign_handoff(
-                    from,
-                    "s6h-final-validation",
-                    hashes,
-                    BTreeMap::new(),
-                )?;
+                let m =
+                    signer.sign_handoff(from, "s6h-final-validation", hashes, BTreeMap::new())?;
                 manifests.push(m);
             }
         }
@@ -632,7 +630,11 @@ fn collect_stage_artifact_hashes(
         let name = path.file_name()?.to_string_lossy().into_owned();
         hashes.insert(name, hash);
     }
-    if hashes.is_empty() { None } else { Some(hashes) }
+    if hashes.is_empty() {
+        None
+    } else {
+        Some(hashes)
+    }
 }
 
 // ── Tests ────────────────────────────────────────────────────────────
@@ -703,7 +705,10 @@ mod tests {
             .insert("svc.json".into(), "tamperedhash".into());
 
         let err = verify_manifest(&manifest, &chain, None).unwrap_err();
-        assert!(matches!(err, ManifestError::SignatureInvalid(_)), "got {err:?}");
+        assert!(
+            matches!(err, ManifestError::SignatureInvalid(_)),
+            "got {err:?}"
+        );
     }
 
     #[test]
@@ -732,7 +737,10 @@ mod tests {
 
         let err = verify_manifest(&manifest_a, &chain_b, None).unwrap_err();
         // run_id mismatch wins before we even look up the fingerprint.
-        assert!(matches!(err, ManifestError::RunIdMismatch { .. }), "got {err:?}");
+        assert!(
+            matches!(err, ManifestError::RunIdMismatch { .. }),
+            "got {err:?}"
+        );
     }
 
     #[test]
@@ -755,7 +763,10 @@ mod tests {
         );
 
         let err = verify_manifest(&manifest, &chain, None).unwrap_err();
-        assert!(matches!(err, ManifestError::UnknownSigner { .. }), "got {err:?}");
+        assert!(
+            matches!(err, ManifestError::UnknownSigner { .. }),
+            "got {err:?}"
+        );
     }
 
     #[test]
@@ -779,7 +790,10 @@ mod tests {
         );
 
         let err = verify_manifest(&manifest, &chain, Some("s4")).unwrap_err();
-        assert!(matches!(err, ManifestError::StageMismatch { .. }), "got {err:?}");
+        assert!(
+            matches!(err, ManifestError::StageMismatch { .. }),
+            "got {err:?}"
+        );
     }
 
     #[test]

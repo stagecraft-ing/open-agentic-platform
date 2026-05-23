@@ -602,15 +602,15 @@ fn verify_certificate_signature(cert: &GovernanceCertificate) -> Result<(), Stri
         );
     }
     if cert.cert_signature.is_empty() {
-        return Err("certificate is unsigned (cert_signature empty) — rejected per FR-008.1".into());
+        return Err(
+            "certificate is unsigned (cert_signature empty) — rejected per FR-008.1".into(),
+        );
     }
     let pk_bytes: [u8; 32] = B64
         .decode(&cert.signing_public_key)
         .map_err(|e| format!("signing_public_key base64 decode: {e}"))?
         .try_into()
-        .map_err(|v: Vec<u8>| {
-            format!("signing_public_key length {} != 32", v.len())
-        })?;
+        .map_err(|v: Vec<u8>| format!("signing_public_key length {} != 32", v.len()))?;
     let verifying_key = VerifyingKey::from_bytes(&pk_bytes)
         .map_err(|e| format!("signing_public_key not a valid Ed25519 point: {e}"))?;
     let sig_bytes: [u8; 64] = B64
@@ -1411,9 +1411,7 @@ mod tests {
         assert_eq!(record.isolation_tier, 2);
         assert_eq!(record.command, vec!["cargo", "test"]);
         assert!(record.input_artifact_hashes.contains_key("/in/source.rs"));
-        assert!(record
-            .output_artifact_hashes
-            .contains_key("/out/binary"));
+        assert!(record.output_artifact_hashes.contains_key("/out/binary"));
         assert_eq!(record.resource_peak.cpu_milli_peak, 250);
         assert_eq!(record.exit_code, 0);
         assert!(!record.deadline_hit);
@@ -1446,10 +1444,7 @@ mod tests {
         let stage = StageRecord {
             stage_id: "s0-preflight".into(),
             status: StageOutcome::Passed,
-            artifact_hashes: BTreeMap::from([(
-                "preflight.json".into(),
-                "h".repeat(64),
-            )]),
+            artifact_hashes: BTreeMap::from([("preflight.json".into(), "h".repeat(64))]),
             gate_result: None,
             duration_ms: None,
             sandbox_execution: None,
@@ -1536,9 +1531,7 @@ mod tests {
 
     #[test]
     fn cert_with_inter_stage_chain_round_trips_and_verifies() {
-        use crate::inter_stage_manifest::{
-            RunKeyChain, StageHandoffSigner,
-        };
+        use crate::inter_stage_manifest::{RunKeyChain, StageHandoffSigner};
         let tmp = tempfile::tempdir().unwrap();
         let run_dir = tmp.path().to_path_buf();
         let mut signer = StageHandoffSigner::establish("run-cert-chain", &run_dir).unwrap();
@@ -1616,7 +1609,10 @@ mod tests {
         let result = verify_certificate(&cert, None);
         assert!(!result.valid, "tampered manifest should fail");
         assert!(
-            result.errors.iter().any(|e| e.contains("inter-stage manifest s0→s1")),
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("inter-stage manifest s0→s1")),
             "expected manifest-level diagnostic; got: {:?}",
             result.errors
         );
@@ -1652,7 +1648,10 @@ mod tests {
         let result = verify_certificate(&cert, None);
         assert!(!result.valid, "mismatched run_id should fail");
         assert!(
-            result.errors.iter().any(|e| e.contains("does not match certificate pipeline_run_id")),
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("does not match certificate pipeline_run_id")),
             "got: {:?}",
             result.errors
         );

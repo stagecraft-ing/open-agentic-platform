@@ -253,10 +253,11 @@ impl FactoryEngine {
     ) -> Result<ExtractingPipelineStartResult, FactoryError> {
         let cfg = ExtractionStageConfig::from_env(project_id.clone().unwrap_or_default());
         let report = run_extraction_stage(bundles, store, client, &cfg, cancel).await?;
-        let context_md = render_s1_context_md(bundles, &report, store)
-            .map_err(|e| FactoryError::ManifestGeneration {
+        let context_md = render_s1_context_md(bundles, &report, store).map_err(|e| {
+            FactoryError::ManifestGeneration {
                 reason: format!("render s1-context.md: {e}"),
-            })?;
+            }
+        })?;
         let context_artifact = store
             .store_bytes(context_md.as_bytes(), "s1-context.md")
             .map_err(|e| FactoryError::ManifestGeneration {
@@ -264,9 +265,7 @@ impl FactoryEngine {
             })?;
         let business_doc_paths = vec![PathBuf::from(&context_artifact.storage_path)];
         let mut start = self.start_pipeline(adapter_name, &business_doc_paths, project_id)?;
-        start
-            .pipeline_state
-            .record_extraction_summary(&report);
+        start.pipeline_state.record_extraction_summary(&report);
         Ok(ExtractingPipelineStartResult {
             run_id: start.run_id,
             manifest: start.manifest,
@@ -315,11 +314,13 @@ impl FactoryEngine {
     ) -> Result<InterStageManifest, FactoryError> {
         let mut artifact_hashes = std::collections::BTreeMap::new();
         for (name, path) in artifact_paths {
-            let contents =
-                std::fs::read(path).map_err(|e| FactoryError::SignedHandoff {
-                    reason: format!("read {}: {e}", path.display()),
-                })?;
-            artifact_hashes.insert(name.clone(), crate::governance_certificate::sha256_bytes(&contents));
+            let contents = std::fs::read(path).map_err(|e| FactoryError::SignedHandoff {
+                reason: format!("read {}: {e}", path.display()),
+            })?;
+            artifact_hashes.insert(
+                name.clone(),
+                crate::governance_certificate::sha256_bytes(&contents),
+            );
         }
         let manifest = signer.sign_handoff(from_stage, to_stage, artifact_hashes, metadata)?;
         Ok(manifest)
@@ -353,19 +354,17 @@ impl FactoryEngine {
         toolchain_mode: crate::kernel_emission::ToolchainMode,
         source_commit: String,
     ) -> Result<crate::kernel_emission::KernelEmissionReport, FactoryError> {
-        let manifest =
-            self.adapter_registry
-                .get(adapter_name)
-                .ok_or_else(|| FactoryError::AdapterNotFound {
-                    name: adapter_name.into(),
-                })?;
-
-        // Hash the adapter manifest payload for `.kernel-version`.
-        let manifest_yaml = serde_yaml::to_string(&manifest).map_err(|e| {
-            FactoryError::InvalidBuildSpec {
-                reason: format!("adapter-manifest serialize: {e}"),
+        let manifest = self.adapter_registry.get(adapter_name).ok_or_else(|| {
+            FactoryError::AdapterNotFound {
+                name: adapter_name.into(),
             }
         })?;
+
+        // Hash the adapter manifest payload for `.kernel-version`.
+        let manifest_yaml =
+            serde_yaml::to_string(&manifest).map_err(|e| FactoryError::InvalidBuildSpec {
+                reason: format!("adapter-manifest serialize: {e}"),
+            })?;
         let manifest_hash =
             crate::kernel_emission::gather::hash_adapter_manifest(manifest_yaml.as_bytes());
 
@@ -376,7 +375,9 @@ impl FactoryEngine {
         };
 
         let cfg = crate::kernel_emission::KernelEmissionConfig {
-            source: crate::kernel_emission::KernelSource::from_repo_root(oap_repo_root.to_path_buf()),
+            source: crate::kernel_emission::KernelSource::from_repo_root(
+                oap_repo_root.to_path_buf(),
+            ),
             target_root: target_root.to_path_buf(),
             adapter: adapter_identity,
             scaffolded_paths,

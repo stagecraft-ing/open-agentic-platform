@@ -14,6 +14,7 @@ pub mod agent_resolver;
 pub mod artifact_store;
 pub mod checks;
 pub mod engine;
+pub mod factory_root;
 pub mod gate;
 pub mod governance_certificate;
 pub mod harness_state;
@@ -25,7 +26,6 @@ pub mod pipeline_state;
 pub mod policy_shard;
 pub mod preflight;
 pub mod project_config;
-pub mod factory_root;
 pub mod sandbox;
 pub mod stagecraft_client;
 pub mod stages;
@@ -46,7 +46,8 @@ pub use engine::{
 };
 pub use governance_certificate::{
     CertificateBuilder, GovernanceCertificate, InterStageChainRecord, generate_certificate,
-    persist_certificate, validate_spec_id_resolution, verify_certificate, write_validation_warnings,
+    persist_certificate, validate_spec_id_resolution, verify_certificate,
+    write_validation_warnings,
 };
 pub use inter_stage_manifest::{
     InterStageManifest, KEYCHAIN_FILENAME, ManifestError, ManifestSignInputs, ManifestSigner,

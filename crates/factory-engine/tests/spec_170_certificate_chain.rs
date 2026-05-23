@@ -89,7 +89,10 @@ fn sc_002_tampered_artifact_hash_breaks_cert_verify() {
     let result = verify_certificate(&cert, None);
     assert!(!result.valid);
     assert!(
-        result.errors.iter().any(|e| e.contains("inter-stage manifest s0→s1")),
+        result
+            .errors
+            .iter()
+            .any(|e| e.contains("inter-stage manifest s0→s1")),
         "expected manifest-level diagnostic; errors: {:?}",
         result.errors
     );
@@ -124,7 +127,10 @@ fn sc_003_cross_run_swap_rejected_by_cert_verify() {
     let result = verify_certificate(&tampered, None);
     assert!(!result.valid);
     assert!(
-        result.errors.iter().any(|e| e.contains("does not match certificate pipeline_run_id")),
+        result
+            .errors
+            .iter()
+            .any(|e| e.contains("does not match certificate pipeline_run_id")),
         "expected cross-run diagnostic; errors: {:?}",
         result.errors
     );
@@ -167,11 +173,7 @@ fn sc_004_cli_rejects_tampered_chain() {
             .artifact_hashes
             .insert("s1-out.json".into(), "BAD".into());
     }
-    std::fs::write(
-        &cert_path,
-        serde_json::to_string_pretty(&cert).unwrap(),
-    )
-    .unwrap();
+    std::fs::write(&cert_path, serde_json::to_string_pretty(&cert).unwrap()).unwrap();
 
     let bin = env!("CARGO_BIN_EXE_verify-certificate");
     let output = std::process::Command::new(bin)
@@ -214,7 +216,12 @@ fn sc_005_fanout_chain_verifies_branch_by_branch() {
     // Each branch signs its own onward hand-off to s6h.
     for from in ["s6a-scaffold-init", "s6b-data-Org", "s6c-api-orgs-list"] {
         let m = signer
-            .sign_handoff(from, "s6h-final-validation", BTreeMap::new(), BTreeMap::new())
+            .sign_handoff(
+                from,
+                "s6h-final-validation",
+                BTreeMap::new(),
+                BTreeMap::new(),
+            )
             .unwrap();
         manifests.push(m);
     }

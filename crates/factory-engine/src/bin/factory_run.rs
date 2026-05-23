@@ -5,19 +5,19 @@
 //! Supports `--resume <run-id>` to continue a previously failed pipeline.
 
 use clap::Parser;
+use factory_engine::governance_certificate::{CertificateBuilder, IntentRecord};
+use factory_engine::inter_stage_manifest::generate_chain_from_run_dir;
+use factory_engine::stages::s_minus_1_extract::{KnowledgeBundleRef, sniff_mime_or_fallback};
 use factory_engine::{
     FactoryAgentBridge, FactoryEngine, FactoryEngineConfig, FactoryPipelineState,
     FactoryStandardsResolver, InterStageChainRecord, generate_certificate, persist_certificate,
     validate_spec_id_resolution, write_validation_warnings,
 };
-use factory_engine::governance_certificate::{CertificateBuilder, IntentRecord};
-use factory_engine::inter_stage_manifest::generate_chain_from_run_dir;
 use orchestrator::{
     AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, ClaudeCodeExecutor, CliGateHandler,
     DispatchOptions, GateHandler, ThinkingLevel, detect_resume_plan_for_run, dispatch_manifest,
     materialize_run_directory_with_phase,
 };
-use factory_engine::stages::s_minus_1_extract::{KnowledgeBundleRef, sniff_mime_or_fallback};
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -83,9 +83,7 @@ fn emit_certificate(
             .build()
         }
         Err(e) => {
-            eprintln!(
-                "Warning: failed to generate signed inter-stage manifest chain: {e}"
-            );
+            eprintln!("Warning: failed to generate signed inter-stage manifest chain: {e}");
             base_cert
         }
     };
@@ -146,7 +144,6 @@ fn build_cli_bundles(paths: &[PathBuf]) -> std::io::Result<Vec<KnowledgeBundleRe
     }
     Ok(out)
 }
-
 
 #[derive(Parser)]
 #[command(

@@ -92,13 +92,23 @@ fn fanout_branches_validate_s5_then_sign_independently() {
     s5_hashes.insert("build-spec.yaml".into(), s5_hash);
 
     let m5a = signer
-        .sign_handoff("s5", "s6a-scaffold-init", s5_hashes.clone(), BTreeMap::new())
+        .sign_handoff(
+            "s5",
+            "s6a-scaffold-init",
+            s5_hashes.clone(),
+            BTreeMap::new(),
+        )
         .unwrap();
     let m5b = signer
         .sign_handoff("s5", "s6b-data-Org", s5_hashes.clone(), BTreeMap::new())
         .unwrap();
     let m5c = signer
-        .sign_handoff("s5", "s6c-api-orgs-list", s5_hashes.clone(), BTreeMap::new())
+        .sign_handoff(
+            "s5",
+            "s6c-api-orgs-list",
+            s5_hashes.clone(),
+            BTreeMap::new(),
+        )
         .unwrap();
 
     // s5's signer fingerprint is the same in all three (deterministic).
@@ -112,18 +122,17 @@ fn fanout_branches_validate_s5_then_sign_independently() {
         ("s6b-data-Org", "s6h-final-validation"),
         ("s6c-api-orgs-list", "s6h-final-validation"),
     ] {
-        let branch_artifact = write_artifact(
-            &run_dir.join(from),
-            "result.json",
-            &format!("from {from}"),
-        );
+        let branch_artifact =
+            write_artifact(&run_dir.join(from), "result.json", &format!("from {from}"));
         let bytes = std::fs::read(&branch_artifact).unwrap();
         let mut hashes = BTreeMap::new();
         hashes.insert(
             "result.json".into(),
             factory_engine::governance_certificate::sha256_bytes(&bytes),
         );
-        let m = signer.sign_handoff(from, to, hashes, BTreeMap::new()).unwrap();
+        let m = signer
+            .sign_handoff(from, to, hashes, BTreeMap::new())
+            .unwrap();
         signer.verify_handoff(&m, to).expect("branch verify");
     }
 
@@ -228,13 +237,7 @@ fn engine_seal_stage_handoff_hashes_disk_artifacts() {
     let artifact_paths = vec![("service.yaml".to_string(), path.clone())];
 
     let manifest = engine
-        .seal_stage_handoff(
-            &mut signer,
-            "s2",
-            "s3",
-            &artifact_paths,
-            BTreeMap::new(),
-        )
+        .seal_stage_handoff(&mut signer, "s2", "s3", &artifact_paths, BTreeMap::new())
         .unwrap();
 
     signer.verify_handoff(&manifest, "s3").unwrap();
