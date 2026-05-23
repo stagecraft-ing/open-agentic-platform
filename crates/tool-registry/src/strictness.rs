@@ -163,12 +163,12 @@ fn walk(
 
     // (1) `additionalProperties: true` — direct, on any node (only meaningful
     // for objects, but the keyword could appear on a sibling-typed schema).
-    if let Some(ap) = obj.get("additionalProperties") {
-        if ap.as_bool() == Some(true) {
-            return Err(PermissivePattern::AdditionalPropertiesTrue {
-                json_pointer: format!("{}/additionalProperties", pointer),
-            });
-        }
+    if let Some(ap) = obj.get("additionalProperties")
+        && ap.as_bool() == Some(true)
+    {
+        return Err(PermissivePattern::AdditionalPropertiesTrue {
+            json_pointer: format!("{}/additionalProperties", pointer),
+        });
     }
 
     // (3) Object without properties — only for nodes that explicitly declare
@@ -224,15 +224,15 @@ fn walk(
         }
     }
 
-    if let Some(ap) = obj.get("additionalProperties") {
-        if ap.is_object() {
-            walk(
-                root,
-                ap,
-                &format!("{}/additionalProperties", pointer),
-                visited,
-            )?;
-        }
+    if let Some(ap) = obj.get("additionalProperties")
+        && ap.is_object()
+    {
+        walk(
+            root,
+            ap,
+            &format!("{}/additionalProperties", pointer),
+            visited,
+        )?;
     }
 
     if let Some(items) = obj.get("items") {
