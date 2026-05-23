@@ -718,10 +718,77 @@ impl SqliteWorkflowStore {
 }
 
 // ---------------------------------------------------------------------------
-// Workspace-scoped queries (099 Slice 5)
+// Workspace-scoped queries (099 Slice 5, spec 173 §2.2)
 // ---------------------------------------------------------------------------
 
 impl SqliteWorkflowStore {
+    /// List workflow summaries for a given filesystem `project_path`
+    /// (spec 173 FR-003, §2.2). Results are sorted by `started_at` DESC
+    /// (most recent first) to support spec 172's Live Sessions panel.
+    ///
+    /// `project_path` is the spec 157 JSONL-authoritative filesystem path.
+    /// Two OPC sessions for the same workstation path accumulate in the
+    /// same bucket; the orchestrator does not disambiguate by developer
+    /// identity (spec 173 FR-005, inheriting spec 157 §4).
+    ///
+    /// Workflows initiated outside OPC (`project_path` IS NULL) are
+    /// excluded from this surface — they remain reachable via the
+    /// existing per-task and per-project-id surfaces.
+    pub async fn list_workflows_by_project_path(
+        &self,
+        project_path: &str,
+        limit: Option<u32>,
+    ) -> Result<Vec<crate::state::WorkflowStateSummary>, OrchestratorError> {
+        let conn = Arc::clone(&self.conn);
+        let path = project_path.to_string();
+        let lim = limit.unwrap_or(50) as i64;
+        tokio::task::spawn_blocking(move || {
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite conn: {e}"),
+                })?;
+            let mut stmt = guard
+                .prepare(
+                    "SELECT workflow_id, workflow_name, status, started_at, project_id,
+                            project_path, originating_session
+                     FROM workflows
+                     WHERE project_path = ?1
+                     ORDER BY started_at DESC
+                     LIMIT ?2",
+                )
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("prepare list_workflows_by_project_path: {e}"),
+                })?;
+            let rows = stmt
+                .query_map(rusqlite::params![path, lim], |row| {
+                    Ok(crate::state::WorkflowStateSummary {
+                        workflow_id: row.get(0)?,
+                        workflow_name: row.get(1)?,
+                        status: row.get(2)?,
+                        started_at: row.get(3)?,
+                        project_id: row.get(4)?,
+                        project_path: row.get(5)?,
+                        originating_session: row.get(6)?,
+                    })
+                })
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("query list_workflows_by_project_path: {e}"),
+                })?;
+            let mut results = Vec::new();
+            for row in rows {
+                results.push(row.map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("map row: {e}"),
+                })?);
+            }
+            Ok(results)
+        })
+        .await
+        .map_err(|e| OrchestratorError::StatePersistence {
+            reason: format!("spawn_blocking: {e}"),
+        })?
+    }
+
     /// List workflow summaries for a given project_id (099 Slice 5 (project-scoped per spec 119)).
     pub async fn list_workflows_by_project(
         &self,

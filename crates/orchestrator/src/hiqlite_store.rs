@@ -151,6 +151,43 @@ impl HiqliteWorkflowStore {
         Ok(())
     }
 
+    /// List workflow summaries for a given filesystem `project_path`
+    /// (spec 173 FR-003, §2.2). Mirrors the SqliteWorkflowStore surface.
+    pub async fn list_workflows_by_project_path(
+        &self,
+        project_path: &str,
+        limit: Option<u32>,
+    ) -> Result<Vec<crate::state::WorkflowStateSummary>, OrchestratorError> {
+        let lim = limit.unwrap_or(50) as i64;
+        let rows: Vec<ProjectSummaryRow> = self
+            .client
+            .query_as(
+                "SELECT workflow_id, workflow_name, status, started_at, project_id,
+                        project_path, originating_session
+                 FROM workflows
+                 WHERE project_path = $1
+                 ORDER BY started_at DESC
+                 LIMIT $2",
+                vec![Param::Text(project_path.to_string()), Param::Integer(lim)],
+            )
+            .await
+            .map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("list_workflows_by_project_path: {e}"),
+            })?;
+        Ok(rows
+            .into_iter()
+            .map(|r| crate::state::WorkflowStateSummary {
+                workflow_id: r.workflow_id,
+                workflow_name: r.workflow_name,
+                status: r.status,
+                started_at: r.started_at,
+                project_id: r.project_id,
+                project_path: r.project_path,
+                originating_session: r.originating_session,
+            })
+            .collect())
+    }
+
     /// List workflow summaries for a given project_id (099 Slice 5 (project-scoped per spec 119)).
     pub async fn list_workflows_by_project(
         &self,
