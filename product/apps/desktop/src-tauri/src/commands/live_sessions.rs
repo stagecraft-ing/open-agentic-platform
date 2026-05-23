@@ -9,11 +9,27 @@
 //!
 //! Both are read through their owners' typed APIs; this module does not
 //! reach past those APIs to parse persisted state (spec 103, FR-008).
+//!
+//! Also exposes `force_disconnect_session` — spec 172 §2.2 / FR-005 / FR-007.
+//! Force-disconnect runs five steps in order:
+//!
+//!   1. Cancel in-flight work — send abort to the Claude bridge so the SDK's
+//!      AbortController fires before stdin closes (the available primitive
+//!      since the tool-registry has no per-call cancel API).
+//!   2. Close the agent's process via `ProcessRegistry::kill_process`.
+//!   3. Create a checkpoint via the existing CheckpointManager surface so
+//!      conversational state is preserved for forensics (spec 095).
+//!   4. Append a `force_disconnect` event to the orchestrator's scoped event
+//!      store (scope="audit"). This is the substrate the governance
+//!      certificate seals at end-of-run per spec 102 — recording here puts
+//!      the event in the audit chain.
+//!   5. Emit a Tauri event so the TypeScript NotificationOrchestrator can
+//!      surface the disconnect to the session owner (spec 057).
 
 use crate::process::{ActivitySnapshot, ProcessRegistryState, ProcessType};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use tauri::State;
+use tauri::{AppHandle, Emitter, Manager, State};
 
 const SETTINGS_FILE: &str = "spec-172-thresholds.json";
 
@@ -247,6 +263,241 @@ pub async fn get_live_session_thresholds() -> Result<LiveSessionThresholds, Stri
     Ok(load_thresholds())
 }
 
+/// Step-by-step result of `force_disconnect_session` — used by the panel to
+/// surface which of the five steps succeeded.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ForceDisconnectResult {
+    pub session_id: String,
+    pub cancelled_in_flight: bool,
+    pub closed_process: bool,
+    pub checkpoint_id: Option<String>,
+    pub audit_event_id: Option<i64>,
+    pub notified: bool,
+    pub operator: String,
+    pub completed_at: String,
+    /// Non-fatal warnings — steps that did not raise an error but did not
+    /// produce the expected effect (e.g. process already exited before kill).
+    pub warnings: Vec<String>,
+}
+
+/// Persistent audit record written to the orchestrator's scoped event store.
+/// The structure of `payload` is what the governance certificate verifier
+/// will hash at seal-time (spec 102 §FR-007 — the operator is the signer).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ForceDisconnectAuditPayload {
+    pub session_id: String,
+    pub project_path: String,
+    pub project_id: String,
+    pub operator: String,
+    pub reason: Option<String>,
+    pub checkpoint_id: Option<String>,
+    pub at: String,
+}
+
+/// Spec 172 §2.2 / FR-005 / FR-007 — terminate a runaway agent session with
+/// the five-step semantics enumerated at the module docstring.
+#[tauri::command]
+pub async fn force_disconnect_session(
+    app: AppHandle,
+    session_id: String,
+    project_id: String,
+    project_path: String,
+    operator: Option<String>,
+    reason: Option<String>,
+) -> Result<ForceDisconnectResult, String> {
+    let started_at = chrono::Utc::now();
+    let operator = operator.unwrap_or_else(|| "local-operator".to_string());
+    let mut warnings: Vec<String> = Vec::new();
+
+    log::info!(
+        "spec(172): force-disconnect requested by {} for session {}",
+        operator,
+        session_id
+    );
+
+    // Step 1 — cancel in-flight work via Claude bridge abort signal.
+    let cancelled_in_flight = send_bridge_abort(&app).await;
+
+    // Step 2 — kill the underlying process via ProcessRegistry.
+    let closed_process = kill_session_process(&app, &session_id).await?;
+    if !closed_process {
+        warnings.push("session-process-not-found".to_string());
+    }
+
+    // Step 3 — create a checkpoint preserving forensic state.
+    let checkpoint_id = match create_forensic_checkpoint(
+        &app,
+        &session_id,
+        &project_id,
+        &project_path,
+        reason.as_deref(),
+    )
+    .await
+    {
+        Ok(id) => Some(id),
+        Err(e) => {
+            warnings.push(format!("checkpoint-failed: {e}"));
+            None
+        }
+    };
+
+    // Step 4 — append force-disconnect to the audit chain.
+    let payload = ForceDisconnectAuditPayload {
+        session_id: session_id.clone(),
+        project_path: project_path.clone(),
+        project_id: project_id.clone(),
+        operator: operator.clone(),
+        reason: reason.clone(),
+        checkpoint_id: checkpoint_id.clone(),
+        at: started_at.to_rfc3339(),
+    };
+    let audit_event_id = match append_audit_event(&payload).await {
+        Ok(id) => Some(id),
+        Err(e) => {
+            warnings.push(format!("audit-append-failed: {e}"));
+            None
+        }
+    };
+
+    // Step 5 — emit Tauri event so the TS NotificationOrchestrator can fire.
+    let notify_payload = serde_json::json!({
+        "sessionId": session_id,
+        "projectPath": project_path,
+        "operator": operator,
+        "reason": reason,
+        "auditEventId": audit_event_id,
+        "checkpointId": checkpoint_id,
+        "at": started_at.to_rfc3339(),
+    });
+    let notified = app
+        .emit("live-sessions:force-disconnected", notify_payload.clone())
+        .is_ok();
+    if !notified {
+        warnings.push("notify-event-emit-failed".to_string());
+    }
+    // Per-session topic so listeners can subscribe to a specific session id.
+    let _ = app.emit(
+        &format!("live-sessions:force-disconnected:{}", session_id),
+        notify_payload,
+    );
+
+    Ok(ForceDisconnectResult {
+        session_id,
+        cancelled_in_flight,
+        closed_process,
+        checkpoint_id,
+        audit_event_id,
+        notified,
+        operator,
+        completed_at: chrono::Utc::now().to_rfc3339(),
+        warnings,
+    })
+}
+
+async fn send_bridge_abort(app: &AppHandle) -> bool {
+    use tokio::io::AsyncWriteExt;
+
+    let bridge = app.state::<crate::commands::claude::ClaudeBridgeIpcState>();
+    let mut guard = bridge.bridge_stdin.lock().await;
+    let Some(mut stdin) = guard.take() else {
+        return false;
+    };
+    let line = serde_json::to_string(&serde_json::json!({ "type": "abort" }))
+        .unwrap_or_else(|_| r#"{"type":"abort"}"#.to_string());
+    let res = async {
+        stdin
+            .write_all(format!("{}\n", line).as_bytes())
+            .await
+            .map_err(|e| e.to_string())?;
+        stdin.flush().await.map_err(|e| e.to_string())?;
+        Ok::<_, String>(())
+    }
+    .await;
+    match res {
+        Ok(()) => true,
+        Err(e) => {
+            log::warn!("spec(172): bridge abort failed: {e}");
+            false
+        }
+    }
+}
+
+async fn kill_session_process(app: &AppHandle, session_id: &str) -> Result<bool, String> {
+    let registry = app.state::<ProcessRegistryState>();
+    let info_opt = registry
+        .0
+        .get_claude_session_by_id(session_id)
+        .map_err(|e| format!("registry lookup failed: {e}"))?;
+    let Some(info) = info_opt else {
+        return Ok(false);
+    };
+    match registry.0.kill_process(info.run_id).await {
+        Ok(killed) => Ok(killed),
+        Err(e) => {
+            log::warn!("spec(172): registry kill failed: {e}");
+            Ok(false)
+        }
+    }
+}
+
+async fn create_forensic_checkpoint(
+    app: &AppHandle,
+    session_id: &str,
+    project_id: &str,
+    project_path: &str,
+    reason: Option<&str>,
+) -> Result<String, String> {
+    use std::path::PathBuf;
+
+    let checkpoint_state = app.state::<crate::checkpoint::state::CheckpointState>();
+    let manager = checkpoint_state
+        .get_or_create_manager(
+            session_id.to_string(),
+            project_id.to_string(),
+            PathBuf::from(project_path),
+        )
+        .await
+        .map_err(|e| format!("get_or_create_manager: {e}"))?;
+
+    let description = match reason {
+        Some(r) => format!("spec(172) force-disconnect: {r}"),
+        None => "spec(172) force-disconnect".to_string(),
+    };
+
+    let result = manager
+        .create_checkpoint(Some(description), None)
+        .await
+        .map_err(|e| format!("create_checkpoint: {e}"))?;
+    Ok(result.checkpoint.id)
+}
+
+async fn append_audit_event(payload: &ForceDisconnectAuditPayload) -> Result<i64, String> {
+    use orchestrator::store::WorkflowStore;
+
+    let store_path = workflow_db_path();
+    let store = orchestrator::sqlite_state::SqliteWorkflowStore::open(&store_path)
+        .map_err(|e| format!("open audit store: {e}"))?;
+
+    // Spec 172 force-disconnect events are session-scoped: the session id is
+    // not a workflow uuid. We hash it deterministically so the event id is
+    // stable per session for verifier replays.
+    let entity_id = uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_OID, payload.session_id.as_bytes());
+    let payload_value =
+        serde_json::to_value(payload).map_err(|e| format!("serialize audit payload: {e}"))?;
+    store
+        .append_scoped_event(
+            entity_id,
+            "audit",
+            "force_disconnect",
+            &payload_value,
+            Some(payload.at.clone()),
+        )
+        .await
+        .map_err(|e| format!("append_scoped_event: {e}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -343,6 +594,63 @@ mod tests {
             loaded.warning_tool_calls_per_minute,
             LiveSessionThresholds::default().warning_tool_calls_per_minute
         );
+    }
+
+    #[tokio::test]
+    async fn force_disconnect_audit_event_is_written_to_audit_scope() {
+        use orchestrator::store::WorkflowStore;
+
+        // Direct a temp workflow db so we don't poke the host system.
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+        // SAFETY: tests in this crate run single-threaded by default; this
+        // env mutation is scoped to the assertion below.
+        unsafe {
+            std::env::set_var("OPC_WORKFLOW_DB", &db_path);
+        }
+
+        let payload = ForceDisconnectAuditPayload {
+            session_id: "test-session-abc".to_string(),
+            project_path: "/tmp/project".to_string(),
+            project_id: "proj-1".to_string(),
+            operator: "alice".to_string(),
+            reason: Some("runaway tool calls".to_string()),
+            checkpoint_id: Some("ckpt-1".to_string()),
+            at: chrono::Utc::now().to_rfc3339(),
+        };
+
+        let event_id = append_audit_event(&payload).await.expect("append audit");
+        assert!(event_id > 0);
+
+        // Same session id must hash to the same entity uuid so the verifier
+        // can replay forward.
+        let entity =
+            uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_OID, payload.session_id.as_bytes());
+        let store =
+            orchestrator::sqlite_state::SqliteWorkflowStore::open(&db_path).expect("open store");
+        let events = store
+            .load_scoped_events_since(entity, "audit", 0, None)
+            .await
+            .expect("load audit events");
+        assert_eq!(events.len(), 1);
+        let e = &events[0];
+        assert_eq!(e.event_type, "force_disconnect");
+        let written: ForceDisconnectAuditPayload =
+            serde_json::from_value(e.payload.clone()).expect("decode payload");
+        assert_eq!(written.session_id, "test-session-abc");
+        assert_eq!(written.operator, "alice");
+        assert_eq!(written.reason.as_deref(), Some("runaway tool calls"));
+
+        // Cross-scope isolation: querying the workflow scope should not see this.
+        let wf_events = store
+            .load_scoped_events_since(entity, "workflow", 0, None)
+            .await
+            .expect("load workflow events");
+        assert!(wf_events.is_empty());
+
+        unsafe {
+            std::env::remove_var("OPC_WORKFLOW_DB");
+        }
     }
 
     #[test]
