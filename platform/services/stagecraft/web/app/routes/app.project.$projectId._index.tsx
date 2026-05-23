@@ -20,6 +20,11 @@ export default function ProjectOverview() {
       hint: "Documents bound to this project and their state.",
     },
     {
+      to: `${base}/requirements`,
+      label: "Requirements",
+      hint: "Spec spine — the authored intent behind this project's design.",
+    },
+    {
       to: `${base}/agents`,
       label: "Imported agents",
       hint: "Org agents imported into this project via version-pinned bindings.",

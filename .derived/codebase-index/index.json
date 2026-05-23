@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "4f96043ef1f9819aecba2011e22772d1de95bc5951c81bb32cc8367659021585",
+    "contentHash": "f9e9a1d8eb9b1e731174584e0dce4bff7b1fdbf7ba5b479efe8d0a6d41c0533c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -10877,6 +10877,18 @@
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
               },
               {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
               },
               {
@@ -11903,6 +11915,18 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -14035,6 +14059,18 @@
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
               },
               {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
               },
               {
@@ -15688,6 +15724,18 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -21279,6 +21327,12 @@
                 "file": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql"
               },
               {
+                "file": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.up.sql"
+              },
+              {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
               },
               {
@@ -21994,6 +22048,18 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -30712,6 +30778,12 @@
                 "file": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql"
               },
               {
+                "file": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.up.sql"
+              },
+              {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
               },
               {
@@ -31238,6 +31310,30 @@
               },
               {
                 "file": "platform/services/stagecraft/api/slack/slack.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/groupNames.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/registryReader.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/registryReader.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/resolver.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/resolver.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/specRegistry.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/types.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/sync/duplex.ts"
@@ -31933,10 +32029,55 @@
                 "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app._index.ts"
               },
               {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.agents.$agentId.history.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.agents.$agentId.publish.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.agents.$agentId.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.agents._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.agents.new.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.agents.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.adapters.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.contracts.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.processes.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.runs.$runId.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.runs._index.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.ts"
               },
               {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.upstreams.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.agents._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.agents.ts"
               },
               {
                 "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.deploys.ts"
@@ -31949,6 +32090,12 @@
               },
               {
                 "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.pipelines.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.requirements.$specId.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.requirements.ts"
               },
               {
                 "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings._index.ts"
@@ -31966,10 +32113,25 @@
                 "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.github-pat.ts"
               },
               {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.repos.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.ts"
               },
               {
                 "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.projects.$sourceProjectId.clone.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.projects.clone-availability.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.projects.clone-runs.$cloneJobId.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.projects.import.ts"
               },
               {
                 "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.projects.new.ts"
@@ -32063,6 +32225,15 @@
               },
               {
                 "file": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/spec-registry-api.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.ts"
               },
               {
                 "file": "platform/services/stagecraft/web/app/root.tsx"
@@ -32177,6 +32348,12 @@
               },
               {
                 "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.tsx"
               },
               {
                 "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings._index.tsx"
@@ -32759,11 +32936,184 @@
         ],
         "implementingPaths": [
           {
+            "path": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/specRegistry",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/spec-registry-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/web/app/routes",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.tsx",
             "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/groupNames.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/registryReader.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/registryReader.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/resolver.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/resolver.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/specRegistry.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/types.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "platform/services/stagecraft/api/specRegistry"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.down.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.down.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.up.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.up.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/spec-registry-api.server.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/spec-registry-api.server.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.tsx"
+            }
+          },
           {
             "kind": "directory",
             "locations": [
@@ -32876,6 +33226,12 @@
                 "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx"
               },
               {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.$specId.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.requirements.tsx"
+              },
+              {
                 "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings._index.tsx"
               },
               {
@@ -32941,6 +33297,34 @@
             "kind": "file",
             "locations": [
               {
+                "file": "platform/services/stagecraft/api/db/schema.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/schema.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
               }
             ],
@@ -32995,7 +33379,7 @@
           }
         ],
         "specId": "163-stagecraft-requirements-view",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
