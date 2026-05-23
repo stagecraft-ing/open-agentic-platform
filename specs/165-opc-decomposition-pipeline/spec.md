@@ -3,7 +3,7 @@ id: "165-opc-decomposition-pipeline"
 slug: opc-decomposition-pipeline
 title: "OPC decomposition pipeline — reverse-engineering and born-with spec spawning"
 status: draft
-implementation: pending
+implementation: in-progress
 owner: bart
 created: "2026-05-22"
 kind: capability
@@ -19,6 +19,24 @@ depends_on:
   - "156"  # references-edge-provenance-grammar
   - "161"  # knowledge-requirements-provenance-emission (emission contract this spec satisfies)
 code_aliases: ["OPC_DECOMPOSITION", "REVERSE_ENGINEERING_PIPELINE", "BORN_WITH_PIPELINE"]
+establishes:
+  - unit: { kind: directory, path: crates/opc-decomposition-pipeline }
+  - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/decomposition.rs }
+extends:
+  # The OPC desktop's Tauri command boundary is co-authored under the
+  # spec-032 inspect-governance MVP. Spec 165 additively adds a new
+  # command surface (decomposition_run / list_runs / get_run) and the
+  # crate dependency wiring; the touch is mechanical command-table
+  # extension, not behavioural change to spec 032's own claims.
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/Cargo.toml }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/mod.rs }
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/src/lib.rs }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
