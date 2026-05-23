@@ -27,6 +27,16 @@ refines:
     unit: { kind: file, path: crates/tool-registry/src/types.rs }
   - aspect: "permissive-schema-bridge"
     unit: { kind: file, path: crates/axiomregent/src/registry_bridge.rs }
+extends:
+  - spec: "067-tool-definition-registry"
+    nature: additive
+    unit: { kind: file, path: crates/tool-registry/Cargo.toml }
+  - spec: "067-tool-definition-registry"
+    nature: additive
+    unit: { kind: file, path: crates/tool-registry/src/tests.rs }
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

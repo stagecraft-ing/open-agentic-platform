@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "195c22bbe6527724cb915c7f1b4b963879871a379d28cd9bd4c3425565290300",
+    "contentHash": "abf73232de652bc0ff08f80eadc077a6894d1053ed25477145cafd97399a05c9",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -34722,6 +34722,14 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/tool-registry/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/tool-registry/src/async_registry.rs",
             "source": "spec-implements"
           },
@@ -34735,6 +34743,10 @@
           },
           {
             "path": "crates/tool-registry/src/strictness.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/tool-registry/src/tests.rs",
             "source": "spec-implements"
           },
           {
@@ -34755,6 +34767,48 @@
             "unit": {
               "kind": "file",
               "path": "crates/tool-registry/src/strictness.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/tool-registry/Cargo.toml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/tool-registry/Cargo.toml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/tool-registry/src/tests.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/tool-registry/src/tests.rs"
             }
           },
           {
