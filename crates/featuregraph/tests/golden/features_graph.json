@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:6d8a22240868cd35a845fbcc7ce3d4f6c116d57cc94260cb5cc9de740323d6c5",
+  "graph_fingerprint": "sha256:1afa1d2624ece5554d36890492946d2c725c6f98c6004303205047f5d9690e97",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3089,8 +3089,8 @@
       "feature_id": "164-stagecraft-development-lifecycle-board",
       "title": "Pipelines → Development rename, lifecycle-state board over spec-spine states",
       "spec_path": "specs/164-stagecraft-development-lifecycle-board/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",

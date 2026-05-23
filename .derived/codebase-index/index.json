@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "4e3eea3d4312653f857c4eab591f6dfe4845c8ab8768e36d0437f5ce6ffd105e",
+    "contentHash": "49a84623feeacfad318bdb6b00c5de9a2554d05623f0b50850bc010cd386b2e3",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1801,6 +1801,12 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
+              {
                 "file": "crates/orchestrator/Cargo.toml"
               },
               {
@@ -1904,6 +1910,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -8773,6 +8785,12 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/policy-kernel/.DS_Store"
+              },
+              {
+                "file": "crates/policy-kernel/Cargo.lock"
+              },
+              {
                 "file": "crates/policy-kernel/Cargo.toml"
               },
               {
@@ -8822,6 +8840,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/tool-registry/.DS_Store"
+              },
+              {
+                "file": "crates/tool-registry/Cargo.lock"
+              },
               {
                 "file": "crates/tool-registry/Cargo.toml"
               },
@@ -8928,6 +8952,33 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/axiomregent/.DS_Store"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/state_machine/db/axiomregent.db"
+              },
+              {
+                "file": "crates/axiomregent/Cargo.lock"
+              },
               {
                 "file": "crates/axiomregent/Cargo.toml"
               },
@@ -9355,6 +9406,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -10124,6 +10181,12 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
+              {
                 "file": "crates/orchestrator/Cargo.toml"
               },
               {
@@ -10232,6 +10295,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -10709,6 +10778,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/policy-kernel/.DS_Store"
+              },
+              {
+                "file": "crates/policy-kernel/Cargo.lock"
+              },
               {
                 "file": "crates/policy-kernel/Cargo.toml"
               },
@@ -12883,6 +12958,12 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/tool-registry/.DS_Store"
+              },
+              {
+                "file": "crates/tool-registry/Cargo.lock"
+              },
+              {
                 "file": "crates/tool-registry/Cargo.toml"
               },
               {
@@ -12933,6 +13014,12 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/policy-kernel/.DS_Store"
+              },
+              {
+                "file": "crates/policy-kernel/Cargo.lock"
+              },
+              {
                 "file": "crates/policy-kernel/Cargo.toml"
               },
               {
@@ -12982,6 +13069,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/policy-kernel/.DS_Store"
+              },
+              {
+                "file": "crates/policy-kernel/Cargo.lock"
+              },
               {
                 "file": "crates/policy-kernel/Cargo.toml"
               },
@@ -13264,6 +13357,15 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "platform/infra/.DS_Store"
+              },
+              {
+                "file": "platform/infra/hetzner/.DS_Store"
+              },
+              {
+                "file": "platform/infra/hetzner/.env"
+              },
+              {
                 "file": "platform/infra/hetzner/.env.example"
               },
               {
@@ -13273,10 +13375,16 @@
                 "file": "platform/infra/hetzner/cluster.yaml"
               },
               {
+                "file": "platform/infra/hetzner/kubeconfig"
+              },
+              {
                 "file": "platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml"
               },
               {
                 "file": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml"
+              },
+              {
+                "file": "platform/infra/hetzner/mirrord/.stagecraft.env"
               },
               {
                 "file": "platform/infra/hetzner/mirrord/deployd-api.yaml"
@@ -13465,6 +13573,9 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "platform/services/deployd-api-rs/.DS_Store"
+              },
+              {
                 "file": "platform/services/deployd-api-rs/.dockerignore"
               },
               {
@@ -13508,6 +13619,33 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/axiomregent/.DS_Store"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/state_machine/db/axiomregent.db"
+              },
+              {
+                "file": "crates/axiomregent/Cargo.lock"
+              },
               {
                 "file": "crates/axiomregent/Cargo.toml"
               },
@@ -13748,6 +13886,9 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/factory-contracts/.DS_Store"
+              },
               {
                 "file": "crates/factory-contracts/Cargo.toml"
               },
@@ -15106,6 +15247,12 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
+              {
                 "file": "crates/orchestrator/Cargo.toml"
               },
               {
@@ -15387,6 +15534,9 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/factory-contracts/.DS_Store"
+              },
+              {
                 "file": "crates/factory-contracts/Cargo.toml"
               },
               {
@@ -15451,6 +15601,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -17475,6 +17631,27 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/xray/.DS_Store"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs/0000000000000001.wal"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs/meta.hql"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs_cache/0000000000000001.wal"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs_cache/meta.hql"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/state_machine/db/axiomregent.db"
+              },
+              {
+                "file": "crates/xray/Cargo.lock"
+              },
+              {
                 "file": "crates/xray/Cargo.toml"
               },
               {
@@ -17566,6 +17743,24 @@
               },
               {
                 "file": "crates/xray/tests/index_format_test.rs"
+              },
+              {
+                "file": "crates/xray/tests/outputs/index_format/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/index_format/index.json"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run1/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run1/index.json"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run2/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run2/index.json"
               }
             ],
             "ownership": true,
@@ -18221,6 +18416,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/tool-registry/.DS_Store"
+              },
+              {
+                "file": "crates/tool-registry/Cargo.lock"
+              },
               {
                 "file": "crates/tool-registry/Cargo.toml"
               },
@@ -20829,6 +21030,11 @@
           },
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": ".derived/codebase-index/CODEBASE-INDEX.md"
+              }
+            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -21576,6 +21782,9 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/factory-contracts/.DS_Store"
+              },
+              {
                 "file": "crates/factory-contracts/Cargo.toml"
               },
               {
@@ -21640,6 +21849,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -22848,6 +23063,9 @@
           {
             "kind": "directory",
             "locations": [
+              {
+                "file": "specs/000-bootstrap-spec-system/.DS_Store"
+              },
               {
                 "file": "specs/000-bootstrap-spec-system/checklists/requirements.md"
               },
@@ -30264,6 +30482,12 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "platform/services/stagecraft/.DS_Store"
+              },
+              {
+                "file": "platform/services/stagecraft/.encore/manifest.json"
+              },
+              {
                 "file": "platform/services/stagecraft/.github/workflows/deploy.yml"
               },
               {
@@ -31284,6 +31508,441 @@
                 "file": "platform/services/stagecraft/encore.app"
               },
               {
+                "file": "platform/services/stagecraft/encore.gen/.DS_Store"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/auth.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/auth/index.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/auth/index.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/auth/index.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/auth/index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/clients/index.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/clients/index.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/.DS_Store"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/auth/auth.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/auth/auth.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/auth/auth.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/auth/auth.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/.DS_Store"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/combined/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/combined/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/combined/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/combined/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/gateways/api-gateway/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/gateways/api-gateway/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/gateways/api-gateway/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/gateways/api-gateway/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/admin/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/admin/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/admin/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/admin/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/agents/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/agents/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/agents/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/agents/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/audit/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/audit/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/audit/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/audit/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/auth/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/auth/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/auth/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/auth/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/db/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/db/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/db/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/db/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/deploy/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/deploy/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/deploy/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/deploy/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/environments/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/factory/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/factory/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/factory/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/factory/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/frontend/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/frontend/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/frontend/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/frontend/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/github/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/github/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/github/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/github/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/grants/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/grants/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/grants/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/grants/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/knowledge/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/knowledge/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/knowledge/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/knowledge/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/monitor/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/monitor/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/monitor/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/monitor/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/policy/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/policy/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/policy/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/policy/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/projects/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/projects/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/projects/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/projects/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/site/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/site/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/site/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/site/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/slack/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/slack/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/slack/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/slack/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/sync/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/sync/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/sync/main.js.map"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/sync/main.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/infra.config.hetzner.json"
               },
               {
@@ -31329,6 +31988,9 @@
                 "file": "platform/services/stagecraft/spec/features.yaml"
               },
               {
+                "file": "platform/services/stagecraft/test/.DS_Store"
+              },
+              {
                 "file": "platform/services/stagecraft/test/__mocks__/encore-api.ts"
               },
               {
@@ -31356,10 +32018,190 @@
                 "file": "platform/services/stagecraft/tsconfig.json"
               },
               {
+                "file": "platform/services/stagecraft/tsconfig.tsbuildinfo"
+              },
+              {
                 "file": "platform/services/stagecraft/vite.config.ts"
               },
               {
+                "file": "platform/services/stagecraft/web/.DS_Store"
+              },
+              {
                 "file": "platform/services/stagecraft/web/.gitignore"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/+future.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/+routes.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/+server-build.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/+types/root.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/_index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.audit.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.oidc-providers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.projects.$id.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.projects._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.projects.new.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.projects.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.sessions.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.signin.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.users.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.agents.$agentId.history.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.agents.$agentId.publish.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.agents.$agentId.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.agents._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.agents.new.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.agents.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.adapters.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.contracts.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.processes.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.runs.$runId.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.runs._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.upstreams.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.agents._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.agents.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.deploys.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.knowledge.$id.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.knowledge.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.pipelines.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.requirements.$specId.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.requirements.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.connectors.$id.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.connectors.new.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.connectors.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.github-pat.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.repos.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.projects.$sourceProjectId.clone.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.projects.clone-availability.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.projects.clone-runs.$cloneJobId.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.projects.import.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.projects.new.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/auth.no-org.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/auth.org-select.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/signin.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/signup.ts"
               },
               {
                 "file": "platform/services/stagecraft/web/README.md"
@@ -31369,6 +32211,9 @@
               },
               {
                 "file": "platform/services/stagecraft/web/api.tools.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/.DS_Store"
               },
               {
                 "file": "platform/services/stagecraft/web/app/app.css"
@@ -31435,6 +32280,12 @@
               },
               {
                 "file": "platform/services/stagecraft/web/app/lib/spec-registry-api.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/spec-registry-board.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/spec-registry-board.ts"
               },
               {
                 "file": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts"
@@ -31546,6 +32397,9 @@
               },
               {
                 "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx"
               },
               {
                 "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx"
@@ -31907,7 +32761,13 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "crates/factory-engine/.DS_Store"
+              },
+              {
                 "file": "crates/factory-engine/Cargo.toml"
+              },
+              {
+                "file": "crates/factory-engine/src/.DS_Store"
               },
               {
                 "file": "crates/factory-engine/src/agent_bridge.rs"
@@ -32463,6 +33323,9 @@
                 "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx"
               },
               {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx"
+              },
+              {
                 "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx"
               },
               {
@@ -32639,11 +33502,173 @@
         ],
         "implementingPaths": [
           {
+            "path": "platform/services/stagecraft/api/specRegistry/registryReader.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/specRegistry/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/spec-registry-board.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/spec-registry-board.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx",
             "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/spec-registry-board.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/spec-registry-board.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/spec-registry-board.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/spec-registry-board.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/registryReader.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/specRegistry/registryReader.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/specRegistry/types.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/specRegistry/types.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -32704,6 +33729,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx"
               }
             ],
@@ -32716,7 +33755,7 @@
           }
         ],
         "specId": "164-stagecraft-development-lifecycle-board",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -32872,6 +33911,33 @@
           {
             "kind": "directory",
             "locations": [
+              {
+                "file": "crates/axiomregent/.DS_Store"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/state_machine/db/axiomregent.db"
+              },
+              {
+                "file": "crates/axiomregent/Cargo.lock"
+              },
               {
                 "file": "crates/axiomregent/Cargo.toml"
               },
@@ -33082,6 +34148,27 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "crates/xray/.DS_Store"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs/0000000000000001.wal"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs/meta.hql"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs_cache/0000000000000001.wal"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs_cache/meta.hql"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/state_machine/db/axiomregent.db"
+              },
+              {
+                "file": "crates/xray/Cargo.lock"
+              },
+              {
                 "file": "crates/xray/Cargo.toml"
               },
               {
@@ -33173,6 +34260,24 @@
               },
               {
                 "file": "crates/xray/tests/index_format_test.rs"
+              },
+              {
+                "file": "crates/xray/tests/outputs/index_format/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/index_format/index.json"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run1/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run1/index.json"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run2/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run2/index.json"
               }
             ],
             "ownership": false,
@@ -33326,7 +34431,13 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "crates/factory-engine/.DS_Store"
+              },
+              {
                 "file": "crates/factory-engine/Cargo.toml"
+              },
+              {
+                "file": "crates/factory-engine/src/.DS_Store"
               },
               {
                 "file": "crates/factory-engine/src/agent_bridge.rs"
@@ -33756,7 +34867,13 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "crates/factory-engine/.DS_Store"
+              },
+              {
                 "file": "crates/factory-engine/Cargo.toml"
+              },
+              {
+                "file": "crates/factory-engine/src/.DS_Store"
               },
               {
                 "file": "crates/factory-engine/src/agent_bridge.rs"
@@ -34170,6 +35287,12 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
+              {
                 "file": "crates/orchestrator/Cargo.toml"
               },
               {
@@ -34268,6 +35391,33 @@
           {
             "kind": "directory",
             "locations": [
+              {
+                "file": "crates/axiomregent/.DS_Store"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/state_machine/db/axiomregent.db"
+              },
+              {
+                "file": "crates/axiomregent/Cargo.lock"
+              },
               {
                 "file": "crates/axiomregent/Cargo.toml"
               },
@@ -34477,6 +35627,12 @@
           {
             "kind": "directory",
             "locations": [
+              {
+                "file": "crates/policy-kernel/.DS_Store"
+              },
+              {
+                "file": "crates/policy-kernel/Cargo.lock"
+              },
               {
                 "file": "crates/policy-kernel/Cargo.toml"
               },

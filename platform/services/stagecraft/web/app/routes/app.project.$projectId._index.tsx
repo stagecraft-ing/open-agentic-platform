@@ -30,9 +30,12 @@ export default function ProjectOverview() {
       hint: "Org agents imported into this project via version-pinned bindings.",
     },
     {
-      to: `${base}/pipelines`,
-      label: "Pipelines",
-      hint: "Factory pipeline runs and stage approvals.",
+      // Spec 164 — renamed from "Pipelines". The route surfaces the
+      // spec-spine lifecycle-state board; factory runs and stage
+      // approvals are overlaid as execution evidence on the cards.
+      to: `${base}/development`,
+      label: "Development",
+      hint: "Spec lifecycle board — authored intent with execution evidence overlays.",
     },
     {
       to: `${base}/deploys`,

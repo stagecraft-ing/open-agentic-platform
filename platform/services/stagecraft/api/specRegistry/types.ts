@@ -18,6 +18,10 @@ export interface SpecListRow {
   kind: string | null;
   /** Spec 147 grammar — categories are an array (a spec can be multi-tagged). */
   categories: string[];
+  /** Spec 164 FR-008 — risk filter dimension. */
+  risk: string | null;
+  /** Spec 164 FR-008 — owner filter dimension. */
+  owner: string | null;
   summary?: string | null;
   specPath: string;
   /** Frontmatter fields not promoted to typed columns. */
