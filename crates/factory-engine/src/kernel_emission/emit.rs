@@ -17,8 +17,13 @@ use chrono::{DateTime, Utc};
 
 use super::adapter_specs::build_scaffold_claim_spec;
 use super::gather::{KernelContent, KernelSource, compute_kernel_hash, gather_kernel_content};
-use super::templates::{TenantGateContext, render_tenant_makefile, render_tenant_workflow};
-use super::version::{AdapterIdentity, KernelOrigin, KernelVersion, ToolchainMode};
+use super::templates::{
+    TenantGateContext, TenantToolchainContext, render_tenant_makefile,
+    render_tenant_toolchain, render_tenant_workflow,
+};
+use super::version::{
+    AdapterIdentity, CertificateToolchainRef, KernelOrigin, KernelVersion, ToolchainMode,
+};
 use super::KernelEmissionError;
 
 /// FR-005: mode is recorded in `.kernel-version` so propagation knows how
@@ -86,17 +91,23 @@ pub fn emit_kernel(
     // pre-compiled registry.json).
     write_kernel_content(&cfg.target_root, &content, &mut written)?;
 
-    // 4. .kernel-version
+    // 4. .kernel-version — records origin + adapter + toolchain mode
+    //    AND, since spec 168, the certificate emitter/verifier identity
+    //    (FR-001 / FR-008).
     let emitted_at = cfg.emitted_at.unwrap_or_else(Utc::now);
+    let factory_engine_version = env!("CARGO_PKG_VERSION").to_string();
     let kernel_version = KernelVersion {
         kernel: KernelOrigin {
             source_commit: cfg.source_commit.clone(),
             source_hash: kernel_hash.clone(),
-            factory_engine_version: env!("CARGO_PKG_VERSION").to_string(),
+            factory_engine_version: factory_engine_version.clone(),
             emitted_at,
         },
         adapter: cfg.adapter.clone(),
         toolchain_mode: cfg.toolchain_mode,
+        certificate_toolchain: Some(CertificateToolchainRef::for_version(
+            &factory_engine_version,
+        )),
     };
     let yaml = kernel_version
         .to_yaml()
@@ -120,7 +131,27 @@ pub fn emit_kernel(
         &mut written,
     )?;
 
-    // 6. Adapter-seeded initial spec draft.
+    // 6. Spec 168 — `.factory/toolchain.yaml` with emitter / verifier
+    //    pin (FR-001). Written regardless of distribution mode: in
+    //    `vendor-binaries` mode the `install` block is documentation,
+    //    and in `pinned-toolchain` mode the tenant CI uses it directly.
+    let toolchain_ctx = TenantToolchainContext::new(
+        &gate_ctx,
+        &factory_engine_version,
+        match cfg.toolchain_mode {
+            ToolchainMode::VendorBinaries => "vendor-binaries",
+            ToolchainMode::PinnedToolchain => "pinned-toolchain",
+        },
+    );
+    let toolchain_yaml = render_tenant_toolchain(&toolchain_ctx)?;
+    write_file(
+        &cfg.target_root,
+        Path::new(".factory/toolchain.yaml"),
+        toolchain_yaml.as_bytes(),
+        &mut written,
+    )?;
+
+    // 7. Adapter-seeded initial spec draft.
     let seed = build_scaffold_claim_spec(
         &cfg.adapter,
         &cfg.scaffolded_paths,
@@ -327,5 +358,78 @@ mod tests {
         let cfg = make_config(source_dir.path(), target.path().to_path_buf());
         let err = emit_kernel(&cfg).unwrap_err();
         assert!(matches!(err, KernelEmissionError::SourceIncomplete(_)));
+    }
+
+    // ── spec 168 §FR-001 / §FR-008 — kernel ships toolchain ref ──
+
+    #[test]
+    fn kernel_emits_factory_toolchain_yaml_referencing_cert_binaries() {
+        let source = tempfile::tempdir().unwrap();
+        write_source_fixture(source.path());
+        let target = tempfile::tempdir().unwrap();
+        let cfg = make_config(source.path(), target.path().to_path_buf());
+
+        let report = emit_kernel(&cfg).unwrap();
+
+        let toolchain_path = target.path().join(".factory/toolchain.yaml");
+        assert!(
+            toolchain_path.exists(),
+            "kernel must emit .factory/toolchain.yaml (spec 168 FR-001)"
+        );
+        assert!(
+            report
+                .written_paths
+                .iter()
+                .any(|p| p == Path::new(".factory/toolchain.yaml")),
+            "written_paths must include the toolchain manifest"
+        );
+
+        let body = fs::read_to_string(&toolchain_path).unwrap();
+        assert!(body.contains("build-certificate"));
+        assert!(body.contains("verify-certificate"));
+        assert!(body.contains("vendor-binaries"));
+    }
+
+    #[test]
+    fn kernel_version_records_certificate_toolchain_field() {
+        let source = tempfile::tempdir().unwrap();
+        write_source_fixture(source.path());
+        let target = tempfile::tempdir().unwrap();
+        let cfg = make_config(source.path(), target.path().to_path_buf());
+
+        let report = emit_kernel(&cfg).unwrap();
+
+        let cert_tc = report
+            .kernel_version
+            .certificate_toolchain
+            .as_ref()
+            .expect("certificate_toolchain must be populated (spec 168 FR-008)");
+        assert_eq!(cert_tc.emitter, "build-certificate");
+        assert_eq!(cert_tc.verifier, "verify-certificate");
+        assert_eq!(
+            cert_tc.factory_engine_version,
+            env!("CARGO_PKG_VERSION"),
+        );
+
+        let yaml = fs::read_to_string(target.path().join(".kernel-version")).unwrap();
+        assert!(yaml.contains("certificate_toolchain"));
+        assert!(yaml.contains("emitter: build-certificate"));
+        assert!(yaml.contains("verifier: verify-certificate"));
+    }
+
+    #[test]
+    fn kernel_toolchain_yaml_reflects_pinned_mode_when_selected() {
+        let source = tempfile::tempdir().unwrap();
+        write_source_fixture(source.path());
+        let target = tempfile::tempdir().unwrap();
+        let mut cfg = make_config(source.path(), target.path().to_path_buf());
+        cfg.toolchain_mode = ToolchainMode::PinnedToolchain;
+
+        emit_kernel(&cfg).unwrap();
+
+        let body =
+            fs::read_to_string(target.path().join(".factory/toolchain.yaml")).unwrap();
+        assert!(body.contains("mode: \"pinned-toolchain\""));
+        assert!(!body.contains("mode: \"vendor-binaries\""));
     }
 }

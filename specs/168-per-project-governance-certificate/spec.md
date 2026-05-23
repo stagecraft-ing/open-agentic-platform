@@ -15,6 +15,7 @@ depends_on:
 code_aliases: ["TENANT_GOVERNANCE_CERTIFICATE", "PER_PROJECT_CERT_EMISSION"]
 establishes:
   - unit: { kind: file, path: crates/factory-engine/tests/tenant_emission_integration.rs }
+  - unit: { kind: file, path: crates/factory-engine/templates/kernel/toolchain.yaml.tmpl }
 extends:
   - spec: "102-governed-excellence"
     nature: additive

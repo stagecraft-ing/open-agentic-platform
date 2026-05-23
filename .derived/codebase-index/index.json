@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "999a03cc54232ae539441bbdfe0e67c46156671a893fb45b9da1694438527040",
+    "contentHash": "58f4b844f2b597601aa17e4c8f74223e11e1035a5f70c83dfdf07833fa6fb0e3",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -33055,6 +33055,9 @@
                 "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
               },
               {
+                "file": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+              },
+              {
                 "file": "crates/factory-engine/tests/agent_resolver_test.rs"
               },
               {
@@ -35102,6 +35105,9 @@
                 "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
               },
               {
+                "file": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+              },
+              {
                 "file": "crates/factory-engine/tests/agent_resolver_test.rs"
               },
               {
@@ -35319,6 +35325,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/factory-engine/tests/kernel_emission_integration.rs",
             "source": "spec-implements"
           },
@@ -35328,6 +35338,20 @@
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -35776,6 +35800,9 @@
               },
               {
                 "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
+              },
+              {
+                "file": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
               },
               {
                 "file": "crates/factory-engine/tests/agent_resolver_test.rs"
