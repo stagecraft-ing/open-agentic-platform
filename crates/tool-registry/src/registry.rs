@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use serde_json::Value;
 
 use crate::event::{ToolEvent, ToolEventKind};
+use crate::strictness::{PermissivePattern, validate_strict_schema};
 use crate::types::{PermissionResult, ToolContext, ToolDef, ToolResult};
 
 /// Validation errors for tool registration and input.
@@ -23,6 +24,25 @@ pub enum RegistryError {
     PermissionDenied { tool: String, reason: String },
     #[error("permission check requires confirmation for tool '{tool}': {prompt}")]
     PermissionAsk { tool: String, prompt: String },
+    /// Spec 169 — schema is permissive and the tool did not opt in via
+    /// `permissive(): true`. Names the specific pattern that triggered
+    /// the rejection (SC-002).
+    #[error(
+        "permissive schema for tool '{tool}' rejected by spec 169: {pattern}; \
+         override with ToolDef::permissive() = true during migration"
+    )]
+    PermissiveSchema {
+        tool: String,
+        pattern: PermissivePattern,
+    },
+}
+
+/// Record of a `permissive: true` registration — used for inventory and
+/// the migration-count contract (SC-005).
+#[derive(Debug, Clone)]
+pub struct PermissiveRegistration {
+    pub tool: String,
+    pub pattern: PermissivePattern,
 }
 
 /// Central registry collecting all tool definitions (FR-002).
@@ -35,6 +55,10 @@ pub struct ToolRegistry {
     /// Optional event sink. When set, `PreToolUse` / `PostToolUse` events
     /// are pushed here during `execute()`.
     event_sink: Option<Box<dyn Fn(ToolEvent) + Send + Sync>>,
+    /// Spec 169 — registrations that opted into permissive schemas via
+    /// `ToolDef::permissive() = true`. Surface this list as a migration
+    /// inventory (SC-005).
+    permissive_registrations: Vec<PermissiveRegistration>,
 }
 
 impl ToolRegistry {
@@ -42,6 +66,7 @@ impl ToolRegistry {
         Self {
             tools: HashMap::new(),
             event_sink: None,
+            permissive_registrations: Vec::new(),
         }
     }
 
@@ -50,7 +75,10 @@ impl ToolRegistry {
         self.event_sink = Some(Box::new(sink));
     }
 
-    /// Register a tool. Rejects duplicate names (FR-006).
+    /// Register a tool. Rejects duplicate names (FR-006). Spec 169:
+    /// rejects permissive schemas unless `ToolDef::permissive() = true`
+    /// is set (migration opt-out); when opted in, records the
+    /// registration so the migration count can be reported.
     pub fn register(&mut self, tool: Box<dyn ToolDef>) -> Result<(), RegistryError> {
         let name = tool.name().to_owned();
 
@@ -63,12 +91,41 @@ impl ToolRegistry {
             ));
         }
 
+        // Spec 169 — strictness gate. Permissive schemas are rejected
+        // unless the tool opts in via `permissive(): true`.
+        if let Err(pattern) = validate_strict_schema(&schema) {
+            if tool.permissive() {
+                log::warn!(
+                    target: "tool_registry::spec169",
+                    "permissive schema accepted for tool '{}' (spec 169 opt-out): {}",
+                    name,
+                    pattern,
+                );
+                self.permissive_registrations
+                    .push(PermissiveRegistration {
+                        tool: name.clone(),
+                        pattern,
+                    });
+            } else {
+                return Err(RegistryError::PermissiveSchema {
+                    tool: name,
+                    pattern,
+                });
+            }
+        }
+
         if self.tools.contains_key(&name) {
             return Err(RegistryError::DuplicateName(name));
         }
 
         self.tools.insert(name, tool);
         Ok(())
+    }
+
+    /// Inventory of permissive (opted-in) registrations recorded by
+    /// `register()`. Drives the migration-count contract (SC-005).
+    pub fn permissive_registrations(&self) -> &[PermissiveRegistration] {
+        &self.permissive_registrations
     }
 
     /// List all registered tools.

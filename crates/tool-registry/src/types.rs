@@ -89,6 +89,17 @@ pub trait ToolDef: Send + Sync {
     /// JSON Schema describing the tool's input parameters.
     fn input_schema(&self) -> Value;
 
+    /// Spec 169 §2.1 — migration opt-out. Overriding to return `true`
+    /// causes the registry to accept a permissive schema for this tool
+    /// with a structured warning instead of rejecting. Default `false`:
+    /// strict-schema enforcement is the structural posture.
+    ///
+    /// A follow-up spec promotes the opt-out to a build error and removes
+    /// the field once in-tree migration is complete (FR-007).
+    fn permissive(&self) -> bool {
+        false
+    }
+
     /// Permission gate — consults the policy kernel before execution (FR-004).
     /// Defaults to `Deny` when no policy kernel is available (FR-020: fail-closed).
     fn can_use(&self, ctx: &ToolContext) -> anyhow::Result<PermissionResult> {

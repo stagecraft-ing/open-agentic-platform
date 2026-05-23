@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:11221f3e33a77a0b5d3233b62a3c757bee75b5a6ae0a7b0e2c0c5d1d34b691c3",
+  "graph_fingerprint": "sha256:c984dc1a53ea377b8f56e0ed6935da35130d8fcc3b9f5c5a1dffe9be1d13790d",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3198,8 +3198,8 @@
       "feature_id": "169-tool-schema-strictness",
       "title": "Per-tool JSON-Schema strictness enforcement — reject permissive ToolDef schemas",
       "spec_path": "specs/169-tool-schema-strictness/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",
