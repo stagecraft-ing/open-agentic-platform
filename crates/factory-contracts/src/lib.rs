@@ -20,6 +20,7 @@ pub mod pattern_resolver;
 pub mod pipeline_state;
 pub mod provenance;
 pub mod provenance_config;
+pub mod sandbox;
 pub mod stakeholder_docs;
 pub mod validation;
 pub mod verification;

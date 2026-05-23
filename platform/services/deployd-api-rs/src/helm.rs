@@ -726,9 +726,9 @@ mod tests {
         // Secret (that's where it must go). It must NOT appear as part of a
         // command-line argument — `ps`-visible argv is the leak path we
         // defend against. The shape we forbid is `--<anything>=<secret>`.
-        let secret_in_argv = format!("=rauthy-secret-xyz");
+        let secret_in_argv = "=rauthy-secret-xyz";
         assert!(
-            !rendered.contains(&secret_in_argv),
+            !rendered.contains(secret_in_argv),
             "client secret value must not appear after `=` in any flag (it would leak via `ps`)"
         );
         // FR-004 invariant — `password` never appears in the Deployment

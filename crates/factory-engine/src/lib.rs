@@ -24,6 +24,7 @@ pub mod policy_shard;
 pub mod preflight;
 pub mod project_config;
 pub mod factory_root;
+pub mod sandbox;
 pub mod stagecraft_client;
 pub mod stages;
 pub mod standards_resolver;
@@ -48,6 +49,7 @@ pub use governance_certificate::{
 pub use manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 pub use pipeline_state::{FactoryPhase, FactoryPipelineState, ScaffoldingProgress};
 pub use policy_shard::generate_factory_policy_shard;
+pub use sandbox::{BackendDescriptor, NullSandboxClient, SandboxClient, SandboxError};
 pub use standards_resolver::FactoryStandardsResolver;
 pub use verify_harness::run_factory_gate_check;
 
@@ -88,4 +90,14 @@ pub enum FactoryError {
 
     #[error("project config error: {0}")]
     ProjectConfig(#[from] project_config::ProjectConfigError),
+
+    /// Spec 162 §FR-009 — adapter-emitted code cannot be exercised
+    /// because no sandbox backend can satisfy the request (or the
+    /// backend rejected it). The pipeline halts; there is no
+    /// host-execution fallback.
+    #[error("sandbox refusal ({category}): {diagnostic}")]
+    SandboxRefusal {
+        category: &'static str,
+        diagnostic: String,
+    },
 }
