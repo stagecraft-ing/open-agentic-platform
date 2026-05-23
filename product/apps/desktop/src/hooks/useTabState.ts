@@ -33,6 +33,8 @@ interface UseTabStateReturn {
   createCallGraphTab: (projectPath?: string) => string | null;
   createGitContextTab: (projectPath?: string) => string | null;
   createCheckpointTab: (projectPath?: string) => string | null;
+  /** Spec 172 — open the Live Sessions panel. Single-instance. */
+  createLiveSessionsTab: (projectPath?: string) => string | null;
   createFactoryTab: (projectPath?: string, bundle?: OpcBundle) => string | null;
   createWorkspaceProjectsTab: () => string | null;
   createPortfolioTab: (projectPath?: string) => string | null;
@@ -396,6 +398,26 @@ export const useTabState = (): UseTabStateReturn => {
     });
   }, [addTab, tabs, setActiveTab, updateTab]);
 
+  // Spec 172 — Live agent-session introspection. Single-instance panel that
+  // surfaces every connected Claude session + active orchestrator workflow
+  // with force-disconnect for runaway agents.
+  const createLiveSessionsTab = useCallback((projectPath?: string): string | null => {
+    const existingTab = tabs.find(tab => tab.type === 'live-sessions');
+    if (existingTab) {
+      if (projectPath) updateTab(existingTab.id, { projectPath });
+      setActiveTab(existingTab.id);
+      return existingTab.id;
+    }
+    return addTab({
+      type: 'live-sessions',
+      title: 'Live Sessions',
+      projectPath,
+      status: 'idle',
+      hasUnsavedChanges: false,
+      icon: 'activity'
+    });
+  }, [addTab, tabs, setActiveTab, updateTab]);
+
   const createFactoryTab = useCallback((projectPath?: string, bundle?: OpcBundle): string | null => {
     const existingTab = tabs.find(tab => tab.type === 'factory');
     if (existingTab) {
@@ -568,6 +590,7 @@ export const useTabState = (): UseTabStateReturn => {
     createCallGraphTab,
     createGitContextTab,
     createCheckpointTab,
+    createLiveSessionsTab,
     createFactoryTab,
     createWorkspaceProjectsTab,
     createPortfolioTab,

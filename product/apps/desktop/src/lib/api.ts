@@ -18,6 +18,83 @@ export interface ProcessInfo {
   model: string;
 }
 
+// ---------------------------------------------------------------------------
+// Spec 172 — Live agent-session introspection types.
+//
+// The Rust serde rename_all = "camelCase" is the source of truth for these
+// shapes; mirrored here as the panel's typed view of the IPC result.
+// ---------------------------------------------------------------------------
+
+export interface ToolCallEventDto {
+  tool_name: string;
+  started_at: string;
+  duration_ms: number;
+  success: boolean;
+}
+
+export interface ActivitySnapshotDto {
+  toolCallsPerMinute: number;
+  tokensPerMinute: number;
+  cumulativeToolCalls: number;
+  cumulativeTokens: number;
+  recentToolCalls: ToolCallEventDto[];
+  lastEventAt: string | null;
+}
+
+export type SessionStatus = 'idle' | 'active' | 'warning' | 'critical';
+
+export interface LiveSessionRow {
+  runId: number;
+  sessionId: string;
+  projectPath: string;
+  pid: number;
+  startedAt: string;
+  model: string;
+  task: string;
+  scope: string;
+  activity: ActivitySnapshotDto;
+  status: SessionStatus;
+}
+
+export interface LiveWorkflowRow {
+  workflowId: string;
+  workflowName: string;
+  status: string;
+  startedAt: string;
+  projectId?: string;
+  currentStepName?: string;
+  currentStepIndex?: number;
+  currentStepStartedAt?: string;
+  stepCount?: number;
+}
+
+export interface LiveSessionThresholds {
+  warningToolCallsPerMinute: number;
+  criticalToolCallsPerMinute: number;
+  warningTokensPerMinute: number;
+  criticalTokensPerMinute: number;
+  criticalCumulativeToolCalls: number;
+}
+
+export interface LiveSessionsSnapshot {
+  sessions: LiveSessionRow[];
+  workflows: LiveWorkflowRow[];
+  thresholds: LiveSessionThresholds;
+  generatedAt: string;
+}
+
+export interface ForceDisconnectResult {
+  sessionId: string;
+  cancelledInFlight: boolean;
+  closedProcess: boolean;
+  checkpointId: string | null;
+  auditEventId: number | null;
+  notified: boolean;
+  operator: string;
+  completedAt: string;
+  warnings: string[];
+}
+
 /**
  * Represents a project in the ~/.claude/projects directory
  */
@@ -1284,6 +1361,43 @@ export const api = {
    */
   async listRunningClaudeSessions(): Promise<any[]> {
     return apiCall("list_running_claude_sessions");
+  },
+
+  // -------------------------------------------------------------------------
+  // Spec 172 — Live agent-session introspection
+  // -------------------------------------------------------------------------
+
+  /**
+   * Returns a single snapshot of every connected Claude session and active
+   * orchestrator workflow, plus the currently-configured rate thresholds.
+   * The Live Sessions panel renders this directly (FR-001 / FR-002).
+   */
+  async listLiveSessions(): Promise<LiveSessionsSnapshot> {
+    return apiCall("list_live_sessions");
+  },
+
+  /**
+   * Returns the configured rate thresholds (FR-006). Defaults are
+   * conservative; user-edited overrides live in
+   * `~/.local/share/opc/spec-172-thresholds.json`.
+   */
+  async getLiveSessionThresholds(): Promise<LiveSessionThresholds> {
+    return apiCall("get_live_session_thresholds");
+  },
+
+  /**
+   * Force-disconnect a runaway agent session (FR-005). Executes the five-step
+   * semantics from spec 172 §2.2; returns a per-step result the panel
+   * surfaces to the operator.
+   */
+  async forceDisconnectSession(args: {
+    sessionId: string;
+    projectId: string;
+    projectPath: string;
+    operator?: string;
+    reason?: string;
+  }): Promise<ForceDisconnectResult> {
+    return apiCall("force_disconnect_session", args);
   },
 
   /**
