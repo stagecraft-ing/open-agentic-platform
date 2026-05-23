@@ -6,6 +6,23 @@ export interface HookCommand {
   type: 'command';
   command: string;
   timeout?: number; // Optional timeout in seconds (default: 60)
+
+  // Spec 166 — OPC Stop-hook gate chain. Identifies a hook for cross-tier
+  // referencing (override / disable). Required for any entry the platform
+  // tier wishes to mark as mandatory.
+  id?: string;
+
+  // Spec 166 FR-006: the platform tier marks specific entries as
+  // mandatory. Project / user / local tiers cannot disable or remove
+  // entries with this flag set; attempts are recorded in the merge audit.
+  platform_mandatory?: boolean;
+
+  // Spec 166 FR-006: project / user / local tiers may suppress a
+  // non-mandatory platform entry by setting `disabled: true` and providing
+  // a `disable_reason`. The reason surfaces in audit and in the next
+  // session's startup diagnostics.
+  disabled?: boolean;
+  disable_reason?: string;
 }
 
 export interface HookMatcher {
@@ -49,6 +66,27 @@ export interface HookValidationResult {
 }
 
 export type HookScope = 'user' | 'project' | 'local';
+
+// Spec 166: the OPC-bundled platform tier sits above user/project/local.
+// It is the source of the platform-mandatory floor (FR-006).
+export type HookScopeWithPlatform = HookScope | 'platform';
+
+// Spec 166: audit entry produced by mergeWithPlatform when a lower tier
+// attempts to disable or override a platform entry. Bypass attempts on
+// platform-mandatory entries are recorded but do not take effect.
+export interface HookMergeAuditEntry {
+  kind: 'disabled' | 'mandatory_bypass_blocked' | 'disabled_missing_reason';
+  event: HookEvent;
+  matcher?: string;
+  hookId: string;
+  scope: HookScopeWithPlatform;
+  reason?: string;
+}
+
+export interface HookMergeResult {
+  merged: HooksConfiguration;
+  audit: HookMergeAuditEntry[];
+}
 
 // Common tool matchers for autocomplete
 export const COMMON_TOOL_MATCHERS = [

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:10c15059bc16a1a617b3ea622bd29d025d16db02caa58f4cff8bb44906cf7362",
+  "graph_fingerprint": "sha256:00125f28bea9f279affdbf7c64baa5264531eec78580b6c8080b534a9789b5e6",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3135,8 +3135,8 @@
       "feature_id": "166-opc-stop-hook-gate-chain",
       "title": "OPC Stop-hook gate chain — conversation-time drift gates",
       "spec_path": "specs/166-opc-stop-hook-gate-chain/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",
@@ -4121,6 +4121,62 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/_lib.sh",
+      "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-index.sh",
+      "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain (FR-002)",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh",
+      "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain (FR-002)",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh",
+      "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain (FR-003, platform-mandatory)",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-index.sh",
+      "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain (FR-003, platform-mandatory)",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-spec-lint.sh",
+      "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain (FR-003)",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-workflow-pins.sh",
+      "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain (FR-003, conditional)",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/tests/run-tests.sh",
+      "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain — hook wrapper test suite.",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "product/apps/desktop/src-tauri/src/commands/decomposition.rs",
       "message": "Malformed Spec directive: // Spec: specs/165-opc-decomposition-pipeline/spec.md",
       "suggested_fix": "Fix header format"
@@ -4284,6 +4340,13 @@
       "severity": "error",
       "path": "product/apps/desktop/src/components/factory/types.ts",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src/lib/hooksManager.spec166.test.ts",
+      "message": "Malformed Spec directive: // Spec: 166-opc-stop-hook-gate-chain",
       "suggested_fix": "Fix header format"
     },
     {
