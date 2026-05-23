@@ -22,6 +22,9 @@ use factory_contracts::sandbox::{
     SandboxExecution, SandboxRequest, SandboxRequestValidationError,
 };
 
+use crate::FactoryError;
+use crate::governance_certificate::SandboxExecutionRecord;
+
 /// Errors returned by a `SandboxClient::execute` call.
 ///
 /// The three operational branches map to the three FR-009 halt
@@ -155,6 +158,50 @@ impl SandboxClient for NullSandboxClient {
     }
 }
 
+// ── FR-001 / FR-009 dispatcher ───────────────────────────────────────
+
+/// Dispatch one adapter-emitted-code exercise through a `SandboxClient`,
+/// honouring FR-001 (every exercise dispatches through `execute`) and
+/// FR-009 (any unsuccessful path halts the pipeline; no host fallback).
+///
+/// This helper is the canonical surface a stage runner uses to exercise
+/// adapter-emitted code. It:
+///
+/// 1. Validates the request via `SandboxRequest::validate` (cheap, local).
+/// 2. Calls `client.execute(request)`.
+/// 3. On `Ok(execution)` — wraps the outcome into a
+///    [`SandboxExecutionRecord`] ready for the governance-certificate
+///    stage and returns it (the inner exit code is preserved so the
+///    stage runner can decide whether the *command* succeeded; this
+///    helper does not interpret it).
+/// 4. On `Err(SandboxError::Unavailable|AdmissionRejected|...)` —
+///    converts to [`FactoryError::SandboxRefusal`] with a category
+///    label and diagnostic, so the pipeline halts cleanly. The
+///    factory-engine does not fall back to host execution under any
+///    error variant.
+///
+/// FR-009 is a contract invariant: this helper applies it uniformly
+/// across `NullSandboxClient`, the (future) local-container backend,
+/// and the (future) K8s backend.
+pub async fn exercise(
+    client: &dyn SandboxClient,
+    request: SandboxRequest,
+) -> Result<SandboxExecutionRecord, FactoryError> {
+    if let Err(e) = request.validate() {
+        return Err(FactoryError::SandboxRefusal {
+            category: "request-validation",
+            diagnostic: e.to_string(),
+        });
+    }
+    match client.execute(request).await {
+        Ok(execution) => Ok(SandboxExecutionRecord::from_outcome(execution)),
+        Err(e) => Err(FactoryError::SandboxRefusal {
+            category: e.category(),
+            diagnostic: e.to_string(),
+        }),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -236,5 +283,113 @@ mod tests {
             SandboxError::RequestValidation(validation_err).category(),
             "request-validation"
         );
+    }
+
+    // ── exercise() dispatcher (FR-001 + FR-009) ─────────────────────
+
+    #[tokio::test]
+    async fn exercise_halts_on_null_client() {
+        let client = NullSandboxClient::new();
+        let err = super::exercise(&client, request()).await.unwrap_err();
+        match err {
+            FactoryError::SandboxRefusal { category, diagnostic } => {
+                assert_eq!(category, "unavailable");
+                assert!(
+                    diagnostic.contains("fail-closed")
+                        || diagnostic.contains("no sandbox backend")
+                );
+            }
+            other => panic!("expected SandboxRefusal::unavailable, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn exercise_rejects_invalid_request_before_dispatch() {
+        let client = NullSandboxClient::new();
+        let mut bad = request();
+        bad.command.clear();
+        let err = super::exercise(&client, bad).await.unwrap_err();
+        match err {
+            FactoryError::SandboxRefusal { category, diagnostic } => {
+                assert_eq!(category, "request-validation");
+                assert!(diagnostic.contains("command"));
+            }
+            other => panic!("expected SandboxRefusal::request-validation, got {other:?}"),
+        }
+    }
+
+    // A trivial backend that always succeeds — used to verify the
+    // success path of exercise() converts cleanly into the cert record.
+    struct AlwaysOkBackend;
+
+    #[async_trait]
+    impl SandboxClient for AlwaysOkBackend {
+        async fn execute(
+            &self,
+            request: SandboxRequest,
+        ) -> Result<SandboxExecution, SandboxError> {
+            Ok(SandboxExecution {
+                command: request.command,
+                input_artifact_hashes: BTreeMap::new(),
+                output_artifact_hashes: BTreeMap::new(),
+                resource_peak: factory_contracts::sandbox::ResourcePeak::default(),
+                isolation_tier: IsolationTier::RestrictedContainer,
+                runtime_descriptor: "test-backend-v0".into(),
+                deadline_hit: false,
+                exit_code: 0,
+            })
+        }
+        fn backend_descriptor(&self) -> BackendDescriptor {
+            BackendDescriptor {
+                name: "test-always-ok".into(),
+                version: "0.0.1".into(),
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn exercise_success_produces_cert_record_with_numeric_tier() {
+        let client = AlwaysOkBackend;
+        let record = super::exercise(&client, request()).await.unwrap();
+        assert_eq!(record.isolation_tier, 2);
+        assert_eq!(record.command, vec!["echo", "hi"]);
+        assert_eq!(record.runtime_descriptor, "test-backend-v0");
+        assert!(!record.deadline_hit);
+        assert_eq!(record.exit_code, 0);
+    }
+
+    // A backend that rejects on admission — verifies FR-009 halts
+    // identically across error categories.
+    struct AlwaysAdmissionRejectedBackend;
+
+    #[async_trait]
+    impl SandboxClient for AlwaysAdmissionRejectedBackend {
+        async fn execute(
+            &self,
+            _request: SandboxRequest,
+        ) -> Result<SandboxExecution, SandboxError> {
+            Err(SandboxError::AdmissionRejected(
+                "minimum isolation tier unmet".into(),
+            ))
+        }
+        fn backend_descriptor(&self) -> BackendDescriptor {
+            BackendDescriptor {
+                name: "test-admission-reject".into(),
+                version: "0.0.1".into(),
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn exercise_halts_on_admission_rejection() {
+        let client = AlwaysAdmissionRejectedBackend;
+        let err = super::exercise(&client, request()).await.unwrap_err();
+        match err {
+            FactoryError::SandboxRefusal { category, diagnostic } => {
+                assert_eq!(category, "admission-rejected");
+                assert!(diagnostic.contains("minimum isolation tier"));
+            }
+            other => panic!("expected SandboxRefusal::admission-rejected, got {other:?}"),
+        }
     }
 }

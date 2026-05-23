@@ -19,13 +19,17 @@ use std::path::Path;
 
 /// Schema version for the governance certificate format.
 ///
-/// Bumped to 1.1.0 (spec 102 FR-008.1+) to mark the introduction of Ed25519
-/// signing alongside the original FR-008 self-authenticating hash. Verifiers
-/// targeting 1.0.0 fixtures still pass — the new fields are optional in the
-/// serde layer and the signature check is skipped when `signing_public_key`
-/// is empty (such certs are treated as unsigned and rejected by any
-/// HIAS-mode verification).
-pub const CERTIFICATE_VERSION: &str = "1.1.0";
+/// Bumped to 1.2.0 (spec 162 §FR-008) to mark the introduction of the
+/// optional `sandboxExecution` per-stage record (`SandboxExecutionRecord`).
+/// Verifiers targeting 1.0.0 / 1.1.0 fixtures still pass — the new field
+/// is optional in the serde layer (`skip_serializing_if = "Option::is_none"`)
+/// so legacy certificates serialise identically to their previous canonical
+/// form and produce the same `certificateHash`.
+///
+/// 1.1.0 added Ed25519 signing (spec 102 FR-008.1); the hash check is no
+/// longer the authoritative provenance check after that point, but it
+/// remains as a content fingerprint inside the signed payload.
+pub const CERTIFICATE_VERSION: &str = "1.2.0";
 
 /// Environment-variable name carrying a base64-encoded 32-byte Ed25519 seed
 /// (FR-008.1). Operator-supplied keys outside the agent's write scope.
@@ -166,6 +170,88 @@ pub struct StageRecord {
     pub gate_result: Option<GateResultRecord>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub duration_ms: Option<u64>,
+    /// Spec 162 §FR-008 — sandbox-execution record. Populated when the
+    /// stage exercised adapter-emitted code through a `SandboxClient`
+    /// (lint / test / build / run-once). The fields bind the executed
+    /// command, the input artifact hashes (pre-execution), the output
+    /// artifact hashes (post-execution), the resource utilisation peak,
+    /// the realised isolation tier (1/2/3), the opaque runtime
+    /// descriptor, and whether the TTL fired. Pre-1.2.0 fixtures omit
+    /// the field; `skip_serializing_if = "Option::is_none"` keeps the
+    /// canonical JSON byte-identical for legacy stages so their
+    /// certificate hash is invariant under the field's introduction.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sandbox_execution: Option<SandboxExecutionRecord>,
+}
+
+/// Per-stage sandbox-execution binding (spec 162 §FR-008).
+///
+/// Backend-agnostic by construction: `isolation_tier` is normalised to
+/// 1/2/3 (1 = sandbox runtime, 2 = restricted container, 3 = forbidden);
+/// `runtime_descriptor` is treated by the verifier as an opaque
+/// base64-encoded fingerprint of backend identity + version + selected
+/// runtime. Backends choose their own pre-encoded bytes, so long as the
+/// bytes are deterministic for a given build.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SandboxExecutionRecord {
+    /// Executed command — argv echoed back; the verifier binds this
+    /// exact form (FR-008).
+    pub command: Vec<String>,
+    /// Pre-execution input artifact hashes, keyed by sandbox-mount-relative
+    /// path.
+    pub input_artifact_hashes: BTreeMap<String, String>,
+    /// Post-execution output artifact hashes, keyed by sandbox-mount-relative
+    /// path.
+    pub output_artifact_hashes: BTreeMap<String, String>,
+    /// Peak resource utilisation observed during the execution.
+    pub resource_peak: SandboxResourcePeak,
+    /// Realised isolation tier — 1 = sandbox runtime (gVisor /
+    /// Firecracker / Kata), 2 = restricted container (rootless OCI,
+    /// RO rootfs, seccomp default). MUST NOT be 3 for a successful
+    /// outcome (162 §2.2 — Tier 3 is reserved for refusal diagnostics).
+    pub isolation_tier: u8,
+    /// Opaque backend identity + version + runtime fingerprint, base64.
+    /// Verifier treats this as bytes — no parsing.
+    pub runtime_descriptor: String,
+    /// True iff the TTL fired and the execution was terminated.
+    pub deadline_hit: bool,
+    /// Process exit code from the sandboxed command.
+    pub exit_code: i32,
+}
+
+/// Peak resource utilisation observed during a sandbox execution
+/// (spec 162 §FR-008).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SandboxResourcePeak {
+    pub cpu_milli_peak: u32,
+    pub memory_bytes_peak: u64,
+    pub pid_peak: u32,
+}
+
+impl SandboxExecutionRecord {
+    /// Convert a backend-agnostic `factory_contracts::sandbox::SandboxExecution`
+    /// into the certificate-shaped record. The conversion is the
+    /// canonical boundary between the trait surface (which carries the
+    /// `IsolationTier` enum) and the certificate (which carries the
+    /// numeric 1/2/3 normalisation per 162 §2.2).
+    pub fn from_outcome(outcome: factory_contracts::sandbox::SandboxExecution) -> Self {
+        Self {
+            command: outcome.command,
+            input_artifact_hashes: outcome.input_artifact_hashes,
+            output_artifact_hashes: outcome.output_artifact_hashes,
+            resource_peak: SandboxResourcePeak {
+                cpu_milli_peak: outcome.resource_peak.cpu_milli_peak,
+                memory_bytes_peak: outcome.resource_peak.memory_bytes_peak,
+                pid_peak: outcome.resource_peak.pid_peak,
+            },
+            isolation_tier: outcome.isolation_tier.as_numeric(),
+            runtime_descriptor: outcome.runtime_descriptor,
+            deadline_hit: outcome.deadline_hit,
+            exit_code: outcome.exit_code,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -597,6 +683,7 @@ fn collect_stage_records(artifact_dir: &Path) -> Vec<StageRecord> {
             artifact_hashes,
             gate_result: None,
             duration_ms: None,
+            sandbox_execution: None,
         });
     }
 
@@ -1130,6 +1217,7 @@ mod tests {
             artifact_hashes: BTreeMap::new(),
             gate_result: None,
             duration_ms: None,
+            sandbox_execution: None,
         })
         .add_stage(StageRecord {
             stage_id: "s1-business-requirements".into(),
@@ -1141,6 +1229,7 @@ mod tests {
                 checks_failed: 1,
             }),
             duration_ms: None,
+            sandbox_execution: None,
         })
         .build();
 
@@ -1174,6 +1263,7 @@ mod tests {
             artifact_hashes: BTreeMap::from([("preflight.json".into(), artifact_hash.clone())]),
             gate_result: None,
             duration_ms: None,
+            sandbox_execution: None,
         })
         .build();
 
@@ -1223,5 +1313,172 @@ mod tests {
         // Self-hash should verify.
         let result = verify_certificate(&cert, Some(&artifact_dir));
         assert!(result.valid, "errors: {:?}", result.errors);
+    }
+
+    // ── Spec 162 sandbox-execution stage record (§FR-008) ───────────
+
+    fn sandbox_outcome_for_tests() -> factory_contracts::sandbox::SandboxExecution {
+        use factory_contracts::sandbox::{
+            IsolationTier as ContractTier, ResourcePeak, SandboxExecution,
+        };
+        let mut inputs = BTreeMap::new();
+        inputs.insert("/in/source.rs".to_string(), "i".repeat(64));
+        let mut outputs = BTreeMap::new();
+        outputs.insert("/out/binary".to_string(), "o".repeat(64));
+        SandboxExecution {
+            command: vec!["cargo".into(), "test".into()],
+            input_artifact_hashes: inputs,
+            output_artifact_hashes: outputs,
+            resource_peak: ResourcePeak {
+                cpu_milli_peak: 250,
+                memory_bytes_peak: 1024 * 1024,
+                pid_peak: 42,
+            },
+            isolation_tier: ContractTier::RestrictedContainer,
+            runtime_descriptor: "AAECAw==".into(),
+            deadline_hit: false,
+            exit_code: 0,
+        }
+    }
+
+    #[test]
+    fn sandbox_execution_record_from_outcome_normalises_tier_to_numeric() {
+        let outcome = sandbox_outcome_for_tests();
+        let record = SandboxExecutionRecord::from_outcome(outcome);
+        assert_eq!(record.isolation_tier, 2);
+        assert_eq!(record.command, vec!["cargo", "test"]);
+        assert!(record.input_artifact_hashes.contains_key("/in/source.rs"));
+        assert!(record
+            .output_artifact_hashes
+            .contains_key("/out/binary"));
+        assert_eq!(record.resource_peak.cpu_milli_peak, 250);
+        assert_eq!(record.exit_code, 0);
+        assert!(!record.deadline_hit);
+    }
+
+    #[test]
+    fn sandbox_record_tier_1_for_sandbox_runtime() {
+        use factory_contracts::sandbox::IsolationTier as ContractTier;
+        let mut outcome = sandbox_outcome_for_tests();
+        outcome.isolation_tier = ContractTier::SandboxRuntime;
+        let record = SandboxExecutionRecord::from_outcome(outcome);
+        assert_eq!(record.isolation_tier, 1);
+    }
+
+    #[test]
+    fn sandbox_execution_record_serde_round_trip() {
+        let record = SandboxExecutionRecord::from_outcome(sandbox_outcome_for_tests());
+        let json = serde_json::to_string(&record).unwrap();
+        let restored: SandboxExecutionRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored, record);
+    }
+
+    #[test]
+    fn legacy_stage_record_hash_invariant_under_field_introduction() {
+        // A stage record with sandbox_execution: None MUST serialise
+        // identically to the pre-1.2.0 canonical form so that pre-existing
+        // certificates carry an unchanged certificateHash. The
+        // skip_serializing_if = "Option::is_none" attribute is the
+        // load-bearing piece — guard against accidental removal.
+        let stage = StageRecord {
+            stage_id: "s0-preflight".into(),
+            status: StageOutcome::Passed,
+            artifact_hashes: BTreeMap::from([(
+                "preflight.json".into(),
+                "h".repeat(64),
+            )]),
+            gate_result: None,
+            duration_ms: None,
+            sandbox_execution: None,
+        };
+        let json = serde_json::to_string(&stage).unwrap();
+        assert!(
+            !json.contains("sandboxExecution"),
+            "Option::is_none must be skipped; got: {json}"
+        );
+    }
+
+    #[test]
+    fn sandbox_stage_certificate_hash_binds_command_and_tier() {
+        let outcome_a = sandbox_outcome_for_tests();
+        let mut outcome_b = sandbox_outcome_for_tests();
+        outcome_b.command = vec!["cargo".into(), "build".into()]; // distinct command
+
+        let mut hashes_a = BTreeMap::new();
+        hashes_a.insert("out.tar".into(), "h".repeat(64));
+
+        let cert_a = CertificateBuilder::new(
+            "run-sbx-a",
+            IntentRecord {
+                requirements_hash: "req".into(),
+                spec_id: None,
+                spec_hash: None,
+            },
+        )
+        .add_stage(StageRecord {
+            stage_id: "s6-build".into(),
+            status: StageOutcome::Passed,
+            artifact_hashes: hashes_a.clone(),
+            gate_result: None,
+            duration_ms: None,
+            sandbox_execution: Some(SandboxExecutionRecord::from_outcome(outcome_a)),
+        })
+        .build();
+
+        let cert_b = CertificateBuilder::new(
+            "run-sbx-a", // same run id intentionally
+            IntentRecord {
+                requirements_hash: "req".into(),
+                spec_id: None,
+                spec_hash: None,
+            },
+        )
+        .add_stage(StageRecord {
+            stage_id: "s6-build".into(),
+            status: StageOutcome::Passed,
+            artifact_hashes: hashes_a,
+            gate_result: None,
+            duration_ms: None,
+            sandbox_execution: Some(SandboxExecutionRecord::from_outcome(outcome_b)),
+        })
+        .build();
+
+        assert_ne!(
+            cert_a.certificate_hash, cert_b.certificate_hash,
+            "certificate hash must bind the sandbox command — SC-004"
+        );
+    }
+
+    #[test]
+    fn sandbox_stage_certificate_round_trips() {
+        let outcome = sandbox_outcome_for_tests();
+        let cert = CertificateBuilder::new(
+            "run-sbx-rt",
+            IntentRecord {
+                requirements_hash: "req".into(),
+                spec_id: None,
+                spec_hash: None,
+            },
+        )
+        .add_stage(StageRecord {
+            stage_id: "s6-build".into(),
+            status: StageOutcome::Passed,
+            artifact_hashes: BTreeMap::new(),
+            gate_result: None,
+            duration_ms: None,
+            sandbox_execution: Some(SandboxExecutionRecord::from_outcome(outcome)),
+        })
+        .build();
+
+        let json = serde_json::to_string(&cert).unwrap();
+        assert!(json.contains("sandboxExecution"));
+        assert!(json.contains("\"isolationTier\":2"));
+
+        let restored: GovernanceCertificate = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.certificate_hash, cert.certificate_hash);
+        let stage = &restored.stages[0];
+        let sbx = stage.sandbox_execution.as_ref().unwrap();
+        assert_eq!(sbx.isolation_tier, 2);
+        assert_eq!(sbx.command, vec!["cargo", "test"]);
     }
 }

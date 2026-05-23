@@ -90,4 +90,14 @@ pub enum FactoryError {
 
     #[error("project config error: {0}")]
     ProjectConfig(#[from] project_config::ProjectConfigError),
+
+    /// Spec 162 §FR-009 — adapter-emitted code cannot be exercised
+    /// because no sandbox backend can satisfy the request (or the
+    /// backend rejected it). The pipeline halts; there is no
+    /// host-execution fallback.
+    #[error("sandbox refusal ({category}): {diagnostic}")]
+    SandboxRefusal {
+        category: &'static str,
+        diagnostic: String,
+    },
 }
