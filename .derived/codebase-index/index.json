@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "64c38c1c4480aa891b45812ef55dc38bce130ffb493ed2883180ef2d3099f6b7",
+    "contentHash": "5df257fc32860d4c71c7c1336df174c56aedc5b8432afbcc7739c6e89a34e413",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -32307,7 +32307,7 @@
           }
         ],
         "specId": "160-factory-adapter-stagecraft-relocation",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "implementingPaths": [],

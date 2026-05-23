@@ -2,8 +2,8 @@
 id: "160-factory-adapter-stagecraft-relocation"
 slug: factory-adapter-stagecraft-relocation
 title: "Factory / adapter relocation into stagecraft"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: platform

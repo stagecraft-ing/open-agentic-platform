@@ -57,7 +57,15 @@ Each step runs post-verification commands (compile, test) and retries up to 3 ti
 
 ### Adapters
 
-Four pluggable tech adapters in `factory/adapters/`:
+Four pluggable tech adapters are registered against the factory contract.
+Adapter manifests historically lived as files in the repo-root
+`factory/adapters/*/manifest.yaml` directory; spec 108 retired that
+directory and moved the canonical store into stagecraft, and spec 139
+absorbed those rows into the universal `factory_artifact_substrate`
+table. The file-backed scope snapshot at
+`platform/services/stagecraft/api/factory/adapter-scopes.json` is the
+static fallback the codebase-indexer hashes per spec 160; per-org full
+manifest content is materialised at runtime via the substrate.
 
 | Adapter | Stack |
 |---------|-------|
@@ -66,7 +74,8 @@ Four pluggable tech adapters in `factory/adapters/`:
 | `rust-axum` | Axum + HTMX |
 | `encore-react` | Encore.ts + React |
 
-Each adapter provides: manifest, scaffold template, code patterns, agent prompts, validation invariants.
+Each adapter provides: manifest (substrate-resident), scaffold template,
+code patterns, agent prompts, validation invariants.
 
 ## Orchestrator
 
