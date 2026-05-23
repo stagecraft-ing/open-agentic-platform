@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "abf73232de652bc0ff08f80eadc077a6894d1053ed25477145cafd97399a05c9",
+    "contentHash": "d71789db3a25112011d3842faae88c2011e0ddd7968623918352941391b3910c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -32492,6 +32492,9 @@
                 "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
               },
               {
+                "file": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+              },
+              {
                 "file": "crates/factory-engine/tests/agent_resolver_test.rs"
               },
               {
@@ -32520,6 +32523,9 @@
               },
               {
                 "file": "crates/factory-engine/tests/spec_122_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/tenant_emission_integration.rs"
               },
               {
                 "file": "crates/factory-engine/tests/virtual_root.rs"
@@ -34482,6 +34488,9 @@
                 "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
               },
               {
+                "file": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+              },
+              {
                 "file": "crates/factory-engine/tests/agent_resolver_test.rs"
               },
               {
@@ -34510,6 +34519,9 @@
               },
               {
                 "file": "crates/factory-engine/tests/spec_122_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/tenant_emission_integration.rs"
               },
               {
                 "file": "crates/factory-engine/tests/virtual_root.rs"
@@ -34661,8 +34673,230 @@
         "specStatus": "approved"
       },
       {
-        "implementingPaths": [],
+        "dependsOn": [
+          "075",
+          "102",
+          "167"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-engine/src/bin/build_certificate.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/bin/factory_run.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/governance_certificate.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/kernel_emission/emit.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/kernel_emission/mod.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/kernel_emission/templates.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/kernel_emission/version.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/tests/kernel_emission_integration.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/tests/tenant_emission_integration.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          }
+        ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/tests/tenant_emission_integration.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/tests/tenant_emission_integration.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/bin/build_certificate.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/bin/build_certificate.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/bin/factory_run.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/bin/factory_run.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/governance_certificate.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/kernel_emission/emit.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/kernel_emission/emit.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/kernel_emission/mod.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/kernel_emission/mod.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/kernel_emission/templates.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/kernel_emission/templates.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/kernel_emission/version.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/kernel_emission/version.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/tests/kernel_emission_integration.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/tests/kernel_emission_integration.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -34707,7 +34941,7 @@
           }
         ],
         "specId": "168-per-project-governance-certificate",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -35125,6 +35359,9 @@
                 "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
               },
               {
+                "file": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+              },
+              {
                 "file": "crates/factory-engine/tests/agent_resolver_test.rs"
               },
               {
@@ -35153,6 +35390,9 @@
               },
               {
                 "file": "crates/factory-engine/tests/spec_122_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/tenant_emission_integration.rs"
               },
               {
                 "file": "crates/factory-engine/tests/virtual_root.rs"
@@ -35893,7 +36133,6 @@
       "149-saml-auth-driver",
       "150-example-tenant-profile",
       "157-opc-session-model",
-      "168-per-project-governance-certificate",
       "172-opc-live-agent-session-introspection",
       "174-codification-gate"
     ],
