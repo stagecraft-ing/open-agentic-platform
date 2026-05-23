@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "94c27f88d183486daeebcec28ce4cac9bde3b41d51b006c4632cb06627f87de2",
+    "contentHash": "4c0f6d1cc26b4de591d5d5396b15ddeda0a19da90fbd272735ec415cfca965c1",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -32111,6 +32111,9 @@
                 "file": "crates/factory-engine/src/harness_state.rs"
               },
               {
+                "file": "crates/factory-engine/src/inter_stage_manifest.rs"
+              },
+              {
                 "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
               },
               {
@@ -32232,6 +32235,12 @@
               },
               {
                 "file": "crates/factory-engine/tests/spec_122_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_170_certificate_chain.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_170_handoff_chain.rs"
               },
               {
                 "file": "crates/factory-engine/tests/virtual_root.rs"
@@ -34083,6 +34092,9 @@
                 "file": "crates/factory-engine/src/harness_state.rs"
               },
               {
+                "file": "crates/factory-engine/src/inter_stage_manifest.rs"
+              },
+              {
                 "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
               },
               {
@@ -34204,6 +34216,12 @@
               },
               {
                 "file": "crates/factory-engine/tests/spec_122_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_170_certificate_chain.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_170_handoff_chain.rs"
               },
               {
                 "file": "crates/factory-engine/tests/virtual_root.rs"
@@ -34488,9 +34506,117 @@
           {
             "path": "crates/factory-engine",
             "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/bin/factory_run.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/engine.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/governance_certificate.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/inter_stage_manifest.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/factory-engine/tests/spec_170_certificate_chain.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/tests/spec_170_handoff_chain.rs",
+            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/inter_stage_manifest.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/inter_stage_manifest.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/tests/spec_170_certificate_chain.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/tests/spec_170_certificate_chain.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/tests/spec_170_handoff_chain.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/tests/spec_170_handoff_chain.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/bin/factory_run.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/bin/factory_run.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/engine.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/engine.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/governance_certificate.rs"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -34580,6 +34706,9 @@
               },
               {
                 "file": "crates/factory-engine/src/harness_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/inter_stage_manifest.rs"
               },
               {
                 "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
@@ -34705,6 +34834,12 @@
                 "file": "crates/factory-engine/tests/spec_122_e2e.rs"
               },
               {
+                "file": "crates/factory-engine/tests/spec_170_certificate_chain.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_170_handoff_chain.rs"
+              },
+              {
                 "file": "crates/factory-engine/tests/virtual_root.rs"
               },
               {
@@ -34720,7 +34855,7 @@
           }
         ],
         "specId": "170-signed-inter-stage-manifests",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [

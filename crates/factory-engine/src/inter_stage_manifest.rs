@@ -513,6 +513,128 @@ impl StageHandoffSigner {
     }
 }
 
+// ── Post-hoc chain generation from a run directory ───────────────────
+
+/// Default sequence of process-phase stage IDs whose hand-offs are
+/// signed in the post-hoc chain. Matches `collect_stage_records` in
+/// `governance_certificate`. Fan-out hand-offs (s6a–s6g) are not in
+/// this default sequence — they share an s5 root and each branch
+/// produces its own outputs, which the chain generator picks up
+/// dynamically (see `generate_chain_from_run_dir`).
+pub const PROCESS_STAGE_SEQUENCE: &[&str] = &[
+    "s0-preflight",
+    "s1-business-requirements",
+    "s2-service-requirements",
+    "s3-data-model",
+    "s4-api-specification",
+    "s5-ui-specification",
+];
+
+/// Build the run's inter-stage manifest chain post-hoc from the
+/// artifacts persisted under `<run_dir>/<stage_id>/`.
+///
+/// For every consecutive pair `(from, to)` in [`PROCESS_STAGE_SEQUENCE`]
+/// where `from` has at least one artifact on disk, signs a manifest
+/// keyed by the artifact basenames and SHA-256 hashes. Returns the
+/// `StageHandoffSigner` (with the chain populated) plus the ordered
+/// list of manifests.
+///
+/// This is the engine-driven post-hoc emission path satisfying spec
+/// 170 FR-001 + FR-007 for the existing `factory-run` lifecycle: every
+/// hand-off the run actually performed is reflected in the chain
+/// embedded in the governance certificate.
+pub fn generate_chain_from_run_dir(
+    run_id: &str,
+    run_dir: &Path,
+) -> Result<(StageHandoffSigner, Vec<InterStageManifest>), ManifestError> {
+    let mut signer = StageHandoffSigner::establish(run_id, run_dir.to_path_buf())?;
+    let mut manifests = Vec::new();
+
+    // Sequential hand-offs across the process phase.
+    for window in PROCESS_STAGE_SEQUENCE.windows(2) {
+        let (from, to) = (window[0], window[1]);
+        if let Some(hashes) = collect_stage_artifact_hashes(run_dir, from) {
+            let m = signer.sign_handoff(from, to, hashes, BTreeMap::new())?;
+            manifests.push(m);
+        }
+    }
+
+    // Fan-out hand-offs: discover s6* stages dynamically.
+    if let Ok(entries) = std::fs::read_dir(run_dir) {
+        let mut s6_stages: Vec<String> = entries
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().is_dir())
+            .filter_map(|e| {
+                e.file_name()
+                    .into_string()
+                    .ok()
+                    .filter(|n| n.starts_with("s6"))
+            })
+            .collect();
+        s6_stages.sort();
+
+        // Each s6 stage receives from s5 (if s5 has outputs).
+        if let Some(s5_hashes) = collect_stage_artifact_hashes(run_dir, "s5-ui-specification") {
+            for to in &s6_stages {
+                if to == "s6h-final-validation" {
+                    continue; // s6h consumes from the other s6 branches.
+                }
+                let m = signer.sign_handoff(
+                    "s5-ui-specification",
+                    to,
+                    s5_hashes.clone(),
+                    BTreeMap::new(),
+                )?;
+                manifests.push(m);
+            }
+        }
+
+        // Each non-final s6 stage produces a hand-off to s6h-final-validation
+        // (the canonical aggregator).
+        for from in &s6_stages {
+            if from == "s6h-final-validation" {
+                continue;
+            }
+            if let Some(hashes) = collect_stage_artifact_hashes(run_dir, from) {
+                let m = signer.sign_handoff(
+                    from,
+                    "s6h-final-validation",
+                    hashes,
+                    BTreeMap::new(),
+                )?;
+                manifests.push(m);
+            }
+        }
+    }
+
+    Ok((signer, manifests))
+}
+
+fn collect_stage_artifact_hashes(
+    run_dir: &Path,
+    stage_id: &str,
+) -> Option<BTreeMap<String, String>> {
+    let stage_dir = run_dir.join(stage_id);
+    if !stage_dir.is_dir() {
+        return None;
+    }
+    let mut hashes = BTreeMap::new();
+    let entries = std::fs::read_dir(&stage_dir).ok()?;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let bytes = std::fs::read(&path).ok()?;
+        let mut hasher = Sha256::new();
+        hasher.update(&bytes);
+        let hash = format!("{:x}", hasher.finalize());
+        let name = path.file_name()?.to_string_lossy().into_owned();
+        hashes.insert(name, hash);
+    }
+    if hashes.is_empty() { None } else { Some(hashes) }
+}
+
 // ── Tests ────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -783,6 +905,57 @@ mod tests {
         assert_eq!(chain.run_id, "run-s4");
         assert!(chain.stage_keys.contains_key("s0"));
         assert!(chain.stage_keys.contains_key("s1"));
+    }
+
+    #[test]
+    fn generate_chain_from_run_dir_walks_sequential_and_fanout() {
+        let tmp = tempfile::tempdir().unwrap();
+        let run_dir = tmp.path();
+        // Seed s0 → s5 + a couple of fan-out branches with output files.
+        for stage in [
+            "s0-preflight",
+            "s1-business-requirements",
+            "s2-service-requirements",
+            "s3-data-model",
+            "s4-api-specification",
+            "s5-ui-specification",
+            "s6a-scaffold-init",
+            "s6b-data-Org",
+            "s6h-final-validation",
+        ] {
+            let dir = run_dir.join(stage);
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("out.json"), format!("{{\"stage\":\"{stage}\"}}")).unwrap();
+        }
+
+        let (signer, manifests) = generate_chain_from_run_dir("run-disk", run_dir).unwrap();
+        assert!(!manifests.is_empty(), "chain should be non-empty");
+        // Sequential hand-offs: s0→s1, s1→s2, s2→s3, s3→s4, s4→s5 = 5
+        // Fan-out from s5: s5→s6a, s5→s6b = 2
+        // Onward to s6h: s6a→s6h, s6b→s6h = 2
+        assert_eq!(manifests.len(), 9, "manifests: {manifests:#?}");
+
+        let chain = signer.finalize();
+        // Each producing stage minted a key in the chain.
+        for stage in [
+            "s0-preflight",
+            "s1-business-requirements",
+            "s2-service-requirements",
+            "s3-data-model",
+            "s4-api-specification",
+            "s5-ui-specification",
+            "s6a-scaffold-init",
+            "s6b-data-Org",
+        ] {
+            assert!(
+                chain.stage_keys.contains_key(stage),
+                "chain missing key for {stage}"
+            );
+        }
+        // Re-verify every manifest offline against the persisted chain.
+        for m in &manifests {
+            verify_manifest(m, &chain, Some(&m.to_stage)).unwrap();
+        }
     }
 
     #[test]

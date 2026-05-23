@@ -7,9 +7,11 @@
 use clap::Parser;
 use factory_engine::{
     FactoryAgentBridge, FactoryEngine, FactoryEngineConfig, FactoryPipelineState,
-    FactoryStandardsResolver, generate_certificate, persist_certificate,
+    FactoryStandardsResolver, InterStageChainRecord, generate_certificate, persist_certificate,
     validate_spec_id_resolution, write_validation_warnings,
 };
+use factory_engine::governance_certificate::{CertificateBuilder, IntentRecord};
+use factory_engine::inter_stage_manifest::generate_chain_from_run_dir;
 use orchestrator::{
     AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, ClaudeCodeExecutor, CliGateHandler,
     DispatchOptions, GateHandler, ThinkingLevel, detect_resume_plan_for_run, dispatch_manifest,
@@ -51,7 +53,42 @@ fn emit_certificate(
     repo_root: &std::path::Path,
 ) {
     let run_dir = am.run_dir(run_id);
-    let cert = generate_certificate(pipeline_state, requirements_hash, &run_dir, None);
+    let base_cert = generate_certificate(pipeline_state, requirements_hash, &run_dir, None);
+
+    // Spec 170 FR-007 — attach the signed inter-stage manifest chain
+    // built from the artifacts persisted under <run_dir>/. Failures are
+    // surfaced but do not block certificate emission; the unsigned cert
+    // remains better than no audit artifact at all.
+    let cert = match generate_chain_from_run_dir(&run_id.to_string(), &run_dir) {
+        Ok((signer, manifests)) => {
+            let chain_record = InterStageChainRecord {
+                key_chain: signer.finalize(),
+                manifests,
+            };
+            // Rebuild via the builder so the chain is bound into the
+            // certificate's content-hash + signature.
+            CertificateBuilder::new(
+                base_cert.pipeline_run_id.clone(),
+                IntentRecord {
+                    requirements_hash: base_cert.intent.requirements_hash.clone(),
+                    spec_id: base_cert.intent.spec_id.clone(),
+                    spec_hash: base_cert.intent.spec_hash.clone(),
+                },
+            )
+            .build_spec_hash(base_cert.build_spec.hash.clone())
+            .stages(base_cert.stages.clone())
+            .verification(base_cert.verification.clone())
+            .proof_chain(base_cert.proof_chain.clone())
+            .inter_stage_chain(chain_record)
+            .build()
+        }
+        Err(e) => {
+            eprintln!(
+                "Warning: failed to generate signed inter-stage manifest chain: {e}"
+            );
+            base_cert
+        }
+    };
     let cert_path = run_dir.join("governance-certificate.json");
     match persist_certificate(&cert, &run_dir) {
         Ok(()) => eprintln!(
