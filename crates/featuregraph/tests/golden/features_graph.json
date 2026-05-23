@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:c89d759c527fdbfdb1fc9c01c7e74fe90c21cb75f59b26623d0fa8a0c23301ce",
+  "graph_fingerprint": "sha256:077fcff13924cdfc72365335492fee9806320e58ba1716ec1020a0ccf73df2d7",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3011,8 +3011,8 @@
       "feature_id": "160-factory-adapter-stagecraft-relocation",
       "title": "Factory / adapter relocation into stagecraft",
       "spec_path": "specs/160-factory-adapter-stagecraft-relocation/spec.md",
-      "status": "approved",
-      "implementation": "complete",
+      "status": "draft",
+      "implementation": "pending",
       "governance": "medium",
       "owner": "bart",
       "group": "",
@@ -3031,7 +3031,7 @@
       "title": "Knowledge → Requirements provenance: emission contract and Requirements-view rendering",
       "spec_path": "specs/161-knowledge-requirements-provenance-emission/spec.md",
       "status": "draft",
-      "implementation": "pending",
+      "implementation": "in-progress",
       "governance": "medium",
       "owner": "bart",
       "group": "",

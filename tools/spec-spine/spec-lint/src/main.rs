@@ -41,13 +41,20 @@ fn main() -> ExitCode {
         eprintln!("{} [{}] {}: {}", d.code, d.severity, d.path, d.message);
     }
 
+    let error_tier_count = diagnostics.iter().filter(|d| d.severity == "error").count();
     let warning_tier_count = diagnostics.iter().filter(|d| d.severity == "warning").count();
     let info_tier_count = diagnostics.iter().filter(|d| d.severity == "info").count();
 
+    // Spec 161 §2.3 / SC-004 — `error`-tier diagnostics fail spec-lint
+    // unconditionally; they are reserved-contract violations, not
+    // conformance hints, and cannot be silenced by omitting
+    // `--fail-on-warn`. The warning and info tiers remain CLI-gated as
+    // before (spec 128 §7.1, amended by spec 147).
+    let fail_error = error_tier_count > 0;
     let fail_warn = cli.fail_on_warn && warning_tier_count > 0;
     let fail_info = cli.fail_on_info && info_tier_count > 0;
 
-    if fail_warn || fail_info {
+    if fail_error || fail_warn || fail_info {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
