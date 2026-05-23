@@ -2,8 +2,8 @@
 id: "164-stagecraft-development-lifecycle-board"
 slug: stagecraft-development-lifecycle-board
 title: "Pipelines → Development rename, lifecycle-state board over spec-spine states"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: platform
@@ -17,8 +17,33 @@ depends_on:
   - "147"  # spec-kind-grammar (lifecycle / status fields)
   - "163"  # stagecraft-requirements-view (the read-shaped pair)
 code_aliases: ["STAGECRAFT_DEVELOPMENT_BOARD", "LIFECYCLE_STATE_BOARD"]
+establishes:
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-board.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-board.test.ts }
+extends:
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes.ts }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx }
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx }
+  - spec: "163-stagecraft-requirements-view"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/specRegistry/types.ts }
+  - spec: "163-stagecraft-requirements-view"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/specRegistry/registryReader.ts }
+  - spec: "163-stagecraft-requirements-view"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts }
 refines:
   - aspect: project-lifecycle-board
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx }
+  - aspect: pipelines-redirect-to-development
     unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.pipelines.tsx }
 references:
   - role: decomposition-source
