@@ -39,6 +39,9 @@ extends:
   - spec: "075-factory-workflow-engine"
     nature: additive
     unit: { kind: file, path: crates/factory-engine/src/lib.rs }
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
