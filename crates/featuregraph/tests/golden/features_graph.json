@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:ea5faef9fcbad0b7b7e825e24c65386a2a1d94e3cf0124a194d684107df8ae94",
+  "graph_fingerprint": "sha256:3871f45f460d1e6a6685d4a32c89166072be872e9814b091697d45b015cf1cae",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3067,8 +3067,8 @@
       "feature_id": "163-stagecraft-requirements-view",
       "title": "Spec-spine Requirements view in stagecraft",
       "spec_path": "specs/163-stagecraft-requirements-view/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",
