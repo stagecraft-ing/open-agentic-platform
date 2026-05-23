@@ -16,6 +16,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use serde_json::{Map, Value};
 use tool_registry::async_registry::{AsyncToolDef, AsyncToolRegistry};
+use tool_registry::strictness::validate_strict_schema;
 use tool_registry::{PermissionResult, ToolContext, ToolEvent, ToolResult};
 
 use crate::router::provider::ToolProvider;
@@ -32,6 +33,11 @@ struct ProviderToolDef {
     tool_description: String,
     schema: Value,
     provider: Arc<dyn ToolProvider>,
+    /// Spec 169 — true when the schema is permissive and the bridge
+    /// auto-marked the registration as opted into the migration window.
+    /// Authored providers should tighten their schemas; this flag exists
+    /// so the migration is incremental rather than a hard break.
+    permissive: bool,
 }
 
 #[async_trait]
@@ -46,6 +52,10 @@ impl AsyncToolDef for ProviderToolDef {
 
     fn input_schema(&self) -> Value {
         self.schema.clone()
+    }
+
+    fn permissive(&self) -> bool {
+        self.permissive
     }
 
     fn can_use(&self, _ctx: &ToolContext) -> anyhow::Result<PermissionResult> {
@@ -107,11 +117,30 @@ pub fn build_registry(
                 continue;
             }
 
+            // Spec 169 — auto-mark permissive provider schemas as opted into
+            // the migration window. Authored providers should tighten their
+            // schemas (FR-007); this flag keeps the registration path open
+            // while the corpus migrates. The strictness validator emits a
+            // structured log line naming the tool and pattern.
+            let permissive = match validate_strict_schema(&input_schema) {
+                Ok(()) => false,
+                Err(pattern) => {
+                    log::info!(
+                        target: "axiomregent::spec169",
+                        "permissive schema for provider tool '{}' (migration opt-in): {}",
+                        name,
+                        pattern,
+                    );
+                    true
+                }
+            };
+
             let tool = Arc::new(ProviderToolDef {
                 tool_name: name.clone(),
                 tool_description: description,
                 schema: input_schema,
                 provider: Arc::clone(provider),
+                permissive,
             });
 
             if let Err(e) = registry.register(tool) {
@@ -120,6 +149,10 @@ pub fn build_registry(
         }
     }
 
-    log::info!("AsyncToolRegistry built with {} tools", registry.len());
+    log::info!(
+        "AsyncToolRegistry built with {} tools ({} permissive — spec 169 migration window)",
+        registry.len(),
+        registry.permissive_registrations().len(),
+    );
     registry
 }
