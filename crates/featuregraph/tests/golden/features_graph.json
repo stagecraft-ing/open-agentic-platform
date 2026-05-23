@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:1afa1d2624ece5554d36890492946d2c725c6f98c6004303205047f5d9690e97",
+  "graph_fingerprint": "sha256:10c15059bc16a1a617b3ea622bd29d025d16db02caa58f4cff8bb44906cf7362",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3158,8 +3158,8 @@
       "feature_id": "167-born-with-spec-spine-kernel",
       "title": "Born-with spec-spine kernel emission — every produced project ships with a spine",
       "spec_path": "specs/167-born-with-spec-spine-kernel/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "high",
       "owner": "bart",
       "group": "",
@@ -3596,6 +3596,48 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/factory-engine/src/kernel_emission/adapter_specs.rs",
+      "message": "Malformed Spec directive: // Spec: specs/167-born-with-spec-spine-kernel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/kernel_emission/emit.rs",
+      "message": "Malformed Spec directive: // Spec: specs/167-born-with-spec-spine-kernel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/kernel_emission/gather.rs",
+      "message": "Malformed Spec directive: // Spec: specs/167-born-with-spec-spine-kernel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/kernel_emission/mod.rs",
+      "message": "Malformed Spec directive: // Spec: specs/167-born-with-spec-spine-kernel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/kernel_emission/templates.rs",
+      "message": "Malformed Spec directive: // Spec: specs/167-born-with-spec-spine-kernel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/kernel_emission/version.rs",
+      "message": "Malformed Spec directive: // Spec: specs/167-born-with-spec-spine-kernel/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/factory-engine/src/lib.rs",
       "message": "Malformed Spec directive: // Spec: specs/075-factory-workflow-engine/spec.md",
       "suggested_fix": "Fix header format"
@@ -3752,6 +3794,13 @@
       "severity": "error",
       "path": "crates/factory-engine/tests/agent_resolver_test.rs",
       "message": "Malformed Spec directive: // Spec: specs/123-agent-catalog-org-rescope/spec.md — T084, T085, A-8",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/tests/kernel_emission_integration.rs",
+      "message": "Malformed Spec directive: // Spec: specs/167-born-with-spec-spine-kernel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
