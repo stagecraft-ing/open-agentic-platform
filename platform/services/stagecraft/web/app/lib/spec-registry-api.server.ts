@@ -72,3 +72,52 @@ export async function showProjectSpecRelationships(
     `${specsBase(projectId)}/${encodeURIComponent(specId)}/relationships`
   ) as Promise<{ relationships: SpecRelationships }>;
 }
+
+// ---------------------------------------------------------------------------
+// Cosmetic group display names (FR-004)
+// ---------------------------------------------------------------------------
+
+const groupNamesBase = (projectId: string) =>
+  `/api/projects/${encodeURIComponent(projectId)}/spec-group-names`;
+
+export interface SpecGroupNameRow {
+  groupId: string;
+  displayName: string;
+}
+
+export async function listSpecGroupNames(
+  request: Request,
+  projectId: string
+): Promise<{ names: SpecGroupNameRow[] }> {
+  return apiFetch(request, groupNamesBase(projectId)) as Promise<{
+    names: SpecGroupNameRow[];
+  }>;
+}
+
+export async function setSpecGroupName(
+  request: Request,
+  projectId: string,
+  groupId: string,
+  displayName: string
+): Promise<{ name: SpecGroupNameRow }> {
+  return apiFetch(
+    request,
+    `${groupNamesBase(projectId)}/${encodeURIComponent(groupId)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ displayName }),
+    }
+  ) as Promise<{ name: SpecGroupNameRow }>;
+}
+
+export async function deleteSpecGroupName(
+  request: Request,
+  projectId: string,
+  groupId: string
+): Promise<{ deleted: boolean }> {
+  return apiFetch(
+    request,
+    `${groupNamesBase(projectId)}/${encodeURIComponent(groupId)}`,
+    { method: "DELETE" }
+  ) as Promise<{ deleted: boolean }>;
+}

@@ -6,9 +6,22 @@
 // the Encore API surface in `api/specRegistry/`, which shells
 // registry-consumer per spec 103 governed-read discipline (FR-002).
 
-import { Link, useLoaderData, useSearchParams } from "react-router";
+import { useState } from "react";
+import {
+  Link,
+  data,
+  useFetcher,
+  useLoaderData,
+  useSearchParams,
+} from "react-router";
 import { requireUser } from "../lib/auth.server";
-import { listProjectSpecs } from "../lib/spec-registry-api.server";
+import {
+  deleteSpecGroupName,
+  listProjectSpecs,
+  listSpecGroupNames,
+  setSpecGroupName,
+  type SpecGroupNameRow,
+} from "../lib/spec-registry-api.server";
 import type {
   SpecInventory,
   SpecListRow,
@@ -28,8 +41,61 @@ export async function loader({
   params: { projectId: string };
 }) {
   await requireUser(request);
-  const inventory = await listProjectSpecs(request, params.projectId);
-  return { projectId: params.projectId, inventory };
+  const [inventory, groupNames] = await Promise.all([
+    listProjectSpecs(request, params.projectId),
+    listSpecGroupNames(request, params.projectId).catch(() => ({
+      names: [] as SpecGroupNameRow[],
+    })),
+  ]);
+  return {
+    projectId: params.projectId,
+    inventory,
+    groupNames: groupNames.names,
+  };
+}
+
+export async function action({
+  request,
+  params,
+}: {
+  request: Request;
+  params: { projectId: string };
+}) {
+  await requireUser(request);
+  const form = await request.formData();
+  const intent = String(form.get("intent") ?? "");
+  const groupId = String(form.get("groupId") ?? "");
+  if (!groupId) {
+    return data({ ok: false, error: "groupId required" }, { status: 400 });
+  }
+  if (intent === "delete") {
+    await deleteSpecGroupName(request, params.projectId, groupId);
+    return { ok: true };
+  }
+  if (intent === "set") {
+    const displayName = String(form.get("displayName") ?? "").trim();
+    if (!displayName) {
+      return data(
+        { ok: false, error: "displayName required" },
+        { status: 400 }
+      );
+    }
+    try {
+      await setSpecGroupName(
+        request,
+        params.projectId,
+        groupId,
+        displayName
+      );
+      return { ok: true };
+    } catch (err) {
+      return data(
+        { ok: false, error: err instanceof Error ? err.message : String(err) },
+        { status: 400 }
+      );
+    }
+  }
+  return data({ ok: false, error: "unknown intent" }, { status: 400 });
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -62,9 +128,10 @@ function isGroupingDimension(s: string | null): s is GroupingDimension {
 }
 
 export default function RequirementsView() {
-  const { projectId, inventory } = useLoaderData() as {
+  const { projectId, inventory, groupNames } = useLoaderData() as {
     projectId: string;
     inventory: SpecInventory;
+    groupNames: SpecGroupNameRow[];
   };
   const [searchParams] = useSearchParams();
   const viewParam = searchParams.get("view");
@@ -84,6 +151,10 @@ export default function RequirementsView() {
     return <EmptyState projectId={projectId} />;
   }
 
+  const nameByGroupId = new Map(
+    groupNames.map((n) => [n.groupId, n.displayName])
+  );
+
   return (
     <div className="space-y-4">
       <ViewToolbar
@@ -99,6 +170,7 @@ export default function RequirementsView() {
           specs={inventory.specs}
           dimension={dimension}
           projectId={projectId}
+          nameByGroupId={nameByGroupId}
         />
       )}
     </div>
@@ -165,10 +237,12 @@ function GroupedView({
   specs,
   dimension,
   projectId,
+  nameByGroupId,
 }: {
   specs: SpecListRow[];
   dimension: GroupingDimension;
   projectId: string;
+  nameByGroupId: Map<string, string>;
 }) {
   const groups = buildDerivedGroups(specs, dimension);
   if (groups.length === 0) {
@@ -182,28 +256,110 @@ function GroupedView({
   return (
     <div className="space-y-6">
       {groups.map((g) => (
-        <GroupSection key={g.id} group={g} projectId={projectId} />
+        <GroupSection
+          key={g.id}
+          group={g}
+          projectId={projectId}
+          customName={nameByGroupId.get(g.id) ?? null}
+        />
       ))}
     </div>
   );
 }
 
+/**
+ * FR-004 — section header with optional custom display name.
+ * The custom name is presentation-only; the algorithmic label is kept
+ * visible (greyed out) so a reader can tell the projection still
+ * applies.
+ */
 function GroupSection({
   group,
   projectId,
+  customName,
 }: {
   group: DerivedGroup;
   projectId: string;
+  customName: string | null;
 }) {
+  const [editing, setEditing] = useState(false);
+  const fetcher = useFetcher();
+  const submitting = fetcher.state !== "idle";
+  const heading = customName ?? group.label;
+  // Hide the algorithmic label only when it matches the custom name.
+  const showAlgorithmicSubtitle =
+    customName !== null && customName.trim() !== group.label;
+
   return (
     <section>
-      <header className="flex items-baseline gap-2 mb-2">
+      <header className="flex flex-wrap items-baseline gap-2 mb-2">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
-          {group.label}
+          {heading}
         </h3>
+        {showAlgorithmicSubtitle && (
+          <span className="text-xs text-gray-400 dark:text-gray-500">
+            ({group.label})
+          </span>
+        )}
         <span className="text-xs text-gray-400 dark:text-gray-500">
-          ({group.specs.length})
+          {group.specs.length} spec{group.specs.length === 1 ? "" : "s"}
         </span>
+        <div className="ml-auto flex items-center gap-2">
+          {editing ? (
+            <fetcher.Form
+              method="post"
+              className="flex items-center gap-2"
+              onSubmit={() => setEditing(false)}
+            >
+              <input type="hidden" name="intent" value="set" />
+              <input type="hidden" name="groupId" value={group.id} />
+              <input
+                name="displayName"
+                defaultValue={customName ?? ""}
+                placeholder="Custom name"
+                autoFocus
+                maxLength={200}
+                className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+              />
+              <button
+                type="submit"
+                disabled={submitting}
+                className="text-xs px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="text-xs px-2 py-1 rounded text-gray-600 dark:text-gray-400 hover:underline"
+              >
+                Cancel
+              </button>
+            </fetcher.Form>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                {customName ? "Rename" : "Add custom name"}
+              </button>
+              {customName && (
+                <fetcher.Form method="post">
+                  <input type="hidden" name="intent" value="delete" />
+                  <input type="hidden" name="groupId" value={group.id} />
+                  <button
+                    type="submit"
+                    className="text-xs text-gray-500 dark:text-gray-400 hover:underline"
+                  >
+                    Clear
+                  </button>
+                </fetcher.Form>
+              )}
+            </>
+          )}
+        </div>
       </header>
       <SpecTable specs={group.specs} projectId={projectId} />
     </section>
