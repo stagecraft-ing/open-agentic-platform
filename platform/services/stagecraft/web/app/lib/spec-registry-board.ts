@@ -412,3 +412,115 @@ function collectEdgePaths(edge: unknown, out: Set<string>): void {
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Filters (FR-008)
+// ---------------------------------------------------------------------------
+//
+// All filters are URL-driven so they survive page reload and are
+// shareable. Empty/undefined fields are interpreted as "no filter on
+// this dimension"; supplied fields match exactly (case-sensitive — the
+// SpecListRow values come from frontmatter and are stable).
+//
+// `with-evidence: true` filters to specs that have at least one claimed
+// code path (the honest per-card execution-evidence linkage today).
+
+export interface BoardFilters {
+  kind?: string;
+  category?: string;
+  risk?: string;
+  owner?: string;
+  /** When true, keep only specs with at least one claimed code path. */
+  withEvidence?: boolean;
+}
+
+/** Read filter values from URL search params; no validation beyond shape. */
+export function parseFiltersFromSearchParams(
+  params: URLSearchParams,
+): BoardFilters {
+  const out: BoardFilters = {};
+  const kind = params.get("kind");
+  if (kind) out.kind = kind;
+  const category = params.get("category");
+  if (category) out.category = category;
+  const risk = params.get("risk");
+  if (risk) out.risk = risk;
+  const owner = params.get("owner");
+  if (owner) out.owner = owner;
+  if (params.get("withEvidence") === "true") out.withEvidence = true;
+  return out;
+}
+
+/** True when at least one filter is active. */
+export function hasActiveFilters(filters: BoardFilters): boolean {
+  return Boolean(
+    filters.kind ??
+      filters.category ??
+      filters.risk ??
+      filters.owner ??
+      filters.withEvidence,
+  );
+}
+
+export function applyFilters(
+  specs: SpecListRow[],
+  filters: BoardFilters,
+): SpecListRow[] {
+  if (!hasActiveFilters(filters)) return specs;
+  return specs.filter((s) => specMatches(s, filters));
+}
+
+function specMatches(spec: SpecListRow, filters: BoardFilters): boolean {
+  if (filters.kind && spec.kind !== filters.kind) return false;
+  if (filters.category && !spec.categories.includes(filters.category)) {
+    return false;
+  }
+  if (filters.risk && spec.risk !== filters.risk) return false;
+  if (filters.owner && spec.owner !== filters.owner) return false;
+  if (filters.withEvidence && claimedCodePaths(spec).length === 0) {
+    return false;
+  }
+  return true;
+}
+
+export interface FilterFacet {
+  value: string;
+  count: number;
+}
+
+/**
+ * Build sorted, unique facet lists for each filter dimension. Counts
+ * reflect the *unfiltered* corpus so an operator can see the size of
+ * each option before narrowing.
+ */
+export function buildFilterFacets(specs: SpecListRow[]): {
+  kinds: FilterFacet[];
+  categories: FilterFacet[];
+  risks: FilterFacet[];
+  owners: FilterFacet[];
+} {
+  const kinds = new Map<string, number>();
+  const categories = new Map<string, number>();
+  const risks = new Map<string, number>();
+  const owners = new Map<string, number>();
+  for (const s of specs) {
+    if (s.kind) kinds.set(s.kind, (kinds.get(s.kind) ?? 0) + 1);
+    for (const c of s.categories) {
+      categories.set(c, (categories.get(c) ?? 0) + 1);
+    }
+    if (s.risk) risks.set(s.risk, (risks.get(s.risk) ?? 0) + 1);
+    if (s.owner) owners.set(s.owner, (owners.get(s.owner) ?? 0) + 1);
+  }
+  return {
+    kinds: facetMapToList(kinds),
+    categories: facetMapToList(categories),
+    risks: facetMapToList(risks),
+    owners: facetMapToList(owners),
+  };
+}
+
+function facetMapToList(m: Map<string, number>): FilterFacet[] {
+  return [...m.entries()]
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => a.value.localeCompare(b.value));
+}

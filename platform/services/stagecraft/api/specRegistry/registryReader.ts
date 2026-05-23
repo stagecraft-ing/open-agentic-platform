@@ -88,6 +88,8 @@ interface RawListRow {
   extraFrontmatter?: Record<string, unknown>;
   references?: Array<{ role?: string; unit?: unknown }>;
   category?: string[] | string | null;
+  risk?: string | null;
+  owner?: string | null;
   // Spec 130 relationship-graph fields — opaque arrays passed through
   // for the grouping projections. Indexed access in
   // `relationshipFieldsFor` below.
@@ -132,6 +134,9 @@ function projectListRow(raw: RawListRow): SpecListRow {
     implementation: raw.implementation,
     kind: raw.kind ?? null,
     categories,
+    // Spec 164 FR-008 — typed for the Development board's filter chips.
+    risk: typeof raw.risk === "string" ? raw.risk : null,
+    owner: typeof raw.owner === "string" ? raw.owner : null,
     summary: raw.summary ?? null,
     specPath: raw.specPath,
     extraFrontmatter: extra,

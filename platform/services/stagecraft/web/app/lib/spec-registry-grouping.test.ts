@@ -15,6 +15,8 @@ function row(
     implementation: "complete",
     kind: "platform",
     categories: [],
+    risk: null,
+    owner: null,
     summary: null,
     specPath: `specs/${id}/spec.md`,
     extraFrontmatter: {},

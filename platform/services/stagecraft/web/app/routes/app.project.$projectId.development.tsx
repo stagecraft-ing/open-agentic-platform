@@ -25,9 +25,15 @@ import {
 import {
   LIFECYCLE_COLUMNS,
   LIFECYCLE_LANES,
+  applyFilters,
   buildBoard,
   buildBoardWithGrouping,
+  buildFilterFacets,
   claimedCodePaths,
+  hasActiveFilters,
+  parseFiltersFromSearchParams,
+  type BoardFilters,
+  type FilterFacet,
   type LifecycleBoard,
   type LifecycleCard,
   type LifecycleColumnId,
@@ -91,10 +97,13 @@ export default function DevelopmentBoard() {
     return <EmptyState projectId={projectId} />;
   }
 
+  const filters = parseFiltersFromSearchParams(searchParams);
+  const facets = buildFilterFacets(inventory.specs);
+  const filtered = applyFilters(inventory.specs, filters);
   const board: LifecycleBoard =
     view === "grouped"
-      ? buildBoardWithGrouping(inventory.specs, dimension)
-      : buildBoard(inventory.specs);
+      ? buildBoardWithGrouping(filtered, dimension)
+      : buildBoard(filtered);
 
   return (
     <div className="space-y-6">
@@ -103,6 +112,15 @@ export default function DevelopmentBoard() {
         view={view}
         dimension={dimension}
         count={inventory.specs.length}
+        filteredCount={filtered.length}
+        filters={filters}
+      />
+      <FilterChips
+        projectId={projectId}
+        view={view}
+        dimension={dimension}
+        filters={filters}
+        facets={facets}
       />
       <ExecutionEvidenceStrip pipeline={pipeline} />
       <BoardColumns board={board} projectId={projectId} />
@@ -197,13 +215,18 @@ function BoardToolbar({
   view,
   dimension,
   count,
+  filteredCount,
+  filters,
 }: {
   projectId: string;
   view: ViewMode;
   dimension: GroupingDimension;
   count: number;
+  filteredCount: number;
+  filters: BoardFilters;
 }) {
   const base = `/app/project/${projectId}/development`;
+  const filterActive = hasActiveFilters(filters);
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 dark:border-gray-700 pb-3">
       <div>
@@ -211,8 +234,20 @@ function BoardToolbar({
           Development
         </h2>
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          Lifecycle-state board over {count} spec{count === 1 ? "" : "s"}.
-          Cards move as frontmatter changes — there is no drag-drop.
+          Lifecycle-state board over{" "}
+          {filterActive ? (
+            <>
+              <span className="font-semibold text-gray-700 dark:text-gray-300">
+                {filteredCount}
+              </span>{" "}
+              of {count} spec{count === 1 ? "" : "s"}
+            </>
+          ) : (
+            <>
+              {count} spec{count === 1 ? "" : "s"}
+            </>
+          )}
+          . Cards move as frontmatter changes — there is no drag-drop.
         </p>
       </div>
       <div className="flex flex-wrap gap-1">
@@ -238,6 +273,152 @@ function BoardToolbar({
       </div>
     </div>
   );
+}
+
+/**
+ * FR-008 — filter chips per dimension. URL-driven so filters are
+ * shareable, survive reload, and stack with the view/dimension
+ * parameters from spec 163.
+ *
+ * Each chip toggles its dimension by rewriting the active URL — clicking
+ * an already-active value clears it.
+ */
+function FilterChips({
+  projectId,
+  view,
+  dimension,
+  filters,
+  facets,
+}: {
+  projectId: string;
+  view: ViewMode;
+  dimension: GroupingDimension;
+  filters: BoardFilters;
+  facets: ReturnType<typeof buildFilterFacets>;
+}) {
+  const anyFacet =
+    facets.kinds.length +
+      facets.categories.length +
+      facets.risks.length +
+      facets.owners.length >
+    0;
+  if (!anyFacet) return null;
+
+  function urlFor(updates: Partial<BoardFilters>): string {
+    const next: BoardFilters = { ...filters, ...updates };
+    const params = new URLSearchParams();
+    if (view === "grouped") {
+      params.set("view", "grouped");
+      params.set("dim", dimension);
+    }
+    if (next.kind) params.set("kind", next.kind);
+    if (next.category) params.set("category", next.category);
+    if (next.risk) params.set("risk", next.risk);
+    if (next.owner) params.set("owner", next.owner);
+    if (next.withEvidence) params.set("withEvidence", "true");
+    const qs = params.toString();
+    const base = `/app/project/${projectId}/development`;
+    return qs ? `${base}?${qs}` : base;
+  }
+
+  return (
+    <div className="space-y-2 text-xs">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          Filter
+        </span>
+        <FacetRow
+          label="kind"
+          facets={facets.kinds}
+          activeValue={filters.kind}
+          toUrl={(value) => urlFor({ kind: value })}
+        />
+        <FacetRow
+          label="category"
+          facets={facets.categories}
+          activeValue={filters.category}
+          toUrl={(value) => urlFor({ category: value })}
+        />
+        <FacetRow
+          label="risk"
+          facets={facets.risks}
+          activeValue={filters.risk}
+          toUrl={(value) => urlFor({ risk: value })}
+        />
+        <FacetRow
+          label="owner"
+          facets={facets.owners}
+          activeValue={filters.owner}
+          toUrl={(value) => urlFor({ owner: value })}
+        />
+        <Link
+          to={urlFor({ withEvidence: filters.withEvidence ? undefined : true })}
+          className={chipClass(filters.withEvidence === true)}
+          title="Keep only specs that claim at least one code path via relationship-graph edges."
+        >
+          with paths
+        </Link>
+        {hasActiveFilters(filters) && (
+          <Link
+            to={urlFor({
+              kind: undefined,
+              category: undefined,
+              risk: undefined,
+              owner: undefined,
+              withEvidence: undefined,
+            })}
+            className="text-gray-500 dark:text-gray-400 hover:underline"
+          >
+            Clear all
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FacetRow({
+  label,
+  facets,
+  activeValue,
+  toUrl,
+}: {
+  label: string;
+  facets: FilterFacet[];
+  activeValue?: string;
+  toUrl: (value: string | undefined) => string;
+}) {
+  if (facets.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <span className="text-gray-400 dark:text-gray-500">{label}:</span>
+      {facets.map((f) => {
+        const active = activeValue === f.value;
+        return (
+          <Link
+            key={f.value}
+            to={toUrl(active ? undefined : f.value)}
+            className={chipClass(active)}
+            aria-current={active ? "true" : undefined}
+          >
+            {f.value}
+            <span className="ml-1 text-[10px] text-gray-400 dark:text-gray-500">
+              {f.count}
+            </span>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+function chipClass(active: boolean): string {
+  return [
+    "inline-flex items-center px-2 py-0.5 rounded-md border text-xs transition-colors",
+    active
+      ? "bg-indigo-600 text-white border-indigo-600"
+      : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800",
+  ].join(" ");
 }
 
 function pillClass(active: boolean): string {

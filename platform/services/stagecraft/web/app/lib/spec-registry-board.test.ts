@@ -4,10 +4,14 @@
 import { describe, expect, test } from "vitest";
 import type { SpecListRow } from "../../../api/specRegistry/types";
 import {
+  applyFilters,
   buildBoard,
   buildBoardWithGrouping,
+  buildFilterFacets,
   claimedCodePaths,
   collectAmendedIds,
+  hasActiveFilters,
+  parseFiltersFromSearchParams,
   placeSpec,
 } from "./spec-registry-board";
 
@@ -22,6 +26,8 @@ function row(
     implementation: "complete",
     kind: "platform",
     categories: [],
+    risk: null,
+    owner: null,
     summary: null,
     specPath: `specs/${id}/spec.md`,
     extraFrontmatter: {},
@@ -334,5 +340,151 @@ describe("claimedCodePaths", () => {
       },
     });
     expect(claimedCodePaths(spec)).toEqual([]);
+  });
+});
+
+describe("parseFiltersFromSearchParams", () => {
+  test("extracts each filter dimension from URL params", () => {
+    const params = new URLSearchParams(
+      "kind=platform&category=auth&risk=medium&owner=bart&withEvidence=true",
+    );
+    expect(parseFiltersFromSearchParams(params)).toEqual({
+      kind: "platform",
+      category: "auth",
+      risk: "medium",
+      owner: "bart",
+      withEvidence: true,
+    });
+  });
+
+  test("absent params produce no filter keys", () => {
+    expect(parseFiltersFromSearchParams(new URLSearchParams())).toEqual({});
+  });
+
+  test("withEvidence is only set when literally 'true'", () => {
+    expect(
+      parseFiltersFromSearchParams(new URLSearchParams("withEvidence=1")),
+    ).toEqual({});
+    expect(
+      parseFiltersFromSearchParams(new URLSearchParams("withEvidence=true")),
+    ).toEqual({ withEvidence: true });
+  });
+});
+
+describe("hasActiveFilters", () => {
+  test("false on empty filter object", () => {
+    expect(hasActiveFilters({})).toBe(false);
+  });
+
+  test("true when any dimension is set", () => {
+    expect(hasActiveFilters({ kind: "x" })).toBe(true);
+    expect(hasActiveFilters({ withEvidence: true })).toBe(true);
+  });
+});
+
+describe("applyFilters", () => {
+  const corpus: SpecListRow[] = [
+    row("001-a", {
+      kind: "platform",
+      categories: ["auth"],
+      risk: "low",
+      owner: "bart",
+      relationshipFields: {
+        establishes: [{ unit: { path: "a.ts" } }],
+      },
+    }),
+    row("002-b", {
+      kind: "platform",
+      categories: ["lifecycle"],
+      risk: "medium",
+      owner: "alice",
+    }),
+    row("003-c", {
+      kind: "process",
+      categories: ["auth", "lifecycle"],
+      risk: "high",
+      owner: "bart",
+    }),
+  ];
+
+  test("kind filter keeps only specs with matching kind", () => {
+    const result = applyFilters(corpus, { kind: "process" });
+    expect(result.map((s) => s.id)).toEqual(["003-c"]);
+  });
+
+  test("category filter matches any-of a spec's categories", () => {
+    const result = applyFilters(corpus, { category: "auth" });
+    expect(result.map((s) => s.id)).toEqual(["001-a", "003-c"]);
+  });
+
+  test("risk + owner compose with AND semantics", () => {
+    const result = applyFilters(corpus, { risk: "high", owner: "bart" });
+    expect(result.map((s) => s.id)).toEqual(["003-c"]);
+  });
+
+  test("withEvidence keeps only specs with claimed paths", () => {
+    const result = applyFilters(corpus, { withEvidence: true });
+    expect(result.map((s) => s.id)).toEqual(["001-a"]);
+  });
+
+  test("returns the full corpus when no filter is active", () => {
+    expect(applyFilters(corpus, {}).map((s) => s.id)).toEqual([
+      "001-a",
+      "002-b",
+      "003-c",
+    ]);
+  });
+});
+
+describe("buildFilterFacets", () => {
+  test("returns sorted, unique value lists per dimension with counts", () => {
+    const specs = [
+      row("001-a", {
+        kind: "platform",
+        categories: ["auth", "lifecycle"],
+        risk: "low",
+        owner: "bart",
+      }),
+      row("002-b", {
+        kind: "platform",
+        categories: ["auth"],
+        risk: "low",
+        owner: "alice",
+      }),
+      row("003-c", {
+        kind: "process",
+        categories: ["lifecycle"],
+        risk: "high",
+        owner: "bart",
+      }),
+    ];
+    const facets = buildFilterFacets(specs);
+    expect(facets.kinds).toEqual([
+      { value: "platform", count: 2 },
+      { value: "process", count: 1 },
+    ]);
+    expect(facets.categories).toEqual([
+      { value: "auth", count: 2 },
+      { value: "lifecycle", count: 2 },
+    ]);
+    expect(facets.risks).toEqual([
+      { value: "high", count: 1 },
+      { value: "low", count: 2 },
+    ]);
+    expect(facets.owners).toEqual([
+      { value: "alice", count: 1 },
+      { value: "bart", count: 2 },
+    ]);
+  });
+
+  test("skips null/empty values", () => {
+    const specs = [
+      row("100-x", { kind: null, risk: null, owner: null, categories: [] }),
+    ];
+    const facets = buildFilterFacets(specs);
+    expect(facets.kinds).toEqual([]);
+    expect(facets.categories).toEqual([]);
+    expect(facets.risks).toEqual([]);
+    expect(facets.owners).toEqual([]);
   });
 });
