@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "437254d54bb68606cf1694aedcf5dcfaf0c57368250dbbc0dee31197b8ef8aa3",
+    "contentHash": "b7a5a455d58565ecfab87e46fe796432469467df59503e4deb435a25a526c026",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -35339,6 +35339,10 @@
           {
             "path": "crates/factory-engine/tests/tenant_emission_integration.rs",
             "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
@@ -35494,6 +35498,20 @@
             "unit": {
               "kind": "file",
               "path": "crates/factory-engine/tests/kernel_emission_integration.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
             }
           },
           {

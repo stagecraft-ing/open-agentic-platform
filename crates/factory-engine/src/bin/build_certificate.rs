@@ -289,7 +289,7 @@ fn build_certificate(
         // default to filesystem discovery for tenant mode so we don't
         // silently bake OAP's s0..s5 list into a tenant certificate.
         None if cli.tenant_mode || cli.stage_ids.is_some() => Vec::new(),
-        None => OAP_STAGE_IDS.iter().map(|s| *s).collect(),
+        None => OAP_STAGE_IDS.to_vec(),
     };
 
     let cert = generate_certificate_with_stage_ids(
