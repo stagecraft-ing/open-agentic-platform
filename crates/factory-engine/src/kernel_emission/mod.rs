@@ -30,8 +30,11 @@ pub use adapter_specs::{AdapterSeededSpec, build_scaffold_claim_spec};
 pub use emit::{EmissionMode, KernelEmissionConfig, KernelEmissionReport, emit_kernel};
 pub use version::ToolchainMode;
 pub use gather::{KernelContent, KernelSource, compute_kernel_hash, gather_kernel_content};
-pub use templates::{TenantGateContext, render_tenant_makefile, render_tenant_workflow};
-pub use version::{AdapterIdentity, KernelOrigin, KernelVersion};
+pub use templates::{
+    TenantGateContext, TenantToolchainContext, render_tenant_makefile, render_tenant_toolchain,
+    render_tenant_workflow,
+};
+pub use version::{AdapterIdentity, CertificateToolchainRef, KernelOrigin, KernelVersion};
 
 use thiserror::Error;
 

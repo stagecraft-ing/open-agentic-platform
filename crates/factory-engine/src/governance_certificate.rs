@@ -12,7 +12,7 @@ use crate::inter_stage_manifest::{InterStageManifest, RunKeyChain, verify_manife
 use crate::pipeline_state::FactoryPipelineState;
 use base64::{Engine as _, engine::general_purpose::STANDARD as B64};
 use chrono::{DateTime, Utc};
-use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use ed25519_dalek::{Signature, Signer as Ed25519Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -20,24 +20,23 @@ use std::path::Path;
 
 /// Schema version for the governance certificate format.
 ///
-/// Bumped to 1.3.0 (spec 170 §FR-007) to mark the introduction of the
-/// optional `interStageChain` top-level field carrying the signed
-/// inter-stage manifest chain produced by [`crate::inter_stage_manifest`].
-/// The field is `skip_serializing_if = "Option::is_none"` so a
-/// certificate built without the chain serialises byte-identically to a
-/// pre-1.3.0 certificate of the same payload (only the version string
-/// differs).
+/// 1.3.0 introduces two optional top-level fields landing in parallel:
+///   * `signer` (spec 168 §FR-003) — named identity for the principal that
+///     drove the run (Rauthy JWT subject or analogous identity per spec
+///     106 / 137).
+///   * `interStageChain` (spec 170 §FR-007) — signed inter-stage manifest
+///     chain produced by [`crate::inter_stage_manifest`].
+///
+/// Both fields are `skip_serializing_if = "Option::is_none"` so a
+/// certificate built without them serialises byte-identically to a
+/// pre-1.3.0 payload — only the version string differs. Legacy 1.2.0 /
+/// 1.1.0 / 1.0.0 fixtures still pass through the verifier.
 ///
 /// 1.2.0 (spec 162 §FR-008) introduced the optional `sandboxExecution`
-/// per-stage record. Verifiers targeting 1.0.0 / 1.1.0 fixtures still
-/// pass — the field is optional in the serde layer
-/// (`skip_serializing_if = "Option::is_none"`) so legacy certificates
-/// serialise identically to their previous canonical form and produce
-/// the same `certificateHash`.
-///
-/// 1.1.0 added Ed25519 signing (spec 102 FR-008.1); the hash check is no
-/// longer the authoritative provenance check after that point, but it
-/// remains as a content fingerprint inside the signed payload.
+/// per-stage record. 1.1.0 added Ed25519 signing (spec 102 FR-008.1);
+/// the hash check is no longer the authoritative provenance check after
+/// that point, but it remains as a content fingerprint inside the signed
+/// payload.
 pub const CERTIFICATE_VERSION: &str = "1.3.0";
 
 /// Environment-variable name carrying a base64-encoded 32-byte Ed25519 seed
@@ -67,6 +66,15 @@ pub struct GovernanceCertificate {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compliance: Option<ComplianceRecord>,
+
+    /// Spec 168 §FR-003 / §FR-007 — identity attribution for the principal
+    /// that drove the run. Required for tenant-emit mode (per-project
+    /// certificates); optional on OAP-self runs to preserve byte-for-byte
+    /// compatibility with pre-1.3.0 fixtures. Anonymous signing is
+    /// forbidden: when set, `Signer::subject` is non-empty after trim
+    /// (constructed via `Signer::new`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signer: Option<Signer>,
 
     /// Spec 170 §FR-007 — signed inter-stage manifest chain. Optional
     /// for runs that did not produce signed hand-offs (legacy / pre-1.3.0
@@ -151,6 +159,75 @@ pub struct InterStageChainRecord {
     pub key_chain: RunKeyChain,
     #[serde(default)]
     pub manifests: Vec<InterStageManifest>,
+}
+
+// ── Signer (spec 168 FR-003 / FR-007) ────────────────────────────────
+
+/// Identity attribution for the principal that drove the pipeline run.
+///
+/// The `subject` is the principal identifier (typically a Rauthy JWT `sub`
+/// for human-driven runs, or an agent identity for agent-driven runs per
+/// spec 106 / 137). The `identityProvider` names the system that attested
+/// the subject (e.g. `rauthy@<tenant-org>`, `github-actions@<repo>`,
+/// `oap-self`). The `sessionId` is an optional run-scoped correlation id.
+///
+/// Constructed only via [`Signer::new`], which rejects empty/whitespace
+/// `subject` so that anonymous signing cannot bypass FR-007 by submitting
+/// an empty string.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Signer {
+    pub subject: String,
+    pub identity_provider: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+}
+
+impl Signer {
+    /// Construct a `Signer`. Returns `Err` if `subject` is empty or
+    /// whitespace-only (FR-007: anonymous signing forbidden) or
+    /// `identity_provider` is empty.
+    pub fn new(
+        subject: impl Into<String>,
+        identity_provider: impl Into<String>,
+    ) -> Result<Self, SignerError> {
+        let subject = subject.into();
+        let identity_provider = identity_provider.into();
+        if subject.trim().is_empty() {
+            return Err(SignerError::EmptySubject);
+        }
+        if identity_provider.trim().is_empty() {
+            return Err(SignerError::EmptyIdentityProvider);
+        }
+        Ok(Self {
+            subject,
+            identity_provider,
+            session_id: None,
+        })
+    }
+
+    /// Attach an optional run-scoped session id.
+    pub fn with_session_id(mut self, session_id: impl Into<String>) -> Self {
+        self.session_id = Some(session_id.into());
+        self
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SignerError {
+    #[error("signer subject is empty or whitespace (FR-007); anonymous signing forbidden")]
+    EmptySubject,
+    #[error("signer identity_provider is empty")]
+    EmptyIdentityProvider,
+}
+
+/// Errors raised when building a certificate via the fallible builder path.
+#[derive(Debug, thiserror::Error)]
+pub enum CertificateBuildError {
+    /// Tenant emission requested but no signer was supplied — spec 168
+    /// FR-007 ("a run with no identifiable signer halts before emitting").
+    #[error("tenant emission requires a signer (spec 168 FR-007); none provided")]
+    MissingSigner,
 }
 
 // ── Intent ───────────────────────────────────────────────────────────
@@ -377,6 +454,7 @@ pub struct CertificateBuilder {
     verification: VerificationRecord,
     proof_chain: ProofChainSummary,
     compliance: Option<ComplianceRecord>,
+    signer: Option<Signer>,
     inter_stage_chain: Option<InterStageChainRecord>,
 }
 
@@ -403,6 +481,7 @@ impl CertificateBuilder {
                 chain_integrity: ChainIntegrity::Empty,
             },
             compliance: None,
+            signer: None,
             inter_stage_chain: None,
         }
     }
@@ -448,6 +527,28 @@ impl CertificateBuilder {
         self
     }
 
+    /// Attach a [`Signer`] identifying the principal that drove the run
+    /// (spec 168 §FR-003). Required for tenant emission; optional on
+    /// OAP-self runs.
+    pub fn signer(mut self, signer: Signer) -> Self {
+        self.signer = Some(signer);
+        self
+    }
+
+    /// Fallible build path for tenant emission (spec 168 §FR-007).
+    ///
+    /// Returns [`CertificateBuildError::MissingSigner`] when no
+    /// [`Signer`] has been attached. The tenant pipeline runner calls
+    /// this entry point so a misconfigured-identity run halts before
+    /// emitting a certificate, rather than producing one with a null
+    /// signer.
+    pub fn build_tenant(self) -> Result<GovernanceCertificate, CertificateBuildError> {
+        if self.signer.is_none() {
+            return Err(CertificateBuildError::MissingSigner);
+        }
+        Ok(self.build())
+    }
+
     /// Build the certificate, computing the self-authenticating hash (FR-008)
     /// AND the Ed25519 signature (FR-008.1). Signing key is resolved via
     /// `resolve_signing_material()` — operator env vars take precedence,
@@ -478,6 +579,7 @@ impl CertificateBuilder {
             verification: self.verification,
             proof_chain: self.proof_chain,
             compliance: self.compliance,
+            signer: self.signer,
             inter_stage_chain: self.inter_stage_chain,
             certificate_hash: String::new(),
             signing_public_key: public_key_b64,
@@ -632,15 +734,63 @@ fn verify_certificate_signature(cert: &GovernanceCertificate) -> Result<(), Stri
 
 // ── Generation from Pipeline State ───────────────────────────────────
 
+/// OAP's canonical s0..s5 stage list (spec 102).
+///
+/// Tenant pipelines (spec 168 §2.4) pass their own stage IDs to
+/// [`generate_certificate_with_stage_ids`]; the OAP-side
+/// [`generate_certificate`] keeps this fixed list as its default for
+/// byte-equivalence with pre-1.3.0 fixtures.
+pub const OAP_STAGE_IDS: &[&str] = &[
+    "s0-preflight",
+    "s1-business-requirements",
+    "s2-service-requirements",
+    "s3-data-model",
+    "s4-api-specification",
+    "s5-ui-specification",
+];
+
 /// Generate a governance certificate from a completed (or halted) pipeline.
 ///
 /// FR-003: called at the end of every factory pipeline run.
 /// FR-005: computes SHA-256 of each stage output artifact on disk.
+///
+/// Uses [`OAP_STAGE_IDS`] as the stage list. Tenant pipelines with
+/// different stage grammars (spec 168 §2.4) call
+/// [`generate_certificate_with_stage_ids`] instead.
 pub fn generate_certificate(
     pipeline_state: &FactoryPipelineState,
     requirements_hash: &str,
     artifact_dir: &Path,
     proof_chain_summary: Option<ProofChainSummary>,
+) -> GovernanceCertificate {
+    generate_certificate_with_stage_ids(
+        pipeline_state,
+        requirements_hash,
+        artifact_dir,
+        proof_chain_summary,
+        OAP_STAGE_IDS,
+    )
+}
+
+/// Generate a governance certificate using a caller-supplied stage list
+/// (spec 168 §2.4).
+///
+/// `stage_ids` controls which subdirectories of `artifact_dir` are
+/// scanned and the order in which their [`StageRecord`]s appear in the
+/// certificate. When the slice is empty, every subdirectory of
+/// `artifact_dir` is scanned in lexicographic order — useful for tenant
+/// pipelines that emit stages dynamically and want filesystem discovery
+/// instead of an explicit list.
+///
+/// Per spec 168 §2.4, the tenant's stage shape is opaque to the
+/// certificate format: any stage representable as `(stage_id,
+/// artifact_hashes)` round-trips through the verifier untouched.
+pub fn generate_certificate_with_stage_ids(
+    pipeline_state: &FactoryPipelineState,
+    requirements_hash: &str,
+    artifact_dir: &Path,
+    proof_chain_summary: Option<ProofChainSummary>,
+    stage_ids: &[&str],
 ) -> GovernanceCertificate {
     let intent = IntentRecord {
         requirements_hash: requirements_hash.to_string(),
@@ -650,10 +800,12 @@ pub fn generate_certificate(
 
     let build_spec_hash = pipeline_state.build_spec_hash.clone().unwrap_or_default();
 
-    // Collect stage records by scanning the artifact directory.
-    let stages = collect_stage_records(artifact_dir);
+    let stages = if stage_ids.is_empty() {
+        collect_stage_records_from_dir(artifact_dir)
+    } else {
+        collect_stage_records(artifact_dir, stage_ids)
+    };
 
-    // Determine verification outcomes from the pipeline state.
     let verification = VerificationRecord {
         compile: VerificationOutcome::Skipped,
         test: VerificationOutcome::Skipped,
@@ -677,59 +829,75 @@ pub fn generate_certificate(
         .build()
 }
 
-/// Scan the artifact directory for stage output files and compute their hashes.
-fn collect_stage_records(artifact_dir: &Path) -> Vec<StageRecord> {
+/// Scan the artifact directory for stage output files using a
+/// caller-supplied ordered stage list.
+fn collect_stage_records(artifact_dir: &Path, stage_ids: &[&str]) -> Vec<StageRecord> {
     let mut stages = Vec::new();
+    for stage_id in stage_ids {
+        stages.push(stage_record_for(artifact_dir, stage_id));
+    }
+    stages
+}
 
-    // Known process stage IDs in order.
-    let stage_ids = [
-        "s0-preflight",
-        "s1-business-requirements",
-        "s2-service-requirements",
-        "s3-data-model",
-        "s4-api-specification",
-        "s5-ui-specification",
-    ];
+/// Scan the artifact directory's subdirectories and emit a stage record
+/// per subdirectory, in lexicographic order. Used when the caller passes
+/// an empty stage-id list to [`generate_certificate_with_stage_ids`].
+fn collect_stage_records_from_dir(artifact_dir: &Path) -> Vec<StageRecord> {
+    let Ok(entries) = std::fs::read_dir(artifact_dir) else {
+        return Vec::new();
+    };
 
-    for stage_id in &stage_ids {
-        let stage_dir = artifact_dir.join(stage_id);
-        let mut artifact_hashes = BTreeMap::new();
+    let mut stage_dirs: Vec<String> = entries
+        .flatten()
+        .filter(|e| e.path().is_dir())
+        .filter_map(|e| e.file_name().to_str().map(|s| s.to_string()))
+        .collect();
+    stage_dirs.sort();
 
-        if stage_dir.is_dir()
-            && let Ok(entries) = std::fs::read_dir(&stage_dir)
-        {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_file()
-                    && let Ok(contents) = std::fs::read(&path)
-                {
-                    let hash = sha256_bytes(&contents);
-                    let name = path
-                        .file_name()
-                        .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_default();
-                    artifact_hashes.insert(name, hash);
-                }
+    stage_dirs
+        .iter()
+        .map(|sid| stage_record_for(artifact_dir, sid))
+        .collect()
+}
+
+/// Build a single [`StageRecord`] for the named stage by scanning
+/// `artifact_dir/<stage_id>/`.
+fn stage_record_for(artifact_dir: &Path, stage_id: &str) -> StageRecord {
+    let stage_dir = artifact_dir.join(stage_id);
+    let mut artifact_hashes = BTreeMap::new();
+
+    if stage_dir.is_dir()
+        && let Ok(entries) = std::fs::read_dir(&stage_dir)
+    {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file()
+                && let Ok(contents) = std::fs::read(&path)
+            {
+                let hash = sha256_bytes(&contents);
+                let name = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                artifact_hashes.insert(name, hash);
             }
         }
-
-        let status = if artifact_hashes.is_empty() {
-            StageOutcome::Skipped
-        } else {
-            StageOutcome::Passed
-        };
-
-        stages.push(StageRecord {
-            stage_id: stage_id.to_string(),
-            status,
-            artifact_hashes,
-            gate_result: None,
-            duration_ms: None,
-            sandbox_execution: None,
-        });
     }
 
-    stages
+    let status = if artifact_hashes.is_empty() {
+        StageOutcome::Skipped
+    } else {
+        StageOutcome::Passed
+    };
+
+    StageRecord {
+        stage_id: stage_id.to_string(),
+        status,
+        artifact_hashes,
+        gate_result: None,
+        duration_ms: None,
+        sandbox_execution: None,
+    }
 }
 
 /// SHA-256 hash of raw bytes, returned as lowercase hex.
@@ -1688,5 +1856,193 @@ mod tests {
         let sbx = stage.sandbox_execution.as_ref().unwrap();
         assert_eq!(sbx.isolation_tier, 2);
         assert_eq!(sbx.command, vec!["cargo", "test"]);
+    }
+
+    // ── spec 168 §FR-003 / §FR-007: signer field + halt-if-no-signer ──
+
+    fn intent_for_signer_tests() -> IntentRecord {
+        IntentRecord {
+            requirements_hash: sha256_bytes(b"reqs"),
+            spec_id: None,
+            spec_hash: None,
+        }
+    }
+
+    #[test]
+    fn signer_constructor_rejects_empty_or_whitespace_subject() {
+        assert!(matches!(
+            Signer::new("", "rauthy"),
+            Err(SignerError::EmptySubject)
+        ));
+        assert!(matches!(
+            Signer::new("   \t  ", "rauthy"),
+            Err(SignerError::EmptySubject)
+        ));
+        assert!(matches!(
+            Signer::new("alice@example.com", ""),
+            Err(SignerError::EmptyIdentityProvider)
+        ));
+    }
+
+    #[test]
+    fn build_tenant_halts_when_no_signer_attached() {
+        let result = CertificateBuilder::new("run-1", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .build_tenant();
+        assert!(matches!(
+            result,
+            Err(CertificateBuildError::MissingSigner)
+        ));
+    }
+
+    #[test]
+    fn build_tenant_succeeds_when_signer_attached() {
+        let signer =
+            Signer::new("alice@tenant.example.com", "rauthy@tenant-org").unwrap();
+        let cert = CertificateBuilder::new("run-1", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .signer(signer.clone())
+            .build_tenant()
+            .unwrap();
+        let attached = cert.signer.as_ref().unwrap();
+        assert_eq!(attached.subject, signer.subject);
+        assert_eq!(attached.identity_provider, signer.identity_provider);
+        assert_eq!(cert.certificate_version, CERTIFICATE_VERSION);
+    }
+
+    #[test]
+    fn oap_build_still_omits_signer_when_unset() {
+        // Backward compatibility: legacy OAP-side builders that don't
+        // attach a signer must still produce a valid (signer-less) cert
+        // via the infallible `build()` entry point. The serialised form
+        // omits the `signer` field entirely.
+        let cert = CertificateBuilder::new("run-1", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .build();
+        assert!(cert.signer.is_none());
+        let json = serde_json::to_string(&cert).unwrap();
+        assert!(!json.contains("\"signer\""));
+    }
+
+    #[test]
+    fn signer_field_binds_into_certificate_hash() {
+        // Two certs identical except for signer must produce different
+        // hashes — the signer is part of the canonical content the
+        // hash + signature attest.
+        let bare = CertificateBuilder::new("run-1", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .build();
+        let signed = CertificateBuilder::new("run-1", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .signer(Signer::new("a@b", "rauthy").unwrap())
+            .build();
+        assert_ne!(bare.certificate_hash, signed.certificate_hash);
+    }
+
+    // ── spec 168 §2.4: stage-shape flexibility for tenant grammars ──
+
+    fn write_stage_artifact(root: &Path, stage_id: &str, name: &str, body: &[u8]) {
+        let stage_dir = root.join(stage_id);
+        std::fs::create_dir_all(&stage_dir).unwrap();
+        std::fs::write(stage_dir.join(name), body).unwrap();
+    }
+
+    fn pipeline_state_for_stage_tests() -> FactoryPipelineState {
+        let mut state = FactoryPipelineState::new("tenant-run-1", "aim-vue-node");
+        state.transition_to_scaffolding("bs".into());
+        state
+    }
+
+    #[test]
+    fn tenant_stage_ids_round_trip_through_generate_certificate() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path();
+        write_stage_artifact(dir, "tenant-codegen", "app.rs", b"fn main(){}");
+        write_stage_artifact(dir, "tenant-bundle", "bundle.tar", b"<bytes>");
+
+        let state = pipeline_state_for_stage_tests();
+        let cert = generate_certificate_with_stage_ids(
+            &state,
+            "req-hash",
+            dir,
+            None,
+            &["tenant-codegen", "tenant-bundle"],
+        );
+
+        assert_eq!(cert.stages.len(), 2);
+        assert_eq!(cert.stages[0].stage_id, "tenant-codegen");
+        assert_eq!(cert.stages[1].stage_id, "tenant-bundle");
+        assert_eq!(cert.stages[0].status, StageOutcome::Passed);
+        assert!(cert.stages[0].artifact_hashes.contains_key("app.rs"));
+
+        let result = verify_certificate(&cert, Some(dir));
+        assert!(result.valid, "errors: {:?}", result.errors);
+    }
+
+    #[test]
+    fn empty_stage_id_slice_falls_back_to_filesystem_discovery() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path();
+        write_stage_artifact(dir, "z-final", "z.txt", b"z");
+        write_stage_artifact(dir, "a-prepare", "a.txt", b"a");
+        write_stage_artifact(dir, "m-middle", "m.txt", b"m");
+
+        let state = pipeline_state_for_stage_tests();
+        let cert = generate_certificate_with_stage_ids(&state, "req-hash", dir, None, &[]);
+
+        // Filesystem discovery yields lexicographic order.
+        assert_eq!(cert.stages.len(), 3);
+        assert_eq!(cert.stages[0].stage_id, "a-prepare");
+        assert_eq!(cert.stages[1].stage_id, "m-middle");
+        assert_eq!(cert.stages[2].stage_id, "z-final");
+    }
+
+    #[test]
+    fn oap_default_stage_list_unchanged() {
+        // Backward-compat: the OAP-side generate_certificate() must still
+        // produce stages s0..s5 in canonical order regardless of which
+        // subdirectories actually exist on disk (skipped → empty hashes).
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path();
+        write_stage_artifact(dir, "s0-preflight", "ok.json", b"{}");
+
+        let state = pipeline_state_for_stage_tests();
+        let cert = generate_certificate(&state, "req-hash", dir, None);
+
+        assert_eq!(cert.stages.len(), 6);
+        for (i, expected) in OAP_STAGE_IDS.iter().enumerate() {
+            assert_eq!(&cert.stages[i].stage_id, expected);
+        }
+        assert_eq!(cert.stages[0].status, StageOutcome::Passed);
+        assert_eq!(cert.stages[1].status, StageOutcome::Skipped);
+    }
+
+    #[test]
+    fn cert_with_signer_round_trips_through_json() {
+        let signer = Signer::new("bart@tenant.example", "rauthy@tenant-org")
+            .unwrap()
+            .with_session_id("sess-42");
+        let cert = CertificateBuilder::new("run-1", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .signer(signer)
+            .build_tenant()
+            .unwrap();
+
+        let json = serde_json::to_string(&cert).unwrap();
+        assert!(json.contains("\"signer\""));
+        assert!(json.contains("\"subject\":\"bart@tenant.example\""));
+        assert!(json.contains("\"identityProvider\":\"rauthy@tenant-org\""));
+        assert!(json.contains("\"sessionId\":\"sess-42\""));
+
+        let restored: GovernanceCertificate = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.certificate_hash, cert.certificate_hash);
+        let s = restored.signer.as_ref().unwrap();
+        assert_eq!(s.subject, "bart@tenant.example");
+        assert_eq!(s.identity_provider, "rauthy@tenant-org");
+        assert_eq!(s.session_id.as_deref(), Some("sess-42"));
+
+        // Verifier accepts a signed tenant cert.
+        let result = verify_certificate(&restored, None);
+        assert!(result.valid, "errors: {:?}", result.errors);
     }
 }

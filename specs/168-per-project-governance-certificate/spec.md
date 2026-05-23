@@ -2,8 +2,8 @@
 id: "168-per-project-governance-certificate"
 slug: per-project-governance-certificate
 title: "Per-project governance certificate emission and tenant-side verifier"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: capability
@@ -13,6 +13,40 @@ depends_on:
   - "102"  # governed-excellence (the certificate substrate spec 168 extends)
   - "167"  # born-with kernel emission (tenants inherit the emission discipline)
 code_aliases: ["TENANT_GOVERNANCE_CERTIFICATE", "PER_PROJECT_CERT_EMISSION"]
+establishes:
+  - unit: { kind: file, path: crates/factory-engine/tests/tenant_emission_integration.rs }
+  - unit: { kind: file, path: crates/factory-engine/templates/kernel/toolchain.yaml.tmpl }
+extends:
+  - spec: "102-governed-excellence"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
+  - spec: "102-governed-excellence"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/lib.rs }
+  - spec: "102-governed-excellence"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/bin/build_certificate.rs }
+  - spec: "102-governed-excellence"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/bin/factory_run.rs }
+  - spec: "167-born-with-spec-spine-kernel"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/kernel_emission/mod.rs }
+  - spec: "167-born-with-spec-spine-kernel"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/kernel_emission/version.rs }
+  - spec: "167-born-with-spec-spine-kernel"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/kernel_emission/emit.rs }
+  - spec: "167-born-with-spec-spine-kernel"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/kernel_emission/templates.rs }
+  - spec: "167-born-with-spec-spine-kernel"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/tests/kernel_emission_integration.rs }
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

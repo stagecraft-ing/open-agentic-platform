@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/102-governed-excellence/spec.md — FR-003, FR-009
+// Spec: specs/168-per-project-governance-certificate/spec.md — FR-001, FR-002, FR-003, FR-007
 
 //! CLI to build a governance certificate from an existing factory run
 //! directory, without re-running the pipeline.
@@ -14,14 +15,36 @@
 //! `<run-dir>/<step-id>/<artifact-files>`. The build-spec hash is derived
 //! from `<run-dir>/s5-ui-specification/build-spec.yaml` when present.
 //!
+//! Tenant emission (spec 168):
+//!   - `--tenant-mode` enables FR-007 (halt-if-no-signer); the binary
+//!     exits with code 2 and a specific diagnostic if no signer is
+//!     supplied.
+//!   - `--signer-subject` / `--signer-identity-provider` (+ optional
+//!     `--signer-session-id`) bind the principal's identity into the
+//!     certificate's new `signer` field (FR-003).
+//!   - `--stage-ids` overrides the OAP-default s0..s5 stage list with a
+//!     comma-separated list the tenant pipeline actually emits (§2.4).
+//!     Pass `--stage-ids=auto` (or any single-token value `auto`) to
+//!     trigger filesystem discovery (lexicographic order over
+//!     `<run-dir>/`'s subdirectories).
+//!
 //! Usage:
 //!   build-certificate <run-dir> \
 //!     [--adapter <name>] [--requirements-hash <hash>] \
-//!     [--business-docs <path> ...] [--out <path>]
+//!     [--business-docs <path> ...] [--out <path>] \
+//!     [--tenant-mode] \
+//!     [--signer-subject <subject> --signer-identity-provider <provider>] \
+//!     [--signer-session-id <id>] \
+//!     [--stage-ids <comma-sep-or-auto>]
 
 use clap::Parser;
 use factory_engine::{
-    FactoryPipelineState, generate_certificate, governance_certificate::sha256_file,
+    CertificateBuilder, CertificateBuildError, FactoryPipelineState, OAP_STAGE_IDS, Signer,
+    generate_certificate_with_stage_ids,
+    governance_certificate::{
+        ChainIntegrity, IntentRecord, ProofChainSummary, VerificationOutcome, VerificationRecord,
+        sha256_file,
+    },
     persist_certificate, validate_spec_id_resolution, write_validation_warnings,
 };
 use sha2::{Digest, Sha256};
@@ -30,7 +53,7 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(
     name = "build-certificate",
-    about = "Build a governance certificate from a factory run directory (spec 102 FR-003)"
+    about = "Build a governance certificate from a factory run directory (spec 102 FR-003; spec 168 FR-002)"
 )]
 struct Cli {
     /// Path to the factory run directory (`.factory/runs/<run_id>`).
@@ -61,6 +84,32 @@ struct Cli {
     /// Defaults to the current working directory.
     #[arg(long)]
     repo_root: Option<PathBuf>,
+
+    /// Spec 168 §FR-007 — when set, the binary halts before emission if
+    /// no signer is provided. Required for tenant-emit runs.
+    #[arg(long, default_value_t = false)]
+    tenant_mode: bool,
+
+    /// Spec 168 §FR-003 — principal identifier (typically a Rauthy JWT
+    /// subject for human-driven tenant runs).
+    #[arg(long)]
+    signer_subject: Option<String>,
+
+    /// Spec 168 §FR-003 — system that attested the subject (e.g.
+    /// `rauthy@<tenant-org>` or `github-actions@<repo>`).
+    #[arg(long)]
+    signer_identity_provider: Option<String>,
+
+    /// Spec 168 §FR-003 — optional run-scoped session id.
+    #[arg(long)]
+    signer_session_id: Option<String>,
+
+    /// Spec 168 §2.4 — comma-separated stage IDs to record in the
+    /// certificate, in the given order. Use `auto` to trigger
+    /// filesystem discovery (every subdirectory of `<run-dir>`,
+    /// lexicographic). Omit to use OAP's default s0..s5 list.
+    #[arg(long)]
+    stage_ids: Option<String>,
 }
 
 fn main() {
@@ -110,10 +159,34 @@ fn main() {
         }
         format!("{:x}", hasher.finalize())
     } else {
-        cli.requirements_hash.unwrap_or_default()
+        cli.requirements_hash.clone().unwrap_or_default()
     };
 
-    let cert = generate_certificate(&state, &requirements_hash, &cli.run_dir, None);
+    let signer = match build_signer(&cli) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: {e}");
+            std::process::exit(2);
+        }
+    };
+
+    if cli.tenant_mode && signer.is_none() {
+        eprintln!(
+            "error: --tenant-mode requires --signer-subject and \
+             --signer-identity-provider (spec 168 FR-007: anonymous \
+             signing forbidden — a run with no identifiable signer halts \
+             before emitting)"
+        );
+        std::process::exit(2);
+    }
+
+    let cert = match build_certificate(&cli, &state, &requirements_hash, signer) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("error: {e}");
+            std::process::exit(2);
+        }
+    };
 
     let out_dir = match cli.out.as_ref() {
         Some(p) => p
@@ -155,4 +228,109 @@ fn main() {
             cert_path.display()
         ),
     }
+}
+
+/// Parse the signer flags, returning `Ok(None)` when no signer was supplied,
+/// `Ok(Some(_))` when fully populated, and an error string when partial.
+fn build_signer(cli: &Cli) -> Result<Option<Signer>, String> {
+    match (
+        cli.signer_subject.as_deref(),
+        cli.signer_identity_provider.as_deref(),
+    ) {
+        (None, None) => Ok(None),
+        (Some(_), None) => Err(
+            "--signer-subject requires --signer-identity-provider \
+             (spec 168 FR-003)"
+                .into(),
+        ),
+        (None, Some(_)) => Err(
+            "--signer-identity-provider requires --signer-subject \
+             (spec 168 FR-003)"
+                .into(),
+        ),
+        (Some(subject), Some(provider)) => {
+            let mut s = Signer::new(subject, provider).map_err(|e| e.to_string())?;
+            if let Some(sid) = cli.signer_session_id.as_deref() {
+                s = s.with_session_id(sid);
+            }
+            Ok(Some(s))
+        }
+    }
+}
+
+/// Build the certificate, dispatching on stage_ids and tenant_mode flags.
+fn build_certificate(
+    cli: &Cli,
+    state: &FactoryPipelineState,
+    requirements_hash: &str,
+    signer: Option<Signer>,
+) -> Result<factory_engine::GovernanceCertificate, String> {
+    let stage_ids_owned: Option<Vec<String>> = cli
+        .stage_ids
+        .as_deref()
+        .filter(|s| !s.eq_ignore_ascii_case("auto"))
+        .map(|s| s.split(',').map(|t| t.trim().to_string()).collect());
+
+    // No signer + no custom stages → keep the existing fast path.
+    if signer.is_none() && cli.stage_ids.is_none() {
+        return Ok(generate_certificate_with_stage_ids(
+            state,
+            requirements_hash,
+            &cli.run_dir,
+            None,
+            OAP_STAGE_IDS,
+        ));
+    }
+
+    // Build via the builder so we can attach signer + tenant stage IDs.
+    let stage_ids_slice: Vec<&str> = match stage_ids_owned.as_ref() {
+        Some(v) => v.iter().map(|s| s.as_str()).collect(),
+        // `--stage-ids auto` or no explicit list with a signer attached —
+        // default to filesystem discovery for tenant mode so we don't
+        // silently bake OAP's s0..s5 list into a tenant certificate.
+        None if cli.tenant_mode || cli.stage_ids.is_some() => Vec::new(),
+        None => OAP_STAGE_IDS.to_vec(),
+    };
+
+    let cert = generate_certificate_with_stage_ids(
+        state,
+        requirements_hash,
+        &cli.run_dir,
+        None,
+        &stage_ids_slice,
+    );
+
+    if let Some(signer) = signer {
+        // Re-bake the certificate via the builder so the signer is
+        // present in the canonical content the hash + signature attest.
+        let intent = IntentRecord {
+            requirements_hash: requirements_hash.to_string(),
+            spec_id: None,
+            spec_hash: None,
+        };
+        let proof_chain = ProofChainSummary {
+            record_count: 0,
+            first_record_hash: None,
+            last_record_hash: None,
+            chain_integrity: ChainIntegrity::Empty,
+        };
+        let verification = VerificationRecord {
+            compile: VerificationOutcome::Skipped,
+            test: VerificationOutcome::Skipped,
+            lint: VerificationOutcome::Skipped,
+            typecheck: VerificationOutcome::Skipped,
+            security_scan: VerificationOutcome::Skipped,
+        };
+        let signed = CertificateBuilder::new(&state.pipeline_id, intent)
+            .build_spec_hash(state.build_spec_hash.clone().unwrap_or_default())
+            .stages(cert.stages.clone())
+            .verification(verification)
+            .proof_chain(proof_chain)
+            .signer(signer)
+            .build_tenant()
+            .map_err(|e: CertificateBuildError| e.to_string())?;
+        return Ok(signed);
+    }
+
+    Ok(cert)
 }
