@@ -17,6 +17,7 @@ use crate::FactoryError;
 use crate::agent_bridge::FactoryAgentBridge;
 use crate::artifact_store::LocalArtifactStore;
 use crate::factory_root::FactoryRoot;
+use crate::inter_stage_manifest::{InterStageManifest, StageHandoffSigner};
 use crate::manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 use crate::pipeline_state::{FactoryPipelineState, FailedFeature};
 use crate::policy_shard::generate_factory_policy_shard;
@@ -252,10 +253,11 @@ impl FactoryEngine {
     ) -> Result<ExtractingPipelineStartResult, FactoryError> {
         let cfg = ExtractionStageConfig::from_env(project_id.clone().unwrap_or_default());
         let report = run_extraction_stage(bundles, store, client, &cfg, cancel).await?;
-        let context_md = render_s1_context_md(bundles, &report, store)
-            .map_err(|e| FactoryError::ManifestGeneration {
+        let context_md = render_s1_context_md(bundles, &report, store).map_err(|e| {
+            FactoryError::ManifestGeneration {
                 reason: format!("render s1-context.md: {e}"),
-            })?;
+            }
+        })?;
         let context_artifact = store
             .store_bytes(context_md.as_bytes(), "s1-context.md")
             .map_err(|e| FactoryError::ManifestGeneration {
@@ -263,9 +265,7 @@ impl FactoryEngine {
             })?;
         let business_doc_paths = vec![PathBuf::from(&context_artifact.storage_path)];
         let mut start = self.start_pipeline(adapter_name, &business_doc_paths, project_id)?;
-        start
-            .pipeline_state
-            .record_extraction_summary(&report);
+        start.pipeline_state.record_extraction_summary(&report);
         Ok(ExtractingPipelineStartResult {
             run_id: start.run_id,
             manifest: start.manifest,
@@ -279,6 +279,51 @@ impl FactoryEngine {
     /// Get the engine configuration.
     pub fn config(&self) -> &FactoryEngineConfig {
         &self.config
+    }
+
+    /// Establish a signed-handoff session for a run (spec 170).
+    ///
+    /// Generates the run's root Ed25519 signing key, writes the empty
+    /// [`crate::inter_stage_manifest::RunKeyChain`] under
+    /// `<run_dir>/keychain.json`, and returns the live
+    /// [`StageHandoffSigner`]. The caller drives the session: sign at
+    /// every dispatching boundary, verify at every receiving boundary,
+    /// and finalize at run completion to compose the chain into the
+    /// governance certificate (spec 102 / 170 FR-007).
+    pub fn establish_signing_session(
+        &self,
+        run_id: impl Into<String>,
+        run_dir: impl Into<PathBuf>,
+    ) -> Result<StageHandoffSigner, FactoryError> {
+        Ok(StageHandoffSigner::establish(run_id, run_dir)?)
+    }
+
+    /// Convenience: hash a set of stage output files on disk, sign the
+    /// hand-off manifest, persist it under `<run_dir>/manifests/`.
+    ///
+    /// `artifact_paths` is a sequence of `(name, absolute_path)` pairs;
+    /// names become the keys in `artifact_hashes`. Missing files
+    /// produce a typed [`FactoryError::SignedHandoff`] without panicking.
+    pub fn seal_stage_handoff(
+        &self,
+        signer: &mut StageHandoffSigner,
+        from_stage: &str,
+        to_stage: &str,
+        artifact_paths: &[(String, PathBuf)],
+        metadata: std::collections::BTreeMap<String, serde_json::Value>,
+    ) -> Result<InterStageManifest, FactoryError> {
+        let mut artifact_hashes = std::collections::BTreeMap::new();
+        for (name, path) in artifact_paths {
+            let contents = std::fs::read(path).map_err(|e| FactoryError::SignedHandoff {
+                reason: format!("read {}: {e}", path.display()),
+            })?;
+            artifact_hashes.insert(
+                name.clone(),
+                crate::governance_certificate::sha256_bytes(&contents),
+            );
+        }
+        let manifest = signer.sign_handoff(from_stage, to_stage, artifact_hashes, metadata)?;
+        Ok(manifest)
     }
 
     /// Get the adapter registry.
@@ -309,19 +354,17 @@ impl FactoryEngine {
         toolchain_mode: crate::kernel_emission::ToolchainMode,
         source_commit: String,
     ) -> Result<crate::kernel_emission::KernelEmissionReport, FactoryError> {
-        let manifest =
-            self.adapter_registry
-                .get(adapter_name)
-                .ok_or_else(|| FactoryError::AdapterNotFound {
-                    name: adapter_name.into(),
-                })?;
-
-        // Hash the adapter manifest payload for `.kernel-version`.
-        let manifest_yaml = serde_yaml::to_string(&manifest).map_err(|e| {
-            FactoryError::InvalidBuildSpec {
-                reason: format!("adapter-manifest serialize: {e}"),
+        let manifest = self.adapter_registry.get(adapter_name).ok_or_else(|| {
+            FactoryError::AdapterNotFound {
+                name: adapter_name.into(),
             }
         })?;
+
+        // Hash the adapter manifest payload for `.kernel-version`.
+        let manifest_yaml =
+            serde_yaml::to_string(&manifest).map_err(|e| FactoryError::InvalidBuildSpec {
+                reason: format!("adapter-manifest serialize: {e}"),
+            })?;
         let manifest_hash =
             crate::kernel_emission::gather::hash_adapter_manifest(manifest_yaml.as_bytes());
 
@@ -332,7 +375,9 @@ impl FactoryEngine {
         };
 
         let cfg = crate::kernel_emission::KernelEmissionConfig {
-            source: crate::kernel_emission::KernelSource::from_repo_root(oap_repo_root.to_path_buf()),
+            source: crate::kernel_emission::KernelSource::from_repo_root(
+                oap_repo_root.to_path_buf(),
+            ),
             target_root: target_root.to_path_buf(),
             adapter: adapter_identity,
             scaffolded_paths,

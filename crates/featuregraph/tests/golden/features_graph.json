@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:c984dc1a53ea377b8f56e0ed6935da35130d8fcc3b9f5c5a1dffe9be1d13790d",
+  "graph_fingerprint": "sha256:14553451953bdc2fa02bc1979ef46876c98b7f90f7746f50852d73351c941900",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3217,8 +3217,8 @@
       "feature_id": "170-signed-inter-stage-manifests",
       "title": "Signed inter-stage manifests in factory-engine — cryptographic identity between stages (ASI07)",
       "spec_path": "specs/170-signed-inter-stage-manifests/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",
@@ -3596,6 +3596,13 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/factory-engine/src/inter_stage_manifest.rs",
+      "message": "Malformed Spec directive: // Spec: specs/170-signed-inter-stage-manifests/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/factory-engine/src/kernel_emission/adapter_specs.rs",
       "message": "Malformed Spec directive: // Spec: specs/167-born-with-spec-spine-kernel/spec.md",
       "suggested_fix": "Fix header format"
@@ -3815,6 +3822,20 @@
       "severity": "error",
       "path": "crates/factory-engine/tests/spec_122_e2e.rs",
       "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — SC-001..SC-012",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/tests/spec_170_certificate_chain.rs",
+      "message": "Malformed Spec directive: // Spec: specs/170-signed-inter-stage-manifests/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/tests/spec_170_handoff_chain.rs",
+      "message": "Malformed Spec directive: // Spec: specs/170-signed-inter-stage-manifests/spec.md",
       "suggested_fix": "Fix header format"
     },
     {

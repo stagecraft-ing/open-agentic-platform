@@ -14,9 +14,11 @@ pub mod agent_resolver;
 pub mod artifact_store;
 pub mod checks;
 pub mod engine;
+pub mod factory_root;
 pub mod gate;
 pub mod governance_certificate;
 pub mod harness_state;
+pub mod inter_stage_manifest;
 pub mod kernel_emission;
 pub mod manifest_gen;
 pub mod migration;
@@ -24,7 +26,6 @@ pub mod pipeline_state;
 pub mod policy_shard;
 pub mod preflight;
 pub mod project_config;
-pub mod factory_root;
 pub mod sandbox;
 pub mod stagecraft_client;
 pub mod stages;
@@ -44,9 +45,15 @@ pub use engine::{
     ScaffoldStepKind, classify_scaffold_step, record_scaffold_completion, record_scaffold_failure,
 };
 pub use governance_certificate::{
-    CertificateBuildError, CertificateBuilder, GovernanceCertificate, OAP_STAGE_IDS, Signer,
-    SignerError, generate_certificate, generate_certificate_with_stage_ids, persist_certificate,
-    validate_spec_id_resolution, verify_certificate, write_validation_warnings,
+    CertificateBuildError, CertificateBuilder, GovernanceCertificate, InterStageChainRecord,
+    OAP_STAGE_IDS, Signer, SignerError, generate_certificate, generate_certificate_with_stage_ids,
+    persist_certificate, validate_spec_id_resolution, verify_certificate,
+    write_validation_warnings,
+};
+pub use inter_stage_manifest::{
+    InterStageManifest, KEYCHAIN_FILENAME, ManifestError, ManifestSignInputs, ManifestSigner,
+    RunKeyChain, StageHandoffSigner, StageKeyRecord, compute_manifest_signature,
+    fingerprint_of_pubkey, load_manifest, persist_manifest, sign_manifest, verify_manifest,
 };
 pub use manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 pub use pipeline_state::{FactoryPhase, FactoryPipelineState, ScaffoldingProgress};
@@ -102,4 +109,18 @@ pub enum FactoryError {
         category: &'static str,
         diagnostic: String,
     },
+
+    /// Spec 170 §FR-003 — inter-stage manifest signing or validation
+    /// failed. Includes signature mismatch, unknown signer, cross-run
+    /// swap, persistence I/O failure.
+    #[error("signed inter-stage manifest error: {reason}")]
+    SignedHandoff { reason: String },
+}
+
+impl From<inter_stage_manifest::ManifestError> for FactoryError {
+    fn from(value: inter_stage_manifest::ManifestError) -> Self {
+        FactoryError::SignedHandoff {
+            reason: value.to_string(),
+        }
+    }
 }

@@ -2,8 +2,8 @@
 id: "170-signed-inter-stage-manifests"
 slug: signed-inter-stage-manifests
 title: "Signed inter-stage manifests in factory-engine — cryptographic identity between stages (ASI07)"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: capability
@@ -14,9 +14,23 @@ depends_on:
   - "075"  # factory-workflow-engine (the spec this spec refines)
   - "102"  # governed-excellence (signature chain composes with certificate)
 code_aliases: ["INTER_STAGE_SIGNED_MANIFEST", "FACTORY_STAGE_SIGNATURE_CHAIN"]
+establishes:
+  - unit: { kind: file, path: crates/factory-engine/src/inter_stage_manifest.rs }
+  - unit: { kind: file, path: crates/factory-engine/tests/spec_170_handoff_chain.rs }
+  - unit: { kind: file, path: crates/factory-engine/tests/spec_170_certificate_chain.rs }
 refines:
   - aspect: "inter-stage-handoff-signing"
     unit: { kind: directory, path: crates/factory-engine }
+extends:
+  - spec: "102-governed-excellence"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
+  - spec: "075-factory-workflow-engine"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/engine.rs }
+  - spec: "075-factory-workflow-engine"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/bin/factory_run.rs }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
@@ -278,7 +292,23 @@ between stages where applicable). The three together
 give a structurally complete ASI05 + ASI07 + ASI09
 posture for factory-engine work.
 
-## 7. Cross-references
+## 7. Implementation map
+
+| Concern | Code |
+|---|---|
+| Manifest format, signing, validation | `crates/factory-engine/src/inter_stage_manifest.rs` (`InterStageManifest`, `RunKeyChain`, `sign_manifest`, `verify_manifest`) |
+| Run-scope signing session + offline chain reload | `inter_stage_manifest::StageHandoffSigner` (writes `<run_dir>/keychain.json` + `<run_dir>/manifests/*.json`) |
+| Engine entry points | `FactoryEngine::establish_signing_session`, `FactoryEngine::seal_stage_handoff` (in `crates/factory-engine/src/engine.rs`) |
+| Post-hoc chain emission from a run directory | `inter_stage_manifest::generate_chain_from_run_dir` (walks `PROCESS_STAGE_SEQUENCE` + dynamic `s6*` fan-out) |
+| Certificate composition (FR-007) | `governance_certificate::InterStageChainRecord` field on `GovernanceCertificate`; `CertificateBuilder::inter_stage_chain`; verifier replays chain offline |
+| `factory-run` runtime wiring | `crates/factory-engine/src/bin/factory_run.rs::emit_certificate` calls `generate_chain_from_run_dir` and binds the chain into every emitted cert |
+| SC-001..SC-005 coverage | `crates/factory-engine/tests/spec_170_handoff_chain.rs` + `crates/factory-engine/tests/spec_170_certificate_chain.rs` (CLI-level SC-004 via `CARGO_BIN_EXE_verify-certificate`) |
+
+The certificate version bump from `1.2.0` → `1.3.0` records the
+chain field's introduction; `skip_serializing_if = "Option::is_none"`
+preserves byte-identity for runs that legitimately omit the chain.
+
+## 8. Cross-references
 
 - **INTENT doc** §7.2, §9.11.
 - **Spec 075** — factory-workflow-engine; spec 170
