@@ -295,6 +295,10 @@ impl FactoryEngine {
     /// This is the production entry point for the born-with channel.
     /// Pipeline wiring (when, in the s0–s6 stage list, this fires) is
     /// the responsibility of the caller; the method itself is pure.
+    #[allow(clippy::too_many_arguments)] // each parameter is a distinct
+    // emission contract input (adapter / target / source / paths /
+    // manifest URI / mode / commit). A wrapper struct would add noise
+    // without removing the parameters.
     pub fn emit_project_kernel(
         &self,
         adapter_name: &str,
