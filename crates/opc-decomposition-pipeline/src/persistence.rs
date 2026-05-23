@@ -121,3 +121,46 @@ pub fn hash_file(path: &Path) -> Result<String, PipelineError> {
     hasher.update(&bytes);
     Ok(hex::encode(hasher.finalize()))
 }
+
+/// Enumerate every run directory under `output_root`. The Tauri layer
+/// surfaces this to OPC so a developer can browse prior decomposition
+/// runs without parsing the filesystem layout themselves. Each entry
+/// loads its manifest; entries with missing or malformed `run.json`
+/// are dropped (corrupted runs aren't surfaced to the UI). Sort order:
+/// run-id string descending (newest first by virtue of the timestamp
+/// prefix).
+pub fn list_runs(output_root: &Path) -> Result<Vec<PipelineRun>, PipelineError> {
+    if !output_root.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut runs: Vec<PipelineRun> = Vec::new();
+    for entry in fs::read_dir(output_root).map_err(|e| PipelineError::io(output_root, e))? {
+        let entry = entry.map_err(|e| PipelineError::io(output_root, e))?;
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let manifest = path.join("run.json");
+        let bytes = match fs::read(&manifest) {
+            Ok(b) => b,
+            Err(_) => continue,
+        };
+        if let Ok(run) = serde_json::from_slice::<PipelineRun>(&bytes) {
+            runs.push(run);
+        }
+    }
+    runs.sort_by(|a, b| b.run_id.as_str().cmp(a.run_id.as_str()));
+    Ok(runs)
+}
+
+/// Load a single run by id. Returns `Ok(None)` when the directory
+/// exists but its manifest is missing or malformed; returns the error
+/// only on I/O failure of the enclosing directory.
+pub fn load_run(output_root: &Path, run_id: &RunId) -> Result<Option<PipelineRun>, PipelineError> {
+    let manifest = output_root.join(run_id.as_str()).join("run.json");
+    match fs::read(&manifest) {
+        Ok(bytes) => Ok(serde_json::from_slice(&bytes).ok()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(PipelineError::io(&manifest, e)),
+    }
+}

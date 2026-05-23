@@ -26,7 +26,7 @@ pub mod stages;
 pub mod types;
 
 pub use error::PipelineError;
-pub use persistence::RunDirectory;
+pub use persistence::{RunDirectory, list_runs, load_run};
 pub use pipeline::PipelineRunner;
 pub use types::{
     Cluster, DegradedReason, DraftSpecRef, LogicalUnit, PipelineConfig, PipelineRun, Provenance,
