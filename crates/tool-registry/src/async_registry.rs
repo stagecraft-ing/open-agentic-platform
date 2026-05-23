@@ -13,7 +13,8 @@ use async_trait::async_trait;
 use serde_json::Value;
 
 use crate::event::{ToolEvent, ToolEventKind};
-use crate::registry::RegistryError;
+use crate::registry::{PermissiveRegistration, RegistryError};
+use crate::strictness::validate_strict_schema;
 use crate::types::{PermissionResult, ToolContext, ToolResult};
 
 /// Async variant of [`crate::ToolDef`].
@@ -30,6 +31,11 @@ pub trait AsyncToolDef: Send + Sync {
 
     /// JSON Schema for the tool's input parameters.
     fn input_schema(&self) -> Value;
+
+    /// Spec 169 §2.1 — migration opt-out (see [`crate::ToolDef::permissive`]).
+    fn permissive(&self) -> bool {
+        false
+    }
 
     /// Permission gate. Defaults to `Allow`.
     fn can_use(&self, ctx: &ToolContext) -> anyhow::Result<PermissionResult> {
@@ -50,6 +56,8 @@ pub trait AsyncToolDef: Send + Sync {
 pub struct AsyncToolRegistry {
     tools: HashMap<String, Arc<dyn AsyncToolDef>>,
     event_sink: Option<Box<dyn Fn(ToolEvent) + Send + Sync>>,
+    /// Spec 169 — opted-in permissive registrations (migration window).
+    permissive_registrations: Vec<PermissiveRegistration>,
 }
 
 impl AsyncToolRegistry {
@@ -57,6 +65,7 @@ impl AsyncToolRegistry {
         Self {
             tools: HashMap::new(),
             event_sink: None,
+            permissive_registrations: Vec::new(),
         }
     }
 
@@ -65,7 +74,9 @@ impl AsyncToolRegistry {
         self.event_sink = Some(Box::new(sink));
     }
 
-    /// Register an async tool. Rejects duplicate names.
+    /// Register an async tool. Rejects duplicate names. Spec 169:
+    /// rejects permissive schemas unless `AsyncToolDef::permissive() =
+    /// true` is set (migration opt-out).
     pub fn register(&mut self, tool: Arc<dyn AsyncToolDef>) -> Result<(), RegistryError> {
         let name = tool.name().to_owned();
 
@@ -77,12 +88,40 @@ impl AsyncToolRegistry {
             ));
         }
 
+        // Spec 169 — strictness gate.
+        if let Err(pattern) = validate_strict_schema(&schema) {
+            if tool.permissive() {
+                log::warn!(
+                    target: "tool_registry::spec169",
+                    "permissive schema accepted for async tool '{}' (spec 169 opt-out): {}",
+                    name,
+                    pattern,
+                );
+                self.permissive_registrations
+                    .push(PermissiveRegistration {
+                        tool: name.clone(),
+                        pattern,
+                    });
+            } else {
+                return Err(RegistryError::PermissiveSchema {
+                    tool: name,
+                    pattern,
+                });
+            }
+        }
+
         if self.tools.contains_key(&name) {
             return Err(RegistryError::DuplicateName(name));
         }
 
         self.tools.insert(name, tool);
         Ok(())
+    }
+
+    /// Inventory of permissive (opted-in) registrations recorded by
+    /// `register()`. Drives the migration-count contract (SC-005).
+    pub fn permissive_registrations(&self) -> &[PermissiveRegistration] {
+        &self.permissive_registrations
     }
 
     /// List all registered tool schemas (for MCP tools/list).

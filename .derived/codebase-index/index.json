@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "176cd156c8fc300f5a7377befe8ff9e9c29a53ed4c563c64e83fed29914c05c2",
+    "contentHash": "ad3b833355214aa0cd75f548fd5da0f6cac808c6ef4b3933b812a2301521c4d5",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -499,6 +499,7 @@
         "anyhow",
         "async-trait",
         "jsonschema",
+        "log",
         "serde",
         "serde_json",
         "thiserror"
@@ -8844,6 +8845,9 @@
                 "file": "crates/tool-registry/src/registry.rs"
               },
               {
+                "file": "crates/tool-registry/src/strictness.rs"
+              },
+              {
                 "file": "crates/tool-registry/src/tests.rs"
               },
               {
@@ -12962,6 +12966,9 @@
               },
               {
                 "file": "crates/tool-registry/src/registry.rs"
+              },
+              {
+                "file": "crates/tool-registry/src/strictness.rs"
               },
               {
                 "file": "crates/tool-registry/src/tests.rs"
@@ -18361,6 +18368,9 @@
               },
               {
                 "file": "crates/tool-registry/src/registry.rs"
+              },
+              {
+                "file": "crates/tool-registry/src/strictness.rs"
               },
               {
                 "file": "crates/tool-registry/src/tests.rs"
@@ -34664,11 +34674,99 @@
         ],
         "implementingPaths": [
           {
+            "path": "crates/axiomregent/src/registry_bridge.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/tool-registry/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/tool-registry/src/async_registry.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/tool-registry/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/tool-registry/src/registry.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/tool-registry/src/strictness.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/tool-registry/src/tests.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/tool-registry/src/types.rs",
             "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/tool-registry/src/strictness.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/tool-registry/src/strictness.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/tool-registry/Cargo.toml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/tool-registry/Cargo.toml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/tool-registry/src/tests.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/tool-registry/src/tests.rs"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -34715,6 +34813,34 @@
             "kind": "file",
             "locations": [
               {
+                "file": "crates/axiomregent/src/registry_bridge.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/axiomregent/src/registry_bridge.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/tool-registry/src/async_registry.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/tool-registry/src/async_registry.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "crates/tool-registry/src/lib.rs"
               }
             ],
@@ -34724,10 +34850,38 @@
               "kind": "file",
               "path": "crates/tool-registry/src/lib.rs"
             }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/tool-registry/src/registry.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/tool-registry/src/registry.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/tool-registry/src/types.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/tool-registry/src/types.rs"
+            }
           }
         ],
         "specId": "169-tool-schema-strictness",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [

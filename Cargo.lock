@@ -7114,6 +7114,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "jsonschema 0.28.3",
+ "log",
  "open_agentic_policy_kernel",
  "schemars 0.8.22",
  "serde",
