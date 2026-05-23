@@ -2,8 +2,8 @@
 id: "169-tool-schema-strictness"
 slug: tool-schema-strictness
 title: "Per-tool JSON-Schema strictness enforcement — reject permissive ToolDef schemas"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: governance
@@ -14,9 +14,19 @@ depends_on:
   - "067"  # tool-definition-registry (the spec this spec refines)
   - "068"  # permission-runtime
 code_aliases: ["TOOL_SCHEMA_STRICTNESS", "PERMISSIVE_SCHEMA_REJECTION"]
+establishes:
+  - unit: { kind: file, path: crates/tool-registry/src/strictness.rs }
 refines:
   - aspect: "schema-strictness-validation"
     unit: { kind: file, path: crates/tool-registry/src/lib.rs }
+  - aspect: "schema-strictness-validation"
+    unit: { kind: file, path: crates/tool-registry/src/registry.rs }
+  - aspect: "schema-strictness-validation"
+    unit: { kind: file, path: crates/tool-registry/src/async_registry.rs }
+  - aspect: "schema-strictness-validation"
+    unit: { kind: file, path: crates/tool-registry/src/types.rs }
+  - aspect: "permissive-schema-bridge"
+    unit: { kind: file, path: crates/axiomregent/src/registry_bridge.rs }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
