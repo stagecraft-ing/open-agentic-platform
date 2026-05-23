@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "0b017ff6f65f86eadd8699ca2dcc7d82e6534fdcafcc1fa9a07bb5d8009d8d77",
+    "contentHash": "dcf82287c1bdf6e1ff1bf8e4a55299ec1dfd490471ad7f8bdd8e2c81b057710d",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -31873,6 +31873,10 @@
         ],
         "implementingPaths": [
           {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
             "path": "tools/shared/spec-types/src/lib.rs",
             "source": "spec-implements"
           },
@@ -31890,6 +31894,20 @@
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
           {
             "kind": "file",
             "locations": [
