@@ -44,8 +44,9 @@ pub use engine::{
     ScaffoldStepKind, classify_scaffold_step, record_scaffold_completion, record_scaffold_failure,
 };
 pub use governance_certificate::{
-    CertificateBuilder, GovernanceCertificate, generate_certificate, persist_certificate,
-    validate_spec_id_resolution, verify_certificate, write_validation_warnings,
+    CertificateBuildError, CertificateBuilder, GovernanceCertificate, Signer, SignerError,
+    generate_certificate, persist_certificate, validate_spec_id_resolution, verify_certificate,
+    write_validation_warnings,
 };
 pub use manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 pub use pipeline_state::{FactoryPhase, FactoryPipelineState, ScaffoldingProgress};

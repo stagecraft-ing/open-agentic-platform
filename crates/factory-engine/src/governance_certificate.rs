@@ -11,7 +11,7 @@
 use crate::pipeline_state::FactoryPipelineState;
 use base64::{Engine as _, engine::general_purpose::STANDARD as B64};
 use chrono::{DateTime, Utc};
-use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use ed25519_dalek::{Signature, Signer as Ed25519Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -19,17 +19,20 @@ use std::path::Path;
 
 /// Schema version for the governance certificate format.
 ///
-/// Bumped to 1.2.0 (spec 162 §FR-008) to mark the introduction of the
-/// optional `sandboxExecution` per-stage record (`SandboxExecutionRecord`).
-/// Verifiers targeting 1.0.0 / 1.1.0 fixtures still pass — the new field
-/// is optional in the serde layer (`skip_serializing_if = "Option::is_none"`)
-/// so legacy certificates serialise identically to their previous canonical
-/// form and produce the same `certificateHash`.
+/// Bumped to 1.3.0 (spec 168 §FR-003) to mark the introduction of the
+/// optional `signer` field — a named identity for the principal that drove
+/// the run (Rauthy JWT subject or analogous identity per spec 106 / 137).
+/// Legacy 1.2.0 / 1.1.0 / 1.0.0 fixtures still pass through the verifier:
+/// `signer` is `skip_serializing_if = "Option::is_none"`, so a cert that
+/// did not carry one serialises identically to its previous canonical
+/// form and produces the same `certificateHash`.
 ///
-/// 1.1.0 added Ed25519 signing (spec 102 FR-008.1); the hash check is no
-/// longer the authoritative provenance check after that point, but it
-/// remains as a content fingerprint inside the signed payload.
-pub const CERTIFICATE_VERSION: &str = "1.2.0";
+/// 1.2.0 (spec 162 §FR-008) introduced the optional `sandboxExecution`
+/// per-stage record. 1.1.0 added Ed25519 signing (spec 102 FR-008.1);
+/// the hash check is no longer the authoritative provenance check after
+/// that point, but it remains as a content fingerprint inside the signed
+/// payload.
+pub const CERTIFICATE_VERSION: &str = "1.3.0";
 
 /// Environment-variable name carrying a base64-encoded 32-byte Ed25519 seed
 /// (FR-008.1). Operator-supplied keys outside the agent's write scope.
@@ -58,6 +61,15 @@ pub struct GovernanceCertificate {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compliance: Option<ComplianceRecord>,
+
+    /// Spec 168 §FR-003 / §FR-007 — identity attribution for the principal
+    /// that drove the run. Required for tenant-emit mode (per-project
+    /// certificates); optional on OAP-self runs to preserve byte-for-byte
+    /// compatibility with pre-1.3.0 fixtures. Anonymous signing is
+    /// forbidden: when set, `Signer::subject` is non-empty after trim
+    /// (constructed via `Signer::new`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signer: Option<Signer>,
 
     /// SHA-256 of the canonical JSON of this certificate with `certificate_hash`
     /// AND `cert_signature` set to empty string. Content-binding fingerprint
@@ -118,6 +130,75 @@ pub enum SigningAttestationKind {
 pub enum CertificateStatus {
     Complete,
     Incomplete,
+}
+
+// ── Signer (spec 168 FR-003 / FR-007) ────────────────────────────────
+
+/// Identity attribution for the principal that drove the pipeline run.
+///
+/// The `subject` is the principal identifier (typically a Rauthy JWT `sub`
+/// for human-driven runs, or an agent identity for agent-driven runs per
+/// spec 106 / 137). The `identityProvider` names the system that attested
+/// the subject (e.g. `rauthy@<tenant-org>`, `github-actions@<repo>`,
+/// `oap-self`). The `sessionId` is an optional run-scoped correlation id.
+///
+/// Constructed only via [`Signer::new`], which rejects empty/whitespace
+/// `subject` so that anonymous signing cannot bypass FR-007 by submitting
+/// an empty string.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Signer {
+    pub subject: String,
+    pub identity_provider: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+}
+
+impl Signer {
+    /// Construct a `Signer`. Returns `Err` if `subject` is empty or
+    /// whitespace-only (FR-007: anonymous signing forbidden) or
+    /// `identity_provider` is empty.
+    pub fn new(
+        subject: impl Into<String>,
+        identity_provider: impl Into<String>,
+    ) -> Result<Self, SignerError> {
+        let subject = subject.into();
+        let identity_provider = identity_provider.into();
+        if subject.trim().is_empty() {
+            return Err(SignerError::EmptySubject);
+        }
+        if identity_provider.trim().is_empty() {
+            return Err(SignerError::EmptyIdentityProvider);
+        }
+        Ok(Self {
+            subject,
+            identity_provider,
+            session_id: None,
+        })
+    }
+
+    /// Attach an optional run-scoped session id.
+    pub fn with_session_id(mut self, session_id: impl Into<String>) -> Self {
+        self.session_id = Some(session_id.into());
+        self
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SignerError {
+    #[error("signer subject is empty or whitespace (FR-007); anonymous signing forbidden")]
+    EmptySubject,
+    #[error("signer identity_provider is empty")]
+    EmptyIdentityProvider,
+}
+
+/// Errors raised when building a certificate via the fallible builder path.
+#[derive(Debug, thiserror::Error)]
+pub enum CertificateBuildError {
+    /// Tenant emission requested but no signer was supplied — spec 168
+    /// FR-007 ("a run with no identifiable signer halts before emitting").
+    #[error("tenant emission requires a signer (spec 168 FR-007); none provided")]
+    MissingSigner,
 }
 
 // ── Intent ───────────────────────────────────────────────────────────
@@ -344,6 +425,7 @@ pub struct CertificateBuilder {
     verification: VerificationRecord,
     proof_chain: ProofChainSummary,
     compliance: Option<ComplianceRecord>,
+    signer: Option<Signer>,
 }
 
 impl CertificateBuilder {
@@ -369,6 +451,7 @@ impl CertificateBuilder {
                 chain_integrity: ChainIntegrity::Empty,
             },
             compliance: None,
+            signer: None,
         }
     }
 
@@ -407,6 +490,28 @@ impl CertificateBuilder {
         self
     }
 
+    /// Attach a [`Signer`] identifying the principal that drove the run
+    /// (spec 168 §FR-003). Required for tenant emission; optional on
+    /// OAP-self runs.
+    pub fn signer(mut self, signer: Signer) -> Self {
+        self.signer = Some(signer);
+        self
+    }
+
+    /// Fallible build path for tenant emission (spec 168 §FR-007).
+    ///
+    /// Returns [`CertificateBuildError::MissingSigner`] when no
+    /// [`Signer`] has been attached. The tenant pipeline runner calls
+    /// this entry point so a misconfigured-identity run halts before
+    /// emitting a certificate, rather than producing one with a null
+    /// signer.
+    pub fn build_tenant(self) -> Result<GovernanceCertificate, CertificateBuildError> {
+        if self.signer.is_none() {
+            return Err(CertificateBuildError::MissingSigner);
+        }
+        Ok(self.build())
+    }
+
     /// Build the certificate, computing the self-authenticating hash (FR-008)
     /// AND the Ed25519 signature (FR-008.1). Signing key is resolved via
     /// `resolve_signing_material()` — operator env vars take precedence,
@@ -437,6 +542,7 @@ impl CertificateBuilder {
             verification: self.verification,
             proof_chain: self.proof_chain,
             compliance: self.compliance,
+            signer: self.signer,
             certificate_hash: String::new(),
             signing_public_key: public_key_b64,
             cert_signature: String::new(),
@@ -1480,5 +1586,115 @@ mod tests {
         let sbx = stage.sandbox_execution.as_ref().unwrap();
         assert_eq!(sbx.isolation_tier, 2);
         assert_eq!(sbx.command, vec!["cargo", "test"]);
+    }
+
+    // ── spec 168 §FR-003 / §FR-007: signer field + halt-if-no-signer ──
+
+    fn intent_for_signer_tests() -> IntentRecord {
+        IntentRecord {
+            requirements_hash: sha256_bytes(b"reqs"),
+            spec_id: None,
+            spec_hash: None,
+        }
+    }
+
+    #[test]
+    fn signer_constructor_rejects_empty_or_whitespace_subject() {
+        assert!(matches!(
+            Signer::new("", "rauthy"),
+            Err(SignerError::EmptySubject)
+        ));
+        assert!(matches!(
+            Signer::new("   \t  ", "rauthy"),
+            Err(SignerError::EmptySubject)
+        ));
+        assert!(matches!(
+            Signer::new("alice@example.com", ""),
+            Err(SignerError::EmptyIdentityProvider)
+        ));
+    }
+
+    #[test]
+    fn build_tenant_halts_when_no_signer_attached() {
+        let result = CertificateBuilder::new("run-1", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .build_tenant();
+        assert!(matches!(
+            result,
+            Err(CertificateBuildError::MissingSigner)
+        ));
+    }
+
+    #[test]
+    fn build_tenant_succeeds_when_signer_attached() {
+        let signer =
+            Signer::new("alice@tenant.example.com", "rauthy@tenant-org").unwrap();
+        let cert = CertificateBuilder::new("run-1", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .signer(signer.clone())
+            .build_tenant()
+            .unwrap();
+        let attached = cert.signer.as_ref().unwrap();
+        assert_eq!(attached.subject, signer.subject);
+        assert_eq!(attached.identity_provider, signer.identity_provider);
+        assert_eq!(cert.certificate_version, CERTIFICATE_VERSION);
+    }
+
+    #[test]
+    fn oap_build_still_omits_signer_when_unset() {
+        // Backward compatibility: legacy OAP-side builders that don't
+        // attach a signer must still produce a valid (signer-less) cert
+        // via the infallible `build()` entry point. The serialised form
+        // omits the `signer` field entirely.
+        let cert = CertificateBuilder::new("run-1", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .build();
+        assert!(cert.signer.is_none());
+        let json = serde_json::to_string(&cert).unwrap();
+        assert!(!json.contains("\"signer\""));
+    }
+
+    #[test]
+    fn signer_field_binds_into_certificate_hash() {
+        // Two certs identical except for signer must produce different
+        // hashes — the signer is part of the canonical content the
+        // hash + signature attest.
+        let bare = CertificateBuilder::new("run-1", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .build();
+        let signed = CertificateBuilder::new("run-1", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .signer(Signer::new("a@b", "rauthy").unwrap())
+            .build();
+        assert_ne!(bare.certificate_hash, signed.certificate_hash);
+    }
+
+    #[test]
+    fn cert_with_signer_round_trips_through_json() {
+        let signer = Signer::new("bart@tenant.example", "rauthy@tenant-org")
+            .unwrap()
+            .with_session_id("sess-42");
+        let cert = CertificateBuilder::new("run-1", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .signer(signer)
+            .build_tenant()
+            .unwrap();
+
+        let json = serde_json::to_string(&cert).unwrap();
+        assert!(json.contains("\"signer\""));
+        assert!(json.contains("\"subject\":\"bart@tenant.example\""));
+        assert!(json.contains("\"identityProvider\":\"rauthy@tenant-org\""));
+        assert!(json.contains("\"sessionId\":\"sess-42\""));
+
+        let restored: GovernanceCertificate = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.certificate_hash, cert.certificate_hash);
+        let s = restored.signer.as_ref().unwrap();
+        assert_eq!(s.subject, "bart@tenant.example");
+        assert_eq!(s.identity_provider, "rauthy@tenant-org");
+        assert_eq!(s.session_id.as_deref(), Some("sess-42"));
+
+        // Verifier accepts a signed tenant cert.
+        let result = verify_certificate(&restored, None);
+        assert!(result.valid, "errors: {:?}", result.errors);
     }
 }
