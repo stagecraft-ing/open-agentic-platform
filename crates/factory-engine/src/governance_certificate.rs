@@ -8,6 +8,7 @@
 //! Generated at the end of every factory pipeline run (complete or incomplete).
 //! Independently verifiable via `verify-certificate`.
 
+use crate::inter_stage_manifest::{InterStageManifest, RunKeyChain, verify_manifest};
 use crate::pipeline_state::FactoryPipelineState;
 use base64::{Engine as _, engine::general_purpose::STANDARD as B64};
 use chrono::{DateTime, Utc};
@@ -19,17 +20,25 @@ use std::path::Path;
 
 /// Schema version for the governance certificate format.
 ///
-/// Bumped to 1.2.0 (spec 162 §FR-008) to mark the introduction of the
-/// optional `sandboxExecution` per-stage record (`SandboxExecutionRecord`).
-/// Verifiers targeting 1.0.0 / 1.1.0 fixtures still pass — the new field
-/// is optional in the serde layer (`skip_serializing_if = "Option::is_none"`)
-/// so legacy certificates serialise identically to their previous canonical
-/// form and produce the same `certificateHash`.
+/// Bumped to 1.3.0 (spec 170 §FR-007) to mark the introduction of the
+/// optional `interStageChain` top-level field carrying the signed
+/// inter-stage manifest chain produced by [`crate::inter_stage_manifest`].
+/// The field is `skip_serializing_if = "Option::is_none"` so a
+/// certificate built without the chain serialises byte-identically to a
+/// pre-1.3.0 certificate of the same payload (only the version string
+/// differs).
+///
+/// 1.2.0 (spec 162 §FR-008) introduced the optional `sandboxExecution`
+/// per-stage record. Verifiers targeting 1.0.0 / 1.1.0 fixtures still
+/// pass — the field is optional in the serde layer
+/// (`skip_serializing_if = "Option::is_none"`) so legacy certificates
+/// serialise identically to their previous canonical form and produce
+/// the same `certificateHash`.
 ///
 /// 1.1.0 added Ed25519 signing (spec 102 FR-008.1); the hash check is no
 /// longer the authoritative provenance check after that point, but it
 /// remains as a content fingerprint inside the signed payload.
-pub const CERTIFICATE_VERSION: &str = "1.2.0";
+pub const CERTIFICATE_VERSION: &str = "1.3.0";
 
 /// Environment-variable name carrying a base64-encoded 32-byte Ed25519 seed
 /// (FR-008.1). Operator-supplied keys outside the agent's write scope.
@@ -58,6 +67,14 @@ pub struct GovernanceCertificate {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compliance: Option<ComplianceRecord>,
+
+    /// Spec 170 §FR-007 — signed inter-stage manifest chain. Optional
+    /// for runs that did not produce signed hand-offs (legacy / pre-1.3.0
+    /// fixtures); `skip_serializing_if = "Option::is_none"` keeps the
+    /// canonical JSON byte-identical for those payloads so their
+    /// certificate hash is unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inter_stage_chain: Option<InterStageChainRecord>,
 
     /// SHA-256 of the canonical JSON of this certificate with `certificate_hash`
     /// AND `cert_signature` set to empty string. Content-binding fingerprint
@@ -118,6 +135,22 @@ pub enum SigningAttestationKind {
 pub enum CertificateStatus {
     Complete,
     Incomplete,
+}
+
+// ── Inter-stage manifest chain (spec 170 FR-007) ─────────────────────
+
+/// Run-level record of the signed inter-stage manifest chain.
+///
+/// Embeds the per-run key chain (root verifying key + stage ephemeral
+/// verifying keys) alongside the ordered list of signed manifests. The
+/// certificate verifier (`verify_certificate`) replays every manifest
+/// against the chain offline (spec 170 FR-006).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct InterStageChainRecord {
+    pub key_chain: RunKeyChain,
+    #[serde(default)]
+    pub manifests: Vec<InterStageManifest>,
 }
 
 // ── Intent ───────────────────────────────────────────────────────────
@@ -344,6 +377,7 @@ pub struct CertificateBuilder {
     verification: VerificationRecord,
     proof_chain: ProofChainSummary,
     compliance: Option<ComplianceRecord>,
+    inter_stage_chain: Option<InterStageChainRecord>,
 }
 
 impl CertificateBuilder {
@@ -369,6 +403,7 @@ impl CertificateBuilder {
                 chain_integrity: ChainIntegrity::Empty,
             },
             compliance: None,
+            inter_stage_chain: None,
         }
     }
 
@@ -407,6 +442,12 @@ impl CertificateBuilder {
         self
     }
 
+    /// Attach the run's signed inter-stage manifest chain (spec 170 FR-007).
+    pub fn inter_stage_chain(mut self, chain: InterStageChainRecord) -> Self {
+        self.inter_stage_chain = Some(chain);
+        self
+    }
+
     /// Build the certificate, computing the self-authenticating hash (FR-008)
     /// AND the Ed25519 signature (FR-008.1). Signing key is resolved via
     /// `resolve_signing_material()` — operator env vars take precedence,
@@ -437,6 +478,7 @@ impl CertificateBuilder {
             verification: self.verification,
             proof_chain: self.proof_chain,
             compliance: self.compliance,
+            inter_stage_chain: self.inter_stage_chain,
             certificate_hash: String::new(),
             signing_public_key: public_key_b64,
             cert_signature: String::new(),
@@ -786,6 +828,27 @@ pub fn verify_certificate(
             "unsupported certificate version: {}",
             cert.certificate_version
         ));
+    }
+
+    // 4. Spec 170 FR-007 — verify the signed inter-stage manifest chain
+    //    if present. Each manifest must validate against the run's key
+    //    chain offline; tampered or cross-run manifests are surfaced as
+    //    distinct errors so the auditor can attribute failures.
+    if let Some(chain_record) = &cert.inter_stage_chain {
+        if chain_record.key_chain.run_id != cert.pipeline_run_id {
+            errors.push(format!(
+                "inter-stage chain run_id {} does not match certificate pipeline_run_id {}",
+                chain_record.key_chain.run_id, cert.pipeline_run_id
+            ));
+        }
+        for manifest in &chain_record.manifests {
+            if let Err(e) = verify_manifest(manifest, &chain_record.key_chain, None) {
+                errors.push(format!(
+                    "inter-stage manifest {}→{} failed verification: {e}",
+                    manifest.from_stage, manifest.to_stage
+                ));
+            }
+        }
     }
 
     VerificationResult {
@@ -1446,6 +1509,152 @@ mod tests {
         assert_ne!(
             cert_a.certificate_hash, cert_b.certificate_hash,
             "certificate hash must bind the sandbox command — SC-004"
+        );
+    }
+
+    #[test]
+    fn cert_without_inter_stage_chain_omits_field_in_json() {
+        // Spec 170 FR-007 invariance: a cert built without the chain
+        // must serialise byte-identically to a pre-1.3.0 payload at
+        // the inter-stage layer — only the version string differs.
+        let cert = CertificateBuilder::new(
+            "run-no-chain",
+            IntentRecord {
+                requirements_hash: "h".into(),
+                spec_id: None,
+                spec_hash: None,
+            },
+        )
+        .build_spec_hash("bs")
+        .build();
+        let json = serde_json::to_string(&cert).unwrap();
+        assert!(
+            !json.contains("interStageChain"),
+            "Option::is_none must be skipped; got: {json}"
+        );
+    }
+
+    #[test]
+    fn cert_with_inter_stage_chain_round_trips_and_verifies() {
+        use crate::inter_stage_manifest::{
+            RunKeyChain, StageHandoffSigner,
+        };
+        let tmp = tempfile::tempdir().unwrap();
+        let run_dir = tmp.path().to_path_buf();
+        let mut signer = StageHandoffSigner::establish("run-cert-chain", &run_dir).unwrap();
+        let m1 = signer
+            .sign_handoff("s0", "s1", BTreeMap::new(), BTreeMap::new())
+            .unwrap();
+        let m2 = signer
+            .sign_handoff("s1", "s2", BTreeMap::new(), BTreeMap::new())
+            .unwrap();
+        let chain: RunKeyChain = signer.finalize();
+        let chain_record = InterStageChainRecord {
+            key_chain: chain,
+            manifests: vec![m1, m2],
+        };
+
+        let cert = CertificateBuilder::new(
+            "run-cert-chain",
+            IntentRecord {
+                requirements_hash: "h".into(),
+                spec_id: None,
+                spec_hash: None,
+            },
+        )
+        .build_spec_hash("bs")
+        .inter_stage_chain(chain_record)
+        .build();
+
+        let json = serde_json::to_string(&cert).unwrap();
+        assert!(json.contains("interStageChain"), "field should serialise");
+        let restored: GovernanceCertificate = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.certificate_hash, cert.certificate_hash);
+        let result = verify_certificate(&restored, None);
+        assert!(
+            result.valid,
+            "cert with chain should verify; errors: {:?}",
+            result.errors
+        );
+    }
+
+    #[test]
+    fn cert_with_tampered_inter_stage_manifest_fails_verification() {
+        use crate::inter_stage_manifest::StageHandoffSigner;
+        let tmp = tempfile::tempdir().unwrap();
+        let run_dir = tmp.path().to_path_buf();
+        let mut signer = StageHandoffSigner::establish("run-tamper", &run_dir).unwrap();
+        let mut m1 = signer
+            .sign_handoff(
+                "s0",
+                "s1",
+                BTreeMap::from([("preflight.json".into(), "h0".into())]),
+                BTreeMap::new(),
+            )
+            .unwrap();
+        // Tamper the manifest after signing.
+        m1.artifact_hashes
+            .insert("preflight.json".into(), "tampered".into());
+
+        let chain_record = InterStageChainRecord {
+            key_chain: signer.finalize(),
+            manifests: vec![m1],
+        };
+
+        let cert = CertificateBuilder::new(
+            "run-tamper",
+            IntentRecord {
+                requirements_hash: "h".into(),
+                spec_id: None,
+                spec_hash: None,
+            },
+        )
+        .build_spec_hash("bs")
+        .inter_stage_chain(chain_record)
+        .build();
+
+        let result = verify_certificate(&cert, None);
+        assert!(!result.valid, "tampered manifest should fail");
+        assert!(
+            result.errors.iter().any(|e| e.contains("inter-stage manifest s0→s1")),
+            "expected manifest-level diagnostic; got: {:?}",
+            result.errors
+        );
+    }
+
+    #[test]
+    fn cert_rejects_chain_with_mismatched_run_id() {
+        use crate::inter_stage_manifest::StageHandoffSigner;
+        let tmp = tempfile::tempdir().unwrap();
+        let run_dir = tmp.path().to_path_buf();
+        let mut signer = StageHandoffSigner::establish("run-A", &run_dir).unwrap();
+        let m = signer
+            .sign_handoff("s0", "s1", BTreeMap::new(), BTreeMap::new())
+            .unwrap();
+        let chain_record = InterStageChainRecord {
+            key_chain: signer.finalize(),
+            manifests: vec![m],
+        };
+
+        // Certificate claims run-B but embeds a chain from run-A.
+        let cert = CertificateBuilder::new(
+            "run-B",
+            IntentRecord {
+                requirements_hash: "h".into(),
+                spec_id: None,
+                spec_hash: None,
+            },
+        )
+        .build_spec_hash("bs")
+        .inter_stage_chain(chain_record)
+        .build();
+
+        let result = verify_certificate(&cert, None);
+        assert!(!result.valid, "mismatched run_id should fail");
+        assert!(
+            result.errors.iter().any(|e| e.contains("does not match certificate pipeline_run_id")),
+            "got: {:?}",
+            result.errors
         );
     }
 
