@@ -58,6 +58,10 @@ export default [
         "requirements",
         "routes/app.project.$projectId.requirements.tsx"
       ),
+      route(
+        "requirements/:specId",
+        "routes/app.project.$projectId.requirements.$specId.tsx"
+      ),
       // Spec 123 Phase 5 — project Agents tab is now a binding manager;
       // 119-era authoring routes (new, :agentId, :agentId/publish,
       // :agentId/history) are deleted. Authoring lives at /app/agents.
