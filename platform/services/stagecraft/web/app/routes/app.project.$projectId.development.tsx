@@ -13,6 +13,10 @@
 import { Link, useLoaderData, useSearchParams } from "react-router";
 import { requireUser } from "../lib/auth.server";
 import { listProjectSpecs } from "../lib/spec-registry-api.server";
+import {
+  getFactoryStatus,
+  type PipelineStatusRow,
+} from "../lib/project-api.server";
 import type { SpecInventory } from "../../../api/specRegistry/types";
 import {
   GROUPING_DIMENSIONS,
@@ -23,6 +27,7 @@ import {
   LIFECYCLE_LANES,
   buildBoard,
   buildBoardWithGrouping,
+  claimedCodePaths,
   type LifecycleBoard,
   type LifecycleCard,
   type LifecycleColumnId,
@@ -38,7 +43,19 @@ export async function loader({
 }) {
   await requireUser(request);
   const inventory = await listProjectSpecs(request, params.projectId);
-  return { projectId: params.projectId, inventory };
+  // Spec 164 FR-006 — execution-evidence strip. The factory status fetch
+  // is best-effort: a missing pipeline (e.g. a freshly-imported project
+  // without a factory binding) is the empty-evidence case, NOT an error
+  // worth crashing the board over.
+  let pipeline: PipelineStatusRow | null = null;
+  try {
+    const res = await getFactoryStatus(request, params.projectId);
+    pipeline = res.pipeline;
+  } catch {
+    // Swallow — the board renders unevidenced when no pipeline data is
+    // available.
+  }
+  return { projectId: params.projectId, inventory, pipeline };
 }
 
 const VIEW_MODES = ["list", "grouped"] as const;
@@ -57,9 +74,10 @@ function isGroupingDimension(s: string | null): s is GroupingDimension {
 }
 
 export default function DevelopmentBoard() {
-  const { projectId, inventory } = useLoaderData() as {
+  const { projectId, inventory, pipeline } = useLoaderData() as {
     projectId: string;
     inventory: SpecInventory;
+    pipeline: PipelineStatusRow | null;
   };
   const [searchParams] = useSearchParams();
   const viewParam = searchParams.get("view");
@@ -86,12 +104,93 @@ export default function DevelopmentBoard() {
         dimension={dimension}
         count={inventory.specs.length}
       />
+      <ExecutionEvidenceStrip pipeline={pipeline} />
       <BoardColumns board={board} projectId={projectId} />
       <BoardLanes board={board} projectId={projectId} />
       <FootnoteFraming />
     </div>
   );
 }
+
+/**
+ * Spec 164 FR-006 — execution evidence overlay (project-level).
+ *
+ * The strip surfaces the project's most recent factory pipeline state
+ * and links into the factory runs index. Per-card factory-run /
+ * governance-certificate / coupling-gate-fire overlays require a
+ * `spec → recent-evidence` map that does not exist yet (no
+ * `factory_runs.touchedPaths` column; no certificate-emission projected
+ * table). The per-card "claimed paths" badge is the truthful per-spec
+ * evidence linkage available today.
+ */
+function ExecutionEvidenceStrip({
+  pipeline,
+}: {
+  pipeline: PipelineStatusRow | null;
+}) {
+  return (
+    <section
+      aria-label="Execution evidence"
+      className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 p-3 flex flex-wrap items-center justify-between gap-3"
+    >
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          Execution evidence
+        </span>
+        {pipeline ? (
+          <PipelinePill pipeline={pipeline} />
+        ) : (
+          <span className="text-xs text-gray-500 dark:text-gray-400 italic">
+            no factory pipeline recorded for this project yet
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-3 text-xs">
+        <Link
+          to="/app/factory/runs"
+          className="text-indigo-600 dark:text-indigo-400 hover:underline"
+        >
+          All factory runs →
+        </Link>
+        <span
+          className="text-[11px] text-gray-400 dark:text-gray-500"
+          title="Per-card factory-run / certificate / gate-fire overlays land once spec→run path mapping exists. Today, the per-card 'paths' badge is the truthful linkage available."
+        >
+          per-card overlays: paths claimed only
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function PipelinePill({ pipeline }: { pipeline: PipelineStatusRow }) {
+  const statusClass = PIPELINE_STATUS_STYLES[pipeline.status] ??
+    "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span className={`inline-flex items-center px-2 py-0.5 rounded font-medium ${statusClass}`}>
+        {pipeline.status}
+      </span>
+      <span className="font-mono text-gray-500 dark:text-gray-400">
+        adapter: {pipeline.adapterName}
+      </span>
+      {pipeline.startedAt && (
+        <span className="text-gray-400 dark:text-gray-500">
+          started {new Date(pipeline.startedAt).toLocaleString()}
+        </span>
+      )}
+    </div>
+  );
+}
+
+const PIPELINE_STATUS_STYLES: Record<string, string> = {
+  active: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  completed:
+    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  cancelled:
+    "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
+  failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+};
 
 function BoardToolbar({
   projectId,
@@ -311,6 +410,14 @@ function Card({
 }) {
   const primary = card.members[0];
   const isCluster = card.kind === "cluster";
+  // FR-006 — per-card execution evidence linkage. For a single-spec
+  // card this is the count of code paths the spec claims; for a cluster
+  // it is the union across members. Clusters that aggregate over many
+  // specs show a higher number — that's the intent (more linkage =
+  // more potential evidence to correlate when the per-run map ships).
+  const pathCount = isCluster
+    ? new Set(card.members.flatMap((m) => claimedCodePaths(m))).size
+    : claimedCodePaths(primary).length;
   // The cluster card links to the Requirements view filtered into the
   // same projection so the operator can drill into members.
   const target = isCluster
@@ -374,6 +481,14 @@ function Card({
             {lane}
           </span>
         ))}
+        {pathCount > 0 && (
+          <span
+            className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+            title="Code paths claimed via establishes:/extends:/refines:/co_authority: relationship-graph edges (spec 130). Each claimed path is a surface where factory runs, certificates, and coupling-gate fires can be correlated to this spec."
+          >
+            {pathCount} {pathCount === 1 ? "path" : "paths"}
+          </span>
+        )}
       </div>
     </Link>
   );

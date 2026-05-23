@@ -6,6 +6,7 @@ import type { SpecListRow } from "../../../api/specRegistry/types";
 import {
   buildBoard,
   buildBoardWithGrouping,
+  claimedCodePaths,
   collectAmendedIds,
   placeSpec,
 } from "./spec-registry-board";
@@ -287,5 +288,51 @@ describe("buildBoardWithGrouping (cluster cards)", () => {
       expect(col).toHaveLength(0);
     }
     expect(board.lanes.superseded).toHaveLength(1);
+  });
+});
+
+describe("claimedCodePaths", () => {
+  test("collects unique paths from `establishes` unit objects", () => {
+    const spec = row("100-x", {
+      relationshipFields: {
+        establishes: [
+          { unit: { kind: "file", path: "a/x.ts" } },
+          { unit: { kind: "file", path: "a/y.ts" } },
+        ],
+      },
+    });
+    expect(claimedCodePaths(spec).sort()).toEqual(["a/x.ts", "a/y.ts"]);
+  });
+
+  test("collects paths from refines edges with `paths: [...]` arrays", () => {
+    const spec = row("100-x", {
+      relationshipFields: {
+        refines: [{ aspect: "x", paths: ["a/x.ts", "a/y.ts"] }],
+      },
+    });
+    expect(claimedCodePaths(spec).sort()).toEqual(["a/x.ts", "a/y.ts"]);
+  });
+
+  test("dedupes paths across edge types", () => {
+    const spec = row("100-x", {
+      relationshipFields: {
+        establishes: [{ unit: { kind: "file", path: "a/x.ts" } }],
+        extends: [{ unit: { kind: "file", path: "a/x.ts" } }],
+      },
+    });
+    expect(claimedCodePaths(spec)).toEqual(["a/x.ts"]);
+  });
+
+  test("returns empty list for a spec with no path-bearing edges", () => {
+    expect(claimedCodePaths(row("100-x"))).toEqual([]);
+  });
+
+  test("ignores malformed edges (no unit, no paths) without throwing", () => {
+    const spec = row("100-x", {
+      relationshipFields: {
+        establishes: [{ unit: { kind: "directory" } }, {}],
+      },
+    });
+    expect(claimedCodePaths(spec)).toEqual([]);
   });
 });

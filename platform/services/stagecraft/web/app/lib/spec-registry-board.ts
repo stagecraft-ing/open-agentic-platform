@@ -350,3 +350,65 @@ function unionLanes(
   // Preserve canonical lane order.
   return LIFECYCLE_LANE_IDS.filter((id) => set.has(id));
 }
+
+// ---------------------------------------------------------------------------
+// Spec → execution-evidence linkage (FR-006)
+// ---------------------------------------------------------------------------
+//
+// The honest per-card "execution evidence" surface today is the spec's
+// own claimed code paths (relationship-graph `establishes:` / `extends:`
+// / `refines:` / `co_authority:` edges). When a spec claims paths,
+// every factory run / certificate / coupling-gate fire that touches
+// those paths is provenance the operator can correlate. Wiring per-spec
+// run / cert / gate-fire feeds requires a `code-path → recent-evidence`
+// index that has not been built (no `factory_runs.touchedPaths` column,
+// no `certificate_emissions` projected table). Until that index lands
+// the most truthful per-card overlay is the claimed-paths count.
+//
+// The project-level execution-evidence strip rendered above the board
+// surfaces the latest factory pipeline state (out-of-band of per-card
+// data) and links into the run list.
+
+const PATH_BEARING_EDGE_FIELDS = [
+  "establishes",
+  "extends",
+  "refines",
+  "coAuthority",
+] as const;
+
+/**
+ * Distinct code paths claimed by this spec across all path-bearing
+ * relationship edges. Operates over the opaque edge objects in
+ * `relationshipFields` — each edge is one of:
+ *   - `{ unit: { path: "..." } }`
+ *   - `{ paths: ["..."] }` (refines edges that fan out)
+ */
+export function claimedCodePaths(spec: SpecListRow): string[] {
+  const seen = new Set<string>();
+  for (const field of PATH_BEARING_EDGE_FIELDS) {
+    const edges = spec.relationshipFields[field];
+    if (!Array.isArray(edges)) continue;
+    for (const edge of edges) {
+      collectEdgePaths(edge, seen);
+    }
+  }
+  return [...seen];
+}
+
+function collectEdgePaths(edge: unknown, out: Set<string>): void {
+  if (!edge || typeof edge !== "object") return;
+  const obj = edge as Record<string, unknown>;
+
+  const unit = obj.unit;
+  if (unit && typeof unit === "object") {
+    const path = (unit as Record<string, unknown>).path;
+    if (typeof path === "string" && path.length > 0) out.add(path);
+  }
+
+  const paths = obj.paths;
+  if (Array.isArray(paths)) {
+    for (const p of paths) {
+      if (typeof p === "string" && p.length > 0) out.add(p);
+    }
+  }
+}
