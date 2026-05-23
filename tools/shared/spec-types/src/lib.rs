@@ -320,6 +320,16 @@ pub const W_130: ViolationCode = ViolationCode("W-130");
 pub const W_131: ViolationCode = ViolationCode("W-131");
 pub const W_132: ViolationCode = ViolationCode("W-132");
 
+/// Spec 161 — emitted by spec-lint when a `references:` entry carries
+/// `role: decomposition-origin` but fails the role-reservation contract
+/// from spec 161 §2.1/§2.3. The role is reserved for entries that
+/// (a) use the `provenance:` arm (not `unit:`), and (b) carry a
+/// non-empty `provenance.derived_at:` ISO-8601 timestamp recording when
+/// the OPC decomposition pipeline (spec 165) read the source. Severity:
+/// `error` — V-026-equivalent (SC-004); fails spec-lint unconditionally,
+/// independent of `--fail-on-warn`.
+pub const W_161: ViolationCode = ViolationCode("W-161");
+
 /// Spec 154 — advisory soft lint emitted by spec-lint when a legacy
 /// path-string (or explicit `file:` unit) sits inside a workspace
 /// member's directory tree and could be expressed as the higher-level
