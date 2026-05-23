@@ -49,9 +49,9 @@ pub use governance_certificate::{
     validate_spec_id_resolution, verify_certificate, write_validation_warnings,
 };
 pub use inter_stage_manifest::{
-    InterStageManifest, ManifestError, ManifestSignInputs, ManifestSigner, RunKeyChain,
-    StageKeyRecord, compute_manifest_signature, fingerprint_of_pubkey, load_manifest,
-    persist_manifest, sign_manifest, verify_manifest,
+    InterStageManifest, KEYCHAIN_FILENAME, ManifestError, ManifestSignInputs, ManifestSigner,
+    RunKeyChain, StageHandoffSigner, StageKeyRecord, compute_manifest_signature,
+    fingerprint_of_pubkey, load_manifest, persist_manifest, sign_manifest, verify_manifest,
 };
 pub use manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 pub use pipeline_state::{FactoryPhase, FactoryPipelineState, ScaffoldingProgress};

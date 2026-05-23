@@ -353,6 +353,166 @@ pub fn load_manifest(path: &Path) -> Result<InterStageManifest, ManifestError> {
     serde_json::from_str(&json).map_err(|e| ManifestError::Serialization(format!("{e}")))
 }
 
+// ── Run-scope signing session ────────────────────────────────────────
+
+/// File name for the on-disk run key chain under the run directory.
+pub const KEYCHAIN_FILENAME: &str = "keychain.json";
+
+/// Runtime session bound to a single factory run.
+///
+/// Holds the run's root signing key in memory and a write-through view of
+/// the [`RunKeyChain`] persisted under `<run_dir>/keychain.json`. The
+/// signing material itself never touches disk — the chain only carries
+/// verifying keys (FR-005, FR-006).
+///
+/// Lifetime expectations:
+///   * **Establish** at s0/preflight — generates a fresh root key,
+///     persists the empty chain, returns the session.
+///   * **Sign hand-offs** between stages — mints an ephemeral key
+///     deterministic in `(root, stage_id)`, registers the verifying
+///     material in the on-disk chain, signs the manifest, persists the
+///     manifest under `<run_dir>/manifests/`. The ephemeral signing key
+///     is discarded immediately after the signature is computed
+///     (FR-005).
+///   * **Verify hand-offs** at the receiving stage — reads the chain
+///     from memory; never makes a network call (FR-006).
+///   * **Take chain** at run completion — the certificate-composition
+///     path consumes the chain to anchor the run-level signer record.
+pub struct StageHandoffSigner {
+    run_id: String,
+    root_key: SigningKey,
+    chain: RunKeyChain,
+    run_dir: std::path::PathBuf,
+}
+
+impl StageHandoffSigner {
+    /// Establish a fresh signing session for a run. Generates an Ed25519
+    /// root key, writes the empty chain to `<run_dir>/keychain.json`,
+    /// returns the session.
+    ///
+    /// The caller is responsible for binding the chain's
+    /// `root_public_key_b64` to the run's governance certificate at
+    /// termination (spec 102 FR-007 / spec 170 FR-007).
+    pub fn establish(
+        run_id: impl Into<String>,
+        run_dir: impl Into<std::path::PathBuf>,
+    ) -> Result<Self, ManifestError> {
+        let run_id = run_id.into();
+        let run_dir = run_dir.into();
+        let mut rng = rand_core::OsRng;
+        let root_key = SigningKey::generate(&mut rng);
+        let chain = RunKeyChain::new_with_root(run_id.clone(), &root_key);
+        let session = Self {
+            run_id,
+            root_key,
+            chain,
+            run_dir,
+        };
+        session.persist_chain()?;
+        Ok(session)
+    }
+
+    /// Establish a session seeded with a caller-provided root signing key.
+    /// Useful for tests and (future) deterministic-fixture runs.
+    pub fn establish_with_root(
+        run_id: impl Into<String>,
+        run_dir: impl Into<std::path::PathBuf>,
+        root_key: SigningKey,
+    ) -> Result<Self, ManifestError> {
+        let run_id = run_id.into();
+        let run_dir = run_dir.into();
+        let chain = RunKeyChain::new_with_root(run_id.clone(), &root_key);
+        let session = Self {
+            run_id,
+            root_key,
+            chain,
+            run_dir,
+        };
+        session.persist_chain()?;
+        Ok(session)
+    }
+
+    /// The run identifier.
+    pub fn run_id(&self) -> &str {
+        &self.run_id
+    }
+
+    /// Base64-encoded root verifying key — pinned in the run's governance
+    /// certificate (spec 102 / 170 FR-004).
+    pub fn root_public_key_b64(&self) -> &str {
+        &self.chain.root_public_key_b64
+    }
+
+    /// Borrow the current chain.
+    pub fn chain(&self) -> &RunKeyChain {
+        &self.chain
+    }
+
+    /// Consume the session and return the final chain (for certificate
+    /// composition at run termination). The root signing key is dropped
+    /// here — at run end, no further hand-offs can be signed.
+    pub fn finalize(self) -> RunKeyChain {
+        self.chain
+    }
+
+    /// Sign a hand-off manifest from `from_stage` to `to_stage`. Mints the
+    /// `from_stage` ephemeral key deterministic in `(root, from_stage)`,
+    /// registers it in the chain (idempotent), signs, persists the
+    /// manifest, and discards the ephemeral signing key (FR-005).
+    pub fn sign_handoff(
+        &mut self,
+        from_stage: &str,
+        to_stage: &str,
+        artifact_hashes: BTreeMap<String, String>,
+        metadata: BTreeMap<String, serde_json::Value>,
+    ) -> Result<InterStageManifest, ManifestError> {
+        let (eph_signing, record) =
+            RunKeyChain::mint_ephemeral_for_stage(&self.root_key, from_stage);
+        self.chain.register_stage_key(record.clone())?;
+        // The chain on disk grows monotonically as each stage signs.
+        self.persist_chain()?;
+        let agent_id = format!("factory-engine/stage/{from_stage}");
+        let manifest = sign_manifest(
+            ManifestSignInputs {
+                run_id: &self.run_id,
+                from_stage,
+                to_stage,
+                artifact_hashes,
+                metadata,
+                agent_id: &agent_id,
+                ephemeral_key_id: &record.key_fingerprint,
+            },
+            &eph_signing,
+        );
+        // The ephemeral signing key is dropped here when `eph_signing`
+        // goes out of scope — FR-005's discard-at-stage-exit guarantee.
+        persist_manifest(&manifest, &self.run_dir)?;
+        Ok(manifest)
+    }
+
+    /// Verify a hand-off manifest at the receiving stage.
+    ///
+    /// `expected_to_stage` lets the caller assert that the manifest is
+    /// destined for *this* receiver — a defence against an attacker that
+    /// has swapped manifests between fan-out branches of the same run.
+    pub fn verify_handoff(
+        &self,
+        manifest: &InterStageManifest,
+        expected_to_stage: &str,
+    ) -> Result<(), ManifestError> {
+        verify_manifest(manifest, &self.chain, Some(expected_to_stage))
+    }
+
+    /// Path where the chain is persisted.
+    pub fn keychain_path(&self) -> std::path::PathBuf {
+        self.run_dir.join(KEYCHAIN_FILENAME)
+    }
+
+    fn persist_chain(&self) -> Result<(), ManifestError> {
+        self.chain.save_to_file(&self.keychain_path())
+    }
+}
+
 // ── Tests ────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -548,6 +708,81 @@ mod tests {
             key_fingerprint: "ZZZZ".into(),
         };
         assert!(chain.register_stage_key(bogus).is_err());
+    }
+
+    #[test]
+    fn session_establish_persists_empty_chain() {
+        let tmp = tempfile::tempdir().unwrap();
+        let session = StageHandoffSigner::establish("run-s1", tmp.path()).unwrap();
+        assert!(session.keychain_path().exists());
+        let restored = RunKeyChain::load_from_file(&session.keychain_path()).unwrap();
+        assert_eq!(restored.run_id, "run-s1");
+        assert!(restored.stage_keys.is_empty());
+        assert!(!restored.root_public_key_b64.is_empty());
+    }
+
+    #[test]
+    fn session_sign_handoff_persists_chain_and_manifest() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut session = StageHandoffSigner::establish("run-s2", tmp.path()).unwrap();
+        let manifest = session
+            .sign_handoff(
+                "s0-preflight",
+                "s1-business-requirements",
+                artifacts(&[("preflight.json", "abc")]),
+                BTreeMap::new(),
+            )
+            .unwrap();
+        // Manifest persisted under run_dir/manifests/.
+        let m_path = tmp
+            .path()
+            .join("manifests")
+            .join("s0-preflight-to-s1-business-requirements.json");
+        assert!(m_path.exists());
+        // Chain updated with the s0 ephemeral key.
+        let chain = RunKeyChain::load_from_file(&session.keychain_path()).unwrap();
+        assert!(chain.stage_keys.contains_key("s0-preflight"));
+        // Verify with the in-memory session.
+        session
+            .verify_handoff(&manifest, "s1-business-requirements")
+            .unwrap();
+    }
+
+    #[test]
+    fn session_verify_handoff_offline_via_persisted_chain() {
+        let tmp = tempfile::tempdir().unwrap();
+        let manifest;
+        {
+            let mut session = StageHandoffSigner::establish("run-s3", tmp.path()).unwrap();
+            manifest = session
+                .sign_handoff(
+                    "s3-data-model",
+                    "s4-api-specification",
+                    artifacts(&[("entities.yaml", "h1")]),
+                    BTreeMap::new(),
+                )
+                .unwrap();
+            // Drop the session — only the on-disk chain remains.
+        }
+        // Reload the chain (offline path, FR-006) and verify.
+        let chain = RunKeyChain::load_from_file(&tmp.path().join(KEYCHAIN_FILENAME)).unwrap();
+        verify_manifest(&manifest, &chain, Some("s4-api-specification")).unwrap();
+    }
+
+    #[test]
+    fn session_finalize_yields_chain_for_certificate() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut session = StageHandoffSigner::establish("run-s4", tmp.path()).unwrap();
+        session
+            .sign_handoff("s0", "s1", artifacts(&[]), BTreeMap::new())
+            .unwrap();
+        session
+            .sign_handoff("s1", "s2", artifacts(&[]), BTreeMap::new())
+            .unwrap();
+        let chain = session.finalize();
+        assert_eq!(chain.run_id, "run-s4");
+        assert!(chain.stage_keys.contains_key("s0"));
+        assert!(chain.stage_keys.contains_key("s1"));
     }
 
     #[test]
