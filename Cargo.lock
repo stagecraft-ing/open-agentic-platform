@@ -4545,6 +4545,7 @@ dependencies = [
  "chrono",
  "factory-contracts",
  "hex",
+ "open_agentic_spec_lint",
  "serde",
  "serde_json",
  "serde_yaml",
