@@ -76,9 +76,7 @@ pub fn run(
     }
 
     let content_hash = hash_stage_dir(&stage_dir)?;
-    let status = if emitted.is_empty() {
-        StageStatus::Degraded
-    } else if degraded.is_some() {
+    let status = if emitted.is_empty() || degraded.is_some() {
         StageStatus::Degraded
     } else {
         StageStatus::Complete
