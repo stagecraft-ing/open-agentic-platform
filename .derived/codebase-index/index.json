@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "cd95547e1273b1364592e07c66981c88b5f3054d94adcd308592b3a40f65b586",
+    "contentHash": "5839c56d0b7346cdb75be8b630e14110c8bd8ec505a2639af711b378bbad4273",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -35309,6 +35309,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/factory-engine/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/factory-engine/tests/kernel_emission_integration.rs",
             "source": "spec-implements"
           }
@@ -35396,6 +35400,20 @@
             "unit": {
               "kind": "file",
               "path": "crates/factory-engine/src/kernel_emission/version.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/lib.rs"
             }
           },
           {

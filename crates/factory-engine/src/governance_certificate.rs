@@ -696,15 +696,63 @@ fn verify_certificate_signature(cert: &GovernanceCertificate) -> Result<(), Stri
 
 // ── Generation from Pipeline State ───────────────────────────────────
 
+/// OAP's canonical s0..s5 stage list (spec 102).
+///
+/// Tenant pipelines (spec 168 §2.4) pass their own stage IDs to
+/// [`generate_certificate_with_stage_ids`]; the OAP-side
+/// [`generate_certificate`] keeps this fixed list as its default for
+/// byte-equivalence with pre-1.3.0 fixtures.
+pub const OAP_STAGE_IDS: &[&str] = &[
+    "s0-preflight",
+    "s1-business-requirements",
+    "s2-service-requirements",
+    "s3-data-model",
+    "s4-api-specification",
+    "s5-ui-specification",
+];
+
 /// Generate a governance certificate from a completed (or halted) pipeline.
 ///
 /// FR-003: called at the end of every factory pipeline run.
 /// FR-005: computes SHA-256 of each stage output artifact on disk.
+///
+/// Uses [`OAP_STAGE_IDS`] as the stage list. Tenant pipelines with
+/// different stage grammars (spec 168 §2.4) call
+/// [`generate_certificate_with_stage_ids`] instead.
 pub fn generate_certificate(
     pipeline_state: &FactoryPipelineState,
     requirements_hash: &str,
     artifact_dir: &Path,
     proof_chain_summary: Option<ProofChainSummary>,
+) -> GovernanceCertificate {
+    generate_certificate_with_stage_ids(
+        pipeline_state,
+        requirements_hash,
+        artifact_dir,
+        proof_chain_summary,
+        OAP_STAGE_IDS,
+    )
+}
+
+/// Generate a governance certificate using a caller-supplied stage list
+/// (spec 168 §2.4).
+///
+/// `stage_ids` controls which subdirectories of `artifact_dir` are
+/// scanned and the order in which their [`StageRecord`]s appear in the
+/// certificate. When the slice is empty, every subdirectory of
+/// `artifact_dir` is scanned in lexicographic order — useful for tenant
+/// pipelines that emit stages dynamically and want filesystem discovery
+/// instead of an explicit list.
+///
+/// Per spec 168 §2.4, the tenant's stage shape is opaque to the
+/// certificate format: any stage representable as `(stage_id,
+/// artifact_hashes)` round-trips through the verifier untouched.
+pub fn generate_certificate_with_stage_ids(
+    pipeline_state: &FactoryPipelineState,
+    requirements_hash: &str,
+    artifact_dir: &Path,
+    proof_chain_summary: Option<ProofChainSummary>,
+    stage_ids: &[&str],
 ) -> GovernanceCertificate {
     let intent = IntentRecord {
         requirements_hash: requirements_hash.to_string(),
@@ -714,10 +762,12 @@ pub fn generate_certificate(
 
     let build_spec_hash = pipeline_state.build_spec_hash.clone().unwrap_or_default();
 
-    // Collect stage records by scanning the artifact directory.
-    let stages = collect_stage_records(artifact_dir);
+    let stages = if stage_ids.is_empty() {
+        collect_stage_records_from_dir(artifact_dir)
+    } else {
+        collect_stage_records(artifact_dir, stage_ids)
+    };
 
-    // Determine verification outcomes from the pipeline state.
     let verification = VerificationRecord {
         compile: VerificationOutcome::Skipped,
         test: VerificationOutcome::Skipped,
@@ -741,59 +791,75 @@ pub fn generate_certificate(
         .build()
 }
 
-/// Scan the artifact directory for stage output files and compute their hashes.
-fn collect_stage_records(artifact_dir: &Path) -> Vec<StageRecord> {
+/// Scan the artifact directory for stage output files using a
+/// caller-supplied ordered stage list.
+fn collect_stage_records(artifact_dir: &Path, stage_ids: &[&str]) -> Vec<StageRecord> {
     let mut stages = Vec::new();
+    for stage_id in stage_ids {
+        stages.push(stage_record_for(artifact_dir, stage_id));
+    }
+    stages
+}
 
-    // Known process stage IDs in order.
-    let stage_ids = [
-        "s0-preflight",
-        "s1-business-requirements",
-        "s2-service-requirements",
-        "s3-data-model",
-        "s4-api-specification",
-        "s5-ui-specification",
-    ];
+/// Scan the artifact directory's subdirectories and emit a stage record
+/// per subdirectory, in lexicographic order. Used when the caller passes
+/// an empty stage-id list to [`generate_certificate_with_stage_ids`].
+fn collect_stage_records_from_dir(artifact_dir: &Path) -> Vec<StageRecord> {
+    let Ok(entries) = std::fs::read_dir(artifact_dir) else {
+        return Vec::new();
+    };
 
-    for stage_id in &stage_ids {
-        let stage_dir = artifact_dir.join(stage_id);
-        let mut artifact_hashes = BTreeMap::new();
+    let mut stage_dirs: Vec<String> = entries
+        .flatten()
+        .filter(|e| e.path().is_dir())
+        .filter_map(|e| e.file_name().to_str().map(|s| s.to_string()))
+        .collect();
+    stage_dirs.sort();
 
-        if stage_dir.is_dir()
-            && let Ok(entries) = std::fs::read_dir(&stage_dir)
-        {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_file()
-                    && let Ok(contents) = std::fs::read(&path)
-                {
-                    let hash = sha256_bytes(&contents);
-                    let name = path
-                        .file_name()
-                        .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_default();
-                    artifact_hashes.insert(name, hash);
-                }
+    stage_dirs
+        .iter()
+        .map(|sid| stage_record_for(artifact_dir, sid))
+        .collect()
+}
+
+/// Build a single [`StageRecord`] for the named stage by scanning
+/// `artifact_dir/<stage_id>/`.
+fn stage_record_for(artifact_dir: &Path, stage_id: &str) -> StageRecord {
+    let stage_dir = artifact_dir.join(stage_id);
+    let mut artifact_hashes = BTreeMap::new();
+
+    if stage_dir.is_dir()
+        && let Ok(entries) = std::fs::read_dir(&stage_dir)
+    {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file()
+                && let Ok(contents) = std::fs::read(&path)
+            {
+                let hash = sha256_bytes(&contents);
+                let name = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                artifact_hashes.insert(name, hash);
             }
         }
-
-        let status = if artifact_hashes.is_empty() {
-            StageOutcome::Skipped
-        } else {
-            StageOutcome::Passed
-        };
-
-        stages.push(StageRecord {
-            stage_id: stage_id.to_string(),
-            status,
-            artifact_hashes,
-            gate_result: None,
-            duration_ms: None,
-            sandbox_execution: None,
-        });
     }
 
-    stages
+    let status = if artifact_hashes.is_empty() {
+        StageOutcome::Skipped
+    } else {
+        StageOutcome::Passed
+    };
+
+    StageRecord {
+        stage_id: stage_id.to_string(),
+        status,
+        artifact_hashes,
+        gate_result: None,
+        duration_ms: None,
+        sandbox_execution: None,
+    }
 }
 
 /// SHA-256 hash of raw bytes, returned as lowercase hex.
@@ -1667,6 +1733,84 @@ mod tests {
             .signer(Signer::new("a@b", "rauthy").unwrap())
             .build();
         assert_ne!(bare.certificate_hash, signed.certificate_hash);
+    }
+
+    // ── spec 168 §2.4: stage-shape flexibility for tenant grammars ──
+
+    fn write_stage_artifact(root: &Path, stage_id: &str, name: &str, body: &[u8]) {
+        let stage_dir = root.join(stage_id);
+        std::fs::create_dir_all(&stage_dir).unwrap();
+        std::fs::write(stage_dir.join(name), body).unwrap();
+    }
+
+    fn pipeline_state_for_stage_tests() -> FactoryPipelineState {
+        let mut state = FactoryPipelineState::new("tenant-run-1", "aim-vue-node");
+        state.transition_to_scaffolding("bs".into());
+        state
+    }
+
+    #[test]
+    fn tenant_stage_ids_round_trip_through_generate_certificate() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path();
+        write_stage_artifact(dir, "tenant-codegen", "app.rs", b"fn main(){}");
+        write_stage_artifact(dir, "tenant-bundle", "bundle.tar", b"<bytes>");
+
+        let state = pipeline_state_for_stage_tests();
+        let cert = generate_certificate_with_stage_ids(
+            &state,
+            "req-hash",
+            dir,
+            None,
+            &["tenant-codegen", "tenant-bundle"],
+        );
+
+        assert_eq!(cert.stages.len(), 2);
+        assert_eq!(cert.stages[0].stage_id, "tenant-codegen");
+        assert_eq!(cert.stages[1].stage_id, "tenant-bundle");
+        assert_eq!(cert.stages[0].status, StageOutcome::Passed);
+        assert!(cert.stages[0].artifact_hashes.contains_key("app.rs"));
+
+        let result = verify_certificate(&cert, Some(dir));
+        assert!(result.valid, "errors: {:?}", result.errors);
+    }
+
+    #[test]
+    fn empty_stage_id_slice_falls_back_to_filesystem_discovery() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path();
+        write_stage_artifact(dir, "z-final", "z.txt", b"z");
+        write_stage_artifact(dir, "a-prepare", "a.txt", b"a");
+        write_stage_artifact(dir, "m-middle", "m.txt", b"m");
+
+        let state = pipeline_state_for_stage_tests();
+        let cert = generate_certificate_with_stage_ids(&state, "req-hash", dir, None, &[]);
+
+        // Filesystem discovery yields lexicographic order.
+        assert_eq!(cert.stages.len(), 3);
+        assert_eq!(cert.stages[0].stage_id, "a-prepare");
+        assert_eq!(cert.stages[1].stage_id, "m-middle");
+        assert_eq!(cert.stages[2].stage_id, "z-final");
+    }
+
+    #[test]
+    fn oap_default_stage_list_unchanged() {
+        // Backward-compat: the OAP-side generate_certificate() must still
+        // produce stages s0..s5 in canonical order regardless of which
+        // subdirectories actually exist on disk (skipped → empty hashes).
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path();
+        write_stage_artifact(dir, "s0-preflight", "ok.json", b"{}");
+
+        let state = pipeline_state_for_stage_tests();
+        let cert = generate_certificate(&state, "req-hash", dir, None);
+
+        assert_eq!(cert.stages.len(), 6);
+        for (i, expected) in OAP_STAGE_IDS.iter().enumerate() {
+            assert_eq!(&cert.stages[i].stage_id, expected);
+        }
+        assert_eq!(cert.stages[0].status, StageOutcome::Passed);
+        assert_eq!(cert.stages[1].status, StageOutcome::Skipped);
     }
 
     #[test]

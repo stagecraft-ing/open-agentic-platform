@@ -19,6 +19,9 @@ extends:
     unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
   - spec: "102-governed-excellence"
     nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/lib.rs }
+  - spec: "102-governed-excellence"
+    nature: additive
     unit: { kind: file, path: crates/factory-engine/src/bin/build_certificate.rs }
   - spec: "102-governed-excellence"
     nature: additive
