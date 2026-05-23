@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:5fb42731acad5819be771462b2bb615632771b1233cadc88dfb4b34be25bffe2",
+  "graph_fingerprint": "sha256:824f0f9fb2f20aa16f0cd76ec57cb3e1ad0845759bacea5ce51e23aee8222abc",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3045,16 +3045,15 @@
       "violations": []
     },
     {
-      "feature_id": "162-dockerised-execution-substrate",
-      "title": "Dockerised execution substrate — ephemeral micro-sandbox runtime for factory-engine codegen (ASI05)",
-      "spec_path": "specs/162-dockerised-execution-substrate/spec.md",
+      "feature_id": "162-sandbox-execution-contract",
+      "title": "Sandbox execution contract — ephemeral isolation invariants for factory-engine adapter codegen (ASI05)",
+      "spec_path": "specs/162-sandbox-execution-contract/spec.md",
       "status": "draft",
-      "implementation": "pending",
+      "implementation": "in-progress",
       "governance": "high",
       "owner": "bart",
       "group": "",
       "depends_on": [
-        "072",
         "075",
         "102",
         "108"
@@ -3499,6 +3498,13 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/factory-contracts/src/sandbox.rs",
+      "message": "Malformed Spec directive: // Spec: specs/162-sandbox-execution-contract/spec.md — §2.3, §3 FR-001..FR-009",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/factory-contracts/src/stakeholder_docs.rs",
       "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-001 through FR-006",
       "suggested_fix": "Fix header format"
@@ -3641,6 +3647,13 @@
       "severity": "error",
       "path": "crates/factory-engine/src/project_config.rs",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-025, FR-028",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/src/sandbox/mod.rs",
+      "message": "Malformed Spec directive: // Spec: specs/162-sandbox-execution-contract/spec.md — §2.3, §3 FR-001..FR-009",
       "suggested_fix": "Fix header format"
     },
     {

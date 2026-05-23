@@ -14,6 +14,8 @@ summary: >
   orchestration engine into a complete AI software factory. Defines directory
   structure, Rust contract types, adapter registry, and integration seams.
 code_aliases: ["FACTORY_INGESTION", "FACTORY_CONTRACTS"]
+amended: "2026-05-23"
+amendment_record: "162-sandbox-execution-contract"
 establishes:
   - unit: { kind: crate, id: factory-contracts }
 references:
@@ -22,6 +24,20 @@ references:
 ---
 
 # Feature Specification: Factory Ingestion as First-Class Delivery Engine
+
+> **Amended 2026-05-23 by spec 162** — `sandbox-execution-contract`.
+> Spec 162 adds `crates/factory-contracts/src/sandbox.rs` (backend-agnostic
+> sandbox-contract types: `SandboxRequest`, `SandboxExecution`,
+> `IsolationTier`, `ResourceCeilings`, `EgressAllowlistEntry`) to the
+> `factory-contracts` crate this spec establishes. The addition is
+> additive — no existing factory-contracts type or module shape is
+> changed. Spec 162 records the relationship via `amends: ["074"]`; this
+> spec's `amendment_record` field points back at 162. The clarification
+> is: factory-contracts hosts contract types for **both** the original
+> Factory delivery pipeline AND the sandbox execution contract, since
+> both feed the governance-certificate stage record shape
+> ([spec 102](../102-governed-excellence/spec.md)) and benefit from
+> sharing serde infrastructure.
 
 ## Purpose
 

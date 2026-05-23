@@ -24,6 +24,7 @@ pub mod policy_shard;
 pub mod preflight;
 pub mod project_config;
 pub mod factory_root;
+pub mod sandbox;
 pub mod stagecraft_client;
 pub mod stages;
 pub mod standards_resolver;
@@ -48,6 +49,7 @@ pub use governance_certificate::{
 pub use manifest_gen::{generate_process_manifest, generate_scaffold_manifest};
 pub use pipeline_state::{FactoryPhase, FactoryPipelineState, ScaffoldingProgress};
 pub use policy_shard::generate_factory_policy_shard;
+pub use sandbox::{BackendDescriptor, NullSandboxClient, SandboxClient, SandboxError};
 pub use standards_resolver::FactoryStandardsResolver;
 pub use verify_harness::run_factory_gate_check;
 

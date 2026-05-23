@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "44e902bc0104dc79cea40182e5f0796b80b671266aba3eee93afff5193cc7ebe",
+    "contentHash": "0349a9e16189cc718240bf59bfdaeb495146af9ae5d949f754fac569c080a71b",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -10802,18 +10802,6 @@
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
               },
               {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
-              },
-              {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
               },
               {
@@ -11127,9 +11115,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -11845,18 +11830,6 @@
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
               },
               {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
-              },
-              {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
               },
               {
@@ -12170,9 +12143,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -13710,6 +13680,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "162-sandbox-execution-contract",
         "implementingPaths": [
           {
             "path": "crates/factory-contracts",
@@ -13761,6 +13732,9 @@
               },
               {
                 "file": "crates/factory-contracts/src/provenance_config.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/sandbox.rs"
               },
               {
                 "file": "crates/factory-contracts/src/stakeholder_docs.rs"
@@ -13922,18 +13896,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -14249,9 +14211,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -15398,6 +15357,9 @@
                 "file": "crates/factory-contracts/src/provenance_config.rs"
               },
               {
+                "file": "crates/factory-contracts/src/sandbox.rs"
+              },
+              {
                 "file": "crates/factory-contracts/src/stakeholder_docs.rs"
               },
               {
@@ -15577,18 +15539,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -15904,9 +15854,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -17532,24 +17479,6 @@
               },
               {
                 "file": "crates/xray/tests/index_format_test.rs"
-              },
-              {
-                "file": "crates/xray/tests/outputs/index_format/history.jsonl"
-              },
-              {
-                "file": "crates/xray/tests/outputs/index_format/index.json"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run1/history.jsonl"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run1/index.json"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run2/history.jsonl"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run2/index.json"
               }
             ],
             "ownership": true,
@@ -20813,11 +20742,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": ".derived/codebase-index/CODEBASE-INDEX.md"
-              }
-            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -21601,6 +21525,9 @@
                 "file": "crates/factory-contracts/src/provenance_config.rs"
               },
               {
+                "file": "crates/factory-contracts/src/sandbox.rs"
+              },
+              {
                 "file": "crates/factory-contracts/src/stakeholder_docs.rs"
               },
               {
@@ -21862,18 +21789,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -22189,9 +22104,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -30218,9 +30130,6 @@
             "kind": "directory",
             "locations": [
               {
-                "file": "platform/services/stagecraft/.encore/manifest.json"
-              },
-              {
                 "file": "platform/services/stagecraft/.github/workflows/deploy.yml"
               },
               {
@@ -31211,240 +31120,6 @@
                 "file": "platform/services/stagecraft/encore.app"
               },
               {
-                "file": "platform/services/stagecraft/encore.gen/auth/index.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/clients/index.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/clients/index.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/auth/auth.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints.d.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints_testing.js"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/combined/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/gateways/api-gateway/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/admin/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/agents/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/audit/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/auth/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/db/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/deploy/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/environments/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/factory/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/frontend/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/github/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/grants/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/knowledge/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/monitor/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/policy/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/projects/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/site/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/slack/main.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/sync/main.ts"
-              },
-              {
                 "file": "platform/services/stagecraft/infra.config.hetzner.json"
               },
               {
@@ -31515,9 +31190,6 @@
               },
               {
                 "file": "platform/services/stagecraft/tsconfig.json"
-              },
-              {
-                "file": "platform/services/stagecraft/tsconfig.tsbuildinfo"
               },
               {
                 "file": "platform/services/stagecraft/vite.config.ts"
@@ -31929,16 +31601,30 @@
         "specStatus": "draft"
       },
       {
+        "amends": [
+          "074-factory-ingestion"
+        ],
         "dependsOn": [
-          "072",
           "075",
           "102",
           "108"
         ],
         "implementingPaths": [
           {
+            "path": "crates/factory-contracts/src/sandbox.rs",
+            "source": "multiple"
+          },
+          {
             "path": "crates/factory-engine",
             "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/sandbox",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/sandbox/mod.rs",
+            "source": "comment-header"
           }
         ],
         "resolvedUnits": [
@@ -32013,6 +31699,9 @@
               },
               {
                 "file": "crates/factory-engine/src/project_config.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/sandbox/mod.rs"
               },
               {
                 "file": "crates/factory-engine/src/stagecraft_client.rs"
@@ -32101,6 +31790,34 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "crates/factory-engine/src/sandbox/mod.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "crates/factory-engine/src/sandbox"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-contracts/src/sandbox.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-contracts/src/sandbox.rs"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
                 "file": "platform/k8s/policies/namespace-baseline/limitrange.yaml"
               },
               {
@@ -32174,7 +31891,7 @@
             }
           }
         ],
-        "specId": "162-dockerised-execution-substrate",
+        "specId": "162-sandbox-execution-contract",
         "specStatus": "draft"
       },
       {
@@ -32826,24 +32543,6 @@
               },
               {
                 "file": "crates/xray/tests/index_format_test.rs"
-              },
-              {
-                "file": "crates/xray/tests/outputs/index_format/history.jsonl"
-              },
-              {
-                "file": "crates/xray/tests/outputs/index_format/index.json"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run1/history.jsonl"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run1/index.json"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run2/history.jsonl"
-              },
-              {
-                "file": "crates/xray/tests/outputs/run2/index.json"
               }
             ],
             "ownership": false,
@@ -33064,6 +32763,9 @@
               },
               {
                 "file": "crates/factory-engine/src/project_config.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/sandbox/mod.rs"
               },
               {
                 "file": "crates/factory-engine/src/stagecraft_client.rs"
@@ -33491,6 +33193,9 @@
               },
               {
                 "file": "crates/factory-engine/src/project_config.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/sandbox/mod.rs"
               },
               {
                 "file": "crates/factory-engine/src/stagecraft_client.rs"

@@ -289,6 +289,6 @@ posture for factory-engine work.
   whose state blobs are signed.
 - **Spec 102** — governed-excellence; composes via
   certificate chain.
-- **Spec 162** — dockerised execution substrate;
+- **Spec 162** — sandbox execution contract;
   composes via sandbox boundaries between stages.
 - **Convergence doc §2.C** — doctrine framing.
