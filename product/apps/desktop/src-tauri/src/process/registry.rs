@@ -505,12 +505,12 @@ impl ProcessRegistry {
     ) -> Result<bool, String> {
         let processes = self.processes.lock().map_err(|e| e.to_string())?;
         for handle in processes.values() {
-            if let ProcessType::ClaudeSession { session_id: sid } = &handle.info.process_type {
-                if sid == session_id {
-                    let mut activity = handle.activity.lock().map_err(|e| e.to_string())?;
-                    activity.record_tool_call(event);
-                    return Ok(true);
-                }
+            if let ProcessType::ClaudeSession { session_id: sid } = &handle.info.process_type
+                && sid == session_id
+            {
+                let mut activity = handle.activity.lock().map_err(|e| e.to_string())?;
+                activity.record_tool_call(event);
+                return Ok(true);
             }
         }
         Ok(false)
@@ -524,12 +524,12 @@ impl ProcessRegistry {
     ) -> Result<bool, String> {
         let processes = self.processes.lock().map_err(|e| e.to_string())?;
         for handle in processes.values() {
-            if let ProcessType::ClaudeSession { session_id: sid } = &handle.info.process_type {
-                if sid == session_id {
-                    let mut activity = handle.activity.lock().map_err(|e| e.to_string())?;
-                    activity.record_tokens(count);
-                    return Ok(true);
-                }
+            if let ProcessType::ClaudeSession { session_id: sid } = &handle.info.process_type
+                && sid == session_id
+            {
+                let mut activity = handle.activity.lock().map_err(|e| e.to_string())?;
+                activity.record_tokens(count);
+                return Ok(true);
             }
         }
         Ok(false)
@@ -542,11 +542,11 @@ impl ProcessRegistry {
     ) -> Result<Option<ActivitySnapshot>, String> {
         let processes = self.processes.lock().map_err(|e| e.to_string())?;
         for handle in processes.values() {
-            if let ProcessType::ClaudeSession { session_id: sid } = &handle.info.process_type {
-                if sid == session_id {
-                    let mut activity = handle.activity.lock().map_err(|e| e.to_string())?;
-                    return Ok(Some(activity.snapshot()));
-                }
+            if let ProcessType::ClaudeSession { session_id: sid } = &handle.info.process_type
+                && sid == session_id
+            {
+                let mut activity = handle.activity.lock().map_err(|e| e.to_string())?;
+                return Ok(Some(activity.snapshot()));
             }
         }
         Ok(None)
