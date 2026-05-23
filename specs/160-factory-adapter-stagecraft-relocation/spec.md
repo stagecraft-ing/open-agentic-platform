@@ -20,6 +20,14 @@ extends:
   - spec: "108-factory-as-platform-feature"
     nature: additive
     unit: { kind: directory, path: platform/services/stagecraft }
+co_authority:
+  - with_specs:
+      - "102-governed-excellence"
+      - "104-makefile-ci-parity-contract"
+      - "127-spec-code-coupling-gate"
+      - "134-fast-local-ci-mode"
+      - "135-fast-ci-as-default"
+    unit: { kind: section, file: Makefile, anchor: registry }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

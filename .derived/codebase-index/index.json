@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5df257fc32860d4c71c7c1336df174c56aedc5b8432afbcc7739c6e89a34e413",
+    "contentHash": "14f97d5d3017443f3b4607924a65d0c17d38d6cb502b28e3afce49981fca8cb3",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -30332,11 +30332,34 @@
         ],
         "implementingPaths": [
           {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft",
             "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "section",
+            "locations": [
+              {
+                "file": "Makefile",
+                "span": {
+                  "endLine": 457,
+                  "startLine": 139
+                }
+              }
+            ],
+            "ownership": true,
+            "sourceField": "co_authority",
+            "unit": {
+              "anchor": "registry",
+              "file": "Makefile",
+              "kind": "section"
+            }
+          },
           {
             "kind": "directory",
             "locations": [
