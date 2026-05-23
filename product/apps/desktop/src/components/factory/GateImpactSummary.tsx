@@ -1,4 +1,5 @@
-// Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-003
+// Spec: specs/171-opc-structural-diff-plan-ui/spec.md
+// FR-003 — rolled-up gate-impact preview surface.
 //
 // Rolled-up gate-impact preview shown at the head of the plan review
 // surface. The per-action badges live on each PlanActionRow; this

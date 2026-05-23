@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:7019c0e4b953098d2179d358195e17c1719eceaed3912901221a08d7a9031f35",
+  "graph_fingerprint": "sha256:34b1eec22f96ba3391c47bac3bff9a3c43d343068b3bb08c8d98a8e8a78dbbc1",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4290,7 +4290,7 @@
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
       "path": "product/apps/desktop/src/components/factory/GateImpactSummary.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-003",
+      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
@@ -4318,14 +4318,14 @@
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
       "path": "product/apps/desktop/src/components/factory/PlanActionGraph.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-002, FR-005",
+      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
       "path": "product/apps/desktop/src/components/factory/PlanCertificatePrediction.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-006",
+      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
@@ -4339,7 +4339,7 @@
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
       "path": "product/apps/desktop/src/components/factory/PlanStructuralDiff.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-001 §2.1",
+      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
@@ -4388,14 +4388,14 @@
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
       "path": "product/apps/desktop/src/components/factory/__tests__/GateImpactSummary.test.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-003",
+      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
       "path": "product/apps/desktop/src/components/factory/__tests__/PlanCertificatePrediction.test.tsx",
-      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-006, SC-004",
+      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
@@ -4451,7 +4451,7 @@
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
       "path": "product/apps/desktop/src/components/factory/planAnalysis.ts",
-      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-003, FR-007",
+      "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {

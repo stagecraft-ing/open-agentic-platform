@@ -1,4 +1,5 @@
-// Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-001 §2.1
+// Spec: specs/171-opc-structural-diff-plan-ui/spec.md
+// FR-001 §2.1 — structural-diff renderer (primary action surface).
 //
 // Structural-diff renderer over the spec spine: shows added / removed /
 // modified specs the plan would produce. The primary surface — paired

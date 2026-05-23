@@ -1,4 +1,5 @@
-// Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-002, FR-005
+// Spec: specs/171-opc-structural-diff-plan-ui/spec.md
+// FR-002 action-graph enumeration + FR-005 traversal acknowledgement.
 //
 // Action graph renderer: enumerates each agent-proposed action with
 // its kind, target, and structured diff. Each action exposes an

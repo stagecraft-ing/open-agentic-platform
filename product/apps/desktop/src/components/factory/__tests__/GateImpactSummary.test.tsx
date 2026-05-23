@@ -1,4 +1,5 @@
-// Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-003
+// Spec: specs/171-opc-structural-diff-plan-ui/spec.md
+// FR-003 — rolled-up gate-impact preview tests.
 // Pin the rolled-up gate-impact preview rendering.
 
 import { describe, it, expect, afterEach } from 'vitest';

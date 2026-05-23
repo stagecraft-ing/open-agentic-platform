@@ -1,4 +1,5 @@
-// Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-003, FR-007
+// Spec: specs/171-opc-structural-diff-plan-ui/spec.md
+// FR-003 gate-impact preview + FR-007 critical-action marker inference.
 //
 // Pure heuristics that derive gate-impact predictions and
 // critical-action markers from an action's kind / target / args.

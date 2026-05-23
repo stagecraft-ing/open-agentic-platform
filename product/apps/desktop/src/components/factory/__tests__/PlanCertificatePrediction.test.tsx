@@ -1,4 +1,5 @@
-// Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-006, SC-004
+// Spec: specs/171-opc-structural-diff-plan-ui/spec.md
+// FR-006 + SC-004 — predicted-vs-actual certificate rendering tests.
 // Pin predicted-vs-actual certificate rendering and the diff function.
 
 import { describe, it, expect, afterEach } from 'vitest';

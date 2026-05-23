@@ -1,4 +1,5 @@
-// Spec: specs/171-opc-structural-diff-plan-ui/spec.md — FR-006
+// Spec: specs/171-opc-structural-diff-plan-ui/spec.md
+// FR-006 — predicted-vs-actual governance-certificate diff surface.
 //
 // Predicted-vs-actual governance-certificate stage list. The agent
 // declares the certificate it expects to emit *before* the run; once
