@@ -4,6 +4,7 @@ pub mod agents;
 pub mod analysis;
 pub mod auth;
 pub mod claude;
+pub mod decomposition;
 pub mod factory;
 pub mod factory_platform;
 pub mod factory_project;
