@@ -285,6 +285,64 @@ impl FactoryEngine {
     pub fn adapter_registry(&self) -> &AdapterRegistry {
         &self.adapter_registry
     }
+
+    /// Emit a born-with spec-spine kernel into `target_root` (spec 167).
+    ///
+    /// Resolves the named adapter from the registry, builds the
+    /// [`kernel_emission::AdapterIdentity`] from the manifest, and writes
+    /// the kernel + tenant gate wiring + `.kernel-version` marker.
+    ///
+    /// This is the production entry point for the born-with channel.
+    /// Pipeline wiring (when, in the s0–s6 stage list, this fires) is
+    /// the responsibility of the caller; the method itself is pure.
+    pub fn emit_project_kernel(
+        &self,
+        adapter_name: &str,
+        target_root: &Path,
+        oap_repo_root: &Path,
+        scaffolded_paths: Vec<String>,
+        adapter_manifest_uri: Option<String>,
+        toolchain_mode: crate::kernel_emission::ToolchainMode,
+        source_commit: String,
+    ) -> Result<crate::kernel_emission::KernelEmissionReport, FactoryError> {
+        let manifest =
+            self.adapter_registry
+                .get(adapter_name)
+                .ok_or_else(|| FactoryError::AdapterNotFound {
+                    name: adapter_name.into(),
+                })?;
+
+        // Hash the adapter manifest payload for `.kernel-version`.
+        let manifest_yaml = serde_yaml::to_string(&manifest).map_err(|e| {
+            FactoryError::InvalidBuildSpec {
+                reason: format!("adapter-manifest serialize: {e}"),
+            }
+        })?;
+        let manifest_hash =
+            crate::kernel_emission::gather::hash_adapter_manifest(manifest_yaml.as_bytes());
+
+        let adapter_identity = crate::kernel_emission::AdapterIdentity {
+            id: manifest.adapter.name.clone(),
+            version: manifest.adapter.version.clone(),
+            manifest_hash,
+        };
+
+        let cfg = crate::kernel_emission::KernelEmissionConfig {
+            source: crate::kernel_emission::KernelSource::from_repo_root(oap_repo_root.to_path_buf()),
+            target_root: target_root.to_path_buf(),
+            adapter: adapter_identity,
+            scaffolded_paths,
+            adapter_manifest_uri,
+            toolchain_mode,
+            source_commit,
+            emitted_at: None,
+            gate_context: None,
+        };
+
+        crate::kernel_emission::emit_kernel(&cfg).map_err(|e| FactoryError::InvalidBuildSpec {
+            reason: format!("kernel emission failed: {e}"),
+        })
+    }
 }
 
 /// Result of starting a pipeline.

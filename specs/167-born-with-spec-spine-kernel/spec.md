@@ -2,10 +2,11 @@
 id: "167-born-with-spec-spine-kernel"
 slug: born-with-spec-spine-kernel
 title: "Born-with spec-spine kernel emission — every produced project ships with a spine"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
+amended: "2026-05-23"
 kind: capability
 risk: high
 depends_on:
@@ -17,10 +18,27 @@ depends_on:
   - "147"  # spec-kind-grammar
   - "165"  # opc-decomposition-pipeline (born-with case routes through this)
 code_aliases: ["BORN_WITH_KERNEL", "SPEC_SPINE_KERNEL_EMISSION"]
+establishes:
+  - unit: { kind: directory, path: crates/factory-engine/src/kernel_emission }
+  - unit: { kind: file, path: crates/factory-engine/src/kernel_emission/mod.rs }
+  - unit: { kind: file, path: crates/factory-engine/src/kernel_emission/version.rs }
+  - unit: { kind: file, path: crates/factory-engine/src/kernel_emission/gather.rs }
+  - unit: { kind: file, path: crates/factory-engine/src/kernel_emission/templates.rs }
+  - unit: { kind: file, path: crates/factory-engine/src/kernel_emission/adapter_specs.rs }
+  - unit: { kind: file, path: crates/factory-engine/src/kernel_emission/emit.rs }
+  - unit: { kind: file, path: crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl }
+  - unit: { kind: file, path: crates/factory-engine/templates/kernel/tenant.makefile.tmpl }
+  - unit: { kind: file, path: crates/factory-engine/tests/kernel_emission_integration.rs }
 extends:
   - spec: "120-factory-extraction-stage"
     nature: additive
     unit: { kind: directory, path: crates/factory-engine }
+  - spec: "075-factory-workflow-engine"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/engine.rs }
+  - spec: "075-factory-workflow-engine"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/lib.rs }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
@@ -286,3 +304,77 @@ The propagation mechanism itself is out of scope for spec 167
   insufficient to seed specs directly.
 - **Follow-up — kernel-update propagation spec.** Open
   per intent doc §7 OQ-8.
+
+## 7. Implementation status (2026-05-23)
+
+The kernel-emission contract lands as a library at
+`crates/factory-engine/src/kernel_emission/` plus a thin
+`FactoryEngine::emit_project_kernel` entry point. The cut is
+deliberate: the contract is settled and tested; the production
+pipeline auto-fire and the binary-vending step are scoped as
+follow-ups so the contract can land without dragging in
+release-engineering plumbing.
+
+### Done
+
+- **FR-001 / FR-002.** `emit_kernel()` writes spec 000,
+  `standards/spec/**`, the pre-compiled registry, the
+  `.kernel-version` marker, tenant gate wiring (workflow +
+  Makefile), and the adapter-seeded scaffold-claim spec in
+  one atomic call. Test:
+  `kernel_emission::emit::tests::emits_full_kernel_layout`.
+- **FR-003.** Default platform target is GitHub Actions
+  (`crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl`).
+  Per-adapter overrides for GitLab CI / Azure Pipelines are
+  parametric via `TenantGateContext` but ship without
+  per-platform branching; see Deferred below.
+- **FR-004.** `build_scaffold_claim_spec()` emits one draft
+  conforming to spec 147 (`kind: capability`), spec 154
+  (`establishes:` units from the adapter scaffold paths or a
+  repo-root fallback), and — when an adapter manifest URI is
+  provided — spec 161 (`references: knowledge-source`).
+  Test:
+  `kernel_emission::adapter_specs::tests::body_includes_required_frontmatter_keys`.
+- **FR-005 (mode field).** `ToolchainMode::VendorBinaries` /
+  `PinnedToolchain` is recorded in `.kernel-version`. The
+  actual vending of the binaries themselves is Deferred.
+- **FR-006.** `.kernel-version` round-trips through
+  `KernelVersion::{to_yaml, from_yaml}` with the four
+  `kernel.*` fields and three `adapter.*` fields plus
+  `toolchain_mode`.
+- **FR-008.** The emitted workflow invokes the tenant-resident
+  `spec-code-coupling-check` against the tenant's own base/head
+  refs.
+- **FR-009.** `compute_kernel_hash()` over sorted entries is
+  deterministic. Test:
+  `kernel_emission::emit::tests::deterministic_emission_yields_hash_equal_kernels`.
+
+### Deferred (follow-up specs, not regressions)
+
+- **Production pipeline auto-fire.** `emit_project_kernel` is
+  reachable on `FactoryEngine` and unit-tested, but no
+  `transition_to_*` hook fires it automatically yet. The
+  intended insertion point is "before the first adapter write
+  in Phase 2"; wiring that requires resolving the tenant
+  project root from `FactoryEngineConfig`, which is its own
+  small spec.
+- **Tenant binary vending (FR-005 binaries side).** Cross-target
+  builds for `spec-compiler`, `spec-code-coupling-check`,
+  `codebase-indexer`, `spec-lint` go through the OAP release
+  pipeline (spec 117). The kernel-emitter records the mode
+  but does not currently copy binaries into
+  `<project>/tools/spec-spine/`. Vending mechanism is a
+  follow-up.
+- **Per-CI-platform overrides (FR-003 alternates).** GitLab
+  CI / Azure Pipelines templates are not bundled yet. The
+  `TenantGateContext` substitution machinery accepts the
+  context the alternate templates would need; adding the
+  templates themselves is straightforward but out of MVP
+  scope.
+- **SC-001 / SC-005 full E2E.** Driving a real `aim-vue-node`
+  factory run end-to-end and verifying the produced project's
+  CI passes and its specs surface in stagecraft's
+  Requirements view (spec 163) requires the production
+  pipeline auto-fire above. The contract tests demonstrate
+  the kernel content is well-formed; the live integration
+  test follows the auto-fire spec.
