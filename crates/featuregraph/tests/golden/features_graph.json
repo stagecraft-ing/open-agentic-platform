@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:3871f45f460d1e6a6685d4a32c89166072be872e9814b091697d45b015cf1cae",
+  "graph_fingerprint": "sha256:91ac880623fb132aa38e17a60dd7e523aa13c6cfde3bd72f12643f80ea95899f",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3113,7 +3113,7 @@
       "title": "OPC decomposition pipeline — reverse-engineering and born-with spec spawning",
       "spec_path": "specs/165-opc-decomposition-pipeline/spec.md",
       "status": "draft",
-      "implementation": "pending",
+      "implementation": "in-progress",
       "governance": "high",
       "owner": "bart",
       "group": "",
@@ -3842,6 +3842,27 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
+      "path": "crates/opc-decomposition-pipeline/src/lib.rs",
+      "message": "Malformed Spec directive: // Spec: specs/165-opc-decomposition-pipeline/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/opc-decomposition-pipeline/tests/end_to_end.rs",
+      "message": "Malformed Spec directive: // Spec: specs/165-opc-decomposition-pipeline/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/opc-decomposition-pipeline/tests/spec_lint_compliance.rs",
+      "message": "Malformed Spec directive: // Spec: specs/165-opc-decomposition-pipeline/spec.md — SC-002",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
       "path": "crates/orchestrator/src/agent_identity.rs",
       "message": "Malformed Spec directive: // Spec: specs/102-governed-excellence/spec.md — FR-031, FR-036",
       "suggested_fix": "Fix header format"
@@ -4033,6 +4054,13 @@
       "severity": "error",
       "path": "platform/services/stagecraft/api/knowledge/extractionExternal.ts",
       "message": "Malformed Spec directive: // Spec: specs/120-factory-extraction-stage/spec.md — FR-016 through FR-019",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src-tauri/src/commands/decomposition.rs",
+      "message": "Malformed Spec directive: // Spec: specs/165-opc-decomposition-pipeline/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
