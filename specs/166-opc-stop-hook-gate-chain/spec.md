@@ -2,8 +2,8 @@
 id: "166-opc-stop-hook-gate-chain"
 slug: opc-stop-hook-gate-chain
 title: "OPC Stop-hook gate chain — conversation-time drift gates"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: platform
@@ -18,6 +18,9 @@ depends_on:
   - "134"  # fast-local-ci-mode
   - "135"  # fast-ci-as-default
 code_aliases: ["OPC_STOP_GATES", "CONVERSATION_TIME_GATES"]
+establishes:
+  - unit: { kind: file, path: product/apps/desktop/src-tauri/resources/claude-hooks.json }
+  - unit: { kind: directory, path: product/apps/desktop/src-tauri/resources/claude-hooks }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
