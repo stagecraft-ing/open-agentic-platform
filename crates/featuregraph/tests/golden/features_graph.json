@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:00125f28bea9f279affdbf7c64baa5264531eec78580b6c8080b534a9789b5e6",
+  "graph_fingerprint": "sha256:11221f3e33a77a0b5d3233b62a3c757bee75b5a6ae0a7b0e2c0c5d1d34b691c3",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3180,8 +3180,8 @@
       "feature_id": "168-per-project-governance-certificate",
       "title": "Per-project governance certificate emission and tenant-side verifier",
       "spec_path": "specs/168-per-project-governance-certificate/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",
@@ -3815,6 +3815,13 @@
       "severity": "error",
       "path": "crates/factory-engine/tests/spec_122_e2e.rs",
       "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — SC-001..SC-012",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/tests/tenant_emission_integration.rs",
+      "message": "Malformed Spec directive: // Spec: specs/168-per-project-governance-certificate/spec.md",
       "suggested_fix": "Fix header format"
     },
     {

@@ -17,6 +17,8 @@ const TENANT_WORKFLOW_TMPL: &str =
     include_str!("../../templates/kernel/tenant-ci.yml.tmpl");
 const TENANT_MAKEFILE_TMPL: &str =
     include_str!("../../templates/kernel/tenant.makefile.tmpl");
+const TENANT_TOOLCHAIN_TMPL: &str =
+    include_str!("../../templates/kernel/toolchain.yaml.tmpl");
 
 /// Context for rendering the tenant gate templates.
 #[derive(Debug, Clone)]
@@ -50,6 +52,54 @@ pub fn render_tenant_workflow(ctx: &TenantGateContext) -> Result<String, KernelE
 /// Render the tenant Makefile `pr-prep` target.
 pub fn render_tenant_makefile(ctx: &TenantGateContext) -> Result<String, KernelEmissionError> {
     substitute(TENANT_MAKEFILE_TMPL, ctx)
+}
+
+/// Context for rendering the spec 168 toolchain manifest.
+#[derive(Debug, Clone)]
+pub struct TenantToolchainContext {
+    /// Tenant-resident binaries dir; reuses the gate-context default
+    /// when constructed via [`TenantToolchainContext::from`].
+    pub binaries_dir: String,
+    /// Pinned `factory-engine` semver — the version that emitted the
+    /// kernel. Recorded into `.kernel-version` as well so the two stay
+    /// in lockstep (FR-008).
+    pub factory_engine_version: String,
+    /// Distribution mode chosen by the adapter (FR-005 of spec 167).
+    /// Serialised as `vendor-binaries` or `pinned-toolchain`.
+    pub toolchain_mode: String,
+}
+
+impl TenantToolchainContext {
+    /// Construct a toolchain context inheriting `binaries_dir` from the
+    /// existing tenant gate context.
+    pub fn new(
+        gate_ctx: &TenantGateContext,
+        factory_engine_version: impl Into<String>,
+        toolchain_mode: impl Into<String>,
+    ) -> Self {
+        Self {
+            binaries_dir: gate_ctx.binaries_dir.clone(),
+            factory_engine_version: factory_engine_version.into(),
+            toolchain_mode: toolchain_mode.into(),
+        }
+    }
+}
+
+/// Render the tenant `.factory/toolchain.yaml` (spec 168 FR-001 / §2.2).
+pub fn render_tenant_toolchain(
+    ctx: &TenantToolchainContext,
+) -> Result<String, KernelEmissionError> {
+    let rendered = TENANT_TOOLCHAIN_TMPL
+        .replace("@@binaries_dir@@", &ctx.binaries_dir)
+        .replace("@@factory_engine_version@@", &ctx.factory_engine_version)
+        .replace("@@toolchain_mode@@", &ctx.toolchain_mode);
+    if let Some(idx) = rendered.find("@@") {
+        let snippet: String = rendered[idx..].chars().take(40).collect();
+        return Err(KernelEmissionError::Template(format!(
+            "un-substituted placeholder near `{snippet}`"
+        )));
+    }
+    Ok(rendered)
 }
 
 fn substitute(template: &str, ctx: &TenantGateContext) -> Result<String, KernelEmissionError> {
@@ -137,5 +187,33 @@ mod tests {
         let ctx = TenantGateContext::default();
         let out = render_tenant_workflow(&ctx).unwrap();
         assert!(out.contains("${{ github.event.pull_request.base.sha }}"));
+    }
+
+    // ── spec 168 toolchain template ──
+
+    #[test]
+    fn toolchain_renders_for_pinned_mode() {
+        let gate = TenantGateContext::default();
+        let ctx = TenantToolchainContext::new(&gate, "1.4.2", "pinned-toolchain");
+        let out = render_tenant_toolchain(&ctx).unwrap();
+        assert!(out.contains("mode: \"pinned-toolchain\""));
+        assert!(out.contains("version: \"1.4.2\""));
+        assert!(out.contains("--tag v1.4.2"));
+        assert!(out.contains("invoke: \"tools/spec-spine/build-certificate\""));
+        assert!(out.contains("invoke: \"tools/spec-spine/verify-certificate\""));
+        assert!(!out.contains("@@"));
+    }
+
+    #[test]
+    fn toolchain_renders_for_vendor_mode() {
+        let gate = TenantGateContext {
+            binaries_dir: "vendor/spine".into(),
+            ..Default::default()
+        };
+        let ctx = TenantToolchainContext::new(&gate, "0.9.0", "vendor-binaries");
+        let out = render_tenant_toolchain(&ctx).unwrap();
+        assert!(out.contains("mode: \"vendor-binaries\""));
+        assert!(out.contains("invoke: \"vendor/spine/build-certificate\""));
+        assert!(!out.contains("@@"));
     }
 }
