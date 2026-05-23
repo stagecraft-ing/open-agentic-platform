@@ -2,6 +2,7 @@
 
 use open_agentic_spec_lint::{lint_feature_dir, lint_repo};
 use std::fs;
+use std::process::Command;
 
 #[test]
 fn w002_superseded_without_pointer() {
@@ -643,6 +644,74 @@ fn w161_other_role_with_unit_arm_does_not_fire_sc003() {
         !w.iter().any(|x| x.code == "W-161"),
         "W-161 must only fire on `role: decomposition-origin` entries (SC-003): {:?}",
         w
+    );
+}
+
+#[test]
+fn w161_error_tier_fails_binary_without_fail_on_warn() {
+    // Spec 161 §2.3 / SC-004: `error`-tier diagnostics fail spec-lint
+    // unconditionally. The binary must exit non-zero on a W-161 hit
+    // even when --fail-on-warn is absent.
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let refs = r#"references:
+  - role: decomposition-origin
+"#;
+    write_minimal_spec(root, "910-w161-bin-error", refs);
+
+    let bin = env!("CARGO_BIN_EXE_spec-lint");
+    let output = Command::new(bin)
+        .arg("--repo")
+        .arg(root)
+        .output()
+        .expect("spawn spec-lint");
+    assert!(
+        !output.status.success(),
+        "spec-lint must exit non-zero on W-161 error tier; stderr was:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("W-161"),
+        "stderr should mention W-161; got:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn warning_tier_alone_does_not_fail_binary_without_fail_on_warn() {
+    // Companion to the error-tier test above: a spec that emits only
+    // warning-tier diagnostics (e.g. V-020 — missing relationship
+    // fields) must NOT fail the binary unless --fail-on-warn is set.
+    let dir = tempfile::tempdir().expect("tempdir");
+    let root = dir.path();
+    let feat = root.join("specs/911-warn-only");
+    fs::create_dir_all(&feat).unwrap();
+    // Spec has no relationship fields and no retroactive marker — emits
+    // V-020 at warning tier.
+    fs::write(
+        feat.join("spec.md"),
+        r#"---
+id: "911-warn-only"
+title: "t"
+status: draft
+created: "2026-05-22"
+summary: "warning-tier-only fixture"
+---
+# Body
+"#,
+    )
+    .unwrap();
+
+    let bin = env!("CARGO_BIN_EXE_spec-lint");
+    let output = Command::new(bin)
+        .arg("--repo")
+        .arg(root)
+        .output()
+        .expect("spawn spec-lint");
+    assert!(
+        output.status.success(),
+        "spec-lint must exit zero on warning-tier-only diagnostics without --fail-on-warn; stderr was:\n{}",
+        String::from_utf8_lossy(&output.stderr)
     );
 }
 
