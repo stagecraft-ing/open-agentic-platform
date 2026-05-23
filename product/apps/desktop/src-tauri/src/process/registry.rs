@@ -1,3 +1,4 @@
+use crate::process::activity::{ActivitySnapshot, ActivityTracker, ToolCallEvent};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -35,6 +36,8 @@ pub struct ProcessHandle {
     pub info: ProcessInfo,
     pub child: Arc<Mutex<Option<Child>>>,
     pub live_output: Arc<Mutex<String>>,
+    /// Spec 172 — per-session activity (tool-call / token rate, recent calls).
+    pub activity: Arc<Mutex<ActivityTracker>>,
 }
 
 /// Registry for tracking active agent processes
@@ -122,6 +125,7 @@ impl ProcessRegistry {
             info: process_info,
             child: Arc::new(Mutex::new(None)), // No tokio::process::Child handle for sidecar
             live_output: Arc::new(Mutex::new(String::new())),
+            activity: Arc::new(Mutex::new(ActivityTracker::new())),
         };
 
         processes.insert(run_id, process_handle);
@@ -157,6 +161,7 @@ impl ProcessRegistry {
             info: process_info,
             child: Arc::new(Mutex::new(None)), // No child handle for Claude sessions
             live_output: Arc::new(Mutex::new(String::new())),
+            activity: Arc::new(Mutex::new(ActivityTracker::new())),
         };
 
         processes.insert(run_id, process_handle);
@@ -176,6 +181,7 @@ impl ProcessRegistry {
             info: process_info,
             child: Arc::new(Mutex::new(Some(child))),
             live_output: Arc::new(Mutex::new(String::new())),
+            activity: Arc::new(Mutex::new(ActivityTracker::new())),
         };
 
         processes.insert(run_id, process_handle);
@@ -488,6 +494,62 @@ impl ProcessRegistry {
             live_output.push('\n');
         }
         Ok(())
+    }
+
+    /// Spec 172 §2.1 — record a tool invocation against a session by session id.
+    /// Returns `false` if no matching Claude session was found.
+    pub fn record_session_tool_call(
+        &self,
+        session_id: &str,
+        event: ToolCallEvent,
+    ) -> Result<bool, String> {
+        let processes = self.processes.lock().map_err(|e| e.to_string())?;
+        for handle in processes.values() {
+            if let ProcessType::ClaudeSession { session_id: sid } = &handle.info.process_type {
+                if sid == session_id {
+                    let mut activity = handle.activity.lock().map_err(|e| e.to_string())?;
+                    activity.record_tool_call(event);
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
+    }
+
+    /// Spec 172 §2.1 — record token consumption for a session.
+    pub fn record_session_tokens(
+        &self,
+        session_id: &str,
+        count: u64,
+    ) -> Result<bool, String> {
+        let processes = self.processes.lock().map_err(|e| e.to_string())?;
+        for handle in processes.values() {
+            if let ProcessType::ClaudeSession { session_id: sid } = &handle.info.process_type {
+                if sid == session_id {
+                    let mut activity = handle.activity.lock().map_err(|e| e.to_string())?;
+                    activity.record_tokens(count);
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
+    }
+
+    /// Spec 172 §2.1 — snapshot a session's activity for the live panel.
+    pub fn session_activity_snapshot(
+        &self,
+        session_id: &str,
+    ) -> Result<Option<ActivitySnapshot>, String> {
+        let processes = self.processes.lock().map_err(|e| e.to_string())?;
+        for handle in processes.values() {
+            if let ProcessType::ClaudeSession { session_id: sid } = &handle.info.process_type {
+                if sid == session_id {
+                    let mut activity = handle.activity.lock().map_err(|e| e.to_string())?;
+                    return Ok(Some(activity.snapshot()));
+                }
+            }
+        }
+        Ok(None)
     }
 
     /// Get live output for a process
