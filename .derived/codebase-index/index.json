@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5839c56d0b7346cdb75be8b630e14110c8bd8ec505a2639af711b378bbad4273",
+    "contentHash": "999a03cc54232ae539441bbdfe0e67c46156671a893fb45b9da1694438527040",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -33085,6 +33085,9 @@
                 "file": "crates/factory-engine/tests/spec_122_e2e.rs"
               },
               {
+                "file": "crates/factory-engine/tests/tenant_emission_integration.rs"
+              },
+              {
                 "file": "crates/factory-engine/tests/virtual_root.rs"
               },
               {
@@ -35129,6 +35132,9 @@
                 "file": "crates/factory-engine/tests/spec_122_e2e.rs"
               },
               {
+                "file": "crates/factory-engine/tests/tenant_emission_integration.rs"
+              },
+              {
                 "file": "crates/factory-engine/tests/virtual_root.rs"
               },
               {
@@ -35315,9 +35321,27 @@
           {
             "path": "crates/factory-engine/tests/kernel_emission_integration.rs",
             "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/tests/tenant_emission_integration.rs",
+            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/tests/tenant_emission_integration.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/tests/tenant_emission_integration.rs"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -35782,6 +35806,9 @@
               },
               {
                 "file": "crates/factory-engine/tests/spec_122_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/tenant_emission_integration.rs"
               },
               {
                 "file": "crates/factory-engine/tests/virtual_root.rs"

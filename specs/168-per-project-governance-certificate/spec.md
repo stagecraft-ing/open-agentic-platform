@@ -13,6 +13,8 @@ depends_on:
   - "102"  # governed-excellence (the certificate substrate spec 168 extends)
   - "167"  # born-with kernel emission (tenants inherit the emission discipline)
 code_aliases: ["TENANT_GOVERNANCE_CERTIFICATE", "PER_PROJECT_CERT_EMISSION"]
+establishes:
+  - unit: { kind: file, path: crates/factory-engine/tests/tenant_emission_integration.rs }
 extends:
   - spec: "102-governed-excellence"
     nature: additive
