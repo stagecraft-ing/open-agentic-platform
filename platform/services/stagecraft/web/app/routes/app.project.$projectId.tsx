@@ -43,7 +43,10 @@ export default function ProjectLayout() {
     // Spec 163 — Requirements view (read-shaped spec-spine surface).
     { to: `${base}/requirements`, label: "Requirements", end: false },
     { to: `${base}/agents`, label: "Agents", end: false },
-    { to: `${base}/pipelines`, label: "Pipelines", end: false },
+    // Spec 164 — "Pipelines" → "Development". The route surfaces the
+    // spec-spine lifecycle-state board; the old `/pipelines` URL is
+    // preserved by a 308 redirect for one release cycle.
+    { to: `${base}/development`, label: "Development", end: false },
     { to: `${base}/deploys`, label: "Deploys", end: false },
     { to: `${base}/settings`, label: "Settings", end: false },
   ];

@@ -68,6 +68,13 @@ export default [
       route("agents", "routes/app.project.$projectId.agents.tsx", [
         index("routes/app.project.$projectId.agents._index.tsx"),
       ]),
+      // Spec 164 — Pipelines → Development rename. The new home is the
+      // lifecycle-state board; the legacy URL is preserved by a 308
+      // redirect for one release cycle (spec 164 §2.1 / FR-002).
+      route(
+        "development",
+        "routes/app.project.$projectId.development.tsx"
+      ),
       route("pipelines", "routes/app.project.$projectId.pipelines.tsx"),
       route("deploys", "routes/app.project.$projectId.deploys.tsx"),
       route("settings", "routes/app.project.$projectId.settings.tsx", [
