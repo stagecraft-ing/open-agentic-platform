@@ -6,8 +6,8 @@ implementation: complete
 owner: bart
 created: "2026-04-14"
 kind: tooling
-amended: "2026-05-13"
-amendment_record: "147-spec-kind-grammar"
+amended: "2026-05-22"
+amendment_record: "160-factory-adapter-stagecraft-relocation"
 summary: >
   A deterministic indexer tool that walks the repository tree, parses manifest files
   and spec frontmatter, and emits a governed .derived/codebase-index/index.json artifact.
@@ -17,7 +17,13 @@ summary: >
   Amended by spec 147 (2026-05-13) to surface the `primary: bool` flag on
   ImplementingPath (sourced from the new `implements:` list-item shape introduced by
   147) and to bump the index schema 1.3.0 → 1.4.0. Consumers that don't recognise the
-  flag fall back to spec 130's any-one-claimant heuristic.
+  flag fall back to spec 130's any-one-claimant heuristic. Further amended by spec 160
+  (2026-05-22) to repoint the input-hash walk from the legacy `factory/adapters/*` and
+  `factory/process/stages/*` directories (removed in the spec 108 relocation) to the
+  stagecraft-resident `platform/services/stagecraft/api/factory/adapter-scopes.json`
+  and `platform/services/stagecraft/api/factory/process-stages/`. Layer 3 narrative
+  below is preserved as historical record; the live Layer 3 surface moved to
+  `tools/oap/oap-code-index-enrich` in Cut D W-07c.
 depends_on:
   - "000"  # bootstrap-spec-system (artifact pattern)
   - "001"  # spec-compiler-mvp (registry pattern)
@@ -113,6 +119,16 @@ Cross-references spec frontmatter `implements` declarations against actual file 
 | `untracedCode` | crates/packages with no governing spec reference | Ungoverned code |
 
 **Layer 3 — Factory Adapter Inventory**
+
+> **Amended by spec 160 (2026-05-22):** Layer 3's live surface moved out of the
+> generic indexer in Cut D W-07c (now emitted by `tools/oap/oap-code-index-enrich`),
+> and the on-disk locations cited below were removed when the `factory/` directory
+> was retired in the spec 108 relocation. The input-hash walk now reads the
+> stagecraft-resident `platform/services/stagecraft/api/factory/adapter-scopes.json`
+> (the static fallback snapshot retained after spec 108 dropped the
+> `factory_adapters` table) and the forward-compatible
+> `platform/services/stagecraft/api/factory/process-stages/` directory. The Layer 3
+> narrative below is preserved as historical record of the original four-layer model.
 
 Derived from `factory/adapters/*/manifest.yaml` files and the global pipeline stage
 definitions in `factory/process/stages/`.
@@ -266,6 +282,15 @@ The indexer MUST identify:
   from any spec and no `[package.metadata.oap].spec`)
 
 ### FR-07: Factory Adapter Scanning
+
+> **Amended by spec 160 (2026-05-22):** Adapter manifests are no longer authored
+> as per-adapter `manifest.yaml` files in a repo-resident `factory/adapters/`
+> directory. The authoritative store is stagecraft's
+> `factory_artifact_substrate` table (spec 139); the file-backed snapshot the
+> indexer hashes is
+> `platform/services/stagecraft/api/factory/adapter-scopes.json`. The Layer 3
+> emission moved to `tools/oap/oap-code-index-enrich` in Cut D W-07c; the
+> generic indexer retains only the input-hash walk repointed by spec 160.
 
 The indexer MUST scan `factory/adapters/*/manifest.yaml` and report: adapter name,
 display name, path, target stack, language, runtime, and version. The indexer MUST

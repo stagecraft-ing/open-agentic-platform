@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "dcf82287c1bdf6e1ff1bf8e4a55299ec1dfd490471ad7f8bdd8e2c81b057710d",
+    "contentHash": "4f96043ef1f9819aecba2011e22772d1de95bc5951c81bb32cc8367659021585",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1774,6 +1774,12 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
+              {
                 "file": "crates/orchestrator/Cargo.toml"
               },
               {
@@ -1877,6 +1883,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -8746,6 +8758,12 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/policy-kernel/.DS_Store"
+              },
+              {
+                "file": "crates/policy-kernel/Cargo.lock"
+              },
+              {
                 "file": "crates/policy-kernel/Cargo.toml"
               },
               {
@@ -8795,6 +8813,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/tool-registry/.DS_Store"
+              },
+              {
+                "file": "crates/tool-registry/Cargo.lock"
+              },
               {
                 "file": "crates/tool-registry/Cargo.toml"
               },
@@ -8901,6 +8925,33 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/axiomregent/.DS_Store"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/state_machine/db/axiomregent.db"
+              },
+              {
+                "file": "crates/axiomregent/Cargo.lock"
+              },
               {
                 "file": "crates/axiomregent/Cargo.toml"
               },
@@ -9328,6 +9379,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -10097,6 +10154,12 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
+              {
                 "file": "crates/orchestrator/Cargo.toml"
               },
               {
@@ -10205,6 +10268,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -10683,6 +10752,12 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/policy-kernel/.DS_Store"
+              },
+              {
+                "file": "crates/policy-kernel/Cargo.lock"
+              },
+              {
                 "file": "crates/policy-kernel/Cargo.toml"
               },
               {
@@ -10800,18 +10875,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -11127,9 +11190,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -11845,18 +11905,6 @@
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
               },
               {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
-              },
-              {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
               },
               {
@@ -12170,9 +12218,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -12856,6 +12901,12 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/tool-registry/.DS_Store"
+              },
+              {
+                "file": "crates/tool-registry/Cargo.lock"
+              },
+              {
                 "file": "crates/tool-registry/Cargo.toml"
               },
               {
@@ -12906,6 +12957,12 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/policy-kernel/.DS_Store"
+              },
+              {
+                "file": "crates/policy-kernel/Cargo.lock"
+              },
+              {
                 "file": "crates/policy-kernel/Cargo.toml"
               },
               {
@@ -12955,6 +13012,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/policy-kernel/.DS_Store"
+              },
+              {
+                "file": "crates/policy-kernel/Cargo.lock"
+              },
               {
                 "file": "crates/policy-kernel/Cargo.toml"
               },
@@ -13237,6 +13300,15 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "platform/infra/.DS_Store"
+              },
+              {
+                "file": "platform/infra/hetzner/.DS_Store"
+              },
+              {
+                "file": "platform/infra/hetzner/.env"
+              },
+              {
                 "file": "platform/infra/hetzner/.env.example"
               },
               {
@@ -13246,10 +13318,16 @@
                 "file": "platform/infra/hetzner/cluster.yaml"
               },
               {
+                "file": "platform/infra/hetzner/kubeconfig"
+              },
+              {
                 "file": "platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml"
               },
               {
                 "file": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml"
+              },
+              {
+                "file": "platform/infra/hetzner/mirrord/.stagecraft.env"
               },
               {
                 "file": "platform/infra/hetzner/mirrord/deployd-api.yaml"
@@ -13438,6 +13516,9 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "platform/services/deployd-api-rs/.DS_Store"
+              },
+              {
                 "file": "platform/services/deployd-api-rs/.dockerignore"
               },
               {
@@ -13481,6 +13562,33 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/axiomregent/.DS_Store"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/state_machine/db/axiomregent.db"
+              },
+              {
+                "file": "crates/axiomregent/Cargo.lock"
+              },
               {
                 "file": "crates/axiomregent/Cargo.toml"
               },
@@ -13721,6 +13829,9 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/factory-contracts/.DS_Store"
+              },
+              {
                 "file": "crates/factory-contracts/Cargo.toml"
               },
               {
@@ -13922,18 +14033,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -14249,9 +14348,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -15075,6 +15171,12 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
+              {
                 "file": "crates/orchestrator/Cargo.toml"
               },
               {
@@ -15356,6 +15458,9 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/factory-contracts/.DS_Store"
+              },
+              {
                 "file": "crates/factory-contracts/Cargo.toml"
               },
               {
@@ -15417,6 +15522,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -15577,18 +15688,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -15904,9 +16003,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -17441,6 +17537,27 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/xray/.DS_Store"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs/0000000000000001.wal"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs/meta.hql"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs_cache/0000000000000001.wal"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs_cache/meta.hql"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/state_machine/db/axiomregent.db"
+              },
+              {
+                "file": "crates/xray/Cargo.lock"
+              },
+              {
                 "file": "crates/xray/Cargo.toml"
               },
               {
@@ -17972,7 +18089,7 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "147-spec-kind-grammar",
+        "amendmentRecord": "160-factory-adapter-stagecraft-relocation",
         "dependsOn": [
           "000",
           "001",
@@ -18175,7 +18292,7 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 449,
+                  "endLine": 457,
                   "startLine": 139
                 }
               }
@@ -18205,6 +18322,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/tool-registry/.DS_Store"
+              },
+              {
+                "file": "crates/tool-registry/Cargo.lock"
+              },
               {
                 "file": "crates/tool-registry/Cargo.toml"
               },
@@ -18422,8 +18545,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 624,
-                  "startLine": 620
+                  "endLine": 632,
+                  "startLine": 628
                 }
               }
             ],
@@ -20560,8 +20683,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 619,
-                  "startLine": 573
+                  "endLine": 627,
+                  "startLine": 581
                 }
               }
             ],
@@ -21559,6 +21682,9 @@
             "kind": "crate",
             "locations": [
               {
+                "file": "crates/factory-contracts/.DS_Store"
+              },
+              {
                 "file": "crates/factory-contracts/Cargo.toml"
               },
               {
@@ -21620,6 +21746,12 @@
           {
             "kind": "crate",
             "locations": [
+              {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
               {
                 "file": "crates/orchestrator/Cargo.toml"
               },
@@ -21862,18 +21994,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/entitlements.plist"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/desktop/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/desktop/src-tauri/icons/128x128.png"
@@ -22189,9 +22309,6 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
-              },
-              {
-                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -22828,6 +22945,9 @@
           {
             "kind": "directory",
             "locations": [
+              {
+                "file": "specs/000-bootstrap-spec-system/.DS_Store"
+              },
               {
                 "file": "specs/000-bootstrap-spec-system/checklists/requirements.md"
               },
@@ -23999,8 +24119,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 572,
-                  "startLine": 550
+                  "endLine": 580,
+                  "startLine": 558
                 }
               }
             ],
@@ -24093,8 +24213,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 549,
-                  "startLine": 450
+                  "endLine": 557,
+                  "startLine": 458
                 }
               }
             ],
@@ -24647,8 +24767,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 665,
-                  "startLine": 625
+                  "endLine": 673,
+                  "startLine": 633
                 }
               }
             ],
@@ -24730,8 +24850,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 894,
-                  "startLine": 666
+                  "endLine": 902,
+                  "startLine": 674
                 }
               }
             ],
@@ -30201,6 +30321,9 @@
         "specStatus": "approved"
       },
       {
+        "amends": [
+          "101-codebase-index-mvp"
+        ],
         "dependsOn": [
           "074",
           "075",
@@ -30209,14 +30332,40 @@
         ],
         "implementingPaths": [
           {
+            "path": "Makefile",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft",
             "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
           {
+            "kind": "section",
+            "locations": [
+              {
+                "file": "Makefile",
+                "span": {
+                  "endLine": 457,
+                  "startLine": 139
+                }
+              }
+            ],
+            "ownership": true,
+            "sourceField": "co_authority",
+            "unit": {
+              "anchor": "registry",
+              "file": "Makefile",
+              "kind": "section"
+            }
+          },
+          {
             "kind": "directory",
             "locations": [
+              {
+                "file": "platform/services/stagecraft/.DS_Store"
+              },
               {
                 "file": "platform/services/stagecraft/.encore/manifest.json"
               },
@@ -31211,6 +31360,21 @@
                 "file": "platform/services/stagecraft/encore.app"
               },
               {
+                "file": "platform/services/stagecraft/encore.gen/.DS_Store"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/auth.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/auth/index.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/auth/index.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/auth/index.js.map"
+              },
+              {
                 "file": "platform/services/stagecraft/encore.gen/auth/index.ts"
               },
               {
@@ -31218,6 +31382,18 @@
               },
               {
                 "file": "platform/services/stagecraft/encore.gen/clients/index.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/.DS_Store"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/auth/auth.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/auth/auth.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/auth/auth.js.map"
               },
               {
                 "file": "platform/services/stagecraft/encore.gen/internal/auth/auth.ts"
@@ -31385,25 +31561,100 @@
                 "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints_testing.js"
               },
               {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/.DS_Store"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/combined/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/combined/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/combined/main.js.map"
+              },
+              {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/combined/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/gateways/api-gateway/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/gateways/api-gateway/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/gateways/api-gateway/main.js.map"
               },
               {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/gateways/api-gateway/main.ts"
               },
               {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/admin/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/admin/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/admin/main.js.map"
+              },
+              {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/admin/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/agents/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/agents/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/agents/main.js.map"
               },
               {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/agents/main.ts"
               },
               {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/audit/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/audit/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/audit/main.js.map"
+              },
+              {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/audit/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/auth/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/auth/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/auth/main.js.map"
               },
               {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/auth/main.ts"
               },
               {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/db/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/db/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/db/main.js.map"
+              },
+              {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/db/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/deploy/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/deploy/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/deploy/main.js.map"
               },
               {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/deploy/main.ts"
@@ -31412,34 +31663,133 @@
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/environments/main.ts"
               },
               {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/factory/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/factory/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/factory/main.js.map"
+              },
+              {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/factory/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/frontend/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/frontend/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/frontend/main.js.map"
               },
               {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/frontend/main.ts"
               },
               {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/github/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/github/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/github/main.js.map"
+              },
+              {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/github/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/grants/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/grants/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/grants/main.js.map"
               },
               {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/grants/main.ts"
               },
               {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/knowledge/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/knowledge/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/knowledge/main.js.map"
+              },
+              {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/knowledge/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/monitor/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/monitor/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/monitor/main.js.map"
               },
               {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/monitor/main.ts"
               },
               {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/policy/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/policy/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/policy/main.js.map"
+              },
+              {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/policy/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/projects/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/projects/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/projects/main.js.map"
               },
               {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/projects/main.ts"
               },
               {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/site/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/site/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/site/main.js.map"
+              },
+              {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/site/main.ts"
               },
               {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/slack/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/slack/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/slack/main.js.map"
+              },
+              {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/slack/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/sync/main.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/sync/main.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/sync/main.js.map"
               },
               {
                 "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/sync/main.ts"
@@ -31490,6 +31840,9 @@
                 "file": "platform/services/stagecraft/spec/features.yaml"
               },
               {
+                "file": "platform/services/stagecraft/test/.DS_Store"
+              },
+              {
                 "file": "platform/services/stagecraft/test/__mocks__/encore-api.ts"
               },
               {
@@ -31523,7 +31876,118 @@
                 "file": "platform/services/stagecraft/vite.config.ts"
               },
               {
+                "file": "platform/services/stagecraft/web/.DS_Store"
+              },
+              {
                 "file": "platform/services/stagecraft/web/.gitignore"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/+future.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/+routes.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/+server-build.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/+types/root.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/_index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.audit.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.oidc-providers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.projects.$id.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.projects._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.projects.new.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.projects.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.sessions.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.signin.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/admin.users.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.factory.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.deploys.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.knowledge.$id.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.knowledge.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.pipelines.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings._index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.connectors.$id.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.connectors.new.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.connectors.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.github-pat.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.settings.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.project.$projectId.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.projects.new.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/app.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/auth.no-org.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/auth.org-select.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/signin.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/.react-router/types/app/routes/+types/signup.ts"
               },
               {
                 "file": "platform/services/stagecraft/web/README.md"
@@ -31533,6 +31997,9 @@
               },
               {
                 "file": "platform/services/stagecraft/web/api.tools.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/.DS_Store"
               },
               {
                 "file": "platform/services/stagecraft/web/app/app.css"
@@ -31863,7 +32330,7 @@
           }
         ],
         "specId": "160-factory-adapter-stagecraft-relocation",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -32042,7 +32509,13 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "crates/factory-engine/.DS_Store"
+              },
+              {
                 "file": "crates/factory-engine/Cargo.toml"
+              },
+              {
+                "file": "crates/factory-engine/src/.DS_Store"
               },
               {
                 "file": "crates/factory-engine/src/agent_bridge.rs"
@@ -32622,6 +33095,33 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "crates/axiomregent/.DS_Store"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/state_machine/db/axiomregent.db"
+              },
+              {
+                "file": "crates/axiomregent/Cargo.lock"
+              },
+              {
                 "file": "crates/axiomregent/Cargo.toml"
               },
               {
@@ -32830,6 +33330,27 @@
           {
             "kind": "directory",
             "locations": [
+              {
+                "file": "crates/xray/.DS_Store"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs/0000000000000001.wal"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs/meta.hql"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs_cache/0000000000000001.wal"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/logs_cache/meta.hql"
+              },
+              {
+                "file": "crates/xray/.axiomregent/data/state_machine/db/axiomregent.db"
+              },
+              {
+                "file": "crates/xray/Cargo.lock"
+              },
               {
                 "file": "crates/xray/Cargo.toml"
               },
@@ -33093,7 +33614,13 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "crates/factory-engine/.DS_Store"
+              },
+              {
                 "file": "crates/factory-engine/Cargo.toml"
+              },
+              {
+                "file": "crates/factory-engine/src/.DS_Store"
               },
               {
                 "file": "crates/factory-engine/src/agent_bridge.rs"
@@ -33520,7 +34047,13 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "crates/factory-engine/.DS_Store"
+              },
+              {
                 "file": "crates/factory-engine/Cargo.toml"
+              },
+              {
+                "file": "crates/factory-engine/src/.DS_Store"
               },
               {
                 "file": "crates/factory-engine/src/agent_bridge.rs"
@@ -33931,6 +34464,12 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "crates/orchestrator/.DS_Store"
+              },
+              {
+                "file": "crates/orchestrator/Cargo.lock"
+              },
+              {
                 "file": "crates/orchestrator/Cargo.toml"
               },
               {
@@ -34029,6 +34568,33 @@
           {
             "kind": "directory",
             "locations": [
+              {
+                "file": "crates/axiomregent/.DS_Store"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/0000000000000001.wal"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/lock.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/logs_cache/meta.hql"
+              },
+              {
+                "file": "crates/axiomregent/.axiomregent/data/state_machine/db/axiomregent.db"
+              },
+              {
+                "file": "crates/axiomregent/Cargo.lock"
+              },
               {
                 "file": "crates/axiomregent/Cargo.toml"
               },
@@ -34238,6 +34804,12 @@
           {
             "kind": "directory",
             "locations": [
+              {
+                "file": "crates/policy-kernel/.DS_Store"
+              },
+              {
+                "file": "crates/policy-kernel/Cargo.lock"
+              },
               {
                 "file": "crates/policy-kernel/Cargo.toml"
               },
