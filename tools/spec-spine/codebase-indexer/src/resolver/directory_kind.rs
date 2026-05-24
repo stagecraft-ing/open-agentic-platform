@@ -2,15 +2,26 @@
 //! exclusion set. Each matched file emits `ResolvedLocation { file,
 //! span: None }`.
 //!
-//! Determinism: walkdir is wrapped with `sort_by` and the resulting
-//! file list sorts again at the resolver-mod boundary (the function
-//! contract from `super::resolve`).
+//! Determinism: the walk is wrapped with `sort_by_file_name` and the
+//! resulting file list sorts again at the resolver-mod boundary (the
+//! function contract from `super::resolve`).
+//!
+//! Per spec 154 §3.7 (amended 2026-05-24), exclusion is two-layered:
+//!   1. Baseline list (contract floor): `target/**`, `node_modules/**`,
+//!      `.derived/**`, `dist/**`, `build/**`, `.next/**`. Sourced from
+//!      `open_agentic_spec_types::RESOLVER_EXCLUSIONS`.
+//!   2. Committed `.gitignore` files (worktree-derived, additive).
+//!      `ignore::WalkBuilder` is configured with `git_ignore(true)`,
+//!      `git_exclude(false)`, `git_global(false)` so per-clone and
+//!      per-user exclusion sources are NOT honored — keeping the walk
+//!      deterministic across machines.
 
 use super::{ResolveError, ResolverContext};
 use crate::types::ResolvedLocation;
+use ignore::WalkBuilder;
 use open_agentic_spec_types::RESOLVER_EXCLUSIONS;
+use std::cmp::Ordering;
 use std::path::Path;
-use walkdir::WalkDir;
 
 pub fn resolve_directory(
     path: &str,
@@ -22,13 +33,28 @@ pub fn resolve_directory(
             path: path.to_string(),
         });
     }
+    let walker = WalkBuilder::new(&abs)
+        .git_ignore(true)
+        .git_exclude(false)
+        .git_global(false)
+        .ignore(false)
+        .hidden(false)
+        .parents(true)
+        .sort_by_file_name(|a, b| match (a.to_str(), b.to_str()) {
+            (Some(a), Some(b)) => a.cmp(b),
+            _ => Ordering::Equal,
+        })
+        .build();
     let mut out = Vec::new();
-    let walker = WalkDir::new(&abs).sort_by_file_name();
     for ent in walker {
         let Ok(ent) = ent else {
             continue;
         };
-        if !ent.file_type().is_file() {
+        let file_type = match ent.file_type() {
+            Some(ft) => ft,
+            None => continue,
+        };
+        if !file_type.is_file() {
             continue;
         }
         let rel = match ent.path().strip_prefix(&ctx.repo_root) {
@@ -46,11 +72,12 @@ pub fn resolve_directory(
     Ok(out)
 }
 
-/// Spec 154 §3.7 exclusion set. Matches a path if any of its
-/// components equals one of the exclusion directory names. This is
-/// the operational reading of the `target/**`, `node_modules/**`,
+/// Spec 154 §3.7 baseline-exclusion floor. Matches a path if any of
+/// its components equals one of the exclusion directory names. This
+/// is the operational reading of the `target/**`, `node_modules/**`,
 /// `.derived/**`, `dist/**`, `build/**`, `.next/**` globs declared in
-/// `open_agentic_spec_types::RESOLVER_EXCLUSIONS`.
+/// `open_agentic_spec_types::RESOLVER_EXCLUSIONS`. Kept as the
+/// contract floor even when `.gitignore` filtering is active.
 pub(super) fn is_excluded(rel: &Path) -> bool {
     let names: std::collections::BTreeSet<&str> = RESOLVER_EXCLUSIONS
         .iter()
