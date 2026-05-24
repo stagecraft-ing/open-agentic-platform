@@ -11,6 +11,7 @@ owner: bart
 created: "2026-05-02"
 approved: "2026-05-02"
 kind: governance
+domain: substrate
 risk: medium
 depends_on:
   - "000"  # bootstrap-spec-system (the constitutional baseline being frozen)

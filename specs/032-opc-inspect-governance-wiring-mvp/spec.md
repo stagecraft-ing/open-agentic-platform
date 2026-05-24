@@ -5,6 +5,7 @@ feature_branch: "032-opc-inspect-governance-wiring-mvp"
 status: approved
 implementation: complete
 kind: product-consolidation
+domain: opc
 created: "2026-03-23"
 authors:
   - "open-agentic-platform"

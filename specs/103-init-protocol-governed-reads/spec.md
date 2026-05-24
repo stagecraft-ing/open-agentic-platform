@@ -6,6 +6,7 @@ implementation: complete
 owner: bart
 created: "2026-04-16"
 kind: governance
+domain: substrate
 risk: low
 depends_on:
   - "000"  # bootstrap-spec-system (Principle II — compiler-owned JSON)

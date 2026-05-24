@@ -7,6 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-04-26"
 kind: product
+domain: platform
 risk: medium
 summary: >
   Renames the stagecraft web "Dashboard" surface to "Projects" (page title,

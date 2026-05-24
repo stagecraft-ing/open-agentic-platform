@@ -5,6 +5,7 @@ feature_branch: "007-registry-consumer-status-report-mvp"
 status: approved
 implementation: complete
 kind: platform-delivery
+domain: tooling
 created: "2026-03-22"
 authors:
   - "open-agentic-platform"

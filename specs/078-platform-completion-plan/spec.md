@@ -5,6 +5,7 @@ feature_branch: "feat/078-platform-completion"
 status: approved
 implementation: n/a
 kind: platform
+domain: platform
 created: "2026-04-04"
 authors: ["open-agentic-platform"]
 language: en

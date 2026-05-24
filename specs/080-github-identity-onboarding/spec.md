@@ -5,6 +5,7 @@ feature_branch: "feat/080-github-identity-onboarding"
 status: approved
 implementation: complete
 kind: platform
+domain: platform
 created: "2026-04-06"
 authors: ["open-agentic-platform"]
 language: en

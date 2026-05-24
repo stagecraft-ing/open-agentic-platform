@@ -9,6 +9,7 @@ owner: bart
 created: "2026-05-02"
 approved: "2026-05-02"
 kind: governance
+domain: substrate
 risk: medium
 depends_on:
   - "047"  # governance-control-plane (policy-compiler is the integration point)

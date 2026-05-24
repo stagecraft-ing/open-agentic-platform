@@ -5,6 +5,7 @@ feature_branch: "041-checkpoint-restore-ui"
 status: approved
 implementation: complete
 kind: product
+domain: opc
 created: "2026-03-29"
 authors:
   - "open-agentic-platform"

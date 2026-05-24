@@ -5,6 +5,7 @@ feature_branch: "042-multi-provider-agent-registry"
 status: approved
 implementation: complete
 kind: platform
+domain: opc
 created: "2026-03-29"
 revised: "2026-04-15"
 authors:

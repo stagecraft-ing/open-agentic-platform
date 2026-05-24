@@ -9,6 +9,7 @@ created: "2026-05-04"
 approved: "2026-05-04"
 closed: "2026-05-04"
 kind: amendment
+domain: platform
 risk: low
 amends: ["112"]
 depends_on:

@@ -9,6 +9,7 @@ created: "2026-04-21"
 amended: "2026-05-05"
 amendment_record: "139"
 kind: platform
+domain: platform
 summary: >
   Treats agents as organisational assets stored in stagecraft and pushed to
   OPC via the duplex channel (spec 087 §5.3). Workspaces author, version,

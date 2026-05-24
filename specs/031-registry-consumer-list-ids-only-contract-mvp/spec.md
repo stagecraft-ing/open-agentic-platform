@@ -5,6 +5,7 @@ feature_branch: "031-registry-consumer-list-ids-only-contract-mvp"
 status: approved
 implementation: complete
 kind: platform-delivery
+domain: tooling
 created: "2026-03-22"
 authors:
   - "open-agentic-platform"

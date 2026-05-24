@@ -5,6 +5,7 @@ feature_branch: "feat/079-scheduling"
 status: approved
 implementation: complete
 kind: product
+domain: opc
 created: "2026-04-05"
 authors:
   - "open-agentic-platform"

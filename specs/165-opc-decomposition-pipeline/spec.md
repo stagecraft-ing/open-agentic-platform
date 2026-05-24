@@ -7,6 +7,7 @@ implementation: in-progress
 owner: bart
 created: "2026-05-22"
 kind: capability
+domain: opc
 risk: high
 depends_on:
   - "032"  # opc-inspect-governance-wiring-mvp (OPC integration substrate)

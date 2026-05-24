@@ -5,6 +5,7 @@ feature_branch: "feat/076-factory-desktop-panel"
 status: approved
 implementation: complete
 kind: platform
+domain: opc
 created: "2026-04-04"
 authors: ["open-agentic-platform"]
 language: en

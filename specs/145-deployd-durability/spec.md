@@ -8,6 +8,7 @@ closed: "2026-05-15"
 owner: bart
 created: "2026-05-10"
 kind: platform-delivery
+domain: platform
 risk: medium
 depends_on:
   - "073"  # axiomregent-unification (deployd-api-rs runtime carrier)

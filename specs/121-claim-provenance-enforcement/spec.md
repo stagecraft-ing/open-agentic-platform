@@ -7,6 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-04-30"
 kind: governance
+domain: tooling
 risk: critical
 summary: >
   Make every claim that the Factory Phase-1 pipeline mints (`STK-*`,

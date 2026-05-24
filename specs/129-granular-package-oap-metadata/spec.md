@@ -8,6 +8,7 @@ owner: bart
 created: "2026-05-02"
 approved: "2026-05-02"
 kind: governance
+domain: tooling
 risk: medium
 depends_on:
   - "101"  # codebase-index-mvp (the schema being extended)

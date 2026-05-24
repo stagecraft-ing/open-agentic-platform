@@ -7,6 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: governance
+domain: opc
 risk: medium
 depends_on:
   - "036"  # safety-tier-governance

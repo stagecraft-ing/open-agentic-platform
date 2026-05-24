@@ -7,6 +7,7 @@ approved: "2026-05-15"
 owner: bart
 created: "2026-05-04"
 kind: platform
+domain: platform
 risk: medium
 depends_on:
   - "136"  # tenant-hello as reference; gates are added per-environment

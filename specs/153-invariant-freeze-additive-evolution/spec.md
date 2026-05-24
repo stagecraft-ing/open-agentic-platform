@@ -10,6 +10,7 @@ owner: bart
 created: "2026-05-20"
 approved: "2026-05-20"
 kind: governance
+domain: substrate
 risk: low
 depends_on:
   - "130"

@@ -7,6 +7,7 @@ implementation: in-progress  # FR-001..006a + §4.4 + §4.7 green per §13 (hist
 owner: bart
 created: "2026-05-07"
 kind: platform
+domain: platform
 risk: medium
 depends_on:
   - "087"  # unified-workspace-architecture (knowledge intake design)

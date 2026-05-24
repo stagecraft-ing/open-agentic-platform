@@ -10,6 +10,7 @@ approved: "2026-05-19"
 amended: "2026-05-24"
 amendment_record: "176-amends-aware-section-satisfaction-parity"
 kind: governance
+domain: substrate
 risk: low
 depends_on:
   - "101"

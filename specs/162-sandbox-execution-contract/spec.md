@@ -8,6 +8,7 @@ owner: bart
 created: "2026-05-22"
 amended: "2026-05-23"
 kind: platform
+domain: platform
 risk: high
 depends_on:
   - "075"  # factory-workflow-engine (the codegen producer)

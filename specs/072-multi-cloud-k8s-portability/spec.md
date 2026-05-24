@@ -5,6 +5,7 @@ feature_branch: "072-multi-cloud-k8s-portability"
 status: approved
 implementation: complete
 kind: platform
+domain: platform
 created: "2026-04-01"
 authors: ["open-agentic-platform"]
 language: en

@@ -7,6 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-04-21"
 kind: platform
+domain: platform
 summary: >
   Finishes spec 108 §10 by making Factory sync asynchronous (PubSub-driven) and
   wires Personal Access Tokens into the two repo access surfaces the platform

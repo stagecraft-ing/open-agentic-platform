@@ -5,6 +5,7 @@ feature_branch: "034-featuregraph-registry-scanner-fix"
 status: approved
 implementation: complete
 kind: platform
+domain: tooling
 created: "2026-03-29"
 authors:
   - "open-agentic-platform"

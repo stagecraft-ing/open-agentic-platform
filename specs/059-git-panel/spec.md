@@ -5,6 +5,7 @@ feature_branch: "059-git-panel"
 status: approved
 implementation: complete
 kind: ui
+domain: opc
 created: "2026-03-29"
 authors:
   - "open-agentic-platform"

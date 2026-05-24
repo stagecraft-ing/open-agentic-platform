@@ -5,6 +5,7 @@ feature_branch: "019-registry-consumer-readme-examples-contract-mvp"
 status: approved
 implementation: complete
 kind: platform-delivery
+domain: tooling
 created: "2026-03-22"
 authors:
   - "open-agentic-platform"

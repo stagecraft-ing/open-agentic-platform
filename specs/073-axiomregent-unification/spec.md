@@ -5,6 +5,7 @@ feature_branch: "073-axiomregent-unification"
 status: approved
 implementation: complete
 kind: platform
+domain: opc
 created: "2026-04-03"
 authors: ["open-agentic-platform"]
 language: en

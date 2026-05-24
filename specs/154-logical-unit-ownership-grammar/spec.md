@@ -11,6 +11,7 @@ approved: "2026-05-20"
 amended: "2026-05-24"
 amendment_record: "155-logical-unit-resolution-semantics"
 kind: governance
+domain: substrate
 risk: medium
 depends_on:
   - "130"

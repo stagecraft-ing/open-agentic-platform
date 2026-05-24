@@ -7,6 +7,7 @@ implementation: pending
 owner: bart
 created: "2026-05-17"
 kind: platform
+domain: platform
 risk: high
 depends_on:
   - "087"  # unified-workspace-architecture (stagecraft is the operator surface; this defines how its operator actions reach the cluster)

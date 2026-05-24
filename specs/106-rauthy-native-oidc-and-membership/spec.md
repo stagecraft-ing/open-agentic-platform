@@ -9,6 +9,7 @@ amendment_record: "self-amends — §9 (2026-05-17) extends the Rauthy chart wit
 owner: bart
 created: "2026-04-17"
 kind: platform
+domain: platform
 risk: high
 depends_on:
   - "080"  # github-identity-onboarding (completes its FR-002/FR-003/FR-005 intent)

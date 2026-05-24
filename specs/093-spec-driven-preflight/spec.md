@@ -14,6 +14,7 @@ depends_on:
   - "092"  # workspace-runtime-threading (workspace_id everywhere)
 code_aliases: ["SPEC_PREFLIGHT"]
 kind: governance
+domain: opc
 risk: high
 extends:
   - spec: "068-permission-runtime"

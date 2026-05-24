@@ -8,6 +8,7 @@ owner: bart
 created: "2026-05-22"
 amended: "2026-05-23"
 kind: capability
+domain: platform
 risk: high
 depends_on:
   - "000"  # bootstrap-spec-system (the kernel content)

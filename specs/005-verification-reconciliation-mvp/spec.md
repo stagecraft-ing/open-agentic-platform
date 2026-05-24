@@ -5,6 +5,7 @@ feature_branch: "005-verification-reconciliation-mvp"
 status: approved
 implementation: complete
 kind: platform
+domain: substrate
 created: "2026-03-22"
 authors:
   - "open-agentic-platform"

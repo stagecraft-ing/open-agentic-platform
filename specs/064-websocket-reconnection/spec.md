@@ -5,6 +5,7 @@ feature_branch: "064-websocket-reconnection"
 status: approved
 implementation: complete
 kind: desktop
+domain: opc
 created: "2026-03-31"
 authors:
   - "open-agentic-platform"

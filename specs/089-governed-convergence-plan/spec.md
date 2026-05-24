@@ -16,6 +16,7 @@ depends_on:
   - "080"  # github-identity-onboarding
 code_aliases: ["GOVERNED_CONVERGENCE"]
 kind: process
+domain: substrate
 risk: critical
 constrains:
   - kind: sequencing-plan

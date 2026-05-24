@@ -7,6 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-04-28"
 kind: governance
+domain: tooling
 risk: low
 depends_on:
   - "000"  # bootstrap-spec-system

@@ -11,6 +11,7 @@ approved: "2026-05-02"
 amended: "2026-05-13"
 amendment_record: "147-spec-kind-grammar"
 kind: governance
+domain: tooling
 risk: low
 depends_on:
   - "006"  # conformance-lint-mvp (the surface being amended)

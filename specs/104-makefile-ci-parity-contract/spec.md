@@ -8,6 +8,7 @@ created: "2026-04-16"
 amended: "2026-05-03"
 amendment_record: "135-fast-ci-as-default"
 kind: governance
+domain: tooling
 risk: low
 depends_on:
   - "000"  # bootstrap-spec-system (Principle II — compiler-owned JSON)

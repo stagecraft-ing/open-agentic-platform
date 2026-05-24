@@ -8,6 +8,7 @@ owner: bart
 created: "2026-05-06"
 approved: "2026-05-06"
 kind: amendment
+domain: platform
 risk: low
 amends: ["140"]
 depends_on:

@@ -6,6 +6,7 @@ implementation: complete
 owner: bart
 created: "2026-04-14"
 kind: process
+domain: platform
 risk: high
 depends_on:
   - "089"

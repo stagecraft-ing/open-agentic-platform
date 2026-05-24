@@ -8,6 +8,7 @@ owner: bart
 created: "2026-05-02"
 approved: "2026-05-19"
 kind: governance
+domain: tooling
 risk: medium
 depends_on:
   - "103"

@@ -8,6 +8,7 @@ owner: bart
 created: "2026-05-24"
 approved: "2026-05-24"
 kind: amendment
+domain: substrate
 shape: bug-fix
 risk: low
 amends: ["133", "152"]

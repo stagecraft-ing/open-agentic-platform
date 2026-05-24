@@ -9,6 +9,7 @@ created: "2026-05-22"
 approved: "2026-05-22"
 closed: "2026-05-22"
 kind: governance
+domain: tooling
 risk: low
 amends: ["116"]
 depends_on:

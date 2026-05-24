@@ -8,6 +8,7 @@ created: "2026-05-03"
 approved: "2026-05-03"
 completed: "2026-05-03"
 kind: governance
+domain: tooling
 risk: low
 amends:
   - "104"

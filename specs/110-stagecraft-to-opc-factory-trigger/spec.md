@@ -7,6 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-04-21"
 kind: platform
+domain: platform
 summary: >
   Closes the "no stagecraft → OPC trigger" gap surfaced during the 2026-04-21
   audit. Adds a `ServerEnvelope::factory.run.request` variant to the duplex

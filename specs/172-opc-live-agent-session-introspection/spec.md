@@ -7,6 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: platform
+domain: opc
 risk: medium
 depends_on:
   - "032"  # opc-inspect-governance-wiring-mvp

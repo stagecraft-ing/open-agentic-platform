@@ -5,6 +5,7 @@ feature_branch: "feat/081-factory-test-hydration"
 status: approved
 implementation: complete
 kind: platform
+domain: platform
 created: "2026-04-07"
 authors: ["open-agentic-platform"]
 language: en
