@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:82d9273d63d7c2ca5080b8b2192bf7607fe7965e240922b27878ff3be06e827c",
+  "graph_fingerprint": "sha256:778e4f379b0f285c7c0a3660ea2d4db5bd7151d03ed96eab11d24deb919a5a10",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3306,6 +3306,30 @@
         "121",
         "127",
         "166"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "175-stagecraft-project-dashboard-observability",
+      "title": "Stagecraft project dashboard — observability refinement of `_index`",
+      "spec_path": "specs/175-stagecraft-project-dashboard-observability/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "087",
+        "102",
+        "115",
+        "124",
+        "127",
+        "147",
+        "163",
+        "164",
+        "168"
       ],
       "impl_files": [],
       "test_files": [],
