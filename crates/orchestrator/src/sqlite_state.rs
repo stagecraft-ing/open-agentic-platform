@@ -183,6 +183,38 @@ impl SqliteWorkflowStore {
             );
         }
 
+        // Migration: add `project_path` and `originating_session` columns
+        // for the OPC multi-session orchestrator binding (spec 173 FR-006).
+        // Idempotent — column presence checked via PRAGMA table_info before
+        // issuing the ALTER. Pre-spec-173 rows surface as SQL NULL → Rust
+        // `Option::None` without backfill.
+        let workflow_cols: std::collections::HashSet<String> = conn
+            .prepare("PRAGMA table_info(workflows)")
+            .and_then(|mut stmt| {
+                let rows = stmt.query_map([], |row| {
+                    let name: String = row.get(1)?;
+                    Ok(name)
+                })?;
+                let mut set = std::collections::HashSet::new();
+                for name in rows.flatten() {
+                    set.insert(name);
+                }
+                Ok(set)
+            })
+            .unwrap_or_default();
+
+        if !workflow_cols.contains("project_path") {
+            let _ = conn.execute_batch(
+                "ALTER TABLE workflows ADD COLUMN project_path TEXT;
+                 CREATE INDEX IF NOT EXISTS idx_workflows_project_path ON workflows(project_path);",
+            );
+        }
+        if !workflow_cols.contains("originating_session") {
+            let _ = conn.execute_batch(
+                "ALTER TABLE workflows ADD COLUMN originating_session TEXT;",
+            );
+        }
+
         Ok(SqliteWorkflowStore {
             conn: Arc::new(StdMutex::new(conn)),
         })
@@ -222,16 +254,19 @@ impl SqliteWorkflowStore {
         tx.execute(
             r#"
             INSERT INTO workflows (
-              workflow_id, workflow_name, status, started_at, completed_at, metadata, project_id
+              workflow_id, workflow_name, status, started_at, completed_at, metadata,
+              project_id, project_path, originating_session
             )
-            VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?6)
+            VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?6, ?7, ?8)
             ON CONFLICT(workflow_id) DO UPDATE SET
-              workflow_name = excluded.workflow_name,
-              status        = excluded.status,
-              started_at    = excluded.started_at,
-              completed_at  = excluded.completed_at,
-              metadata      = excluded.metadata,
-              project_id    = excluded.project_id
+              workflow_name       = excluded.workflow_name,
+              status              = excluded.status,
+              started_at          = excluded.started_at,
+              completed_at        = excluded.completed_at,
+              metadata            = excluded.metadata,
+              project_id          = excluded.project_id,
+              project_path        = excluded.project_path,
+              originating_session = excluded.originating_session
             "#,
             params![
                 wf_id_str,
@@ -239,7 +274,9 @@ impl SqliteWorkflowStore {
                 status_str,
                 state.started_at,
                 metadata_json,
-                project_id
+                project_id,
+                state.project_path,
+                state.originating_session,
             ],
         )
         .map_err(|e| OrchestratorError::StatePersistence {
@@ -324,7 +361,8 @@ impl SqliteWorkflowStore {
         let mut stmt = conn
             .prepare(
                 r#"
-                SELECT workflow_name, status, started_at, completed_at, metadata
+                SELECT workflow_name, status, started_at, completed_at, metadata,
+                       project_path, originating_session
                 FROM workflows
                 WHERE workflow_id = ?1
                 "#,
@@ -340,14 +378,31 @@ impl SqliteWorkflowStore {
                 let started_at: String = row.get(2)?;
                 let _completed_at: Option<String> = row.get(3)?;
                 let metadata_text: Option<String> = row.get(4)?;
-                Ok((name, status_str, started_at, metadata_text))
+                let project_path: Option<String> = row.get(5)?;
+                let originating_session: Option<String> = row.get(6)?;
+                Ok((
+                    name,
+                    status_str,
+                    started_at,
+                    metadata_text,
+                    project_path,
+                    originating_session,
+                ))
             })
             .optional()
             .map_err(|e| OrchestratorError::StatePersistence {
                 reason: format!("query workflow row in sqlite: {e}"),
             })?;
 
-        let Some((workflow_name, status_str, started_at, metadata_text)) = wf_row else {
+        let Some((
+            workflow_name,
+            status_str,
+            started_at,
+            metadata_text,
+            project_path,
+            originating_session,
+        )) = wf_row
+        else {
             return Ok(None);
         };
 
@@ -487,6 +542,8 @@ impl SqliteWorkflowStore {
             current_step_index: None,
             steps,
             metadata,
+            project_path,
+            originating_session,
         };
 
         Ok(Some(state))
@@ -661,10 +718,77 @@ impl SqliteWorkflowStore {
 }
 
 // ---------------------------------------------------------------------------
-// Workspace-scoped queries (099 Slice 5)
+// Workspace-scoped queries (099 Slice 5, spec 173 §2.2)
 // ---------------------------------------------------------------------------
 
 impl SqliteWorkflowStore {
+    /// List workflow summaries for a given filesystem `project_path`
+    /// (spec 173 FR-003, §2.2). Results are sorted by `started_at` DESC
+    /// (most recent first) to support spec 172's Live Sessions panel.
+    ///
+    /// `project_path` is the spec 157 JSONL-authoritative filesystem path.
+    /// Two OPC sessions for the same workstation path accumulate in the
+    /// same bucket; the orchestrator does not disambiguate by developer
+    /// identity (spec 173 FR-005, inheriting spec 157 §4).
+    ///
+    /// Workflows initiated outside OPC (`project_path` IS NULL) are
+    /// excluded from this surface — they remain reachable via the
+    /// existing per-task and per-project-id surfaces.
+    pub async fn list_workflows_by_project_path(
+        &self,
+        project_path: &str,
+        limit: Option<u32>,
+    ) -> Result<Vec<crate::state::WorkflowStateSummary>, OrchestratorError> {
+        let conn = Arc::clone(&self.conn);
+        let path = project_path.to_string();
+        let lim = limit.unwrap_or(50) as i64;
+        tokio::task::spawn_blocking(move || {
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite conn: {e}"),
+                })?;
+            let mut stmt = guard
+                .prepare(
+                    "SELECT workflow_id, workflow_name, status, started_at, project_id,
+                            project_path, originating_session
+                     FROM workflows
+                     WHERE project_path = ?1
+                     ORDER BY started_at DESC
+                     LIMIT ?2",
+                )
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("prepare list_workflows_by_project_path: {e}"),
+                })?;
+            let rows = stmt
+                .query_map(rusqlite::params![path, lim], |row| {
+                    Ok(crate::state::WorkflowStateSummary {
+                        workflow_id: row.get(0)?,
+                        workflow_name: row.get(1)?,
+                        status: row.get(2)?,
+                        started_at: row.get(3)?,
+                        project_id: row.get(4)?,
+                        project_path: row.get(5)?,
+                        originating_session: row.get(6)?,
+                    })
+                })
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("query list_workflows_by_project_path: {e}"),
+                })?;
+            let mut results = Vec::new();
+            for row in rows {
+                results.push(row.map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("map row: {e}"),
+                })?);
+            }
+            Ok(results)
+        })
+        .await
+        .map_err(|e| OrchestratorError::StatePersistence {
+            reason: format!("spawn_blocking: {e}"),
+        })?
+    }
+
     /// List workflow summaries for a given project_id (099 Slice 5 (project-scoped per spec 119)).
     pub async fn list_workflows_by_project(
         &self,
@@ -682,7 +806,8 @@ impl SqliteWorkflowStore {
                 })?;
             let mut stmt = guard
                 .prepare(
-                    "SELECT workflow_id, workflow_name, status, started_at, project_id
+                    "SELECT workflow_id, workflow_name, status, started_at, project_id,
+                            project_path, originating_session
                      FROM workflows
                      WHERE project_id = ?1
                      ORDER BY started_at DESC
@@ -699,6 +824,8 @@ impl SqliteWorkflowStore {
                         status: row.get(2)?,
                         started_at: row.get(3)?,
                         project_id: row.get(4)?,
+                        project_path: row.get(5)?,
+                        originating_session: row.get(6)?,
                     })
                 })
                 .map_err(|e| OrchestratorError::StatePersistence {
@@ -1303,5 +1430,273 @@ mod tests {
             .await
             .expect("append after double open");
         assert!(eid > 0);
+    }
+
+    // -----------------------------------------------------------------------
+    // Spec 173: OPC multi-session orchestrator binding
+    // -----------------------------------------------------------------------
+
+    /// Helper: persist a workflow row with optional origin fields.
+    async fn seed_workflow_with_origin(
+        store: &SqliteWorkflowStore,
+        workflow_id: Uuid,
+        started_at: &str,
+        project_path: Option<&str>,
+        originating_session: Option<&str>,
+    ) {
+        let state = WorkflowState::new(
+            workflow_id,
+            "spec-173-workflow",
+            started_at.to_string(),
+            Vec::<(String, String)>::new(),
+            serde_json::Map::new(),
+        )
+        .with_origin(
+            project_path.map(String::from),
+            originating_session.map(String::from),
+        );
+        store
+            .write_workflow_state(&state)
+            .await
+            .expect("seed workflow row");
+    }
+
+    /// SC-001: an OPC-initiated workflow carries `project_path` matching the
+    /// spec 157 JSONL-authoritative path.
+    #[tokio::test]
+    async fn spec_173_sc001_opc_origin_round_trips() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+        let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+
+        let workflow_id = Uuid::new_v4();
+        let session_id = Uuid::new_v4().to_string();
+        let project_path = "/Users/bart/Dev/open-agentic-platform";
+
+        seed_workflow_with_origin(
+            &store,
+            workflow_id,
+            "2026-05-23T10:00:00Z",
+            Some(project_path),
+            Some(&session_id),
+        )
+        .await;
+
+        let loaded = store
+            .load_workflow_state(workflow_id)
+            .await
+            .expect("load")
+            .expect("workflow row present");
+
+        assert_eq!(loaded.project_path.as_deref(), Some(project_path));
+        assert_eq!(loaded.originating_session.as_deref(), Some(session_id.as_str()));
+    }
+
+    /// SC-002: querying workflows by project path returns all workflows for
+    /// that path, across sessions and developers, sorted by recency.
+    #[tokio::test]
+    async fn spec_173_sc002_list_by_project_path_sorted_by_recency() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+        let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+
+        let project_path = "/Users/bart/Dev/open-agentic-platform";
+        let other_path = "/Users/bart/Dev/other-repo";
+
+        // Two OPC sessions for the same project — represents the spec 157
+        // multi-session-per-path discipline.
+        let session_a = Uuid::new_v4().to_string();
+        let session_b = Uuid::new_v4().to_string();
+
+        let wf_old = Uuid::new_v4();
+        let wf_mid = Uuid::new_v4();
+        let wf_new = Uuid::new_v4();
+        let wf_other = Uuid::new_v4();
+
+        seed_workflow_with_origin(
+            &store,
+            wf_old,
+            "2026-05-20T10:00:00Z",
+            Some(project_path),
+            Some(&session_a),
+        )
+        .await;
+        seed_workflow_with_origin(
+            &store,
+            wf_mid,
+            "2026-05-21T10:00:00Z",
+            Some(project_path),
+            Some(&session_b),
+        )
+        .await;
+        seed_workflow_with_origin(
+            &store,
+            wf_new,
+            "2026-05-22T10:00:00Z",
+            Some(project_path),
+            Some(&session_a),
+        )
+        .await;
+        seed_workflow_with_origin(
+            &store,
+            wf_other,
+            "2026-05-22T10:00:00Z",
+            Some(other_path),
+            Some(&session_a),
+        )
+        .await;
+
+        let results = store
+            .list_workflows_by_project_path(project_path, None)
+            .await
+            .expect("list_workflows_by_project_path");
+
+        // FR-005 non-disambiguation: both sessions' workflows accumulate in
+        // the same bucket.
+        assert_eq!(results.len(), 3);
+
+        // Sorted by recency (most recent first).
+        assert_eq!(results[0].workflow_id, wf_new.to_string());
+        assert_eq!(results[1].workflow_id, wf_mid.to_string());
+        assert_eq!(results[2].workflow_id, wf_old.to_string());
+
+        // The other-path workflow is excluded — distinct buckets.
+        assert!(
+            !results.iter().any(|r| r.workflow_id == wf_other.to_string()),
+            "list_workflows_by_project_path must not leak across project paths"
+        );
+
+        // originating_session round-trips on the summary surface so spec 172
+        // can render the "Originating agent / session" column.
+        assert!(
+            results.iter().all(|r| r.originating_session.is_some()),
+            "originating_session must be carried on the summary surface for spec 172"
+        );
+    }
+
+    /// SC-003: a workflow initiated outside OPC persists with
+    /// `project_path: null` and surfaces correctly through existing consumer
+    /// surfaces (load_workflow_state).
+    #[tokio::test]
+    async fn spec_173_sc003_non_opc_origin_persists_null() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+        let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+
+        let workflow_id = Uuid::new_v4();
+        // CLI / factory-engine origin: both fields None.
+        seed_workflow_with_origin(
+            &store,
+            workflow_id,
+            "2026-05-23T10:00:00Z",
+            None,
+            None,
+        )
+        .await;
+
+        let loaded = store
+            .load_workflow_state(workflow_id)
+            .await
+            .expect("load")
+            .expect("workflow row present");
+
+        assert!(loaded.project_path.is_none(), "non-OPC origin -> NULL project_path");
+        assert!(
+            loaded.originating_session.is_none(),
+            "non-OPC origin -> NULL originating_session"
+        );
+
+        // Non-OPC origins are excluded from the by-project-path surface
+        // (it filters on project_path = $1) but remain reachable via
+        // load_workflow_state — proving "surfaces correctly through existing
+        // consumer surfaces" in SC-003.
+        let empty = store
+            .list_workflows_by_project_path("/no/such/path", None)
+            .await
+            .expect("list_workflows_by_project_path");
+        assert!(empty.is_empty());
+    }
+
+    /// SC-004: the persistence schema is backward-compatible — existing
+    /// pre-spec-173 workflow rows remain readable.
+    ///
+    /// Simulates an existing row by writing a workflow without origin fields
+    /// directly through the SQL surface (NULLs for the new columns), then
+    /// asserts the loader surfaces them as None and the by-project-path
+    /// surface does not crash.
+    #[tokio::test]
+    async fn spec_173_sc004_backward_compatible_load() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+        let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+
+        // Insert a row using the legacy column set only (no project_path /
+        // originating_session) — mirrors what a pre-spec-173 binary writes
+        // after running the additive migration.
+        let workflow_id = Uuid::new_v4();
+        {
+            let guard = store.conn.lock().unwrap();
+            guard
+                .execute(
+                    "INSERT INTO workflows (workflow_id, workflow_name, status, started_at)
+                     VALUES (?1, ?2, ?3, ?4)",
+                    rusqlite::params![
+                        workflow_id.to_string(),
+                        "legacy-workflow",
+                        "running",
+                        "2026-05-19T10:00:00Z",
+                    ],
+                )
+                .expect("insert legacy row");
+        }
+
+        // FR-006: SQL NULL must surface as Rust Option::None without
+        // explicit handling or migration.
+        let loaded = store
+            .load_workflow_state(workflow_id)
+            .await
+            .expect("load legacy workflow")
+            .expect("legacy row present");
+
+        assert_eq!(loaded.workflow_name, "legacy-workflow");
+        assert!(loaded.project_path.is_none());
+        assert!(loaded.originating_session.is_none());
+
+        // The new consumer surface does not match this row but does not
+        // panic — proving the column was added cleanly to the legacy table.
+        let empty = store
+            .list_workflows_by_project_path("/Users/bart/Dev/open-agentic-platform", None)
+            .await
+            .expect("list_workflows_by_project_path on legacy DB");
+        assert!(empty.is_empty());
+    }
+
+    /// FR-006: the spec 173 migration is idempotent — opening the store
+    /// twice MUST NOT fail or duplicate columns.
+    #[tokio::test]
+    async fn spec_173_migration_is_idempotent() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+
+        let _store1 = SqliteWorkflowStore::open(&db_path).expect("first open");
+        let store2 = SqliteWorkflowStore::open(&db_path).expect("second open");
+
+        // After re-open, writes that exercise the new columns still succeed.
+        let workflow_id = Uuid::new_v4();
+        seed_workflow_with_origin(
+            &store2,
+            workflow_id,
+            "2026-05-23T10:00:00Z",
+            Some("/tmp/proj"),
+            Some("session-x"),
+        )
+        .await;
+        let loaded = store2
+            .load_workflow_state(workflow_id)
+            .await
+            .expect("load")
+            .expect("row present");
+        assert_eq!(loaded.project_path.as_deref(), Some("/tmp/proj"));
+        assert_eq!(loaded.originating_session.as_deref(), Some("session-x"));
     }
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:34b1eec22f96ba3391c47bac3bff9a3c43d343068b3bb08c8d98a8e8a78dbbc1",
+  "graph_fingerprint": "sha256:25938f49535ba97665d39837e43fd905938a499e0f0793443d1f34e2f51cea65",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3276,8 +3276,8 @@
       "feature_id": "173-opc-multi-session-orchestrator-binding",
       "title": "OPC multi-session-by-project-path — orchestrator binding (formalisation)",
       "spec_path": "specs/173-opc-multi-session-orchestrator-binding/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "low",
       "owner": "bart",
       "group": "",

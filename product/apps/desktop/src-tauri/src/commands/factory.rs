@@ -1131,6 +1131,10 @@ pub async fn start_factory_pipeline(
             governance_mode: Some(governance_mode_str.clone()),
             sync_tracker: Some(sync_tracker.clone()),
             on_gate_checkpoint: None,
+            // Factory-engine origin per spec 173 FR-001: project_path and
+            // originating_session are NULL — the run is not session-initiated.
+            project_path: None,
+            originating_session: None,
         };
 
         // Dispatch Phase 1 (s0–s5).
@@ -1375,6 +1379,9 @@ pub async fn start_factory_pipeline(
             governance_mode: Some(governance_mode_str),
             sync_tracker: Some(sync_tracker.clone()),
             on_gate_checkpoint: None,
+            // Factory-engine origin per spec 173 FR-001.
+            project_path: None,
+            originating_session: None,
         };
 
         let summary2 = match dispatch_manifest(
@@ -2129,6 +2136,9 @@ pub async fn resume_factory_pipeline(
         governance_mode: Some(governance_mode_str),
         sync_tracker: Some(sync_tracker),
         on_gate_checkpoint: None,
+        // Factory-engine resume origin per spec 173 FR-001.
+        project_path: None,
+        originating_session: None,
     };
 
     let app_handle = app.clone();
