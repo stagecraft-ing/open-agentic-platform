@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "00bd3d3939589848287b63891c65f956b5719cf1fb18613f43a72cb952e16978",
+    "contentHash": "d0eca382ac6fe792891f030055238a72b1662b8763094a64fb22d2b377c645a0",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -18759,8 +18759,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 457,
-                  "startLine": 139
+                  "endLine": 463,
+                  "startLine": 145
                 }
               }
             ],
@@ -19015,8 +19015,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 632,
-                  "startLine": 628
+                  "endLine": 638,
+                  "startLine": 634
                 }
               }
             ],
@@ -19127,8 +19127,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 138,
-                  "startLine": 72
+                  "endLine": 144,
+                  "startLine": 78
                 }
               }
             ],
@@ -21153,8 +21153,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 627,
-                  "startLine": 581
+                  "endLine": 633,
+                  "startLine": 587
                 }
               }
             ],
@@ -24700,8 +24700,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 580,
-                  "startLine": 558
+                  "endLine": 586,
+                  "startLine": 564
                 }
               }
             ],
@@ -24794,8 +24794,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 557,
-                  "startLine": 458
+                  "endLine": 563,
+                  "startLine": 464
                 }
               }
             ],
@@ -25348,8 +25348,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 673,
-                  "startLine": 633
+                  "endLine": 679,
+                  "startLine": 639
                 }
               }
             ],
@@ -25431,8 +25431,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 902,
-                  "startLine": 674
+                  "endLine": 908,
+                  "startLine": 680
                 }
               }
             ],
@@ -30928,8 +30928,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 457,
-                  "startLine": 139
+                  "endLine": 463,
+                  "startLine": 145
                 }
               }
             ],
@@ -31681,6 +31681,27 @@
               },
               {
                 "file": "platform/services/stagecraft/api/policy/policy.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projectDashboard/dashboard.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projectDashboard/dashboard.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projectDashboard/dashboardHelpers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projectDashboard/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projectDashboard/riskAssessor.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projectDashboard/riskAssessor.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projectDashboard/types.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/projects/clone.ts"
@@ -32688,6 +32709,21 @@
                 "file": "platform/services/stagecraft/web/app/components/OpenInOpcButton.tsx"
               },
               {
+                "file": "platform/services/stagecraft/web/app/components/ProjectDashboardAudit.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/components/ProjectDashboardCertificate.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/components/ProjectDashboardLifecycle.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/components/ProjectDashboardRiskBanner.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/components/ProjectDashboardRuns.tsx"
+              },
+              {
                 "file": "platform/services/stagecraft/web/app/components/artifact-body-viewer.test.ts"
               },
               {
@@ -32737,6 +32773,9 @@
               },
               {
                 "file": "platform/services/stagecraft/web/app/lib/project-api.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/project-dashboard-api.server.ts"
               },
               {
                 "file": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
@@ -37875,7 +37914,59 @@
         ],
         "implementingPaths": [
           {
-            "path": "platform/services/stagecraft/web/app/routes.ts",
+            "path": "platform/services/stagecraft/api/audit/audit.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projectDashboard/dashboard.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projectDashboard/dashboard.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projectDashboard/dashboardHelpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projectDashboard/encore.service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projectDashboard/riskAssessor.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projectDashboard/riskAssessor.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projectDashboard/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/components/ProjectDashboardAudit.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/components/ProjectDashboardCertificate.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/components/ProjectDashboardLifecycle.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/components/ProjectDashboardRiskBanner.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/components/ProjectDashboardRuns.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/project-dashboard-api.server.ts",
             "source": "spec-implements"
           },
           {
@@ -37888,14 +37979,196 @@
             "kind": "file",
             "locations": [
               {
-                "file": "platform/services/stagecraft/web/app/routes.ts"
+                "file": "platform/services/stagecraft/api/projectDashboard/dashboard.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projectDashboard/dashboard.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/projectDashboard/dashboard.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projectDashboard/dashboard.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/projectDashboard/dashboardHelpers.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projectDashboard/dashboardHelpers.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/projectDashboard/encore.service.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projectDashboard/encore.service.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/projectDashboard/riskAssessor.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projectDashboard/riskAssessor.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/projectDashboard/riskAssessor.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projectDashboard/riskAssessor.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/projectDashboard/types.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projectDashboard/types.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/components/ProjectDashboardAudit.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/components/ProjectDashboardAudit.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/components/ProjectDashboardCertificate.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/components/ProjectDashboardCertificate.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/components/ProjectDashboardLifecycle.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/components/ProjectDashboardLifecycle.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/components/ProjectDashboardRiskBanner.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/components/ProjectDashboardRiskBanner.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/components/ProjectDashboardRuns.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/components/ProjectDashboardRuns.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/project-dashboard-api.server.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/project-dashboard-api.server.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/audit/audit.ts"
               }
             ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
               "kind": "file",
-              "path": "platform/services/stagecraft/web/app/routes.ts"
+              "path": "platform/services/stagecraft/api/audit/audit.ts"
             }
           },
           {
