@@ -2,8 +2,8 @@
 id: "171-opc-structural-diff-plan-ui"
 slug: opc-structural-diff-plan-ui
 title: "Deterministic structural-diff plan UI in OPC — anti-anthropomorphic-trust rendering (ASI09)"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: platform
@@ -14,9 +14,24 @@ depends_on:
   - "102"  # governed-excellence (the certificate's structural-diff posture)
   - "126"  # desktop-agent-picker-ui
 code_aliases: ["OPC_STRUCTURAL_DIFF_PLAN", "ANTI_ANTHROPOMORPHIC_PLAN_UI"]
+establishes:
+  - unit: { kind: file, path: product/apps/desktop/src/components/factory/planTypes.ts }
+  - unit: { kind: file, path: product/apps/desktop/src/components/factory/planAnalysis.ts }
+  - unit: { kind: file, path: product/apps/desktop/src/components/factory/PlanStructuralDiff.tsx }
+  - unit: { kind: file, path: product/apps/desktop/src/components/factory/PlanActionGraph.tsx }
+  - unit: { kind: file, path: product/apps/desktop/src/components/factory/GateImpactSummary.tsx }
+  - unit: { kind: file, path: product/apps/desktop/src/components/factory/PlanCertificatePrediction.tsx }
+  - unit: { kind: file, path: product/apps/desktop/src/components/factory/PlanReviewDialog.tsx }
 refines:
   - aspect: "agent-plan-rendering"
     unit: { kind: directory, path: product/apps/desktop/src/components/factory }
+extends:
+  - spec: "076-factory-desktop-panel"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/components/factory/FactoryPipelineContext.tsx }
+  - spec: "076-factory-desktop-panel"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src/components/factory/FactoryPipelinePanel.tsx }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
