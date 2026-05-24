@@ -7,6 +7,7 @@ implementation: in-progress
 owner: bart
 created: "2026-05-22"
 kind: governance
+domain: substrate
 risk: medium
 depends_on:
   - "154"  # logical-unit ownership grammar (the unit kinds)

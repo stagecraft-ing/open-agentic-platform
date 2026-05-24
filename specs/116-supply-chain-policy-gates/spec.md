@@ -11,6 +11,7 @@ closed: "2026-05-02"
 amended: "2026-05-22"
 amendment_record: "158-workflow-ref-sha-pinning-lint"
 kind: governance
+domain: tooling
 risk: medium
 depends_on:
   - "000"  # bootstrap-spec-system

@@ -7,6 +7,7 @@ implementation: pending
 owner: bart
 created: "2026-05-23"
 kind: platform
+domain: platform
 risk: medium
 depends_on:
   - "087"  # unified-workspace-architecture (project surface; current _index)

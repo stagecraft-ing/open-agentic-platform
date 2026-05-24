@@ -7,6 +7,7 @@ implementation: complete
 owner: open-agentic-platform
 created: "2026-05-24"
 kind: migration
+domain: opc
 risk: low
 authors:
   - "open-agentic-platform"

@@ -8,6 +8,7 @@ owner: bart
 created: "2026-05-22"
 approved: "2026-05-23"
 kind: governance
+domain: opc
 risk: low
 depends_on:
   - "052"  # state-persistence (the spec this spec refines)

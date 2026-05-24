@@ -9,6 +9,7 @@ amendment_record: "138-stagecraft-create-realised-scaffold"
 owner: bart
 created: "2026-04-22"
 kind: platform
+domain: platform
 summary: >
   Defines the contract-anchored lifecycle for factory-produced projects across
   three entry points: (1) OPC opens a local folder and recognises it as a

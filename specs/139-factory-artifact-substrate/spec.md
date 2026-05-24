@@ -10,6 +10,7 @@ closed: "2026-05-05"
 amended: "2026-05-06"
 amendment_record: "140"
 kind: architecture
+domain: platform
 risk: high
 amends: ["108", "111", "123"]
 depends_on:

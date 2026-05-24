@@ -8,4 +8,5 @@ Options:
       --compact          Single-line compact JSON array of report rows (mutually exclusive with --json)
       --nonzero-only     Omit statuses with zero counts
       --status <STATUS>  Filter report to one lifecycle status [possible values: draft, approved, superseded, retired]
+      --domain <DOMAIN>  Filter report to one tract domain (closed enum: opc, platform, substrate, tooling; spec 179) [possible values: opc, platform, substrate, tooling]
   -h, --help             Print help

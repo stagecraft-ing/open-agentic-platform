@@ -5,6 +5,7 @@ feature_branch: "048-hookify-rule-engine"
 status: approved
 implementation: complete
 kind: platform
+domain: opc
 created: "2026-03-29"
 authors:
   - "open-agentic-platform"

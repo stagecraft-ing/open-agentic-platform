@@ -5,6 +5,7 @@ feature_branch: "feat/082-artifact-integrity-platform-hardening"
 status: approved
 implementation: complete
 kind: platform
+domain: platform
 created: "2026-04-07"
 authors: ["open-agentic-platform"]
 language: en

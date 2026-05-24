@@ -10,6 +10,7 @@ created: "2026-04-29"
 amended: "2026-05-01"
 amendment_record: "123"
 kind: governance
+domain: platform
 risk: high
 depends_on:
   - "000"  # bootstrap-spec-system (frontmatter convention extension)

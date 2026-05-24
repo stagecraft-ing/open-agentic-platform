@@ -5,6 +5,7 @@ feature_branch: "feat/085-remote-control-cli"
 status: approved
 implementation: complete
 kind: product
+domain: opc
 created: "2026-04-08"
 authors:
   - "open-agentic-platform"

@@ -80,6 +80,11 @@
           "items": { "type": "string", "minLength": 1 }
         },
         "kind": { "type": "string" },
+        "domain": {
+          "type": "string",
+          "enum": ["opc", "platform", "substrate", "tooling"],
+          "description": "Spec 179 — tract-authority lens. Closed enum; V-030 validates membership at error severity."
+        },
         "featureBranch": { "type": "string" },
         "extraFrontmatter": {
           "type": "object",

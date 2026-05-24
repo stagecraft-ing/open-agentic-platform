@@ -5,6 +5,7 @@ feature_branch: "feat/077-stagecraft-factory-api"
 status: approved
 implementation: complete
 kind: platform
+domain: platform
 created: "2026-04-04"
 authors: ["open-agentic-platform"]
 language: en

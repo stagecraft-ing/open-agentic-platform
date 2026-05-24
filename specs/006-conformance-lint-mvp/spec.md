@@ -7,6 +7,7 @@ implementation: complete
 amended: "2026-05-13"
 amendment_record: "147-spec-kind-grammar"
 kind: platform
+domain: tooling
 created: "2026-03-22"
 authors:
   - "open-agentic-platform"

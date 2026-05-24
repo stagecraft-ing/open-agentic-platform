@@ -5,6 +5,7 @@ feature_branch: "004-spec-to-execution-bridge-mvp"
 status: approved
 implementation: complete
 kind: platform
+domain: substrate
 created: "2026-03-22"
 authors:
   - "open-agentic-platform"

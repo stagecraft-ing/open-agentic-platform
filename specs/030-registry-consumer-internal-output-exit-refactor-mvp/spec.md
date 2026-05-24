@@ -5,6 +5,7 @@ feature_branch: "030-registry-consumer-internal-output-exit-refactor-mvp"
 status: approved
 implementation: complete
 kind: platform-delivery
+domain: tooling
 created: "2026-03-22"
 authors:
   - "open-agentic-platform"

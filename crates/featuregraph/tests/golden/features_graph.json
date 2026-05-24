@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:449e00c4c7813f66927d8cf7bc265a5679cb3227688f9832dccc49c61494669d",
+  "graph_fingerprint": "sha256:74032cc3b1429071a0940e3c4b03ab8a8320e6518a15604d4478e1903ca92bb6",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3384,6 +3384,26 @@
       "owner": "open-agentic-platform",
       "group": "",
       "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "179-domain-frontmatter-field",
+      "title": "Domain frontmatter field — tract authority lens over the unified spec spine",
+      "spec_path": "specs/179-domain-frontmatter-field/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "000",
+        "001",
+        "002",
+        "006",
+        "147"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []

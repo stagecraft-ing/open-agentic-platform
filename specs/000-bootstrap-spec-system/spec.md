@@ -5,9 +5,10 @@ feature_branch: "000-bootstrap-spec-system"
 status: approved
 implementation: complete
 kind: constitutional-bootstrap
+domain: substrate
 created: "2026-03-22"
-amended: "2026-05-22"
-amendment_record: "159-v004-lint-fixture-exemption"
+amended: "2026-05-24"
+amendment_record: "179-domain-frontmatter-field"
 origin:
   retroactive: true
 unamendable:
@@ -46,6 +47,11 @@ summary: >
    extension point in this spec) with a path-shaped exemption for
    `tools/*/tests/fixtures/**`. V-004's `unamendable` anchor is unchanged;
    only the policy is refined.
+   Amended by spec 179 (2026-05-24) to add a `domain:` frontmatter field
+   (closed enum: `opc | platform | substrate | tooling`) declaring which
+   tract owns a spec's authority. Strictly a lens over the unified
+   corpus, not a partition; V-030 validates the enum at error severity,
+   V-031 emits at warning severity when the field is absent.
 ---
 
 # Feature Specification: Bootstrap spec system

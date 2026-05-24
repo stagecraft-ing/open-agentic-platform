@@ -5,6 +5,7 @@ feature_branch: "feat/074-factory-ingestion"
 status: approved
 implementation: complete
 kind: platform
+domain: platform
 created: "2026-04-04"
 authors: ["open-agentic-platform"]
 language: en

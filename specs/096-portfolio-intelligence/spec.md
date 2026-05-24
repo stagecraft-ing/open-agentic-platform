@@ -6,6 +6,7 @@ implementation: complete
 owner: bart
 created: "2026-04-11"
 kind: platform
+domain: tooling
 risk: medium
 depends_on:
   - "091"

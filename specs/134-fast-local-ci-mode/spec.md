@@ -8,6 +8,7 @@ created: "2026-05-03"
 amended: "2026-05-03"
 amendment_record: "135-fast-ci-as-default"
 kind: governance
+domain: tooling
 risk: low
 amends:
   - "104"

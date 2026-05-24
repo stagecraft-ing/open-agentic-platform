@@ -6,6 +6,7 @@ created: "2026-05-17"
 approved: "2026-05-22"
 authors: ["open-agentic-platform"]
 kind: registry
+domain: platform
 risk: medium
 owner: "open-agentic-platform"
 implementation: complete

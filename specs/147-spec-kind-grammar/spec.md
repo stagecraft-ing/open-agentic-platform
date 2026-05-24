@@ -6,6 +6,7 @@ created: "2026-05-13"
 approved: "2026-05-17"
 authors: ["open-agentic-platform"]
 kind: amendment
+domain: substrate
 shape: mechanism-add
 risk: high
 owner: "open-agentic-platform"

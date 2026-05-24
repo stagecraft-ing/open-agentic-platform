@@ -5,6 +5,7 @@ feature_branch: "feat/084-opc-settings-reconciliation"
 status: approved
 implementation: complete
 kind: product
+domain: opc
 created: "2026-04-08"
 authors:
   - "open-agentic-platform"

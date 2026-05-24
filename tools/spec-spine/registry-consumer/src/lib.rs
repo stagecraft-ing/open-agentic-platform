@@ -103,6 +103,11 @@ pub struct FeatureFilter<'a> {
     pub kind: Option<&'a str>,
     pub shape: Option<&'a str>,
     pub category: Option<&'a str>,
+    /// Spec 179 — exact match against `domain:` (closed enum:
+    /// `opc | platform | substrate | tooling`). Feature retained only
+    /// when its `domain:` equals this value; specs lacking `domain:`
+    /// always fail this filter.
+    pub domain: Option<&'a str>,
 }
 
 /// Apply [`FeatureFilter`] to a feature list (Value-based). All set filters must match (AND).
@@ -148,6 +153,12 @@ pub fn filter_features(features: Vec<Value>, filter: FeatureFilter<'_>) -> Vec<V
                     .unwrap_or(false);
                 if !matched {
                     return false;
+                }
+            }
+            if let Some(dom) = filter.domain {
+                match f.get("domain").and_then(|x| x.as_str()) {
+                    Some(d) if d == dom => {}
+                    _ => return false,
                 }
             }
             true
@@ -320,6 +331,11 @@ pub struct Feature {
     pub shape: Option<String>,
     #[serde(default)]
     pub category: Vec<String>,
+    /// Spec 179 — tract-authority lens. Closed enum
+    /// (`opc | platform | substrate | tooling`). `None` when the spec
+    /// has not yet been backfilled or `domain:` was suppressed by V-030.
+    #[serde(default)]
+    pub domain: Option<String>,
     #[serde(default)]
     pub implementation: Option<String>,
     #[serde(default)]
@@ -529,11 +545,21 @@ impl Registry {
     /// Lifecycle-status report (typed). One row per known status, in
     /// the [`KNOWN_STATUSES`] order, with sorted feature ids.
     pub fn status_report(&self) -> Vec<StatusRow> {
+        self.status_report_filtered(FeatureFilter::default())
+    }
+
+    /// Spec 179 — lifecycle-status report narrowed to a feature subset.
+    /// Same shape as [`Self::status_report`]; when every filter field is
+    /// `None` the result is identical to the unfiltered call.
+    pub fn status_report_filtered(&self, filter: FeatureFilter<'_>) -> Vec<StatusRow> {
         let mut out: Vec<StatusRow> = KNOWN_STATUSES
             .iter()
             .map(|s| (s.to_string(), 0usize, Vec::<String>::new()))
             .collect();
         for f in self.features_sorted() {
+            if !feature_matches_filter(f, &filter) {
+                continue;
+            }
             let Some(status) = f.status.as_deref() else {
                 continue;
             };
@@ -609,6 +635,11 @@ fn feature_matches_filter(f: &Feature, filter: &FeatureFilter<'_>) -> bool {
     }
     if let Some(cat) = filter.category {
         if !f.category.iter().any(|c| c == cat) {
+            return false;
+        }
+    }
+    if let Some(dom) = filter.domain {
+        if f.domain.as_deref() != Some(dom) {
             return false;
         }
     }

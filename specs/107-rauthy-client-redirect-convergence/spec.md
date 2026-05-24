@@ -7,6 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-04-18"
 kind: platform
+domain: platform
 risk: medium
 depends_on:
   - "080"  # github-identity-onboarding (desktop PKCE scheme, error codes)

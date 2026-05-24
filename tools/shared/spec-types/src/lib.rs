@@ -128,6 +128,11 @@ pub const KNOWN_KEYS: &[&str] = &[
     // over them. The coupling gate ignores references; the indexer
     // surfaces them for navigation.
     "references",
+    // Spec 179 — universal tract-authority lens. Closed enum
+    // (`opc | platform | substrate | tooling`). V-030 validates the
+    // enum at error severity; V-031 emits at warning severity when
+    // the field is absent.
+    "domain",
 ];
 
 /// Valid values for the `risk` frontmatter field.
@@ -173,6 +178,10 @@ pub const SHAPE_TABLE: &[(&str, &[&str])] = &[
         ],
     ),
 ];
+
+/// Spec 179 — valid values for the `domain:` frontmatter field (V-030).
+/// Closed enum; future amendments widen it.
+pub const VALID_DOMAINS: &[&str] = &["opc", "platform", "substrate", "tooling"];
 
 /// Spec 147 — conventional `category:` vocabulary (W-130, info severity).
 pub const CONVENTIONAL_CATEGORIES: &[&str] = &[
@@ -307,6 +316,22 @@ pub const V_028: ViolationCode = ViolationCode("V-028");
 /// searchability and consistent rendering. Severity: warning (not
 /// blocking — does NOT flip `validation.passed`).
 pub const V_029: ViolationCode = ViolationCode("V-029");
+
+/// Spec 179 — fired by spec-compiler when `domain:` is present but
+/// its value is not one of the four closed-enum values
+/// (`opc | platform | substrate | tooling`). Hard error: the field
+/// is a lens over the unified corpus and an invalid value silently
+/// excludes the spec from every scoped query. Also emitted by
+/// spec-lint with the same semantics for contributors running the
+/// linter in isolation.
+pub const V_030: ViolationCode = ViolationCode("V-030");
+
+/// Spec 179 — fired by spec-lint when a spec's frontmatter omits
+/// `domain:`. Severity: warning (corpus-wide backfill is staged in
+/// the spec 179 PR; promotion to error severity is deferred to a
+/// follow-on amendment after the warning-tier corpus is empirically
+/// clean).
+pub const V_031: ViolationCode = ViolationCode("V-031");
 
 // Lint W-codes (emitted by spec-lint).
 pub const W_001: ViolationCode = ViolationCode("W-001");

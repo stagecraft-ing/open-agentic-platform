@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5ab885e585bae318826078210ca4781ac663f825a12123926d3a67f579b37f1b",
+    "contentHash": "443a5787789c0a8f925aec0b63aeca8ed26d53eb6947021c67c949d2aa376062",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1468,7 +1468,7 @@
   "traceability": {
     "mappings": [
       {
-        "amendmentRecord": "159-v004-lint-fixture-exemption",
+        "amendmentRecord": "179-domain-frontmatter-field",
         "implementingPaths": [
           {
             "name": "open_agentic_spec_types",
@@ -1712,6 +1712,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -2188,6 +2191,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -2358,6 +2364,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -2528,6 +2537,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -2698,6 +2710,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -2856,6 +2871,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -3026,6 +3044,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -3196,6 +3217,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -3366,6 +3390,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -3536,6 +3563,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -3706,6 +3736,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -3876,6 +3909,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -4046,6 +4082,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -4204,6 +4243,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -4374,6 +4416,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -4532,6 +4577,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -4702,6 +4750,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -4860,6 +4911,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -5030,6 +5084,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -5188,6 +5245,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -5358,6 +5418,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -5516,6 +5579,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -5686,6 +5752,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -5844,6 +5913,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -6014,6 +6086,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -6172,6 +6247,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -6342,6 +6420,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -6500,6 +6581,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -6670,6 +6754,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -6828,6 +6915,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -6998,6 +7088,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -7156,6 +7249,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -7326,6 +7422,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -7484,6 +7583,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -7654,6 +7756,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -7812,6 +7917,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -7982,6 +8090,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -8140,6 +8251,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -8310,6 +8424,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -8480,6 +8597,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -8638,6 +8758,9 @@
               },
               {
                 "file": "tools/spec-spine/registry-consumer/tests/spec154_units.rs"
+              },
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
               }
             ],
             "ownership": true,
@@ -21146,6 +21269,11 @@
           },
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": ".derived/codebase-index/CODEBASE-INDEX.md"
+              }
+            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -24920,6 +25048,9 @@
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/spec156_provenance_grammar.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs"
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
@@ -29626,6 +29757,9 @@
                 "file": "tools/spec-spine/spec-compiler/tests/spec156_provenance_grammar.rs"
               },
               {
+                "file": "tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs"
+              },
+              {
                 "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
               },
               {
@@ -29992,6 +30126,9 @@
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/spec156_provenance_grammar.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs"
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
@@ -38660,6 +38797,214 @@
           }
         ],
         "specId": "178-opc-directory-rename",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "000-bootstrap-spec-system"
+        ],
+        "dependsOn": [
+          "000",
+          "001",
+          "002",
+          "006",
+          "147"
+        ],
+        "implementingPaths": [
+          {
+            "path": "standards/schemas/spec-spine/registry.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/shared/spec-types/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/registry-consumer/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/registry-consumer/src/main.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-lint/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-lint/tests/spec179_domain_presence.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-lint/tests/spec179_domain_presence.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-lint/tests/spec179_domain_presence.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "standards/schemas/spec-spine/registry.schema.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "standards/schemas/spec-spine/registry.schema.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/shared/spec-types/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/shared/spec-types/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/registry-consumer/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/registry-consumer/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/registry-consumer/src/main.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/registry-consumer/src/main.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-compiler/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-compiler/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-lint/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-lint/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/147-spec-kind-grammar/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/147-spec-kind-grammar/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/156-references-edge-provenance-grammar/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/156-references-edge-provenance-grammar/spec.md"
+            }
+          }
+        ],
+        "specId": "179-domain-frontmatter-field",
         "specStatus": "approved"
       }
     ],

@@ -5,6 +5,7 @@ feature_branch: "002-registry-consumer-mvp"
 status: approved
 implementation: complete
 kind: platform
+domain: tooling
 created: "2026-03-22"
 authors:
   - "open-agentic-platform"

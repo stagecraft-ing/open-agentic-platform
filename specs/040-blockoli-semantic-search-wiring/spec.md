@@ -6,6 +6,7 @@ status: superseded
 implementation: n/a
 superseded_by: "073"
 kind: product
+domain: opc
 created: "2026-03-29"
 authors:
   - "open-agentic-platform"

@@ -26,6 +26,7 @@ depends_on:
   - "080"  # github-identity-onboarding
   - "082"  # artifact-integrity-platform-hardening
 kind: architecture
+domain: platform
 risk: high
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }

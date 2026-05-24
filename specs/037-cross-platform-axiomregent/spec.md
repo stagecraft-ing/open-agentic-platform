@@ -5,6 +5,7 @@ feature_branch: "037-cross-platform-axiomregent"
 status: approved
 implementation: complete
 kind: platform
+domain: opc
 created: "2026-03-29"
 authors:
   - "open-agentic-platform"

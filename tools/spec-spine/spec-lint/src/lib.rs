@@ -1,6 +1,8 @@
 //! Optional conformance warnings (Feature 006) — does not replace spec-compiler validation.
 
-use open_agentic_spec_types::{CONVENTIONAL_CATEGORIES, SHAPE_TABLE, split_frontmatter_optional};
+use open_agentic_spec_types::{
+    CONVENTIONAL_CATEGORIES, SHAPE_TABLE, VALID_DOMAINS, split_frontmatter_optional,
+};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -170,6 +172,53 @@ pub fn lint_feature_dir(repo_root: &Path, feature_dir: &Path) -> Vec<Warning> {
                         "shape value {shape:?} is not in the declared (kind, shape) table for kind={kind:?}; novel shape values must trigger an explicit table update per spec 147 §`shape:`"
                     ),
                 });
+            }
+        }
+        // ── Spec 179 — V-030 / V-031: `domain:` enum + presence ──
+        //
+        // V-030 (error): `domain:` present but not in the closed enum.
+        //   Re-emitted from spec-lint at the same severity as the
+        //   spec-compiler emission so contributors who run the linter
+        //   in isolation catch the same violation. Mirrors V-020's
+        //   dual-emission posture.
+        //
+        // V-031 (warning): `domain:` absent from frontmatter. Spec 179
+        //   §3.3 stages this at warning severity for Phase 1; a
+        //   follow-on amendment promotes to error once the backfilled
+        //   corpus is empirically clean.
+        match fm.get("domain") {
+            None => {
+                w.push(Warning {
+                    code: "V-031",
+                    severity: "warning",
+                    path: rel(repo_root, &spec_path),
+                    message: format!(
+                        "spec frontmatter is missing `domain:` (closed enum: {}); spec 179 establishes the tract-authority lens",
+                        VALID_DOMAINS.join(", ")
+                    ),
+                });
+            }
+            Some(value) => {
+                if let Some(d) = value.as_str() {
+                    if !VALID_DOMAINS.contains(&d) {
+                        w.push(Warning {
+                            code: "V-030",
+                            severity: "error",
+                            path: rel(repo_root, &spec_path),
+                            message: format!(
+                                "domain value {d:?} is not in the declared enum; expected one of: {}",
+                                VALID_DOMAINS.join(", ")
+                            ),
+                        });
+                    }
+                } else {
+                    w.push(Warning {
+                        code: "V-030",
+                        severity: "error",
+                        path: rel(repo_root, &spec_path),
+                        message: "domain value must be a single string from the closed enum (opc, platform, substrate, tooling); list and mapping forms are not accepted at this version (spec 179)".into(),
+                    });
+                }
             }
         }
 

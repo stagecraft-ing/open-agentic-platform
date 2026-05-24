@@ -9,6 +9,7 @@ created: "2026-05-24"
 approved: "2026-05-24"
 completed: "2026-05-24"
 kind: governance
+domain: tooling
 risk: medium
 depends_on:
   - "104"  # makefile-ci-parity-contract — Makefile/CI run-block mirror

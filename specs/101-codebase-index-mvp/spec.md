@@ -6,6 +6,7 @@ implementation: complete
 owner: bart
 created: "2026-04-14"
 kind: tooling
+domain: tooling
 amended: "2026-05-23"
 amendment_record: "self-amends — §2.4 (2026-05-23) adds the `orphans` subcommand that prints the `traceability.orphanedSpecs` list from `.derived/codebase-index/index.json` to stdout (newline-delimited by default, `--json` for a JSON array). Closes the gap surfaced when `/init` users asked for the orphan list and only the count was rendered."
 summary: >

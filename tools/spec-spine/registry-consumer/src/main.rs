@@ -45,6 +45,9 @@ enum Command {
         /// Filter by `category:` list membership (exact match against any list entry; spec 147 AC-006)
         #[arg(long)]
         category: Option<String>,
+        /// Filter by `domain:` frontmatter value (exact match; closed enum: opc, platform, substrate, tooling; spec 179)
+        #[arg(long, value_parser = clap::builder::PossibleValuesParser::new(["opc", "platform", "substrate", "tooling"]))]
+        domain: Option<String>,
         /// Emit filtered features as a JSON array (pretty-printed)
         #[arg(long, conflicts_with_all = ["compact", "ids_only"])]
         json: bool,
@@ -82,6 +85,9 @@ enum Command {
         /// Filter report to one lifecycle status
         #[arg(long, value_parser = clap::builder::PossibleValuesParser::new(KNOWN_STATUSES))]
         status: Option<String>,
+        /// Filter report to one tract domain (closed enum: opc, platform, substrate, tooling; spec 179)
+        #[arg(long, value_parser = clap::builder::PossibleValuesParser::new(["opc", "platform", "substrate", "tooling"]))]
+        domain: Option<String>,
     },
     /// Show outgoing and incoming relationships for a spec
     ShowRelationships {
@@ -181,6 +187,7 @@ fn main() -> ExitCode {
             kind,
             shape,
             category,
+            domain,
             json,
             compact,
             ids_only,
@@ -192,6 +199,7 @@ fn main() -> ExitCode {
                 kind: kind.as_deref(),
                 shape: shape.as_deref(),
                 category: category.as_deref(),
+                domain: domain.as_deref(),
             });
             if json || compact {
                 let raws: Vec<&serde_json::Value> = filtered.iter().map(|f| &f.raw).collect();
@@ -228,8 +236,12 @@ fn main() -> ExitCode {
             compact,
             nonzero_only,
             status,
+            domain,
         } => {
-            let mut report = registry.status_report();
+            let mut report = registry.status_report_filtered(FeatureFilter {
+                domain: domain.as_deref(),
+                ..Default::default()
+            });
             if let Some(status) = status {
                 report.retain(|(row_status, _, _)| row_status == &status);
             }

@@ -7,6 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-04-27"
 kind: platform
+domain: platform
 risk: medium
 depends_on:
   - "109"  # factory-pat-and-pubsub-sync (PubSub run-row + worker pattern this spec mirrors)

@@ -5,6 +5,7 @@ feature_branch: "058-file-mention-system"
 status: approved
 implementation: complete
 kind: ui
+domain: opc
 created: "2026-03-29"
 authors:
   - "open-agentic-platform"

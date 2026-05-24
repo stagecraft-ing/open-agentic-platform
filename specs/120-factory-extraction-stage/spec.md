@@ -8,6 +8,7 @@ owner: bart
 created: "2026-04-30"
 amended: "2026-04-30"
 kind: platform
+domain: platform
 risk: high
 summary: >
   Promote the orphan `crates/artifact-extract` to a canonical, deterministic

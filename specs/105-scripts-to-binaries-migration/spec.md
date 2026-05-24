@@ -6,6 +6,7 @@ implementation: complete
 owner: bart
 created: "2026-04-16"
 kind: migration
+domain: tooling
 risk: medium
 depends_on:
   - "000"  # bootstrap-spec-system

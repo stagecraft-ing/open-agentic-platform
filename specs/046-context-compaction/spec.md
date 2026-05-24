@@ -5,6 +5,7 @@ feature_branch: "046-context-compaction"
 status: approved
 implementation: complete
 kind: product
+domain: opc
 created: "2026-03-29"
 authors:
   - "open-agentic-platform"

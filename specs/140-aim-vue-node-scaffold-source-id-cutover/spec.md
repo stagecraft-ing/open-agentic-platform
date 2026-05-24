@@ -11,6 +11,7 @@ closed: "2026-05-06"
 amended: "2026-05-06"
 amendment_record: "141"
 kind: amendment
+domain: platform
 risk: low
 amends: ["139"]
 depends_on:

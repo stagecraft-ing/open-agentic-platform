@@ -5,6 +5,7 @@ feature_branch: "feat/075-factory-workflow-engine"
 status: approved
 implementation: complete
 kind: platform
+domain: platform
 created: "2026-04-04"
 authors: ["open-agentic-platform"]
 language: en

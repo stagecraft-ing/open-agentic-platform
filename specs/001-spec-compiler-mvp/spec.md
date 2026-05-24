@@ -5,6 +5,7 @@ feature_branch: "001-spec-compiler-mvp"
 status: approved
 implementation: complete
 kind: tooling
+domain: tooling
 created: "2026-03-22"
 closed: "2026-03-22"
 authors:

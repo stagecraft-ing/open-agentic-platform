@@ -5,6 +5,7 @@ feature_branch: "feat/086-open-source-launch"
 status: approved
 implementation: deferred
 kind: process
+domain: substrate
 created: "2026-04-08"
 authors:
   - "open-agentic-platform"

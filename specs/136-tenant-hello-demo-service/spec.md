@@ -8,6 +8,7 @@ created: "2026-05-04"
 approved: "2026-05-06"
 completed: "2026-05-17"
 kind: platform
+domain: platform
 risk: low
 depends_on:
   - "087"  # unified-workspace-architecture (stagecraft as the web governance plane)

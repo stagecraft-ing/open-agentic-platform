@@ -5,6 +5,7 @@ feature_branch: "066-vscode-extension"
 status: approved
 implementation: deferred
 kind: platform
+domain: opc
 created: "2026-03-31"
 authors:
   - "open-agentic-platform"

@@ -8,6 +8,7 @@ owner: bart
 created: "2026-05-10"
 closed: "2026-05-10"
 kind: tooling
+domain: platform
 risk: low
 depends_on:
   - "073"  # axiomregent-unification (axiomregent's hiqlite usage)

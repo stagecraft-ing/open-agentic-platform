@@ -5,6 +5,7 @@ feature_branch: "069-lifecycle-hook-runtime"
 status: approved
 implementation: complete
 kind: platform
+domain: opc
 created: "2026-03-31"
 authors: ["open-agentic-platform"]
 language: en

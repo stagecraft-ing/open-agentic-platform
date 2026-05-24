@@ -7,6 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: platform
+domain: platform
 risk: medium
 depends_on:
   - "074"  # factory-ingestion (Rust contract types)

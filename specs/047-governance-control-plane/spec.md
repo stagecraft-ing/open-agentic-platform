@@ -7,6 +7,7 @@ implementation: complete
 amended: "2026-05-02"
 amendment_record: "131-adversarial-prompt-refusal-policy"
 kind: platform
+domain: tooling
 created: "2026-03-29"
 authors:
   - "open-agentic-platform"
