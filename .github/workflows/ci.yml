@@ -1,0 +1,211 @@
+# Spec: 177-ci-orchestrator-pr-gate
+#
+# Single PR-time orchestrator. Branch protection's required check on
+# `main` is the terminal `ci-gate` job — every other PR-gate workflow
+# (the `ci-*.yml` fleet plus `spec-conformance.yml`) is reusable
+# (`workflow_call:`) and dispatched from here.
+#
+# Routing: a `changes` job runs dorny/paths-filter against the diff and
+# emits one boolean output per routed workflow. Each routed reusable is
+# gated on its filter; constitutional gates (spec 177 §2.2) skip the
+# filter and always run on PRs. The `ci-gate` aggregator treats `skipped`
+# as success — that's the entire point of conditional dispatch — and
+# fails the build on any upstream `failure` or `cancelled`.
+#
+# `ci-spec-code-coupling` is PR-only by design (spec 127 reads PR
+# base/head SHAs); the other always-on workflows run for push-to-main
+# too, mirroring their pre-spec-177 push-trigger coverage.
+
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # ─── route ─────────────────────────────────────────────────────────────
+  changes:
+    runs-on: ubuntu-latest
+    name: route / paths-filter
+    timeout-minutes: 5
+    outputs:
+      axiomregent: ${{ steps.f.outputs.axiomregent }}
+      crates: ${{ steps.f.outputs.crates }}
+      deployd_api_rs: ${{ steps.f.outputs.deployd_api_rs }}
+      desktop: ${{ steps.f.outputs.desktop }}
+      featuregraph: ${{ steps.f.outputs.featuregraph }}
+      orchestrator: ${{ steps.f.outputs.orchestrator }}
+      parity: ${{ steps.f.outputs.parity }}
+      policy_kernel: ${{ steps.f.outputs.policy_kernel }}
+      stagecraft: ${{ steps.f.outputs.stagecraft }}
+      tenant_hello: ${{ steps.f.outputs.tenant_hello }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: f
+        with:
+          filters: |
+            axiomregent:
+              - 'crates/axiomregent/**'
+              - 'crates/agent/**'
+              - 'crates/featuregraph/**'
+              - 'crates/xray/**'
+              - 'crates/run/**'
+              - 'crates/policy-kernel/**'
+              - '.github/workflows/ci-axiomregent.yml'
+            crates:
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'crates/**'
+              - 'tools/spec-spine/**'
+              - 'tools/oap/**'
+              - 'tools/shared/**'
+              - '.github/workflows/ci-crates.yml'
+            deployd_api_rs:
+              - 'platform/services/deployd-api-rs/**'
+              - 'platform/charts/**'
+              - '.github/workflows/ci-deployd-api-rs.yml'
+            desktop:
+              - 'product/apps/desktop/**'
+              - 'crates/**'
+              - 'product/packages/**'
+              - '.github/workflows/ci-desktop.yml'
+            featuregraph:
+              - 'specs/**'
+              - 'tools/spec-spine/spec-compiler/**'
+              - 'crates/featuregraph/**'
+              - '.github/workflows/ci-featuregraph-golden.yml'
+            orchestrator:
+              - 'crates/orchestrator/**'
+              - 'crates/provider-registry/**'
+              - 'crates/standards-loader/**'
+              - '.github/workflows/ci-orchestrator.yml'
+            parity:
+              - '.github/workflows/**'
+              - 'Makefile'
+              - 'tools/oap/ci-parity-check/**'
+            policy_kernel:
+              - 'crates/policy-kernel/**'
+              - '.github/workflows/ci-policy-kernel.yml'
+            stagecraft:
+              - 'platform/services/stagecraft/**'
+              - '.github/workflows/ci-stagecraft.yml'
+            tenant_hello:
+              - 'platform/services/tenant-hello/**'
+              - 'platform/charts/tenant-hello/**'
+              - '.github/workflows/ci-tenant-hello.yml'
+
+  # ─── routed by paths-filter ────────────────────────────────────────────
+  axiomregent:
+    needs: changes
+    if: needs.changes.outputs.axiomregent == 'true'
+    uses: ./.github/workflows/ci-axiomregent.yml
+
+  crates:
+    needs: changes
+    if: needs.changes.outputs.crates == 'true'
+    uses: ./.github/workflows/ci-crates.yml
+
+  deployd-api-rs:
+    needs: changes
+    if: needs.changes.outputs.deployd_api_rs == 'true'
+    uses: ./.github/workflows/ci-deployd-api-rs.yml
+
+  desktop:
+    needs: changes
+    if: needs.changes.outputs.desktop == 'true'
+    uses: ./.github/workflows/ci-desktop.yml
+
+  featuregraph-golden:
+    needs: changes
+    if: needs.changes.outputs.featuregraph == 'true'
+    uses: ./.github/workflows/ci-featuregraph-golden.yml
+
+  orchestrator:
+    needs: changes
+    if: needs.changes.outputs.orchestrator == 'true'
+    uses: ./.github/workflows/ci-orchestrator.yml
+
+  parity:
+    needs: changes
+    if: needs.changes.outputs.parity == 'true'
+    uses: ./.github/workflows/ci-parity.yml
+
+  policy-kernel:
+    needs: changes
+    if: needs.changes.outputs.policy_kernel == 'true'
+    uses: ./.github/workflows/ci-policy-kernel.yml
+
+  stagecraft:
+    needs: changes
+    if: needs.changes.outputs.stagecraft == 'true'
+    uses: ./.github/workflows/ci-stagecraft.yml
+
+  tenant-hello:
+    needs: changes
+    if: needs.changes.outputs.tenant_hello == 'true'
+    uses: ./.github/workflows/ci-tenant-hello.yml
+
+  # ─── constitutional (always-run, spec 177 §2.2) ────────────────────────
+  spec-conformance:
+    uses: ./.github/workflows/spec-conformance.yml
+
+  spec-code-coupling:
+    # PR-only: spec 127 reads PR base/head SHAs.
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/ci-spec-code-coupling.yml
+
+  supply-chain:
+    uses: ./.github/workflows/ci-supply-chain.yml
+
+  codebase-index:
+    uses: ./.github/workflows/ci-codebase-index.yml
+
+  # ─── aggregator ────────────────────────────────────────────────────────
+  ci-gate:
+    name: ci-gate
+    if: always()
+    needs:
+      - changes
+      - axiomregent
+      - crates
+      - deployd-api-rs
+      - desktop
+      - featuregraph-golden
+      - orchestrator
+      - parity
+      - policy-kernel
+      - stagecraft
+      - tenant-hello
+      - spec-conformance
+      - spec-code-coupling
+      - supply-chain
+      - codebase-index
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Aggregate upstream results
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          set -u
+          echo "$RESULTS"
+          # `failure` / `cancelled` block merge; `skipped` (path-filter said
+          # "don't run", or job opted out via its own `if:`) and `success`
+          # pass. The aggregator is the merge contract — keep it small.
+          if echo "$RESULTS" | jq -e '
+              to_entries
+              | map(.value.result)
+              | any(. == "failure" or . == "cancelled")
+            ' > /dev/null; then
+            echo "::error::one or more upstream jobs failed or were cancelled"
+            exit 1
+          fi
+          echo "all upstream jobs satisfied (success or skipped)"

@@ -1,4 +1,5 @@
 # Spec: 127-spec-code-coupling-workflow
+# Spec: 177-ci-orchestrator-pr-gate
 #
 # PR-time gate: every diff path's current authority spec (derived from
 # the relationship-graph per spec 130) must be edited in the same PR.
@@ -8,11 +9,15 @@
 # bypass.txt) are codified in spec 152 (path-co-authority) §3.2;
 # explicit waivers via `Spec-Drift-Waiver: <reason>` line in PR body
 # remain as the last-resort mechanism.
+#
+# Dispatched unconditionally from `.github/workflows/ci.yml` (spec 177
+# §2.2 constitutional carve-out) — spec 127's contract is "every PR" by
+# design.
 
 name: CI spec/code coupling
 
 on:
-  pull_request:
+  workflow_call:
   workflow_dispatch:
 
 permissions:

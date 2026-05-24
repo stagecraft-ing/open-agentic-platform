@@ -1,26 +1,21 @@
 # Spec: 001-spec-compiler-mvp
 # Spec: 002-registry-consumer-mvp
 # Spec: 006-conformance-lint-mvp
+# Spec: 177-ci-orchestrator-pr-gate
 #
 # Machine-check emitted JSON against Feature 000 schemas (see
 # specs/001-spec-compiler-mvp/tasks.md task T014). Plus registry-consumer
 # contract subsets, spec-lint, codebase-indexer compile + tests, and policy
 # compiler tests.
+#
+# Dispatched unconditionally from `.github/workflows/ci.yml` (spec 177
+# §2.2 constitutional carve-out) — spec-spine conformance is the
+# foundational gate.
 
 name: Spec conformance
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'tools/**'
-      - 'specs/**'
-      - '.derived/**'
-  pull_request:
-    paths:
-      - 'tools/**'
-      - 'specs/**'
-      - '.derived/**'
+  workflow_call:
   workflow_dispatch:
 
 permissions:

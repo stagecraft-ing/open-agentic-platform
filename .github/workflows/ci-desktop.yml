@@ -1,5 +1,6 @@
 # Spec: 037-cross-platform-axiomregent
 # Spec: 086-open-source-launch
+# Spec: 177-ci-orchestrator-pr-gate
 #
 # CI for OPC desktop app: Rust check/clippy/test + TypeScript check + vitest.
 #
@@ -9,21 +10,15 @@
 #     link-level / feature-flag drift on the two release targets that were
 #     previously only validated at tag time by release-desktop.yml.
 #   - M5: timeouts on every job.
+#
+# Dispatched from `.github/workflows/ci.yml` on PRs touching the desktop
+# app, the crates workspace, or product packages (spec 177); manual via
+# workflow_dispatch.
 
 name: CI Desktop
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'product/apps/desktop/**'
-      - 'crates/**'
-      - 'product/packages/**'
-  pull_request:
-    paths:
-      - 'product/apps/desktop/**'
-      - 'crates/**'
-      - 'product/packages/**'
+  workflow_call:
   workflow_dispatch:
 
 permissions:

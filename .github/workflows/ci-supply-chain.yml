@@ -1,5 +1,6 @@
 # Spec: 116-supply-chain-policy-gates
 # Spec: 158-workflow-ref-sha-pinning-lint (amends 116)
+# Spec: 177-ci-orchestrator-pr-gate
 #
 # Supply-chain gates: cargo-deny across every Rust manifest, pnpm/npm
 # audit at the package-manager layer, and workflow-ref SHA-pinning
@@ -10,34 +11,15 @@
 # original spec was collapsed on 2026-05-02 after a clean dry-run (zero
 # `--audit-level=high` findings across all three audits). See spec 116 §9.
 #
-# Cron: Monday 12:00 UTC pulls a fresh advisory-db even on a quiet week.
+# Dispatched unconditionally from `.github/workflows/ci.yml` (spec 177
+# §2.2 constitutional carve-out). Retains its own `schedule:` trigger so
+# the Monday 12:00 UTC advisory-db refresh fires independent of PR
+# activity.
 
 name: CI supply-chain
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '**/Cargo.toml'
-      - '**/Cargo.lock'
-      - '**/package.json'
-      - '**/pnpm-lock.yaml'
-      - '**/package-lock.json'
-      - 'deny.toml'
-      - '.github/workflows/**'
-      - '.github/actions/**'
-      - 'tools/lint/**'
-  pull_request:
-    paths:
-      - '**/Cargo.toml'
-      - '**/Cargo.lock'
-      - '**/package.json'
-      - '**/pnpm-lock.yaml'
-      - '**/package-lock.json'
-      - 'deny.toml'
-      - '.github/workflows/**'
-      - '.github/actions/**'
-      - 'tools/lint/**'
+  workflow_call:
   schedule:
     - cron: '0 12 * * 1'
   workflow_dispatch:

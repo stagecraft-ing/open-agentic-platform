@@ -1,22 +1,16 @@
 # Spec: 004-spec-to-execution-bridge-mvp
 # Spec: 044-multi-agent-orchestration
+# Spec: 177-ci-orchestrator-pr-gate
 #
 # CI for orchestrator: check, clippy, and test.
+# Dispatched from `.github/workflows/ci.yml` on PRs touching the
+# orchestrator crate or its provider/standards-loader siblings (spec
+# 177); manual via workflow_dispatch.
 
 name: CI orchestrator
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'crates/orchestrator/**'
-      - 'crates/provider-registry/**'
-      - 'crates/standards-loader/**'
-  pull_request:
-    paths:
-      - 'crates/orchestrator/**'
-      - 'crates/provider-registry/**'
-      - 'crates/standards-loader/**'
+  workflow_call:
   workflow_dispatch:
 
 permissions:
