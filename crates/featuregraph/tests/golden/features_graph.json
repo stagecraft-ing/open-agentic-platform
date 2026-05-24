@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:778e4f379b0f285c7c0a3660ea2d4db5bd7151d03ed96eab11d24deb919a5a10",
+  "graph_fingerprint": "sha256:e60c7cab1423f012869c5617889a1ccc25cad2876622aa279ef2667d30308ddb",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3330,6 +3330,23 @@
         "163",
         "164",
         "168"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "176-amends-aware-section-satisfaction-parity",
+      "title": "Amends-aware satisfaction parity between whole-file and section-scoped authority checks",
+      "spec_path": "specs/176-amends-aware-section-satisfaction-parity/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "133",
+        "152"
       ],
       "impl_files": [],
       "test_files": [],
