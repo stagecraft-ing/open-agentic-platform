@@ -58,6 +58,12 @@ setup: check-deps
 	@echo "==> Compiling codebase index..."
 	./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
 	@echo ""
+	@echo "==> Building OAP code-index enricher..."
+	cargo build --release --manifest-path tools/oap/oap-code-index-enrich/Cargo.toml --target-dir tools/oap/oap-code-index-enrich/target
+	@echo ""
+	@echo "==> Compiling OAP overlay (index-oap.json — required for /init's render step)..."
+	./tools/oap/oap-code-index-enrich/target/release/oap-code-index-enrich
+	@echo ""
 	@echo "==> Building registry-consumer (governed-read CLI for /init)..."
 	cargo build --release --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --target-dir tools/spec-spine/registry-consumer/target
 	@echo ""
