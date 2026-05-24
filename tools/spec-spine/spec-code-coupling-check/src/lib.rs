@@ -548,16 +548,18 @@ pub fn check_coupling_section_aware(
                     let key = (path.clone(), section_name.clone());
                     if let Some(section_spec_ids) = section_claims.get(&key) {
                         any_section_handled = true;
-                        let satisfied = section_spec_ids
-                            .iter()
-                            .any(|id| diff_paths.contains(&format!("specs/{id}/spec.md")));
-                        if !satisfied {
-                            let mut owners = OwnerSet::default();
-                            owners.implements.extend(section_spec_ids.iter().cloned());
+                        // Spec 176: section satisfaction routes through
+                        // the same OwnerSet composition as whole-file so
+                        // amender and amendment-record substitutes clear
+                        // a section identically to whole-file. Spec 133
+                        // §4's `A` ranges uniformly over both branches.
+                        let section_owners =
+                            legitimate_owners_for_section(section_spec_ids, index);
+                        if !section_owners.any_owner_in_diff(diff_paths) {
                             violations.push(Violation {
                                 path: path.clone(),
                                 section: Some(section_name.clone()),
-                                owners,
+                                owners: section_owners,
                             });
                         }
                     }
@@ -837,6 +839,61 @@ pub fn legitimate_owners(
     {
         if let Some(record) = &amended_mapping.amendment_record {
             owners.amendment_record.insert(record.clone());
+        }
+    }
+
+    owners
+}
+
+/// Spec 176: compose the section-scoped owner set for a given
+/// `(path, section)`, mirroring [`legitimate_owners`] for whole-file
+/// authority but keyed on the explicit `section_spec_ids` instead of
+/// the path's whole-file claim index. Reaches the same three source
+/// classes — direct `implements:`, amenders via `amends:`, and the
+/// amendment-record target via `amendmentRecord:` — so
+/// [`OwnerSet::any_owner_in_diff`] resolves section satisfaction
+/// identically to whole-file satisfaction (spec 133 §4 contract).
+///
+/// FR-005 strict-expansion is preserved by construction: this helper
+/// is only invoked from `check_coupling_section_aware` inside the
+/// branch that already located `section_spec_ids` for `(path,
+/// section)`, so empty section claims short-circuit upstream.
+pub fn legitimate_owners_for_section(
+    section_spec_ids: &BTreeSet<String>,
+    index: &CodebaseIndex,
+) -> OwnerSet {
+    let mut owners = OwnerSet {
+        implements: section_spec_ids.clone(),
+        ..Default::default()
+    };
+    if section_spec_ids.is_empty() {
+        return owners;
+    }
+
+    // Amenders of any section authority (spec 133 FR-001 generalised
+    // to the section-scoped authority set).
+    for mapping in &index.traceability.mappings {
+        if mapping
+            .amends
+            .iter()
+            .any(|id| section_spec_ids.contains(id))
+        {
+            owners.amends.insert(mapping.spec_id.clone());
+        }
+    }
+
+    // Amendment record on each section authority (spec 133 FR-002
+    // generalised to the section-scoped authority set).
+    for section_id in section_spec_ids {
+        if let Some(mapping) = index
+            .traceability
+            .mappings
+            .iter()
+            .find(|m| &m.spec_id == section_id)
+        {
+            if let Some(record) = &mapping.amendment_record {
+                owners.amendment_record.insert(record.clone());
+            }
         }
     }
 
@@ -1618,6 +1675,131 @@ mod tests {
             .collect();
         sections.sort();
         assert_eq!(sections, vec!["ci-fast", "spec-code-coupling"]);
+    }
+
+    /// Spec 176 AC-1: section-scoped authority is satisfied when an
+    /// amender of the section authority has its spec.md in the diff,
+    /// even though the section authority itself was not edited.
+    /// Mirrors the whole-file behaviour already established by spec
+    /// 133 FR-001.
+    #[test]
+    fn section_aware_amender_clears_section() {
+        // Spec 134 owns Makefile section `ci-fast` (the section authority).
+        let mut idx = index_claiming("134-fast-local-ci-mode", &["Makefile"]);
+        // Spec 999 is an amender of 134 — its mapping carries amends:[134].
+        idx.traceability.mappings.push(TraceMapping {
+            spec_id: "999-test-amender".to_string(),
+            spec_status: Some("approved".to_string()),
+            depends_on: Vec::new(),
+            amends: vec!["134-fast-local-ci-mode".to_string()],
+            amendment_record: None,
+            implementing_paths: Vec::new(),
+            resolved_units: Vec::new(),
+        });
+
+        let section_claims = section_claim_index(&[(
+            "Makefile",
+            "ci-fast",
+            &["134-fast-local-ci-mode"],
+        )]);
+        let hunks = hunk_map(&[("Makefile", &["ci-fast"])]);
+
+        // Diff edits Makefile + ONLY the amender's spec.md (NOT 134's own).
+        let diff = diffset(&["Makefile", "specs/999-test-amender/spec.md"]);
+
+        let outcome = check_coupling_section_aware(
+            &idx,
+            &diff,
+            &hunks,
+            &section_claims,
+            "",
+            &BypassConfig::default(),
+        );
+
+        assert!(
+            outcome.violations.is_empty(),
+            "amender of section authority should clear section; got: {:?}",
+            outcome.violations
+        );
+        assert_eq!(outcome.exit_code(), 0);
+    }
+
+    /// Spec 176 AC-2: section-scoped authority is satisfied when the
+    /// section authority's `amendmentRecord:` target has its spec.md
+    /// in the diff. Mirrors spec 133 FR-002 in the section branch.
+    #[test]
+    fn section_aware_amendment_record_clears_section() {
+        // Spec 134 owns Makefile section `ci-fast` AND carries
+        // amendment_record: 999-test-recorder (the reverse-link convention).
+        let mut idx = empty_index();
+        idx.traceability.mappings.push(TraceMapping {
+            spec_id: "134-fast-local-ci-mode".to_string(),
+            spec_status: Some("approved".to_string()),
+            depends_on: Vec::new(),
+            amends: Vec::new(),
+            amendment_record: Some("999-test-recorder".to_string()),
+            implementing_paths: vec![ImplementingPath {
+                path: "Makefile".to_string(),
+                name: None,
+                source: Some(TraceSource::SpecImplements),
+                primary: None,
+            }],
+            resolved_units: Vec::new(),
+        });
+        // The recorder spec itself, present in the corpus.
+        idx.traceability.mappings.push(TraceMapping {
+            spec_id: "999-test-recorder".to_string(),
+            spec_status: Some("approved".to_string()),
+            depends_on: Vec::new(),
+            amends: Vec::new(),
+            amendment_record: None,
+            implementing_paths: Vec::new(),
+            resolved_units: Vec::new(),
+        });
+
+        let section_claims = section_claim_index(&[(
+            "Makefile",
+            "ci-fast",
+            &["134-fast-local-ci-mode"],
+        )]);
+        let hunks = hunk_map(&[("Makefile", &["ci-fast"])]);
+
+        // Diff edits Makefile + the amendment-record TARGET's spec.md only.
+        let diff = diffset(&["Makefile", "specs/999-test-recorder/spec.md"]);
+
+        let outcome = check_coupling_section_aware(
+            &idx,
+            &diff,
+            &hunks,
+            &section_claims,
+            "",
+            &BypassConfig::default(),
+        );
+
+        assert!(
+            outcome.violations.is_empty(),
+            "amendment_record target of section authority should clear; got: {:?}",
+            outcome.violations
+        );
+        assert_eq!(outcome.exit_code(), 0);
+    }
+
+    /// Spec 176 AC-5: the section-scoped OwnerSet for a single direct
+    /// authority with no amenders carries empty amends/amendment_record
+    /// classes (FR-005 strict-expansion: pre-fix violation shape
+    /// preserved on the no-amender path).
+    #[test]
+    fn section_aware_owner_set_strict_expansion_when_no_amenders() {
+        let idx = index_claiming("134-fast-local-ci-mode", &["Makefile"]);
+        let mut section_ids = BTreeSet::new();
+        section_ids.insert("134-fast-local-ci-mode".to_string());
+
+        let owners = legitimate_owners_for_section(&section_ids, &idx);
+        assert_eq!(owners.implements.len(), 1);
+        assert!(owners.amends.is_empty(),
+            "FR-005: no amender should be enrolled when none exists");
+        assert!(owners.amendment_record.is_empty(),
+            "FR-005: no amendment_record should be enrolled when target absent");
     }
 
     /// Section-aware check preserves whole-file violation when no spec

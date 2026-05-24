@@ -7,6 +7,8 @@ implementation: complete
 owner: bart
 created: "2026-05-03"
 approved: "2026-05-19"
+amended: "2026-05-24"
+amendment_record: "176-amends-aware-section-satisfaction-parity"
 kind: governance
 risk: low
 depends_on:
@@ -37,6 +39,18 @@ summary: >
 ---
 
 # 133 — Coupling Gate
+
+> **Amended 2026-05-24 by spec 176 (`amends-aware-section-satisfaction-parity`,
+> `kind: amendment, shape: bug-fix`).** Spec 176 closes the
+> implementation gap between this spec's §4 satisfaction contract and
+> the section-scoped branch of `check_coupling_section_aware` in
+> `tools/spec-spine/spec-code-coupling-check/src/lib.rs`. The §4 prose
+> below was always meant to apply uniformly to both `authorities(P)`
+> and `authorities(P, S)`; spec 176 brings the runtime predicate into
+> parity. No contract change — the section-aware code path now reaches
+> all three OwnerSet classes (`implements`, `amends`,
+> `amendmentRecord`) via the same composition the whole-file branch
+> already uses.
 
 ## 1. Concern
 
