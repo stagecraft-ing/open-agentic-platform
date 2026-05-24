@@ -1,4 +1,5 @@
 # Spec: 034-featuregraph-registry-scanner-fix
+# Spec: 177-ci-orchestrator-pr-gate
 #
 # Featuregraph golden test — coverage workflow.
 #
@@ -28,17 +29,7 @@
 name: CI featuregraph golden
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'specs/**'
-      - 'tools/spec-spine/spec-compiler/**'
-      - 'crates/featuregraph/**'
-  pull_request:
-    paths:
-      - 'specs/**'
-      - 'tools/spec-spine/spec-compiler/**'
-      - 'crates/featuregraph/**'
+  workflow_call:
   workflow_dispatch:
 
 permissions:

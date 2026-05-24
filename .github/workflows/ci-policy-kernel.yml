@@ -1,17 +1,14 @@
 # Spec: 047-governance-control-plane
+# Spec: 177-ci-orchestrator-pr-gate
 #
 # CI for policy-kernel: check, clippy, and test.
+# Dispatched from `.github/workflows/ci.yml` on PRs touching the
+# policy-kernel crate (spec 177); manual via workflow_dispatch.
 
 name: CI policy-kernel
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'crates/policy-kernel/**'
-  pull_request:
-    paths:
-      - 'crates/policy-kernel/**'
+  workflow_call:
   workflow_dispatch:
 
 permissions:

@@ -1,23 +1,17 @@
 # Spec: 136-tenant-hello-demo-service
+# Spec: 177-ci-orchestrator-pr-gate
 #
 # CI for tenant-hello: PR-time Dockerfile + chart lint validation.
 # Mirrors the same context the CD workflow uses so build regressions
 # surface at PR review time rather than after merge.
+#
+# Dispatched from `.github/workflows/ci.yml` on PRs touching the
+# tenant-hello service or chart (spec 177); manual via workflow_dispatch.
 
 name: CI tenant-hello
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'platform/services/tenant-hello/**'
-      - 'platform/charts/tenant-hello/**'
-      - '.github/workflows/ci-tenant-hello.yml'
-  pull_request:
-    paths:
-      - 'platform/services/tenant-hello/**'
-      - 'platform/charts/tenant-hello/**'
-      - '.github/workflows/ci-tenant-hello.yml'
+  workflow_call:
   workflow_dispatch:
 
 permissions:

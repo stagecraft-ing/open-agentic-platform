@@ -1,5 +1,6 @@
 # Spec: 077-stagecraft-factory-api
 # Spec: 087-unified-workspace-architecture
+# Spec: 177-ci-orchestrator-pr-gate
 #
 # CI for stagecraft: type-check, test, and Encore docker build.
 #
@@ -12,17 +13,13 @@
 #     populate encore.gen) — full image is built by the parallel
 #     encore-build job.
 #   - M5: per-job timeout-minutes set on every job.
+#
+# Dispatched from `.github/workflows/ci.yml` on PRs touching the
+# stagecraft service (spec 177); manual via workflow_dispatch.
 
 name: CI stagecraft
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'platform/services/stagecraft/**'
-  pull_request:
-    paths:
-      - 'platform/services/stagecraft/**'
   workflow_call:
   workflow_dispatch:
 

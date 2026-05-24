@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:e60c7cab1423f012869c5617889a1ccc25cad2876622aa279ef2667d30308ddb",
+  "graph_fingerprint": "sha256:610150d8737896d96142d7c7571655687d243b3781a8db969182d7bfb2c02adc",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3347,6 +3347,28 @@
       "depends_on": [
         "133",
         "152"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "177-ci-orchestrator-pr-gate",
+      "title": "CI orchestrator — collapse PR-gate workflow fleet behind a single ci-gate",
+      "spec_path": "specs/177-ci-orchestrator-pr-gate/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "104",
+        "116",
+        "118",
+        "127",
+        "135",
+        "152",
+        "158"
       ],
       "impl_files": [],
       "test_files": [],

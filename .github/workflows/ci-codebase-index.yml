@@ -1,36 +1,20 @@
 # Spec: 101-codebase-index-mvp
 # Spec: 103-init-protocol-governed-reads
+# Spec: 177-ci-orchestrator-pr-gate
 #
 # Codebase-index staleness gate. The committed `.derived/codebase-index/index.json`
 # hashes inputs across crates/, product/, platform/services/**, and
 # tools/. This gate fails the build if any of those inputs changed without
 # `codebase-indexer compile` being re-run and the result committed.
 #
-# Why a dedicated workflow: spec-conformance.yml was the previous home, but
-# its path filter was scoped to tools/, specs/, build/ — so a PR adding a new
-# crate or renaming a package could land with a stale index. (Finding H2 in
-# the ci-hardening branch plan.)
+# Dispatched unconditionally from `.github/workflows/ci.yml` (spec 177
+# §2.2 constitutional carve-out) — the staleness invariant defends the
+# governed-read substrate and must run on every PR regardless of paths.
 
 name: CI codebase-index
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'crates/**'
-      - 'product/**'
-      - 'platform/services/**'
-      - 'tools/spec-spine/codebase-indexer/**'
-      - '.derived/codebase-index/**'
-      - 'specs/**'
-  pull_request:
-    paths:
-      - 'crates/**'
-      - 'product/**'
-      - 'platform/services/**'
-      - 'tools/spec-spine/codebase-indexer/**'
-      - '.derived/codebase-index/**'
-      - 'specs/**'
+  workflow_call:
   workflow_dispatch:
 
 permissions:

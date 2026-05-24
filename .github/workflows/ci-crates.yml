@@ -4,33 +4,21 @@
 # Spec: 054-agent-frontmatter-schema
 # Spec: 042-multi-provider-agent-registry
 # Spec: 135-fast-ci-as-default
+# Spec: 177-ci-orchestrator-pr-gate
 #
 # CI for the root Cargo workspace. Spec 135 FR-05 collapsed the previous
 # 7-element matrix into a single workspace job: `cargo --workspace
 # --manifest-path Cargo.toml` validates every workspace member
 # (crates/*, tools/spec-spine/*, tools/oap/*, tools/shared/*) in one
 # pass, closing the ghost-crate gap on the GitHub side.
+#
+# Dispatched from `.github/workflows/ci.yml` on PRs touching the root
+# workspace (spec 177); manual via workflow_dispatch.
 
 name: CI crates
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'crates/**'
-      - 'tools/spec-spine/**'
-      - 'tools/oap/**'
-      - 'tools/shared/**'
-  pull_request:
-    paths:
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'crates/**'
-      - 'tools/spec-spine/**'
-      - 'tools/oap/**'
-      - 'tools/shared/**'
+  workflow_call:
   workflow_dispatch:
 
 permissions:
