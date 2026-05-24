@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "53e1c6dbf4ca7a9490a1aa667bcfd9096db99e851bffdb6350f01397d2958b99",
+    "contentHash": "5ab885e585bae318826078210ca4781ac663f825a12123926d3a67f579b37f1b",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1356,6 +1356,7 @@
       "externalDeps": [
         "chrono",
         "clap",
+        "ignore",
         "jsonschema",
         "serde",
         "serde_json",
@@ -9168,9 +9169,6 @@
             "locations": [
               {
                 "file": "product/apps/opc/src-tauri/binaries/.gitignore"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin"
               }
             ],
             "ownership": true,
@@ -9601,9 +9599,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "product/packages/claude-code-bridge/.DS_Store"
-              },
-              {
                 "file": "product/packages/claude-code-bridge/package.json"
               },
               {
@@ -9667,9 +9662,6 @@
           {
             "kind": "crate",
             "locations": [
-              {
-                "file": "product/packages/prompt-assembly/.DS_Store"
-              },
               {
                 "file": "product/packages/prompt-assembly/package.json"
               },
@@ -9740,9 +9732,6 @@
           {
             "kind": "crate",
             "locations": [
-              {
-                "file": "product/packages/hookify-rule-engine/.DS_Store"
-              },
               {
                 "file": "product/packages/hookify-rule-engine/package.json"
               },
@@ -9881,9 +9870,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "product/packages/permission-system/.DS_Store"
-              },
-              {
                 "file": "product/packages/permission-system/package.json"
               },
               {
@@ -9958,13 +9944,7 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "product/packages/tool-renderer/.DS_Store"
-              },
-              {
                 "file": "product/packages/tool-renderer/package.json"
-              },
-              {
-                "file": "product/packages/tool-renderer/src/.DS_Store"
               },
               {
                 "file": "product/packages/tool-renderer/src/components/components.test.ts"
@@ -10071,9 +10051,6 @@
           {
             "kind": "crate",
             "locations": [
-              {
-                "file": "product/packages/worktree-agents/.DS_Store"
-              },
               {
                 "file": "product/packages/worktree-agents/package.json"
               },
@@ -10861,9 +10838,6 @@
                 "file": "product/apps/opc/src-tauri/binaries/.gitignore"
               },
               {
-                "file": "product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin"
-              },
-              {
                 "file": "product/apps/opc/src-tauri/build.rs"
               },
               {
@@ -10877,18 +10851,6 @@
               },
               {
                 "file": "product/apps/opc/src-tauri/entitlements.plist"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/opc/src-tauri/icons/128x128.png"
@@ -11991,9 +11953,6 @@
                 "file": "product/apps/opc/src-tauri/binaries/.gitignore"
               },
               {
-                "file": "product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin"
-              },
-              {
                 "file": "product/apps/opc/src-tauri/build.rs"
               },
               {
@@ -12007,18 +11966,6 @@
               },
               {
                 "file": "product/apps/opc/src-tauri/entitlements.plist"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/opc/src-tauri/icons/128x128.png"
@@ -13272,9 +13219,6 @@
             "kind": "crate",
             "locations": [
               {
-                "file": "product/packages/hookify-rule-engine/.DS_Store"
-              },
-              {
                 "file": "product/packages/hookify-rule-engine/package.json"
               },
               {
@@ -13493,9 +13437,6 @@
           {
             "kind": "directory",
             "locations": [
-              {
-                "file": "platform/infra/hetzner/.env.example"
-              },
               {
                 "file": "platform/infra/hetzner/.gitignore"
               },
@@ -14167,9 +14108,6 @@
                 "file": "product/apps/opc/src-tauri/binaries/.gitignore"
               },
               {
-                "file": "product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin"
-              },
-              {
                 "file": "product/apps/opc/src-tauri/build.rs"
               },
               {
@@ -14183,18 +14121,6 @@
               },
               {
                 "file": "product/apps/opc/src-tauri/entitlements.plist"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/opc/src-tauri/icons/128x128.png"
@@ -15912,9 +15838,6 @@
                 "file": "product/apps/opc/src-tauri/binaries/.gitignore"
               },
               {
-                "file": "product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin"
-              },
-              {
                 "file": "product/apps/opc/src-tauri/build.rs"
               },
               {
@@ -15928,18 +15851,6 @@
               },
               {
                 "file": "product/apps/opc/src-tauri/entitlements.plist"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/opc/src-tauri/icons/128x128.png"
@@ -21235,11 +21146,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": ".derived/codebase-index/CODEBASE-INDEX.md"
-              }
-            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -22280,9 +22186,6 @@
                 "file": "product/apps/opc/src-tauri/binaries/.gitignore"
               },
               {
-                "file": "product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin"
-              },
-              {
                 "file": "product/apps/opc/src-tauri/build.rs"
               },
               {
@@ -22296,18 +22199,6 @@
               },
               {
                 "file": "product/apps/opc/src-tauri/entitlements.plist"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/opc/src-tauri/icons/128x128.png"
@@ -37688,9 +37579,6 @@
                 "file": "product/apps/opc/src-tauri/binaries/.gitignore"
               },
               {
-                "file": "product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin"
-              },
-              {
                 "file": "product/apps/opc/src-tauri/build.rs"
               },
               {
@@ -37704,18 +37592,6 @@
               },
               {
                 "file": "product/apps/opc/src-tauri/entitlements.plist"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/acl-manifests.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/capabilities.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/desktop-schema.json"
-              },
-              {
-                "file": "product/apps/opc/src-tauri/gen/schemas/macOS-schema.json"
               },
               {
                 "file": "product/apps/opc/src-tauri/icons/128x128.png"

@@ -55,6 +55,9 @@ setup: check-deps
 	@echo "==> Building codebase indexer..."
 	cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
 	@echo ""
+	@echo "==> Fetching axiomregent sidecar binary (before index compile so the binary is present in the resolver's walk)..."
+	@$(MAKE) fetch-axiomregent-check || echo "  WARN: fetch failed. Run 'make axiomregent' to build from source."
+	@echo ""
 	@echo "==> Compiling codebase index..."
 	./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
 	@echo ""
@@ -66,9 +69,6 @@ setup: check-deps
 	@echo ""
 	@echo "==> Building registry-consumer (governed-read CLI for /init)..."
 	cargo build --release --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --target-dir tools/spec-spine/registry-consumer/target
-	@echo ""
-	@echo "==> Fetching axiomregent sidecar binary..."
-	@$(MAKE) fetch-axiomregent-check || echo "  WARN: fetch failed. Run 'make axiomregent' to build from source."
 	@echo ""
 	@echo "==> Setup complete. Run 'make dev' to start."
 

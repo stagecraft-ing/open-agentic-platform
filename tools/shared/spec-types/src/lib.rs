@@ -792,10 +792,19 @@ fn is_sha256_digest(s: &str) -> bool {
     s.len() == 64 && s.bytes().all(|c| c.is_ascii_hexdigit())
 }
 
-/// Standard exclusion set applied by the codebase-indexer's resolver
-/// when materialising a `crate:` or `directory:` unit into a glob
-/// (spec 154 §3.7). Owned here so consumers downstream of spec-compiler
-/// (codebase-indexer, coupling gate) share one truth.
+/// Baseline (contract-floor) exclusion set applied by the
+/// codebase-indexer's resolver when materialising a `crate:` or
+/// `directory:` unit into a glob (spec 154 §3.7). Owned here so
+/// consumers downstream of spec-compiler (codebase-indexer, coupling
+/// gate) share one truth.
+///
+/// Per the 2026-05-24 amendment to §3.7, the resolver also honors
+/// committed `.gitignore` files in the worktree (via
+/// `ignore::WalkBuilder` with `git_ignore(true).git_exclude(false)
+/// .git_global(false)`). This baseline list is preserved as a
+/// defensive floor for repos whose `.gitignore` omits the canonical
+/// build artifact directories — additions still require a spec
+/// amendment to §3.7.
 pub const RESOLVER_EXCLUSIONS: &[&str] = &[
     "target/**",
     "node_modules/**",

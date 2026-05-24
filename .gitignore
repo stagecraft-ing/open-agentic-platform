@@ -16,9 +16,10 @@ plans/
 Cargo.lock
 # Root workspace lockfile (spans 18 crates + 12 tools + tools/shared/spec-types).
 !/Cargo.lock
-# apps/desktop/src-tauri is a deliberately separate single-member workspace
-# (operator decision #1; SQLite linking isolation).
-!apps/desktop/src-tauri/Cargo.lock
+# product/apps/opc/src-tauri is a deliberately separate single-member workspace
+# (operator decision #1; SQLite linking isolation). Path updated by PR #224
+# (apps/desktop → product/apps/opc rename).
+!product/apps/opc/src-tauri/Cargo.lock
 # platform/services/deployd-api-rs is excluded from the root workspace
 # (operator decision #2; platform/ structurally untouched).
 !platform/services/deployd-api-rs/Cargo.lock

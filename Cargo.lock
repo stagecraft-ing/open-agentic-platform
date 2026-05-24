@@ -4607,6 +4607,7 @@ dependencies = [
  "chrono",
  "clap",
  "criterion 0.7.0",
+ "ignore",
  "jsonschema 0.46.5",
  "open_agentic_spec_types",
  "serde",

@@ -8,7 +8,7 @@ closed: "2026-05-22"
 owner: bart
 created: "2026-05-20"
 approved: "2026-05-20"
-amended: "2026-05-22"
+amended: "2026-05-24"
 amendment_record: "155-logical-unit-resolution-semantics"
 kind: governance
 risk: medium
@@ -328,7 +328,9 @@ backwards-compatibility window.
 ### 3.7 Standard exclusions
 
 The resolver applies these exclusions to every `crate:` and
-`directory:` glob:
+`directory:` glob.
+
+**Baseline list (contract floor):**
 
 - `target/**`
 - `node_modules/**`
@@ -337,8 +339,40 @@ The resolver applies these exclusions to every `crate:` and
 - `build/**` (legacy pre-`.derived/` artifact location)
 - `.next/**`
 
-The exclusion set is part of the resolver's contract. Additions
-require a spec amendment to this section.
+**`.gitignore` honoring (worktree-derived, additive):**
+
+The resolver also excludes any path matched by a `.gitignore` file
+**committed to the repository tree**. Per-clone and per-user exclusion
+sources are explicitly NOT honored, because they would make resolution
+non-deterministic across machines:
+
+- `.gitignore` files in the repository tree — **honored**
+- `.git/info/exclude` — NOT honored (per-clone, not committed)
+- Global `core.excludesFile` — NOT honored (per-user)
+- `.ignore` files (non-VCS, ripgrep-style convention) — NOT honored
+
+The implementation uses `ignore::WalkBuilder` configured with
+`git_ignore(true)`, `git_exclude(false)`, `git_global(false)`. The
+baseline list above remains the floor: even if a project's
+`.gitignore` does not include `target/` etc., the resolver still
+excludes them.
+
+The exclusion set is part of the resolver's contract. Additions to
+the baseline list require a spec amendment to this section. The
+`.gitignore`-honoring clause itself is the contract — what each
+consuming repo's `.gitignore` actually contains is repo-local and
+does not require a spec edit to evolve.
+
+*Amended 2026-05-24 — `.gitignore`-honoring clause added (committed
+files only; per-clone/per-user sources excluded by configuration).
+Drove this: macOS `.DS_Store`, fetched sidecar binaries under
+`product/apps/opc/src-tauri/binaries/`, and Tauri-generated
+`product/apps/opc/src-tauri/gen/schemas/*.json` were leaking into
+`index.json` `locations:` arrays based on the committer's local
+working-tree state, producing non-deterministic regeneration on every
+fresh `make setup`. The §3.7 baseline list is preserved unchanged as a
+defensive floor for repos whose `.gitignore` omits the canonical build
+artifact directories.*
 
 ## 4. The `references:` relationship — ninth edge, non-owning
 
