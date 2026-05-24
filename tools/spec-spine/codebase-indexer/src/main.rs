@@ -43,6 +43,18 @@ enum Command {
         #[arg(long)]
         repo: Option<PathBuf>,
     },
+    /// Print the `traceability.orphanedSpecs` list from index.json
+    /// (specs declaring no implementing paths). Newline-delimited by
+    /// default; `--json` emits a JSON array. Added by spec 101
+    /// self-amendment (2026-05-23).
+    Orphans {
+        /// Repository root (default: current directory)
+        #[arg(long)]
+        repo: Option<PathBuf>,
+        /// Emit a JSON array instead of newline-delimited ids
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 fn main() {
@@ -111,6 +123,39 @@ fn main() {
                 Err(e) => {
                     eprintln!(
                         "codebase-indexer: failed to read {}: {e}",
+                        path.display()
+                    );
+                    1
+                }
+            }
+        }
+        Command::Orphans { repo, json } => {
+            let root = repo.unwrap_or_else(|| std::env::current_dir().expect("cwd"));
+            let path = root.join(".derived/codebase-index/index.json");
+            match open_agentic_codebase_indexer::load(&path) {
+                Ok(index) => {
+                    let orphans = &index.traceability.orphaned_specs;
+                    if json {
+                        match serde_json::to_string(orphans) {
+                            Ok(s) => {
+                                println!("{s}");
+                                0
+                            }
+                            Err(e) => {
+                                eprintln!("codebase-indexer: failed to serialize orphans: {e}");
+                                1
+                            }
+                        }
+                    } else {
+                        for id in orphans {
+                            println!("{id}");
+                        }
+                        0
+                    }
+                }
+                Err(e) => {
+                    eprintln!(
+                        "codebase-indexer: failed to load {}: {e}",
                         path.display()
                     );
                     1
