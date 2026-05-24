@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "3ddcac9149810c04b3f2c8ec1fafda735f78fd34a7b2e0e56276074e128f4d10",
+    "contentHash": "5f2ca3c4025f1780175b4e933b303c959c53b5abfce5484633e6ff60fb7d6d7c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -11460,6 +11460,9 @@
                 "file": "product/apps/desktop/src/components/factory/GateDialog.tsx"
               },
               {
+                "file": "product/apps/desktop/src/components/factory/GateImpactSummary.tsx"
+              },
+              {
                 "file": "product/apps/desktop/src/components/factory/LiveAgentOutput.tsx"
               },
               {
@@ -11470,6 +11473,18 @@
               },
               {
                 "file": "product/apps/desktop/src/components/factory/PipelineSelector.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanActionGraph.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanCertificatePrediction.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanReviewDialog.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanStructuralDiff.tsx"
               },
               {
                 "file": "product/apps/desktop/src/components/factory/ProjectContextOverview.tsx"
@@ -11493,6 +11508,21 @@
                 "file": "product/apps/desktop/src/components/factory/TokenDashboard.tsx"
               },
               {
+                "file": "product/apps/desktop/src/components/factory/__tests__/FactoryPipelineContextPlan.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/GateImpactSummary.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanCertificatePrediction.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanRenderers.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanReviewDialog.test.tsx"
+              },
+              {
                 "file": "product/apps/desktop/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx"
               },
               {
@@ -11500,6 +11530,18 @@
               },
               {
                 "file": "product/apps/desktop/src/components/factory/__tests__/StageCdReview.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/planAnalysis.test.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/planTypes.test.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/planAnalysis.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/planTypes.ts"
               },
               {
                 "file": "product/apps/desktop/src/components/factory/types.ts"
@@ -12548,6 +12590,9 @@
                 "file": "product/apps/desktop/src/components/factory/GateDialog.tsx"
               },
               {
+                "file": "product/apps/desktop/src/components/factory/GateImpactSummary.tsx"
+              },
+              {
                 "file": "product/apps/desktop/src/components/factory/LiveAgentOutput.tsx"
               },
               {
@@ -12558,6 +12603,18 @@
               },
               {
                 "file": "product/apps/desktop/src/components/factory/PipelineSelector.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanActionGraph.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanCertificatePrediction.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanReviewDialog.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanStructuralDiff.tsx"
               },
               {
                 "file": "product/apps/desktop/src/components/factory/ProjectContextOverview.tsx"
@@ -12581,6 +12638,21 @@
                 "file": "product/apps/desktop/src/components/factory/TokenDashboard.tsx"
               },
               {
+                "file": "product/apps/desktop/src/components/factory/__tests__/FactoryPipelineContextPlan.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/GateImpactSummary.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanCertificatePrediction.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanRenderers.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanReviewDialog.test.tsx"
+              },
+              {
                 "file": "product/apps/desktop/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx"
               },
               {
@@ -12588,6 +12660,18 @@
               },
               {
                 "file": "product/apps/desktop/src/components/factory/__tests__/StageCdReview.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/planAnalysis.test.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/planTypes.test.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/planAnalysis.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/planTypes.ts"
               },
               {
                 "file": "product/apps/desktop/src/components/factory/types.ts"
@@ -14679,6 +14763,9 @@
                 "file": "product/apps/desktop/src/components/factory/GateDialog.tsx"
               },
               {
+                "file": "product/apps/desktop/src/components/factory/GateImpactSummary.tsx"
+              },
+              {
                 "file": "product/apps/desktop/src/components/factory/LiveAgentOutput.tsx"
               },
               {
@@ -14689,6 +14776,18 @@
               },
               {
                 "file": "product/apps/desktop/src/components/factory/PipelineSelector.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanActionGraph.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanCertificatePrediction.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanReviewDialog.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanStructuralDiff.tsx"
               },
               {
                 "file": "product/apps/desktop/src/components/factory/ProjectContextOverview.tsx"
@@ -14712,6 +14811,21 @@
                 "file": "product/apps/desktop/src/components/factory/TokenDashboard.tsx"
               },
               {
+                "file": "product/apps/desktop/src/components/factory/__tests__/FactoryPipelineContextPlan.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/GateImpactSummary.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanCertificatePrediction.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanRenderers.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanReviewDialog.test.tsx"
+              },
+              {
                 "file": "product/apps/desktop/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx"
               },
               {
@@ -14719,6 +14833,18 @@
               },
               {
                 "file": "product/apps/desktop/src/components/factory/__tests__/StageCdReview.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/planAnalysis.test.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/planTypes.test.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/planAnalysis.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/planTypes.ts"
               },
               {
                 "file": "product/apps/desktop/src/components/factory/types.ts"
@@ -16382,6 +16508,9 @@
                 "file": "product/apps/desktop/src/components/factory/GateDialog.tsx"
               },
               {
+                "file": "product/apps/desktop/src/components/factory/GateImpactSummary.tsx"
+              },
+              {
                 "file": "product/apps/desktop/src/components/factory/LiveAgentOutput.tsx"
               },
               {
@@ -16392,6 +16521,18 @@
               },
               {
                 "file": "product/apps/desktop/src/components/factory/PipelineSelector.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanActionGraph.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanCertificatePrediction.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanReviewDialog.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanStructuralDiff.tsx"
               },
               {
                 "file": "product/apps/desktop/src/components/factory/ProjectContextOverview.tsx"
@@ -16415,6 +16556,21 @@
                 "file": "product/apps/desktop/src/components/factory/TokenDashboard.tsx"
               },
               {
+                "file": "product/apps/desktop/src/components/factory/__tests__/FactoryPipelineContextPlan.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/GateImpactSummary.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanCertificatePrediction.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanRenderers.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanReviewDialog.test.tsx"
+              },
+              {
                 "file": "product/apps/desktop/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx"
               },
               {
@@ -16422,6 +16578,18 @@
               },
               {
                 "file": "product/apps/desktop/src/components/factory/__tests__/StageCdReview.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/planAnalysis.test.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/planTypes.test.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/planAnalysis.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/planTypes.ts"
               },
               {
                 "file": "product/apps/desktop/src/components/factory/types.ts"
@@ -22724,6 +22892,9 @@
                 "file": "product/apps/desktop/src/components/factory/GateDialog.tsx"
               },
               {
+                "file": "product/apps/desktop/src/components/factory/GateImpactSummary.tsx"
+              },
+              {
                 "file": "product/apps/desktop/src/components/factory/LiveAgentOutput.tsx"
               },
               {
@@ -22734,6 +22905,18 @@
               },
               {
                 "file": "product/apps/desktop/src/components/factory/PipelineSelector.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanActionGraph.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanCertificatePrediction.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanReviewDialog.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanStructuralDiff.tsx"
               },
               {
                 "file": "product/apps/desktop/src/components/factory/ProjectContextOverview.tsx"
@@ -22757,6 +22940,21 @@
                 "file": "product/apps/desktop/src/components/factory/TokenDashboard.tsx"
               },
               {
+                "file": "product/apps/desktop/src/components/factory/__tests__/FactoryPipelineContextPlan.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/GateImpactSummary.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanCertificatePrediction.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanRenderers.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanReviewDialog.test.tsx"
+              },
+              {
                 "file": "product/apps/desktop/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx"
               },
               {
@@ -22764,6 +22962,18 @@
               },
               {
                 "file": "product/apps/desktop/src/components/factory/__tests__/StageCdReview.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/planAnalysis.test.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/planTypes.test.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/planAnalysis.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/planTypes.ts"
               },
               {
                 "file": "product/apps/desktop/src/components/factory/types.ts"
@@ -35618,9 +35828,171 @@
           {
             "path": "product/apps/desktop/src/components/factory",
             "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/factory/FactoryPipelineContext.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/factory/FactoryPipelinePanel.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/factory/GateImpactSummary.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/factory/PlanActionGraph.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/factory/PlanCertificatePrediction.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/factory/PlanReviewDialog.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/factory/PlanStructuralDiff.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/factory/planAnalysis.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/factory/planTypes.ts",
+            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/components/factory/GateImpactSummary.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/factory/GateImpactSummary.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanActionGraph.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/factory/PlanActionGraph.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanCertificatePrediction.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/factory/PlanCertificatePrediction.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanReviewDialog.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/factory/PlanReviewDialog.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanStructuralDiff.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/factory/PlanStructuralDiff.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/components/factory/planAnalysis.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/factory/planAnalysis.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/components/factory/planTypes.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/factory/planTypes.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/components/factory/FactoryPipelineContext.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/factory/FactoryPipelineContext.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/components/factory/FactoryPipelinePanel.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/factory/FactoryPipelinePanel.tsx"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -35685,6 +36057,9 @@
                 "file": "product/apps/desktop/src/components/factory/GateDialog.tsx"
               },
               {
+                "file": "product/apps/desktop/src/components/factory/GateImpactSummary.tsx"
+              },
+              {
                 "file": "product/apps/desktop/src/components/factory/LiveAgentOutput.tsx"
               },
               {
@@ -35695,6 +36070,18 @@
               },
               {
                 "file": "product/apps/desktop/src/components/factory/PipelineSelector.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanActionGraph.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanCertificatePrediction.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanReviewDialog.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/PlanStructuralDiff.tsx"
               },
               {
                 "file": "product/apps/desktop/src/components/factory/ProjectContextOverview.tsx"
@@ -35718,6 +36105,21 @@
                 "file": "product/apps/desktop/src/components/factory/TokenDashboard.tsx"
               },
               {
+                "file": "product/apps/desktop/src/components/factory/__tests__/FactoryPipelineContextPlan.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/GateImpactSummary.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanCertificatePrediction.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanRenderers.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/PlanReviewDialog.test.tsx"
+              },
+              {
                 "file": "product/apps/desktop/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx"
               },
               {
@@ -35725,6 +36127,18 @@
               },
               {
                 "file": "product/apps/desktop/src/components/factory/__tests__/StageCdReview.test.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/planAnalysis.test.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/__tests__/planTypes.test.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/planAnalysis.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/components/factory/planTypes.ts"
               },
               {
                 "file": "product/apps/desktop/src/components/factory/types.ts"
@@ -35739,7 +36153,7 @@
           }
         ],
         "specId": "171-opc-structural-diff-plan-ui",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -36268,7 +36682,7 @@
           }
         ],
         "specId": "173-opc-multi-session-orchestrator-binding",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "implementingPaths": [],

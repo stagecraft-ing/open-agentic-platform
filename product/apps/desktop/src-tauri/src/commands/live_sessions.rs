@@ -73,6 +73,11 @@ pub struct LiveWorkflowRow {
     pub status: String,
     pub started_at: String,
     pub project_id: Option<String>,
+    /// Filesystem project-path (spec 173 FR-001).
+    pub project_path: Option<String>,
+    /// OPC session UUID that initiated this workflow — spec 172 §2.1
+    /// "Originating agent / session" column, provided by spec 173 FR-004.
+    pub originating_session: Option<String>,
     pub current_step_name: Option<String>,
     pub current_step_index: Option<u32>,
     pub current_step_started_at: Option<String>,
@@ -249,6 +254,8 @@ async fn collect_active_workflows() -> Result<Vec<LiveWorkflowRow>, String> {
             status: s.status,
             started_at: s.started_at,
             project_id: s.project_id,
+            project_path: s.project_path,
+            originating_session: s.originating_session,
             current_step_name: s.current_step_name,
             current_step_index: s.current_step_index,
             current_step_started_at: s.current_step_started_at,

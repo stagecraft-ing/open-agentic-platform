@@ -182,6 +182,7 @@ export const LiveSessionsSurface: React.FC<LiveSessionsSurfaceProps> = ({ projec
                   <th className="text-left px-3 py-2">Workflow</th>
                   <th className="text-left px-3 py-2">Status</th>
                   <th className="text-left px-3 py-2">Project</th>
+                  <th className="text-left px-3 py-2">Originating Session</th>
                   <th className="text-left px-3 py-2">Stage</th>
                   <th className="text-left px-3 py-2">Started</th>
                 </tr>
@@ -191,7 +192,12 @@ export const LiveSessionsSurface: React.FC<LiveSessionsSurfaceProps> = ({ projec
                   <tr key={w.workflowId} className="border-t">
                     <td className="px-3 py-2 font-mono text-xs">{w.workflowName}</td>
                     <td className="px-3 py-2 text-xs">{w.status}</td>
-                    <td className="px-3 py-2 text-xs">{w.projectId ?? '—'}</td>
+                    <td className="px-3 py-2 text-xs" title={w.projectPath ?? w.projectId ?? ''}>
+                      {w.projectPath ? shortPath(w.projectPath) : (w.projectId ?? '—')}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs" title={w.originatingSession ?? ''}>
+                      {w.originatingSession ? `${w.originatingSession.slice(0, 8)}…` : '—'}
+                    </td>
                     <td className="px-3 py-2 text-xs">
                       {w.currentStepName ? (
                         <>

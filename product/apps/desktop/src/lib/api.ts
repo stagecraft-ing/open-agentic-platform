@@ -62,6 +62,11 @@ export interface LiveWorkflowRow {
   status: string;
   startedAt: string;
   projectId?: string;
+  /** Filesystem project-path (spec 173 FR-001). */
+  projectPath?: string;
+  /** OPC session UUID that initiated this workflow — spec 172 §2.1
+   *  "Originating agent / session" column, provided by spec 173 FR-004. */
+  originatingSession?: string;
   currentStepName?: string;
   currentStepIndex?: number;
   currentStepStartedAt?: string;

@@ -120,7 +120,76 @@ impl HiqliteWorkflowStore {
             )
             .await;
 
+        // Migration: add project_path and originating_session columns for the
+        // OPC multi-session orchestrator binding (spec 173 FR-006). Idempotent
+        // via the same ALTER-and-ignore pattern as project_id above.
+        let _ = self
+            .client
+            .execute(
+                Cow::Borrowed("ALTER TABLE workflows ADD COLUMN project_path TEXT"),
+                vec![],
+            )
+            .await;
+        let _ = self
+            .client
+            .execute(
+                Cow::Borrowed("ALTER TABLE workflows ADD COLUMN originating_session TEXT"),
+                vec![],
+            )
+            .await;
+        // Index supporting spec 173 FR-003 (`workflows by-project-path` consumer surface).
+        let _ = self
+            .client
+            .execute(
+                Cow::Borrowed(
+                    "CREATE INDEX IF NOT EXISTS idx_workflows_project_path ON workflows(project_path)",
+                ),
+                vec![],
+            )
+            .await;
+
         Ok(())
+    }
+
+    /// List workflow summaries for a given filesystem `project_path`
+    /// (spec 173 FR-003, §2.2). Mirrors the SqliteWorkflowStore surface.
+    pub async fn list_workflows_by_project_path(
+        &self,
+        project_path: &str,
+        limit: Option<u32>,
+    ) -> Result<Vec<crate::state::WorkflowStateSummary>, OrchestratorError> {
+        let lim = limit.unwrap_or(50) as i64;
+        let rows: Vec<ProjectSummaryRow> = self
+            .client
+            .query_as(
+                "SELECT workflow_id, workflow_name, status, started_at, project_id,
+                        project_path, originating_session
+                 FROM workflows
+                 WHERE project_path = $1
+                 ORDER BY started_at DESC
+                 LIMIT $2",
+                vec![Param::Text(project_path.to_string()), Param::Integer(lim)],
+            )
+            .await
+            .map_err(|e| OrchestratorError::StatePersistence {
+                reason: format!("list_workflows_by_project_path: {e}"),
+            })?;
+        Ok(rows
+            .into_iter()
+            .map(|r| crate::state::WorkflowStateSummary {
+                workflow_id: r.workflow_id,
+                workflow_name: r.workflow_name,
+                status: r.status,
+                started_at: r.started_at,
+                project_id: r.project_id,
+                project_path: r.project_path,
+                originating_session: r.originating_session,
+                current_step_name: None,
+                current_step_index: None,
+                current_step_started_at: None,
+                step_count: None,
+            })
+            .collect())
     }
 
     /// List workflow summaries for a given project_id (099 Slice 5 (project-scoped per spec 119)).
@@ -133,7 +202,8 @@ impl HiqliteWorkflowStore {
         let rows: Vec<ProjectSummaryRow> = self
             .client
             .query_as(
-                "SELECT workflow_id, workflow_name, status, started_at, project_id
+                "SELECT workflow_id, workflow_name, status, started_at, project_id,
+                        project_path, originating_session
                  FROM workflows
                  WHERE project_id = $1
                  ORDER BY started_at DESC
@@ -152,6 +222,8 @@ impl HiqliteWorkflowStore {
                 status: r.status,
                 started_at: r.started_at,
                 project_id: r.project_id,
+                project_path: r.project_path,
+                originating_session: r.originating_session,
                 current_step_name: None,
                 current_step_index: None,
                 current_step_started_at: None,
@@ -188,15 +260,18 @@ impl WorkflowStore for HiqliteWorkflowStore {
 
         queries.push((
             Cow::Borrowed(
-                r#"INSERT INTO workflows (workflow_id, workflow_name, status, started_at, completed_at, metadata, project_id)
-                   VALUES ($1, $2, $3, $4, NULL, $5, $6)
+                r#"INSERT INTO workflows (workflow_id, workflow_name, status, started_at, completed_at, metadata,
+                                          project_id, project_path, originating_session)
+                   VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8)
                    ON CONFLICT(workflow_id) DO UPDATE SET
-                     workflow_name = excluded.workflow_name,
-                     status        = excluded.status,
-                     started_at    = excluded.started_at,
-                     completed_at  = excluded.completed_at,
-                     metadata      = excluded.metadata,
-                     project_id    = excluded.project_id"#,
+                     workflow_name       = excluded.workflow_name,
+                     status              = excluded.status,
+                     started_at          = excluded.started_at,
+                     completed_at        = excluded.completed_at,
+                     metadata            = excluded.metadata,
+                     project_id          = excluded.project_id,
+                     project_path        = excluded.project_path,
+                     originating_session = excluded.originating_session"#,
             ),
             vec![
                 Param::Text(wf_id_str.clone()),
@@ -207,6 +282,16 @@ impl WorkflowStore for HiqliteWorkflowStore {
                     .map(Param::Text)
                     .unwrap_or(Param::Null),
                 project_id
+                    .map(Param::Text)
+                    .unwrap_or(Param::Null),
+                state
+                    .project_path
+                    .clone()
+                    .map(Param::Text)
+                    .unwrap_or(Param::Null),
+                state
+                    .originating_session
+                    .clone()
                     .map(Param::Text)
                     .unwrap_or(Param::Null),
             ],
@@ -284,7 +369,9 @@ impl WorkflowStore for HiqliteWorkflowStore {
         let wf_rows: Vec<WorkflowRow> = self
             .client
             .query_as(
-                "SELECT workflow_name, status, started_at, completed_at, metadata FROM workflows WHERE workflow_id = $1",
+                "SELECT workflow_name, status, started_at, completed_at, metadata,
+                        project_path, originating_session
+                 FROM workflows WHERE workflow_id = $1",
                 vec![Param::Text(wf_id_str.clone())],
             )
             .await
@@ -366,6 +453,8 @@ impl WorkflowStore for HiqliteWorkflowStore {
             current_step_index: None,
             steps,
             metadata,
+            project_path: wf_row.project_path,
+            originating_session: wf_row.originating_session,
         }))
     }
 
@@ -529,6 +618,10 @@ struct ProjectSummaryRow {
     status: String,
     started_at: String,
     project_id: Option<String>,
+    #[serde(default)]
+    project_path: Option<String>,
+    #[serde(default)]
+    originating_session: Option<String>,
 }
 
 #[derive(serde::Deserialize)]
@@ -539,6 +632,10 @@ struct WorkflowRow {
     #[allow(dead_code)]
     completed_at: Option<String>,
     metadata: Option<String>,
+    #[serde(default)]
+    project_path: Option<String>,
+    #[serde(default)]
+    originating_session: Option<String>,
 }
 
 #[derive(serde::Deserialize)]
@@ -612,6 +709,7 @@ fn step_status_to_str(status: &StepExecutionStatus) -> &'static str {
         StepExecutionStatus::Completed => "completed",
         StepExecutionStatus::Failed => "failed",
         StepExecutionStatus::Skipped => "skipped",
+        StepExecutionStatus::CacheHit => "cache_hit",
     }
 }
 
@@ -622,6 +720,7 @@ fn step_status_from_str(s: &str) -> Result<StepExecutionStatus, &'static str> {
         "completed" => Ok(StepExecutionStatus::Completed),
         "failed" => Ok(StepExecutionStatus::Failed),
         "skipped" => Ok(StepExecutionStatus::Skipped),
+        "cache_hit" => Ok(StepExecutionStatus::CacheHit),
         _ => Err("unrecognized step status"),
     }
 }

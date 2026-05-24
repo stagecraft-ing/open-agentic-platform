@@ -239,6 +239,14 @@ pub struct DispatchOptions {
     /// Called with `(step_id, checkpoint_id)`, returns `Ok(merkle_root)` or an error.
     #[allow(clippy::type_complexity)]
     pub on_gate_checkpoint: Option<Arc<dyn Fn(&str, &str) -> Result<String, String> + Send + Sync>>,
+    /// Filesystem project-path identity inherited from the spec 157 OPC
+    /// session model. Identity key for spec 173 FR-001 / FR-002.
+    /// `None` when the workflow is initiated outside OPC.
+    pub project_path: Option<String>,
+    /// OPC session UUID that initiated this workflow (spec 173 trace field).
+    /// Consumed by spec 172's Live Sessions panel; not an identity key.
+    /// `None` when the workflow is initiated outside OPC.
+    pub originating_session: Option<String>,
 }
 
 /// Outcome of gate evaluation in the non-persisted dispatch path.
@@ -1537,6 +1545,10 @@ pub async fn dispatch_manifest_persisted(
         now_ts(),
         step_defs,
         wf_metadata,
+    )
+    .with_origin(
+        options.project_path.clone(),
+        options.originating_session.clone(),
     );
     wf_state.attach_gates_from_manifest(manifest);
 

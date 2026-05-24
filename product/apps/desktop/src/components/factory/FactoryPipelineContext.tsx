@@ -1,5 +1,7 @@
 // Spec: specs/076-factory-desktop-panel/spec.md
-// React context for Factory pipeline state management.
+// Extended by spec 171 (agent-plan-rendering aspect) for the
+// PlanReviewDialog primary surface: proposedPlan / certificateActual
+// state and propose/approve/reject/dismiss actions.
 
 import React, {
   createContext,
@@ -24,6 +26,8 @@ import {
   FactoryAgentOutputEvent,
   createInitialPipelineState,
 } from './types';
+import type { AgentPlan, CertificateActual } from './planTypes';
+import { hashPlan } from './planTypes';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -34,6 +38,13 @@ const MAX_AGENT_OUTPUT_LINES = 500;
 interface FactoryPipelineContextType {
   state: FactoryPipelineState;
   agentOutput: AgentOutputLine[];
+  /** Spec 171: the agent-proposed plan currently awaiting structural-
+   *  diff review, or null when no plan is pending. */
+  proposedPlan: AgentPlan | null;
+  /** Spec 171 FR-006: the actual governance certificate stage list
+   *  emitted after the most recent plan executed. Compared against
+   *  the prediction inside PlanReviewDialog. */
+  certificateActual: CertificateActual | null;
   startPipeline: (
     projectPath: string,
     adapterName: string,
@@ -52,6 +63,16 @@ interface FactoryPipelineContextType {
   loadPipelineStatus: (runId: string, projectPath?: string) => Promise<void>;
   loadArtifacts: (stepId: string) => Promise<ArtifactEntry[]>;
   dismissGate: () => void;
+  // ── Spec 171 — plan review surface ─────────────────────────────────
+  /** Surface a new agent-proposed plan. Replaces any pending plan. */
+  proposePlan: (plan: AgentPlan) => void;
+  /** Record an approved plan. The cockpit forwards the plan id + hash
+   *  to the audit trail; the actual dispatch is the caller's job. */
+  approvePlan: (planId: string, planHash: string) => void;
+  /** Record a rejected plan with the reason supplied by the human. */
+  rejectPlan: (planId: string, reason: string) => void;
+  /** Dismiss the plan-review dialog without recording an action. */
+  dismissPlan: () => void;
 }
 
 // ── Context creation ─────────────────────────────────────────────────────────
@@ -75,6 +96,13 @@ export const FactoryPipelineProvider: React.FC<{
     createInitialPipelineState,
   );
   const [agentOutput, setAgentOutput] = useState<AgentOutputLine[]>([]);
+  // Spec 171 plan-review state — kept outside FactoryPipelineState
+  // so the existing pipeline schema (owned by spec 076) stays
+  // untouched and the spec-code coupling gate sees the new state
+  // surface in the same module that registers the new tauri event.
+  const [proposedPlan, setProposedPlan] = useState<AgentPlan | null>(null);
+  const [certificateActual, setCertificateActual] =
+    useState<CertificateActual | null>(null);
 
   // ── Tauri event listeners ──────────────────────────────────────────────────
 
@@ -449,6 +477,30 @@ export const FactoryPipelineProvider: React.FC<{
         ),
       );
 
+      // factory:plan_proposed — spec 171. An agent surfaces a plan for
+      // structural-diff review. The payload IS the AgentPlan shape;
+      // PlanReviewDialog enriches and hashes it.
+      track(
+        await listen<AgentPlan>('factory:plan_proposed', (event) => {
+          setProposedPlan(event.payload);
+          // A new plan supersedes any leftover certificate-actual
+          // diff from the previous plan.
+          setCertificateActual(null);
+        }),
+      );
+
+      // factory:certificate_emitted — spec 171 FR-006. The actual
+      // governance-certificate stage list emitted by spec 102's
+      // pipeline; compared against the proposed plan's prediction.
+      track(
+        await listen<CertificateActual>(
+          'factory:certificate_emitted',
+          (event) => {
+            setCertificateActual(event.payload);
+          },
+        ),
+      );
+
       // factory:workflow_cancelled — backend confirms cancel; mirror to
       // 'failed' (no separate cancelled phase) and clear any open gate.
       track(
@@ -701,11 +753,69 @@ export const FactoryPipelineProvider: React.FC<{
     setState((prev) => ({ ...prev, gateAction: null }));
   }, []);
 
+  // ── Spec 171 — plan review actions ─────────────────────────────────
+
+  const proposePlan = useCallback((plan: AgentPlan): void => {
+    setProposedPlan(plan);
+    setCertificateActual(null);
+  }, []);
+
+  const approvePlan = useCallback(
+    (planId: string, planHash: string): void => {
+      setState((prev) => ({
+        ...prev,
+        auditTrail: [
+          ...prev.auditTrail,
+          {
+            timestamp: nowIso(),
+            action: 'stage_confirmed',
+            stageId: planId,
+            details: `plan approved hash=${planHash}`,
+          },
+        ],
+      }));
+      setProposedPlan(null);
+    },
+    [],
+  );
+
+  const rejectPlan = useCallback(
+    (planId: string, reason: string): void => {
+      setState((prev) => ({
+        ...prev,
+        auditTrail: [
+          ...prev.auditTrail,
+          {
+            timestamp: nowIso(),
+            action: 'stage_rejected',
+            stageId: planId,
+            feedback: reason,
+            details: 'plan rejected',
+          },
+        ],
+      }));
+      setProposedPlan(null);
+    },
+    [],
+  );
+
+  const dismissPlan = useCallback((): void => {
+    setProposedPlan(null);
+  }, []);
+
+  // Compile-time reference so the unused-import lint stays happy when
+  // the dialog renders the hash itself (PlanReviewDialog re-hashes
+  // internally for FR-008 stability). The reference also documents
+  // that the cockpit *can* compute the canonical hash before approve.
+  void hashPlan;
+
   // ── Context value ──────────────────────────────────────────────────────────
 
   const value: FactoryPipelineContextType = {
     state,
     agentOutput,
+    proposedPlan,
+    certificateActual,
     startPipeline,
     confirmStage,
     rejectStage,
@@ -716,6 +826,10 @@ export const FactoryPipelineProvider: React.FC<{
     loadPipelineStatus,
     loadArtifacts,
     dismissGate,
+    proposePlan,
+    approvePlan,
+    rejectPlan,
+    dismissPlan,
   };
 
   return (
