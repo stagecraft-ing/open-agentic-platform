@@ -4621,6 +4621,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "open_agentic_codification_gate"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tempfile",
+ "walkdir",
+]
+
+[[package]]
 name = "open_agentic_policy_compiler"
 version = "0.1.0"
 dependencies = [

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "a5cc11159ce154b2d1c5f2df5e8bf4cb5da8faac456b20fcbc572f917978aa01",
+    "contentHash": "bf2175b798da7593378d7002f25a9a9b97cfbd191e19524719e7a2be0e5534c3",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1194,6 +1194,25 @@
       "name": "open_agentic_ci_parity_check",
       "path": "tools/oap/ci-parity-check",
       "specRef": "104-makefile-ci-parity-contract",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde",
+        "serde_json",
+        "serde_yaml",
+        "walkdir"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_codification_gate",
+      "path": "tools/oap/codification-gate",
+      "specRef": "174-codification-gate",
       "version": "0.1.0"
     },
     {
@@ -11082,6 +11101,9 @@
                 "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh"
               },
               {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-codification.sh"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh"
               },
               {
@@ -12207,6 +12229,9 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-codification.sh"
               },
               {
                 "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh"
@@ -14445,6 +14470,9 @@
                 "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh"
               },
               {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-codification.sh"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh"
               },
               {
@@ -16200,6 +16228,9 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-codification.sh"
               },
               {
                 "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh"
@@ -22616,6 +22647,9 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh"
+              },
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-codification.sh"
               },
               {
                 "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh"
@@ -34869,6 +34903,9 @@
                 "file": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh"
               },
               {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-codification.sh"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh"
               },
               {
@@ -37323,8 +37360,113 @@
         "specStatus": "approved"
       },
       {
-        "implementingPaths": [],
+        "dependsOn": [
+          "033",
+          "047",
+          "073",
+          "121",
+          "127",
+          "166"
+        ],
+        "implementingPaths": [
+          {
+            "path": "product/apps/desktop/src-tauri/resources/claude-hooks.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/resources/claude-hooks/_lib.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-codification.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/resources/claude-hooks/tests/run-tests.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/codification-gate",
+            "source": "multiple"
+          }
+        ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "tools/oap/codification-gate/Cargo.toml"
+              },
+              {
+                "file": "tools/oap/codification-gate/src/lib.rs"
+              },
+              {
+                "file": "tools/oap/codification-gate/src/main.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "tools/oap/codification-gate"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-codification.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-codification.sh"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/resources/claude-hooks.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/_lib.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/resources/claude-hooks/_lib.sh"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/resources/claude-hooks/tests/run-tests.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/resources/claude-hooks/tests/run-tests.sh"
+            }
+          },
           {
             "kind": "directory",
             "locations": [
@@ -37717,7 +37859,7 @@
           }
         ],
         "specId": "174-codification-gate",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [
@@ -37727,8 +37869,7 @@
       "148-auth-driver-registry",
       "149-saml-auth-driver",
       "150-example-tenant-profile",
-      "157-opc-session-model",
-      "174-codification-gate"
+      "157-opc-session-model"
     ],
     "untracedCode": [
       "crates/canonical-json",

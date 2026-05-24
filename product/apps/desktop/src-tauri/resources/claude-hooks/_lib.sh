@@ -83,6 +83,9 @@ oap_locate_binary() {
     spec-code-coupling-check)
       candidates+=("$root/tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check")
       ;;
+    codification-gate)
+      candidates+=("$root/tools/oap/codification-gate/target/release/codification-gate")
+      ;;
     workflow-pins.sh)
       candidates+=("$root/tools/lint/workflow-pins.sh")
       ;;
