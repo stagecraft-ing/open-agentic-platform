@@ -326,3 +326,8 @@ by the orchestrated-workflow protocol via
 `gate_spec_code_coherence` function to `crates/policy-kernel/` if call-
 time blocking becomes desirable; the present amendment limits change
 to the compiler's gate vocabulary.
+
+**Amendment 2026-05-24 (record: 178-opc-directory-rename).**
+Spec 178 (opc-directory-rename, 2026-05-24): mechanical path rename
+`product/apps/desktop/*` → `product/apps/opc/*`. No semantic change
+to this spec's claims; owned paths inherit the new prefix.

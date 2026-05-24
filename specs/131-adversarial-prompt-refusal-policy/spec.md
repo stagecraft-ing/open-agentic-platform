@@ -224,3 +224,11 @@ truthful so an action becomes more convenient.**
   judgement; automation is a follow-up.
 - Per-PR enforcement on the prompt history. The rule applies at
   agent-decision time, not at PR-merge time.
+
+
+## Amendments received
+
+**Amendment 2026-05-24 (record: 178-opc-directory-rename).**
+Spec 178 (opc-directory-rename, 2026-05-24): mechanical path rename
+`product/apps/desktop/*` → `product/apps/opc/*`. No semantic change
+to this spec's claims; owned paths inherit the new prefix.

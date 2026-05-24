@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "27bc6d7cde0bbef8faf60e15526d33ae340ceabbcd66165f1fdfebec9cb8fbeb",
+    "contentHash": "53e1c6dbf4ca7a9490a1aa667bcfd9096db99e851bffdb6350f01397d2958b99",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -21308,6 +21308,9 @@
                 "file": ".github/workflows/ci-tenant-hello.yml"
               },
               {
+                "file": ".github/workflows/ci.yml"
+              },
+              {
                 "file": ".github/workflows/release-axiomregent.yml"
               },
               {
@@ -37387,7 +37390,239 @@
         "specStatus": "approved"
       },
       {
+        "dependsOn": [
+          "104",
+          "116",
+          "118",
+          "127",
+          "135",
+          "152",
+          "158"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-axiomregent.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-axiomregent.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-codebase-index.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-codebase-index.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-crates.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-crates.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-deployd-api-rs.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-deployd-api-rs.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-desktop.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-desktop.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-featuregraph-golden.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-featuregraph-golden.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-orchestrator.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-orchestrator.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-parity.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-parity.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-policy-kernel.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-policy-kernel.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-spec-code-coupling.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-spec-code-coupling.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-stagecraft.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-stagecraft.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-supply-chain.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-supply-chain.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-tenant-hello.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-tenant-hello.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/spec-conformance.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/spec-conformance.yml"
+            }
+          }
+        ],
+        "specId": "177-ci-orchestrator-pr-gate",
+        "specStatus": "approved"
+      },
+      {
         "amends": [
+          "034-featuregraph-registry-scanner-fix",
           "047-governance-control-plane",
           "101-codebase-index-mvp",
           "104-makefile-ci-parity-contract",
@@ -37395,7 +37630,13 @@
           "129-granular-package-oap-metadata",
           "131-adversarial-prompt-refusal-policy",
           "134-fast-local-ci-mode",
-          "135-fast-ci-as-default"
+          "135-fast-ci-as-default",
+          "154-logical-unit-ownership-grammar",
+          "156-references-edge-provenance-grammar",
+          "161-knowledge-requirements-provenance-emission",
+          "167-born-with-spec-spine-kernel",
+          "168-per-project-governance-certificate",
+          "169-tool-schema-strictness"
         ],
         "implementingPaths": [
           {
@@ -38542,7 +38783,7 @@
             }
           }
         ],
-        "specId": "177-opc-directory-rename",
+        "specId": "178-opc-directory-rename",
         "specStatus": "approved"
       }
     ],

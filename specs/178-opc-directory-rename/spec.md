@@ -18,6 +18,7 @@ extends:
     nature: additive
     unit: { kind: directory, path: product/apps/opc }
 amends:
+  - "034-featuregraph-registry-scanner-fix"
   - "047-governance-control-plane"
   - "101-codebase-index-mvp"
   - "104-makefile-ci-parity-contract"
@@ -26,6 +27,12 @@ amends:
   - "131-adversarial-prompt-refusal-policy"
   - "134-fast-local-ci-mode"
   - "135-fast-ci-as-default"
+  - "154-logical-unit-ownership-grammar"
+  - "156-references-edge-provenance-grammar"
+  - "161-knowledge-requirements-provenance-emission"
+  - "167-born-with-spec-spine-kernel"
+  - "168-per-project-governance-certificate"
+  - "169-tool-schema-strictness"
 amends_sections: []
 references:
   - role: brief
