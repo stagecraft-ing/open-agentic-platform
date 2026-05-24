@@ -1,6 +1,11 @@
 // Spec: specs/076-factory-desktop-panel/spec.md
 // Spec 112 §6.3 — bundle prop carries the stagecraft handoff context.
 // Top-level Factory pipeline panel registered in TabContent.
+//
+// Spec 171: the panel also renders the PlanReviewDialog when an
+// agent-proposed plan is pending review. The dialog is the primary
+// action surface for plan approval; the structural diff + action
+// graph leads, the agent narrative is demoted to a collapsed pane.
 
 import React, { useCallback, useState } from 'react';
 import { FolderOpen, History, Layers } from 'lucide-react';
@@ -19,6 +24,7 @@ import { PipelineHistory } from './PipelineHistory';
 import { ProjectContextOverview } from './ProjectContextOverview';
 import { FactoryProjectPicker } from './FactoryProjectPicker';
 import { LiveAgentOutput } from './LiveAgentOutput';
+import { PlanReviewDialog } from './PlanReviewDialog';
 
 // ── Status badge ─────────────────────────────────────────────────────────────
 
@@ -56,7 +62,15 @@ function FactoryPipelinePanelInner({
   bundle?: OpcBundle;
   onOpenProject: (path: string, bundle: OpcBundle) => void;
 }) {
-  const { state, agentOutput } = useFactoryPipeline();
+  const {
+    state,
+    agentOutput,
+    proposedPlan,
+    certificateActual,
+    approvePlan,
+    rejectPlan,
+    dismissPlan,
+  } = useFactoryPipeline();
   const [view, setView] = useState<PanelView>('pipeline');
   const [showPicker, setShowPicker] = useState(false);
 
@@ -246,6 +260,19 @@ function FactoryPipelinePanelInner({
 
       {/* Gate dialog overlay */}
       {state.gateAction !== null && <GateDialog />}
+
+      {/* Spec 171 — Plan review overlay (primary action surface for
+          agent-proposed plans). Renders only when a plan is pending;
+          the dialog itself enforces approval-via-traversal. */}
+      {proposedPlan !== null && (
+        <PlanReviewDialog
+          plan={proposedPlan}
+          certificateActual={certificateActual ?? undefined}
+          onApprove={approvePlan}
+          onReject={rejectPlan}
+          onDismiss={dismissPlan}
+        />
+      )}
     </div>
   );
 }
