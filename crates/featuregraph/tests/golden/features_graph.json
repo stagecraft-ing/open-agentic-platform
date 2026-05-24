@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:f499e6c9108d1764294d919f4746f12918c0ef00261cf65d40afcc76690c65eb",
+  "graph_fingerprint": "sha256:82d9273d63d7c2ca5080b8b2192bf7607fe7965e240922b27878ff3be06e827c",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3294,8 +3294,8 @@
       "feature_id": "174-codification-gate",
       "title": "Codification gate — every CRITICAL/HIGH finding writes itself into the spec spine before closure",
       "spec_path": "specs/174-codification-gate/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",
@@ -4165,6 +4165,13 @@
       "severity": "error",
       "path": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh",
       "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain (FR-002)",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-codification.sh",
+      "message": "Malformed Spec directive: # Spec: 174-codification-gate (FR-001, FR-008)",
       "suggested_fix": "Fix header format"
     },
     {
