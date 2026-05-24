@@ -6,8 +6,8 @@ implementation: complete
 owner: bart
 created: "2026-04-14"
 kind: tooling
-amended: "2026-05-22"
-amendment_record: "160-factory-adapter-stagecraft-relocation"
+amended: "2026-05-23"
+amendment_record: "self-amends — §2.4 (2026-05-23) adds the `orphans` subcommand that prints the `traceability.orphanedSpecs` list from `.derived/codebase-index/index.json` to stdout (newline-delimited by default, `--json` for a JSON array). Closes the gap surfaced when `/init` users asked for the orphan list and only the count was rendered."
 summary: >
   A deterministic indexer tool that walks the repository tree, parses manifest files
   and spec frontmatter, and emits a governed .derived/codebase-index/index.json artifact.
@@ -220,6 +220,12 @@ Subcommands:
 - `codebase-indexer compile` — full index, emits `index.json` + `build-meta.json`
 - `codebase-indexer render` — emits `CODEBASE-INDEX.md` from existing `index.json`
 - `codebase-indexer check` — exits non-zero if `index.json` is stale vs current tree
+- `codebase-indexer orphans` — prints the `traceability.orphanedSpecs` list from
+  `index.json` (newline-delimited by default; `--json` emits a JSON array). Added
+  by the 2026-05-23 self-amendment to close the gap between the count rendered in
+  the L2 header and the actual list, which previously required ad-hoc JSON
+  parsing — a governed-artifact-reads (spec 103) violation in any orchestrated
+  workflow.
 
 ### 2.5 CI Integration
 

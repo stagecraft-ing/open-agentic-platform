@@ -18,6 +18,8 @@ establishes:
 refines:
   - aspect: "governed-reads"
     unit: { kind: file, path: AGENTS.md }
+amended: "2026-05-23"
+amendment_record: "self-amends — Consumer Binaries table (2026-05-23) refreshed to advertise the new `codebase-indexer orphans` subcommand landed in spec 101's 2026-05-23 self-amendment. The principle is unchanged; the table is the orchestrator-facing index of available governed-read verbs and must track new subcommands as they land."
 summary: >
   Replace ad-hoc parsing of compiled JSON artifacts in orchestrated workflows
   (starting with /init) with governed reads through the consumer binaries

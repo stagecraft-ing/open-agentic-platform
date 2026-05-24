@@ -94,6 +94,56 @@ fn check_exits_zero_when_fresh() {
 // shrunk in step with the generic indexer's surface.
 
 #[test]
+fn orphans_exits_zero_and_emits_lines() {
+    let exe = indexer_exe();
+    let scratch = mirror_repo();
+
+    // First compile to ensure index exists
+    let status = Command::new(&exe)
+        .arg("compile")
+        .arg("--repo")
+        .arg(scratch.path())
+        .status()
+        .expect("spawn compile");
+    assert!(status.success());
+
+    // Newline-delimited output
+    let out = Command::new(&exe)
+        .arg("orphans")
+        .arg("--repo")
+        .arg(scratch.path())
+        .output()
+        .expect("spawn orphans");
+    assert!(out.status.success(), "orphans should exit 0");
+    let lines = String::from_utf8_lossy(&out.stdout);
+    for line in lines.lines() {
+        assert!(
+            !line.trim().is_empty() && !line.starts_with('['),
+            "expected bare spec ids, got line: {line:?}"
+        );
+    }
+
+    // JSON output
+    let out = Command::new(&exe)
+        .arg("orphans")
+        .arg("--repo")
+        .arg(scratch.path())
+        .arg("--json")
+        .output()
+        .expect("spawn orphans --json");
+    assert!(out.status.success(), "orphans --json should exit 0");
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let parsed: Vec<String> =
+        serde_json::from_str(stdout.trim()).expect("orphans --json must emit a JSON array");
+    let line_count = lines.lines().filter(|l| !l.trim().is_empty()).count();
+    assert_eq!(
+        parsed.len(),
+        line_count,
+        "json count must match line count"
+    );
+}
+
+#[test]
 fn compile_exits_nonzero_on_missing_repo() {
     let exe = indexer_exe();
     let status = Command::new(&exe)
