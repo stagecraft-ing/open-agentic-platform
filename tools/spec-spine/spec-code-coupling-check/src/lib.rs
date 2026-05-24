@@ -862,8 +862,10 @@ pub fn legitimate_owners_for_section(
     section_spec_ids: &BTreeSet<String>,
     index: &CodebaseIndex,
 ) -> OwnerSet {
-    let mut owners = OwnerSet::default();
-    owners.implements = section_spec_ids.clone();
+    let mut owners = OwnerSet {
+        implements: section_spec_ids.clone(),
+        ..Default::default()
+    };
     if section_spec_ids.is_empty() {
         return owners;
     }
