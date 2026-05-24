@@ -9,6 +9,9 @@ created: "2026-05-24"
 kind: governance
 domain: substrate
 risk: low
+amends:
+  - "034-featuregraph-registry-scanner-fix"
+amends_sections: []
 depends_on:
   - "002"  # registry-consumer-mvp (the resolver this spec refines)
   - "130"  # spec-relationship-graph (typed edges this spec must consume; canonical mixed-shape exemplar)

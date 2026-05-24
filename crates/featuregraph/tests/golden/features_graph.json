@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:74032cc3b1429071a0940e3c4b03ab8a8320e6518a15604d4478e1903ca92bb6",
+  "graph_fingerprint": "sha256:f56ea67c080a63055ffd94376f48ecdb2e3d24c0f9cd6fb7aaa781a3fbf9cd97",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3403,6 +3403,27 @@
         "002",
         "006",
         "147"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "181-registry-consumer-unit-grammar-authority",
+      "title": "registry-consumer authority resolver — unit-grammar parity with spec 154",
+      "spec_path": "specs/181-registry-consumer-unit-grammar-authority/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "002",
+        "130",
+        "152",
+        "154",
+        "155",
+        "180"
       ],
       "impl_files": [],
       "test_files": [],
