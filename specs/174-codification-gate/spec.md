@@ -2,8 +2,8 @@
 id: "174-codification-gate"
 slug: codification-gate
 title: "Codification gate — every CRITICAL/HIGH finding writes itself into the spec spine before closure"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: governance
@@ -16,6 +16,22 @@ depends_on:
   - "127"  # spec-code-coupling-gate
   - "166"  # opc-stop-hook-gate-chain (this gate runs as a Stop hook entry)
 code_aliases: ["CODIFICATION_GATE", "FINDING_IN_SPEC_REQUIRED"]
+establishes:
+  - unit: { kind: directory, path: tools/oap/codification-gate }
+  - unit: { kind: file, path: product/apps/desktop/src-tauri/resources/claude-hooks/stop-codification.sh }
+extends:
+  # The spec 166 chain is the host surface. Spec 174 adds a fourth Stop
+  # entry (stop-codification) and registers codification-gate in the
+  # shared binary-locator. No behavioural change to the existing chain.
+  - spec: "166-opc-stop-hook-gate-chain"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/resources/claude-hooks.json }
+  - spec: "166-opc-stop-hook-gate-chain"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/resources/claude-hooks/_lib.sh }
+  - spec: "166-opc-stop-hook-gate-chain"
+    nature: additive
+    unit: { kind: file, path: product/apps/desktop/src-tauri/resources/claude-hooks/tests/run-tests.sh }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

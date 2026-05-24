@@ -46,15 +46,19 @@ assert_contains() {
 
 # Make a synthetic OAP project rooted at $1 with mock binaries on PATH.
 # Args: project_root, exit_code_for_indexer, exit_code_for_spec_lint,
-#       exit_code_for_coupling, exit_code_for_workflow_pins.
-# Each "exit code" arg is one of: 0, 1, missing (=binary absent), workflows
-# (=create workflow yml in tree).
+#       exit_code_for_coupling, exit_code_for_workflow_pins,
+#       [optional] exit_code_for_codification_gate.
+# Each "exit code" arg is one of: 0, 1, 2, missing (=binary absent),
+# workflows (=create workflow yml in tree).
+# The codification-gate slot defaults to "missing" so legacy callers are
+# unaffected.
 make_project() {
   local root="$1"
   local idx_rc="$2"
   local sl_rc="$3"
   local cp_rc="$4"
   local wp_mode="$5"
+  local cg_rc="${6:-missing}"
 
   mkdir -p "$root/specs" "$root/.derived/spec-registry" "$root/.derived/codebase-index"
   printf '{}' > "$root/.derived/spec-registry/registry.json"
@@ -100,6 +104,18 @@ fi
 exit $cp_rc
 EOF
     chmod +x "$bindir/spec-code-coupling-check"
+  fi
+
+  if [ "$cg_rc" != "missing" ]; then
+    cat > "$bindir/codification-gate" <<EOF
+#!/usr/bin/env bash
+if [ "$cg_rc" -ne 0 ]; then
+  echo "codification-gate: blocking — uncoded CRITICAL/HIGH findings:" 1>&2
+  echo "  - [Critical] F-MOCK (axiomregent): mock finding for hook test" 1>&2
+fi
+exit $cg_rc
+EOF
+    chmod +x "$bindir/codification-gate"
   fi
 
   if [ "$wp_mode" = "workflows-ok" ] || [ "$wp_mode" = "workflows-bad" ]; then
@@ -180,7 +196,7 @@ echo
 echo "== FR-008: hooks no-op outside an OAP project =="
 mkdir -p "$TMP/not-project"
 empty_bin=$(mktemp -d)
-for hook in post-edit-index.sh post-edit-spec-lint.sh stop-index.sh stop-spec-lint.sh stop-coupling.sh stop-workflow-pins.sh; do
+for hook in post-edit-index.sh post-edit-spec-lint.sh stop-index.sh stop-spec-lint.sh stop-coupling.sh stop-workflow-pins.sh stop-codification.sh; do
   rc=$(run_hook_rc "$hook" '{}' "$empty_bin" "$TMP/not-project")
   assert_eq "$hook no-op outside OAP" "0" "$rc"
 done
@@ -292,6 +308,32 @@ out=$(run_hook stop-workflow-pins.sh '{}' "$bindir" "$proj")
 rc=$(run_hook_rc stop-workflow-pins.sh '{}' "$bindir" "$proj")
 assert_eq "stop-workflow-pins blocks on unpinned ref" "2" "$rc"
 assert_contains "stop-workflow-pins diagnostic" '"hook":"stop-workflow-pins"' "$out"
+
+echo
+echo "== spec 174: Stop chain — codification-gate =="
+# Clean — gate passes.
+proj=$(mktemp -d)
+bindir=$(make_project "$proj" 0 0 0 noop 0)
+rc=$(run_hook_rc stop-codification.sh '{}' "$bindir" "$proj")
+assert_eq "stop-codification passes when no uncoded findings" "0" "$rc"
+
+# Blocking — gate exits 2 with diagnostic envelope.
+proj=$(mktemp -d)
+bindir=$(make_project "$proj" 0 0 0 noop 2)
+out=$(run_hook stop-codification.sh '{}' "$bindir" "$proj")
+rc=$(run_hook_rc stop-codification.sh '{}' "$bindir" "$proj")
+assert_eq "stop-codification blocks on uncoded finding" "2" "$rc"
+assert_contains "stop-codification emits FR-005 diagnostic" '"hook":"stop-codification"' "$out"
+assert_contains "stop-codification names binary" '"binary":"codification-gate"' "$out"
+
+# Binary absent — advisory exit 0 (forward-compat: substrate emission may
+# not be wired yet; spec-coupling + index gates still gate the spine shape).
+proj=$(mktemp -d)
+bindir=$(make_project "$proj" 0 0 0 noop missing)
+out=$(run_hook stop-codification.sh '{}' "$bindir" "$proj")
+rc=$(run_hook_rc stop-codification.sh '{}' "$bindir" "$proj")
+assert_eq "stop-codification advisory when binary missing" "0" "$rc"
+assert_contains "stop-codification advisory diagnostic" '"hook":"stop-codification"' "$out"
 
 echo
 echo "── summary ──"
