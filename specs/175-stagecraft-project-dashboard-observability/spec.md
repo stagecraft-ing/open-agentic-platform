@@ -19,17 +19,29 @@ depends_on:
   - "164"  # stagecraft-development-lifecycle-board (pair surface; supplies lifecycle counts shape)
   - "168"  # per-project-governance-certificate (the certificate this view surfaces)
 code_aliases: ["STAGECRAFT_PROJECT_DASHBOARD", "PROJECT_DETAIL_OBSERVABILITY"]
-# `establishes:` is intentionally absent until implementation lands.
-# Per the project's "Pre-Implementation Spec Amendments" discipline,
-# the implementing commit amends this spec to add `establishes:`
-# blocks for the actual file layout (sketched in §2.6 below).
+amended: "2026-05-24"
+amendment_record: "175 (self) — implementation-time `establishes:` and `extends:` fill-in"
+establishes:
+  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/encore.service.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/dashboard.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/dashboardHelpers.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/dashboard.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/riskAssessor.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/riskAssessor.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/types.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/project-dashboard-api.server.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/ProjectDashboardLifecycle.tsx }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/ProjectDashboardCertificate.tsx }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/ProjectDashboardRuns.tsx }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/ProjectDashboardRiskBanner.tsx }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/ProjectDashboardAudit.tsx }
 refines:
   - aspect: project-dashboard-landing-surface
     unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx }
 extends:
-  - spec: "087-unified-workspace-architecture"
+  - spec: "163-stagecraft-requirements-view"
     nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes.ts }
+    unit: { kind: file, path: platform/services/stagecraft/api/audit/audit.ts }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
@@ -245,22 +257,25 @@ same discipline spec 163 established. The factory-runs and audit
 reads use existing Drizzle queries with explicit project scoping.
 No new ad-hoc JSON parsers land in this spec.
 
-### 2.5 Planned implementation layout (not yet claimed via `establishes:`)
+### 2.5 Implementation layout (landed)
 
-Sketched here so the review can evaluate the surface area. When
-the implementing commit lands, this spec is amended to declare
-these via `establishes:` blocks per the project's
-pre-implementation amendment discipline.
+The implementing commit landed the layout below; this section is the
+post-implementation record, paired with the `establishes:` blocks in
+the frontmatter:
 
 ```
 platform/services/stagecraft/
-  api/projectDashboard/                  (new Encore service)
+  api/projectDashboard/
     encore.service.ts
     dashboard.ts                         (GET /api/projects/:id/dashboard)
-    dashboard.test.ts
+    dashboardHelpers.ts                  (pure helpers: lastStageId,
+                                          pickAuthSource, shortError,
+                                          staleExtractionCutoffMs)
+    dashboard.test.ts                    (pure-helper coverage)
     riskAssessor.ts                      (pure module — composes signals)
-    riskAssessor.test.ts
+    riskAssessor.test.ts                 (severity rule + ordering)
     types.ts                             (ProjectDashboardSnapshot)
+  api/audit/audit.ts                     (additive: listProjectAuditRecords)
   web/app/
     lib/project-dashboard-api.server.ts  (Remix loader helper)
     components/
@@ -272,9 +287,36 @@ platform/services/stagecraft/
     routes/app.project.$projectId._index.tsx   (refined — refines:)
 ```
 
-A small additive read on the existing audit service
-(`api/audit/audit.ts`) is also planned — name to be chosen during
-implementation per that service's conventions.
+Amendment record: `dashboardHelpers.ts` was split out from
+`dashboard.ts` at implementation time so the pure helpers can be
+unit-tested under bare vitest without standing up the Encore /
+Drizzle runtime. `dashboard.ts` re-exports the same names so
+downstream callers stay unchanged.
+
+### 2.5.1 Certificate panel — surface-area gap (deferred follow-up)
+
+Spec 168's tenant-emit mode writes `governance-certificate.json` to
+the tenant's filesystem per factory run. There is no stagecraft-side
+persistence path today for the certificate's SHA-256 hash or the
+auditor verifier's exit code. The dashboard's certificate panel
+therefore surfaces what is derivable from `factory_runs` only:
+
+- `emittedAt` — bound to the most recent `status='ok'` run's
+  `completed_at`.
+- `runId` — that run's UUID, with a link to its detail page.
+- `hashPrefix` — `null` today.
+- `verifierExitCode` — `null` today.
+- `verifierStatus` — `not-yet-verified` until the persistence
+  plumbing lands.
+
+FR-004's "MUST NOT re-run the verifier on load" is honoured by
+construction: the panel performs no synchronous verifier work.
+SC-002 ("displays the certificate hash prefix and a `clean`
+verifier badge") is only partially satisfiable until a follow-up
+spec adds a write path from tenant-side emission / verification to
+stagecraft. That follow-up is out of scope here per spec 175 §2's
+"no new tables" constraint and the pair-spec depends_on chain
+(168 → tenant emission, 175 → reader-side surface).
 
 ### 2.6 Read-shaped — no edit surface
 
