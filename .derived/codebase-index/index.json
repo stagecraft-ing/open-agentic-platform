@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "bf2175b798da7593378d7002f25a9a9b97cfbd191e19524719e7a2be0e5534c3",
+    "contentHash": "00bd3d3939589848287b63891c65f956b5719cf1fb18613f43a72cb952e16978",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -37860,6 +37860,131 @@
         ],
         "specId": "174-codification-gate",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "087",
+          "102",
+          "115",
+          "124",
+          "127",
+          "147",
+          "163",
+          "164",
+          "168"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/web/app/routes.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/factory/AIDE-VELOCITY-blueprint-spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/103-init-protocol-governed-reads/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/103-init-protocol-governed-reads/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/163-stagecraft-requirements-view/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/163-stagecraft-requirements-view/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/164-stagecraft-development-lifecycle-board/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/164-stagecraft-development-lifecycle-board/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+            }
+          }
+        ],
+        "specId": "175-stagecraft-project-dashboard-observability",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [
