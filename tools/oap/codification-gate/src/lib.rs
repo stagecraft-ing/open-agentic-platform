@@ -365,11 +365,10 @@ fn matches_constraints_section(path: &Path, needles: &[String]) -> Result<bool, 
 /// from a markdown body. Returns the section body up to the next heading at
 /// the same or shallower depth, or empty string when no such section exists.
 pub fn extract_constraints_section(body: &str) -> String {
-    let mut lines = body.lines().peekable();
     let mut in_section = false;
     let mut section_depth: usize = 0;
     let mut out = String::new();
-    while let Some(line) = lines.next() {
+    for line in body.lines() {
         let trimmed = line.trim_start();
         if let Some(depth) = heading_depth(trimmed) {
             let heading_text = trimmed.trim_start_matches('#').trim().to_ascii_lowercase();
