@@ -29,7 +29,7 @@
 | 17 | `crates/standards-loader/Cargo.toml` | `standards-loader` | workspace-member of `crates/` | no |
 | 18 | `crates/tool-registry/Cargo.toml` | `tool-registry` | workspace-member of `crates/` | no |
 | 19 | `crates/xray/Cargo.toml` | `xray` | workspace-member of `crates/` | no |
-| 20 | `apps/desktop/src-tauri/Cargo.toml` | `opc` | **workspace-root** (self-contained, isolated) | yes (10 241 lines) |
+| 20 | `apps/opc/src-tauri/Cargo.toml` | `opc` | **workspace-root** (self-contained, isolated) | yes (10 241 lines) |
 | 21 | `platform/services/deployd-api-rs/Cargo.toml` | `deployd-api` | **standalone** | yes (5 067 lines) |
 | 22 | `tools/adapter-scopes-compiler/Cargo.toml` | `open_agentic_adapter_scopes_compiler` | **standalone** | yes (598 lines) |
 | 23 | `tools/assumption-cascade-check/Cargo.toml` | `open_agentic_assumption_cascade_check` | **standalone** | yes (3 869 lines) |
@@ -80,7 +80,7 @@ resolver = "2"
 
 No `[workspace.dependencies]` block — each member declares its own deps.
 
-### Workspace 2 — `apps/desktop/src-tauri/Cargo.toml`
+### Workspace 2 — `apps/opc/src-tauri/Cargo.toml`
 
 Self-contained, deliberately isolated from `crates/`:
 
@@ -172,31 +172,31 @@ Symmetric: standalone `tools/` reaches into `crates/`.
 | `tools/spec-compiler/Cargo.toml` | `open_agentic_spec_types` | `../shared/spec-types` |
 | `tools/spec-lint/Cargo.toml` | `open_agentic_spec_types` | `../shared/spec-types` |
 
-### From `apps/desktop/src-tauri/`
+### From `apps/opc/src-tauri/`
 
 Deepest depth (`../../../...`). All 13 deps reach into `crates/` and `tools/`.
 
 | consumer | dep name | path |
 |---|---|---|
-| `apps/desktop/src-tauri/Cargo.toml` | `xray` | `../../../crates/xray` |
-| `apps/desktop/src-tauri/Cargo.toml` | `featuregraph` | `../../../crates/featuregraph` |
-| `apps/desktop/src-tauri/Cargo.toml` | `open_agentic_spec_registry_reader` | `../../../tools/registry-consumer` |
-| `apps/desktop/src-tauri/Cargo.toml` | `agent` | `../../../crates/agent` |
-| `apps/desktop/src-tauri/Cargo.toml` | `run` | `../../../crates/run` |
-| `apps/desktop/src-tauri/Cargo.toml` | `orchestrator` | `../../../crates/orchestrator` |
-| `apps/desktop/src-tauri/Cargo.toml` | `provider-registry` | `../../../crates/provider-registry` (default-features = false; features = anthropic, openai) |
-| `apps/desktop/src-tauri/Cargo.toml` | `policy-kernel` | `../../../crates/policy-kernel` (package = `open_agentic_policy_kernel`, default-features = false) |
-| `apps/desktop/src-tauri/Cargo.toml` | `factory-engine` | `../../../crates/factory-engine` |
-| `apps/desktop/src-tauri/Cargo.toml` | `factory-contracts` | `../../../crates/factory-contracts` |
-| `apps/desktop/src-tauri/Cargo.toml` | `factory-platform-client` | `../../../crates/factory-platform-client` |
-| `apps/desktop/src-tauri/Cargo.toml` | `factory-project-detect` | `../../../crates/factory-project-detect` |
-| `apps/desktop/src-tauri/Cargo.toml` | `provenance-validator` | `../../../crates/provenance-validator` |
+| `apps/opc/src-tauri/Cargo.toml` | `xray` | `../../../crates/xray` |
+| `apps/opc/src-tauri/Cargo.toml` | `featuregraph` | `../../../crates/featuregraph` |
+| `apps/opc/src-tauri/Cargo.toml` | `open_agentic_spec_registry_reader` | `../../../tools/registry-consumer` |
+| `apps/opc/src-tauri/Cargo.toml` | `agent` | `../../../crates/agent` |
+| `apps/opc/src-tauri/Cargo.toml` | `run` | `../../../crates/run` |
+| `apps/opc/src-tauri/Cargo.toml` | `orchestrator` | `../../../crates/orchestrator` |
+| `apps/opc/src-tauri/Cargo.toml` | `provider-registry` | `../../../crates/provider-registry` (default-features = false; features = anthropic, openai) |
+| `apps/opc/src-tauri/Cargo.toml` | `policy-kernel` | `../../../crates/policy-kernel` (package = `open_agentic_policy_kernel`, default-features = false) |
+| `apps/opc/src-tauri/Cargo.toml` | `factory-engine` | `../../../crates/factory-engine` |
+| `apps/opc/src-tauri/Cargo.toml` | `factory-contracts` | `../../../crates/factory-contracts` |
+| `apps/opc/src-tauri/Cargo.toml` | `factory-platform-client` | `../../../crates/factory-platform-client` |
+| `apps/opc/src-tauri/Cargo.toml` | `factory-project-detect` | `../../../crates/factory-project-detect` |
+| `apps/opc/src-tauri/Cargo.toml` | `provenance-validator` | `../../../crates/provenance-validator` |
 
 ## Crates not in any workspace today
 
 14 manifests are standalone:
 
-- `apps/desktop/src-tauri/Cargo.toml` (single-member workspace = effectively standalone for I1 purposes)
+- `apps/opc/src-tauri/Cargo.toml` (single-member workspace = effectively standalone for I1 purposes)
 - `platform/services/deployd-api-rs/Cargo.toml`
 - All 12 `tools/*/Cargo.toml` files
 - `tools/shared/spec-types/Cargo.toml`
@@ -204,7 +204,7 @@ Deepest depth (`../../../...`). All 13 deps reach into `crates/` and `tools/`.
 Of these:
 
 - **`platform/services/deployd-api-rs/Cargo.toml`** is the deployd Rust service; per master plan, `platform/` is unchanged structurally — its standalone status is intentional and remains so post-cleanup. Should it be folded into the root workspace in I1? The locked target layout under `Cargo.toml # one root workspace` suggests yes, but `platform/` is its own evolution unit. **Open question** for operator.
-- **`apps/desktop/src-tauri/Cargo.toml`** is functionally isolated due to SQLite linking conflicts. I1 must either (a) keep it isolated, accepting layout drift from "one root workspace," (b) fold in and find a SQLite resolution. Master plan §Locked target layout suggests one root workspace. **Open question** — recommendation pending; check `apps/desktop/src-tauri/Cargo.toml` header comment for the linking-conflict context.
+- **`apps/opc/src-tauri/Cargo.toml`** is functionally isolated due to SQLite linking conflicts. I1 must either (a) keep it isolated, accepting layout drift from "one root workspace," (b) fold in and find a SQLite resolution. Master plan §Locked target layout suggests one root workspace. **Open question** — recommendation pending; check `apps/opc/src-tauri/Cargo.toml` header comment for the linking-conflict context.
 - **All 12 `tools/*/Cargo.toml`** are independent today. Each has its own `Cargo.lock`. I1 folds them into the root workspace.
 - **`tools/shared/spec-types/Cargo.toml`** is a path-dep target for 6 sibling tools but is itself standalone with its own `Cargo.lock`. I1 folds it in.
 
@@ -215,7 +215,7 @@ Of these:
 | path | lines | disposition in I1 |
 |---|---|---|
 | `crates/Cargo.lock` | 8 321 | becomes the root `Cargo.lock` |
-| `apps/desktop/src-tauri/Cargo.lock` | 10 241 | if folded into root: removed. If kept isolated: stays. |
+| `apps/opc/src-tauri/Cargo.lock` | 10 241 | if folded into root: removed. If kept isolated: stays. |
 | `platform/services/deployd-api-rs/Cargo.lock` | 5 067 | if folded: removed. If kept standalone: stays. |
 | `tools/assumption-cascade-check/Cargo.lock` | 3 869 | removed |
 | `tools/oap-code-index-enrich/Cargo.lock` | 1 666 | removed |
@@ -276,29 +276,29 @@ Detected spec attribution (the field as `spec = "<id>"`):
 
 ## Phase I1 readiness summary
 
-- **Crates to add to root workspace:** 13 (`apps/desktop/src-tauri/`, `platform/services/deployd-api-rs/`, 12× `tools/*/`, `tools/shared/spec-types/`)
-  - Conditional on operator decision: depending on `apps/desktop` and `platform/services/deployd-api-rs` disposition, this could drop to 10 or 11.
+- **Crates to add to root workspace:** 13 (`apps/opc/src-tauri/`, `platform/services/deployd-api-rs/`, 12× `tools/*/`, `tools/shared/spec-types/`)
+  - Conditional on operator decision: depending on `apps/opc` and `platform/services/deployd-api-rs` disposition, this could drop to 10 or 11.
 - **Crates already in a workspace:** 18 (under `crates/Cargo.toml`)
 - **Path deps to be re-expressed:** 47 declarations across 24 manifests
   - Within `crates/` (intra-workspace siblings): 27 — already use `../<sibling>`; either keep as-is or hoist to `[workspace.dependencies]` once root workspace exists.
   - Cross-tree `crates/` → `tools/`: 2
   - Cross-tree `tools/` → `crates/`: 4
   - Within `tools/`: 9
-  - From `apps/desktop/src-tauri/`: 13 (after I7 `apps/desktop/` move to `product/apps/desktop/`, paths deepen by one level)
-- **Cargo.lock files to be deleted:** 15 (assuming both `apps/desktop` and `platform/deployd-api-rs` are folded in; 13 if `apps/desktop` stays isolated; 14 if only `deployd-api-rs` stays standalone)
+  - From `apps/opc/src-tauri/`: 13 (after I7 `apps/opc/` move to `product/apps/opc/`, paths deepen by one level)
+- **Cargo.lock files to be deleted:** 15 (assuming both `apps/opc` and `platform/deployd-api-rs` are folded in; 13 if `apps/opc` stays isolated; 14 if only `deployd-api-rs` stays standalone)
 - **Spec-attribution entries:** 32 manifests carry `[package.metadata.oap].spec` — these are spec 127 coupling-gate signals but I1 itself does not change any code paths or `implements:` targets, so the gate should not fire on I1.
 - **Workspace dep hoisting** (optional, deferred to follow-up): once a root workspace exists, the 24 within-workspace path deps can be expressed as `<dep>.workspace = true` after declaring `[workspace.dependencies]`. Master plan §Locked target layout doesn't mandate this; I1 only consolidates roots.
-- **`apps/desktop/src-tauri/Cargo.toml` SQLite isolation** is a real constraint, not aesthetic. I1 must either (a) preserve the isolation (keeping it as a separate workspace inside the otherwise consolidated tree), (b) find a SQLite linking resolution before folding in. Master plan §Locked target layout shows one root workspace; **operator triage required**.
+- **`apps/opc/src-tauri/Cargo.toml` SQLite isolation** is a real constraint, not aesthetic. I1 must either (a) preserve the isolation (keeping it as a separate workspace inside the otherwise consolidated tree), (b) find a SQLite linking resolution before folding in. Master plan §Locked target layout shows one root workspace; **operator triage required**.
 - **`platform/services/deployd-api-rs/`** lives under `platform/` which master plan §Locked target layout marks as "(internal structure unchanged)." Folding it into the root workspace **breaks the structural-unchanged invariant** for platform/. **Operator triage required**: keep standalone (preserve platform/ isolation, accept Cargo workspace drift) or fold (cleaner workspace, breaks platform/ promise).
 - **Estimated complexity:** **medium**.
   - Mechanical part (write root `Cargo.toml`, list members, delete lockfiles) is low.
-  - Conditional parts (apps/desktop isolation, deployd-api inclusion) require operator decision.
+  - Conditional parts (apps/opc isolation, deployd-api inclusion) require operator decision.
   - Within-workspace `path =` deps continue to work once members are listed; no per-dep edits needed for the basic fold.
-  - Verification: after I1, `cargo build --workspace --release` should succeed and produce a single `Cargo.lock`. If apps/desktop or deployd-api stays separate, that workspace verifies independently.
+  - Verification: after I1, `cargo build --workspace --release` should succeed and produce a single `Cargo.lock`. If apps/opc or deployd-api stays separate, that workspace verifies independently.
 
 ## Open questions (surface for operator triage)
 
-1. **`apps/desktop/src-tauri/` SQLite linking conflict.** The header comment in `apps/desktop/src-tauri/Cargo.toml:1-2` says "Self-contained workspace — isolated from root to prevent libsqlite3-sys linking conflicts when both this crate and crates/axiomregent bundle rusqlite." Should I1 (a) keep it isolated and document the layout exception, (b) find a SQLite linking resolution as part of I1, or (c) defer to follow-up and accept that "one root workspace" is "one root workspace plus apps/desktop"? Recommendation pending operator decision.
+1. **`apps/opc/src-tauri/` SQLite linking conflict.** The header comment in `apps/opc/src-tauri/Cargo.toml:1-2` says "Self-contained workspace — isolated from root to prevent libsqlite3-sys linking conflicts when both this crate and crates/axiomregent bundle rusqlite." Should I1 (a) keep it isolated and document the layout exception, (b) find a SQLite linking resolution as part of I1, or (c) defer to follow-up and accept that "one root workspace" is "one root workspace plus apps/opc"? Recommendation pending operator decision.
 2. **`platform/services/deployd-api-rs/` standalone status.** Master plan §Locked target layout marks `platform/` as "internal structure unchanged" but also says "one root workspace." These conflict for deployd-api-rs. Resolution options: (a) keep deployd-api standalone, accept "one root workspace" is "one root workspace plus platform/services/deployd-api-rs/"; (b) fold deployd-api in, accept platform/ structural drift; (c) define a sub-workspace under `platform/` and leave platform/ otherwise unchanged.
 3. **Workspace member ordering after move phases.** I5 moves `tools/<name>/` → `tools/spec-spine/<name>/` or `tools/oap/<name>/`. The root workspace `members` array updates in I5 too — the I1 → I5 sequence means the `members` array is written twice. Confirm that's acceptable, or stage I1 + I5 ordering so members are listed once correctly.
 4. **`[workspace.dependencies]` hoisting.** Master plan doesn't mandate this. Defer to follow-up?
@@ -306,5 +306,5 @@ Detected spec attribution (the field as `spec = "<id>"`):
 ## Cross-phase notes
 
 - I1 lands before I5 (tools restructure), so the workspace fold happens with current tool paths; I5 then updates `members` entries.
-- I7 (product layer) moves `apps/desktop/` to `product/apps/desktop/` — the root workspace `members` entry updates in I7 too.
+- I7 (product layer) moves `apps/opc/` to `product/apps/opc/` — the root workspace `members` entry updates in I7 too.
 - I9 (`build/` → `.derived/`) doesn't touch any Cargo manifest; no workspace impact.

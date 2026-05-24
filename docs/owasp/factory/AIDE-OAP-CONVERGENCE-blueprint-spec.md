@@ -67,7 +67,7 @@ OAP is a single substrate that operates on two levels at once:
 
 | Level | What it governs | OAP components | OWASP ASI lens |
 | --- | --- | --- | --- |
-| **L1 — Substrate (meta-dev)** | OAP's own code — the agentic infrastructure itself | `specs/`, `tools/spec-spine/`, `tools/oap/`, `crates/*`, `platform/services/stagecraft`, `platform/services/deployd-api-rs`, `platform/charts/rauthy`, `product/apps/desktop`, `.claude/` | Internal hardening — does OAP itself satisfy ASI controls in how it builds and ships? |
+| **L1 — Substrate (meta-dev)** | OAP's own code — the agentic infrastructure itself | `specs/`, `tools/spec-spine/`, `tools/oap/`, `crates/*`, `platform/services/stagecraft`, `platform/services/deployd-api-rs`, `platform/charts/rauthy`, `product/apps/opc`, `.claude/` | Internal hardening — does OAP itself satisfy ASI controls in how it builds and ships? |
 | **L2 — Tenant project (produced or reverse-engineered)** | Individual projects the substrate produces (via factory-engine adapters such as `aim-vue-node`) or onto which spec-spine is retro-installed (e.g. agent-builder-console). AIDE-VELOCITY is an L2-shaped system built **without** the substrate; this is the level at which most AIDE-style features actually live | Spec spine ported into the tenant repo (`<tenant>/specs/`), factory-emitted scaffolds, OPC connecting *into* the tenant repo via the same cockpit pattern a developer uses against OAP itself, stagecraft's deployd-api governing the tenant's deployments | What the tenant inherits — does the tenant project, by virtue of being substrate-governed, satisfy ASI controls in its own runtime? |
 
 The AIDE blueprints describe an L2-shaped pair (a tenant platform +
@@ -573,7 +573,7 @@ the `/velocity` view is the agent's API target *and* the human's
 status board. Agent plans render as conversational text in chat
 panels. Velocity board uses cards + colour coding for status.
 
-**OAP today.** Tauri v2 + React desktop cockpit (`product/apps/desktop`)
+**OAP today.** Tauri v2 + React desktop cockpit (`product/apps/opc`)
 — a **separate trust boundary** from any web surface. Local
 workspaces. Git context. Inspect / governance panels. Factory
 panel (spec 076).

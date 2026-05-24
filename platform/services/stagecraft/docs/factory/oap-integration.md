@@ -326,7 +326,7 @@ steps:
 OPC adds a new command to generate the scaffolding manifest:
 
 ```rust
-// In apps/desktop/src-tauri/src/commands/orchestrator.rs
+// In apps/opc/src-tauri/src/commands/orchestrator.rs
 
 #[tauri::command]
 pub async fn generate_factory_scaffold_manifest(

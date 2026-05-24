@@ -21,7 +21,7 @@ sources:
   - claudecodeui
 references:
   - role: historical
-    unit: { kind: file, path: product/apps/desktop/src/lib/wsReconnection.ts }
+    unit: { kind: file, path: product/apps/opc/src/lib/wsReconnection.ts }
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive

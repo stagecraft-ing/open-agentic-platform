@@ -318,7 +318,7 @@ pub fn discover_rust_crates(repo_root: &Path) -> Vec<PathBuf> {
 
     // Standalone excluded workspaces (declared in [workspace.exclude]).
     for excluded in [
-        "product/apps/desktop/src-tauri",
+        "product/apps/opc/src-tauri",
         "platform/services/deployd-api-rs",
     ] {
         let p = repo_root.join(excluded).join("Cargo.toml");

@@ -84,7 +84,7 @@ AXIOMREGENT_REPO   ?= $(shell git config --get remote.origin.url 2>/dev/null | s
 ifeq ($(AXIOMREGENT_REPO),)
 AXIOMREGENT_REPO   := stagecraft-ing/open-agentic-platform
 endif
-AXIOMREGENT_BINDIR = product/apps/desktop/src-tauri/binaries
+AXIOMREGENT_BINDIR = product/apps/opc/src-tauri/binaries
 
 axiomregent:
 	@echo "==> Building axiomregent from source..."
@@ -335,7 +335,7 @@ dev:
 	@echo "==> Starting OPC desktop (Vite + Tauri)..."
 	@echo "    This will compile Rust on first run (~2-3 min)."
 	@echo ""
-	cd product/apps/desktop && pnpm tauri dev
+	cd product/apps/opc && pnpm tauri dev
 
 # ============================================================
 # Development — Platform Services
@@ -401,7 +401,7 @@ destroy-%:
 #                   members in one --workspace invocation per spec 135 FR-01)
 #   ci-tools      — Tool crates + registry-consumer contract subsets +
 #                   codebase-indexer staleness gate (spec-conformance.yml)
-#   ci-desktop    — product/apps/desktop: tauri rust (custom clippy flags) +
+#   ci-desktop    — product/apps/opc: tauri rust (custom clippy flags) +
 #                   version alignment + tsc --noEmit + vitest (ci-desktop.yml)
 #   ci-stagecraft — platform/services/stagecraft: npm ci + tsc + vitest
 #                   (ci-stagecraft.yml)
@@ -490,27 +490,27 @@ ci-tools:
 
 ci-desktop:
 	@# CI creates these stubs on fresh checkout; locally only if missing.
-	@test -f product/apps/desktop/dist/index.html || { \
-	    mkdir -p product/apps/desktop/dist; \
-	    echo '<!doctype html><html><body>stub</body></html>' > product/apps/desktop/dist/index.html; \
+	@test -f product/apps/opc/dist/index.html || { \
+	    mkdir -p product/apps/opc/dist; \
+	    echo '<!doctype html><html><body>stub</body></html>' > product/apps/opc/dist/index.html; \
 	    echo "  (created dist stub)"; \
 	}
 	@HOST=$$(rustc -vV | grep '^host:' | awk '{print $$2}'); \
-	 BIN=product/apps/desktop/src-tauri/binaries/axiomregent-$$HOST; \
+	 BIN=product/apps/opc/src-tauri/binaries/axiomregent-$$HOST; \
 	 if [ ! -f "$$BIN" ]; then \
-	   mkdir -p product/apps/desktop/src-tauri/binaries; \
+	   mkdir -p product/apps/opc/src-tauri/binaries; \
 	   touch "$$BIN"; chmod +x "$$BIN"; \
 	   echo "  (created sidecar stub: $$BIN)"; \
 	 fi
 	@echo "==> ci-desktop: rust (src-tauri)"
-	cargo check  --manifest-path product/apps/desktop/src-tauri/Cargo.toml
-	cargo clippy --manifest-path product/apps/desktop/src-tauri/Cargo.toml -- -A dead_code -D warnings
-	cargo test   --manifest-path product/apps/desktop/src-tauri/Cargo.toml --lib
-	cargo test   --manifest-path product/apps/desktop/src-tauri/Cargo.toml --doc
+	cargo check  --manifest-path product/apps/opc/src-tauri/Cargo.toml
+	cargo clippy --manifest-path product/apps/opc/src-tauri/Cargo.toml -- -A dead_code -D warnings
+	cargo test   --manifest-path product/apps/opc/src-tauri/Cargo.toml --lib
+	cargo test   --manifest-path product/apps/opc/src-tauri/Cargo.toml --doc
 	@echo ""
 	@echo "==> ci-desktop: version alignment (Cargo.toml <-> package.json)"
-	@CARGO_V=$$(grep '^version' product/apps/desktop/src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/'); \
-	 PKG_V=$$(node -p "require('./product/apps/desktop/package.json').version"); \
+	@CARGO_V=$$(grep '^version' product/apps/opc/src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/'); \
+	 PKG_V=$$(node -p "require('./product/apps/opc/package.json').version"); \
 	 if [ "$$CARGO_V" != "$$PKG_V" ]; then \
 	   echo "ERROR: version mismatch — Cargo.toml=$$CARGO_V package.json=$$PKG_V"; exit 1; \
 	 else \
@@ -595,7 +595,7 @@ ci-supply-chain: ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm
 SUPPLY_CHAIN_RUST_MANIFESTS = \
     Cargo.toml \
     platform/services/deployd-api-rs/Cargo.toml \
-    product/apps/desktop/src-tauri/Cargo.toml
+    product/apps/opc/src-tauri/Cargo.toml
 
 ci-supply-chain-cargo:
 	@echo "==> ci-supply-chain: cargo-deny"
@@ -764,18 +764,18 @@ ci-fast-tools:
 	  cargo run --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml -- check
 
 ci-fast-desktop:
-	@test -f product/apps/desktop/dist/index.html || { mkdir -p product/apps/desktop/dist; \
-	    echo '<!doctype html><html><body>stub</body></html>' > product/apps/desktop/dist/index.html; }
+	@test -f product/apps/opc/dist/index.html || { mkdir -p product/apps/opc/dist; \
+	    echo '<!doctype html><html><body>stub</body></html>' > product/apps/opc/dist/index.html; }
 	@HOST=$$(rustc -vV | grep '^host:' | awk '{print $$2}'); \
-	 BIN=product/apps/desktop/src-tauri/binaries/axiomregent-$$HOST; \
+	 BIN=product/apps/opc/src-tauri/binaries/axiomregent-$$HOST; \
 	 [ -f "$$BIN" ] || { mkdir -p $$(dirname "$$BIN"); touch "$$BIN"; chmod +x "$$BIN"; }
 	@echo "==> ci-fast-desktop: rust + pnpm install (concurrent)"
 	@# `--jobs` dropped: under `make -j` the jobserver throttles cargo;
 	@# explicit `--jobs` is silently ignored with a warning (PR #78 precedent).
-	@( cargo clippy --manifest-path product/apps/desktop/src-tauri/Cargo.toml \
+	@( cargo clippy --manifest-path product/apps/opc/src-tauri/Cargo.toml \
 	     --all-targets -- -A dead_code -D warnings && \
-	   cargo $(CIFAST_CARGO_TEST) --manifest-path product/apps/desktop/src-tauri/Cargo.toml --lib && \
-	   cargo test --manifest-path product/apps/desktop/src-tauri/Cargo.toml --doc \
+	   cargo $(CIFAST_CARGO_TEST) --manifest-path product/apps/opc/src-tauri/Cargo.toml --lib && \
+	   cargo test --manifest-path product/apps/opc/src-tauri/Cargo.toml --doc \
 	) & RUST_PID=$$!; \
 	  ( cd product && pnpm install --frozen-lockfile ); PI=$$?; \
 	  wait $$RUST_PID; R=$$?; exit $$((R | PI))
@@ -786,8 +786,8 @@ ci-fast-desktop:
 	@( cd product && pnpm --filter @opc/desktop exec tsc --noEmit ) & TSC_PID=$$!; \
 	  ( cd product && pnpm --filter @opc/desktop test ) & VT_PID=$$!; \
 	  wait $$TSC_PID; T=$$?; wait $$VT_PID; V=$$?; exit $$((T | V))
-	@CARGO_V=$$(grep '^version' product/apps/desktop/src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/'); \
-	 PKG_V=$$(node -p "require('./product/apps/desktop/package.json').version"); \
+	@CARGO_V=$$(grep '^version' product/apps/opc/src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/'); \
+	 PKG_V=$$(node -p "require('./product/apps/opc/package.json').version"); \
 	 [ "$$CARGO_V" = "$$PKG_V" ] || { echo "ERROR: version mismatch $$CARGO_V vs $$PKG_V"; exit 1; }
 
 ci-fast-stagecraft: ci-agent-frontmatter-ts
@@ -844,8 +844,8 @@ clean:
 	rm -rf .derived/spec-registry
 	rm -rf .derived/codebase-index
 	rm -rf .derived/schema-parity
-	rm -rf product/apps/desktop/dist
-	rm -rf product/apps/desktop/src-tauri/target
+	rm -rf product/apps/opc/dist
+	rm -rf product/apps/opc/src-tauri/target
 
 help:
 	@echo "Open Agentic Platform"
@@ -885,7 +885,7 @@ help:
 	@echo "  make ci-strict          Parity mirror — composes ci-rust, ci-tools, ci-desktop, ci-stagecraft, ci-supply-chain. Pre-push / parity-investigation. ~90 min on M1 Pro."
 	@echo "  make ci-rust            All Rust manifests: check + clippy -D warnings + test"
 	@echo "  make ci-tools           Spec tool crates + registry-consumer contract subsets + staleness gate"
-	@echo "  make ci-desktop         product/apps/desktop rust + version alignment + tsc + vitest"
+	@echo "  make ci-desktop         product/apps/opc rust + version alignment + tsc + vitest"
 	@echo "  make ci-stagecraft      platform/services/stagecraft: npm ci + tsc + vitest"
 	@echo "  make ci-spec-code-coupling  PR-time spec/code coupling gate (spec 127)"
 	@echo "  make ci-supply-chain    cargo-deny + pnpm/npm audit (spec 116; blocking)"

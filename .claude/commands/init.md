@@ -80,7 +80,7 @@ After all reads complete, emit a structured summary block in exactly this format
   - ... (only non-zero rows, from registry-consumer status-report --nonzero-only)
 
 **Tools:** spec-spine/{spec-compiler, registry-consumer, ...}; oap/{policy-compiler, ...}; shared/spec-types; vendor/grammars
-**Product:** product/apps/desktop (Tauri + React)
+**Product:** product/apps/opc (Tauri + React)
 
 **Recent activity:**
 - <last 3 commit summaries>

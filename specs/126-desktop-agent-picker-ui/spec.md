@@ -28,10 +28,10 @@ depends_on:
 extends:
   - spec: "123-agent-catalog-org-rescope"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src/components/AgentPicker.tsx }
+    unit: { kind: file, path: product/apps/opc/src/components/AgentPicker.tsx }
   - spec: "123-agent-catalog-org-rescope"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src/lib/agentPicker.ts }
+    unit: { kind: file, path: product/apps/opc/src/lib/agentPicker.ts }
 ---
 
 # 126 — Desktop Agent Picker — Bindings vs Full Catalog
@@ -95,7 +95,7 @@ toggle. No backend work — the spec 123 commands already exist.
 ## 3. Component Surface
 
 ```ts
-// product/apps/desktop/src/components/AgentPicker.tsx
+// product/apps/opc/src/components/AgentPicker.tsx
 
 export interface AgentPickerProps {
   orgId: string;
@@ -116,7 +116,7 @@ export type AgentFilter = (row: CatalogRow) => boolean;
 ```
 
 `AgentPicker` is a presentational component; data fetching lives in a
-small `product/apps/desktop/src/lib/agentPicker.ts` module that wraps the Tauri
+small `product/apps/opc/src/lib/agentPicker.ts` module that wraps the Tauri
 `invoke` calls behind a `useAgentPickerData(orgId, projectId)` hook.
 The hook handles loading/error states, deduplicates concurrent fetches
 within the same `orgId`, and listens on the duplex cache update events
@@ -165,7 +165,7 @@ AgentPicker.tsx
             └─ AgentResolver::resolve(reference)  (factory-engine)
 ```
 
-The duplex cache (`product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs`,
+The duplex cache (`product/apps/opc/src-tauri/src/commands/agent_catalog_sync.rs`,
 spec 123 §8.3) is the source of truth on the desktop; the picker reads
 through the Tauri commands rather than re-implementing cache logic.
 
@@ -199,7 +199,7 @@ through the Tauri commands rather than re-implementing cache logic.
 
 ## 8. Acceptance
 
-A-1. `AgentPicker` is exported from `product/apps/desktop/src/components/AgentPicker.tsx`
+A-1. `AgentPicker` is exported from `product/apps/opc/src/components/AgentPicker.tsx`
      with the props in §3.
 A-2. Active tab lists only `project_agent_bindings` rows for the
      given `projectId`, joined with the catalog, including retired-
@@ -223,7 +223,7 @@ A-8. Unit tests cover: tab switching preserves filter state; retired-
 ## 9. Open Questions
 
 - Should the picker integrate with the desktop's existing search
-  primitive (`product/apps/desktop/src/components/CommandPalette` or similar)
+  primitive (`product/apps/opc/src/components/CommandPalette` or similar)
   for keyboard-only picking? Default: render a `cmdk`-style search
   input inline; broader command-palette integration deferred.
 - Where does the picker live by default? Likely as a modal dialog
@@ -238,11 +238,11 @@ A-8. Unit tests cover: tab switching preserves filter state; retired-
 
 What shipped on branch `126-desktop-agent-picker-ui`:
 
-- **Component**: `product/apps/desktop/src/components/AgentPicker.tsx` exports
+- **Component**: `product/apps/opc/src/components/AgentPicker.tsx` exports
   `AgentPicker` (hook-driven container) and `AgentPickerView`
   (presentational). Surface matches §3 plus `open`/`onOpenChange` for
   modal control. Reuses `@opc/ui/{dialog,tabs,button,badge,input}`.
-- **Data hook**: `product/apps/desktop/src/lib/agentPicker.ts` declares the
+- **Data hook**: `product/apps/opc/src/lib/agentPicker.ts` declares the
   `AgentReference` TS mirror (kind-discriminated; serde→TS bridge note
   per T002), `BindingRow`/`CatalogRow`, and `useAgentPickerData`.
   Concurrent fetches dedup via an in-module `Map<key, Promise>`;
@@ -250,7 +250,7 @@ What shipped on branch `126-desktop-agent-picker-ui`:
   `agent-catalog-snapshot`, `project-agent-binding-updated`,
   `project-agent-binding-snapshot`) trigger `refresh()`.
 - **Backend wire**: `list_active_agents` and `list_org_agents` in
-  `product/apps/desktop/src-tauri/src/commands/agents.rs` now return
+  `product/apps/opc/src-tauri/src/commands/agents.rs` now return
   `AgentBindingRow` (LEFT JOIN with bindings, surfaces `pinned_version`
   + `pinned_content_hash` + derived `status`) and `AgentCatalogRow`
   (catalog cache row with `remote_version` + `remote_content_hash`).
@@ -267,7 +267,7 @@ What shipped on branch `126-desktop-agent-picker-ui`:
 - **Tests**: 10 unit tests in `AgentPicker.test.tsx` covering
   A-2..A-6, the latest toggle, draft filtering, and the duplex
   auto-refresh integration. Fixture page at
-  `product/apps/desktop/src/dev/AgentPickerFixture.tsx` for visual review
+  `product/apps/opc/src/dev/AgentPickerFixture.tsx` for visual review
   (Storybook absent from the desktop app).
 - **Deviation worth flagging**: the picker exposes the bindings'
   `pinned_version` + `pinned_content_hash` directly. Spec 123's

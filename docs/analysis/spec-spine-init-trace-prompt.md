@@ -304,7 +304,7 @@ do with it.
 
 - Do not modify any commit on the branch. The branch is the artifact
   the trace observes.
-- Do not edit code in any spec-spine, OAP, or apps/desktop crate.
+- Do not edit code in any spec-spine, OAP, or apps/opc crate.
 - Do not modify any of the protocol files (init.md, AGENTS.md,
   CLAUDE.md, the rule files, the constitution). The trace OBSERVES
   these; it does not align them.

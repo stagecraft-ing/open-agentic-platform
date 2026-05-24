@@ -137,7 +137,7 @@ If any precondition fails, halt and surface.
 
 | # | Decision | Discovery ref | Recommended default | **Operator resolution** |
 |---|---|---|---|-------------------------|
-| 1 | `apps/desktop/src-tauri/` Cargo workspace isolation | D2 OQ-1, D3 | Keep `src-tauri/` as a standalone workspace (preserves SQLite isolation, Tauri build idioms); I1 consolidates everything *except* `src-tauri/` | `correct`               |
+| 1 | `apps/opc/src-tauri/` Cargo workspace isolation | D2 OQ-1, D3 | Keep `src-tauri/` as a standalone workspace (preserves SQLite isolation, Tauri build idioms); I1 consolidates everything *except* `src-tauri/` | `correct`               |
 | 2 | `platform/services/deployd-api-rs/` standalone disposition | D2 OQ-2 | Leave standalone (platform layer is structurally untouched per master plan §Locked target layout) | `correct`               |
 | 3 | Coding-standard schema duplicate resolution | D5 | Keep `packages/yaml-standards-schema/schema/standard.schema.json` (npm-side consumer); delete `standards/schema/standard.schema.json`; update remaining refs to point at the kept copy | `correct`               |
 | 4 | `crates/agent/src/schemas/` dormancy | D5 OQ | If unreferenced by any consumer, delete in I4; if referenced, co-locate under `standards/schemas/agent/` per master plan | `correct`               |
@@ -501,9 +501,9 @@ Today 16 separate `Cargo.lock` files exist across `crates/`,
 `tools/adapter-scopes-compiler/`, `tools/assumption-cascade-check/`,
 `tools/ci-parity-check/`, `tools/schema-parity-check/`,
 `tools/stakeholder-doc-lint/`, `tools/shared/spec-types/`,
-`apps/desktop/src-tauri/`. After I1, one root `Cargo.toml`
+`apps/opc/src-tauri/`. After I1, one root `Cargo.toml`
 declares a workspace covering all Rust members **except**
-`apps/desktop/src-tauri/` (per operator decision #1) and
+`apps/opc/src-tauri/` (per operator decision #1) and
 `platform/services/deployd-api-rs/` (per operator decision #2).
 
 ## Discovery reference
@@ -521,7 +521,7 @@ D2 (`cargo-workspace-inventory.md`).
    one root `Cargo.lock` remains.
 4. Update each member `Cargo.toml` to drop standalone `[workspace]`
    tables where they exist.
-5. `apps/desktop/src-tauri/Cargo.toml` retains its standalone
+5. `apps/opc/src-tauri/Cargo.toml` retains its standalone
    workspace; its path-deps continue to reference `../../../crates/...`
    verbatim (no path-depth change in I1 — that is I7's concern).
 6. Update `rust-toolchain.toml` if not already at workspace root.
@@ -531,7 +531,7 @@ D2 (`cargo-workspace-inventory.md`).
 
 - `cargo build --workspace --release`
 - `cargo test --workspace`
-- `cargo build` from `apps/desktop/src-tauri/` succeeds independently
+- `cargo build` from `apps/opc/src-tauri/` succeeds independently
 - `cargo build` from `platform/services/deployd-api-rs/` succeeds
   independently
 - `make pr-prep`
@@ -842,7 +842,7 @@ D1 Group J, I0 appendix Group J (expected sparse).
 
 ## Scope
 
-`apps/desktop/`, `packages/*`, root npm files → `product/`.
+`apps/opc/`, `packages/*`, root npm files → `product/`.
 
 ## Discovery reference
 
@@ -850,16 +850,16 @@ D1 Groups K/L/M, D3, D6, D4 + I0 appendix Groups K/L/M.
 
 ## Operations
 
-1. `git mv apps/desktop product/apps/desktop`.
+1. `git mv apps/opc product/apps/opc`.
 2. For each of the 22 packages: `git mv packages/<name>
    product/packages/<name>`.
 3. Move root npm files into `product/`.
 4. Update `pnpm-workspace.yaml` globs.
-5. Update `apps/desktop/src-tauri/Cargo.toml` path-deps (eliminate
+5. Update `apps/opc/src-tauri/Cargo.toml` path-deps (eliminate
    if `workspace = true` from I1 neutralized them).
-6. Update `apps/desktop/src-tauri/src/commands/claude.rs:154-161,1200`
+6. Update `apps/opc/src-tauri/src/commands/claude.rs:154-161,1200`
    sidecar path.
-7. Update `apps/desktop/vite.config.ts:18` comment.
+7. Update `apps/opc/vite.config.ts:18` comment.
 8. **Update `tools/spec-spine/codebase-indexer/src/lib.rs:446-447`
    and `manifest.rs:377-378`** to read
    `product/pnpm-workspace.yaml` (decision #5). Same commit as the
@@ -873,15 +873,15 @@ D1 Groups K/L/M, D3, D6, D4 + I0 appendix Groups K/L/M.
 12. **Sweep all six locked relationship-graph fields per the I0
     appendix, Groups K / L / M rows.** Note: I0 surfaced `supersedes:`
     entries in spec 073 pointing at
-    `apps/desktop/src-tauri/src/commands/{titor,search}.rs` — these
-    update to `product/apps/desktop/src-tauri/src/commands/...` in
+    `apps/opc/src-tauri/src/commands/{titor,search}.rs` — these
+    update to `product/apps/opc/src-tauri/src/commands/...` in
     this commit. (Specific tuples in the I0 appendix.)
 13. Run the corpus-consistency cross-check post-commit.
 
 ## Verification
 
 - `cargo build --workspace --release`.
-- `cargo build --manifest-path product/apps/desktop/src-tauri/Cargo.toml`.
+- `cargo build --manifest-path product/apps/opc/src-tauri/Cargo.toml`.
 - `cargo test --workspace`.
 - `(cd product && pnpm install)`.
 - `(cd product && pnpm --filter @opc/desktop build)`.
@@ -902,7 +902,7 @@ D1 Groups K/L/M, D3, D6, D4 + I0 appendix Groups K/L/M.
 
 `refactor(cleanup): consolidate end-user product layer under product/`
 
-May split into (a) `move apps/desktop and packages/* under
+May split into (a) `move apps/opc and packages/* under
 product/`, (b) `move root npm workspace files under product/ and
 update loaders`.
 

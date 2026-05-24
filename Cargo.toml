@@ -47,7 +47,7 @@ members = [
     "tools/shared/spec-types",
 ]
 
-# apps/desktop/src-tauri/ is a deliberately separate single-member workspace
+# apps/opc/src-tauri/ is a deliberately separate single-member workspace
 # (its own [workspace] table) to prevent libsqlite3-sys linking conflicts
 # when both this crate and crates/axiomregent bundle rusqlite. Operator
 # decision #1 (Epic 2): keep isolated.
@@ -57,6 +57,6 @@ members = [
 # (master plan §Locked target layout). It builds standalone via
 # `cargo build --manifest-path platform/services/deployd-api-rs/Cargo.toml`.
 exclude = [
-    "product/apps/desktop/src-tauri",
+    "product/apps/opc/src-tauri",
     "platform/services/deployd-api-rs",
 ]

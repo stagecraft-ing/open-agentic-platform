@@ -8,7 +8,7 @@ importers:
 
   .: {}
 
-  apps/desktop:
+  apps/opc:
     dependencies:
       '@hookform/resolvers':
         specifier: ^5.2.2

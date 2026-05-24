@@ -86,7 +86,7 @@ refines:
   - aspect: "factory-engine-substrate"
     unit: { kind: file, path: crates/factory-engine/src/engine.rs }
   - aspect: "factory-engine-substrate"
-    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/factory.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/factory.rs }
   - aspect: "factory-engine-substrate"
     unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundle.ts }
   - aspect: "factory-engine-substrate"
@@ -164,7 +164,7 @@ landed:
    as anonymous JSONB array entries. Same conceptual artifact, two
    incompatible storage models, two pinning stories, two audit shapes.
 6. **OPC checkout dependency persists.** Spec 108 §7.1 explicitly
-   punted migrating `product/apps/desktop/src-tauri/src/commands/factory.rs`
+   punted migrating `product/apps/opc/src-tauri/src/commands/factory.rs`
    off the local `factory/` checkout because the platform-served bucket
    blob can't be addressed by path the way a checkout can. Spec 124
    was supposed to close this; the `// TODO(spec-108-§7-punt)` marker
@@ -606,7 +606,7 @@ is wired into `factory_upstreams` per org.
 
 ## 8. OPC Contract (closes spec 108 §7.1)
 
-OPC's `product/apps/desktop/src-tauri/src/commands/factory.rs::resolve_factory_root()`
+OPC's `product/apps/opc/src-tauri/src/commands/factory.rs::resolve_factory_root()`
 is replaced by a **virtual factory_root** backed by the platform API.
 
 The `factory-engine` and `factory-contracts` crates already accept a
@@ -670,7 +670,7 @@ The existing live tables are not deleted in Phase 1.
   `StageCdInputs.artifact_store` remain filesystem-anchored. They are
   per-run output stores, not factory-content stores; virtualising them
   is out of scope for this spec.
-- Migrate `product/apps/desktop/src-tauri/src/commands/factory.rs`. Delete
+- Migrate `product/apps/opc/src-tauri/src/commands/factory.rs`. Delete
   the spec 108 §7.1 punt TODO.
 - Spec 124's `agent_ref` shape extended: `agent_ref` becomes
   `artifact_ref = { artifact_id, version, content_hash }`. Backwards

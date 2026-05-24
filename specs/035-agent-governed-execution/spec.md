@@ -19,10 +19,10 @@ code_aliases:
 extends:
   - spec: "033-axiomregent-activation"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/agents.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/agents.rs }
   - spec: "033-axiomregent-activation"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/claude.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/claude.rs }
 ---
 
 # Feature Specification: agent governed execution

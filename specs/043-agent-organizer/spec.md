@@ -249,7 +249,7 @@ interface ExecutionPlan {
 | Dispatch protocol | `crates/agent/src/dispatch.rs` | New module: trigger matching + score-based routing |
 | Plan schema | `crates/agent/src/plan.rs` | New module: `ExecutionPlan` struct + JSON serialization |
 | Registry integration | `crates/agent/src/registry.rs` | Read available agents for team assembly |
-| Tauri command | `product/apps/desktop/src-tauri/src/commands/agents.rs` | New `plan_request` command exposing organizer to UI |
+| Tauri command | `product/apps/opc/src-tauri/src/commands/agents.rs` | New `plan_request` command exposing organizer to UI |
 | Agent organizer prompt | `product/packages/agents/orchestration/agent-organizer.md` | Haiku-targeted prompt for team assembly and workflow definition |
 
 ## Success criteria

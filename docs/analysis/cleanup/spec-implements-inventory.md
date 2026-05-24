@@ -116,39 +116,39 @@ No `implements:` entries found. The shared crate `open_agentic_spec_types` is ow
 
 No `implements:` entries found. axiomregent (spec 073) owns the grammar consumption via `build.rs`; the `implements:` list for spec 073 points at `crates/axiomregent` (the crate path, not the grammars). **No frontmatter update required in I6 for grammar paths.**
 
-### Group K — `apps/desktop/` (Epic 2 I7)
+### Group K — `apps/opc/` (Epic 2 I7)
 
 27 entries across 16 specs:
 
 | spec | line | implements path | I-phase target |
 |---|---|---|---|
-| `specs/041-checkpoint-restore-ui` | 16 | `apps/desktop` | `product/apps/desktop` |
-| `specs/064-websocket-reconnection` | 23 | `apps/desktop` | `product/apps/desktop` |
-| `specs/065-encrypted-keychain` | 24 | `apps/desktop` | `product/apps/desktop` |
-| `specs/076-factory-desktop-panel` | 17 | `apps/desktop` | `product/apps/desktop` |
-| `specs/083-xray-ui-upgrade` | 23 | `apps/desktop` | `product/apps/desktop` |
-| `specs/084-opc-settings-reconciliation` | 21 | `apps/desktop` | `product/apps/desktop` |
-| `specs/110-stagecraft-to-opc-factory-trigger` | 32 | `apps/desktop/src-tauri/src/commands/factory.rs` | `product/apps/desktop/src-tauri/src/commands/factory.rs` |
-| `specs/110-stagecraft-to-opc-factory-trigger` | 33 | `apps/desktop/src-tauri/src/commands/stagecraft_client.rs` | `product/apps/desktop/...` |
-| `specs/110-stagecraft-to-opc-factory-trigger` | 34 | `apps/desktop/src/routes/factory` | `product/apps/desktop/...` |
-| `specs/111-org-agent-catalog-sync` | 38 | `apps/desktop/src-tauri/src/commands/agents.rs` | `product/apps/desktop/...` |
-| `specs/111-org-agent-catalog-sync` | 39 | `apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` | `product/apps/desktop/...` |
-| `specs/111-org-agent-catalog-sync` | 40 | `apps/desktop/src-tauri/src/commands/stagecraft_client.rs` | `product/apps/desktop/...` |
-| `specs/111-org-agent-catalog-sync` | 41 | `apps/desktop/src-tauri/src/commands/sync_client.rs` | `product/apps/desktop/...` |
-| `specs/111-org-agent-catalog-sync` | 42 | `apps/desktop/src-tauri/src/lib.rs` | `product/apps/desktop/...` |
-| `specs/112-factory-project-lifecycle` | 43 | `apps/desktop/src-tauri/src/commands/factory_project.rs` | `product/apps/desktop/...` |
-| `specs/112-factory-project-lifecycle` | 44 | `apps/desktop/src-tauri/src/commands/keychain.rs` | `product/apps/desktop/...` |
-| `specs/112-factory-project-lifecycle` | 45 | `apps/desktop/src/routes/factory/ProjectCockpit.tsx` | `product/apps/desktop/...` |
-| `specs/119-project-as-unit-of-governance` | 40 | `apps/desktop` | `product/apps/desktop` |
-| `specs/120-factory-extraction-stage` | 42 | `apps/desktop/src-tauri/src/commands/factory.rs` | `product/apps/desktop/...` |
-| `specs/120-factory-extraction-stage` | 43 | `apps/desktop/src-tauri/src/commands/stagecraft_client.rs` | `product/apps/desktop/...` |
-| `specs/120-factory-extraction-stage` | 44 | `apps/desktop/src/components/factory/ArtifactInspector.tsx` | `product/apps/desktop/...` |
-| `specs/122-stakeholder-doc-inversion` | 43 | `apps/desktop/src/components/factory/StageCdReview.tsx` | `product/apps/desktop/...` |
-| `specs/123-agent-catalog-org-rescope` | 41 | `apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` | `product/apps/desktop/...` |
-| `specs/124-opc-factory-run-platform-integration` | 29 | `apps/desktop/src-tauri/src/commands/factory.rs` | `product/apps/desktop/...` |
-| `specs/126-desktop-agent-picker-ui` | 29 | `apps/desktop/src/components/AgentPicker.tsx` | `product/apps/desktop/...` |
-| `specs/126-desktop-agent-picker-ui` | 30 | `apps/desktop/src/lib/agentPicker.ts` | `product/apps/desktop/...` |
-| `specs/139-factory-artifact-substrate` | 54 | `apps/desktop/src-tauri/src/commands/factory.rs` | `product/apps/desktop/...` |
+| `specs/041-checkpoint-restore-ui` | 16 | `apps/opc` | `product/apps/opc` |
+| `specs/064-websocket-reconnection` | 23 | `apps/opc` | `product/apps/opc` |
+| `specs/065-encrypted-keychain` | 24 | `apps/opc` | `product/apps/opc` |
+| `specs/076-factory-desktop-panel` | 17 | `apps/opc` | `product/apps/opc` |
+| `specs/083-xray-ui-upgrade` | 23 | `apps/opc` | `product/apps/opc` |
+| `specs/084-opc-settings-reconciliation` | 21 | `apps/opc` | `product/apps/opc` |
+| `specs/110-stagecraft-to-opc-factory-trigger` | 32 | `apps/opc/src-tauri/src/commands/factory.rs` | `product/apps/opc/src-tauri/src/commands/factory.rs` |
+| `specs/110-stagecraft-to-opc-factory-trigger` | 33 | `apps/opc/src-tauri/src/commands/stagecraft_client.rs` | `product/apps/opc/...` |
+| `specs/110-stagecraft-to-opc-factory-trigger` | 34 | `apps/opc/src/routes/factory` | `product/apps/opc/...` |
+| `specs/111-org-agent-catalog-sync` | 38 | `apps/opc/src-tauri/src/commands/agents.rs` | `product/apps/opc/...` |
+| `specs/111-org-agent-catalog-sync` | 39 | `apps/opc/src-tauri/src/commands/agent_catalog_sync.rs` | `product/apps/opc/...` |
+| `specs/111-org-agent-catalog-sync` | 40 | `apps/opc/src-tauri/src/commands/stagecraft_client.rs` | `product/apps/opc/...` |
+| `specs/111-org-agent-catalog-sync` | 41 | `apps/opc/src-tauri/src/commands/sync_client.rs` | `product/apps/opc/...` |
+| `specs/111-org-agent-catalog-sync` | 42 | `apps/opc/src-tauri/src/lib.rs` | `product/apps/opc/...` |
+| `specs/112-factory-project-lifecycle` | 43 | `apps/opc/src-tauri/src/commands/factory_project.rs` | `product/apps/opc/...` |
+| `specs/112-factory-project-lifecycle` | 44 | `apps/opc/src-tauri/src/commands/keychain.rs` | `product/apps/opc/...` |
+| `specs/112-factory-project-lifecycle` | 45 | `apps/opc/src/routes/factory/ProjectCockpit.tsx` | `product/apps/opc/...` |
+| `specs/119-project-as-unit-of-governance` | 40 | `apps/opc` | `product/apps/opc` |
+| `specs/120-factory-extraction-stage` | 42 | `apps/opc/src-tauri/src/commands/factory.rs` | `product/apps/opc/...` |
+| `specs/120-factory-extraction-stage` | 43 | `apps/opc/src-tauri/src/commands/stagecraft_client.rs` | `product/apps/opc/...` |
+| `specs/120-factory-extraction-stage` | 44 | `apps/opc/src/components/factory/ArtifactInspector.tsx` | `product/apps/opc/...` |
+| `specs/122-stakeholder-doc-inversion` | 43 | `apps/opc/src/components/factory/StageCdReview.tsx` | `product/apps/opc/...` |
+| `specs/123-agent-catalog-org-rescope` | 41 | `apps/opc/src-tauri/src/commands/agent_catalog_sync.rs` | `product/apps/opc/...` |
+| `specs/124-opc-factory-run-platform-integration` | 29 | `apps/opc/src-tauri/src/commands/factory.rs` | `product/apps/opc/...` |
+| `specs/126-desktop-agent-picker-ui` | 29 | `apps/opc/src/components/AgentPicker.tsx` | `product/apps/opc/...` |
+| `specs/126-desktop-agent-picker-ui` | 30 | `apps/opc/src/lib/agentPicker.ts` | `product/apps/opc/...` |
+| `specs/139-factory-artifact-substrate` | 54 | `apps/opc/src-tauri/src/commands/factory.rs` | `product/apps/opc/...` |
 
 ### Group L — `packages/` (Epic 2 I7)
 
@@ -187,13 +187,13 @@ W-05 widened `implements:` from scalar to list-of-paths. Multi-path specs that u
 | `specs/039-feature-id-reconciliation` | ≥ 2 | G (spec-compiler) + crates/featuregraph |
 | `specs/091-registry-enrichment` | ≥ 1 | G |
 | `specs/102-governed-excellence` | multi | G + others (tools/oap-registry-enrich via `[package.metadata.oap]` only) |
-| `specs/110-stagecraft-to-opc-factory-trigger` | 5+ | K (apps/desktop ×3) + L (packages/oap-ctl ×1) + platform |
-| `specs/111-org-agent-catalog-sync` | 5 | K (apps/desktop ×5) |
-| `specs/112-factory-project-lifecycle` | 3+ | D (factory-contracts/schemas) + K (apps/desktop ×3) |
-| `specs/119-project-as-unit-of-governance` | 2+ | A (.specify/contract.md) + K (apps/desktop) |
-| `specs/120-factory-extraction-stage` | 3 | K (apps/desktop ×3) |
-| `specs/122-stakeholder-doc-inversion` | 2 | H (stakeholder-doc-lint) + K (apps/desktop) |
-| `specs/126-desktop-agent-picker-ui` | 2 | K (apps/desktop ×2) |
+| `specs/110-stagecraft-to-opc-factory-trigger` | 5+ | K (apps/opc ×3) + L (packages/oap-ctl ×1) + platform |
+| `specs/111-org-agent-catalog-sync` | 5 | K (apps/opc ×5) |
+| `specs/112-factory-project-lifecycle` | 3+ | D (factory-contracts/schemas) + K (apps/opc ×3) |
+| `specs/119-project-as-unit-of-governance` | 2+ | A (.specify/contract.md) + K (apps/opc) |
+| `specs/120-factory-extraction-stage` | 3 | K (apps/opc ×3) |
+| `specs/122-stakeholder-doc-inversion` | 2 | H (stakeholder-doc-lint) + K (apps/opc) |
+| `specs/126-desktop-agent-picker-ui` | 2 | K (apps/opc ×2) |
 | `specs/129-granular-package-oap-metadata` | 2 | B (schemas/codebase-index.schema.json) + G (codebase-indexer) |
 | `specs/132-constitutional-invariant-freeze` | 2 | C (bootstrap registry.schema.json) + G (spec-compiler) |
 | `specs/133-amends-aware-coupling-gate` | 3 | B (schemas/codebase-index.schema.json) + G (spec-code-coupling-check + codebase-indexer) |
@@ -223,7 +223,7 @@ Spec 127 fires when a diff touches a path declared in any spec's `implements:` l
 Special cases:
 
 - **I5 (tools restructure)** is the largest spec-update batch. The 39 frontmatter rows above can be batched into one commit alongside the directory-move + Cargo.toml `members` update, but the commit will be large (~ 40 frontmatter lines + git-mv operations + workspace member array). D6 produces the workflow/Makefile update list that lands in the same commit.
-- **I7 (product layer)** is the second-largest batch. 31 frontmatter rows + the `git mv apps/desktop product/apps/desktop` + `git mv packages product/packages` + the loader update in `tools/codebase-indexer/src/{lib,manifest}.rs`. Atomic per master plan.
+- **I7 (product layer)** is the second-largest batch. 31 frontmatter rows + the `git mv apps/opc product/apps/opc` + `git mv packages product/packages` + the loader update in `tools/codebase-indexer/src/{lib,manifest}.rs`. Atomic per master plan.
 - **I4 (schema co-location)** is fragile because three groups (B, C, D) co-move; per-spec updates touch 5 frontmatter rows total. Atomic across all schema moves.
 - **Specs with multi-phase touch** (e.g., 119 touches I3 + I7; 132 touches I4 + I5; 133 touches I4 + I5; 151 touches I5 + I8) — operator decides whether to (a) split frontmatter into per-phase sub-commits, or (b) update both entries in whichever phase lands later. Recommendation: update each phase's entry in its own commit; coupling-gate bypass list (`.github/spec-coupling-bypass.txt`) explicitly does not exempt `specs/`. The spec's `implements:` array can carry mixed old + new paths transiently if the gate's behavior allows; D7's "W-NNN follows producer-side enforcement" lessons may apply here too.
 
@@ -231,7 +231,7 @@ Special cases:
 
 1. **Spec `031-registry-consumer-list-ids-only-contract-mvp` and other registry-consumer specs (007–031)** all carry identical `- path: tools/registry-consumer`. Confirm batch-update strategy: single sed-style replace across all 25+ specs, or per-spec inspection? Recommendation: scripted bulk update with mandatory operator review of diff before commit.
 2. **Specs touching multiple I-phases** (119, 132, 133, 151, 122 has H + K) — split into per-phase frontmatter sub-commits or land in last-touching phase? See I5/I7 above.
-3. **Multi-path specs in I7 (apps/desktop sub-paths)** — when `apps/desktop` is split into `product/apps/desktop`, all sub-path entries (e.g., `apps/desktop/src-tauri/src/commands/factory.rs`) update mechanically by prefixing `product/`. Confirm sed-pattern strategy is acceptable.
+3. **Multi-path specs in I7 (apps/opc sub-paths)** — when `apps/opc` is split into `product/apps/opc`, all sub-path entries (e.g., `apps/opc/src-tauri/src/commands/factory.rs`) update mechanically by prefixing `product/`. Confirm sed-pattern strategy is acceptable.
 4. **Spec 081 `implements: []`** — explicitly empty list. No update required; flag for D7 / D10 in case the empty-list shape needs the V-NNN audit treatment.
 
 ## Phase coupling-gate readiness summary
@@ -477,62 +477,62 @@ Full list (sorted by spec):
 | 134-fast-local-ci-mode | 31 | `extends` | `tools/ci-parity-check/src/lib.rs` | — | `tools/oap/ci-parity-check/src/lib.rs` |
 | 135-fast-ci-as-default | 33 | `extends` | `tools/ci-parity-check/src/lib.rs` | — | `tools/oap/ci-parity-check/src/lib.rs` |
 
-### Phase I7 / Group K — `apps/desktop/` (52 entries)
+### Phase I7 / Group K — `apps/opc/` (52 entries)
 
 | spec | line | field | path | section | target |
 |---|---|---|---|---|---|
-| 033-axiomregent-activation | 24 | `establishes` | `apps/desktop/src-tauri/src/commands/sidecars.rs` | — | `product/apps/desktop/src-tauri/src/commands/sidecars.rs` |
-| 035-agent-governed-execution | 22 | `extends` | `apps/desktop/src-tauri/src/commands/agents.rs` | — | `product/apps/desktop/src-tauri/src/commands/agents.rs` |
-| 035-agent-governed-execution | 23 | `extends` | `apps/desktop/src-tauri/src/commands/claude.rs` | — | `product/apps/desktop/src-tauri/src/commands/claude.rs` |
-| 037-cross-platform-axiomregent | 21 | `extends` | `apps/desktop/src-tauri/binaries` | — | `product/apps/desktop/src-tauri/binaries` |
-| 038-titor-tauri-command-wiring | 14 | `establishes` | `apps/desktop/src-tauri/src/commands/titor.rs` | — | `product/apps/desktop/src-tauri/src/commands/titor.rs` |
-| 040-blockoli-semantic-search-wiring | 14 | `establishes` | `apps/desktop/src-tauri/src/commands/search.rs` | — | `product/apps/desktop/src-tauri/src/commands/search.rs` |
-| 041-checkpoint-restore-ui | 16 | `establishes` | `apps/desktop/src/features/checkpoint/CheckpointSurface.tsx` | — | `product/apps/desktop/src/features/checkpoint/CheckpointSurface.tsx` |
-| 041-checkpoint-restore-ui | 17 | `establishes` | `apps/desktop/src/features/checkpoint/useCheckpointFlow.ts` | — | `product/apps/desktop/src/features/checkpoint/useCheckpointFlow.ts` |
-| 041-checkpoint-restore-ui | 18 | `establishes` | `apps/desktop/src/features/checkpoint/types.ts` | — | `product/apps/desktop/src/features/checkpoint/types.ts` |
-| 045-claude-code-sdk-bridge | 17 | `extends` | `apps/desktop/src-tauri/src/commands/claude.rs` | — | `product/apps/desktop/src-tauri/src/commands/claude.rs` |
-| 051-worktree-agents | 21 | `establishes` | `apps/desktop/src-tauri/src/commands/worktree_agents.rs` | — | `product/apps/desktop/src-tauri/src/commands/worktree_agents.rs` |
-| 057-notification-system | 20 | `establishes` | `apps/desktop/src/lib/notificationOrchestrator.ts` | — | `product/apps/desktop/src/lib/notificationOrchestrator.ts` |
-| 057-notification-system | 21 | `establishes` | `apps/desktop/src/lib/notificationChannels.ts` | — | `product/apps/desktop/src/lib/notificationChannels.ts` |
-| 058-file-mention-system | 21 | `establishes` | `apps/desktop/src/components/FileMentionAutocomplete.tsx` | — | `product/apps/desktop/src/components/FileMentionAutocomplete.tsx` |
-| 058-file-mention-system | 22 | `establishes` | `apps/desktop/src/lib/fileMentionSystem.ts` | — | `product/apps/desktop/src/lib/fileMentionSystem.ts` |
-| 059-git-panel | 20 | `establishes` | `apps/desktop/src/components/GitPanel.tsx` | — | `product/apps/desktop/src/components/GitPanel.tsx` |
-| 059-git-panel | 21 | `establishes` | `apps/desktop/src-tauri/src/commands/git.rs` | — | `product/apps/desktop/src-tauri/src/commands/git.rs` |
-| 060-panel-event-bus | 24 | `establishes` | `apps/desktop/src/lib/panelEventBus.ts` | — | `product/apps/desktop/src/lib/panelEventBus.ts` |
-| 064-websocket-reconnection | 23 | `establishes` | `apps/desktop/src/lib/wsReconnection.ts` | — | `product/apps/desktop/src/lib/wsReconnection.ts` |
-| 064-websocket-reconnection | 27 | `extends` | `apps/desktop` | — | `product/apps/desktop` |
-| 065-encrypted-keychain | 24 | `establishes` | `apps/desktop/src-tauri/src/keychain.rs` | — | `product/apps/desktop/src-tauri/src/keychain.rs` |
-| 065-encrypted-keychain | 25 | `establishes` | `apps/desktop/src/components/CredentialPicker.tsx` | — | `product/apps/desktop/src/components/CredentialPicker.tsx` |
-| 065-encrypted-keychain | 29 | `extends` | `apps/desktop` | — | `product/apps/desktop` |
-| 073-axiomregent-unification | 22 | `supersedes` | `apps/desktop/src-tauri/src/commands/titor.rs` | — | `product/apps/desktop/src-tauri/src/commands/titor.rs` |
-| 073-axiomregent-unification | 26 | `supersedes` | `apps/desktop/src-tauri/src/commands/search.rs` | — | `product/apps/desktop/src-tauri/src/commands/search.rs` |
-| 076-factory-desktop-panel | 17 | `establishes` | `apps/desktop/src/components/FactoryPipelinePanel.tsx` | — | `product/apps/desktop/src/components/FactoryPipelinePanel.tsx` |
-| 076-factory-desktop-panel | 21 | `extends` | `apps/desktop` | — | `product/apps/desktop` |
-| 083-xray-ui-upgrade | 25 | `extends` | `apps/desktop` | — | `product/apps/desktop` |
-| 084-opc-settings-reconciliation | 21 | `establishes` | `apps/desktop/src/lib/settingsManager.ts` | — | `product/apps/desktop/src/lib/settingsManager.ts` |
-| 084-opc-settings-reconciliation | 25 | `extends` | `apps/desktop/src-tauri/src/commands/claude.rs` | — | `product/apps/desktop/src-tauri/src/commands/claude.rs` |
-| 084-opc-settings-reconciliation | 26 | `extends` | `apps/desktop/src/lib/api.ts` | — | `product/apps/desktop/src/lib/api.ts` |
-| 084-opc-settings-reconciliation | 27 | `extends` | `apps/desktop/src/components/ProjectSettings.tsx` | — | `product/apps/desktop/src/components/ProjectSettings.tsx` |
-| 085-remote-control-cli | 26 | `extends` | `apps/desktop/src-tauri/src/web_server.rs` | — | `product/apps/desktop/src-tauri/src/web_server.rs` |
-| 090-governance-non-optionality | 31 | `extends` | `apps/desktop/src-tauri/src/commands/orchestrator.rs` | — | `product/apps/desktop/src-tauri/src/commands/orchestrator.rs` |
-| 100-post-convergence-remediation | 15 | `refines` | `apps/desktop/src-tauri/tauri.conf.json` | — | `product/apps/desktop/src-tauri/tauri.conf.json` |
-| 110-stagecraft-to-opc-factory-trigger | 29 | `establishes` | `apps/desktop/src-tauri/src/commands/sync_client.rs` | — | `product/apps/desktop/src-tauri/src/commands/sync_client.rs` |
-| 111-org-agent-catalog-sync | 38 | `establishes` | `apps/desktop/src-tauri/src/commands/agents.rs` | — | `product/apps/desktop/src-tauri/src/commands/agents.rs` |
-| 111-org-agent-catalog-sync | 39 | `establishes` | `apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` | — | `product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` |
-| 111-org-agent-catalog-sync | 40 | `establishes` | `apps/desktop/src-tauri/src/commands/stagecraft_client.rs` | — | `product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs` |
-| 112-factory-project-lifecycle | 41 | `establishes` | `apps/desktop/src-tauri/src/commands/factory_project.rs` | — | `product/apps/desktop/src-tauri/src/commands/factory_project.rs` |
-| 112-factory-project-lifecycle | 42 | `establishes` | `apps/desktop/src-tauri/src/commands/keychain.rs` | — | `product/apps/desktop/src-tauri/src/commands/keychain.rs` |
-| 112-factory-project-lifecycle | 43 | `establishes` | `apps/desktop/src/routes/factory/ProjectCockpit.tsx` | — | `product/apps/desktop/src/routes/factory/ProjectCockpit.tsx` |
-| 119-project-as-unit-of-governance | 60 | `refines` | `apps/desktop` | — | `product/apps/desktop` |
-| 120-factory-extraction-stage | 38 | `establishes` | `apps/desktop/src/components/factory/ArtifactInspector.tsx` | — | `product/apps/desktop/src/components/factory/ArtifactInspector.tsx` |
-| 120-factory-extraction-stage | 48 | `extends` | `apps/desktop/src-tauri/src/commands/factory.rs` | — | `product/apps/desktop/src-tauri/src/commands/factory.rs` |
-| 120-factory-extraction-stage | 49 | `extends` | `apps/desktop/src-tauri/src/commands/stagecraft_client.rs` | — | `product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs` |
-| 122-stakeholder-doc-inversion | 41 | `establishes` | `apps/desktop/src/components/factory/StageCdReview.tsx` | — | `product/apps/desktop/src/components/factory/StageCdReview.tsx` |
-| 123-agent-catalog-org-rescope | 45 | `extends` | `apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` | — | `product/apps/desktop/src-tauri/src/commands/agent_catalog_sync.rs` |
-| 124-opc-factory-run-platform-integration | 34 | `extends` | `apps/desktop/src-tauri/src/commands/factory.rs` | — | `product/apps/desktop/src-tauri/src/commands/factory.rs` |
-| 126-desktop-agent-picker-ui | 31 | `extends` | `apps/desktop/src/components/AgentPicker.tsx` | — | `product/apps/desktop/src/components/AgentPicker.tsx` |
-| 126-desktop-agent-picker-ui | 32 | `extends` | `apps/desktop/src/lib/agentPicker.ts` | — | `product/apps/desktop/src/lib/agentPicker.ts` |
-| 139-factory-artifact-substrate | 68 | `refines` | `apps/desktop/src-tauri/src/commands/factory.rs` | — | `product/apps/desktop/src-tauri/src/commands/factory.rs` |
+| 033-axiomregent-activation | 24 | `establishes` | `apps/opc/src-tauri/src/commands/sidecars.rs` | — | `product/apps/opc/src-tauri/src/commands/sidecars.rs` |
+| 035-agent-governed-execution | 22 | `extends` | `apps/opc/src-tauri/src/commands/agents.rs` | — | `product/apps/opc/src-tauri/src/commands/agents.rs` |
+| 035-agent-governed-execution | 23 | `extends` | `apps/opc/src-tauri/src/commands/claude.rs` | — | `product/apps/opc/src-tauri/src/commands/claude.rs` |
+| 037-cross-platform-axiomregent | 21 | `extends` | `apps/opc/src-tauri/binaries` | — | `product/apps/opc/src-tauri/binaries` |
+| 038-titor-tauri-command-wiring | 14 | `establishes` | `apps/opc/src-tauri/src/commands/titor.rs` | — | `product/apps/opc/src-tauri/src/commands/titor.rs` |
+| 040-blockoli-semantic-search-wiring | 14 | `establishes` | `apps/opc/src-tauri/src/commands/search.rs` | — | `product/apps/opc/src-tauri/src/commands/search.rs` |
+| 041-checkpoint-restore-ui | 16 | `establishes` | `apps/opc/src/features/checkpoint/CheckpointSurface.tsx` | — | `product/apps/opc/src/features/checkpoint/CheckpointSurface.tsx` |
+| 041-checkpoint-restore-ui | 17 | `establishes` | `apps/opc/src/features/checkpoint/useCheckpointFlow.ts` | — | `product/apps/opc/src/features/checkpoint/useCheckpointFlow.ts` |
+| 041-checkpoint-restore-ui | 18 | `establishes` | `apps/opc/src/features/checkpoint/types.ts` | — | `product/apps/opc/src/features/checkpoint/types.ts` |
+| 045-claude-code-sdk-bridge | 17 | `extends` | `apps/opc/src-tauri/src/commands/claude.rs` | — | `product/apps/opc/src-tauri/src/commands/claude.rs` |
+| 051-worktree-agents | 21 | `establishes` | `apps/opc/src-tauri/src/commands/worktree_agents.rs` | — | `product/apps/opc/src-tauri/src/commands/worktree_agents.rs` |
+| 057-notification-system | 20 | `establishes` | `apps/opc/src/lib/notificationOrchestrator.ts` | — | `product/apps/opc/src/lib/notificationOrchestrator.ts` |
+| 057-notification-system | 21 | `establishes` | `apps/opc/src/lib/notificationChannels.ts` | — | `product/apps/opc/src/lib/notificationChannels.ts` |
+| 058-file-mention-system | 21 | `establishes` | `apps/opc/src/components/FileMentionAutocomplete.tsx` | — | `product/apps/opc/src/components/FileMentionAutocomplete.tsx` |
+| 058-file-mention-system | 22 | `establishes` | `apps/opc/src/lib/fileMentionSystem.ts` | — | `product/apps/opc/src/lib/fileMentionSystem.ts` |
+| 059-git-panel | 20 | `establishes` | `apps/opc/src/components/GitPanel.tsx` | — | `product/apps/opc/src/components/GitPanel.tsx` |
+| 059-git-panel | 21 | `establishes` | `apps/opc/src-tauri/src/commands/git.rs` | — | `product/apps/opc/src-tauri/src/commands/git.rs` |
+| 060-panel-event-bus | 24 | `establishes` | `apps/opc/src/lib/panelEventBus.ts` | — | `product/apps/opc/src/lib/panelEventBus.ts` |
+| 064-websocket-reconnection | 23 | `establishes` | `apps/opc/src/lib/wsReconnection.ts` | — | `product/apps/opc/src/lib/wsReconnection.ts` |
+| 064-websocket-reconnection | 27 | `extends` | `apps/opc` | — | `product/apps/opc` |
+| 065-encrypted-keychain | 24 | `establishes` | `apps/opc/src-tauri/src/keychain.rs` | — | `product/apps/opc/src-tauri/src/keychain.rs` |
+| 065-encrypted-keychain | 25 | `establishes` | `apps/opc/src/components/CredentialPicker.tsx` | — | `product/apps/opc/src/components/CredentialPicker.tsx` |
+| 065-encrypted-keychain | 29 | `extends` | `apps/opc` | — | `product/apps/opc` |
+| 073-axiomregent-unification | 22 | `supersedes` | `apps/opc/src-tauri/src/commands/titor.rs` | — | `product/apps/opc/src-tauri/src/commands/titor.rs` |
+| 073-axiomregent-unification | 26 | `supersedes` | `apps/opc/src-tauri/src/commands/search.rs` | — | `product/apps/opc/src-tauri/src/commands/search.rs` |
+| 076-factory-desktop-panel | 17 | `establishes` | `apps/opc/src/components/FactoryPipelinePanel.tsx` | — | `product/apps/opc/src/components/FactoryPipelinePanel.tsx` |
+| 076-factory-desktop-panel | 21 | `extends` | `apps/opc` | — | `product/apps/opc` |
+| 083-xray-ui-upgrade | 25 | `extends` | `apps/opc` | — | `product/apps/opc` |
+| 084-opc-settings-reconciliation | 21 | `establishes` | `apps/opc/src/lib/settingsManager.ts` | — | `product/apps/opc/src/lib/settingsManager.ts` |
+| 084-opc-settings-reconciliation | 25 | `extends` | `apps/opc/src-tauri/src/commands/claude.rs` | — | `product/apps/opc/src-tauri/src/commands/claude.rs` |
+| 084-opc-settings-reconciliation | 26 | `extends` | `apps/opc/src/lib/api.ts` | — | `product/apps/opc/src/lib/api.ts` |
+| 084-opc-settings-reconciliation | 27 | `extends` | `apps/opc/src/components/ProjectSettings.tsx` | — | `product/apps/opc/src/components/ProjectSettings.tsx` |
+| 085-remote-control-cli | 26 | `extends` | `apps/opc/src-tauri/src/web_server.rs` | — | `product/apps/opc/src-tauri/src/web_server.rs` |
+| 090-governance-non-optionality | 31 | `extends` | `apps/opc/src-tauri/src/commands/orchestrator.rs` | — | `product/apps/opc/src-tauri/src/commands/orchestrator.rs` |
+| 100-post-convergence-remediation | 15 | `refines` | `apps/opc/src-tauri/tauri.conf.json` | — | `product/apps/opc/src-tauri/tauri.conf.json` |
+| 110-stagecraft-to-opc-factory-trigger | 29 | `establishes` | `apps/opc/src-tauri/src/commands/sync_client.rs` | — | `product/apps/opc/src-tauri/src/commands/sync_client.rs` |
+| 111-org-agent-catalog-sync | 38 | `establishes` | `apps/opc/src-tauri/src/commands/agents.rs` | — | `product/apps/opc/src-tauri/src/commands/agents.rs` |
+| 111-org-agent-catalog-sync | 39 | `establishes` | `apps/opc/src-tauri/src/commands/agent_catalog_sync.rs` | — | `product/apps/opc/src-tauri/src/commands/agent_catalog_sync.rs` |
+| 111-org-agent-catalog-sync | 40 | `establishes` | `apps/opc/src-tauri/src/commands/stagecraft_client.rs` | — | `product/apps/opc/src-tauri/src/commands/stagecraft_client.rs` |
+| 112-factory-project-lifecycle | 41 | `establishes` | `apps/opc/src-tauri/src/commands/factory_project.rs` | — | `product/apps/opc/src-tauri/src/commands/factory_project.rs` |
+| 112-factory-project-lifecycle | 42 | `establishes` | `apps/opc/src-tauri/src/commands/keychain.rs` | — | `product/apps/opc/src-tauri/src/commands/keychain.rs` |
+| 112-factory-project-lifecycle | 43 | `establishes` | `apps/opc/src/routes/factory/ProjectCockpit.tsx` | — | `product/apps/opc/src/routes/factory/ProjectCockpit.tsx` |
+| 119-project-as-unit-of-governance | 60 | `refines` | `apps/opc` | — | `product/apps/opc` |
+| 120-factory-extraction-stage | 38 | `establishes` | `apps/opc/src/components/factory/ArtifactInspector.tsx` | — | `product/apps/opc/src/components/factory/ArtifactInspector.tsx` |
+| 120-factory-extraction-stage | 48 | `extends` | `apps/opc/src-tauri/src/commands/factory.rs` | — | `product/apps/opc/src-tauri/src/commands/factory.rs` |
+| 120-factory-extraction-stage | 49 | `extends` | `apps/opc/src-tauri/src/commands/stagecraft_client.rs` | — | `product/apps/opc/src-tauri/src/commands/stagecraft_client.rs` |
+| 122-stakeholder-doc-inversion | 41 | `establishes` | `apps/opc/src/components/factory/StageCdReview.tsx` | — | `product/apps/opc/src/components/factory/StageCdReview.tsx` |
+| 123-agent-catalog-org-rescope | 45 | `extends` | `apps/opc/src-tauri/src/commands/agent_catalog_sync.rs` | — | `product/apps/opc/src-tauri/src/commands/agent_catalog_sync.rs` |
+| 124-opc-factory-run-platform-integration | 34 | `extends` | `apps/opc/src-tauri/src/commands/factory.rs` | — | `product/apps/opc/src-tauri/src/commands/factory.rs` |
+| 126-desktop-agent-picker-ui | 31 | `extends` | `apps/opc/src/components/AgentPicker.tsx` | — | `product/apps/opc/src/components/AgentPicker.tsx` |
+| 126-desktop-agent-picker-ui | 32 | `extends` | `apps/opc/src/lib/agentPicker.ts` | — | `product/apps/opc/src/lib/agentPicker.ts` |
+| 139-factory-artifact-substrate | 68 | `refines` | `apps/opc/src-tauri/src/commands/factory.rs` | — | `product/apps/opc/src-tauri/src/commands/factory.rs` |
 
 ### Phase I7 / Group L — `packages/` (12 entries)
 
@@ -602,8 +602,8 @@ though the coupling gate does not currently consult them:
 
 | spec | line | field | path | I-phase |
 |---|---|---|---|---|
-| 073-axiomregent-unification | 22 | `supersedes` | `apps/desktop/src-tauri/src/commands/titor.rs` | I7 |
-| 073-axiomregent-unification | 26 | `supersedes` | `apps/desktop/src-tauri/src/commands/search.rs` | I7 |
+| 073-axiomregent-unification | 22 | `supersedes` | `apps/opc/src-tauri/src/commands/titor.rs` | I7 |
+| 073-axiomregent-unification | 26 | `supersedes` | `apps/opc/src-tauri/src/commands/search.rs` | I7 |
 | 130-spec-coupling-primary-owner | 32 | `constrains` | `specs/000-bootstrap-spec-system/contracts/registry.schema.json` | I4 |
 | 132-constitutional-invariant-freeze | 27 | `constrains` | `specs/000-bootstrap-spec-system/contracts/registry.schema.json` | I4 |
 

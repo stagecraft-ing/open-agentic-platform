@@ -19,7 +19,7 @@ establishes:
   - unit: { kind: symbol, id: opc::commands::claude::get_project_path_from_sessions }
 references:
   - role: implementation-witness
-    unit: { kind: file, path: product/apps/desktop/src/stores/sessionStore.ts }
+    unit: { kind: file, path: product/apps/opc/src/stores/sessionStore.ts }
   - role: analogous-pattern
     unit: { kind: file, path: specs/099-workspace-scoped-persistence/spec.md }
   - role: complementary-mechanism
@@ -28,7 +28,7 @@ summary: >
   OPC's session model has been operating since the desktop app shipped:
   Claude Code's own filesystem-backed JSONL session history is the
   source of truth, surfaced to the desktop UI via four Tauri commands
-  in `product/apps/desktop/src-tauri/src/commands/claude.rs`
+  in `product/apps/opc/src-tauri/src/commands/claude.rs`
   (`list_projects`, `get_project_sessions`, `decode_project_path`,
   `get_project_path_from_sessions`). The discipline that emerges from
   this surface — many sessions per project path, project identity by
@@ -56,10 +56,10 @@ summary: >
 OPC's desktop cockpit displays the user's Claude Code session
 history. The implementation has shipped since the desktop's first
 release: four Tauri commands in
-[`product/apps/desktop/src-tauri/src/commands/claude.rs`](../../product/apps/desktop/src-tauri/src/commands/claude.rs)
+[`product/apps/opc/src-tauri/src/commands/claude.rs`](../../product/apps/opc/src-tauri/src/commands/claude.rs)
 read `~/.claude/projects/<encoded-path>/<session-uuid>.jsonl`, return
 typed `Project` and `Session` rows, and the desktop's Zustand store
-([`product/apps/desktop/src/stores/sessionStore.ts`](../../product/apps/desktop/src/stores/sessionStore.ts))
+([`product/apps/opc/src/stores/sessionStore.ts`](../../product/apps/opc/src/stores/sessionStore.ts))
 materialises the result keyed by `projectId`.
 
 The *discipline* this surface enforces — what counts as a project,
@@ -315,7 +315,7 @@ assertions about current reality, not future verifications:
 - The four symbols `opc::commands::claude::list_projects`,
   `opc::commands::claude::get_project_sessions`, `opc::commands::claude::decode_project_path`,
   and `opc::commands::claude::get_project_path_from_sessions` exist in
-  [`product/apps/desktop/src-tauri/src/commands/claude.rs`](../../product/apps/desktop/src-tauri/src/commands/claude.rs)
+  [`product/apps/opc/src-tauri/src/commands/claude.rs`](../../product/apps/opc/src-tauri/src/commands/claude.rs)
   at the time this spec lands.
 - `opc::commands::claude::list_projects` enumerates directories under
   `~/.claude/projects/` and returns one `Project` per directory.

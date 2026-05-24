@@ -168,7 +168,7 @@ Verify:
   could break downstream consumers that previously read the
   scalar as a path.
 - Check downstream consumers: `crates/featuregraph` and
-  `apps/desktop/src-tauri` are the known ones. Does either treat
+  `apps/opc/src-tauri` are the known ones. Does either treat
   a Scalar `implements:` as a path anywhere?
 
 If any downstream consumer relied on the broader behavior, this is

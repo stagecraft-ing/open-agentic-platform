@@ -18,17 +18,17 @@ code_aliases:
   - OPC_SETTINGS
   - SETTINGS_RECONCILIATION
 establishes:
-  - unit: { kind: file, path: product/apps/desktop/src/lib/settingsManager.ts }
+  - unit: { kind: file, path: product/apps/opc/src/lib/settingsManager.ts }
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/claude.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/claude.rs }
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src/lib/api.ts }
+    unit: { kind: file, path: product/apps/opc/src/lib/api.ts }
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src/components/ProjectSettings.tsx }
+    unit: { kind: file, path: product/apps/opc/src/components/ProjectSettings.tsx }
 ---
 
 # 084 — OPC Scoped Settings Reconciliation
@@ -91,18 +91,18 @@ individual overrides at user and local scopes.
 
 | File | Role |
 |------|------|
-| `product/apps/desktop/src-tauri/src/commands/claude.rs` | Add scoped settings commands (after hooks commands ~2560) |
-| `product/apps/desktop/src-tauri/src/lib.rs` | Register new commands |
-| `product/apps/desktop/src/lib/api.ts` | Add API functions (after hooks API ~2012) |
-| `product/apps/desktop/src/lib/settingsManager.ts` | New — merge utility |
-| `product/apps/desktop/src/lib/hooksManager.ts` | Reference pattern to mirror |
-| `product/apps/desktop/src/components/ProjectSettings.tsx` | Add Permissions tab |
-| `product/apps/desktop/src/components/Settings.tsx:806-930` | Existing permissions UI to reuse |
+| `product/apps/opc/src-tauri/src/commands/claude.rs` | Add scoped settings commands (after hooks commands ~2560) |
+| `product/apps/opc/src-tauri/src/lib.rs` | Register new commands |
+| `product/apps/opc/src/lib/api.ts` | Add API functions (after hooks API ~2012) |
+| `product/apps/opc/src/lib/settingsManager.ts` | New — merge utility |
+| `product/apps/opc/src/lib/hooksManager.ts` | Reference pattern to mirror |
+| `product/apps/opc/src/components/ProjectSettings.tsx` | Add Permissions tab |
+| `product/apps/opc/src/components/Settings.tsx:806-930` | Existing permissions UI to reuse |
 
 ## Verification
 
-- `cargo build --manifest-path product/apps/desktop/src-tauri/Cargo.toml` compiles
-- `cd product/apps/desktop && pnpm build` compiles
+- `cargo build --manifest-path product/apps/opc/src-tauri/Cargo.toml` compiles
+- `cd product/apps/opc && pnpm build` compiles
 - Manual: ProjectSettings > Permissions tab loads project `.claude/settings.json` rules
 - Manual: Edit and save — file updates correctly
 - Manual: Effective merged view shows union of all scopes

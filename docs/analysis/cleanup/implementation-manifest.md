@@ -24,10 +24,10 @@ Epic 2 agent must read this document end-to-end before firing any phase.
 **Pre-conditions:**
 - `cargo test --workspace --manifest-path crates/Cargo.toml` clean.
 - `cargo build` succeeds for each standalone tool.
-- Operator has resolved D2 open questions 1 (`apps/desktop` SQLite isolation) and 2 (`platform/services/deployd-api-rs` standalone disposition).
+- Operator has resolved D2 open questions 1 (`apps/opc` SQLite isolation) and 2 (`platform/services/deployd-api-rs` standalone disposition).
 
 **Operations (in order):**
-1. Author root `Cargo.toml` with `[workspace]` block listing all members (default: 18 crates from `crates/Cargo.toml` + 12 tools + `tools/shared/spec-types` = 31; plus `apps/desktop/src-tauri` and `platform/services/deployd-api-rs` per operator decision).
+1. Author root `Cargo.toml` with `[workspace]` block listing all members (default: 18 crates from `crates/Cargo.toml` + 12 tools + `tools/shared/spec-types` = 31; plus `apps/opc/src-tauri` and `platform/services/deployd-api-rs` per operator decision).
 2. Delete `crates/Cargo.toml`'s `[workspace]` block — but **don't delete the file**; it becomes a workspace-member manifest (or is removed entirely if the root workspace lists `crates/*` as a glob). Recommendation: drop `crates/Cargo.toml` since it carries only the `[workspace]` block (no `[package]`).
 3. Update Cargo path deps to be workspace-aware (optional — see D2 Open Question 4). Default: leave path deps as `path = ".../<sibling>"`.
 4. Delete redundant `Cargo.lock` files (per D2 disposition; default 14 deleted, 1 root lockfile remains).
@@ -37,7 +37,7 @@ Epic 2 agent must read this document end-to-end before firing any phase.
 
 **Files changed:**
 - New: `Cargo.toml` (root).
-- Removed: `crates/Cargo.toml`, 14 `Cargo.lock` files (`tools/*/Cargo.lock`, `tools/shared/spec-types/Cargo.lock`, conditionally `apps/desktop/src-tauri/Cargo.lock` + `platform/services/deployd-api-rs/Cargo.lock`).
+- Removed: `crates/Cargo.toml`, 14 `Cargo.lock` files (`tools/*/Cargo.lock`, `tools/shared/spec-types/Cargo.lock`, conditionally `apps/opc/src-tauri/Cargo.lock` + `platform/services/deployd-api-rs/Cargo.lock`).
 - Modified: `.gitignore` (drop the `!tools/.../Cargo.lock` re-includes for deleted lockfiles).
 
 **Verification:**
@@ -48,7 +48,7 @@ Epic 2 agent must read this document end-to-end before firing any phase.
 
 **Trip-wires:**
 - If consolidation reveals workspace dep cycles (e.g., feature-flag mismatch on shared deps like `policy-kernel` with `default-features = false`), halt and surface.
-- If `apps/desktop/src-tauri/` SQLite linking breaks the build when consolidated, fall back to keeping it isolated (per D2 Open Question 1 option (a)) and add a note in `Cargo.toml`.
+- If `apps/opc/src-tauri/` SQLite linking breaks the build when consolidated, fall back to keeping it isolated (per D2 Open Question 1 option (a)) and add a note in `Cargo.toml`.
 
 ## I2 — Create target directory skeleton
 
@@ -207,10 +207,10 @@ I5 has the largest blast radius — ~52 workflow line updates, ~80 Makefile line
    - `tools/oap/oap-code-index-enrich/Cargo.toml`: `../codebase-indexer` → `../../spec-spine/codebase-indexer`; `../shared/spec-types` → `../../shared/spec-types`
    - `tools/oap/stakeholder-doc-lint/Cargo.toml`: `../../crates/factory-contracts` → `../../../crates/factory-contracts`; `../../crates/provenance-validator` → `../../../crates/provenance-validator`
    - `tools/oap/assumption-cascade-check/Cargo.toml`: `../../crates/factory-engine` → `../../../crates/factory-engine`
-5. **Update Cargo path deps in `crates/` and `apps/desktop/src-tauri/Cargo.toml`** for cross-tree deps into tools:
+5. **Update Cargo path deps in `crates/` and `apps/opc/src-tauri/Cargo.toml`** for cross-tree deps into tools:
    - `crates/factory-engine/Cargo.toml`: `../../tools/registry-consumer` → `../../tools/spec-spine/registry-consumer`
    - `crates/featuregraph/Cargo.toml`: same
-   - `apps/desktop/src-tauri/Cargo.toml`: `../../../tools/registry-consumer` → `../../../tools/spec-spine/registry-consumer`
+   - `apps/opc/src-tauri/Cargo.toml`: `../../../tools/registry-consumer` → `../../../tools/spec-spine/registry-consumer`
 6. **Update root `Cargo.toml` `members` array** to reflect new tool paths.
 7. **Update Makefile** (~80 line updates per [`workflow-makefile-inventory.md`](./workflow-makefile-inventory.md)).
    - Also drop the stale `tools/shared/frontmatter/Cargo.toml` reference at `Makefile:584` (D6 Open Question, D1 Group I — the file was deleted in W-01).
@@ -233,7 +233,7 @@ I5 has the largest blast radius — ~52 workflow line updates, ~80 Makefile line
 
 **Files changed:**
 - Moves: 13 directories.
-- Cargo manifests: 9 in `tools/` + 3 in `crates/` + `apps/desktop/src-tauri/` + root `Cargo.toml` = 14 manifests.
+- Cargo manifests: 9 in `tools/` + 3 in `crates/` + `apps/opc/src-tauri/` + root `Cargo.toml` = 14 manifests.
 - Makefile: ~80 line updates.
 - Workflows: 6 files, ~52 line updates.
 - CODEOWNERS: ~9 lines.
@@ -291,7 +291,7 @@ I5 has the largest blast radius — ~52 workflow line updates, ~80 Makefile line
 
 I7 has the second-largest blast radius — packages + apps + root npm files all move together. Pre-condition: master plan §Locked target layout puts root npm files inside `product/`; the indexer loader for `pnpm-workspace.yaml` updates accordingly.
 
-1. **Move apps:** `git mv apps/desktop product/apps/desktop`.
+1. **Move apps:** `git mv apps/opc product/apps/opc`.
 2. **Move packages:** `git mv packages product/packages`.
 3. **Move root npm files:**
    - `git mv package.json product/package.json`
@@ -299,13 +299,13 @@ I7 has the second-largest blast radius — packages + apps + root npm files all 
    - `git mv pnpm-workspace.yaml product/pnpm-workspace.yaml`
    - `git mv pnpm-lock.yaml product/pnpm-lock.yaml`
 4. **Update `pnpm-workspace.yaml` globs** (if file moved into `product/`, globs stay `apps/*`, `packages/*` since they're now relative to `product/`).
-5. **Update `apps/desktop/src-tauri/Cargo.toml` path deps** — 13 declarations deepen by one level (`../../../crates/...` → `../../../../crates/...`).
-6. **Update root `Cargo.toml` `members` array** to reflect new apps/desktop path.
+5. **Update `apps/opc/src-tauri/Cargo.toml` path deps** — 13 declarations deepen by one level (`../../../crates/...` → `../../../../crates/...`).
+6. **Update root `Cargo.toml` `members` array** to reflect new apps/opc path.
 7. **Update `tools/spec-spine/codebase-indexer/src/lib.rs:446,447`** and **`tools/spec-spine/codebase-indexer/src/manifest.rs:377,378`** to read `pnpm-workspace.yaml` from `product/` (not repo root).
-8. **Update `apps/desktop/src-tauri/src/commands/claude.rs:154,158,161,1200`** runtime sidecar path: `packages/provider-registry/dist/node-sidecar.js` → `product/packages/provider-registry/dist/node-sidecar.js`.
+8. **Update `apps/opc/src-tauri/src/commands/claude.rs:154,158,161,1200`** runtime sidecar path: `packages/provider-registry/dist/node-sidecar.js` → `product/packages/provider-registry/dist/node-sidecar.js`.
 9. **Update workflows** — `ci-codebase-index.yml`, `ci-desktop.yml`, `build-axiomregent.yml`, `release-desktop.yml`, `ci-supply-chain.yml` (~65 line updates per D6).
 10. **Update Makefile** — `ci-desktop`, `ci-fast-desktop`, `clean` recipes (~25 line updates per D6).
-11. **Update spec `implements:` rows** — 27 frontmatter rows across 16 specs for `apps/desktop` + sub-paths; 4 rows for `packages/`.
+11. **Update spec `implements:` rows** — 27 frontmatter rows across 16 specs for `apps/opc` + sub-paths; 4 rows for `packages/`.
 12. **Update `tools/spec-spine/spec-compiler/tests/v004_consolidation_excludes.rs:32,36`** fixture path strings.
 13. **Update doc-prose** in CLAUDE.md, AGENTS.md, README.md, DEVELOPERS.md, docs/ARCHITECTURE.md.
 
@@ -313,8 +313,8 @@ I7 has the second-largest blast radius — packages + apps + root npm files all 
 
 **Files changed:**
 - Moves: 23 directories (22 packages + 1 app) + 4 root npm files = 27 paths.
-- Cargo manifests: `apps/desktop/src-tauri/Cargo.toml` + root `Cargo.toml`.
-- Source: `tools/spec-spine/codebase-indexer/src/{lib,manifest}.rs` + `apps/desktop/src-tauri/src/commands/claude.rs`.
+- Cargo manifests: `apps/opc/src-tauri/Cargo.toml` + root `Cargo.toml`.
+- Source: `tools/spec-spine/codebase-indexer/src/{lib,manifest}.rs` + `apps/opc/src-tauri/src/commands/claude.rs`.
 - Workflows: 5 files, ~65 line updates.
 - Makefile: ~25 line updates.
 - Specs: 31 frontmatter rows across 17 specs.
@@ -324,7 +324,7 @@ I7 has the second-largest blast radius — packages + apps + root npm files all 
 - `cargo build --workspace --release` clean.
 - `pnpm install` succeeds (workspace globs resolve under `product/`).
 - `pnpm -r build` succeeds in product/.
-- `cargo build --release --manifest-path apps/desktop/src-tauri/Cargo.toml` clean (deepened path deps resolve).
+- `cargo build --release --manifest-path apps/opc/src-tauri/Cargo.toml` clean (deepened path deps resolve).
 - `make registry` succeeds (codebase-indexer's `pnpm-workspace.yaml` read now points at `product/`).
 - Spec 127 coupling gate clears.
 
@@ -372,7 +372,7 @@ I7 has the second-largest blast radius — packages + apps + root npm files all 
 1. `git mv build .derived` (renames the entire directory including `.derived/spec-registry/`, `.derived/codebase-index/`, `.derived/schema-parity/`).
 2. Update `.gitignore` lines 300, 315, 322–324 from `build/spec-registry/` etc. to `.derived/spec-registry/` etc. (and the re-include rules for `.derived/codebase-index/index.json`).
 3. Update all `repo_root.join("build/...")` runtime literals (~20 hits across Rust crates per D1 Group O):
-   - `apps/desktop/src-tauri/src/commands/analysis.rs:22,28`
+   - `apps/opc/src-tauri/src/commands/analysis.rs:22,28`
    - `crates/factory-contracts/src/{knowledge,provenance,stakeholder_docs}.rs` (5 lines)
    - `crates/factory-engine/src/governance_certificate.rs:713,766`
    - `crates/featuregraph/src/index_bridge.rs:119`

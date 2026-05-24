@@ -32,7 +32,7 @@ This is a governed monorepo with three layers:
 | Spec Spine | `specs/` | Markdown + YAML frontmatter, compiled to `.derived/spec-registry/registry.json` |
 | Rust Crates | `crates/` | agent, axiomregent, factory-engine, factory-contracts, featuregraph, orchestrator, policy-kernel, run, skill-factory, tool-registry, xray |
 | Rust Tools | `tools/` | spec-compiler, registry-consumer, spec-lint, policy-compiler |
-| Desktop App (OPC) | `apps/desktop/` | Tauri v2 + React + TypeScript |
+| Desktop App (OPC) | `apps/opc/` | Tauri v2 + React + TypeScript |
 | Factory | `factory/` | Process stages, contract schemas, adapters (aim-vue-node, next-prisma, encore-react, rust-axum) |
 | Platform | `platform/` | Encore.ts (stagecraft), Rust (deployd-api-rs), Terraform, Helm |
 

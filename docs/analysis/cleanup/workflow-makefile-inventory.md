@@ -68,7 +68,7 @@ The cargo-deny matrix; pins explicit Cargo.toml paths.
 | Epic 2 phase | refs | examples |
 |---|---|---|
 | I5 | 8 | `tools/spec-compiler/Cargo.toml` (79), `tools/registry-consumer/Cargo.toml` (80), `tools/spec-lint/Cargo.toml` (81), `tools/codebase-indexer/Cargo.toml` (82), `tools/policy-compiler/Cargo.toml` (83), `tools/adapter-scopes-compiler/Cargo.toml` (84), `tools/ci-parity-check/Cargo.toml` (85), `tools/shared/spec-types/Cargo.toml` (86) |
-| I7 | 1 | `apps/desktop/src-tauri/Cargo.toml` (78) |
+| I7 | 1 | `apps/opc/src-tauri/Cargo.toml` (78) |
 | (path unchanged) | 1 | `tools/shared/spec-types/Cargo.toml` (86) stays same |
 
 ### `ci-crates.yml` (6 refs)
@@ -78,7 +78,7 @@ Workspace-wide `cargo` invocations against `crates/Cargo.toml`.
 | Epic 2 phase | refs | examples |
 |---|---|---|
 | I1 | 3+ | `manifest-path crates/Cargo.toml` (43); trigger `crates/**` (19, 22). Once I1 consolidates the root workspace, `crates/Cargo.toml` becomes the leaf workspace member root — or the trigger broadens to repo root. **Operator-decision point: whether the I1 root `Cargo.toml` replaces `crates/Cargo.toml` or sits alongside.** |
-| I7 | (potential) | If I7 moves apps/desktop, no direct ref here but indirectly the `--workspace` runs change scope |
+| I7 | (potential) | If I7 moves apps/opc, no direct ref here but indirectly the `--workspace` runs change scope |
 
 ### `ci-orchestrator.yml` (7 refs)
 
@@ -102,28 +102,28 @@ Workspace-wide `cargo` invocations against `crates/Cargo.toml`.
 
 | Epic 2 phase | refs | examples |
 |---|---|---|
-| I7 | 21+ | trigger globs `apps/desktop/**`, `packages/**`, `crates/**` (lines 19–26); workspace `apps/desktop/src-tauri` (56); dist + binaries stubs `apps/desktop/dist/index.html` (61–62), `apps/desktop/src-tauri/binaries/` (66–68); `manifest-path apps/desktop/src-tauri/Cargo.toml` (71, 74, 77, 80); `apps/desktop/src-tauri/Cargo.toml` version check (85); `apps/desktop/package.json` version check (86) |
+| I7 | 21+ | trigger globs `apps/opc/**`, `packages/**`, `crates/**` (lines 19–26); workspace `apps/opc/src-tauri` (56); dist + binaries stubs `apps/opc/dist/index.html` (61–62), `apps/opc/src-tauri/binaries/` (66–68); `manifest-path apps/opc/src-tauri/Cargo.toml` (71, 74, 77, 80); `apps/opc/src-tauri/Cargo.toml` version check (85); `apps/opc/package.json` version check (86) |
 
 ### `build-axiomregent.yml` (32 refs)
 
 | Epic 2 phase | refs | examples |
 |---|---|---|
 | I1 | 4 | trigger globs `crates/axiomregent/**`, `crates/agent/**`, `crates/featuregraph/**`, etc. (12–17, 20–25); `manifest-path crates/axiomregent/Cargo.toml` (67, 127) |
-| I7 | 28+ | `apps/desktop/src-tauri/binaries/...` (72–93, 131–138) — bundled-binary copy destinations |
+| I7 | 28+ | `apps/opc/src-tauri/binaries/...` (72–93, 131–138) — bundled-binary copy destinations |
 
 ### `release-axiomregent.yml` (12 refs)
 
 | Epic 2 phase | refs | examples |
 |---|---|---|
 | I1 | 6 | `manifest-path crates/axiomregent/Cargo.toml` (63, 115); `crates/target/...` (71, 120); `crates/Cargo.lock` (165, 178, 181) |
-| I7 | (none direct, but bundle outputs feed into apps/desktop downstream) | — |
+| I7 | (none direct, but bundle outputs feed into apps/opc downstream) | — |
 
 ### `release-desktop.yml` (15+ refs)
 
 | Epic 2 phase | refs | examples |
 |---|---|---|
 | I1 | 4 | `crates/axiomregent/Cargo.toml` (76, 131); `crates/target/...` (82, 136) |
-| I7 | 11+ | `apps/desktop/src-tauri/binaries/...` (81–84, 97, 135–137, 143, 216, 220); `apps/desktop` projectPath (269, 296); `apps/desktop/src-tauri/target` (320); `apps/desktop` (339); `apps/desktop/src-tauri/target/sbom-desktop-...cdx.json` (341) |
+| I7 | 11+ | `apps/opc/src-tauri/binaries/...` (81–84, 97, 135–137, 143, 216, 220); `apps/opc` projectPath (269, 296); `apps/opc/src-tauri/target` (320); `apps/opc` (339); `apps/opc/src-tauri/target/sbom-desktop-...cdx.json` (341) |
 
 ### `release-tools.yml` (10+ refs)
 
@@ -164,7 +164,7 @@ No load-bearing refs to moving paths. Untouched.
 | Epic 2 phase | recipes / line ranges | nature |
 |---|---|---|
 | I5 (tools restructure) | `setup` (43–80, builds spec-spine + codebase-indexer + registry-consumer), `axiomregent` builds (not affected by I5), `registry` target chain (140), `oap-registry-enrich` (148–149), `oap-code-index-enrich` (157–158), `pr-prep` (171), `spec-compile` (181), `spec-tools` (184–188), `index` + `index-render` (286, 297–298), `ci-rust` (incl. ci-tools 428–467), `ci-fast-rust`, `ci-fast-tools` (705–711), `ci-schema-parity` (531, 790), `ci-spec-code-coupling` (545–556), `ci-fast-spec-coupling` (793–798), `ci-supply-chain-cargo` (575–584), `ci-parity` (621–622), `clean` (824–826) | **~80 line updates** to manifest-paths and binary paths; recipe **identifiers** unchanged |
-| I7 (product layer) | `ci-desktop` (471–491), `ci-fast-desktop` (750–770), `clean` (827–828) | **~25 line updates** to `apps/desktop/...` paths |
+| I7 (product layer) | `ci-desktop` (471–491), `ci-fast-desktop` (750–770), `clean` (827–828) | **~25 line updates** to `apps/opc/...` paths |
 | I9 (`build/` → `.derived/`) | `pr-prep` (174–177), `clean` (824–826), all comments referring to `build/spec-registry/`, `build/codebase-index/`, `build/schema-parity/` | **~10 line updates** |
 | I1 (root Cargo workspace) | Indirect — many `manifest-path tools/<tool>/Cargo.toml` become `cargo … --package <name>` after consolidation, or stay verbatim if the consolidation preserves the manifest-path style. Operator-decision point. | **0 mandatory** changes (manifest-path still works); **bulk style refactor possible** |
 | **Stale ref to remove** | `Makefile:584` references `tools/shared/frontmatter/Cargo.toml` (deleted in W-01). Surfaces from D1 Group I open question. | **1 line removal**, ideally landed early as a cleanup precursor |
@@ -175,7 +175,7 @@ The Makefile carries extensive `##` doc-prose at lines 95, 111, 124, 139, 143, 1
 
 ### `dev` / `dev-platform` recipes
 
-Lines 313–346: invoke `pnpm run dev` in `apps/desktop` and `npm` in `platform/services/stagecraft`. I7 updates `apps/desktop` paths to `product/apps/desktop`.
+Lines 313–346: invoke `pnpm run dev` in `apps/opc` and `npm` in `platform/services/stagecraft`. I7 updates `apps/opc` paths to `product/apps/opc`.
 
 ## `platform/Makefile` (259 lines)
 

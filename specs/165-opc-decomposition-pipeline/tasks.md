@@ -61,7 +61,7 @@
   (FR-008, SC-005).
 - F-003 — Governance certificate emission at promotion (spec 102,
   FR-009, SC-006).
-- F-004 — React panel in `product/apps/desktop`: "Decompose project"
+- F-004 — React panel in `product/apps/opc`: "Decompose project"
   action button, staging-area browser, promotion UI.
 - F-005 — Checkpoint integration (spec 095): run the pipeline as a
   branch-of-thought, allow multiple synthesis trajectories.

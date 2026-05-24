@@ -18,9 +18,9 @@ code_aliases:
   - NOTIFICATION_SYSTEM
 references:
   - role: historical
-    unit: { kind: file, path: product/apps/desktop/src/lib/notificationOrchestrator.ts }
+    unit: { kind: file, path: product/apps/opc/src/lib/notificationOrchestrator.ts }
   - role: historical
-    unit: { kind: file, path: product/apps/desktop/src/lib/notificationChannels.ts }
+    unit: { kind: file, path: product/apps/opc/src/lib/notificationChannels.ts }
 ---
 
 # Feature Specification: Notification Orchestrator

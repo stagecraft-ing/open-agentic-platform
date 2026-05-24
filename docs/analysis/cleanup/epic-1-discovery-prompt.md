@@ -161,8 +161,8 @@ Binary names don't change; binary paths do.
 - `grammars/tree-sitter-`
 - `^grammars/` and `[^/]grammars/`
 
-**Group K — `apps/desktop/` (move to `product/apps/desktop/`)**
-- `apps/desktop/`
+**Group K — `apps/opc/` (move to `product/apps/opc/`)**
+- `apps/opc/`
 - `^apps/` and `[^/]apps/`
 
 **Group L — `packages/` (move to `product/packages/`)**
@@ -307,7 +307,7 @@ List with paths. These lockfiles will be removed in I1.
 
 ### Scope
 
-Epic 2 Phase I7 moves `apps/desktop/` and `packages/*` under `product/`,
+Epic 2 Phase I7 moves `apps/opc/` and `packages/*` under `product/`,
 along with root npm files. This phase produces the manifest I7 reads.
 
 ### Method
@@ -327,8 +327,8 @@ along with root npm files. This phase produces the manifest I7 reads.
    '*.js' '*.jsx'` — every relative-path import that crosses into
    `packages/`.
 
-5. `git grep -nE "from\s+['\"]\.\.?/.+/apps/desktop/" -- '*.ts' '*.tsx'`
-   — every relative-path import that crosses into `apps/desktop/`.
+5. `git grep -nE "from\s+['\"]\.\.?/.+/apps/opc/" -- '*.ts' '*.tsx'`
+   — every relative-path import that crosses into `apps/opc/`.
 
 ### Deliverable
 
@@ -386,7 +386,7 @@ moving path must update in the same commit as the code move per spec
 
 3. Cross-reference with the path-groups from D1: which implements
    entries reference paths in groups G (spec-spine tools), H (OAP
-   tools), K (apps/desktop), or any other moving path.
+   tools), K (apps/opc), or any other moving path.
 
 4. Build a per-spec map of which entries change in which Epic 2 phase.
 
@@ -448,7 +448,7 @@ surface-and-classify work before the move so I4 lands cleanly.
    - Any others surfaced by `find . -name '*.schema.json' -not -path
      '*/target/*' -not -path '*/node_modules/*' -not -path
      '*/.derived/*' -not -path '*/build/*' -not -path
-     '*/apps/desktop/src-tauri/gen/*'` — exclude generated content.
+     '*/apps/opc/src-tauri/gen/*'` — exclude generated content.
 
 2. For each schema:
    - Read the top-level `$id`, `title`, `description`.

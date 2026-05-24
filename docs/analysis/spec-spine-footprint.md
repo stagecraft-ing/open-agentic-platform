@@ -44,7 +44,7 @@ the brief's "stop and check in after Phase 2" instruction.
    `registry-consumer` "governed read" contract. This is a coupling
    *upstream* of Spec-Spine, not inside it.
 7. **The only inbound import edges from OAP into spec-spine candidates
-   are `crates/axiomregent` and `apps/desktop/src-tauri` → `featuregraph`.**
+   are `crates/axiomregent` and `apps/opc/src-tauri` → `featuregraph`.**
    No OAP crate imports any `tools/` library. `spec-code-coupling-check`
    imports `codebase-indexer::types`, but that's intra-candidate.
 8. **The G-2 governance certificate pipeline does not import any
@@ -181,7 +181,7 @@ flowchart LR
     subgraph OAP[OAP-proper]
         PK[policy-kernel]
         AX[axiomregent]
-        APP[apps/desktop/src-tauri]
+        APP[apps/opc/src-tauri]
         XR[xray]
         FCG[factory-contracts]
         FE[factory-engine]
@@ -224,8 +224,8 @@ its raw artifact.
 | 7 | `tools/spec-code-coupling-check/Cargo.toml:19` | `open_agentic_codebase_indexer = { path = "../codebase-indexer" }` | Library dependency for #6 | keep |
 | 8 | `tools/policy-compiler/Cargo.toml:22` | `open_agentic_policy_kernel = { path = "../../crates/policy-kernel" }` | Imports `Policy`, proof-chain types | **leak** (policy-compiler→OAP) |
 | 9 | `crates/featuregraph/src/registry_source.rs:14-46` | local-redeclared `CompiledRegistry`, `RegistryFeatureRecord`, `ImplementsField` | Re-parses `registry.json` outside `registry-consumer` | **bypass** |
-| 10 | `apps/desktop/src-tauri/src/commands/analysis.rs:28` | `repo_root.join("build/spec-registry/registry.json")` and `featuregraph::scanner::Scanner::scan` | Desktop analysis panel | leak (desktop → featuregraph + raw artifact) |
-| 11 | `apps/desktop/src-tauri/Cargo.toml:88` | `featuregraph = { path = "../../../crates/featuregraph" }` | Desktop imports featuregraph | leak |
+| 10 | `apps/opc/src-tauri/src/commands/analysis.rs:28` | `repo_root.join("build/spec-registry/registry.json")` and `featuregraph::scanner::Scanner::scan` | Desktop analysis panel | leak (desktop → featuregraph + raw artifact) |
+| 11 | `apps/opc/src-tauri/Cargo.toml:88` | `featuregraph = { path = "../../../crates/featuregraph" }` | Desktop imports featuregraph | leak |
 | 12 | `crates/axiomregent/src/feature_tools.rs:8-11` | `featuregraph::{graph, locate, preflight, scanner}` | MCP agent uses featuregraph for feature-graph tools | leak |
 | 13 | `crates/axiomregent/src/lib.rs:18` | `pub use featuregraph;` | Featuregraph re-exported from axiomregent's public surface | leak (and **widens** featuregraph's public surface) |
 | 14 | `crates/axiomregent/src/router/legacy_provider.rs:12` | `featuregraph::tools::FeatureGraphTools` | Provider routing | leak |
@@ -270,7 +270,7 @@ spec-spine candidates. They are nevertheless extraction blockers — the
 
 | OAP source | What it reaches into | Replumb option |
 |-----------|----------------------|----------------|
-| `apps/desktop/src-tauri/src/commands/analysis.rs` | reads `build/spec-registry/registry.json` raw + uses `featuregraph` | Could read via `registry-consumer --json` subprocess, or via featuregraph staying in OAP. |
+| `apps/opc/src-tauri/src/commands/analysis.rs` | reads `build/spec-registry/registry.json` raw + uses `featuregraph` | Could read via `registry-consumer --json` subprocess, or via featuregraph staying in OAP. |
 | `crates/axiomregent/{feature_tools.rs, lib.rs, router/legacy_provider.rs}` | `featuregraph::*` | Same — featuregraph could either go with Spec-Spine or stay in OAP. |
 | `tools/policy-compiler` (already inside `tools/`) | `crates/policy-kernel` | Inverted edge: policy-compiler should logically be in OAP (it depends on OAP). The fact that it's in `tools/` and ships in `release-tools.yml` is misleading. |
 | `tools/stakeholder-doc-lint`, `tools/assumption-cascade-check` | `crates/factory-{contracts,engine}`, `crates/provenance-validator` | These are OAP lints living in `tools/`. Not spec-spine. |
@@ -386,7 +386,7 @@ This phase will be filled in fully after you confirm the framing.
 1. **Does `featuregraph` go with Spec-Spine or stay in OAP?** It
    bridges both worlds. It is the only `crates/*` consumer of
    `registry.json`. It also depends on `xray` (OAP). If it goes with
-   Spec-Spine, two OAP crates (`axiomregent`, `apps/desktop`) flip from
+   Spec-Spine, two OAP crates (`axiomregent`, `apps/opc`) flip from
    internal imports to external-crate consumers. If it stays in OAP,
    it remains the only sanctioned-but-unblessed parser of
    `registry.json` outside `registry-consumer`.
