@@ -30,7 +30,7 @@ mutation: read-only
 | Spec Spine | `specs/` | Frontmatter schema, spec-compiler compatibility, cross-spec references |
 | Rust Crates | `crates/` | Memory safety, error handling (`thiserror`), `pub` API surface, crate coupling |
 | Rust Tools | `tools/` | CLI correctness, registry output format, exit codes |
-| Desktop App | `apps/desktop/` | Tauri command safety, React patterns, TypeScript strictness |
+| Desktop App | `apps/opc/` | Tauri command safety, React patterns, TypeScript strictness |
 | Build Output | `build/` | Must not be hand-edited — only compiler-generated |
 
 ## Process

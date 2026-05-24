@@ -652,3 +652,16 @@ deleted as part of its own migration; the spec body documents this in
 --release --workspace` clean (1469 tests passed, 0 failed). Compiler
 validation passes with zero violations. Codebase index has zero
 warnings and zero errors. Spec-lint `--fail-on-warn` exits 0.
+
+
+## Amendments received
+
+**Amendment 2026-05-24 (record: 178-opc-directory-rename).**
+Spec 178 (opc-directory-rename, 2026-05-24): mechanical regeneration
+of `crates/featuregraph/tests/golden/features_graph.json` reflecting
+the `product/apps/desktop/*` → `product/apps/opc/*` path rename in
+spec frontmatter. No semantic change to this spec's claims; fixture
+content updated 1:1 with the rename per the atomicity contract
+encoded by spec 177 (ci-orchestrator-pr-gate) — featuregraph-golden
+is a required ci-gate check precisely so renames carry their fixture
+refresh inside the rename PR.

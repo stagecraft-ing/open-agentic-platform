@@ -17,10 +17,10 @@ depends_on:
   - "157"  # opc-session-model
 code_aliases: ["OPC_AGENT_SESSION_PANEL", "FORCE_DISCONNECT"]
 establishes:
-  - unit: { kind: file, path: product/apps/desktop/src-tauri/src/process/activity.rs }
-  - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/live_sessions.rs }
-  - unit: { kind: file, path: product/apps/desktop/src/components/LiveSessionsPanel.tsx }
-  - unit: { kind: directory, path: product/apps/desktop/src/features/live-sessions }
+  - unit: { kind: file, path: product/apps/opc/src-tauri/src/process/activity.rs }
+  - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/live_sessions.rs }
+  - unit: { kind: file, path: product/apps/opc/src/components/LiveSessionsPanel.tsx }
+  - unit: { kind: directory, path: product/apps/opc/src/features/live-sessions }
 extends:
   # The OPC desktop crate + frontend are co-authored under spec 032
   # (OPC inspect + governance wiring MVP). Spec 172 additively adds:
@@ -34,34 +34,34 @@ extends:
   # No behavioural change to spec 032's own claims.
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src-tauri/src/process/mod.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/process/mod.rs }
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src-tauri/src/process/registry.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/process/registry.rs }
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/mod.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/mod.rs }
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src-tauri/src/lib.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/lib.rs }
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src-tauri/Cargo.toml }
+    unit: { kind: file, path: product/apps/opc/src-tauri/Cargo.toml }
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src/components/TabContent.tsx }
+    unit: { kind: file, path: product/apps/opc/src/components/TabContent.tsx }
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src/components/ProjectToolbar.tsx }
+    unit: { kind: file, path: product/apps/opc/src/components/ProjectToolbar.tsx }
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src/contexts/TabContext.tsx }
+    unit: { kind: file, path: product/apps/opc/src/contexts/TabContext.tsx }
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src/hooks/useTabState.ts }
+    unit: { kind: file, path: product/apps/opc/src/hooks/useTabState.ts }
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src/lib/api.ts }
+    unit: { kind: file, path: product/apps/opc/src/lib/api.ts }
   # Spec 052 (state-persistence) owns the orchestrator's workflow store.
   # Spec 172 additively adds SqliteWorkflowStore::list_active_workflows,
   # the consumer surface per FR-008, plus optional live-state fields on

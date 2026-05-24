@@ -23,6 +23,6 @@ Wire **`spawn_axiomregent`** into **`lib.rs`** startup, validate **bundling** an
 
 ## References
 
-- `product/apps/desktop/src-tauri/src/sidecars.rs` — `spawn_axiomregent`
-- `product/apps/desktop/src-tauri/tauri.conf.json` — `externalBin`
+- `product/apps/opc/src-tauri/src/sidecars.rs` — `spawn_axiomregent`
+- `product/apps/opc/src-tauri/tauri.conf.json` — `externalBin`
 - `crates/axiomregent/` — router and tools

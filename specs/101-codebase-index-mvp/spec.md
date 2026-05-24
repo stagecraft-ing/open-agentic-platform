@@ -398,3 +398,11 @@ After index exists, the `/init` command MUST be able to load structural context 
   amender→amended edits as valid coupling alongside `implements:`. The
   mechanism is additive — the new fields default to empty when absent
   and the index's existing layers are unchanged.
+
+
+## Amendments received
+
+**Amendment 2026-05-24 (record: 178-opc-directory-rename).**
+Spec 178 (opc-directory-rename, 2026-05-24): mechanical path rename
+`product/apps/desktop/*` → `product/apps/opc/*`. No semantic change
+to this spec's claims; owned paths inherit the new prefix.

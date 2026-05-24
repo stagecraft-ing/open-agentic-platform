@@ -19,9 +19,9 @@ code_aliases:
   - FILE_MENTION
 references:
   - role: historical
-    unit: { kind: file, path: product/apps/desktop/src/components/FileMentionAutocomplete.tsx }
+    unit: { kind: file, path: product/apps/opc/src/components/FileMentionAutocomplete.tsx }
   - role: historical
-    unit: { kind: file, path: product/apps/desktop/src/lib/fileMentionSystem.ts }
+    unit: { kind: file, path: product/apps/opc/src/lib/fileMentionSystem.ts }
 ---
 
 # Feature Specification: @-Mention Autocomplete for Files and Agents

@@ -104,7 +104,7 @@ surface rather than reinventing it.
 
 ### 2.3 The cockpit relationship
 
-**OPC** (`product/apps/desktop/`) is the OAP equivalent of the
+**OPC** (`product/apps/opc/`) is the OAP equivalent of the
 **AIDE-VELOCITY-HARNESS**. OPC is where decomposition, execution,
 and developer-side governance happen. Stagecraft governs; OPC drives.
 
@@ -287,7 +287,7 @@ relationship-graph edge.
 
 ### 4.1 ProjectToolbar tools
 
-From `product/apps/desktop/src/components/ProjectToolbar.tsx`, the
+From `product/apps/opc/src/components/ProjectToolbar.tsx`, the
 per-project surfaces are:
 
 | Tool | Component | OAP capability |
@@ -302,13 +302,13 @@ per-project surfaces are:
 | **Portfolio** | `PortfolioPanel.tsx` + spec 096 | Multi-project portfolio view |
 | **Promotion** | `PromotionPanel.tsx` + spec 097 | Promotion-grade mirror — when is a project ready to graduate |
 
-In `product/apps/desktop/src/components/factory/`: the factory
+In `product/apps/opc/src/components/factory/`: the factory
 driving UI — `ArtifactInspector`, `BuildSpecStructuredView`,
 `FactoryPipelinePanel`, `PipelineDAG`, `PipelineHistory`,
 `ProjectContextOverview`, `ProvenanceHealthPanel`, `ScaffoldMonitor`,
 `StageCdReview`, `TokenDashboard`, `GateDialog`, `LiveAgentOutput`.
 
-In `product/apps/desktop/src/features/`: `checkpoint/`, `git/`,
+In `product/apps/opc/src/features/`: `checkpoint/`, `git/`,
 `governance/`, `inspect/`, `portfolio/`, `promotion/`.
 
 ### 4.2 Sessions — multi by project path

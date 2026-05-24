@@ -387,7 +387,7 @@ The volume here is dominated by Makefile/workflow recipes and historical spec ve
 |---|---|
 | `crates/factory-engine/Cargo.toml:open_agentic_spec_registry_reader = { path = "../../tools/registry-consumer" }` | Cross-tree path dep. Becomes a workspace dep after I1; literal path updates when registry-consumer moves under `tools/spec-spine/` in I5. |
 | `crates/featuregraph/Cargo.toml:open_agentic_spec_registry_reader = { path = "../../tools/registry-consumer" }` | Same. |
-| `apps/desktop/src-tauri/Cargo.toml:open_agentic_spec_registry_reader = { path = "../../../tools/registry-consumer" }` | Same; depth changes after both I5 and I7. |
+| `apps/opc/src-tauri/Cargo.toml:open_agentic_spec_registry_reader = { path = "../../../tools/registry-consumer" }` | Same; depth changes after both I5 and I7. |
 | `tools/oap-registry-enrich/Cargo.toml:open_agentic_spec_registry_reader = { path = "../registry-consumer" }` | Sibling path dep — after I5 splits into `oap/` and `spec-spine/`, becomes `../../spec-spine/registry-consumer`. |
 | `tools/oap-code-index-enrich/Cargo.toml:open_agentic_codebase_indexer = { path = "../codebase-indexer" }` | Sibling path dep; same change as above. |
 | `tools/spec-code-coupling-check/Cargo.toml:open_agentic_codebase_indexer = { path = "../codebase-indexer" }` | After I5 both end up in `tools/spec-spine/`, so the relative path stays `../codebase-indexer`. |
@@ -571,26 +571,26 @@ The volume here is dominated by Makefile/workflow recipes and historical spec ve
 
 ---
 
-## Group K — `apps/desktop/`
+## Group K — `apps/opc/`
 
-**Description:** Tauri desktop app. Move to `product/apps/desktop/` per master plan I7. Total: 441 references (437 external).
+**Description:** Tauri desktop app. Move to `product/apps/opc/` per master plan I7. Total: 441 references (437 external).
 
 ### Hot spots
 
 | file (refs) | category | impact |
 |---|---|---|
-| `apps/desktop/src/**` (internal) | n/a | Move with the dir; internal relative imports preserved. |
-| `apps/desktop/src-tauri/Cargo.toml` (multi) | code-import | Path deps: `../../../crates/...`. After I1 root workspace + I7 move under `product/`, path resolution changes (`../../../crates/...` → `../../../../crates/...`). Workspace dep notation eliminates these literals. |
-| `.github/workflows/build-axiomregent.yml` (8 refs) | path-literal | `cp apps/desktop/src-tauri/binaries/...` — bundled-binary copy paths |
+| `apps/opc/src/**` (internal) | n/a | Move with the dir; internal relative imports preserved. |
+| `apps/opc/src-tauri/Cargo.toml` (multi) | code-import | Path deps: `../../../crates/...`. After I1 root workspace + I7 move under `product/`, path resolution changes (`../../../crates/...` → `../../../../crates/...`). Workspace dep notation eliminates these literals. |
+| `.github/workflows/build-axiomregent.yml` (8 refs) | path-literal | `cp apps/opc/src-tauri/binaries/...` — bundled-binary copy paths |
 | `.github/workflows/ci-desktop.yml` (multiple) | path-literal | Workflow paths |
 | `pnpm-workspace.yaml` | path-literal | `apps/*` glob — updates to `product/apps/*` in I7 |
 | `tools/spec-compiler/tests/v004_consolidation_excludes.rs:32,36` | path-literal | Exclusion list for V-004 — references workspace files |
 | `crates/featuregraph/tests/golden/features_graph.json` (multiple) | auto-regenerated | Golden fixture |
-| `apps/desktop/README.md:22` | doc-prose | Internal `README.md` (move with crate) |
+| `apps/opc/README.md:22` | doc-prose | Internal `README.md` (move with crate) |
 
 ### Spec frontmatter (`implements:`)
 
-D4 will enumerate; many specs reference `apps/desktop/...` paths (042, 045, 050, 066, 069, 081, 087, 110, 137, etc. — D4 confirms full list).
+D4 will enumerate; many specs reference `apps/opc/...` paths (042, 045, 050, 066, 069, 081, 087, 110, 137, etc. — D4 confirms full list).
 
 ### Spec narrative
 
@@ -598,12 +598,12 @@ Multiple specs (032 OPC wiring, 045 claude-code-sdk, 050 tool-renderer, 042 mult
 
 ### Auto-regenerated
 
-`build/codebase-index/index.json` carries ≈ 90 entries for `apps/desktop/...`; regenerates.
+`build/codebase-index/index.json` carries ≈ 90 entries for `apps/opc/...`; regenerates.
 
 ### Summary
 
 - **Total references:** 441 (437 external; ~4 internal self-refs in the desktop tree)
-- **code-import (Cargo path deps):** 14 declarations in `apps/desktop/src-tauri/Cargo.toml` reach into `../../../crates/...` and `../../../tools/registry-consumer`. After I1, workspace deps replace path literals; after I7, residual path strings deepen by one level.
+- **code-import (Cargo path deps):** 14 declarations in `apps/opc/src-tauri/Cargo.toml` reach into `../../../crates/...` and `../../../tools/registry-consumer`. After I1, workspace deps replace path literals; after I7, residual path strings deepen by one level.
 - **path-literal:** ≈ 25 (workflows + Makefile + spec-compiler exclusion list)
 - **spec-implements:** see D4
 - **doc-prose:** ≈ 300 in specs + analysis + .claude
@@ -623,9 +623,9 @@ Multiple specs (032 OPC wiring, 045 claude-code-sdk, 050 tool-renderer, 042 mult
 | `pnpm-workspace.yaml` | path-literal | `packages/*` glob — updates to `product/packages/*` in I7. |
 | `build/codebase-index/index.json` (48 refs) | auto-regenerated | Layer 1 inventory entries. |
 | `crates/featuregraph/tests/golden/features_graph.json` (20 refs) | auto-regenerated | Golden fixture. |
-| `apps/desktop/src-tauri/src/commands/claude.rs:154,158,161,1200` | path-literal | Runtime path: `packages/provider-registry/dist/node-sidecar.js` — Tauri loads this sidecar from a path resolved relative to repo root. After I7 the path becomes `product/packages/provider-registry/dist/node-sidecar.js`. |
-| `apps/desktop/vite.config.ts:18` | path-literal | "packages/ui/src to resolve their deps" — comment but indicates Vite config behavior |
-| `apps/desktop/src/lib/contextCompaction.test.ts:634,657` | path-literal | Test fixture strings (`packages/api/handler.rs` — arbitrary fixture content, unrelated). Note for review. |
+| `apps/opc/src-tauri/src/commands/claude.rs:154,158,161,1200` | path-literal | Runtime path: `packages/provider-registry/dist/node-sidecar.js` — Tauri loads this sidecar from a path resolved relative to repo root. After I7 the path becomes `product/packages/provider-registry/dist/node-sidecar.js`. |
+| `apps/opc/vite.config.ts:18` | path-literal | "packages/ui/src to resolve their deps" — comment but indicates Vite config behavior |
+| `apps/opc/src/lib/contextCompaction.test.ts:634,657` | path-literal | Test fixture strings (`packages/api/handler.rs` — arbitrary fixture content, unrelated). Note for review. |
 | `.claude/commands/cleanup.md:48,62,94,118` | path-literal | Cleanup glob patterns |
 | `.claude/commands/code-review.md:29` | doc-prose | Glob "packages/**/*.ts" |
 | `.github/spec-coupling-bypass.txt:16` | doc-prose | Spec coupling bypass narrative |
@@ -641,7 +641,7 @@ Multiple specs (042, 043, 045, 048, 049, 050, 066, 069, 081, 085, 087, 110, 139)
 
 ### Auto-regenerated
 
-`pnpm-lock.yaml`, `build/codebase-index/index.json`, `crates/featuregraph/tests/golden/features_graph.json`, `apps/desktop/src-tauri/Cargo.lock` (if it references workspace packages).
+`pnpm-lock.yaml`, `build/codebase-index/index.json`, `crates/featuregraph/tests/golden/features_graph.json`, `apps/opc/src-tauri/Cargo.lock` (if it references workspace packages).
 
 ### Summary
 
@@ -766,9 +766,9 @@ Multiple specs (042, 043, 045, 048, 049, 050, 066, 069, 081, 085, 087, 110, 139)
 | `CONTRIBUTING.md:141` | doc-prose | `build/codebase-index/CODEBASE-INDEX.md` link |
 | `Makefile:143,151,174-177` | path-literal | Recipe comments + diff checks |
 | `README.md:215` | doc-prose | `cat build/codebase-index/CODEBASE-INDEX.md` |
-| `apps/desktop/README.md:22` | doc-prose | Refs `build/spec-registry/registry.json` |
-| `apps/desktop/src-tauri/src/commands/analysis.rs:22,28` | path-literal | `let registry_path = repo_root.join("build/spec-registry/registry.json");` |
-| `apps/desktop/src/stores/README.md:3` | doc-prose | Markdown link |
+| `apps/opc/README.md:22` | doc-prose | Refs `build/spec-registry/registry.json` |
+| `apps/opc/src-tauri/src/commands/analysis.rs:22,28` | path-literal | `let registry_path = repo_root.join("build/spec-registry/registry.json");` |
+| `apps/opc/src/stores/README.md:3` | doc-prose | Markdown link |
 | `crates/factory-contracts/src/{knowledge,provenance,stakeholder_docs}.rs` | path-literal | `workspace_root().join("build/schema-parity/...")` — parity fingerprint dest paths (×4 lines across 3 files) |
 | `crates/factory-engine/src/bin/{build_certificate,factory_run,verify_certificate}.rs` | doc-prose | CLI arg doc comments |
 | `crates/factory-engine/src/governance_certificate.rs:713,766` | path-literal | `let registry_path = repo_root.join("build/spec-registry/registry.json");` |
@@ -787,7 +787,7 @@ Many specs reference `build/spec-registry/` and `build/codebase-index/` in narra
 
 - **Total references:** 264
 - **code-import:** 0
-- **path-literal (load-bearing):** ≈ 20 (apps/desktop analysis.rs ×2; factory-contracts schema-parity ×4; factory-engine governance ×2; featuregraph ×4; .githooks/pre-commit ×3; AGENTS.md protocol; .claude/commands/init.md; .claude/rules; Makefile diff check; ci workflow triggers ×3)
+- **path-literal (load-bearing):** ≈ 20 (apps/opc analysis.rs ×2; factory-contracts schema-parity ×4; factory-engine governance ×2; featuregraph ×4; .githooks/pre-commit ×3; AGENTS.md protocol; .claude/commands/init.md; .claude/rules; Makefile diff check; ci workflow triggers ×3)
 - **gitignore-rule:** 5 (`.gitignore` entries — updated in I9)
 - **doc-prose:** ≈ 235
 - **Move impact:** **HIGH**. Multiple Rust crates carry `repo_root.join("build/...")` literals. I9 must update all of them in one atomic commit (coupling-gate fires if code path moves but `implements:` doesn't). Spec 103 governed-artifact-reads rule itself names `build/**`; the rule file updates in I9.
@@ -797,8 +797,8 @@ Many specs reference `build/spec-registry/` and `build/codebase-index/` in narra
 ## Refinement notes
 
 - **Group B (root `schemas/`)** initial pattern `^schemas/` and `[^/]schemas/` returned excess hits from crate-internal `*/schemas/` directories. Refined by filtering out `crates/*/schemas/`, `tools/*/schemas/`, `packages/*/schemas/`, `apps/*/schemas/`, `stagecraft/*/schemas/`, `platform/*/schemas/`. Note that `platform/services/stagecraft/web/app/components/artifact-body-viewer.test.ts:126,131,140,142` uses string literals containing "schemas/..." as test-fixture artifact paths — these are unrelated to the repo-root `schemas/` directory and surface only because the literal pattern matches.
-- **Group J (grammars)** initial pattern `^grammars/` matched zero standalone hits because git-grep applies pattern per file, not per content. Refined to `grammars/tree-sitter-` plus a follow-up direct ls of the directory. Note `apps/desktop/src-tauri/Cargo.toml` does not directly reference `grammars/` — axiomregent's `build.rs` walks via the cc crate; that walk path lives in `crates/axiomregent/build.rs` (verify in D2).
-- **Group K (`apps/desktop/`)** and **Group L (`packages/`)** patterns excluded explicit `^apps/desktop/` and `^packages/` self-prefixes to focus on external references. Internal references (within the moved tree) preserve correctness automatically.
+- **Group J (grammars)** initial pattern `^grammars/` matched zero standalone hits because git-grep applies pattern per file, not per content. Refined to `grammars/tree-sitter-` plus a follow-up direct ls of the directory. Note `apps/opc/src-tauri/Cargo.toml` does not directly reference `grammars/` — axiomregent's `build.rs` walks via the cc crate; that walk path lives in `crates/axiomregent/build.rs` (verify in D2).
+- **Group K (`apps/opc/`)** and **Group L (`packages/`)** patterns excluded explicit `^apps/opc/` and `^packages/` self-prefixes to focus on external references. Internal references (within the moved tree) preserve correctness automatically.
 - **Group I (`tools/shared/`)** surfaced a stale reference in `Makefile:584` pointing at the deleted `tools/shared/frontmatter/Cargo.toml`. Documented in summary as open question.
 - **Group N (root loose docs)** uses pattern `^DEVELOPERS\.md`, etc., to scope to files-at-root references. Markdown links `[DEVELOPERS.md](DEVELOPERS.md)` are still picked up because git-grep matches per-line content.
 

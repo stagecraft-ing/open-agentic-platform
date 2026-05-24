@@ -73,7 +73,7 @@ Redirect URIs are derived from environment values already present in
   `https://stagecraft.ing`). Used to compute the two web callbacks.
 - `OPC_REDIRECT_URI` (new, optional, default `opc://auth/callback`) —
   the OPC desktop deep-link. Hard-coded default matches
-  `product/apps/desktop/` PKCE scheme.
+  `product/apps/opc/` PKCE scheme.
 
 No new top-level secrets. No chart-values changes.
 

@@ -158,13 +158,13 @@ dependency remains, and `xray` is an OAP-side crate (xray's spec is
 `032-opc-inspect-governance-wiring-mvp`, an OPC concern). featuregraph
 also remains imported by `axiomregent` and the desktop app (codebase
 index Layer 1 dependency column, CODEBASE-INDEX.md:14 for axiomregent,
-plus apps/desktop/src-tauri/Cargo.toml uses
+plus apps/opc/src-tauri/Cargo.toml uses
 `open_agentic_spec_registry_reader` at line 89 — featuregraph itself is
 imported by axiomregent which the desktop runs).
 
 featuregraph is therefore bidirectionally entangled with OAP at the
 code level, but the entanglement is in the OAP direction
-(xray ← featuregraph ← axiomregent / apps/desktop), not back-pressure
+(xray ← featuregraph ← axiomregent / apps/opc), not back-pressure
 into the spec-spine. Its consumption of the spec-spine registry is now
 through the typed reader's contract surface, not through ad-hoc JSON
 parsing.
@@ -232,7 +232,7 @@ plus the polymorphic `ImplementsField` helper enum with `paths()` and
 directly; there is no `Index::find_mapping_by_spec_id()` helper or
 similar. The asymmetry tracks consumer pressure: registry-consumer has
 several callers exercising the filter/report surface (CLI subcommands +
-oap-registry-enrich + apps/desktop); codebase-indexer's typed reader
+oap-registry-enrich + apps/opc); codebase-indexer's typed reader
 has effectively **one** consumer today (`spec-code-coupling-check` via
 the W-11 commit body's own disclosure, `7910af41`).
 
@@ -658,7 +658,7 @@ Classified list:
   inline-string goldens in `tests/golden.rs`. No cross-crate fixture
   imports were observed. The test layout survives a split unmodified.
 - **AGPL-3.0 implications** — *near-trivial follow-up*. spec-spine
-  crates + OAP crates + apps/desktop + platform are all AGPL-3.0 today
+  crates + OAP crates + apps/opc + platform are all AGPL-3.0 today
   (e.g., `featuregraph/Cargo.toml:1` carries the SPDX header). Post-split,
   spec-spine remains AGPL; OAP remains AGPL. The split itself does not
   change license inheritance. The spillover question — does AGPL on

@@ -102,10 +102,10 @@ Option (c) is simplest — `VectorStore` is an enum with a single variant holdin
 
 | Component | File | Change |
 |-----------|------|--------|
-| Managed state | `product/apps/desktop/src-tauri/src/commands/search.rs` | Add `BlockoliState`, init in setup |
-| Index command | `product/apps/desktop/src-tauri/src/commands/search.rs` | Implement `blockoli_index_project` |
-| Search command | `product/apps/desktop/src-tauri/src/commands/search.rs` | Implement `blockoli_search` |
-| App setup | `product/apps/desktop/src-tauri/src/lib.rs` | Register `BlockoliState` via `app.manage()` |
+| Managed state | `product/apps/opc/src-tauri/src/commands/search.rs` | Add `BlockoliState`, init in setup |
+| Index command | `product/apps/opc/src-tauri/src/commands/search.rs` | Implement `blockoli_index_project` |
+| Search command | `product/apps/opc/src-tauri/src/commands/search.rs` | Implement `blockoli_search` |
+| App setup | `product/apps/opc/src-tauri/src/lib.rs` | Register `BlockoliState` via `app.manage()` |
 | (No frontend changes) | — | `SemanticSearchPanel.tsx` already invokes the correct commands |
 
 ## Success criteria

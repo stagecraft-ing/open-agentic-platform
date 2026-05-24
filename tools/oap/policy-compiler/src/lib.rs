@@ -519,8 +519,8 @@ mod tests {
         fs::create_dir_all(tmp.path().join(".claude/policies")).expect("policies");
         fs::write(tmp.path().join(".claude/policies/a.md"), "a").expect("a");
         fs::write(tmp.path().join(".claude/policies/b.md"), "b").expect("b");
-        fs::create_dir_all(tmp.path().join("apps/desktop")).expect("apps");
-        fs::write(tmp.path().join("apps/desktop/CLAUDE.md"), "sub").expect("sub");
+        fs::create_dir_all(tmp.path().join("apps/opc")).expect("apps");
+        fs::write(tmp.path().join("apps/opc/CLAUDE.md"), "sub").expect("sub");
 
         let got = discover_policy_sources(tmp.path()).expect("discover");
         let paths: Vec<String> = got.iter().map(|s| s.path.clone()).collect();
@@ -530,7 +530,7 @@ mod tests {
                 "CLAUDE.md",
                 ".claude/policies/a.md",
                 ".claude/policies/b.md",
-                "apps/desktop/CLAUDE.md"
+                "apps/opc/CLAUDE.md"
             ]
         );
         assert_eq!(got[0].precedence, 0);

@@ -303,7 +303,7 @@ The envelope union encodes the §5.1 authority split in TypeScript:
 | **FR-SYNC-007** | The broadcast loop MUST apply backpressure: a slow client MUST NOT stall other clients. Implementation options: per-client bounded send queue with drop policy, or concurrent sends with a per-client deadline. | liveness | not shipped |
 | **FR-SYNC-008** | Metrics MUST be exposed: `sync_connections_total`, `sync_events_inbound_total{kind,status}`, `sync_events_outbound_total{kind}`, `sync_ack_latency_seconds`. | observability | not shipped |
 | **FR-SYNC-009** | Inbound MUST be rate-limited per `clientId` (token-bucket, default 100/s, burst 200). Excess events are NACKed with `reason: "invalid"` and `detail: "rate_limited"`. | abuse resistance | not shipped |
-| **FR-SYNC-010** | The legacy `projectEventStream` streamOut + `ingestOpcEvent` HTTP POST path in `api/sync/sync.ts` MUST be decommissioned once `web/`, `product/apps/desktop`, and `product/packages/project-sdk` are migrated to the duplex. Coexistence is additive, not permanent. | hygiene | migration tracked |
+| **FR-SYNC-010** | The legacy `projectEventStream` streamOut + `ingestOpcEvent` HTTP POST path in `api/sync/sync.ts` MUST be decommissioned once `web/`, `product/apps/opc`, and `product/packages/project-sdk` are migrated to the duplex. Coexistence is additive, not permanent. | hygiene | migration tracked |
 
 #### Retention Calculus (In-Memory Stores)
 

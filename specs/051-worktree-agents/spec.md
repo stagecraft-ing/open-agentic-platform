@@ -18,7 +18,7 @@ code_aliases:
   - WORKTREE_AGENTS
 establishes:
   - unit: { kind: crate, id: "@opc/worktree-agents" }
-  - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/worktree_agents.rs }
+  - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/worktree_agents.rs }
 ---
 
 # Feature Specification: Background Agents with Git Worktree Isolation

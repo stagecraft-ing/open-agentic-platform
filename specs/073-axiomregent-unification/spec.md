@@ -23,9 +23,9 @@ establishes:
   - unit: { kind: directory, path: platform/services/deployd-api-rs }
 references:
   - role: historical
-    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/titor.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/titor.rs }
   - role: historical
-    unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/search.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/search.rs }
 summary: >
   Consolidates five standalone crates and services (gitctx, blockoli, stackwalk, titor, github-app)
   into axiomregent and stagecraft. Migrates axiomregent from synchronous rusqlite to async hiqlite
@@ -586,8 +586,8 @@ axiomregent's `build.rs`).
 1. Update `.github/workflows/ci-axiomregent.yml` path filters for absorbed crate directories
 2. Update `.github/workflows/build-axiomregent.yml` to include tree-sitter grammar compilation
 3. Remove `.github/workflows/build-gitctx-mcp.yml`
-4. Update `product/apps/desktop/src-tauri/Cargo.toml` — remove gitctx, blockoli, stackwalk, titor deps
-5. Update `product/apps/desktop/src-tauri/tauri.conf.json` — remove gitctx-mcp from `externalBin`
+4. Update `product/apps/opc/src-tauri/Cargo.toml` — remove gitctx, blockoli, stackwalk, titor deps
+5. Update `product/apps/opc/src-tauri/tauri.conf.json` — remove gitctx-mcp from `externalBin`
 6. Update desktop `commands/search.rs` and `commands/titor.rs` to use axiomregent MCP calls
 7. Update `CLAUDE.md` crate table, build commands, and repository structure
 8. Update `Makefile` targets

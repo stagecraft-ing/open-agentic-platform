@@ -78,7 +78,7 @@ export type ProjectAgentBindingEnvelopeVersion =
  * envelope family (stage_started, stage_completed, completed, failed,
  * cancelled). Independent of the protocol-wide `ENVELOPE_SCHEMA_VERSION` and
  * the spec-123 catalog/binding versions; the desktop mirror constant in
- * `apps/desktop/src-tauri/src/commands/sync_client.rs` MUST equal this value
+ * `apps/opc/src-tauri/src/commands/sync_client.rs` MUST equal this value
  * — a mismatch surfaces as a Rust build error before any wire skew is
  * possible.
  */

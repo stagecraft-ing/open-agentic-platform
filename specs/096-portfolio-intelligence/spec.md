@@ -126,7 +126,7 @@ Algorithm:
 
 ### Slice 3: Wire `governance_drift` as Tauri command
 
-Add `governance_drift` to `product/apps/desktop/src-tauri/src/commands/analysis.rs`:
+Add `governance_drift` to `product/apps/opc/src-tauri/src/commands/analysis.rs`:
 
 ```rust
 #[command]
@@ -139,8 +139,8 @@ pub async fn governance_drift(repo_root: String) -> Result<serde_json::Value, St
 
 Register in `lib.rs` invoke_handler alongside existing analysis commands.
 
-**Files**: `product/apps/desktop/src-tauri/src/commands/analysis.rs`,
-`product/apps/desktop/src-tauri/src/lib.rs`
+**Files**: `product/apps/opc/src-tauri/src/commands/analysis.rs`,
+`product/apps/opc/src-tauri/src/lib.rs`
 
 ### Slice 4: Enriched preflight with blast radius
 
@@ -148,7 +148,7 @@ Extend the existing `governance_preflight` Tauri command to include blast radius
 when xray index is available. After computing the preflight response, run
 `compute_blast_radius` and merge the result.
 
-**Files**: `product/apps/desktop/src-tauri/src/commands/analysis.rs`
+**Files**: `product/apps/opc/src-tauri/src/commands/analysis.rs`
 
 ## Acceptance Criteria
 

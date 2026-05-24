@@ -280,3 +280,11 @@ and `ci-strict`.
 - Spec 135 (`fast-ci-as-default`) — editorial reframe (FR-07) reversing
   the semantic positions of `make ci` and `make ci-fast`. This document
   has been amended in place; the contract is unchanged.
+
+
+## Amendments received
+
+**Amendment 2026-05-24 (record: 178-opc-directory-rename).**
+Spec 178 (opc-directory-rename, 2026-05-24): mechanical path rename
+`product/apps/desktop/*` → `product/apps/opc/*`. No semantic change
+to this spec's claims; owned paths inherit the new prefix.

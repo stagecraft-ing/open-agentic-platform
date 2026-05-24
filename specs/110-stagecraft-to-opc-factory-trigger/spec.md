@@ -26,7 +26,7 @@ depends_on:
   - "108"  # factory-as-platform-feature (where the button lives)
   - "109"  # factory-pat-and-pubsub-sync (PubSub pattern used here)
 establishes:
-  - unit: { kind: file, path: product/apps/desktop/src-tauri/src/commands/sync_client.rs }
+  - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/sync_client.rs }
 extends:
   - spec: "087-unified-workspace-architecture"
     nature: additive
@@ -83,7 +83,7 @@ Compounding this:
   perspective but cannot be honoured by the engine without the user
   manually downloading each object.
 - **Session ambiguity.** Today OPC runs "one factory pipeline at a time"
-  per the implicit global state in `product/apps/desktop/src-tauri/src/commands/
+  per the implicit global state in `product/apps/opc/src-tauri/src/commands/
   factory.rs`. There is no concept of which *tab* (which workspace, which
   session, which agent context) a run belongs to. If stagecraft pushes N
   runs we have no type-safe way to route them.
@@ -243,10 +243,10 @@ Desktop-side:
 
 | Symbol | Path | New or changed |
 |---|---|---|
-| Inbound handler | `product/apps/desktop/src-tauri/src/commands/stagecraft_client.rs` | handle `factory.run.request`, dispatch to local factory command |
-| `materialize_knowledge_bundle` | `product/apps/desktop/src-tauri/src/commands/factory.rs` (new helper) | cache-aware download with sha-256 verification |
-| `session_id` plumbing | `product/apps/desktop/src-tauri/src/process/registry.rs`, `product/apps/desktop/src/stores/agentStore.ts` | thread through Rust + frontend |
-| Tab close drain | `product/apps/desktop/src-tauri/src/lib.rs` (event handler) | SIGINT + audit flush on tab close |
+| Inbound handler | `product/apps/opc/src-tauri/src/commands/stagecraft_client.rs` | handle `factory.run.request`, dispatch to local factory command |
+| `materialize_knowledge_bundle` | `product/apps/opc/src-tauri/src/commands/factory.rs` (new helper) | cache-aware download with sha-256 verification |
+| `session_id` plumbing | `product/apps/opc/src-tauri/src/process/registry.rs`, `product/apps/opc/src/stores/agentStore.ts` | thread through Rust + frontend |
+| Tab close drain | `product/apps/opc/src-tauri/src/lib.rs` (event handler) | SIGINT + audit flush on tab close |
 
 Engine-side:
 
@@ -327,7 +327,7 @@ the request". Within scope per the extension rule.
 
 Revised 2026-04-21 after pre-implementation audit: the desktop has **no**
 duplex-stream consumer today (confirmed by grep across
-`product/apps/desktop/src-tauri/`). Original §10 claim "StagecraftClient reads the
+`product/apps/opc/src-tauri/`). Original §10 claim "StagecraftClient reads the
 stream for bookkeeping" was wrong — the Rust-side `StagecraftClient` is
 HTTP-only. Bootstrapping the desktop consumer is the gating dependency,
 not a footnote.
@@ -339,7 +339,7 @@ not a footnote.
    variants are discriminated by `kind`, old clients silently ignore. No
    runtime wiring yet.
 2. **Desktop duplex consumer bootstrap.** New
-   `product/apps/desktop/src-tauri/src/commands/sync_client.rs` that opens the
+   `product/apps/opc/src-tauri/src/commands/sync_client.rs` that opens the
    Encore `/api/sync/duplex` stream, performs the handshake, maintains
    heartbeat + resync, and exposes a typed envelope-dispatch table. With
    no registered handlers beyond heartbeat + logging, this is dead code
@@ -379,7 +379,7 @@ not a footnote.
 - `factory.event` already exists as a `ServerEnvelope` variant. **Do not**
   reuse it for run requests — it's an observation variant, not a
   directive. Keeping the two separate preserves the authority invariant.
-- The desktop's `StagecraftClient` (`product/apps/desktop/src-tauri/src/commands/
+- The desktop's `StagecraftClient` (`product/apps/opc/src-tauri/src/commands/
   stagecraft_client.rs`) is **HTTP-only** — 847 lines of REST calls, no
   duplex reader. Rollout phase 2 introduces a sibling `sync_client.rs`
   that owns the streaming connection. Mixing the two into one module

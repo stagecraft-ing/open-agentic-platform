@@ -91,7 +91,7 @@ violation/warning code registries (V-001..V-019, W-xxx).
 **Q1c. featuregraph's placement in `crates/` rather than
 `tools/`.** The footprint flagged featuregraph as bidirectionally
 entangled — depends on OAP `xray`, imported by `axiomregent` and
-`apps/desktop`. Cut D resolved the *registry* coupling
+`apps/opc`. Cut D resolved the *registry* coupling
 (featuregraph now consumes the typed reader) but did not change
 the xray dependency or the inbound imports.
 
@@ -361,7 +361,7 @@ what to do with reservations or reconsiderations.
 
 - Do not modify any commit on the branch. Do not amend, rebase,
   reorder, or squash. The branch is the artifact under review.
-- Do not edit code in any spec-spine, OAP, or apps/desktop
+- Do not edit code in any spec-spine, OAP, or apps/opc
   crate. If you identify a defect, document it under the
   relevant question. Do not fix it.
 - Do not commit anything. The only file you create is the

@@ -15,7 +15,7 @@ summary: >
 code_aliases: ["FACTORY_DESKTOP", "FACTORY_PANEL"]
 references:
   - role: historical
-    unit: { kind: file, path: product/apps/desktop/src/components/FactoryPipelinePanel.tsx }
+    unit: { kind: file, path: product/apps/opc/src/components/FactoryPipelinePanel.tsx }
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive

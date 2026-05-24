@@ -63,7 +63,7 @@ The **platform layer** (`platform/`) is the organisational control plane:
 deployment orchestration, [Encore.ts stagecraft](platform/services/stagecraft/)
 for governance UX, and Helm charts for managed-K8s deployment.
 
-The **OPC desktop** (`product/apps/desktop/`) is a Tauri v2 + React cockpit where
+The **OPC desktop** (`product/apps/opc/`) is a Tauri v2 + React cockpit where
 humans and agents share a single execution surface — local workspaces, git
 context, semantic and structural analysis, snapshots, approval gates.
 
@@ -357,7 +357,7 @@ today vs. what is staged and what is roadmap, by spec ID.
 | `specs/` | The authoritative spec spine. 160 specs as of 2026-05-22. |
 | `tools/` | Rust CLIs: `spec-compiler`, `registry-consumer`, `spec-lint`, `codebase-indexer`, `policy-compiler`, `spec-code-coupling-check`, others. |
 | `crates/` | Library crates: `factory-engine`, `factory-contracts`, `policy-kernel`, `orchestrator`, `agent`, `tool-registry`, `axiomregent`, `xray`, others. |
-| `product/apps/desktop/` | OPC desktop (Tauri v2 + React + TypeScript). |
+| `product/apps/opc/` | OPC desktop (Tauri v2 + React + TypeScript). |
 | `platform/` | Identity, deployd-api, stagecraft, Helm charts, Terraform infra. |
 | `.derived/` | Compiler-emitted machine truth: `spec-registry/`, `codebase-index/`. Read through consumer binaries only. |
 | `.claude/` | Agent and command definitions used by the development environment. See `CLAUDE.md` and `AGENTS.md`. |

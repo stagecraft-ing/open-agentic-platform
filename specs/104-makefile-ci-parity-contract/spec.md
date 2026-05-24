@@ -312,3 +312,11 @@ a pre-PR check, alongside the existing `make ci` step.
   `ci-spec-code-coupling` Makefile target. The count of mirrored
   workflows moves from 9 → 11 (the 10th was `ci-supply-chain.yml` from
   spec 116). No change to the parity contract itself.
+
+
+## Amendments received
+
+**Amendment 2026-05-24 (record: 178-opc-directory-rename).**
+Spec 178 (opc-directory-rename, 2026-05-24): mechanical path rename
+`product/apps/desktop/*` → `product/apps/opc/*`. No semantic change
+to this spec's claims; owned paths inherit the new prefix.

@@ -13,7 +13,7 @@ Initial PR delivers the **deterministic backbone** of the pipeline:
   emits a draft `spec.md` satisfying spec 161 emission contract, spec 147
   kind grammar, and spec 154 logical-unit grammar.
 - Run persistence under `<project>/.opc/decomposition/<run-id>/`.
-- Tauri command surface in `product/apps/desktop/src-tauri` so the
+- Tauri command surface in `product/apps/opc/src-tauri` so the
   pipeline is invocable from OPC.
 - Fixture-based integration tests proving SC-001 / SC-002 / SC-003 / SC-004.
 
@@ -107,7 +107,7 @@ swap improves the prose quality of the summary, not the contract.
 
 - **xray embeddings feature pulls fastembed** — heavy build. Mitigated:
   feature-gate stage 3's embedding path. Default build skips it.
-- **Tauri's separate workspace** — `product/apps/desktop/src-tauri` is
+- **Tauri's separate workspace** — `product/apps/opc/src-tauri` is
   excluded from the root workspace and cannot depend on the new crate
   via path without adding it as a path dep in its own Cargo.toml. The
   Tauri commands call into the new crate as a normal Cargo path

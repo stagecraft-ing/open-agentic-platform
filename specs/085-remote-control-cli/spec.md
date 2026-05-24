@@ -23,7 +23,7 @@ establishes:
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/desktop/src-tauri/src/web_server.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/web_server.rs }
 ---
 
 # 085 — Remote Control CLI (oap-ctl)
@@ -85,7 +85,7 @@ instance.
 
 | File | Role |
 |------|------|
-| `product/apps/desktop/src-tauri/src/web_server.rs` | Control server infra + auth middleware + routes |
+| `product/apps/opc/src-tauri/src/web_server.rs` | Control server infra + auth middleware + routes |
 | `product/packages/oap-ctl/package.json` | New CLI package |
 | `product/packages/oap-ctl/src/cli.js` | New CLI entry point (~200 lines) |
 

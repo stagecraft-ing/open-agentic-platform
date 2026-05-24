@@ -77,7 +77,7 @@ crates-workspace debug build at `b41c02e7` also produced no warnings —
 checked indirectly via the `cargo test` baseline on the worktree below,
 which built the same crate set without warnings).
 
-`apps/desktop/src-tauri` and `platform/services/deployd-api-rs` are
+`apps/opc/src-tauri` and `platform/services/deployd-api-rs` are
 outside the spec-spine Cut D scope (the plan does not enumerate them in
 Phase 5's crate list) and were not built.
 
@@ -257,7 +257,7 @@ prompt's "Do not fix it." rule.
   `cargo test -p factory-engine` (counted in the crates workspace
   185-pass total for that binary).
 - Grep over `crates/factory-engine/src/`,
-  `crates/factory-engine/src/bin/`, `tools/`, `apps/desktop/src-tauri/`:
+  `crates/factory-engine/src/bin/`, `tools/`, `apps/opc/src-tauri/`:
   no caller outside the test module of `governance_certificate.rs`.
   Confirmed neither `generate_certificate` (line 511) nor
   `verify_certificate` (line 645) calls the W-10 helpers.
@@ -330,7 +330,7 @@ prompt's "Do not fix it." rule.
     comment ("Scalar implements: contributes nothing to impl_files
     — those claims are spec-to-spec references, not code paths").
     Aligned with the corrected semantic.
-  - `apps/desktop/src-tauri/src/commands/analysis.rs` —
+  - `apps/opc/src-tauri/src/commands/analysis.rs` —
     `srr::load` consumed but the `implements` field is not
     dereferenced as a path anywhere. No scalar-as-path treatment.
   - `crates/axiomregent/src/feature_tools.rs` — consumes
@@ -403,7 +403,7 @@ direction):
 - `tools/oap-code-index-enrich`: `open_agentic_codebase_indexer`
   (path), `open_agentic_spec_types` (path), plus generic crates.
 
-`crates/factory-engine` and `apps/desktop/src-tauri` consume
+`crates/factory-engine` and `apps/opc/src-tauri` consume
 `open_agentic_spec_registry_reader` (post W-10 and W-12
 respectively); both are OAP-side consumers, so the direction is
 correct.

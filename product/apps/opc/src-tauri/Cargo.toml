@@ -12,6 +12,9 @@ publish = false   # internal workspace crate; binaries ship via release workflow
 edition = "2024"
 default-run = "opc"
 
+[package.metadata.oap]
+spec = "032-opc-inspect-governance-wiring-mvp"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[bin]]

@@ -497,7 +497,7 @@ mod tests {
     #[test]
     fn tokens_clippy_paired_flags() {
         let t = significant_tokens(
-            "cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml -- -A dead_code -D warnings",
+            "cargo clippy --manifest-path apps/opc/src-tauri/Cargo.toml -- -A dead_code -D warnings",
         );
         assert!(t.contains(&"-A dead_code".into()));
         assert!(t.contains(&"-D warnings".into()));
@@ -515,18 +515,18 @@ mod tests {
     #[test]
     fn tokens_skip_shell_assignment() {
         // Shell var assignment with $() subshell — not a direct command.
-        let t = significant_tokens("CARGO_VERSION=$(grep '^version' apps/desktop/src-tauri/Cargo.toml)");
+        let t = significant_tokens("CARGO_VERSION=$(grep '^version' apps/opc/src-tauri/Cargo.toml)");
         assert!(t.is_empty());
     }
 
     #[test]
     fn tokens_strip_matrix_expression_value() {
         let t = significant_tokens(
-            "cargo check --target ${{ matrix.target }} --manifest-path apps/desktop/src-tauri/Cargo.toml",
+            "cargo check --target ${{ matrix.target }} --manifest-path apps/opc/src-tauri/Cargo.toml",
         );
         assert!(t.contains(&"cargo".into()));
         assert!(t.contains(&"--manifest-path".into()));
-        assert!(t.contains(&"apps/desktop/src-tauri/Cargo.toml".into()));
+        assert!(t.contains(&"apps/opc/src-tauri/Cargo.toml".into()));
         // The matrix expression and its sigils MUST NOT leak into the output.
         for forbidden in ["${{", "matrix.target", "}}"] {
             assert!(
@@ -568,7 +568,7 @@ mod tests {
     #[test]
     fn allow_list_matches_substring() {
         assert!(allow_list_suppresses(
-            "touch apps/desktop/src-tauri/binaries/axiomregent-aarch64-apple-darwin"
+            "touch apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin"
         ));
         assert!(!allow_list_suppresses("cargo test --manifest-path crates/agent/Cargo.toml"));
     }

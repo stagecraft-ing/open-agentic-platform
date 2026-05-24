@@ -134,11 +134,11 @@ Conventions:
 |----|-------|--------|-------|-----|------|------|
 | **W-10** | Validate `StageRecord.spec_id` resolves against registry via spec-registry-reader | `crates/factory-engine/src/governance_certificate.rs:129, 519, 723, 747, 793, 846, 876, 920` | lift (new hook) | additive (no cert-format change) | small (~150 LoC) | Detail in Phase 6. |
 
-### apps/desktop
+### apps/opc
 
 | ID | Title | Source | Class | API | Diff | Risk |
 |----|-------|--------|-------|-----|------|------|
-| **W-12** | Replace raw `registry.json` read with typed-reader call | `apps/desktop/src-tauri/src/commands/analysis.rs:28, 342, 372` | dedupe | none externally | small (~100 LoC) | Tauri tests re-keyed. |
+| **W-12** | Replace raw `registry.json` read with typed-reader call | `apps/opc/src-tauri/src/commands/analysis.rs:28, 342, 372` | dedupe | none externally | small (~100 LoC) | Tauri tests re-keyed. |
 
 ### release-tools workflow
 
@@ -160,7 +160,7 @@ Conventions:
 | `tools/oap-code-index-enrich/` (new) | 1 (W-07a) | medium |
 | `tools/spec-code-coupling-check/` | 1 (W-08) | small |
 | `crates/factory-engine/` | 1 (W-10) | small |
-| `apps/desktop/src-tauri/` | 1 (W-12) | small |
+| `apps/opc/src-tauri/` | 1 (W-12) | small |
 | `.github/workflows/release-tools.yml` | 1 (W-09) | trivial |
 | **Totals** | **16 work units** | **~8–10 k LoC delta** |
 
@@ -324,7 +324,7 @@ W-11's addition (W-11 sits in the parallel W-07 track).
  3. W-03   spec-registry-reader library API
  4. W-04   crate identifier renamed; binary name preserved
  5. W-05   featuregraph consumes spec-registry-reader
- 6. W-12   apps/desktop consumes spec-registry-reader
+ 6. W-12   apps/opc consumes spec-registry-reader
  7. W-11   codebase-indexer typed-reader API + spec-code-coupling-check migrates  [NEW]
  8. W-06a  OAP registry enricher
  9. W-06b  compliance-report migrates
@@ -422,7 +422,7 @@ callouts; none requires holding releases.
 - **Green:** `crates/featuregraph/src/registry_source.rs` deleted of
   its `CompiledRegistry`/`RegistryFeatureRecord` duplicates. Imports
   from `spec_registry_reader::{Registry, Feature, ImplementsField}`.
-  axiomregent and apps/desktop (which `use featuregraph::*`) see no
+  axiomregent and apps/opc (which `use featuregraph::*`) see no
   change because featuregraph's re-export surface is preserved.
 - **Temporarily worse:** none.
 - **CLI:** unchanged.
@@ -430,7 +430,7 @@ callouts; none requires holding releases.
 
 ### After PR 6 (W-12 desktop consumes typed-reader)
 
-- **Green:** `apps/desktop/src-tauri/src/commands/analysis.rs:28` no
+- **Green:** `apps/opc/src-tauri/src/commands/analysis.rs:28` no
   longer reads raw `registry.json`. Uses `spec_registry_reader::load`.
   No raw-JSON reads of compiled artifacts remain anywhere in OAP.
 - **Temporarily worse:** none.
@@ -630,7 +630,7 @@ Adjacent OAP-internal tools (unchanged, **not spec-spine**):
               │     factory-engine (G-2)            │
               │              ╲                      │
        axiomregent           ╲                     │
-       apps/desktop      oap-registry-enrich ───────┘
+       apps/opc      oap-registry-enrich ───────┘
                          (reads both artifacts)
 ```
 

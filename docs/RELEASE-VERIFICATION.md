@@ -64,6 +64,6 @@ jq -r '.components[] | "\(.name) \(.version) \(.licenses[0].license.id // "unkno
 The desktop installer flow additionally publishes per-installer
 SHA-256 sidecars (`*.dmg.sha256`, `*.exe.sha256`, `*.AppImage.sha256`).
 These are consumed by the in-app updater
-(`product/apps/desktop/src-tauri/src/commands/updater.rs`) — they are an
+(`product/apps/opc/src-tauri/src/commands/updater.rs`) — they are an
 integrity check, not a provenance check, and exist for offline
 update validation. They coexist with the SLSA attestations.

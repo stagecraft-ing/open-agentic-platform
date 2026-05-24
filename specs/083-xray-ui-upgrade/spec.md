@@ -83,15 +83,15 @@ desktop.
 
 | File | Role |
 |------|------|
-| `product/apps/desktop/src/features/inspect/InspectSurface.tsx` | Main refactor target |
-| `product/apps/desktop/src/features/inspect/types.ts` | Type expansion |
-| `product/apps/desktop/src/features/inspect/xrayViewModel.ts` | New — view model mapper |
-| `product/apps/desktop/src/features/inspect/Xray*.tsx` | New — 8 sub-components |
+| `product/apps/opc/src/features/inspect/InspectSurface.tsx` | Main refactor target |
+| `product/apps/opc/src/features/inspect/types.ts` | Type expansion |
+| `product/apps/opc/src/features/inspect/xrayViewModel.ts` | New — view model mapper |
+| `product/apps/opc/src/features/inspect/Xray*.tsx` | New — 8 sub-components |
 | `crates/xray/src/schema.rs` | Reference for field names |
 
 ## Verification
 
-- `cd product/apps/desktop && pnpm build` — TypeScript compilation succeeds
-- `cd product/apps/desktop && pnpm lint` — lint pass
+- `cd product/apps/opc && pnpm build` — TypeScript compilation succeeds
+- `cd product/apps/opc && pnpm lint` — lint pass
 - Manual: scan a Rust project, verify all sections render
 - Manual: scan a project with no dependencies/call graph — optional sections hidden

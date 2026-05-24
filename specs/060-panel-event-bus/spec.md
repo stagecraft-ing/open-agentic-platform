@@ -22,7 +22,7 @@ sources:
   - crystal
 references:
   - role: historical
-    unit: { kind: file, path: product/apps/desktop/src/lib/panelEventBus.ts }
+    unit: { kind: file, path: product/apps/opc/src/lib/panelEventBus.ts }
 ---
 
 # Feature Specification: Typed Inter-Panel Event Bus

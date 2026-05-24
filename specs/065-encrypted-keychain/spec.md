@@ -22,9 +22,9 @@ sources:
   - claudecodeui
 references:
   - role: historical
-    unit: { kind: file, path: product/apps/desktop/src-tauri/src/keychain.rs }
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/keychain.rs }
   - role: historical
-    unit: { kind: file, path: product/apps/desktop/src/components/CredentialPicker.tsx }
+    unit: { kind: file, path: product/apps/opc/src/components/CredentialPicker.tsx }
 extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive

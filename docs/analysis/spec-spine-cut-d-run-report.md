@@ -23,7 +23,7 @@ order completed in sequence. No HALTs.
 | 03 | `4fac11b7` | W-03: Add typed-reader library API to registry-consumer |
 | 04 | `756cd87b` | W-04: Rename crate to open_agentic_spec_registry_reader |
 | 05 | `7ede4d93` | W-05: featuregraph consumes typed-reader |
-| 06 | `0b6d3f35` | W-12: apps/desktop consumes typed-reader |
+| 06 | `0b6d3f35` | W-12: apps/opc consumes typed-reader |
 | 07 | `7910af41` | W-11: Add typed-reader library API to codebase-indexer |
 | 08 | `a64d7bbb` | W-06a: OAP registry enricher binary |
 | 09 | `80189072` | W-06b: migrate compliance-report from registry-consumer to oap-registry-enrich |

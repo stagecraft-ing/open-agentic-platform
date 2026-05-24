@@ -42,9 +42,9 @@ milestones. It contains three executables:
   compiles a normalised `adapter-scopes.json` to two destinations. Implements
   its own handwritten YAML subset parser.
 - `scripts/fetch-axiomregent.js` — fetches pre-built `axiomregent` sidecar
-  binaries from GitHub Releases during `make setup` / `product/apps/desktop` predev.
+  binaries from GitHub Releases during `make setup` / `product/apps/opc` predev.
 - `scripts/build-axiomregent.sh` — builds `axiomregent` locally for one or
-  more Rust targets and copies them into `product/apps/desktop/src-tauri/binaries/`.
+  more Rust targets and copies them into `product/apps/opc/src-tauri/binaries/`.
 
 Each of these violates the same principle, in a different way:
 
@@ -114,7 +114,7 @@ an intentionally-omitted `compiled_at` timestamp), then delete the JS.
 **Phase 2 — `make fetch-axiomregent` recipe (orchestration → Make).**
 Replaces `scripts/fetch-axiomregent.js`. Wraps
 `gh release download --repo <repo> --pattern axiomregent-<host> --dir <binaries> --skip-existing`.
-Add `gh` to `check-deps`. Rewrite `product/apps/desktop/package.json` predev
+Add `gh` to `check-deps`. Rewrite `product/apps/opc/package.json` predev
 and `build:executables` hooks to invoke `make fetch-axiomregent-check`.
 Replace the `make setup` call with the same.
 
@@ -122,7 +122,7 @@ Replace the `make setup` call with the same.
 Replaces `scripts/build-axiomregent.sh --all`. A `for` loop over
 `CI_CROSS_TARGETS` (already defined by spec 104) that runs
 `cargo build --release --target <t> --manifest-path crates/axiomregent/Cargo.toml`,
-copies the resulting binary to `product/apps/desktop/src-tauri/binaries/`, and
+copies the resulting binary to `product/apps/opc/src-tauri/binaries/`, and
 strips debug symbols on Unix. The single-host build already exists as
 the `axiomregent` target.
 
@@ -141,7 +141,7 @@ Every migration MUST:
   removed non-deterministic fields (e.g. `compiled_at`).
 - Delete the script in the same PR as the replacement lands — no
   "coexistence" period.
-- Update `make setup`, `product/apps/desktop/package.json`, and any other
+- Update `make setup`, `product/apps/opc/package.json`, and any other
   callers in the same PR.
 - Remove header comments referencing the retired script from any
   downstream consumer.
@@ -169,8 +169,8 @@ A `fetch-axiomregent` target in the root `Makefile` MUST:
 
 - Detect the host triple via `rustc -vV`
 - Append `.exe` for Windows triples
-- Create `product/apps/desktop/src-tauri/binaries/` if missing
-- Invoke `gh release download --repo $(AXIOMREGENT_REPO) --pattern axiomregent-<triple>[.exe] --dir product/apps/desktop/src-tauri/binaries --skip-existing`
+- Create `product/apps/opc/src-tauri/binaries/` if missing
+- Invoke `gh release download --repo $(AXIOMREGENT_REPO) --pattern axiomregent-<triple>[.exe] --dir product/apps/opc/src-tauri/binaries --skip-existing`
 - Fail with a clear diagnostic if `gh` is not installed (pointer to
   install command and `gh auth login`)
 
@@ -186,7 +186,7 @@ An `axiomregent-all` target in the root `Makefile` MUST:
 - Per target: run `cargo build --release --target <t> --manifest-path crates/axiomregent/Cargo.toml`
 - Append `.exe` for Windows, copy the resulting binary from
   `crates/target/<t>/release/axiomregent[.exe]` to
-  `product/apps/desktop/src-tauri/binaries/axiomregent-<t>[.exe]`
+  `product/apps/opc/src-tauri/binaries/axiomregent-<t>[.exe]`
 - Run `strip` on Unix targets (best-effort; tolerate absence)
 - Fail fast on any target build error
 
@@ -210,7 +210,7 @@ After each migration:
 
 ### FR-05: Package.json Hooks
 
-For Phase 2, `product/apps/desktop/package.json` scripts that shell into
+For Phase 2, `product/apps/opc/package.json` scripts that shell into
 `node ../../scripts/fetch-axiomregent.js` MUST be rewritten to invoke
 the axiomregent binary instead (or the Makefile target that wraps it).
 

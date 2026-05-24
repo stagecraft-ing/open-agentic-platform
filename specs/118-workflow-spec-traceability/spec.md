@@ -242,3 +242,11 @@ the indexer.
   in the same `tools/spec-spine/codebase-indexer/` crate. Spec 129 bumps
   `schemaVersion` 1.1.0 → 1.2.0 and extends `TraceSource`. No change
   to spec 118's workflow-header behaviour.
+
+
+## Amendments received
+
+**Amendment 2026-05-24 (record: 178-opc-directory-rename).**
+Spec 178 (opc-directory-rename, 2026-05-24): mechanical path rename
+`product/apps/desktop/*` → `product/apps/opc/*`. No semantic change
+to this spec's claims; owned paths inherit the new prefix.

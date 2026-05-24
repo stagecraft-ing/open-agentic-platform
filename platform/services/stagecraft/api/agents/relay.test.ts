@@ -380,7 +380,7 @@ describe("sendProjectAgentBindingSnapshot", () => {
 // Spec 123 §7.3 / T044 — compile-time schema-version constants.
 //
 // The const exports in `api/sync/types.ts` and the Rust mirror in
-// `apps/desktop/src-tauri/src/commands/sync_client.rs` must stay in lock-
+// `apps/opc/src-tauri/src/commands/sync_client.rs` must stay in lock-
 // step. Drift surfaces here as a test failure rather than runtime parse
 // failure (the Rust side has matching constants; if a developer bumps one
 // without the other, the Rust crate's constant test fails on `cargo test`

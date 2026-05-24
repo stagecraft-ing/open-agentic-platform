@@ -4,7 +4,7 @@
 
 //! Trait abstraction for the stagecraft endpoints the `s-1-extract` stage
 //! needs (yield-extraction, fetch-extraction-output, post-extraction-output).
-//! The desktop crate (`apps/desktop/src-tauri`) provides the real HTTP impl;
+//! The desktop crate (`apps/opc/src-tauri`) provides the real HTTP impl;
 //! tests use `MockStagecraftClient`.
 //!
 //! Keeping the trait inside `factory-engine` means the engine has no Tauri

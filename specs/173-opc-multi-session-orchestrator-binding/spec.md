@@ -59,7 +59,7 @@ summary: >
 
 Spec 157 closes the spec-authority gap on OPC's
 session model. The Tauri commands in
-`product/apps/desktop/src-tauri/src/commands/claude.rs`
+`product/apps/opc/src-tauri/src/commands/claude.rs`
 read Claude Code's JSONL session history and surface a
 multi-session-per-project-path discipline. Spec 157
 makes that discipline normative.

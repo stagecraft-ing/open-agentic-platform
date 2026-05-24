@@ -12,7 +12,7 @@ depends_on:
 code_aliases: ["POST_CONVERGENCE_REMEDIATION"]
 refines:
   - aspect: "security-hardening"
-    unit: { kind: file, path: product/apps/desktop/src-tauri/tauri.conf.json }
+    unit: { kind: file, path: product/apps/opc/src-tauri/tauri.conf.json }
   - aspect: "security-hardening"
     unit: { kind: file, path: crates/factory-engine/src/artifact_store.rs }
   - aspect: "security-hardening"
@@ -89,7 +89,7 @@ Four-phase remediation ordered by blast radius.
 | 3.4 | Upgrade axum 0.7 → 0.8 | `orchestrator/Cargo.toml` |
 | 3.5 | Add superseded_by to specs 038, 040 | `specs/038-*/spec.md`, `specs/040-*/spec.md` |
 | 3.6 | Quote YAML dates | `specs/087-*/spec.md`, `specs/088-*/spec.md` |
-| 3.7 | Track desktop Cargo.lock | `.gitignore`, `product/apps/desktop/src-tauri/Cargo.lock` |
+| 3.7 | Track desktop Cargo.lock | `.gitignore`, `product/apps/opc/src-tauri/Cargo.lock` |
 | 3.8 | Recompile spec registry (096–100) | `.derived/spec-registry/registry.json` |
 
 ### Phase 4 — Orphaned Code Feature Catalog
@@ -124,7 +124,7 @@ All four phases landed in commit `a04f312` (2026-04-12). Evidence:
 - **Phase 1.2** — `deployd-api-rs/src/config.rs` uses
   `std::env::var("DEPLOYD_AUDIENCE").expect(...)` and
   `std::env::var("DEPLOYD_REQUIRED_SCOPE").expect(...)`; boot fails if unset.
-- **Phase 2.1** — `product/apps/desktop/src-tauri/tauri.conf.json` CSP lacks
+- **Phase 2.1** — `product/apps/opc/src-tauri/tauri.conf.json` CSP lacks
   `unsafe-eval`; `assetProtocol.scope` narrowed to `$APPDATA/**`,
   `$RESOURCE/**`.
 - **Phase 2.3** — hex-only `content_hash` and separator-rejecting

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:610150d8737896d96142d7c7571655687d243b3781a8db969182d7bfb2c02adc",
+  "graph_fingerprint": "sha256:449e00c4c7813f66927d8cf7bc265a5679cb3227688f9832dccc49c61494669d",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3373,6 +3373,20 @@
       "impl_files": [],
       "test_files": [],
       "violations": []
+    },
+    {
+      "feature_id": "178-opc-directory-rename",
+      "title": "Rename product/apps/desktop → product/apps/opc",
+      "spec_path": "specs/178-opc-directory-rename/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "open-agentic-platform",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
     }
   ],
   "violations": [
@@ -4212,336 +4226,336 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/_lib.sh",
+      "path": "product/apps/opc/src-tauri/resources/claude-hooks/_lib.sh",
       "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-index.sh",
+      "path": "product/apps/opc/src-tauri/resources/claude-hooks/post-edit-index.sh",
       "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain (FR-002)",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh",
+      "path": "product/apps/opc/src-tauri/resources/claude-hooks/post-edit-spec-lint.sh",
       "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain (FR-002)",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-codification.sh",
+      "path": "product/apps/opc/src-tauri/resources/claude-hooks/stop-codification.sh",
       "message": "Malformed Spec directive: # Spec: 174-codification-gate (FR-001, FR-008)",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-coupling.sh",
+      "path": "product/apps/opc/src-tauri/resources/claude-hooks/stop-coupling.sh",
       "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain (FR-003, platform-mandatory)",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-index.sh",
+      "path": "product/apps/opc/src-tauri/resources/claude-hooks/stop-index.sh",
       "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain (FR-003, platform-mandatory)",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-spec-lint.sh",
+      "path": "product/apps/opc/src-tauri/resources/claude-hooks/stop-spec-lint.sh",
       "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain (FR-003)",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/stop-workflow-pins.sh",
+      "path": "product/apps/opc/src-tauri/resources/claude-hooks/stop-workflow-pins.sh",
       "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain (FR-003, conditional)",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/resources/claude-hooks/tests/run-tests.sh",
+      "path": "product/apps/opc/src-tauri/resources/claude-hooks/tests/run-tests.sh",
       "message": "Malformed Spec directive: # Spec: 166-opc-stop-hook-gate-chain — hook wrapper test suite.",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/src/commands/decomposition.rs",
+      "path": "product/apps/opc/src-tauri/src/commands/decomposition.rs",
       "message": "Malformed Spec directive: // Spec: specs/165-opc-decomposition-pipeline/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/src/commands/factory_platform.rs",
+      "path": "product/apps/opc/src-tauri/src/commands/factory_platform.rs",
       "message": "Malformed Spec directive: // Spec: specs/124-opc-factory-run-platform-integration/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/src/commands/provenance.rs",
+      "path": "product/apps/opc/src-tauri/src/commands/provenance.rs",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-041",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/src/commands/stage_cd.rs",
+      "path": "product/apps/opc/src-tauri/src/commands/stage_cd.rs",
       "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-024, FR-025, FR-026, FR-030",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src-tauri/src/web_server.rs",
+      "path": "product/apps/opc/src-tauri/src/web_server.rs",
       "message": "Malformed Spec directive: // Spec: specs/079-scheduling/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/ScheduleDialog.tsx",
+      "path": "product/apps/opc/src/components/ScheduleDialog.tsx",
       "message": "Malformed Spec directive: // Spec: specs/079-scheduling/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/SchedulePanel.tsx",
+      "path": "product/apps/opc/src/components/SchedulePanel.tsx",
       "message": "Malformed Spec directive: // Spec: specs/079-scheduling/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/ArtifactInspector.tsx",
+      "path": "product/apps/opc/src/components/factory/ArtifactInspector.tsx",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/BuildSpecStructuredView.tsx",
+      "path": "product/apps/opc/src/components/factory/BuildSpecStructuredView.tsx",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/FactoryPipelineContext.tsx",
+      "path": "product/apps/opc/src/components/factory/FactoryPipelineContext.tsx",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/FactoryPipelinePanel.tsx",
+      "path": "product/apps/opc/src/components/factory/FactoryPipelinePanel.tsx",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/GateDialog.tsx",
+      "path": "product/apps/opc/src/components/factory/GateDialog.tsx",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/GateImpactSummary.tsx",
+      "path": "product/apps/opc/src/components/factory/GateImpactSummary.tsx",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/PipelineDAG.tsx",
+      "path": "product/apps/opc/src/components/factory/PipelineDAG.tsx",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/PipelineHistory.tsx",
+      "path": "product/apps/opc/src/components/factory/PipelineHistory.tsx",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/PipelineSelector.tsx",
+      "path": "product/apps/opc/src/components/factory/PipelineSelector.tsx",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/PlanActionGraph.tsx",
+      "path": "product/apps/opc/src/components/factory/PlanActionGraph.tsx",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/PlanCertificatePrediction.tsx",
+      "path": "product/apps/opc/src/components/factory/PlanCertificatePrediction.tsx",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/PlanReviewDialog.tsx",
+      "path": "product/apps/opc/src/components/factory/PlanReviewDialog.tsx",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/PlanStructuralDiff.tsx",
+      "path": "product/apps/opc/src/components/factory/PlanStructuralDiff.tsx",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/ProvenanceHealthPanel.tsx",
+      "path": "product/apps/opc/src/components/factory/ProvenanceHealthPanel.tsx",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-042",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/ProvenanceReport.tsx",
+      "path": "product/apps/opc/src/components/factory/ProvenanceReport.tsx",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-041",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/ScaffoldMonitor.tsx",
+      "path": "product/apps/opc/src/components/factory/ScaffoldMonitor.tsx",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/StageCdReview.tsx",
+      "path": "product/apps/opc/src/components/factory/StageCdReview.tsx",
       "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-030, FR-031, FR-032",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/TokenDashboard.tsx",
+      "path": "product/apps/opc/src/components/factory/TokenDashboard.tsx",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/__tests__/FactoryPipelineContextPlan.test.tsx",
+      "path": "product/apps/opc/src/components/factory/__tests__/FactoryPipelineContextPlan.test.tsx",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/__tests__/GateImpactSummary.test.tsx",
+      "path": "product/apps/opc/src/components/factory/__tests__/GateImpactSummary.test.tsx",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/__tests__/PlanCertificatePrediction.test.tsx",
+      "path": "product/apps/opc/src/components/factory/__tests__/PlanCertificatePrediction.test.tsx",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/__tests__/PlanRenderers.test.tsx",
+      "path": "product/apps/opc/src/components/factory/__tests__/PlanRenderers.test.tsx",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/__tests__/PlanReviewDialog.test.tsx",
+      "path": "product/apps/opc/src/components/factory/__tests__/PlanReviewDialog.test.tsx",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx",
+      "path": "product/apps/opc/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-042",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/__tests__/ProvenanceReport.test.tsx",
+      "path": "product/apps/opc/src/components/factory/__tests__/ProvenanceReport.test.tsx",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-041",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/__tests__/StageCdReview.test.tsx",
+      "path": "product/apps/opc/src/components/factory/__tests__/StageCdReview.test.tsx",
       "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — FR-030, FR-031, FR-032",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/__tests__/planAnalysis.test.ts",
+      "path": "product/apps/opc/src/components/factory/__tests__/planAnalysis.test.ts",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/__tests__/planTypes.test.ts",
+      "path": "product/apps/opc/src/components/factory/__tests__/planTypes.test.ts",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/planAnalysis.ts",
+      "path": "product/apps/opc/src/components/factory/planAnalysis.ts",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/planTypes.ts",
+      "path": "product/apps/opc/src/components/factory/planTypes.ts",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/components/factory/types.ts",
+      "path": "product/apps/opc/src/components/factory/types.ts",
       "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "product/apps/desktop/src/lib/hooksManager.spec166.test.ts",
+      "path": "product/apps/opc/src/lib/hooksManager.spec166.test.ts",
       "message": "Malformed Spec directive: // Spec: 166-opc-stop-hook-gate-chain",
       "suggested_fix": "Fix header format"
     },
