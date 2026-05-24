@@ -71,7 +71,7 @@ tempfile = "3"
 which = "8"
 sha2 = "0.10"
 zstd = "0.13"
-uuid = { version = "1.23", features = ["v4", "serde"] }
+uuid = { version = "1.23", features = ["v4", "v5", "serde"] }
 walkdir = "2"
 serde_yaml = "0.9"
 axum = { version = "0.8", features = ["ws"] }

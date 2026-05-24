@@ -184,6 +184,10 @@ impl HiqliteWorkflowStore {
                 project_id: r.project_id,
                 project_path: r.project_path,
                 originating_session: r.originating_session,
+                current_step_name: None,
+                current_step_index: None,
+                current_step_started_at: None,
+                step_count: None,
             })
             .collect())
     }
@@ -220,6 +224,10 @@ impl HiqliteWorkflowStore {
                 project_id: r.project_id,
                 project_path: r.project_path,
                 originating_session: r.originating_session,
+                current_step_name: None,
+                current_step_index: None,
+                current_step_started_at: None,
+                step_count: None,
             })
             .collect())
     }

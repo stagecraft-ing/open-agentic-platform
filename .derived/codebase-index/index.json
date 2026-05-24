@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "55b19752198adac552b04dfa7c8b3ea5010127c5271a359f7f179f68ffbbcb98",
+    "contentHash": "5f2ca3c4025f1780175b4e933b303c959c53b5abfce5484633e6ff60fb7d6d7c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -11076,6 +11076,9 @@
                 "file": "product/apps/desktop/src-tauri/src/commands/keychain.rs"
               },
               {
+                "file": "product/apps/desktop/src-tauri/src/commands/live_sessions.rs"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/commands/mcp.rs"
               },
               {
@@ -11151,6 +11154,9 @@
                 "file": "product/apps/desktop/src-tauri/src/main.rs"
               },
               {
+                "file": "product/apps/desktop/src-tauri/src/process/activity.rs"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/process/mod.rs"
               },
               {
@@ -11188,6 +11194,9 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
+              },
+              {
+                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -11296,6 +11305,9 @@
               },
               {
                 "file": "product/apps/desktop/src/components/ImagePreview.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/LiveSessionsPanel.tsx"
               },
               {
                 "file": "product/apps/desktop/src/components/MCPAddServer.tsx"
@@ -11644,6 +11656,9 @@
               },
               {
                 "file": "product/apps/desktop/src/features/inspect/xrayViewModel.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/features/live-sessions/LiveSessionsSurface.tsx"
               },
               {
                 "file": "product/apps/desktop/src/features/portfolio/PortfolioSurface.tsx"
@@ -12191,6 +12206,9 @@
                 "file": "product/apps/desktop/src-tauri/src/commands/keychain.rs"
               },
               {
+                "file": "product/apps/desktop/src-tauri/src/commands/live_sessions.rs"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/commands/mcp.rs"
               },
               {
@@ -12266,6 +12284,9 @@
                 "file": "product/apps/desktop/src-tauri/src/main.rs"
               },
               {
+                "file": "product/apps/desktop/src-tauri/src/process/activity.rs"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/process/mod.rs"
               },
               {
@@ -12303,6 +12324,9 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
+              },
+              {
+                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -12411,6 +12435,9 @@
               },
               {
                 "file": "product/apps/desktop/src/components/ImagePreview.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/LiveSessionsPanel.tsx"
               },
               {
                 "file": "product/apps/desktop/src/components/MCPAddServer.tsx"
@@ -12759,6 +12786,9 @@
               },
               {
                 "file": "product/apps/desktop/src/features/inspect/xrayViewModel.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/features/live-sessions/LiveSessionsSurface.tsx"
               },
               {
                 "file": "product/apps/desktop/src/features/portfolio/PortfolioSurface.tsx"
@@ -14349,6 +14379,9 @@
                 "file": "product/apps/desktop/src-tauri/src/commands/keychain.rs"
               },
               {
+                "file": "product/apps/desktop/src-tauri/src/commands/live_sessions.rs"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/commands/mcp.rs"
               },
               {
@@ -14424,6 +14457,9 @@
                 "file": "product/apps/desktop/src-tauri/src/main.rs"
               },
               {
+                "file": "product/apps/desktop/src-tauri/src/process/activity.rs"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/process/mod.rs"
               },
               {
@@ -14461,6 +14497,9 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
+              },
+              {
+                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -14569,6 +14608,9 @@
               },
               {
                 "file": "product/apps/desktop/src/components/ImagePreview.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/LiveSessionsPanel.tsx"
               },
               {
                 "file": "product/apps/desktop/src/components/MCPAddServer.tsx"
@@ -14917,6 +14959,9 @@
               },
               {
                 "file": "product/apps/desktop/src/features/inspect/xrayViewModel.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/features/live-sessions/LiveSessionsSurface.tsx"
               },
               {
                 "file": "product/apps/desktop/src/features/portfolio/PortfolioSurface.tsx"
@@ -16079,6 +16124,9 @@
                 "file": "product/apps/desktop/src-tauri/src/commands/keychain.rs"
               },
               {
+                "file": "product/apps/desktop/src-tauri/src/commands/live_sessions.rs"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/commands/mcp.rs"
               },
               {
@@ -16154,6 +16202,9 @@
                 "file": "product/apps/desktop/src-tauri/src/main.rs"
               },
               {
+                "file": "product/apps/desktop/src-tauri/src/process/activity.rs"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/process/mod.rs"
               },
               {
@@ -16191,6 +16242,9 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
+              },
+              {
+                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -16299,6 +16353,9 @@
               },
               {
                 "file": "product/apps/desktop/src/components/ImagePreview.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/LiveSessionsPanel.tsx"
               },
               {
                 "file": "product/apps/desktop/src/components/MCPAddServer.tsx"
@@ -16647,6 +16704,9 @@
               },
               {
                 "file": "product/apps/desktop/src/features/inspect/xrayViewModel.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/features/live-sessions/LiveSessionsSurface.tsx"
               },
               {
                 "file": "product/apps/desktop/src/features/portfolio/PortfolioSurface.tsx"
@@ -17861,6 +17921,24 @@
               },
               {
                 "file": "crates/xray/tests/index_format_test.rs"
+              },
+              {
+                "file": "crates/xray/tests/outputs/index_format/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/index_format/index.json"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run1/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run1/index.json"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run2/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run2/index.json"
               }
             ],
             "ownership": true,
@@ -21127,6 +21205,11 @@
           },
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": ".derived/codebase-index/CODEBASE-INDEX.md"
+              }
+            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -22425,6 +22508,9 @@
                 "file": "product/apps/desktop/src-tauri/src/commands/keychain.rs"
               },
               {
+                "file": "product/apps/desktop/src-tauri/src/commands/live_sessions.rs"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/commands/mcp.rs"
               },
               {
@@ -22500,6 +22586,9 @@
                 "file": "product/apps/desktop/src-tauri/src/main.rs"
               },
               {
+                "file": "product/apps/desktop/src-tauri/src/process/activity.rs"
+              },
+              {
                 "file": "product/apps/desktop/src-tauri/src/process/mod.rs"
               },
               {
@@ -22537,6 +22626,9 @@
               },
               {
                 "file": "product/apps/desktop/src-tauri/tests/TESTS_TASK.md"
+              },
+              {
+                "file": "product/apps/desktop/src/.DS_Store"
               },
               {
                 "file": "product/apps/desktop/src/App.tsx"
@@ -22645,6 +22737,9 @@
               },
               {
                 "file": "product/apps/desktop/src/components/ImagePreview.tsx"
+              },
+              {
+                "file": "product/apps/desktop/src/components/LiveSessionsPanel.tsx"
               },
               {
                 "file": "product/apps/desktop/src/components/MCPAddServer.tsx"
@@ -22993,6 +23088,9 @@
               },
               {
                 "file": "product/apps/desktop/src/features/inspect/xrayViewModel.ts"
+              },
+              {
+                "file": "product/apps/desktop/src/features/live-sessions/LiveSessionsSurface.tsx"
               },
               {
                 "file": "product/apps/desktop/src/features/portfolio/PortfolioSurface.tsx"
@@ -30634,6 +30732,9 @@
             "kind": "directory",
             "locations": [
               {
+                "file": "platform/services/stagecraft/.encore/manifest.json"
+              },
+              {
                 "file": "platform/services/stagecraft/.github/workflows/deploy.yml"
               },
               {
@@ -31654,6 +31755,240 @@
                 "file": "platform/services/stagecraft/encore.app"
               },
               {
+                "file": "platform/services/stagecraft/encore.gen/auth/index.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/clients/index.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/clients/index.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/auth/auth.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/admin/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/agents/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/audit/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/auth/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/db/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/deploy/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/environments/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/factory/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/frontend/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/github/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/grants/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/knowledge/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/monitor/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/policy/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/projects/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/site/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/slack/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints.d.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/clients/sync/endpoints_testing.js"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/combined/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/gateways/api-gateway/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/admin/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/agents/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/audit/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/auth/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/db/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/deploy/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/environments/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/factory/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/frontend/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/github/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/grants/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/knowledge/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/monitor/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/policy/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/projects/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/site/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/slack/main.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/encore.gen/internal/entrypoints/services/sync/main.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/infra.config.hetzner.json"
               },
               {
@@ -31724,6 +32059,9 @@
               },
               {
                 "file": "platform/services/stagecraft/tsconfig.json"
+              },
+              {
+                "file": "platform/services/stagecraft/tsconfig.tsbuildinfo"
               },
               {
                 "file": "platform/services/stagecraft/vite.config.ts"
@@ -33773,6 +34111,24 @@
               },
               {
                 "file": "crates/xray/tests/index_format_test.rs"
+              },
+              {
+                "file": "crates/xray/tests/outputs/index_format/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/index_format/index.json"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run1/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run1/index.json"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run2/history.jsonl"
+              },
+              {
+                "file": "crates/xray/tests/outputs/run2/index.json"
               }
             ],
             "ownership": false,
@@ -35800,8 +36156,323 @@
         "specStatus": "approved"
       },
       {
-        "implementingPaths": [],
+        "dependsOn": [
+          "032",
+          "043",
+          "052",
+          "057",
+          "067",
+          "157"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/orchestrator/src/hiqlite_store.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/sqlite_state.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/state.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/live_sessions.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/commands/mod.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/process/activity.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/process/mod.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src-tauri/src/process/registry.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/LiveSessionsPanel.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/ProjectToolbar.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/components/TabContent.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/contexts/TabContext.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/features/live-sessions",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/hooks/useTabState.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/desktop/src/lib/api.ts",
+            "source": "spec-implements"
+          }
+        ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/features/live-sessions/LiveSessionsSurface.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/desktop/src/features/live-sessions"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/src/commands/live_sessions.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/src/commands/live_sessions.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/src/process/activity.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/src/process/activity.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/components/LiveSessionsPanel.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/LiveSessionsPanel.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/orchestrator/src/hiqlite_store.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/orchestrator/src/hiqlite_store.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/orchestrator/src/sqlite_state.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/orchestrator/src/sqlite_state.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/orchestrator/src/state.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/orchestrator/src/state.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/Cargo.toml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/Cargo.toml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/src/commands/mod.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/src/commands/mod.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/src/process/mod.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/src/process/mod.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src-tauri/src/process/registry.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src-tauri/src/process/registry.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/components/ProjectToolbar.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/ProjectToolbar.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/components/TabContent.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/components/TabContent.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/contexts/TabContext.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/contexts/TabContext.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/hooks/useTabState.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/hooks/useTabState.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/desktop/src/lib/api.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/desktop/src/lib/api.ts"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -35860,7 +36531,7 @@
           }
         ],
         "specId": "172-opc-live-agent-session-introspection",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -36386,7 +37057,6 @@
       "149-saml-auth-driver",
       "150-example-tenant-profile",
       "157-opc-session-model",
-      "172-opc-live-agent-session-introspection",
       "174-codification-gate"
     ],
     "untracedCode": [

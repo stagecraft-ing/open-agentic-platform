@@ -77,6 +77,11 @@ pub struct StepState {
 
 /// Lightweight summary for workspace-scoped listing (099 Slice 5).
 /// Avoids loading all steps per workflow.
+///
+/// Spec 172 §2.1 extends this with optional live-state fields populated only
+/// by `list_active_workflows`; spec 173 adds the OPC origin trace fields
+/// (`project_path` / `originating_session`). Legacy callers continue to
+/// receive the four original fields untouched.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkflowStateSummary {
@@ -90,9 +95,22 @@ pub struct WorkflowStateSummary {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_path: Option<String>,
     /// OPC session UUID that initiated this workflow (spec 173 FR-001, trace field).
-    /// `None` for workflows initiated outside OPC.
+    /// `None` for workflows initiated outside OPC. Consumed by spec 172's
+    /// Live Sessions panel as the "Originating agent / session" column.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub originating_session: Option<String>,
+    /// Spec 172 — name of the currently-running step, if known.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_step_name: Option<String>,
+    /// Spec 172 — index of the currently-running step.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_step_index: Option<u32>,
+    /// Spec 172 — wall-clock at which the current step started.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_step_started_at: Option<String>,
+    /// Spec 172 — total step count, for "step k of N" rendering.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_count: Option<u32>,
 }
 
 /// JSON state file schema (FR-001, FR-002, FR-007, SC-006).

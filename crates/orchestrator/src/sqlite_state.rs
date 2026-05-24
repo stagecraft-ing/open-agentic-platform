@@ -770,6 +770,10 @@ impl SqliteWorkflowStore {
                         project_id: row.get(4)?,
                         project_path: row.get(5)?,
                         originating_session: row.get(6)?,
+                        current_step_name: None,
+                        current_step_index: None,
+                        current_step_started_at: None,
+                        step_count: None,
                     })
                 })
                 .map_err(|e| OrchestratorError::StatePersistence {
@@ -826,6 +830,10 @@ impl SqliteWorkflowStore {
                         project_id: row.get(4)?,
                         project_path: row.get(5)?,
                         originating_session: row.get(6)?,
+                        current_step_name: None,
+                        current_step_index: None,
+                        current_step_started_at: None,
+                        step_count: None,
                     })
                 })
                 .map_err(|e| OrchestratorError::StatePersistence {
@@ -838,6 +846,118 @@ impl SqliteWorkflowStore {
                 })?);
             }
             Ok(results)
+        })
+        .await
+        .map_err(|e| OrchestratorError::StatePersistence {
+            reason: format!("spawn_blocking: {e}"),
+        })?
+    }
+
+    /// Spec 172 §2.4 — list workflows whose status is `running` or
+    /// `awaiting_checkpoint`, enriched with the currently-running step from
+    /// the `steps` table. The returned summary is the orchestrator's
+    /// consumer surface for the Live Sessions panel; per spec 103 the panel
+    /// MUST NOT parse the underlying SQLite rows directly.
+    pub async fn list_active_workflows(
+        &self,
+        limit: Option<u32>,
+    ) -> Result<Vec<crate::state::WorkflowStateSummary>, OrchestratorError> {
+        let conn = Arc::clone(&self.conn);
+        let lim = limit.unwrap_or(50) as i64;
+        tokio::task::spawn_blocking(move || {
+            let guard = conn
+                .lock()
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("lock sqlite conn: {e}"),
+                })?;
+
+            let mut stmt = guard
+                .prepare(
+                    "SELECT workflow_id, workflow_name, status, started_at, project_id,
+                            project_path, originating_session
+                     FROM workflows
+                     WHERE status IN ('running', 'awaiting_checkpoint')
+                     ORDER BY started_at DESC
+                     LIMIT ?1",
+                )
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("prepare list_active_workflows: {e}"),
+                })?;
+
+            let rows = stmt
+                .query_map(rusqlite::params![lim], |row| {
+                    Ok(crate::state::WorkflowStateSummary {
+                        workflow_id: row.get(0)?,
+                        workflow_name: row.get(1)?,
+                        status: row.get(2)?,
+                        started_at: row.get(3)?,
+                        project_id: row.get(4)?,
+                        project_path: row.get(5)?,
+                        originating_session: row.get(6)?,
+                        current_step_name: None,
+                        current_step_index: None,
+                        current_step_started_at: None,
+                        step_count: None,
+                    })
+                })
+                .map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("query list_active_workflows: {e}"),
+                })?;
+
+            let mut summaries: Vec<crate::state::WorkflowStateSummary> = Vec::new();
+            for row in rows {
+                summaries.push(row.map_err(|e| OrchestratorError::StatePersistence {
+                    reason: format!("map active workflow row: {e}"),
+                })?);
+            }
+
+            // Enrich each summary with its currently-running step (or first
+            // pending step if no running step exists yet) and the total step
+            // count. Empty result -> the summary keeps `None` everywhere.
+            for s in summaries.iter_mut() {
+                let mut step_stmt = guard
+                    .prepare(
+                        "SELECT step_index, name, started_at
+                         FROM steps
+                         WHERE workflow_id = ?1 AND status = 'running'
+                         ORDER BY step_index ASC
+                         LIMIT 1",
+                    )
+                    .map_err(|e| OrchestratorError::StatePersistence {
+                        reason: format!("prepare active step lookup: {e}"),
+                    })?;
+
+                let row_opt = step_stmt
+                    .query_row(rusqlite::params![s.workflow_id.clone()], |row| {
+                        let idx: i64 = row.get(0)?;
+                        let name: String = row.get(1)?;
+                        let started_at: Option<String> = row.get(2)?;
+                        Ok((idx, name, started_at))
+                    })
+                    .optional()
+                    .map_err(|e| OrchestratorError::StatePersistence {
+                        reason: format!("query active step: {e}"),
+                    })?;
+
+                if let Some((idx, name, started_at)) = row_opt {
+                    s.current_step_index = Some(idx as u32);
+                    s.current_step_name = Some(name);
+                    s.current_step_started_at = started_at;
+                }
+
+                let count: i64 = guard
+                    .query_row(
+                        "SELECT COUNT(*) FROM steps WHERE workflow_id = ?1",
+                        rusqlite::params![s.workflow_id.clone()],
+                        |row| row.get(0),
+                    )
+                    .unwrap_or(0);
+                if count > 0 {
+                    s.step_count = Some(count as u32);
+                }
+            }
+
+            Ok(summaries)
         })
         .await
         .map_err(|e| OrchestratorError::StatePersistence {
@@ -1406,6 +1526,61 @@ mod tests {
             .expect("load conversation events");
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].event_type, "user_message");
+    }
+
+    #[tokio::test]
+    async fn list_active_workflows_filters_by_running_status_and_enriches_step() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db_path = tmp.path().join("state.sqlite");
+        let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
+
+        // One running workflow with a running step.
+        let running_id = Uuid::new_v4();
+        let mut running = WorkflowState::new(
+            running_id,
+            "deploy-prod",
+            "2026-05-23T10:00:00Z".to_string(),
+            vec![
+                ("step_001".to_string(), "lint".to_string()),
+                ("step_002".to_string(), "deploy".to_string()),
+            ],
+            serde_json::Map::new(),
+        );
+        running.status = WorkflowStatus::Running;
+        running.mark_step_started("step_002", "2026-05-23T10:00:10Z".to_string());
+        store
+            .write_workflow_state(&running)
+            .await
+            .expect("seed running");
+
+        // One completed workflow — must be filtered out.
+        let done_id = Uuid::new_v4();
+        let mut done = WorkflowState::new(
+            done_id,
+            "deploy-staging",
+            "2026-05-23T09:00:00Z".to_string(),
+            vec![("step_a".to_string(), "lint".to_string())],
+            serde_json::Map::new(),
+        );
+        done.status = WorkflowStatus::Completed;
+        store.write_workflow_state(&done).await.expect("seed done");
+
+        let active = store
+            .list_active_workflows(None)
+            .await
+            .expect("list active");
+
+        assert_eq!(active.len(), 1, "only running workflow should be returned");
+        let s = &active[0];
+        assert_eq!(s.workflow_id, running_id.to_string());
+        assert_eq!(s.status, "running");
+        assert_eq!(s.current_step_name.as_deref(), Some("deploy"));
+        assert_eq!(s.current_step_index, Some(1));
+        assert_eq!(s.step_count, Some(2));
+        assert_eq!(
+            s.current_step_started_at.as_deref(),
+            Some("2026-05-23T10:00:10Z")
+        );
     }
 
     #[tokio::test]
