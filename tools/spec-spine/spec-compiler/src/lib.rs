@@ -4,7 +4,7 @@ pub mod schema;
 
 use open_agentic_spec_types::{
     FrontmatterError, KNOWN_KEYS, LogicalUnit, LogicalUnitParseError, ProvenanceKind,
-    ProvenanceParseError, VALID_KINDS, VALID_RISK_LEVELS, split_frontmatter_required,
+    ProvenanceParseError, VALID_DOMAINS, VALID_KINDS, VALID_RISK_LEVELS, split_frontmatter_required,
 };
 use serde::Serialize;
 use serde_json::{Map, Value, json};
@@ -218,6 +218,26 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         let rel = normalize_repo_path(repo_root, spec_path);
         let authors = optional_string_list(fm, "authors");
         let kind = optional_str(fm, "kind");
+        let mut domain = optional_str(fm, "domain");
+        // ── V-030 (Spec 179): domain enum membership ──
+        // Spec 179 introduces the tract-authority lens at error severity.
+        // Invalid values are dropped from the emitted registry so the
+        // artifact stays schema-conformant; the violation is the source
+        // of truth for the rejection (mirrors V-007's risk handling).
+        if let Some(ref d) = domain {
+            if !VALID_DOMAINS.contains(&d.as_str()) {
+                violations.push(Violation {
+                    code: "V-030".to_string(),
+                    severity: "error".to_string(),
+                    message: format!(
+                        "domain value {d:?} is not in the declared enum; expected one of: {}",
+                        VALID_DOMAINS.join(", ")
+                    ),
+                    path: Some(normalize_repo_path(repo_root, spec_path)),
+                });
+                domain = None;
+            }
+        }
         let feature_branch = optional_str(fm, "feature_branch");
         let depends_on = optional_string_list(fm, "depends_on");
         let owner = optional_str(fm, "owner");
@@ -524,6 +544,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
             constrains,
             origin,
             references,
+            domain,
             extra_frontmatter: extra,
         });
     }
@@ -1002,6 +1023,12 @@ struct FeatureRecord {
     /// Legacy bare-string items are normalized at parse time.
     #[serde(skip_serializing_if = "Option::is_none")]
     references: Option<Value>,
+    /// Spec 179 — tract-authority lens. Closed enum
+    /// (`opc | platform | substrate | tooling`). V-030 validates at
+    /// error severity; invalid values are dropped and the violation
+    /// is the source of truth.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    domain: Option<String>,
     #[serde(rename = "extraFrontmatter", skip_serializing_if = "Option::is_none")]
     extra_frontmatter: Option<Map<String, Value>>,
 }
