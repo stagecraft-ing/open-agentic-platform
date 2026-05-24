@@ -7,6 +7,8 @@ implementation: complete
 owner: bart
 created: "2026-05-19"
 approved: "2026-05-19"
+amended: "2026-05-24"
+amendment_record: "176-amends-aware-section-satisfaction-parity"
 kind: governance
 risk: low
 depends_on:
@@ -37,6 +39,16 @@ summary: >
 ---
 
 # 152 — Path Co-Authority
+
+> **Amended 2026-05-24 by spec 176 (`amends-aware-section-satisfaction-parity`,
+> `kind: amendment, shape: bug-fix`).** Spec 176 fixes the
+> section-scoped satisfaction predicate in
+> `check_coupling_section_aware`: previously it consulted only the
+> direct `section_spec_ids` set, missing the `amends:` and
+> `amendmentRecord:` substitutes that whole-file coupling already
+> honoured. The section mechanism this spec defines (§2.2 diff-to-
+> section matching) is unchanged; only the predicate downstream now
+> composes the OwnerSet identically to the whole-file branch.
 
 ## 1. Concern
 

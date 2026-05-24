@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d0eca382ac6fe792891f030055238a72b1662b8763094a64fb22d2b377c645a0",
+    "contentHash": "038b5fe0f9b760204ee80522d2dbc89d5811cd9f17826492f0445a9531d228d9",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -25235,6 +25235,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "176-amends-aware-section-satisfaction-parity",
         "dependsOn": [
           "101",
           "130"
@@ -25260,8 +25261,8 @@
               {
                 "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
                 "span": {
-                  "endLine": 846,
-                  "startLine": 770
+                  "endLine": 901,
+                  "startLine": 772
                 }
               }
             ],
@@ -29674,6 +29675,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "176-amends-aware-section-satisfaction-parity",
         "dependsOn": [
           "130",
           "133"
@@ -29695,7 +29697,7 @@
               {
                 "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
                 "span": {
-                  "endLine": 615,
+                  "endLine": 617,
                   "startLine": 410
                 }
               }
@@ -38258,6 +38260,64 @@
         ],
         "specId": "175-stagecraft-project-dashboard-observability",
         "specStatus": "draft"
+      },
+      {
+        "amends": [
+          "133-amends-aware-coupling-gate",
+          "152-path-co-authority"
+        ],
+        "dependsOn": [
+          "133",
+          "152"
+        ],
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "section",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+                "span": {
+                  "endLine": 901,
+                  "startLine": 772
+                }
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "anchor": "authority-derivation",
+              "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+              "kind": "section"
+            }
+          },
+          {
+            "kind": "section",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+                "span": {
+                  "endLine": 617,
+                  "startLine": 410
+                }
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "anchor": "section-matching",
+              "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+              "kind": "section"
+            }
+          }
+        ],
+        "specId": "176-amends-aware-section-satisfaction-parity",
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [
