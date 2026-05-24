@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "443a5787789c0a8f925aec0b63aeca8ed26d53eb6947021c67c949d2aa376062",
+    "contentHash": "6523c46b8985ce1377ae3a45326ecadaf2a9a86e6559b6a98448eb4a74c0efb2",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -39006,6 +39006,105 @@
         ],
         "specId": "179-domain-frontmatter-field",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "002",
+          "130",
+          "152",
+          "154",
+          "155",
+          "180"
+        ],
+        "implementingPaths": [
+          {
+            "path": "tools/spec-spine/registry-consumer/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/130-spec-coupling-primary-owner/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/130-spec-coupling-primary-owner/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/130-spec-coupling-primary-owner/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/130-spec-coupling-primary-owner/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/152-path-co-authority/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/152-path-co-authority/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/154-logical-unit-ownership-grammar/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/154-logical-unit-ownership-grammar/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/180-opc-shell-codification/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/registry-consumer/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/registry-consumer/src/lib.rs"
+            }
+          }
+        ],
+        "specId": "181-registry-consumer-unit-grammar-authority",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [
