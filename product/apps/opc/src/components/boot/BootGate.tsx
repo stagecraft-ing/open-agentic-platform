@@ -25,10 +25,35 @@ interface BootGateProps {
   onReady: () => void;
 }
 
-// FR-T4 — explicit retry, no silent reconnect. The poll cadence below
-// is the boot gate's *observation* cadence (read-only re-query of the
-// boot_gate_status command), not a retry loop. Retry of a failed
-// precondition is gated on the user clicking a button.
+// FR-T4 — explicit retry, no silent reconnect. The cadence below is the
+// boot gate's *observation* cadence: a periodic read of
+// boot_gate_status to refresh the displayed status rows. This is
+// structurally distinct from retrying a failed connection attempt,
+// which is what FR-T4 binds. To make the distinction concrete:
+//
+//   * boot_gate_status's sidecar arm does perform a TCP-connect probe
+//     to the announced port (see sidecars::probe_port_alive). That
+//     probe is *idempotent and read-only* against the diagnostic
+//     listener — accept-or-refuse with no side effects on either side.
+//     Re-issuing it is observation of a state machine, not a
+//     reconnect attempt to a network resource.
+//
+//   * The org-session arm is a pure read of two flags (org_id present;
+//     sync.hello received). The underlying duplex *reconnect* logic
+//     lives in sync_client.rs::run_forever, runs on its own backoff,
+//     and is gated by the FR-T5(b) give-up threshold — that's the
+//     actual "reconnect attempt," and it is owned by Rust, not this
+//     poll.
+//
+//   * The "Retry sidecar" button below performs an explicit observation
+//     re-trigger, not a respawn (respawning is stage C+ work). The
+//     button exists because FR-T4 binds *user-initiated retry of a
+//     failed precondition*; clicking it forces an immediate re-poll,
+//     which is the boot-gate consumer's equivalent of "I want to act on
+//     the failure."
+//
+// Net: this useInterval is observation, not retry. FR-T4 is not in
+// tension with the cadence.
 const POLL_INTERVAL_MS = 1000;
 
 type RowStatus = 'pending' | 'ok' | 'failed';

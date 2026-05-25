@@ -76,11 +76,35 @@ function AppContent() {
   // Spec 183 — boot gate. Cockpit cannot render until both FR-T1 (sidecar
   // liveness) and FR-T2 (org session materialised + sync.hello received)
   // green-light. BootGate is the only surface rendered until that flip.
-  // FR-T5 mid-session restore (cockpit → boot on precondition loss) is
-  // stage C and will reset this flag from inside the cockpit branch.
   // authStatus is consumed inside BootGate via useAuth() — App no longer
   // branches on it directly.
   const [bootGateOpen, setBootGateOpen] = useState(false);
+
+  // Spec 183 FR-T5 — mid-session precondition-loss listener. When any of
+  // the three FR-T5 observers (sidecar termination, duplex give-up,
+  // org-id cleared) emits boot-gate-precondition-lost from the Rust side,
+  // unmount the cockpit subtree and re-mount BootGate. This is the
+  // symmetric arm of the boot→cockpit invariant: boot is the *only*
+  // "preconditions not satisfied" state, regardless of whether the
+  // cockpit ever rendered. Closes the seam through which mid-session
+  // degraded operation would otherwise return.
+  useEffect(() => {
+    if (!window.__TAURI_INTERNALS__ && !window.__TAURI__) return;
+    let unlisten: (() => void) | undefined;
+    void (async () => {
+      const { listen } = await import('@tauri-apps/api/event');
+      unlisten = await listen<{ precondition: string; reason: string }>(
+        'boot-gate-precondition-lost',
+        (event) => {
+          console.warn(
+            `[boot-gate] precondition lost (${event.payload.precondition}): ${event.payload.reason}`,
+          );
+          setBootGateOpen(false);
+        },
+      );
+    })();
+    return () => { unlisten?.(); };
+  }, []);
 
   // Initialize analytics lifecycle tracking
   useAppLifecycle();
