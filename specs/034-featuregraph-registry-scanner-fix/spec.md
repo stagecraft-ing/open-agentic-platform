@@ -70,3 +70,12 @@ content updated 1:1 with the rename per the atomicity contract
 encoded by spec 177 (ci-orchestrator-pr-gate) — featuregraph-golden
 is a required ci-gate check precisely so renames carry their fixture
 refresh inside the rename PR.
+
+**Amendment 2026-05-24 (record: 181-registry-consumer-unit-grammar-authority).**
+Spec 181 (registry-consumer-unit-grammar-authority, 2026-05-24):
+mechanical regeneration of
+`crates/featuregraph/tests/golden/features_graph.json` to include
+spec 181's row in the feature graph. No semantic change to this
+spec's claims; the new spec's spec.md contributes a new entry to the
+featuregraph output by construction, and the originating PR carries
+the fixture refresh per the spec 177 atomicity contract.
