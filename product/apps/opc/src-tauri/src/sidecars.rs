@@ -16,20 +16,49 @@
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_shell::ShellExt;
-use tauri_plugin_shell::process::CommandEvent;
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tokio::net::TcpStream;
 
 // ============================================================================
 // Managed state
 // ============================================================================
 
-/// Holds the dynamically-discovered port for axiomregent.
-/// `None` until the sidecar has started and announced its port.
+/// Holds the dynamically-discovered port for axiomregent AND the live
+/// `CommandChild` handle so spec 183 FR-T6 (Quit teardown) can signal the
+/// process before exit. The handle MUST be retained past announcement
+/// parse — Stage A/B had a debt here where `spawn_axiomregent`'s receiver
+/// loop broke after the port line, dropping the Child and leaving no
+/// surface to kill on Quit; Stage C closes that.
+///
+/// FR-T1's diagnostic-listener semantics mean we don't need the handle to
+/// re-evaluate liveness (that's TCP-connect-driven, see
+/// `probe_port_alive`). The handle is purely for teardown + termination
+/// observation.
 #[derive(Default)]
 pub struct SidecarState {
     pub axiomregent_port: Arc<Mutex<Option<u16>>>,
+    /// `None` before spawn, `Some(child)` once the sidecar is running.
+    /// Reset to `None` only when teardown takes the handle (Quit path) or
+    /// when the receiver loop observes `CommandEvent::Terminated`.
+    pub axiomregent_child: Arc<Mutex<Option<CommandChild>>>,
+}
+
+/// Spec 183 FR-T5 — Tauri event emitted when any boot-gate precondition
+/// is lost mid-session. The frontend's App.tsx listens for this and
+/// flips `bootGateOpen` back to `false` so the cockpit unmounts and
+/// `<BootGate>` re-mounts. Payload carries which precondition lapsed and
+/// a short reason for diagnostic surface.
+pub const EVENT_BOOT_GATE_PRECONDITION_LOST: &str = "boot-gate-precondition-lost";
+
+#[derive(Debug, Clone, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PreconditionLostEvent {
+    /// One of `"sidecar"`, `"duplex"`, `"org-id"` — names the lapsed gate.
+    pub precondition: String,
+    /// Short diagnostic string; surfaced in the boot-state UI verbatim.
+    pub reason: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize, specta::Type)]
@@ -98,17 +127,49 @@ pub struct BootGateStatus {
     pub org_id: Option<String>,
 }
 
-/// Spec 183 FR-T6 — boot-state Quit action. Today this is a thin wrapper
-/// over `app.exit(0)` because spec 183 stage A/B doesn't yet hold the
-/// sidecar `Child` handle past the announcement parse (see
-/// `spawn_axiomregent`). Stage C will land child-handle retention and
-/// promote this command to a SIGTERM-with-timeout-then-SIGKILL sequence
-/// against the held handle before exit. The contract surface from the
-/// frontend is stable — the implementation behind it tightens.
+/// Spec 183 FR-T6 — boot-state Quit action with deterministic sidecar
+/// teardown. Takes the retained `CommandChild` handle out of
+/// `SidecarState`, signals kill (the shell plugin uses
+/// `SharedChild::kill` which is SIGKILL-equivalent on Unix), then calls
+/// `app.exit(0)`. This MUST happen in this order: orphaned axiomregent
+/// processes collide with the next OPC launch on the probe-port bind
+/// (the canonical "OPC won't start after I quit it" footgun the spec
+/// forecloses).
+///
+/// Note on signal type: the binding shape of FR-T6 is "MUST NOT leave
+/// process tree in a state where the next launch could collide" — not a
+/// specific signal sequence. `kill()` here goes through
+/// `tauri_plugin_shell::process::CommandChild::kill` → `SharedChild::kill`,
+/// which on Unix sends SIGKILL (immediate) and on Windows uses
+/// TerminateProcess. SIGKILL is harsher than the SIGTERM-with-timeout
+/// the spec's rationale describes, but it satisfies the binding ("don't
+/// leave a ghost process") and is honest: a graceful SIGTERM pathway
+/// would require shelling out to `kill -TERM <pid>` + sleep + SIGKILL,
+/// which adds complexity without changing the user-observable outcome
+/// (sidecar gone, next launch clean).
 #[tauri::command]
 #[specta::specta]
 pub fn quit_opc(app: AppHandle) {
-    log::info!("quit_opc: shutting down OPC (spec 183 stage B — sidecar teardown deferred to stage C)");
+    log::info!("quit_opc: shutting down OPC (spec 183 FR-T6)");
+
+    // Take the sidecar handle. If it's None — either the sidecar never
+    // spawned, or the Terminated observer already cleared it — there's
+    // nothing to kill, but we still exit cleanly.
+    let state = app.state::<SidecarState>();
+    let child_opt = {
+        let mut guard = state.axiomregent_child.lock().unwrap();
+        guard.take()
+    };
+    if let Some(child) = child_opt {
+        let pid = child.pid();
+        match child.kill() {
+            Ok(()) => log::info!("quit_opc: killed axiomregent (pid {pid})"),
+            Err(e) => log::warn!("quit_opc: failed to kill axiomregent (pid {pid}): {e}"),
+        }
+    } else {
+        log::info!("quit_opc: no axiomregent handle retained — nothing to tear down");
+    }
+
     app.exit(0);
 }
 
@@ -170,8 +231,16 @@ pub fn parse_axiomregent_port_line(line: &str) -> Option<u16> {
 }
 
 /// Spawn axiomregent and watch stderr for `OPC_AXIOMREGENT_PORT=<port>`.
+///
+/// Spec 183 stage C — the receiver loop is now lifetime-of-process: after
+/// the port-announcement parse, the loop stays alive to observe
+/// `CommandEvent::Terminated`, which fires FR-T5(a) (sidecar termination
+/// → precondition-loss event → boot-state restore). The spawned
+/// `CommandChild` handle is retained on `SidecarState.axiomregent_child`
+/// so `quit_opc` can SIGTERM it during teardown (FR-T6).
 pub fn spawn_axiomregent(app: &AppHandle) {
     let port_slot = Arc::clone(&app.state::<SidecarState>().axiomregent_port);
+    let child_slot = Arc::clone(&app.state::<SidecarState>().axiomregent_child);
     let cmd = match app.shell().sidecar("axiomregent") {
         Ok(c) => c,
         Err(e) => {
@@ -179,36 +248,73 @@ pub fn spawn_axiomregent(app: &AppHandle) {
             return;
         }
     };
+    let app_handle = app.clone();
     tauri::async_runtime::spawn(async move {
-        let (mut rx, _child) = match cmd.spawn() {
+        let (mut rx, child) = match cmd.spawn() {
             Ok(r) => r,
             Err(e) => {
                 log::error!("Failed to spawn axiomregent: {e}");
                 return;
             }
         };
+        // Retain the Child handle for FR-T6 teardown. `quit_opc` takes
+        // it out and calls kill(); if the receiver loop observes
+        // Terminated first (sidecar crash), it clears the slot to None
+        // before emitting the precondition-loss event.
+        *child_slot.lock().unwrap() = Some(child);
+
+        let mut port_announced = false;
         while let Some(event) = rx.recv().await {
             match event {
                 CommandEvent::Stderr(bytes) | CommandEvent::Stdout(bytes) => {
                     let line = String::from_utf8_lossy(&bytes);
-                    if let Some(port) = parse_axiomregent_port_line(&line) {
+                    if !port_announced
+                        && let Some(port) = parse_axiomregent_port_line(&line)
+                    {
                         *port_slot.lock().unwrap() = Some(port);
+                        port_announced = true;
                         log::info!("axiomregent probe port {port}");
-                        break;
+                        // Do NOT break — keep the loop alive for FR-T5(a).
                     }
                 }
                 CommandEvent::Error(e) => {
                     log::error!("axiomregent error: {e}");
+                    // Treat receiver-stream errors as a terminal precondition
+                    // loss; the sidecar is unreachable through the shell IPC.
+                    *child_slot.lock().unwrap() = None;
+                    *port_slot.lock().unwrap() = None;
+                    emit_precondition_lost(
+                        &app_handle,
+                        "sidecar",
+                        &format!("receiver stream error: {e}"),
+                    );
                     break;
                 }
                 CommandEvent::Terminated(status) => {
                     log::warn!("axiomregent terminated: {status:?}");
+                    *child_slot.lock().unwrap() = None;
+                    *port_slot.lock().unwrap() = None;
+                    emit_precondition_lost(
+                        &app_handle,
+                        "sidecar",
+                        &format!("axiomregent process terminated: {status:?}"),
+                    );
                     break;
                 }
                 _ => {}
             }
         }
     });
+}
+
+fn emit_precondition_lost(app: &AppHandle, precondition: &str, reason: &str) {
+    let payload = PreconditionLostEvent {
+        precondition: precondition.to_string(),
+        reason: reason.to_string(),
+    };
+    if let Err(e) = app.emit(EVENT_BOOT_GATE_PRECONDITION_LOST, &payload) {
+        log::warn!("failed to emit boot-gate-precondition-lost ({precondition}): {e}");
+    }
 }
 
 /// Spawn axiomregent as a standalone OS process (no Tauri shell).
