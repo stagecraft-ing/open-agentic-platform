@@ -107,46 +107,25 @@ git config --unset core.hooksPath     # disable
 
 `.githooks/pre-commit` refuses commits when the index is stale and prints the exact fix. It is opt-in (not configured by default) because it adds friction every commit, not just PR-final commits.
 
-```bash
-# Compile specs
-cargo build --release --manifest-path tools/spec-spine/spec-compiler/Cargo.toml
-./tools/spec-spine/spec-compiler/target/release/spec-compiler compile
+Raw cargo invocations behind the Makefile entry points are kept in
+path-scoped rules so they only load when relevant:
 
-# Query registry
-cargo build --release --manifest-path tools/spec-spine/registry-consumer/Cargo.toml
-./tools/spec-spine/registry-consumer/target/release/registry-consumer list
-./tools/spec-spine/registry-consumer/target/release/registry-consumer show <feature-id>
-
-# Lint specs
-cargo build --release --manifest-path tools/spec-spine/spec-lint/Cargo.toml
-
-# Codebase index
-cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml
-./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile  # emit index.json
-./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check    # staleness check
-./tools/oap/oap-code-index-enrich/target/release/oap-code-index-enrich render   # emit CODEBASE-INDEX.md (Cut D W-07b moved this out of codebase-indexer)
-
-# Compile policies
-cargo build --release --manifest-path tools/oap/policy-compiler/Cargo.toml
-
-# Platform services (local dev)
-cd platform/services/stagecraft && npm run start   # Encore.ts on :4000
-
-# deployd-api (Rust)
-cargo build --release --manifest-path platform/services/deployd-api-rs/Cargo.toml
-
-# Platform infrastructure
-cd platform && make tf-init    # Init Terraform
-cd platform && make tf-apply   # Full Azure deployment
-```
+- `.claude/rules/build-commands.md` — spec-spine + OAP tool cargo
+  builds; loaded when editing `**/Cargo.toml` or `Makefile`.
+- `.claude/rules/platform-services.md` — stagecraft (Encore.ts/npm)
+  and deployd-api local dev + infra; loaded when editing `platform/**`.
 
 ## Claude Code Extension Points
 
 - **`.claude/agents/`** — architect, explorer, implementer, reviewer, encore-expert
 - **`.claude/commands/`** — /init, /setup, /commit, /code-review, /review-branch, /implement-plan, /research, /validate-and-fix, /cleanup, /refactor-claude-md
-- **`.claude/rules/`** — Reusable rule files (loaded automatically)
-- **`AGENTS.md`** — Self-extending agent protocol and session init
+- **`.claude/rules/`** — Reusable rule files (loaded automatically; `paths:` frontmatter scopes some to specific file types)
+- **`AGENTS.md`** — Cross-agent session-init protocol authority (read by Claude Code, Codex CLI, Cursor, GitHub Copilot via the AAIF/Linux Foundation AGENTS.md standard)
 - **`CLAUDE.md`** — Scoped at root, `platform/`, and `platform/services/stagecraft/`
+
+### Worktree posture
+
+OAP intentionally **does not ship `.worktreeinclude`**. Worktrees created via `git worktree add` or the Agent tool's `isolation: worktree` start with a clean checkout. All inputs the indexer hashes (specs, manifests, schemas, workflow YAML) are tracked; derived artifacts under `.derived/` are regeneratable from source via `make registry`. No untracked `.env` or local secret files are required for build, test, or the spec-spine toolchain. If a future workflow needs untracked context inside a worktree, add `.worktreeinclude` at the project root with explicit per-pattern reasoning.
 
 ## Policy Rules
 
