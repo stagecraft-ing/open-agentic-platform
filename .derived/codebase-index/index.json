@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "e4d423dfe997478f2342110477dfbb9ffbda34138dfcb51eba58f24ef0827921",
+    "contentHash": "3642af6e0b4b22ee457809164faf88be78034e10a52398100923482e0aa5e4fa",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -21269,11 +21269,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": ".derived/codebase-index/CODEBASE-INDEX.md"
-              }
-            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {

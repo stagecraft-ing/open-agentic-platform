@@ -10,6 +10,7 @@ tools:
 model: sonnet
 safety_tier: tier1
 mutation: read-only
+memory: project
 ---
 
 # Architect — Plan & Decompose
@@ -122,3 +123,20 @@ Look for:
 - **DO NOT:** Modify any files — this agent is strictly read-only
 - **DO NOT:** Skip loading specs — they are the authoritative record
 - **DO NOT:** Propose changes that bypass the spec-compiler build system
+
+## What to remember (project memory)
+
+This agent has `memory: project` and writes to `.claude/agent-memory/architect/MEMORY.md`. The memory is shared across planning sessions; record patterns that recur across decompositions.
+
+**Record:**
+
+- **Spec-shape patterns** — non-obvious frontmatter combinations that work or fail. Example: "`kind: migration` + `risk: low` specs in this repo always carry an `amends:` list of every spec whose path references change; omitting that list fails the coupling gate."
+- **Decomposition pitfalls** — wrong cuts you've seen proposed. Example: "splitting a Rust + spec change into 'spec PR' + 'code PR' breaks the spec-code-coupling gate; both must land in the same PR."
+- **Latent constraints** — invariants that aren't in any single doc but emerge from how the spine actually behaves. Example: "any change touching the indexer's input list at `tools/spec-spine/codebase-indexer/src/lib.rs::collect_input_files` requires amending spec 101 in the same PR."
+- **Reusable plan skeletons** — when a class of plan repeats. Example: "the standard `oap.spec` backfill plan: (1) identify orphans via `codebase-indexer orphans --json`, (2) decide ownership, (3) edit Cargo.toml/package.json, (4) regenerate index, (5) commit."
+
+**Do NOT record** plans for specific features (those go in `specs/`), reactions to single conversations, or generic engineering advice. The memory file should read as accumulated taste — the patterns a senior architect on this project would name if asked "what do I keep seeing?"
+
+Update memory after planning sessions where you encountered a pattern worth naming. Routine plans don't need an entry.
+
+> **TODO (planned, not yet built):** Periodic curation of `MEMORY.md` to prune transcript residue and consolidate patterns is a planned follow-up. Likely shape: a `/curate-agent-memory` skill invoked manually against an agent's memory file, run by an architect-tier session. Not blocking; track once the memory file exceeds ~100 lines.
