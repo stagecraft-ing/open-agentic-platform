@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d072350195a2b2f1e647bf1f3d39f791ae46ed253da98a2893109deb55912cd0",
+    "contentHash": "a08e20ac91db9a3bcfbd84c3d298267de1836f6ff541d2876649e0b88fd7eb80",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -39107,7 +39107,7 @@
           }
         ],
         "specId": "181-registry-consumer-unit-grammar-authority",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [
