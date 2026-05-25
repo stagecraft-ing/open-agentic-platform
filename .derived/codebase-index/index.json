@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "81c16d50007507561dda268d5b7834489af37c27d2cb829e71d0e9386aad9983",
+    "contentHash": "ca33dc5290639005f60ae8d7ac39814ffd2cb5667b604f515eca8c808a287322",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -39012,6 +39012,1331 @@
           "034-featuregraph-registry-scanner-fix"
         ],
         "dependsOn": [
+          "032",
+          "132",
+          "133",
+          "147",
+          "152",
+          "153",
+          "154",
+          "156",
+          "166",
+          "172",
+          "174",
+          "177"
+        ],
+        "implementingPaths": [
+          {
+            "path": "product/apps/opc/src-tauri/src",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/commands",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/commands/usage.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/components",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/components/TabContent.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/components/TabManager.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/components/UsageDashboard.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/components/factory",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/contexts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/contexts/TabContext.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/hooks",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/hooks/useTabState.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/lib",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/routes",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/services",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/stores",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/tsconfig.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/vite.config.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/bindings.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/checkpoint/manager.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/checkpoint/mod.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/checkpoint/state.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/checkpoint/storage.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/claude_binary.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/agent_catalog_publish.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/agent_catalog_sync.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/agents.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/analysis.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/auth.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/claude.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/decomposition.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/factory.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/factory_platform.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/factory_project.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/git.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/keychain.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/live_sessions.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/mcp.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/mod.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/orchestrator.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/project_catalog_sync.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/project_open.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/provenance.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/proxy.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/quick_pane.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/recovery.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/result.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/sandbox.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/settings.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/slash_commands.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/stage_cd.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/storage.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/sync_client.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/updater.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/usage.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/window_ctrl.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/worktree_agents.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/wsl.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/governed_claude.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/lib.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/main.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/process/activity.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/process/mod.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/process/registry.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/sidecars.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/types.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/utils.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/web_main.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/web_server.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/src-tauri/src"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/agent_catalog_publish.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/agent_catalog_sync.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/agents.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/analysis.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/auth.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/claude.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/decomposition.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/factory.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/factory_platform.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/factory_project.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/git.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/keychain.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/live_sessions.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/mcp.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/mod.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/orchestrator.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/project_catalog_sync.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/project_open.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/provenance.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/proxy.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/quick_pane.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/recovery.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/result.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/sandbox.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/settings.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/slash_commands.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/stage_cd.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/storage.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/sync_client.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/updater.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/usage.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/window_ctrl.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/worktree_agents.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/wsl.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/src-tauri/src/commands"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/components/AgentExecution.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/AgentExecutionDemo.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/AgentPicker.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/AgentPicker.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/AgentRunOutputViewer.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/AgentRunView.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/AgentRunsList.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/Agents.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/AgentsModal.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/AnalyticsConsent.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/AnalyticsErrorBoundary.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/CCAgents.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/CallGraphPanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/CheckpointPanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/CheckpointSettings.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ClaudeBinaryDialog.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ClaudeCodeSession.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ClaudeFileEditor.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ClaudeMemoriesDropdown.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ClaudeVersionSelector.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/CreateAgent.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/CustomTitlebar.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ErrorBoundary.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ExecutionControlBar.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/FilePicker.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/FloatingPromptInput.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/GitContextPanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/GitHubAgentBrowser.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/GovernancePanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/HooksEditor.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/IconPicker.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ImagePreview.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/LiveSessionsPanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/MCPAddServer.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/MCPImportExport.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/MCPManager.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/MCPServerList.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/MarkdownEditor.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/PortfolioPanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/PreviewPromptDialog.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ProjectList.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ProjectSettings.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ProjectToolbar.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/PromotionPanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ProxySettings.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/QuickPaneApp.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/RunningClaudeSessions.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ScheduleDialog.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/SchedulePanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ScopeSelector.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/SemanticSearchPanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/SessionList.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/SessionOutputViewer.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/Settings.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/SlashCommandPicker.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/SlashCommandsManager.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/StartupIntro.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/StorageTab.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/StreamMessage.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/TabContent.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/TabManager.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/TimelineNavigator.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/TokenCounter.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ToolWidgets.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/Topbar.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/UpdateBanner.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/UsageDashboard.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/WebviewPreview.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/XrayPanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/auth/LoginScreen.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/auth/OrgPicker.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/auth/ServerSettingsDialog.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/claude-code-session/MessageList.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/claude-code-session/PromptQueue.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/claude-code-session/SessionHeader.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/claude-code-session/useCheckpoints.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/claude-code-session/useClaudeMessages.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/ArtifactInspector.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/BuildSpecStructuredView.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/FactoryPipelineContext.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/FactoryPipelinePanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/FactoryProjectPicker.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/GateDialog.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/GateImpactSummary.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/LiveAgentOutput.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PipelineDAG.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PipelineHistory.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PipelineSelector.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PlanActionGraph.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PlanCertificatePrediction.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PlanReviewDialog.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PlanStructuralDiff.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/ProjectContextOverview.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/ProjectOpenInbox.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/ProvenanceHealthPanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/ProvenanceReport.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/ScaffoldMonitor.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/StageCdReview.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/TokenDashboard.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/FactoryPipelineContextPlan.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/GateImpactSummary.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/PlanCertificatePrediction.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/PlanRenderers.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/PlanReviewDialog.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/ProvenanceReport.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/StageCdReview.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/planAnalysis.test.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/planTypes.test.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/planAnalysis.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/planTypes.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/types.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/icons/GithubIcon.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/index.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/widgets/BashWidget.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/widgets/LSWidget.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/widgets/TodoWidget.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/widgets/index.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/src/components"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/components/factory/ArtifactInspector.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/BuildSpecStructuredView.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/FactoryPipelineContext.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/FactoryPipelinePanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/FactoryProjectPicker.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/GateDialog.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/GateImpactSummary.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/LiveAgentOutput.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PipelineDAG.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PipelineHistory.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PipelineSelector.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PlanActionGraph.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PlanCertificatePrediction.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PlanReviewDialog.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/PlanStructuralDiff.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/ProjectContextOverview.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/ProjectOpenInbox.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/ProvenanceHealthPanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/ProvenanceReport.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/ScaffoldMonitor.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/StageCdReview.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/TokenDashboard.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/FactoryPipelineContextPlan.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/GateImpactSummary.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/PlanCertificatePrediction.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/PlanRenderers.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/PlanReviewDialog.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/ProvenanceHealthPanel.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/ProvenanceReport.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/StageCdReview.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/planAnalysis.test.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/planTypes.test.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/planAnalysis.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/planTypes.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/types.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/src/components/factory"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/contexts/AuthContext.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/contexts/TabContext.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/contexts/ThemeContext.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/src/contexts"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/hooks/__tests__/useCloneTokenRefresh.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/__tests__/useProjectOpenInbox.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/index.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/useAnalytics.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/useApiCall.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/useCloneTokenRefresh.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/useConversationEvents.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/useDebounce.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/useFactoryProjectOpener.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/useLoadingState.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/useOpenProjects.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/usePagination.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/usePerformanceMonitor.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/useProjectOpenInbox.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/useScopedSettings.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/useStagecraftSync.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/useTabState.ts"
+              },
+              {
+                "file": "product/apps/opc/src/hooks/useTheme.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/src/hooks"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/lib/agentPicker.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/analytics/consent.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/analytics/events.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/analytics/index.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/analytics/resourceMonitor.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/analytics/types.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/api-tracker.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/api.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/apiAdapter.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/bindings.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/bridgeEventToClaudeOutput.test.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/bridgeEventToClaudeOutput.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/censor.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/claudeSyntaxTheme.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/contextCompaction.test.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/contextCompaction.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/date-utils.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/hooksManager.spec166.test.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/hooksManager.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/linkDetector.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/lib/outputCache.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/lib/settingsManager.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/shellEscape.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/shellPath.ts"
+              },
+              {
+                "file": "product/apps/opc/src/lib/utils.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/src/lib"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/routes/factory/ProjectCockpit.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/routes/factory/ProjectsPanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/routes/factory/WorkspaceProjectsPanel.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/routes/factory/__tests__/ProjectCockpit.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/routes/factory/__tests__/ProjectsPanel.test.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/src/routes"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/services/sessionPersistence.ts"
+              },
+              {
+                "file": "product/apps/opc/src/services/tabPersistence.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/src/services"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/stores/README.md"
+              },
+              {
+                "file": "product/apps/opc/src/stores/__tests__/projectCatalogStore.test.ts"
+              },
+              {
+                "file": "product/apps/opc/src/stores/agentStore.ts"
+              },
+              {
+                "file": "product/apps/opc/src/stores/projectCatalogStore.ts"
+              },
+              {
+                "file": "product/apps/opc/src/stores/sessionStore.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/src/stores"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/usage.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/usage.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/components/TabManager.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/components/TabManager.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/components/UsageDashboard.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/components/UsageDashboard.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/tsconfig.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/tsconfig.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/vite.config.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/vite.config.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/policy-kernel/benches/kernel_eval.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "crates/policy-kernel/benches/kernel_eval.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/132-constitutional-invariant-freeze/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/132-constitutional-invariant-freeze/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/153-invariant-freeze-additive-evolution/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/153-invariant-freeze-additive-evolution/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/165-opc-decomposition-pipeline/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/165-opc-decomposition-pipeline/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/174-codification-gate/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/174-codification-gate/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/177-ci-orchestrator-pr-gate/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/177-ci-orchestrator-pr-gate/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/policy-compiler/benches/compile_many.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/policy-compiler/benches/compile_many.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/codebase-indexer/benches/resolver.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/codebase-indexer/benches/resolver.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/components/TabContent.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/components/TabContent.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/contexts/TabContext.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/contexts/TabContext.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/hooks/useTabState.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/hooks/useTabState.ts"
+            }
+          }
+        ],
+        "specId": "180-opc-shell-codification",
+        "specStatus": "draft"
+      },
+      {
+        "amends": [
+          "034-featuregraph-registry-scanner-fix"
+        ],
+        "dependsOn": [
           "002",
           "130",
           "152",
@@ -39084,6 +40409,11 @@
           },
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": "specs/180-opc-shell-codification/spec.md"
+              }
+            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
