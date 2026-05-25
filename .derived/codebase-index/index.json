@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "148fc9551389a605c4475ec6b5112aa8aceb2223d757fbfb12efe3895d458552",
+    "contentHash": "e029cd44098c2447aef1edd7bf4b0870fc3772bbed8b94d3ce964ee46fa6ba54",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -40438,6 +40438,138 @@
         ],
         "specId": "181-registry-consumer-unit-grammar-authority",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "032",
+          "073",
+          "087",
+          "106",
+          "112",
+          "133",
+          "147",
+          "180"
+        ],
+        "implementingPaths": [
+          {
+            "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/sidecars.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/App.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/contexts/AuthContext.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/components/MCPManager.tsx"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/components/MCPManager.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/components/factory/PipelineSelector.tsx"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/components/factory/PipelineSelector.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/180-opc-shell-codification/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/180-opc-shell-codification/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/sidecars.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/sidecars.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/App.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/App.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/contexts/AuthContext.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/contexts/AuthContext.tsx"
+            }
+          }
+        ],
+        "specId": "183-opc-boot-precondition-gate",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [
