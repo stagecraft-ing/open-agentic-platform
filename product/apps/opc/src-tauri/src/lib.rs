@@ -637,6 +637,8 @@ pub fn run() {
             commands::sandbox::sandbox_status,
             // Sidecar port discovery
             sidecars::get_sidecar_ports,
+            sidecars::check_axiomregent_alive,
+            sidecars::boot_gate_status,
             // OS keychain (spec 087 Phase 5)
             keychain_store,
             keychain_retrieve,

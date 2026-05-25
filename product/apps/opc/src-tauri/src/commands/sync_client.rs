@@ -571,6 +571,14 @@ pub struct SyncClientInner {
     /// socket is disconnected; external callers treat a `None` as "best-effort
     /// drop" rather than blocking.
     outbound: RwLock<Option<mpsc::Sender<OutboundFrame>>>,
+    /// Spec 183 FR-T2(b) — flipped to `true` when stagecraft sends `sync.hello`
+    /// over the duplex stream, which is the server's acknowledgment that the
+    /// handshake was accepted for the claimed `(clientId, orgId)` pair. The
+    /// boot-gate consumer reads this via `sync_hello_received()`. Stays `true`
+    /// across the lifetime of the duplex consumer; FR-T5(b) precondition-loss
+    /// signalling is a separate concern (the give-up signal lands in a later
+    /// stage of the spec 183 implementation).
+    sync_hello_received: std::sync::atomic::AtomicBool,
 }
 
 impl SyncClientInner {
@@ -578,6 +586,18 @@ impl SyncClientInner {
         if let Ok(mut g) = self.outbound.write() {
             *g = tx;
         }
+    }
+
+    /// Spec 183 FR-T2(b) — `sync.hello` observability. Returns `true` once
+    /// stagecraft has acknowledged the handshake for this consumer.
+    pub fn sync_hello_received(&self) -> bool {
+        self.sync_hello_received
+            .load(std::sync::atomic::Ordering::Acquire)
+    }
+
+    pub(crate) fn mark_sync_hello_received(&self) {
+        self.sync_hello_received
+            .store(true, std::sync::atomic::Ordering::Release);
     }
 
     fn current_outbound(&self) -> Option<mpsc::Sender<OutboundFrame>> {
@@ -741,6 +761,12 @@ impl SyncClientState {
 
     pub fn last_cursor(&self) -> Option<String> {
         self.inner.last_cursor.read().ok().and_then(|g| g.clone())
+    }
+
+    /// Spec 183 FR-T2(b) — boot-gate observer surface. Returns `true` once
+    /// stagecraft has emitted `sync.hello` on the active duplex stream.
+    pub fn sync_hello_received(&self) -> bool {
+        self.inner.sync_hello_received()
     }
 
     /// Clone the inner handle. Callers hold it across async tasks without
@@ -933,12 +959,12 @@ async fn run_duplex_session(
             let msg = frame.map_err(|e| format!("read: {e}"))?;
             match msg {
                 Message::Text(text) => {
-                    handle_text_frame(&text, dispatch, last_cursor, &out_tx).await;
+                    handle_text_frame(&text, dispatch, last_cursor, &out_tx, inner).await;
                 }
                 Message::Binary(bytes) => {
                     match std::str::from_utf8(&bytes) {
                         Ok(text) => {
-                            handle_text_frame(text, dispatch, last_cursor, &out_tx).await;
+                            handle_text_frame(text, dispatch, last_cursor, &out_tx, inner).await;
                         }
                         Err(_) => log::warn!("sync_client: non-utf8 binary frame ignored"),
                     }
@@ -967,6 +993,7 @@ async fn handle_text_frame(
     dispatch: &Arc<DispatchTable>,
     last_cursor: &Arc<RwLock<Option<String>>>,
     out_tx: &mpsc::Sender<OutboundFrame>,
+    inner: &Arc<SyncClientInner>,
 ) {
     let envelope: ServerEnvelopeWire = match serde_json::from_str(text) {
         Ok(e) => e,
@@ -1017,6 +1044,10 @@ async fn handle_text_frame(
                 envelope.session_id,
                 envelope.cursor_gap
             );
+            // Spec 183 FR-T2(b): the boot-gate's org-session readiness flag
+            // flips on this envelope's receipt, which proves stagecraft accepted
+            // the handshake for the claimed (clientId, orgId).
+            inner.mark_sync_hello_received();
         }
         "sync.ack" | "sync.nack" => {
             // No inbox to reconcile yet — tracked in a later phase.

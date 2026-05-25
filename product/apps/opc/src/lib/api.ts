@@ -223,6 +223,18 @@ export interface SidecarPorts {
   axiomregent: number | null;
 }
 
+/** Spec 183 — unified boot-gate observability surface (`boot_gate_status`). */
+export interface BootGateStatus {
+  /** FR-T1: probe port announced AND TCP-connect succeeds within timeout. */
+  sidecar_alive: boolean;
+  /** FR-T2: org_id materialised on StagecraftState AND sync.hello received. */
+  org_session_ready: boolean;
+  /** Convenience: announced probe port (null if not yet announced). */
+  axiomregent_port: number | null;
+  /** Convenience: active org id for display purposes only. */
+  org_id: string | null;
+}
+
 /** Labels aligned with safety tier definitions (ChangeTier for changes, ToolTier for dispatch). */
 export interface SafetyTierRef {
   id: string;
@@ -2359,6 +2371,24 @@ export const api = {
    */
   async getSidecarPorts(): Promise<SidecarPorts> {
     return await apiCall<SidecarPorts>("get_sidecar_ports");
+  },
+
+  /**
+   * Spec 183 FR-T1(b) — TCP-connect liveness probe against the announced
+   * axiomregent probe port. Returns `false` when the port isn't announced
+   * yet, the connection is refused, or the bounded timeout elapses.
+   */
+  async checkAxiomregentAlive(): Promise<boolean> {
+    return await apiCall<boolean>("check_axiomregent_alive");
+  },
+
+  /**
+   * Spec 183 — unified boot-gate status (`boot_gate_status`). Combines the
+   * sidecar-liveness and org-session-readiness observations into the single
+   * payload the BootGate component polls.
+   */
+  async bootGateStatus(): Promise<BootGateStatus> {
+    return await apiCall<BootGateStatus>("boot_gate_status");
   },
 
   /**

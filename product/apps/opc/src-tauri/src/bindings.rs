@@ -59,8 +59,10 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         crate::commands::wsl::wsl_execute,
         // Sandbox status
         crate::commands::sandbox::sandbox_status,
-        // Sidecar port discovery
+        // Sidecar port discovery + spec 183 boot-gate observability
         crate::sidecars::get_sidecar_ports,
+        crate::sidecars::check_axiomregent_alive,
+        crate::sidecars::boot_gate_status,
         // Preflight / governance reference
         crate::commands::analysis::get_preflight_safety_tier_reference,
         crate::commands::analysis::get_tool_tier_assignments,
