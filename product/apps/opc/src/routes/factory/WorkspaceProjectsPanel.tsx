@@ -3,7 +3,7 @@
 // store to the presentational ProjectsPanel and surfaces "open" /
 // "clone & open" actions wired to the existing factory tab handler.
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Card } from '@opc/ui/card';
 import { useTabState } from '@/hooks/useTabState';
@@ -14,10 +14,16 @@ import {
 } from '@/stores/projectCatalogStore';
 import { ProjectsPanel, type ProjectCatalogEntry } from './ProjectsPanel';
 
+// If the duplex hasn't pushed an upsert (including an empty handshake snapshot)
+// within this window, fall back to a "not connected" message rather than
+// spinning forever. Stagecraft may be offline, unreachable, or unconfigured.
+const STAGECRAFT_STALL_TIMEOUT_MS = 5000;
+
 export const WorkspaceProjectsPanel: React.FC = () => {
   const projects = useProjectCatalogStore(useShallow(selectProjectsList));
   const hydrated = useProjectCatalogStore((s) => s.hydrated);
   const { createFactoryTab } = useTabState();
+  const [stalled, setStalled] = useState(false);
 
   // Subscribe to the duplex catalog stream once. The store is global, so the
   // subscription survives panel unmounts and remounts — but we still need
@@ -39,6 +45,18 @@ export const WorkspaceProjectsPanel: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (hydrated) {
+      setStalled(false);
+      return;
+    }
+    const timer = window.setTimeout(
+      () => setStalled(true),
+      STAGECRAFT_STALL_TIMEOUT_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [hydrated]);
+
   const handleOpen = (project: ProjectCatalogEntry) => {
     if (!project.localPath) return;
     createFactoryTab(project.localPath);
@@ -55,6 +73,23 @@ export const WorkspaceProjectsPanel: React.FC = () => {
   };
 
   if (!hydrated) {
+    if (stalled) {
+      return (
+        <div className="h-full flex items-center justify-center text-muted-foreground">
+          <Card className="p-4 text-sm max-w-md space-y-2">
+            <p className="font-medium text-foreground">
+              No project list received from stagecraft.
+            </p>
+            <p>
+              The workspace project list is broadcast by the stagecraft duplex
+              stream. Either stagecraft is unreachable, the stagecraft base URL
+              is not configured, or there are no projects in your org yet.
+              Check Settings → Stagecraft and verify the desktop can reach it.
+            </p>
+          </Card>
+        </div>
+      );
+    }
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground">
         <Card className="p-4 text-sm">

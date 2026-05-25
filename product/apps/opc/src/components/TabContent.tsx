@@ -510,7 +510,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
 };
 
 export const TabContent: React.FC = () => {
-  const { tabs, activeTabId, createChatTab, createProjectsTab, findTabBySessionId, createClaudeFileTab, createAgentExecutionTab, createCreateAgentTab, createImportAgentTab, closeTab, updateTab } = useTabState();
+  const { tabs, activeTabId, createChatTab, createProjectsTab, findTabBySessionId, createSpecMarkdownTab, createAgentExecutionTab, createCreateAgentTab, createImportAgentTab, closeTab, updateTab } = useTabState();
   
   // Listen for events to open sessions in tabs
   useEffect(() => {
@@ -539,8 +539,8 @@ export const TabContent: React.FC = () => {
     };
 
     const handleOpenClaudeFile = (event: CustomEvent) => {
-      const { file } = event.detail;
-      createClaudeFileTab(file.id, file.name || 'CLAUDE.md');
+      const { file } = event.detail as { file: ClaudeMdFile };
+      createSpecMarkdownTab(file.absolute_path, file.relative_path);
     };
 
     const handleOpenAgentExecution = (event: CustomEvent) => {
@@ -611,7 +611,7 @@ export const TabContent: React.FC = () => {
       window.removeEventListener('close-tab', handleCloseTab as EventListener);
       window.removeEventListener('claude-session-selected', handleClaudeSessionSelected as EventListener);
     };
-  }, [createChatTab, findTabBySessionId, createClaudeFileTab, createAgentExecutionTab, createCreateAgentTab, createImportAgentTab, closeTab, updateTab]);
+  }, [createChatTab, findTabBySessionId, createSpecMarkdownTab, createAgentExecutionTab, createCreateAgentTab, createImportAgentTab, closeTab, updateTab]);
   
   return (
     <div className="flex-1 h-full relative">
