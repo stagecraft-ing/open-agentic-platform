@@ -19,7 +19,6 @@ depends_on:
   - "147"  # spec-kind-grammar (`kind: governance`)
   - "180"  # opc-shell-codification (broad OPC shell authority; this spec sits on its Tier 1 invariant surface for a runtime-precondition concern)
 code_aliases:
-  - "OPC_BOOT_GATE_DISCIPLINE"
   - "OPC_BOOT_PRECONDITION_GATE"
 refines:
   - aspect: "boot-state-precondition-discipline"
@@ -35,12 +34,8 @@ refines:
     unit: { kind: file, path: product/apps/opc/src/contexts/AuthContext.tsx }
     refines_specs: ["106-rauthy-native-oidc-and-membership"]
 references:
-  - role: forcing-function-session
+  - role: parent-authority
     unit: { kind: file, path: specs/180-opc-shell-codification/spec.md }
-  - role: stopgap-this-gate-retires
-    unit: { kind: file, path: product/apps/opc/src/components/factory/PipelineSelector.tsx }
-  - role: redundant-after-this-gate
-    unit: { kind: file, path: product/apps/opc/src/components/MCPManager.tsx }
 summary: >
   Codifies the runtime preconditions that gate the OPC boot→cockpit
   transition and the precondition-loss semantics that keep the cockpit
@@ -169,9 +164,17 @@ result MUST NOT satisfy this gate even if the port number was parsed.
 
 The probe-port connection check MAY be implemented as a single TCP
 connect attempt at the moment of gate evaluation (no persistent
-connection, no payload). The check MUST be fast (sub-second on a
-healthy local sidecar) so the boot-screen UI can re-evaluate without
-stalling on a hung connect.
+connection, no payload). The check MUST apply a bounded connect
+timeout so a hung connect does not stall the boot-screen UI. The
+timeout shape is spec-bound; the timeout value is implementer's
+choice (it is a latency value, not a latency invariant — §5
+explicitly excludes absolute latency budgets from this spec's
+binding surface).
+
+> *Observation, not invariant.* On a healthy local sidecar the
+> connect typically completes well under a second. That is a
+> descriptive expectation about the OS-level loopback path, not a
+> binding budget; do not read it as a Tier 3 carve-in.
 
 **Files FR-T1 binds on:**
 - `product/apps/opc/src-tauri/src/sidecars.rs` — the announcement
@@ -300,11 +303,16 @@ state. The observable losses are:
 `CommandEvent::Terminated` from the shell sidecar handle in
 `sidecars.rs`) — this lapses FR-T1;
 
-(b) the duplex client transitions out of an active session for more
-than the existing reconnect window without reconnecting (a single
-disconnect that the reconnect loop in `sync_client.rs`'s
-`run_forever` recovers from MUST NOT trigger restore; persistent
-inability to reconnect MUST) — this lapses FR-T2(b);
+(b) the duplex client reports persistent reconnect failure. The
+desktop's `run_forever` reconnect loop in `sync_client.rs` retries
+without an intrinsic exhaustion bound, so this invariant requires
+that the loop expose a "give-up signal" — a state transition the
+implementer wires when reconnect attempts exceed an implementer-
+chosen threshold (count, elapsed time, or backoff ceiling reached;
+the threshold value is not spec-bound). The boot-gate consumer
+subscribes to that signal. A single disconnect that the reconnect
+loop recovers from before the threshold MUST NOT trigger restore;
+crossing the threshold MUST. This lapses FR-T2(b);
 
 (c) `StagecraftState.org_id` is cleared (e.g., explicit logout, or
 the auth refresh path determines the session is irrecoverable) —
@@ -416,9 +424,15 @@ loop), not timing.
 - **AC-2.** `spec-lint` does not regress; **V-020** does not fire on
   this spec (every relationship-graph field is explicitly declared).
 - **AC-3.** `make pr-prep` exits clean against `origin/main` with
-  this spec.md as the sole new authored artifact (plus the
-  regenerated `.derived/codebase-index/index.json`). No edits to
-  other specs' bodies; no `oap.spec` manifest changes.
+  this spec.md as the sole new authored artifact, the regenerated
+  `.derived/codebase-index/index.json`, AND — exempted from "no
+  substantive edits to other specs' bodies" — forward-edge additions
+  to an upstream spec's §8 Future Work section that point at this
+  spec (specifically the `[[opc-boot-precondition-gate]]` pointer
+  landed in spec 180 §8). Forward-edge pointers are not substantive
+  edits to the upstream spec's design; they are discoverability
+  affordances. No `oap.spec` manifest changes; no edits to upstream
+  spec bodies outside §8 Future Work.
 - **AC-4.** `registry-consumer by-authority` returns
   `183-opc-boot-precondition-gate` for each path this spec claims a
   `refines:` aspect on:
