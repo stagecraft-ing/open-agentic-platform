@@ -3,7 +3,7 @@ id: "182-claude-skills-migration"
 slug: claude-skills-migration
 title: "Migrate .claude/commands/ to .claude/skills/ (modern Claude Code surface)"
 status: draft
-implementation: not-started
+implementation: pending
 owner: bart
 created: "2026-05-25"
 kind: migration

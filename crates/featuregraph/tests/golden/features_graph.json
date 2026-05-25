@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:6f2b48bef84d7557ac97558942f499da5c4c48ff25bc85fdbe7a8f25f24663b9",
+  "graph_fingerprint": "sha256:b41b3bafb6ba9d24f1d161c0e1dfb34cedcbd7340fd0fed50046df673eb095f3",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3452,6 +3452,34 @@
         "155",
         "180"
       ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "182-claude-skills-migration",
+      "title": "Migrate .claude/commands/ to .claude/skills/ (modern Claude Code surface)",
+      "spec_path": "specs/182-claude-skills-migration/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "184-claude-shared-config-governance",
+      "title": "Claude Code shared config governance — .mcp.json and .claude/settings.json as hashed inputs",
+      "spec_path": "specs/184-claude-shared-config-governance/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [],
       "impl_files": [],
       "test_files": [],
       "violations": []
