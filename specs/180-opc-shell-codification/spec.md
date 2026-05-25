@@ -554,13 +554,6 @@ demand.
 - `[[opc-shell-tier1-broadening]]` — Tier 1 invariants on currently
   no-invariants-bound subsystem roots (`lib/`, `services/`, etc.)
   when concrete forcing functions surface.
-- `[[registry-consumer-unit-grammar-authority]]` — update
-  `authority_for_path` in
-  `tools/spec-spine/registry-consumer/src/lib.rs` to consume the
-  spec 154 unit-grammar form (`unit: { kind: ..., path: ... }`)
-  alongside the legacy `paths:` array form. Currently all post-154
-  specs' authority claims are invisible to `by-authority`; surfaced
-  here, not solved by this codification.
 
 ## 9. Acceptance
 
@@ -575,23 +568,34 @@ demand.
   `.derived/codebase-index/index.json`). No edits to other specs'
   bodies or frontmatter; no `oap.spec` manifest changes (see §10 and
   AC-5).
-- **AC-4.** This spec is present in the compiled
-  `.derived/spec-registry/registry.json` with its `establishes:`,
-  `refines:`, and `references:` edges intact, queryable via
-  `registry-consumer show <id>` and `registry-consumer
-  show-relationships <id>`. **Note (pre-existing substrate gap, not a
-  Phase 1 problem to solve):** `registry-consumer by-authority` today
-  only consumes the legacy `establishes: [<string-path>]` and
-  `<edge>: [{ paths: [...] }]` shapes; it does NOT consume the typed
-  unit-grammar form spec 154 introduced (`unit: { kind: ..., path:
-  ... }`), which this spec uses (along with 172, 174, 178, and other
-  post-154 specs). Authority queries on paths claimed by post-154
-  specs return empty even though the registry knows the claim. The
-  gap belongs to `tools/spec-spine/registry-consumer/src/lib.rs`'s
-  `authority_for_path` function and is surfaced here as a finding,
-  not a blocker; the spec is authoritative in the registry, the
-  resolver just hasn't caught up. Tracking pointer:
-  `[[registry-consumer-unit-grammar-authority]]`.
+- **AC-4.** `registry-consumer by-authority` returns
+  `180-opc-shell-codification` for every path this spec claims
+  authority over via unit-grammar:
+
+  ```bash
+  registry-consumer by-authority product/apps/opc/src/lib
+  registry-consumer by-authority product/apps/opc/src/services
+  registry-consumer by-authority product/apps/opc/src/stores
+  registry-consumer by-authority product/apps/opc/src/routes
+  registry-consumer by-authority product/apps/opc/src/components/factory
+  registry-consumer by-authority product/apps/opc/src/contexts
+  registry-consumer by-authority product/apps/opc/src/hooks
+  registry-consumer by-authority product/apps/opc/src-tauri/src/commands
+  registry-consumer by-authority product/apps/opc/src-tauri/src
+  registry-consumer by-authority product/apps/opc/src-tauri/src/commands/usage.rs
+  registry-consumer by-authority product/apps/opc/src/components/UsageDashboard.tsx
+  registry-consumer by-authority product/apps/opc/src/components/TabManager.tsx
+  registry-consumer by-authority product/apps/opc/vite.config.ts
+  registry-consumer by-authority product/apps/opc/tsconfig.json
+  ```
+
+  Each query returns `180-opc-shell-codification` with relationship
+  `establishes`. The three refines paths
+  (`TabContent.tsx`, `TabContext.tsx`, `useTabState.ts`) return
+  `180-opc-shell-codification` with relationship `refines` (and 172
+  with relationship `extends`, as joint authorities). The
+  authority-empty subsystem trees Phase 0's seam map surfaced no
+  longer return empty.
 - **AC-5.** Specs 172 and 165 are **not** modified by this PR. The
   user's Phase 0 resolutions pre-authorised one-line `refined_by:` /
   `extended_by:` additions on those specs; verification during
