@@ -868,6 +868,22 @@ This spec inherits the workspace-as-atom authority model from spec 087:
   the list in a "Projects" panel and lets the user open any entry; opening
   clones the repo locally if not present and activates the cockpit.
 
+**Snapshot terminator (added 2026-05-25).** The handshake replay emits a
+companion `ServerEnvelope::project.catalog.snapshot.complete` frame
+immediately after the per-row `project.catalog.upsert` pass — including
+the zero-projects case where no upsert frames went out. The terminator
+carries `{ orgId, entryCount, generatedAt }`; payload is informational
+(the desktop reconciles by `projectId` regardless). The terminator lets
+the desktop's Projects panel distinguish "still connecting" from
+"connected; the org has zero projects" without an arbitrary client-side
+timeout. Stagecraft emission lives in
+`api/sync/projectCatalogRelay.ts::sendProjectCatalogSnapshot`; the
+desktop dispatches it in `commands::project_catalog_sync` and the
+frontend store (`projectCatalogStore.ts`) flips `hydrated=true` on the
+first arriving event of either kind. This is a backward-compatible
+extension — desktops that pre-date the terminator simply ignore the
+unknown kind under their schema guard.
+
 No new duplex envelope variants for scaffold jobs — stagecraft's existing
 job-stream SSE (or the spec 109 PubSub pattern) is used for create/import
 progress.
@@ -996,6 +1012,19 @@ Each phase is independently mergeable and ends in a runnable state.
   clone state.
 - Exit criteria: creating or importing in stagecraft updates a connected
   OPC's project list without a restart.
+
+**Phase 8a — Snapshot terminator (added 2026-05-25).**
+- Add `project.catalog.snapshot.complete` envelope variant emitted by
+  `sendProjectCatalogSnapshot` after the per-row upsert pass, even when
+  the org has zero projects.
+- Desktop dispatches via `commands::project_catalog_sync` and flips
+  `hydrated=true` on the first event of either kind in
+  `projectCatalogStore.ts`.
+- Exit criteria: opening the OPC Projects panel against a stagecraft org
+  with zero projects renders the "No projects open" empty state rather
+  than spinning on "Connecting to stagecraft…" indefinitely. Backward
+  compatible — pre-Phase-8a desktops ignore the unknown kind under the
+  envelope schema guard.
 
 **Phase 9 — template-distributor retirement (OAP-side). Delivered.**
 The OAP-side work absorbed the six scaffold operations into

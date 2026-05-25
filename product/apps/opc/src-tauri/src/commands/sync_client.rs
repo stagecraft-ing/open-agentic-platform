@@ -210,6 +210,10 @@ pub struct ServerEnvelopeWire {
     // `action` is used by project.agent_binding.updated.
     #[serde(default)]
     pub action: Option<String>,
+    // spec 112 §7 amendment — project.catalog.snapshot.complete `entryCount`
+    // (informational count of upsert frames in the just-finished pass).
+    #[serde(default)]
+    pub entry_count: Option<u32>,
 }
 
 /// Mirror of {@link ProjectAgentBindingSnapshotEntry} from stagecraft's
@@ -323,6 +327,9 @@ const SERVER_KINDS: &[&str] = &[
     "project.agent_binding.updated",
     "project.agent_binding.snapshot",
     "project.catalog.upsert",
+    // spec 112 §7 amendment — snapshot-complete terminator so the desktop
+    // can distinguish "connecting" from "connected; zero projects".
+    "project.catalog.snapshot.complete",
     "sync.ack",
     "sync.nack",
     "sync.resync_required",
@@ -1120,6 +1127,7 @@ mod tests {
             bindings: None,
             bound_at: None,
             action: None,
+            entry_count: None,
         }
     }
 
@@ -1132,6 +1140,7 @@ mod tests {
             "sync.heartbeat",
             "policy.updated",
             "project.catalog.upsert",
+            "project.catalog.snapshot.complete",
         ] {
             assert!(
                 is_server_envelope(&empty_envelope(kind, 1)),

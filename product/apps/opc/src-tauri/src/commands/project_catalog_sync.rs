@@ -29,6 +29,44 @@ use crate::commands::sync_client::{
 /// Tauri event emitted when a project upsert (or tombstone) arrives.
 pub const EVENT_PROJECT_CATALOG_UPSERT: &str = "project-catalog-upsert";
 
+/// Tauri event emitted when the post-handshake snapshot pass finishes
+/// (including the empty-org case where no upsert frames arrived). The
+/// frontend store flips its `hydrated` flag to `true` on this event so
+/// the Projects panel can distinguish "still connecting" from "connected;
+/// the org has zero projects".
+pub const EVENT_PROJECT_CATALOG_SNAPSHOT_COMPLETE: &str =
+    "project-catalog-snapshot-complete";
+
+/// Flat projection of a `project.catalog.snapshot.complete` envelope.
+/// Carries the count of upsert frames the server sent in the
+/// just-finished pass; the frontend only needs the signal that the
+/// pass is over, but the payload is informational.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectCatalogSnapshotCompleteEvent {
+    pub org_id: String,
+    pub entry_count: u32,
+    pub generated_at: String,
+}
+
+/// Pull a [`ProjectCatalogSnapshotCompleteEvent`] out of a server
+/// envelope. Returns `None` if `orgId` is missing (the only required
+/// field — counts default to zero, timestamps default to empty so a
+/// drifted server can't crash the dispatcher).
+pub fn extract_snapshot_complete(
+    env: &ServerEnvelopeWire,
+) -> Option<ProjectCatalogSnapshotCompleteEvent> {
+    let org_id = env.org_id.clone().or_else(|| {
+        let m = &env.meta.org_id;
+        if m.is_empty() { None } else { Some(m.clone()) }
+    })?;
+    Some(ProjectCatalogSnapshotCompleteEvent {
+        org_id,
+        entry_count: env.entry_count.unwrap_or(0),
+        generated_at: env.generated_at.clone().unwrap_or_default(),
+    })
+}
+
 /// Flat projection of a `project.catalog.upsert` envelope. The
 /// frontend store maintains entries keyed on `project_id`; tombstones
 /// drop the row.
@@ -107,6 +145,15 @@ pub fn register_project_catalog_handlers(app: AppHandle) {
     });
     dispatch.register("project.catalog.upsert", Arc::new(handler));
 
+    let app_handle = app.clone();
+    let complete_handler = FnHandler(move |env: &ServerEnvelopeWire| {
+        on_snapshot_complete(app_handle.clone(), env);
+    });
+    dispatch.register(
+        "project.catalog.snapshot.complete",
+        Arc::new(complete_handler),
+    );
+
     info!("project_catalog_sync: dispatch handler registered");
 }
 
@@ -117,6 +164,18 @@ fn on_project_upsert(app: AppHandle, env: &ServerEnvelopeWire) {
     };
     if let Err(e) = app.emit(EVENT_PROJECT_CATALOG_UPSERT, &payload) {
         warn!("project.catalog.upsert: failed to emit frontend event: {e}");
+    }
+}
+
+fn on_snapshot_complete(app: AppHandle, env: &ServerEnvelopeWire) {
+    let Some(payload) = extract_snapshot_complete(env) else {
+        warn!("project.catalog.snapshot.complete missing orgId — ignored");
+        return;
+    };
+    if let Err(e) = app.emit(EVENT_PROJECT_CATALOG_SNAPSHOT_COMPLETE, &payload) {
+        warn!(
+            "project.catalog.snapshot.complete: failed to emit frontend event: {e}"
+        );
     }
 }
 
@@ -248,5 +307,68 @@ mod tests {
         );
         let u = extract_upsert(&env).expect("parses");
         assert!(u.tombstone);
+    }
+
+    #[test]
+    fn extract_snapshot_complete_projects_required_fields() {
+        let env = server_envelope(
+            "project.catalog.snapshot.complete",
+            json!({
+                "orgId": "org-1",
+                "entryCount": 3,
+                "generatedAt": "2026-05-25T00:00:00Z"
+            }),
+        );
+        let c = extract_snapshot_complete(&env).expect("parses");
+        assert_eq!(c.org_id, "org-1");
+        assert_eq!(c.entry_count, 3);
+        assert_eq!(c.generated_at, "2026-05-25T00:00:00Z");
+    }
+
+    #[test]
+    fn extract_snapshot_complete_zero_entries_is_valid() {
+        // The whole point of this envelope: zero projects in the org must
+        // still produce a valid frame so the desktop can flip out of the
+        // "connecting" state without an arbitrary timeout.
+        let env = server_envelope(
+            "project.catalog.snapshot.complete",
+            json!({
+                "orgId": "org-1",
+                "entryCount": 0,
+                "generatedAt": "2026-05-25T00:00:00Z"
+            }),
+        );
+        let c = extract_snapshot_complete(&env).expect("parses");
+        assert_eq!(c.entry_count, 0);
+    }
+
+    #[test]
+    fn extract_snapshot_complete_falls_back_to_meta_org_id() {
+        let mut env = server_envelope(
+            "project.catalog.snapshot.complete",
+            json!({ "entryCount": 0, "generatedAt": "2026-05-25T00:00:00Z" }),
+        );
+        env.org_id = None;
+        let c = extract_snapshot_complete(&env).expect("parses with meta fallback");
+        assert_eq!(c.org_id, "org-1");
+    }
+
+    #[test]
+    fn extract_snapshot_complete_returns_none_without_org_id() {
+        let mut env = server_envelope(
+            "project.catalog.snapshot.complete",
+            json!({ "entryCount": 0 }),
+        );
+        env.org_id = None;
+        env.meta = ServerMeta {
+            v: 1,
+            event_id: "e1".into(),
+            sent_at: "2026-05-25T00:00:00Z".into(),
+            correlation_id: None,
+            causation_id: None,
+            org_cursor: "cur-1".into(),
+            org_id: "".into(),
+        };
+        assert!(extract_snapshot_complete(&env).is_none());
     }
 }
