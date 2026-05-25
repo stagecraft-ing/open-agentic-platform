@@ -600,6 +600,16 @@ impl SyncClientInner {
             .store(true, std::sync::atomic::Ordering::Release);
     }
 
+    /// Spec 183 FR-T5(b) — reset the sync_hello receipt when the duplex
+    /// give-up threshold is crossed. Without this, the boot gate would
+    /// continue to report `org_session_ready=true` against a dead duplex
+    /// even after a precondition-loss event was emitted, leaving the
+    /// cockpit branch ambiguous about whether to restore to boot.
+    pub(crate) fn reset_sync_hello_received(&self) {
+        self.sync_hello_received
+            .store(false, std::sync::atomic::Ordering::Release);
+    }
+
     fn current_outbound(&self) -> Option<mpsc::Sender<OutboundFrame>> {
         self.outbound.read().ok().and_then(|g| g.clone())
     }
@@ -780,15 +790,18 @@ impl SyncClientState {
     }
 
     /// Spawn the background reconnect loop. Returns immediately. If an
-    /// existing task is running the old task is aborted first.
-    pub async fn spawn(&self, config: SyncClientConfig) {
+    /// existing task is running the old task is aborted first. The
+    /// AppHandle is threaded through so the reconnect loop can emit the
+    /// FR-T5(b) precondition-loss event when it crosses the give-up
+    /// threshold (spec 183 stage C).
+    pub async fn spawn(&self, config: SyncClientConfig, app: tauri::AppHandle) {
         let mut guard = self.join.lock().await;
         if let Some(prev) = guard.take() {
             prev.abort();
         }
         let inner = self.inner.clone();
         let task = tokio::spawn(async move {
-            run_forever(config, inner).await;
+            run_forever(config, inner, app).await;
         });
         *guard = Some(task);
     }
@@ -810,20 +823,65 @@ const MIN_BACKOFF: Duration = Duration::from_secs(1);
 const MAX_BACKOFF: Duration = Duration::from_secs(60);
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(25);
 
-async fn run_forever(config: SyncClientConfig, inner: Arc<SyncClientInner>) {
+/// Spec 183 FR-T5(b) — duplex give-up threshold. After this many
+/// consecutive failed `connect_and_run` attempts, the reconnect loop
+/// emits a precondition-loss event and resets the sync_hello receipt
+/// flag. The loop keeps trying (the user may fix the underlying issue
+/// — e.g., corporate proxy unblocked); when a subsequent reconnect
+/// succeeds and `sync.hello` arrives again, the boot gate naturally
+/// re-opens. Threshold value is implementer's choice per FR-T5(b);
+/// 5 consecutive failures puts the give-up signal at roughly 31s
+/// (1+2+4+8+16) into a continuous outage, which is past the "network
+/// blip" boundary without making the user wait minutes.
+const DUPLEX_GIVE_UP_FAILURES: u32 = 5;
+
+async fn run_forever(
+    config: SyncClientConfig,
+    inner: Arc<SyncClientInner>,
+    app: tauri::AppHandle,
+) {
     let mut backoff = MIN_BACKOFF;
+    let mut consecutive_failures: u32 = 0;
+    let mut give_up_emitted = false;
     loop {
         let cursor_snapshot = inner.last_cursor.read().ok().and_then(|g| g.clone());
         match connect_and_run(&config, cursor_snapshot, &inner).await {
             Ok(()) => {
                 log::info!("sync_client: duplex stream closed cleanly — reconnecting");
                 backoff = MIN_BACKOFF;
+                consecutive_failures = 0;
+                if give_up_emitted {
+                    log::info!(
+                        "sync_client: duplex recovered from give-up state — boot gate will re-open on next sync.hello"
+                    );
+                    give_up_emitted = false;
+                }
             }
             Err(err) => {
+                consecutive_failures += 1;
                 log::warn!(
-                    "sync_client: duplex stream error — reconnecting in {:?}: {err}",
+                    "sync_client: duplex stream error (attempt #{consecutive_failures}) — reconnecting in {:?}: {err}",
                     backoff
                 );
+
+                // FR-T5(b) — give-up signal. Fires once per outage; resets
+                // when reconnect succeeds. Resetting sync_hello_received
+                // is mandatory so the boot gate's org_session_ready flips
+                // false in step with the emitted event.
+                if consecutive_failures >= DUPLEX_GIVE_UP_FAILURES && !give_up_emitted {
+                    log::warn!(
+                        "sync_client: duplex give-up threshold ({DUPLEX_GIVE_UP_FAILURES}) crossed — emitting precondition-loss"
+                    );
+                    inner.reset_sync_hello_received();
+                    crate::sidecars::emit_precondition_lost(
+                        &app,
+                        "duplex",
+                        &format!(
+                            "reconnect attempts ({consecutive_failures}) exceeded threshold ({DUPLEX_GIVE_UP_FAILURES})"
+                        ),
+                    );
+                    give_up_emitted = true;
+                }
             }
         }
         // Clear the outbound channel so external callers stop enqueuing

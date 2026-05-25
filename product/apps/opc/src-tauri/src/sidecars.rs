@@ -307,7 +307,11 @@ pub fn spawn_axiomregent(app: &AppHandle) {
     });
 }
 
-fn emit_precondition_lost(app: &AppHandle, precondition: &str, reason: &str) {
+/// Spec 183 FR-T5 — emit a boot-gate precondition-loss event. Visible
+/// across the crate so the duplex consumer (FR-T5(b)) and the auth
+/// logout path (FR-T5(c)) can drive the same Tauri event the sidecar
+/// observer (FR-T5(a)) uses.
+pub(crate) fn emit_precondition_lost(app: &AppHandle, precondition: &str, reason: &str) {
     let payload = PreconditionLostEvent {
         precondition: precondition.to_string(),
         reason: reason.to_string(),
