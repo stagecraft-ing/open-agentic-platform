@@ -30,10 +30,6 @@ references:
     unit: { kind: file, path: specs/179-domain-frontmatter-field/spec.md }
   - role: precedent
     unit: { kind: file, path: specs/182-claude-skills-migration/spec.md }
-  - role: external
-    unit: { kind: url, path: "https://code.claude.com/docs/en/claude-directory" }
-  - role: external
-    unit: { kind: url, path: "https://code.claude.com/docs/en/mcp" }
 summary: >
   Bring two sibling Claude Code shared config files into the
   spec spine's governed-input set: `.mcp.json` (team-shared

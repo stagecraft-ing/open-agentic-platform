@@ -49,8 +49,6 @@ references:
     unit: { kind: file, path: specs/178-opc-directory-rename/spec.md }
   - role: precedent
     unit: { kind: file, path: specs/105-scripts-to-binaries-migration/spec.md }
-  - role: external
-    unit: { kind: url, path: "https://code.claude.com/docs/en/claude-directory" }
 summary: >
   Mechanical migration of the ten single-file commands under
   `.claude/commands/` to the modern Claude Code skills surface at
