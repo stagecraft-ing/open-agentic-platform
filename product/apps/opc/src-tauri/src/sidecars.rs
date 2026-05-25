@@ -98,6 +98,20 @@ pub struct BootGateStatus {
     pub org_id: Option<String>,
 }
 
+/// Spec 183 FR-T6 — boot-state Quit action. Today this is a thin wrapper
+/// over `app.exit(0)` because spec 183 stage A/B doesn't yet hold the
+/// sidecar `Child` handle past the announcement parse (see
+/// `spawn_axiomregent`). Stage C will land child-handle retention and
+/// promote this command to a SIGTERM-with-timeout-then-SIGKILL sequence
+/// against the held handle before exit. The contract surface from the
+/// frontend is stable — the implementation behind it tightens.
+#[tauri::command]
+#[specta::specta]
+pub fn quit_opc(app: AppHandle) {
+    log::info!("quit_opc: shutting down OPC (spec 183 stage B — sidecar teardown deferred to stage C)");
+    app.exit(0);
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn boot_gate_status(app: AppHandle) -> Result<BootGateStatus, String> {

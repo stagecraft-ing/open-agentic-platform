@@ -63,6 +63,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         crate::sidecars::get_sidecar_ports,
         crate::sidecars::check_axiomregent_alive,
         crate::sidecars::boot_gate_status,
+        crate::sidecars::quit_opc,
         // Preflight / governance reference
         crate::commands::analysis::get_preflight_safety_tier_reference,
         crate::commands::analysis::get_tool_tier_assignments,

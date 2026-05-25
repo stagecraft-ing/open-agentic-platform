@@ -639,6 +639,7 @@ pub fn run() {
             sidecars::get_sidecar_ports,
             sidecars::check_axiomregent_alive,
             sidecars::boot_gate_status,
+            sidecars::quit_opc,
             // OS keychain (spec 087 Phase 5)
             keychain_store,
             keychain_retrieve,

@@ -2392,6 +2392,16 @@ export const api = {
   },
 
   /**
+   * Spec 183 FR-T6 — clean OPC exit. Stage B implementation hands off to
+   * `app.exit(0)`; stage C tightens this into a SIGTERM-with-timeout
+   * teardown of the bundled axiomregent sidecar before exit. Frontend
+   * surface is stable across stages.
+   */
+  async quitOpc(): Promise<void> {
+    await apiCall<null>("quit_opc");
+  },
+
+  /**
    * Read-only preflight safety tier labels (featuregraph semantics).
    */
   async getPreflightSafetyTierReference(): Promise<SafetyTierRef[]> {

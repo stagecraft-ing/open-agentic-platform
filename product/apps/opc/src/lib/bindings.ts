@@ -326,6 +326,18 @@ async bootGateStatus() : Promise<Result<BootGateStatus, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Spec 183 FR-T6 — boot-state Quit action. Today this is a thin wrapper
+ * over `app.exit(0)` because spec 183 stage A/B doesn't yet hold the
+ * sidecar `Child` handle past the announcement parse (see
+ * `spawn_axiomregent`). Stage C will land child-handle retention and
+ * promote this command to a SIGTERM-with-timeout-then-SIGKILL sequence
+ * against the held handle before exit. The contract surface from the
+ * frontend is stable — the implementation behind it tightens.
+ */
+async quitOpc() : Promise<void> {
+    await TAURI_INVOKE("quit_opc");
+},
 async getPreflightSafetyTierReference() : Promise<SafetyTierRef[]> {
     return await TAURI_INVOKE("get_preflight_safety_tier_reference");
 },
