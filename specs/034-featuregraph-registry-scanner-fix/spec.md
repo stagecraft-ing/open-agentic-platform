@@ -79,3 +79,12 @@ spec 181's row in the feature graph. No semantic change to this
 spec's claims; the new spec's spec.md contributes a new entry to the
 featuregraph output by construction, and the originating PR carries
 the fixture refresh per the spec 177 atomicity contract.
+
+**Amendment 2026-05-24 (record: 181-impl-authority-resolver-unit-grammar-parity).**
+Spec 181's implementation-completion flip (`status: draft → approved`,
+`implementation: pending → complete`, plus `approved:` / `completed:`
+date fields) ripples through the feature graph row for spec 181,
+mechanically refreshing the golden. Same atomicity contract as the
+prior receipt note for spec 181's row inclusion; no semantic change to
+this spec's claims. The flip lands in the resolver-implementation PR
+(separate from the spec-authoring PR per the Phase 1 firewall).

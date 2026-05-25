@@ -2,10 +2,12 @@
 id: "181-registry-consumer-unit-grammar-authority"
 slug: registry-consumer-unit-grammar-authority
 title: "registry-consumer authority resolver — unit-grammar parity with spec 154"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-24"
+approved: "2026-05-24"
+completed: "2026-05-24"
 kind: governance
 domain: substrate
 risk: low

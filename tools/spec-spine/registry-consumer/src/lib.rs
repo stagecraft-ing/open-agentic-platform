@@ -738,6 +738,130 @@ fn supersedes_spec_refs(raw: &Value) -> Vec<(String, String)> {
         .unwrap_or_default()
 }
 
+/// Spec 181 FR-001 — true when an `establishes[]` entry claims the
+/// given path under either the legacy string form or the spec 154
+/// unit-grammar object form (`unit: { kind: file|directory, path }`).
+///
+/// Only `kind: file` and `kind: directory` participate in authority
+/// resolution on `establishes:` — they are the ownership-bearing
+/// unit kinds for code-path claims. Other unit kinds (`crate`,
+/// `module`, `symbol`, `section`) resolve through the codebase-
+/// indexer's typed surface, not through this string-keyed resolver.
+fn establishes_entry_matches_path(entry: &Value, path: &str) -> bool {
+    if entry.as_str() == Some(path) {
+        return true;
+    }
+    if let Some(unit) = entry.get("unit") {
+        let kind_ok = matches!(
+            unit.get("kind").and_then(|k| k.as_str()),
+            Some("file") | Some("directory")
+        );
+        let path_ok = unit.get("path").and_then(|p| p.as_str()) == Some(path);
+        return kind_ok && path_ok;
+    }
+    false
+}
+
+/// Spec 181 FR-002 — true when an `extends[]` / `refines[]` entry
+/// (non-co_authority) claims the given path under either the legacy
+/// `paths: [<string>, ...]` array or the spec 154 unit-grammar
+/// `unit: { kind: file|directory, path }` form.
+///
+/// Both shapes can coexist within the same edge array per FR-001's
+/// mixed-shape support (spec 130 is the canonical exemplar in the
+/// corpus today).
+fn edge_entry_matches_path(entry: &Value, path: &str) -> bool {
+    // Legacy form: paths: [<string>, ...]
+    if entry
+        .get("paths")
+        .and_then(|v| v.as_array())
+        .map(|ps| ps.iter().any(|p| p.as_str() == Some(path)))
+        .unwrap_or(false)
+    {
+        return true;
+    }
+    // Unit-grammar form: unit: { kind: file|directory, path }
+    if let Some(unit) = entry.get("unit") {
+        let kind_ok = matches!(
+            unit.get("kind").and_then(|k| k.as_str()),
+            Some("file") | Some("directory")
+        );
+        let path_ok = unit.get("path").and_then(|p| p.as_str()) == Some(path);
+        if kind_ok && path_ok {
+            return true;
+        }
+    }
+    false
+}
+
+/// Spec 181 FR-003 — section-aware match on `co_authority[]` entries.
+///
+/// Legacy form: section anchor sits as a sibling `section:` string on
+/// the entry alongside `paths:`; both must match (path in paths AND
+/// section == caller-supplied filter, when given).
+///
+/// Unit-grammar form (per spec 152's frontmatter + spec 154 §3):
+/// - `unit: { kind: section, file: <path>, anchor: <name> }` —
+///   matches when `unit.file == path`; anchor is checked against the
+///   caller's section filter (when given, ignored when `None`).
+/// - `unit: { kind: file|directory, path: <path> }` (no anchor) —
+///   whole-file co-authority; matches when `unit.path == path` and
+///   the caller's section filter is **ignored** (section is N/A for
+///   whole-file co-authority claims).
+///
+/// When `section: None` is passed, only path-match is required across
+/// either shape — analogous to the pre-181 default behaviour.
+fn co_authority_entry_matches(
+    entry: &Value,
+    path: &str,
+    section: Option<&str>,
+) -> bool {
+    // Legacy form: paths array + optional sibling section.
+    let legacy_path_match = entry
+        .get("paths")
+        .and_then(|v| v.as_array())
+        .map(|ps| ps.iter().any(|p| p.as_str() == Some(path)))
+        .unwrap_or(false);
+    if legacy_path_match {
+        let legacy_section_match = match section {
+            None => true,
+            Some(s) => entry.get("section").and_then(|v| v.as_str()) == Some(s),
+        };
+        if legacy_section_match {
+            return true;
+        }
+    }
+    // Unit-grammar form.
+    if let Some(unit) = entry.get("unit") {
+        let kind = unit.get("kind").and_then(|k| k.as_str());
+        match kind {
+            Some("section") => {
+                let file_match =
+                    unit.get("file").and_then(|f| f.as_str()) == Some(path);
+                let anchor_match = match section {
+                    None => true,
+                    Some(s) => {
+                        unit.get("anchor").and_then(|a| a.as_str()) == Some(s)
+                    }
+                };
+                if file_match && anchor_match {
+                    return true;
+                }
+            }
+            Some("file") | Some("directory") => {
+                // Whole-file co-authority: section filter is N/A.
+                let path_match =
+                    unit.get("path").and_then(|p| p.as_str()) == Some(path);
+                if path_match {
+                    return true;
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
 /// Extract spec ids referenced in `refines[].refines_specs[]`.
 fn refines_spec_refs(raw: &Value) -> Vec<String> {
     raw.get("refines")
@@ -1387,14 +1511,26 @@ impl Registry {
     /// Find the authority set for a code path.
     ///
     /// Walks all specs looking for those that claim this path via:
-    /// - `establishes[]`
-    /// - `extends[].paths`
-    /// - `refines[].paths`
-    /// - `co_authority[].paths`
+    /// - `establishes[]` — legacy string entry OR unit-grammar object
+    ///   with `unit.kind ∈ {file, directory}`
+    /// - `extends[]` — legacy `paths: [<string>]` array OR unit-grammar
+    ///   `unit: { kind: file|directory, path: ... }`
+    /// - `refines[]` — same shape as `extends[]`
+    /// - `co_authority[]` — same path-claim shapes; section filter
+    ///   honours both the legacy entry-level `section:` field and the
+    ///   unit-grammar `unit: { kind: section, file: <path>,
+    ///   anchor: <name> }` form per spec 152 §2.1 + spec 154 §3
+    ///
+    /// Per spec 181's parity contract, both the legacy form and the
+    /// typed unit-grammar form spec 154 introduced are treated as
+    /// equivalent inputs. Mixed-shape arrays (one entry legacy-string,
+    /// one entry unit-object, in the same field) are supported by
+    /// construction — both entries contribute to the authority set.
     ///
     /// Superseded (status = "superseded") specs are excluded.
     /// If `section` is Some, additionally filters `co_authority` entries
-    /// by matching `co_authority[].section`.
+    /// by section anchor — see `co_authority_entry_matches` for the
+    /// per-shape rule.
     pub fn authority_for_path(
         &self,
         path: &str,
@@ -1409,28 +1545,27 @@ impl Registry {
             let raw = &f.raw;
             let mut relationship = String::new();
 
-            // Check establishes[].
+            // Check establishes[] (spec 181 FR-001).
             let established = raw
                 .get("establishes")
                 .and_then(|v| v.as_array())
-                .map(|arr| arr.iter().any(|v| v.as_str() == Some(path)))
+                .map(|arr| {
+                    arr.iter()
+                        .any(|e| establishes_entry_matches_path(e, path))
+                })
                 .unwrap_or(false);
             if established {
                 relationship = "establishes".to_string();
             }
 
-            // Check extends[].paths.
+            // Check extends[] (spec 181 FR-002).
             if relationship.is_empty() {
                 let extended = raw
                     .get("extends")
                     .and_then(|v| v.as_array())
                     .map(|arr| {
-                        arr.iter().any(|item| {
-                            item.get("paths")
-                                .and_then(|v| v.as_array())
-                                .map(|ps| ps.iter().any(|p| p.as_str() == Some(path)))
-                                .unwrap_or(false)
-                        })
+                        arr.iter()
+                            .any(|item| edge_entry_matches_path(item, path))
                     })
                     .unwrap_or(false);
                 if extended {
@@ -1438,18 +1573,14 @@ impl Registry {
                 }
             }
 
-            // Check refines[].paths.
+            // Check refines[] (spec 181 FR-002).
             if relationship.is_empty() {
                 let refined = raw
                     .get("refines")
                     .and_then(|v| v.as_array())
                     .map(|arr| {
-                        arr.iter().any(|item| {
-                            item.get("paths")
-                                .and_then(|v| v.as_array())
-                                .map(|ps| ps.iter().any(|p| p.as_str() == Some(path)))
-                                .unwrap_or(false)
-                        })
+                        arr.iter()
+                            .any(|item| edge_entry_matches_path(item, path))
                     })
                     .unwrap_or(false);
                 if refined {
@@ -1457,26 +1588,14 @@ impl Registry {
                 }
             }
 
-            // Check co_authority[].paths (optionally filtered by section).
+            // Check co_authority[] (spec 181 FR-002 + FR-003).
             if relationship.is_empty() {
                 let co_auth = raw
                     .get("co_authority")
                     .and_then(|v| v.as_array())
                     .map(|arr| {
                         arr.iter().any(|item| {
-                            let path_match = item
-                                .get("paths")
-                                .and_then(|v| v.as_array())
-                                .map(|ps| ps.iter().any(|p| p.as_str() == Some(path)))
-                                .unwrap_or(false);
-                            let section_match = match section {
-                                None => true,
-                                Some(s) => item
-                                    .get("section")
-                                    .and_then(|v| v.as_str())
-                                    == Some(s),
-                            };
-                            path_match && section_match
+                            co_authority_entry_matches(item, path, section)
                         })
                     })
                     .unwrap_or(false);
@@ -2295,6 +2414,243 @@ mod graph_tests {
         let result2 = reg.authority_for_path("crates/foo", Some("other-section"));
         let ids2: Vec<&str> = result2.iter().map(|e| e.spec_id.as_str()).collect();
         assert!(!ids2.contains(&"060-coauth"));
+    }
+
+    // ── Spec 181: unit-grammar parity tests ─────────────────────────
+
+    #[test]
+    fn authority_for_path_establishes_unit_grammar() {
+        // FR-001: `establishes:` entry uses unit-grammar object with
+        // kind ∈ {file, directory}. Resolver must surface authority.
+        let reg = make_registry(json!([
+            {
+                "id": "100-file-claim",
+                "status": "approved",
+                "establishes": [
+                    {"unit": {"kind": "file", "path": "crates/baz/src/lib.rs"}}
+                ]
+            },
+            {
+                "id": "101-dir-claim",
+                "status": "approved",
+                "establishes": [
+                    {"unit": {"kind": "directory", "path": "crates/qux"}}
+                ]
+            }
+        ]));
+        let file_res = reg.authority_for_path("crates/baz/src/lib.rs", None);
+        let file_ids: Vec<&str> =
+            file_res.iter().map(|e| e.spec_id.as_str()).collect();
+        assert!(
+            file_ids.contains(&"100-file-claim"),
+            "unit-grammar kind: file must resolve through establishes"
+        );
+
+        let dir_res = reg.authority_for_path("crates/qux", None);
+        let dir_ids: Vec<&str> =
+            dir_res.iter().map(|e| e.spec_id.as_str()).collect();
+        assert!(
+            dir_ids.contains(&"101-dir-claim"),
+            "unit-grammar kind: directory must resolve through establishes"
+        );
+    }
+
+    #[test]
+    fn authority_for_path_extends_unit_grammar() {
+        // FR-002: `extends:` entry uses unit-grammar form.
+        let reg = make_registry(json!([
+            {
+                "id": "200-extender",
+                "status": "approved",
+                "extends": [
+                    {
+                        "spec": "010-base",
+                        "nature": "additive",
+                        "unit": {"kind": "file", "path": "crates/foo/src/lib.rs"}
+                    }
+                ]
+            }
+        ]));
+        let result =
+            reg.authority_for_path("crates/foo/src/lib.rs", None);
+        let ids: Vec<&str> = result.iter().map(|e| e.spec_id.as_str()).collect();
+        assert!(
+            ids.contains(&"200-extender"),
+            "unit-grammar extends must resolve"
+        );
+    }
+
+    #[test]
+    fn authority_for_path_refines_unit_grammar() {
+        // FR-002: `refines:` entry uses unit-grammar form.
+        let reg = make_registry(json!([
+            {
+                "id": "300-refiner",
+                "status": "approved",
+                "refines": [
+                    {
+                        "aspect": "tab-list-reconciliation-discipline",
+                        "unit": {
+                            "kind": "file",
+                            "path": "product/apps/opc/src/components/TabContent.tsx"
+                        },
+                        "refines_specs": ["172-opc-live-agent-session-introspection"]
+                    }
+                ]
+            }
+        ]));
+        let result = reg.authority_for_path(
+            "product/apps/opc/src/components/TabContent.tsx",
+            None,
+        );
+        let ids: Vec<&str> = result.iter().map(|e| e.spec_id.as_str()).collect();
+        assert!(
+            ids.contains(&"300-refiner"),
+            "unit-grammar refines must resolve"
+        );
+    }
+
+    #[test]
+    fn authority_for_path_co_authority_unit_grammar() {
+        // FR-002 + FR-003: co_authority with unit-grammar file/directory
+        // kind. Whole-file co-authority; section filter is N/A and
+        // matches regardless of caller's `section:` argument.
+        let reg = make_registry(json!([
+            {
+                "id": "400-coauth-unit",
+                "status": "approved",
+                "co_authority": [
+                    {
+                        "with_specs": ["010-base"],
+                        "unit": {"kind": "file", "path": "Makefile"}
+                    }
+                ]
+            }
+        ]));
+        // No section filter — matches.
+        let result_no_section = reg.authority_for_path("Makefile", None);
+        let ids: Vec<&str> = result_no_section
+            .iter()
+            .map(|e| e.spec_id.as_str())
+            .collect();
+        assert!(
+            ids.contains(&"400-coauth-unit"),
+            "unit-grammar co_authority must resolve under None section"
+        );
+
+        // Section filter passed but unit kind is file (not section) —
+        // section is N/A per FR-003, still matches on path.
+        let result_with_section =
+            reg.authority_for_path("Makefile", Some("supply-chain"));
+        let ids2: Vec<&str> = result_with_section
+            .iter()
+            .map(|e| e.spec_id.as_str())
+            .collect();
+        assert!(
+            ids2.contains(&"400-coauth-unit"),
+            "kind: file co_authority is whole-file; section filter must not exclude"
+        );
+    }
+
+    #[test]
+    fn authority_for_path_co_authority_section_unit_grammar() {
+        // FR-003: co_authority with kind: section unit. Anchor matches
+        // on positive section filter; mismatches on different section.
+        let reg = make_registry(json!([
+            {
+                "id": "500-section-claim",
+                "status": "approved",
+                "co_authority": [
+                    {
+                        "with_specs": ["130-spec-coupling-primary-owner"],
+                        "unit": {
+                            "kind": "section",
+                            "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+                            "anchor": "section-matching"
+                        }
+                    }
+                ]
+            }
+        ]));
+        // Positive: section "section-matching" matches anchor.
+        let pos = reg.authority_for_path(
+            "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+            Some("section-matching"),
+        );
+        let pos_ids: Vec<&str> = pos.iter().map(|e| e.spec_id.as_str()).collect();
+        assert!(
+            pos_ids.contains(&"500-section-claim"),
+            "matching anchor must resolve under section filter"
+        );
+
+        // Negative: section "other-section" does NOT match anchor.
+        let neg = reg.authority_for_path(
+            "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+            Some("other-section"),
+        );
+        let neg_ids: Vec<&str> = neg.iter().map(|e| e.spec_id.as_str()).collect();
+        assert!(
+            !neg_ids.contains(&"500-section-claim"),
+            "non-matching anchor must NOT resolve under section filter"
+        );
+
+        // No section filter: kind: section still matches on file alone.
+        let none = reg.authority_for_path(
+            "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+            None,
+        );
+        let none_ids: Vec<&str> = none.iter().map(|e| e.spec_id.as_str()).collect();
+        assert!(
+            none_ids.contains(&"500-section-claim"),
+            "no section filter must surface section-kind units by file"
+        );
+    }
+
+    #[test]
+    fn authority_for_path_mixed_shapes() {
+        // FR-001 / FR-005: a single spec's `establishes:` array carries
+        // both a legacy string entry AND a unit-grammar object entry.
+        // Both paths must resolve to the same spec. Spec 130 is the
+        // corpus-side exemplar of mixed-shape relationship arrays.
+        let reg = make_registry(json!([
+            {
+                "id": "600-mixed",
+                "status": "approved",
+                "establishes": [
+                    "legacy/path/string.rs",
+                    {"unit": {"kind": "file", "path": "unit/grammar/file.rs"}},
+                    {"unit": {"kind": "directory", "path": "unit/grammar/dir"}}
+                ]
+            }
+        ]));
+
+        let legacy_res =
+            reg.authority_for_path("legacy/path/string.rs", None);
+        let legacy_ids: Vec<&str> =
+            legacy_res.iter().map(|e| e.spec_id.as_str()).collect();
+        assert!(
+            legacy_ids.contains(&"600-mixed"),
+            "mixed-shape array: legacy string entry must resolve"
+        );
+
+        let unit_file_res =
+            reg.authority_for_path("unit/grammar/file.rs", None);
+        let unit_file_ids: Vec<&str> = unit_file_res
+            .iter()
+            .map(|e| e.spec_id.as_str())
+            .collect();
+        assert!(
+            unit_file_ids.contains(&"600-mixed"),
+            "mixed-shape array: unit-grammar file entry must resolve"
+        );
+
+        let unit_dir_res = reg.authority_for_path("unit/grammar/dir", None);
+        let unit_dir_ids: Vec<&str> =
+            unit_dir_res.iter().map(|e| e.spec_id.as_str()).collect();
+        assert!(
+            unit_dir_ids.contains(&"600-mixed"),
+            "mixed-shape array: unit-grammar directory entry must resolve"
+        );
     }
 
     #[test]
