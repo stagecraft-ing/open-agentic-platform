@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:090b76b1e9eb1ecbc9acc195d23b3d4ef4ee406636e39866a945a0d675e300af",
+  "graph_fingerprint": "sha256:6f2b48bef84d7557ac97558942f499da5c4c48ff25bc85fdbe7a8f25f24663b9",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3403,6 +3403,33 @@
         "002",
         "006",
         "147"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "180-opc-shell-codification",
+      "title": "OPC shell codification — broad authority on the un-bound desktop shell, narrow Tier 1 invariants on the tab/IPC seam",
+      "spec_path": "specs/180-opc-shell-codification/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "032",
+        "132",
+        "133",
+        "147",
+        "152",
+        "153",
+        "154",
+        "156",
+        "166",
+        "172",
+        "174",
+        "177"
       ],
       "impl_files": [],
       "test_files": [],
