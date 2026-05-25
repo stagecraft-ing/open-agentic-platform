@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "a0e947e7b5c9e73f39cf449b4d38d96f0b562e6f4db664b0aefc39c0761fdf13",
+    "contentHash": "e4d423dfe997478f2342110477dfbb9ffbda34138dfcb51eba58f24ef0827921",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -129,7 +129,7 @@
       "name": "axiomregent",
       "path": "crates/axiomregent",
       "specRef": "073-axiomregent-unification",
-      "version": "0.1.5"
+      "version": "0.2.0"
     },
     {
       "edition": "2024",
@@ -700,7 +700,7 @@
       "name": "@opc/desktop",
       "path": "product/apps/opc",
       "specRef": "032-opc-inspect-governance-wiring-mvp",
-      "version": "0.3.2"
+      "version": "0.3.4"
     },
     {
       "edition": "2024",
@@ -790,7 +790,7 @@
       "name": "opc",
       "path": "product/apps/opc/src-tauri",
       "specRef": "032-opc-inspect-governance-wiring-mvp",
-      "version": "0.3.2"
+      "version": "0.3.4"
     },
     {
       "entryPoints": [
