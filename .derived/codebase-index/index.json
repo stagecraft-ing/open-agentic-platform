@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "2b23c775cadb5b92b868211d0a3ee8a492ca9cbef7a2b97ba948bed817ec4faf",
+    "contentHash": "4393eb430a6b57967a102da3cbf1bb1b97e4396a9b1bf0662219dcb1ebd5fbea",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -41403,6 +41403,27 @@
         "specStatus": "approved"
       },
       {
+        "implementingPaths": [],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/183-opc-boot-precondition-gate/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/183-opc-boot-precondition-gate/spec.md"
+            }
+          }
+        ],
+        "specId": "186-opc-e2e-test-harness",
+        "specStatus": "draft"
+      },
+      {
         "dependsOn": [
           "075",
           "102",
@@ -41597,7 +41618,8 @@
       "148-auth-driver-registry",
       "149-saml-auth-driver",
       "150-example-tenant-profile",
-      "157-opc-session-model"
+      "157-opc-session-model",
+      "186-opc-e2e-test-harness"
     ],
     "untracedCode": [
       "crates/canonical-json"
