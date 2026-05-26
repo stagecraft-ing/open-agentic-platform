@@ -2,8 +2,8 @@
 id: "185-sandbox-local-container-backend"
 slug: sandbox-local-container-backend
 title: "Local-container sandbox backend — rootless Podman / Docker via bollard (companion to spec 162 ASI05)"
-status: draft
-implementation: in-progress
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-26"
 kind: capability
@@ -258,11 +258,21 @@ implements them.
   realises restricted-container (tier 2)"`.
 - **FR-A3** Image reference resolution failure (image not present
   locally and no pull permission) ⇒ `AdmissionRejected` with the
-  diagnostic naming the image reference.
+  diagnostic naming the image reference. Detected at
+  `create_container` time when the runtime responds with
+  `404 No such image`.
 - **FR-A4** Input artifact hash mismatch ⇒ `AdmissionRejected` with
   the diagnostic `"input artifact <path>: declared sha256 <a> but
   materialised bytes hash to <b>"`. Caught at materialisation
   (before container start) so the engine can fail-fast cleanly.
+  Currently subsumed by FR-A5 — input materialisation surface lands
+  with FU-006; until then no input bytes are accepted at all.
+- **FR-A5** Non-empty `input_artifacts` ⇒ `AdmissionRejected` with
+  the FU-006 diagnostic. Spec 162's `InputArtifact` carries a path +
+  sha256 but no bytes source; Phase 1 of this backend rejects
+  rather than guess at the source convention. FU-006 defines the
+  materialisation surface and demotes this rule to a soft path-check
+  before FR-A4 takes over hash verification.
 
 ## 4. Success Criteria
 
@@ -334,9 +344,18 @@ test-double sockets where appropriate.
   on Linux. macOS / Docker Desktop have no cgroup visibility, so
   FU-004 is Linux-only.
 - **FU-005** Operator configuration surface for image, retention,
-  output-mount cleanup policy, polling cadence. Today these are
-  compile-time constants; FU-005 lifts them into a typed
-  configuration struct.
+  output-mount cleanup policy, polling cadence, and `DOCKER_HOST`
+  tcp:// support. Today these are compile-time constants and only
+  unix:// `DOCKER_HOST` URIs are honoured; FU-005 lifts them into a
+  typed configuration struct. Also includes Podman Machine socket
+  discovery on macOS / Windows (`podman system connection list`),
+  which Phase 1 omits — those platforms fall through to the
+  Docker default socket today.
+- **FU-006** Input materialisation surface. Spec 162's `InputArtifact`
+  declares `(path, sha256)` but no bytes source; this FU defines the
+  surface (likely a per-execution staging directory the caller
+  pre-populates) and switches the backend from "reject non-empty"
+  (FR-A5) to "materialise + verify + mount read-only" (FR-A4).
 
 ### Out of scope (separate spec)
 
