@@ -17,6 +17,16 @@ amendment_record: |
   during and after the spec 182 migration.
 
   self-amends — §2.4 (2026-05-23) adds the `orphans` subcommand that prints the `traceability.orphanedSpecs` list from `.derived/codebase-index/index.json` to stdout (newline-delimited by default, `--json` for a JSON array). Closes the gap surfaced when `/init` users asked for the orphan list and only the count was rendered.
+
+  amended by spec 184 (2026-05-26) — `collect_input_files`
+  additionally hashes `.mcp.json` (project-root MCP server config)
+  and `.claude/settings.json` (Claude Code shared settings:
+  permissions, hooks, statusLine, env, model) when present.
+  Both are optional single-file inputs modeled on the workflow-
+  allowlist pattern. Edits to either now trip the staleness gate,
+  closing the self-governance loop for the PostToolUse hook glob
+  that guards every other hashed input. Spec 184 establishes
+  authority over both files.
 summary: >
   A deterministic indexer tool that walks the repository tree, parses manifest files
   and spec frontmatter, and emits a governed .derived/codebase-index/index.json artifact.
@@ -322,6 +332,22 @@ The indexer MUST inventory:
 - `.claude/skills/**/SKILL.md` (name, path) — primary surface post-spec-182
 - `.claude/rules/*.md` (name, path)
 - `schemas/*.json` (name, path)
+
+The indexer MUST additionally hash (input-set only, not inventoried)
+the following optional single-file Claude Code shared configs when
+present at the repo root (spec 184):
+
+- `.mcp.json` — team-shared MCP server config
+- `.claude/settings.json` — permissions allow/deny, hooks,
+  statusLine, outputStyle, env, model
+
+Both files are hashed byte-for-byte by `collect_input_files` and
+skipped cleanly when absent (the indexer is already defensive about
+optional inputs — see the workflow-allowlist, adapter-scopes JSON,
+and process-stages walk). Edits to either trip the staleness gate
+the same as a `Cargo.toml` or workflow YAML edit. The `.claude/`
+inventory in the bullet list above remains read-only metadata
+extraction; the hash-input contribution is separate.
 
 ### FR-09: JSON Schema Validation
 
