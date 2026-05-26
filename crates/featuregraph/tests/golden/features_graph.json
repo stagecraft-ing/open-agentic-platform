@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:4b7be73222dc676425847fdbbaedaacec7bf65236c9981b5a925a1bcccfe0f76",
+  "graph_fingerprint": "sha256:767dacecb62f2b9d893ba5ef5ef641ad7fbba3bf5a76a4b368c3551e17601483",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3524,6 +3524,24 @@
       "impl_files": [],
       "test_files": [],
       "violations": []
+    },
+    {
+      "feature_id": "186-sandbox-k8s-backend",
+      "title": "K8s sandbox backend — kube-rs + PodSecurity + RuntimeClass selection (companion to spec 162 ASI05)",
+      "spec_path": "specs/186-sandbox-k8s-backend/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "162",
+        "075",
+        "102"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
     }
   ],
   "violations": [
@@ -4302,6 +4320,76 @@
       "severity": "error",
       "path": "crates/provenance-validator/tests/validator_tests.rs",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-001 to FR-005, FR-036 to FR-039",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-k8s/src/admission.rs",
+      "message": "Malformed Spec directive: // Spec: specs/186-sandbox-k8s-backend/spec.md — §2.5, §3 FR-A1..FR-A3",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-k8s/src/descriptor.rs",
+      "message": "Malformed Spec directive: // Spec: specs/186-sandbox-k8s-backend/spec.md — §2.7, §3 FR-002",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-k8s/src/hashing.rs",
+      "message": "Malformed Spec directive: // Spec: specs/186-sandbox-k8s-backend/spec.md — §2.6 step 5, §3 FR-008",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-k8s/src/lib.rs",
+      "message": "Malformed Spec directive: // Spec: specs/186-sandbox-k8s-backend/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-k8s/src/lifecycle.rs",
+      "message": "Malformed Spec directive: // Spec: specs/186-sandbox-k8s-backend/spec.md — §2.6, §3 FR-006, FR-007, FR-008",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-k8s/src/network_policy.rs",
+      "message": "Malformed Spec directive: // Spec: specs/186-sandbox-k8s-backend/spec.md — §2.3, §3 FR-004",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-k8s/src/pod_spec.rs",
+      "message": "Malformed Spec directive: // Spec: specs/186-sandbox-k8s-backend/spec.md — §2.2, §3 FR-003, FR-004, FR-005, FR-006",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-k8s/src/runtime.rs",
+      "message": "Malformed Spec directive: // Spec: specs/186-sandbox-k8s-backend/spec.md — §2.1, §3 FR-001, FR-005",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-k8s/src/runtime_class.rs",
+      "message": "Malformed Spec directive: // Spec: specs/186-sandbox-k8s-backend/spec.md — §2.4, §3 FR-005",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-k8s/tests/integration_lifecycle.rs",
+      "message": "Malformed Spec directive: // Spec: specs/186-sandbox-k8s-backend/spec.md — §4 SC-001..SC-003",
       "suggested_fix": "Fix header format"
     },
     {

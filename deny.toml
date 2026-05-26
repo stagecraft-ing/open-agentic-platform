@@ -69,6 +69,19 @@ ignore = [
     { id = "RUSTSEC-2025-0081", reason = "unic-char-property unmaintained; pinned by Tauri's urlpattern 0.3" },
     { id = "RUSTSEC-2025-0098", reason = "unic-ucd-version unmaintained; pinned by Tauri's urlpattern 0.3" },
     { id = "RUSTSEC-2025-0100", reason = "unic-ucd-ident unmaintained; pinned by Tauri's urlpattern 0.3" },
+
+    # kube-rs 0.95 transitives — backoff, derivative, instant,
+    # rustls-pemfile. All four are direct deps of kube-rs / kube-client
+    # 0.95 (pulled by spec 186's sandbox-k8s crate). No security defect;
+    # all four are maintenance-status only. kube-rs migrated off these
+    # in 3.x; revisit when sandbox-k8s bumps to kube 3.x (tracked as a
+    # follow-up unit under spec 186, separate PR — bumping a major
+    # version of the K8s client is its own change with its own surface
+    # to review).
+    { id = "RUSTSEC-2025-0012", reason = "backoff unmaintained; pinned by kube-client 0.95 (spec 186) — kube 3.x drops it" },
+    { id = "RUSTSEC-2024-0388", reason = "derivative unmaintained; pinned by kube-client 0.95 (spec 186) — kube 3.x drops it" },
+    { id = "RUSTSEC-2024-0384", reason = "instant unmaintained; pinned by kube-runtime 0.95 (spec 186) — kube 3.x drops it" },
+    { id = "RUSTSEC-2025-0134", reason = "rustls-pemfile unmaintained; pinned by kube-client 0.95 (spec 186) — kube 3.x drops it" },
 ]
 
 [bans]
