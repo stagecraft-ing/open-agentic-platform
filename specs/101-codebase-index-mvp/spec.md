@@ -7,8 +7,16 @@ owner: bart
 created: "2026-04-14"
 kind: tooling
 domain: tooling
-amended: "2026-05-23"
-amendment_record: "self-amends — §2.4 (2026-05-23) adds the `orphans` subcommand that prints the `traceability.orphanedSpecs` list from `.derived/codebase-index/index.json` to stdout (newline-delimited by default, `--json` for a JSON array). Closes the gap surfaced when `/init` users asked for the orphan list and only the count was rendered."
+amended: "2026-05-26"
+amendment_record: |
+  amended by spec 182 (2026-05-26) — FR-08 and Layer 4 add
+  `.claude/skills/**/SKILL.md` to the documented inventory inputs;
+  `collect_input_files` in `tools/spec-spine/codebase-indexer/src/lib.rs`
+  walks `.claude/skills` alongside `.claude/{agents,commands,rules}`
+  (union, not swap) so the indexer hashes the new skill surface
+  during and after the spec 182 migration.
+
+  self-amends — §2.4 (2026-05-23) adds the `orphans` subcommand that prints the `traceability.orphanedSpecs` list from `.derived/codebase-index/index.json` to stdout (newline-delimited by default, `--json` for a JSON array). Closes the gap surfaced when `/init` users asked for the orphan list and only the count was rendered.
 summary: >
   A deterministic indexer tool that walks the repository tree, parses manifest files
   and spec frontmatter, and emits a governed .derived/codebase-index/index.json artifact.
@@ -160,7 +168,8 @@ Catalogs tools, agents, commands, and rules.
 |-------|--------|-------------|
 | `tools` | `tools/*/Cargo.toml` | CLI tool inventory |
 | `agents` | `.claude/agents/*.md` | Agent definitions |
-| `commands` | `.claude/commands/**/*.md` | Command definitions |
+| `commands` | `.claude/commands/**/*.md` | Command definitions (legacy form per spec 182; kept hashed during the migration's transition window) |
+| `skills` | `.claude/skills/**/SKILL.md` | Skill definitions (primary surface post-spec-182) |
 | `rules` | `.claude/rules/*.md` | Rule files |
 | `schemas` | `schemas/*.json` | JSON Schema contracts |
 
@@ -309,7 +318,8 @@ also scan `factory/process/stages/*.md` to report the global pipeline phase list
 The indexer MUST inventory:
 - `tools/*/` entries (name, path, binary targets)
 - `.claude/agents/*.md` (name, description from frontmatter)
-- `.claude/commands/**/*.md` (name, path)
+- `.claude/commands/**/*.md` (name, path) — legacy form retained during the spec-182 transition window
+- `.claude/skills/**/SKILL.md` (name, path) — primary surface post-spec-182
 - `.claude/rules/*.md` (name, path)
 - `schemas/*.json` (name, path)
 
