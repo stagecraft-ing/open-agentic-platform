@@ -2,8 +2,8 @@
 id: "161-knowledge-requirements-provenance-emission"
 slug: knowledge-requirements-provenance-emission
 title: "Knowledge → Requirements provenance: emission contract and Requirements-view rendering"
-status: draft
-implementation: in-progress
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: governance
