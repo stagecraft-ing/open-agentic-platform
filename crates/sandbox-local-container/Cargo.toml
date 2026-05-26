@@ -19,9 +19,16 @@ factory-engine = { path = "../factory-engine" }
 factory-contracts = { path = "../factory-contracts" }
 async-trait = "0.1"
 thiserror = "2"
+# bollard speaks the Docker Engine REST API. Both Docker Desktop /
+# Docker Engine and rootless Podman expose this protocol on a Unix
+# socket — see spec 185 §2.1.
+bollard = "0.18"
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread", "time", "fs", "net"] }
+tracing = "0.1"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+tempfile = "3"
 
 [package.metadata.oap]
 spec = "185-sandbox-local-container-backend"
