@@ -1313,7 +1313,18 @@ Follow-up tracker (parking lot):
   retired but the latent re-introduction risk remains until
   the chart files are also hardened.
 - **FU-003 — Generalised L-001 amendment for other affected
-  sweepers.** Spec 115 FR-006 (`extraction-staleness-sweeper`,
+  sweepers.** *Deferred 2026-05-26 — out of scope for the
+  spec-143 closure PR (`spec-143-close-outstanding-fus`)
+  because the resolution path is "land a sibling spec",
+  i.e. write a new `specs/NNN-...` directory amending specs
+  115, 087, and 124 with K8s CronJob templates. Sibling-spec
+  creation crosses spec 143's authority boundary and warrants
+  its own owner-spec PR with its own approvals; bundling it
+  here would mix two unrelated spec-spine events into one
+  PR diff. Stays open against spec 143 §12 until the sibling
+  spec lands; the K8s CronJob bug surface on spec 115 / 087 /
+  124 sweepers is unchanged from the 2026-05-08 filing.*
+  Spec 115 FR-006 (`extraction-staleness-sweeper`,
   every 1m), spec 087 §4.4 (`connector-sync-scheduler`,
   every 15m), and spec 124 (`factory-runs-staleness-sweeper`)
   carry the same Encore-CronJob-self-hosted-no-op bug. Each
@@ -1425,7 +1436,21 @@ Follow-up tracker (parking lot):
   sibling spec covering the systemic finding rather than
   per-client fixes, per FU-003 precedent.
 
-- **FU-008 — setup.sh secret-sync granularity.** Spec 143's
+- **FU-008 — setup.sh secret-sync granularity.** *Deferred
+  2026-05-26 — out of scope for the spec-143 closure PR
+  (`spec-143-close-outstanding-fus`) because the stub's
+  done-when explicitly says "Decision needed: which shape
+  (a or b, or hybrid) the Hetzner-without-ESO path should
+  adopt." That is a design call the spec author has not
+  resolved yet; either candidate (`setup.sh` subcommand
+  targets vs. Helm-hook secret materialisation) reshapes
+  the operational surface differently and the seam compounds
+  with FU-003's incoming sweeper rollouts. Stays open
+  against spec 143 §12 with the cross-FU constraint on FU-009
+  intact; the structural fix will land once a shape decision
+  is recorded.*
+
+  Spec 143's
   FU-001 verification surfaced a recurring structural seam:
   on Hetzner-without-ESO, materialising any per-purpose M2M
   Secret requires running the full `setup.sh` monolith. This
@@ -3332,7 +3357,20 @@ Pinned in `platform/services/stagecraft/test/spec143-fu015.config.test.ts`.
 Done-when (e) of the amended FU-015 stub.
 
 *Optional follow-up — FU-020 — stagecraft-api batch-load
-harness for memory-ceiling regression.* Reusable load-test
+harness for memory-ceiling regression.* *Disposition pinned
+2026-05-26 — stays optional, not pursued in the spec-143
+closure PR. The stub explicitly says "Optional stub; file
+when there is concrete demand to raise the cap or when a
+second memory-ceiling regression surfaces"; neither trigger
+condition has materialised. Today's cgroup floor (spec 146,
+1Gi limit / 256Mi request) + V8 `--max-old-space-size`
+(spec 143 FU-015) + literal `maxConcurrency: 4` on the
+extraction Subscription jointly bound memory under realistic
+batch load (34-file batch sustained on sha-51e050b per §13
+2026-05-10 ~09:01 UTC entry). If a future Subscription
+tuning attempt wants empirical headroom beyond budget math,
+file FU-020 under spec 143 then; until then the harness is
+deferred maintenance, not blocking work.* Reusable load-test
 for FR-006 fan-out (local Encore + MinIO + 34 fixture files +
 concurrent batch driver + heap profile capture). Useful for
 raising `maxConcurrency` past 4 with empirical evidence rather
