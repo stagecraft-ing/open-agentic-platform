@@ -267,7 +267,10 @@ pub fn run() {
                     let handle = app.handle().clone();
                     tauri::async_runtime::spawn(async move {
                         let state = handle.state::<SyncClientState>();
-                        state.spawn(config).await;
+                        // Spec 183 FR-T5(b) — AppHandle threaded into the
+                        // reconnect loop so it can emit the precondition-
+                        // loss event when the give-up threshold is crossed.
+                        state.spawn(config, handle.clone()).await;
                     });
                     log::info!("sync_client: duplex consumer starting");
                 } else {
@@ -637,6 +640,9 @@ pub fn run() {
             commands::sandbox::sandbox_status,
             // Sidecar port discovery
             sidecars::get_sidecar_ports,
+            sidecars::check_axiomregent_alive,
+            sidecars::boot_gate_status,
+            sidecars::quit_opc,
             // OS keychain (spec 087 Phase 5)
             keychain_store,
             keychain_retrieve,

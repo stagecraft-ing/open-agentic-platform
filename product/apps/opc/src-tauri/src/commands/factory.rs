@@ -2836,6 +2836,7 @@ mod tests {
             bindings: None,
             bound_at: None,
             action: None,
+            entry_count: None,
         };
         assert!(extract_factory_run(&env).is_none());
     }
@@ -2907,6 +2908,7 @@ mod tests {
             bindings: None,
             bound_at: None,
             action: None,
+            entry_count: None,
         };
         let run = extract_factory_run(&env).unwrap();
         assert_eq!(run.pipeline_id, "pl-1");

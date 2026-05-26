@@ -6,9 +6,8 @@ import { initializeWebMode } from "@/lib/apiAdapter";
 import { OutputCacheProvider } from "@/lib/outputCache";
 import { TabProvider } from "@/contexts/TabContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { LoginScreen } from "@/components/auth/LoginScreen";
-import { OrgPicker } from "@/components/auth/OrgPicker";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { BootGate } from "@/components/boot/BootGate";
 import { Card } from "@opc/ui/card";
 import { ProjectList } from "@/components/ProjectList";
 import { FilePicker } from "@/components/FilePicker";
@@ -74,8 +73,38 @@ function AppContent() {
   const [projectForSettings, setProjectForSettings] = useState<Project | null>(null);
   const [previousView] = useState<View>("welcome");
   
-  // Auth state
-  const { status: authStatus } = useAuth();
+  // Spec 183 — boot gate. Cockpit cannot render until both FR-T1 (sidecar
+  // liveness) and FR-T2 (org session materialised + sync.hello received)
+  // green-light. BootGate is the only surface rendered until that flip.
+  // authStatus is consumed inside BootGate via useAuth() — App no longer
+  // branches on it directly.
+  const [bootGateOpen, setBootGateOpen] = useState(false);
+
+  // Spec 183 FR-T5 — mid-session precondition-loss listener. When any of
+  // the three FR-T5 observers (sidecar termination, duplex give-up,
+  // org-id cleared) emits boot-gate-precondition-lost from the Rust side,
+  // unmount the cockpit subtree and re-mount BootGate. This is the
+  // symmetric arm of the boot→cockpit invariant: boot is the *only*
+  // "preconditions not satisfied" state, regardless of whether the
+  // cockpit ever rendered. Closes the seam through which mid-session
+  // degraded operation would otherwise return.
+  useEffect(() => {
+    if (!window.__TAURI_INTERNALS__ && !window.__TAURI__) return;
+    let unlisten: (() => void) | undefined;
+    void (async () => {
+      const { listen } = await import('@tauri-apps/api/event');
+      unlisten = await listen<{ precondition: string; reason: string }>(
+        'boot-gate-precondition-lost',
+        (event) => {
+          console.warn(
+            `[boot-gate] precondition lost (${event.payload.precondition}): ${event.payload.reason}`,
+          );
+          setBootGateOpen(false);
+        },
+      );
+    })();
+    return () => { unlisten?.(); };
+  }, []);
 
   // Initialize analytics lifecycle tracking
   useAppLifecycle();
@@ -441,16 +470,17 @@ function AppContent() {
       
       
       
-      {/* Main Content */}
+      {/* Main Content — spec 183: boot gate is the single surface rendered
+          until FR-T1 (sidecar) + FR-T2 (org session + sync.hello) both pass.
+          BootGate internally surfaces sidecar status, sign-in / org-selection
+          affordances, logs entrypoint, and Quit. authStatus is consumed
+          inside BootGate, not branched here. */}
       <div className="flex-1 overflow-hidden flex flex-col">
-        {authStatus === 'unauthenticated' && <LoginScreen />}
-        {authStatus === 'org-selection' && <OrgPicker />}
-        {authStatus === 'loading' && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          </div>
+        {bootGateOpen ? (
+          renderContent()
+        ) : (
+          <BootGate onReady={() => setBootGateOpen(true)} />
         )}
-        {authStatus === 'authenticated' && renderContent()}
       </div>
       
       

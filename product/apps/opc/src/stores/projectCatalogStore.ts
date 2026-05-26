@@ -1,9 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Spec 112 §7 / Phase 8 — workspace project catalog store.
+// Spec 112 §7 / Phase 8 (amended) — workspace project catalog store.
 //
-// Subscribes to the `project-catalog-upsert` Tauri event emitted by
-// `commands::project_catalog_sync` and maintains an in-memory list of
-// projects keyed on `projectId`. Tombstones drop the row.
+// Subscribes to two Tauri events emitted by
+// `commands::project_catalog_sync`:
+//
+//   * `project-catalog-upsert`           — one per project row (live + replay)
+//   * `project-catalog-snapshot-complete` — handshake snapshot terminator
+//
+// The store maintains an in-memory list of projects keyed on `projectId`;
+// tombstones drop the row. `hydrated` flips on the FIRST of either event,
+// so the panel can distinguish "still connecting" from "connected; zero
+// projects" without an arbitrary client-side timeout (the previous
+// timeout band-aid was retired with the snapshot.complete envelope).
 //
 // Restart and reconnect both replay through the duplex handshake
 // snapshot, so the store does not need to persist — a missed upsert
@@ -27,15 +35,22 @@ interface ProjectCatalogUpsertEventPayload {
   updatedAt: string;
 }
 
+interface ProjectCatalogSnapshotCompleteEventPayload {
+  orgId: string;
+  entryCount: number;
+  generatedAt: string;
+}
+
 interface ProjectCatalogState {
   /** Map of projectId -> entry. Kept as an object for fast lookups; the
    *  panel sorts when it renders. */
   byId: Record<string, ProjectCatalogEntry>;
-  /** Set when the desktop has received at least one upsert (or an
-   *  empty handshake snapshot). Lets the panel distinguish "no
+  /** Set when the desktop has received either at least one upsert OR an
+   *  explicit snapshot-complete frame. Lets the panel distinguish "no
    *  projects yet" from "haven't heard from stagecraft yet". */
   hydrated: boolean;
   applyUpsert: (payload: ProjectCatalogUpsertEventPayload) => void;
+  markSnapshotComplete: () => void;
   reset: () => void;
 }
 
@@ -71,28 +86,39 @@ export const useProjectCatalogStore = create<ProjectCatalogState>()(
           hydrated: true,
         };
       }),
+    markSnapshotComplete: () => set({ hydrated: true }),
     reset: () => set({ byId: {}, hydrated: false }),
   }))
 );
 
 /**
  * Subscribe to the Tauri event stream and dispatch upserts into the
- * store. Returns an unsubscribe function. No-op outside Tauri so the
- * webview build doesn't crash on `import("@tauri-apps/api/event")`.
+ * store. Returns an unsubscribe function that detaches both listeners.
+ * No-op outside Tauri so the webview build doesn't crash on
+ * `import("@tauri-apps/api/event")`.
  */
 export async function subscribeProjectCatalog(): Promise<() => void> {
   if (!(window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__) {
     return () => {};
   }
   const { listen } = await import('@tauri-apps/api/event');
-  const apply = useProjectCatalogStore.getState().applyUpsert;
-  const unlisten = await listen<ProjectCatalogUpsertEventPayload>(
+  const { applyUpsert, markSnapshotComplete } = useProjectCatalogStore.getState();
+  const unlistenUpsert = await listen<ProjectCatalogUpsertEventPayload>(
     'project-catalog-upsert',
     (event) => {
-      apply(event.payload);
+      applyUpsert(event.payload);
     }
   );
-  return unlisten;
+  const unlistenComplete = await listen<ProjectCatalogSnapshotCompleteEventPayload>(
+    'project-catalog-snapshot-complete',
+    () => {
+      markSnapshotComplete();
+    }
+  );
+  return () => {
+    unlistenUpsert();
+    unlistenComplete();
+  };
 }
 
 /** Selector helper — the panel wants a sorted array, not the map. */

@@ -55,6 +55,12 @@ export const WorkspaceProjectsPanel: React.FC = () => {
   };
 
   if (!hydrated) {
+    // Stagecraft sends an explicit project.catalog.snapshot.complete envelope
+    // at the end of the handshake even when the org has zero projects, so
+    // !hydrated genuinely means "duplex handshake hasn't finished yet". The
+    // duplex client retries with backoff if the connection drops — if this
+    // message sticks for more than a few seconds, the duplex isn't reaching
+    // stagecraft (check Settings → Stagecraft).
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground">
         <Card className="p-4 text-sm">

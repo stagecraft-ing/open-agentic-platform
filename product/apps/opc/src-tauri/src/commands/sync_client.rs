@@ -210,6 +210,10 @@ pub struct ServerEnvelopeWire {
     // `action` is used by project.agent_binding.updated.
     #[serde(default)]
     pub action: Option<String>,
+    // spec 112 §7 amendment — project.catalog.snapshot.complete `entryCount`
+    // (informational count of upsert frames in the just-finished pass).
+    #[serde(default)]
+    pub entry_count: Option<u32>,
 }
 
 /// Mirror of {@link ProjectAgentBindingSnapshotEntry} from stagecraft's
@@ -323,6 +327,9 @@ const SERVER_KINDS: &[&str] = &[
     "project.agent_binding.updated",
     "project.agent_binding.snapshot",
     "project.catalog.upsert",
+    // spec 112 §7 amendment — snapshot-complete terminator so the desktop
+    // can distinguish "connecting" from "connected; zero projects".
+    "project.catalog.snapshot.complete",
     "sync.ack",
     "sync.nack",
     "sync.resync_required",
@@ -564,6 +571,14 @@ pub struct SyncClientInner {
     /// socket is disconnected; external callers treat a `None` as "best-effort
     /// drop" rather than blocking.
     outbound: RwLock<Option<mpsc::Sender<OutboundFrame>>>,
+    /// Spec 183 FR-T2(b) — flipped to `true` when stagecraft sends `sync.hello`
+    /// over the duplex stream, which is the server's acknowledgment that the
+    /// handshake was accepted for the claimed `(clientId, orgId)` pair. The
+    /// boot-gate consumer reads this via `sync_hello_received()`. Stays `true`
+    /// across the lifetime of the duplex consumer; FR-T5(b) precondition-loss
+    /// signalling is a separate concern (the give-up signal lands in a later
+    /// stage of the spec 183 implementation).
+    sync_hello_received: std::sync::atomic::AtomicBool,
 }
 
 impl SyncClientInner {
@@ -571,6 +586,28 @@ impl SyncClientInner {
         if let Ok(mut g) = self.outbound.write() {
             *g = tx;
         }
+    }
+
+    /// Spec 183 FR-T2(b) — `sync.hello` observability. Returns `true` once
+    /// stagecraft has acknowledged the handshake for this consumer.
+    pub fn sync_hello_received(&self) -> bool {
+        self.sync_hello_received
+            .load(std::sync::atomic::Ordering::Acquire)
+    }
+
+    pub(crate) fn mark_sync_hello_received(&self) {
+        self.sync_hello_received
+            .store(true, std::sync::atomic::Ordering::Release);
+    }
+
+    /// Spec 183 FR-T5(b) — reset the sync_hello receipt when the duplex
+    /// give-up threshold is crossed. Without this, the boot gate would
+    /// continue to report `org_session_ready=true` against a dead duplex
+    /// even after a precondition-loss event was emitted, leaving the
+    /// cockpit branch ambiguous about whether to restore to boot.
+    pub(crate) fn reset_sync_hello_received(&self) {
+        self.sync_hello_received
+            .store(false, std::sync::atomic::Ordering::Release);
     }
 
     fn current_outbound(&self) -> Option<mpsc::Sender<OutboundFrame>> {
@@ -736,6 +773,12 @@ impl SyncClientState {
         self.inner.last_cursor.read().ok().and_then(|g| g.clone())
     }
 
+    /// Spec 183 FR-T2(b) — boot-gate observer surface. Returns `true` once
+    /// stagecraft has emitted `sync.hello` on the active duplex stream.
+    pub fn sync_hello_received(&self) -> bool {
+        self.inner.sync_hello_received()
+    }
+
     /// Clone the inner handle. Callers hold it across async tasks without
     /// touching `AppHandle` on every send.
     ///
@@ -747,15 +790,18 @@ impl SyncClientState {
     }
 
     /// Spawn the background reconnect loop. Returns immediately. If an
-    /// existing task is running the old task is aborted first.
-    pub async fn spawn(&self, config: SyncClientConfig) {
+    /// existing task is running the old task is aborted first. The
+    /// AppHandle is threaded through so the reconnect loop can emit the
+    /// FR-T5(b) precondition-loss event when it crosses the give-up
+    /// threshold (spec 183 stage C).
+    pub async fn spawn(&self, config: SyncClientConfig, app: tauri::AppHandle) {
         let mut guard = self.join.lock().await;
         if let Some(prev) = guard.take() {
             prev.abort();
         }
         let inner = self.inner.clone();
         let task = tokio::spawn(async move {
-            run_forever(config, inner).await;
+            run_forever(config, inner, app).await;
         });
         *guard = Some(task);
     }
@@ -777,20 +823,65 @@ const MIN_BACKOFF: Duration = Duration::from_secs(1);
 const MAX_BACKOFF: Duration = Duration::from_secs(60);
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(25);
 
-async fn run_forever(config: SyncClientConfig, inner: Arc<SyncClientInner>) {
+/// Spec 183 FR-T5(b) — duplex give-up threshold. After this many
+/// consecutive failed `connect_and_run` attempts, the reconnect loop
+/// emits a precondition-loss event and resets the sync_hello receipt
+/// flag. The loop keeps trying (the user may fix the underlying issue
+/// — e.g., corporate proxy unblocked); when a subsequent reconnect
+/// succeeds and `sync.hello` arrives again, the boot gate naturally
+/// re-opens. Threshold value is implementer's choice per FR-T5(b);
+/// 5 consecutive failures puts the give-up signal at roughly 31s
+/// (1+2+4+8+16) into a continuous outage, which is past the "network
+/// blip" boundary without making the user wait minutes.
+const DUPLEX_GIVE_UP_FAILURES: u32 = 5;
+
+async fn run_forever(
+    config: SyncClientConfig,
+    inner: Arc<SyncClientInner>,
+    app: tauri::AppHandle,
+) {
     let mut backoff = MIN_BACKOFF;
+    let mut consecutive_failures: u32 = 0;
+    let mut give_up_emitted = false;
     loop {
         let cursor_snapshot = inner.last_cursor.read().ok().and_then(|g| g.clone());
         match connect_and_run(&config, cursor_snapshot, &inner).await {
             Ok(()) => {
                 log::info!("sync_client: duplex stream closed cleanly — reconnecting");
                 backoff = MIN_BACKOFF;
+                consecutive_failures = 0;
+                if give_up_emitted {
+                    log::info!(
+                        "sync_client: duplex recovered from give-up state — boot gate will re-open on next sync.hello"
+                    );
+                    give_up_emitted = false;
+                }
             }
             Err(err) => {
+                consecutive_failures += 1;
                 log::warn!(
-                    "sync_client: duplex stream error — reconnecting in {:?}: {err}",
+                    "sync_client: duplex stream error (attempt #{consecutive_failures}) — reconnecting in {:?}: {err}",
                     backoff
                 );
+
+                // FR-T5(b) — give-up signal. Fires once per outage; resets
+                // when reconnect succeeds. Resetting sync_hello_received
+                // is mandatory so the boot gate's org_session_ready flips
+                // false in step with the emitted event.
+                if consecutive_failures >= DUPLEX_GIVE_UP_FAILURES && !give_up_emitted {
+                    log::warn!(
+                        "sync_client: duplex give-up threshold ({DUPLEX_GIVE_UP_FAILURES}) crossed — emitting precondition-loss"
+                    );
+                    inner.reset_sync_hello_received();
+                    crate::sidecars::emit_precondition_lost(
+                        &app,
+                        "duplex",
+                        &format!(
+                            "reconnect attempts ({consecutive_failures}) exceeded threshold ({DUPLEX_GIVE_UP_FAILURES})"
+                        ),
+                    );
+                    give_up_emitted = true;
+                }
             }
         }
         // Clear the outbound channel so external callers stop enqueuing
@@ -926,12 +1017,12 @@ async fn run_duplex_session(
             let msg = frame.map_err(|e| format!("read: {e}"))?;
             match msg {
                 Message::Text(text) => {
-                    handle_text_frame(&text, dispatch, last_cursor, &out_tx).await;
+                    handle_text_frame(&text, dispatch, last_cursor, &out_tx, inner).await;
                 }
                 Message::Binary(bytes) => {
                     match std::str::from_utf8(&bytes) {
                         Ok(text) => {
-                            handle_text_frame(text, dispatch, last_cursor, &out_tx).await;
+                            handle_text_frame(text, dispatch, last_cursor, &out_tx, inner).await;
                         }
                         Err(_) => log::warn!("sync_client: non-utf8 binary frame ignored"),
                     }
@@ -960,6 +1051,7 @@ async fn handle_text_frame(
     dispatch: &Arc<DispatchTable>,
     last_cursor: &Arc<RwLock<Option<String>>>,
     out_tx: &mpsc::Sender<OutboundFrame>,
+    inner: &Arc<SyncClientInner>,
 ) {
     let envelope: ServerEnvelopeWire = match serde_json::from_str(text) {
         Ok(e) => e,
@@ -1010,6 +1102,10 @@ async fn handle_text_frame(
                 envelope.session_id,
                 envelope.cursor_gap
             );
+            // Spec 183 FR-T2(b): the boot-gate's org-session readiness flag
+            // flips on this envelope's receipt, which proves stagecraft accepted
+            // the handshake for the claimed (clientId, orgId).
+            inner.mark_sync_hello_received();
         }
         "sync.ack" | "sync.nack" => {
             // No inbox to reconcile yet — tracked in a later phase.
@@ -1120,6 +1216,7 @@ mod tests {
             bindings: None,
             bound_at: None,
             action: None,
+            entry_count: None,
         }
     }
 
@@ -1132,6 +1229,7 @@ mod tests {
             "sync.heartbeat",
             "policy.updated",
             "project.catalog.upsert",
+            "project.catalog.snapshot.complete",
         ] {
             assert!(
                 is_server_envelope(&empty_envelope(kind, 1)),

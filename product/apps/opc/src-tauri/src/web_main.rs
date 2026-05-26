@@ -19,6 +19,23 @@ pub mod sidecars {
         pub axiomregent_port: Arc<Mutex<Option<u16>>>,
     }
 
+    /// Spec 183 FR-T5 — boot-gate precondition-loss emitter. In the
+    /// Tauri shell this dispatches a frontend event; the `opc-web`
+    /// binary has no Tauri AppHandle, so the emit is a logging no-op.
+    /// Signature kept identical to the Tauri-shell variant so
+    /// `commands::sync_client::run_forever` compiles uniformly across
+    /// both binaries (it calls `crate::sidecars::emit_precondition_lost`
+    /// unconditionally).
+    pub(crate) fn emit_precondition_lost(
+        _app: &tauri::AppHandle,
+        precondition: &str,
+        reason: &str,
+    ) {
+        log::warn!(
+            "(opc-web) boot-gate precondition lost (no-op): {precondition} — {reason}"
+        );
+    }
+
     /// Parse a line for `OPC_AXIOMREGENT_PORT=<u16>` (first line win).
     pub fn parse_axiomregent_port_line(line: &str) -> Option<u16> {
         line.trim()

@@ -2,13 +2,14 @@
 // Pipeline selector — start a new pipeline or display the running run ID.
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { FolderOpen, FolderTree, Play, PlayCircle, Square } from 'lucide-react';
+import { FolderOpen, FolderTree, LogIn, Play, PlayCircle, Square } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { Input } from '@opc/ui/input';
 import { open } from '@tauri-apps/plugin-dialog';
 import { exists, readDir } from '@tauri-apps/plugin-fs';
 import { api } from '@/lib/api';
 import type { OpcBundle } from '@/types/factoryBundle';
+import { useAuth } from '@/contexts/AuthContext';
 import { useFactoryPipeline } from './FactoryPipelineContext';
 
 const ADAPTER_FALLBACK = 'next-prisma';
@@ -67,6 +68,16 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
 }) => {
   const { state, startPipeline, cancelPipeline, resumePipeline } =
     useFactoryPipeline();
+  const auth = useAuth();
+  // Pipeline runs go through stagecraft (org-scoped policy bundle, adapter
+  // resolution, factory.run reservation). If the desktop doesn't have an
+  // active org we'd hit `FactoryError::NoOrgId` after the user clicks
+  // Start — pre-empt that with a clear sign-in CTA so they don't stare
+  // at a cryptic error after the round trip.
+  const needsSignIn =
+    auth.status === 'unauthenticated' ||
+    (auth.status === 'authenticated' && !auth.org);
+  const handleSignIn = () => { void auth.login(); };
 
   const initialAdapter = bundle?.adapter?.name ?? ADAPTER_FALLBACK;
   const [adapterName, setAdapterName] = useState(initialAdapter);
@@ -347,6 +358,29 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
         <span className="text-xs font-semibold text-foreground">Start New Pipeline</span>
       </div>
 
+      {needsSignIn && (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 space-y-1.5">
+          <p className="text-xs text-amber-200 font-medium">
+            Not signed in to stagecraft
+          </p>
+          <p className="text-[11px] text-amber-200/80 leading-snug">
+            Factory pipelines run against your stagecraft organization —
+            policy bundle, adapter resolution, run reservation. Sign in to
+            connect this OPC to your org.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs w-full gap-1.5"
+            onClick={handleSignIn}
+            disabled={auth.status === 'loading'}
+          >
+            <LogIn className="h-3 w-3" />
+            {auth.status === 'loading' ? 'Signing in…' : 'Sign in to stagecraft'}
+          </Button>
+        </div>
+      )}
+
       <div className="space-y-1.5">
         <label className="text-xs text-muted-foreground">Adapter</label>
         <Input
@@ -354,7 +388,7 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
           onChange={(e) => setAdapterName(e.target.value)}
           placeholder={ADAPTER_FALLBACK}
           className="h-8 text-xs"
-          disabled={starting}
+          disabled={starting || needsSignIn}
         />
       </div>
 
@@ -404,7 +438,10 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
       <Button
         className="w-full h-8 text-xs gap-2"
         onClick={handleStart}
-        disabled={starting || !adapterName.trim() || !effectiveProjectPath}
+        disabled={
+          starting || !adapterName.trim() || !effectiveProjectPath || needsSignIn
+        }
+        title={needsSignIn ? 'Sign in to stagecraft first' : undefined}
       >
         <Play className="h-3.5 w-3.5" />
         {starting ? 'Starting…' : 'Start Pipeline'}

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "892c89353535ff5f0285eef2103955d29d6bfeb10b74fe2878b6ebdd94f62f32",
+    "contentHash": "1756e1a1c85cc718be1323adc8acb70fdc0ff3970ca8e1570b903ad215e5e4eb",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -11558,6 +11558,9 @@
                 "file": "product/apps/opc/src/components/auth/ServerSettingsDialog.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/boot/BootGate.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/claude-code-session/MessageList.tsx"
               },
               {
@@ -12671,6 +12674,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/auth/ServerSettingsDialog.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/boot/BootGate.tsx"
               },
               {
                 "file": "product/apps/opc/src/components/claude-code-session/MessageList.tsx"
@@ -14828,6 +14834,9 @@
                 "file": "product/apps/opc/src/components/auth/ServerSettingsDialog.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/boot/BootGate.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/claude-code-session/MessageList.tsx"
               },
               {
@@ -16556,6 +16565,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/auth/ServerSettingsDialog.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/boot/BootGate.tsx"
               },
               {
                 "file": "product/apps/opc/src/components/claude-code-session/MessageList.tsx"
@@ -21269,6 +21281,11 @@
           },
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": ".derived/codebase-index/CODEBASE-INDEX.md"
+              }
+            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -22904,6 +22921,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/auth/ServerSettingsDialog.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/boot/BootGate.tsx"
               },
               {
                 "file": "product/apps/opc/src/components/claude-code-session/MessageList.tsx"
@@ -38308,6 +38328,9 @@
                 "file": "product/apps/opc/src/components/auth/ServerSettingsDialog.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/boot/BootGate.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/claude-code-session/MessageList.tsx"
               },
               {
@@ -39598,6 +39621,9 @@
                 "file": "product/apps/opc/src/components/auth/ServerSettingsDialog.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/boot/BootGate.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/claude-code-session/MessageList.tsx"
               },
               {
@@ -40868,6 +40894,110 @@
           }
         ],
         "specId": "182-claude-skills-migration",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "032",
+          "073",
+          "087",
+          "106",
+          "112",
+          "133",
+          "147",
+          "180"
+        ],
+        "implementingPaths": [
+          {
+            "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/sidecars.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/App.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/contexts/AuthContext.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/180-opc-shell-codification/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/180-opc-shell-codification/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/sidecars.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/sidecars.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/App.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/App.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/contexts/AuthContext.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/contexts/AuthContext.tsx"
+            }
+          }
+        ],
+        "specId": "183-opc-boot-precondition-gate",
         "specStatus": "draft"
       },
       {

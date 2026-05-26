@@ -449,6 +449,7 @@ export type ServerEnvelope =
   | ServerProjectAgentBindingUpdated
   | ServerProjectAgentBindingSnapshot
   | ServerProjectCatalogUpsert
+  | ServerProjectCatalogSnapshotComplete
   | ServerAck
   | ServerNack
   | ServerResyncRequired
@@ -733,6 +734,28 @@ export interface ServerProjectCatalogUpsert {
   updatedAt: string;
 }
 
+/**
+ * Terminator emitted by stagecraft after the post-handshake project
+ * catalog snapshot has finished replaying for a given client — including
+ * the zero-projects case where no {@link ServerProjectCatalogUpsert}
+ * frames went out at all. Lets the desktop distinguish "still connecting"
+ * from "connected; the org has no projects" without an arbitrary
+ * client-side timeout.
+ *
+ * `entryCount` is the number of upserts the server sent during the
+ * snapshot pass (informational; the desktop reconciles by `projectId`
+ * regardless).
+ */
+export interface ServerProjectCatalogSnapshotComplete {
+  kind: "project.catalog.snapshot.complete";
+  meta: ServerMeta;
+  orgId: string;
+  /** Count of `project.catalog.upsert` frames sent in this snapshot pass. */
+  entryCount: number;
+  /** ISO-8601 of when the snapshot pass finished. Informational. */
+  generatedAt: string;
+}
+
 /** Server accepted a client event and recorded it. */
 export interface ServerAck {
   kind: "sync.ack";
@@ -888,6 +911,7 @@ export interface ServerEnvelopeWire {
     | "project.agent_binding.updated"
     | "project.agent_binding.snapshot"
     | "project.catalog.upsert"
+    | "project.catalog.snapshot.complete"
     | "sync.ack"
     | "sync.nack"
     | "sync.resync_required"
@@ -984,6 +1008,10 @@ export interface ServerEnvelopeWire {
   } | null;
   opcDeepLink?: string;
   tombstone?: boolean;
+  // spec 112 §7 / amendment — project.catalog.snapshot.complete field.
+  // Count of catalog upserts in the just-finished handshake snapshot pass;
+  // `generatedAt` above is the timestamp.
+  entryCount?: number;
 }
 
 // Compile-time assignability gates: every variant must fit the wire shape.

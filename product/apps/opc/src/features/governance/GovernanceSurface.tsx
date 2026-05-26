@@ -48,6 +48,28 @@ export const GovernanceSurface: React.FC<GovernanceSurfaceProps> = ({ projectPat
       }
     })();
   }, []);
+
+  // Auto-poll the probe port until it lands. The sidecar boots
+  // asynchronously, so opening the panel before announcement showed
+  // a permanent "not announced yet" until the user reopened the tab.
+  // Bounded retries with linear backoff.
+  useEffect(() => {
+    if (axiomProbePort != null) return;
+    let attempt = 0;
+    const MAX_ATTEMPTS = 15; // ~30s at 2s intervals
+    const interval = window.setInterval(() => {
+      attempt += 1;
+      if (attempt > MAX_ATTEMPTS) {
+        window.clearInterval(interval);
+        return;
+      }
+      void api.getSidecarPorts().then(
+        (p) => setAxiomProbePort(p.axiomregent ?? null),
+        () => {},
+      );
+    }, 2000);
+    return () => window.clearInterval(interval);
+  }, [axiomProbePort]);
   const enrichmentPath =
     state.status === 'success' || state.status === 'degraded' ? state.data.repoRoot : repoRoot;
   const enrichment = useGovernanceCtxEnrichment(enrichmentPath, state);

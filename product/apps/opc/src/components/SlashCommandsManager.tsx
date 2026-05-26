@@ -525,16 +525,23 @@ export const SlashCommandsManager: React.FC<SlashCommandsManagerProps> = ({
           <div className="text-center">
             <Command className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-sm text-muted-foreground">
-              {searchQuery 
-                ? "No commands found" 
-                : scopeFilter === 'project' 
-                  ? "No project commands created yet" 
-                  : "No commands created yet"}
+              {searchQuery
+                ? "No commands found"
+                : scopeFilter === 'project'
+                  ? "No project commands created yet"
+                  : "No user-scoped commands"}
             </p>
+            {!searchQuery && scopeFilter === 'user' && (
+              <p className="text-xs text-muted-foreground/70 mt-2 max-w-md mx-auto">
+                Project-scoped commands (e.g., the ones under
+                <code className="px-1 mx-0.5 rounded bg-muted text-[10px]">.claude/commands/</code>
+                in your repo) appear under the project tab in the scope selector above.
+              </p>
+            )}
             {!searchQuery && (
               <Button onClick={handleCreateNew} variant="outline" size="sm" className="mt-4">
-                {scopeFilter === 'project' 
-                  ? "Create your first project command" 
+                {scopeFilter === 'project'
+                  ? "Create your first project command"
                   : "Create your first command"}
               </Button>
             )}

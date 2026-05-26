@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Activity, FileText, Scan, Shield, Search, Share2, GitBranch, History, LayoutGrid, ShieldCheck } from 'lucide-react';
 import { TooltipProvider, TooltipSimple } from '@opc/ui/tooltip-modern';
 import { useTabState } from '@/hooks/useTabState';
+import { api } from '@/lib/api';
 import type { Tab } from '@/contexts/TabContext';
 
 function getProjectPath(tab: Tab | undefined): string | null {
@@ -16,6 +17,7 @@ export const ProjectToolbar: React.FC = () => {
   const {
     activeTab,
     createClaudeMdTab,
+    createSpecMarkdownTab,
     createGitContextTab,
     createXrayTab,
     createGovernanceTab,
@@ -30,8 +32,28 @@ export const ProjectToolbar: React.FC = () => {
 
   if (!projectPath) return null;
 
+  // When a project is active, prefer the project-root CLAUDE.md over the
+  // global ~/.claude/CLAUDE.md system prompt. Deeper CLAUDE.md files in
+  // the tree are surfaced by the CLAUDE.md Memories dropdown on the
+  // session screen — this button is the root-only fast path.
+  const handleClaudeMd = async () => {
+    try {
+      const files = await api.findClaudeMdFiles(projectPath);
+      const rootCandidates = files
+        .filter((f) => f.relative_path === 'CLAUDE.md')
+        .sort((a, b) => a.absolute_path.length - b.absolute_path.length);
+      if (rootCandidates.length > 0) {
+        createSpecMarkdownTab(rootCandidates[0].absolute_path, 'CLAUDE.md');
+        return;
+      }
+    } catch {
+      // fall through to the global system-prompt tab
+    }
+    createClaudeMdTab();
+  };
+
   const tools = [
-    { key: 'claude-md', icon: FileText, label: 'CLAUDE.md', onClick: () => createClaudeMdTab() },
+    { key: 'claude-md', icon: FileText, label: 'CLAUDE.md', onClick: () => { void handleClaudeMd(); } },
     { key: 'git-context', icon: GitBranch, label: 'Git Context', onClick: () => createGitContextTab(projectPath) },
     { key: 'xray', icon: Scan, label: 'Xray Analysis', onClick: () => createXrayTab(projectPath) },
     { key: 'governance', icon: Shield, label: 'Governance', onClick: () => createGovernanceTab(projectPath) },

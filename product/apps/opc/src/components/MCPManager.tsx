@@ -41,6 +41,25 @@ export const MCPManager: React.FC<MCPManagerProps> = ({
     void loadSidecarPorts();
   }, []);
 
+  // Auto-poll the sidecar probe port until it announces (the sidecar
+  // boots asynchronously; before this loop the user had to click Refresh
+  // to see the port appear). Bounded retries with linear backoff so a
+  // genuinely-degraded sidecar doesn't spin the panel forever.
+  useEffect(() => {
+    if (sidecarPorts?.axiomregent != null) return;
+    let attempt = 0;
+    const MAX_ATTEMPTS = 15; // ~30s at 2s intervals
+    const interval = window.setInterval(() => {
+      attempt += 1;
+      if (attempt > MAX_ATTEMPTS) {
+        window.clearInterval(interval);
+        return;
+      }
+      void loadSidecarPorts();
+    }, 2000);
+    return () => window.clearInterval(interval);
+  }, [sidecarPorts?.axiomregent]);
+
   const loadSidecarPorts = async () => {
     try {
       setSidecarLoading(true);

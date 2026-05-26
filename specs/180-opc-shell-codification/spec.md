@@ -554,6 +554,18 @@ demand.
 - `[[opc-shell-tier1-broadening]]` — Tier 1 invariants on currently
   no-invariants-bound subsystem roots (`lib/`, `services/`, etc.)
   when concrete forcing functions surface.
+- `[[opc-boot-precondition-gate]]` — spec 183 codifies the runtime
+  preconditions that gate the OPC boot→cockpit transition (bundled
+  sidecar health, materialised org session) and the precondition-loss
+  semantics that keep the cockpit honest mid-session. Topically
+  adjacent to this spec's authority enumeration and tab-system /
+  filesystem invariants, but framed separately so 183 can land
+  without bloating this draft. The MCP-routing replumb of Semantic
+  Search / Call Graph / Checkpoint follows under spec 183's
+  simplifying assumption that sidecar availability is already
+  asserted by the boot gate; the in-cockpit probe-port poll added in
+  commit `993de5ae` becomes redundant once 183 lands and is expected
+  to be removed as part of that implementation.
 
 ## 9. Acceptance
 

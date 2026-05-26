@@ -356,11 +356,24 @@ export const Agents: React.FC = () => {
                   <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
                 </div>
               ) : agents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-64 text-center">
+                <div className="flex flex-col items-center justify-center h-64 text-center px-6">
                   <Bot className="w-12 h-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Agents Yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Create your first agent to get started
+                  <p className="text-muted-foreground mb-2 max-w-md">
+                    Create a desktop agent to get started.
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 mb-4 max-w-md">
+                    Note: filesystem agents under{' '}
+                    <code className="px-1 rounded bg-muted text-[10px]">
+                      .claude/agents/*.md
+                    </code>{' '}
+                    (project) or{' '}
+                    <code className="px-1 rounded bg-muted text-[10px]">
+                      ~/.claude/agents/*.md
+                    </code>{' '}
+                    (user) are loaded by Claude Code at session start but are
+                    not yet surfaced in this panel — that discovery is tracked
+                    as a follow-up.
                   </p>
                   <Button onClick={() => setShowCreateAgent(true)}>
                     <Plus className="w-4 h-4 mr-2" />

@@ -310,6 +310,34 @@ async sandboxStatus() : Promise<SandboxStatus> {
 async getSidecarPorts() : Promise<SidecarPorts> {
     return await TAURI_INVOKE("get_sidecar_ports");
 },
+async checkAxiomregentAlive() : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("check_axiomregent_alive") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async bootGateStatus() : Promise<Result<BootGateStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("boot_gate_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Spec 183 FR-T6 — boot-state Quit action. Today this is a thin wrapper
+ * over `app.exit(0)` because spec 183 stage A/B doesn't yet hold the
+ * sidecar `Child` handle past the announcement parse (see
+ * `spawn_axiomregent`). Stage C will land child-handle retention and
+ * promote this command to a SIGTERM-with-timeout-then-SIGKILL sequence
+ * against the held handle before exit. The contract surface from the
+ * frontend is stable — the implementation behind it tightens.
+ */
+async quitOpc() : Promise<void> {
+    await TAURI_INVOKE("quit_opc");
+},
 async getPreflightSafetyTierReference() : Promise<SafetyTierRef[]> {
     return await TAURI_INVOKE("get_preflight_safety_tier_reference");
 },
@@ -531,6 +559,31 @@ export type AuthOrg = { org_id: string; org_slug: string; github_org_login?: str
 export type AuthResult = { type: "authenticated"; user: AuthUser; org: AuthOrg; expires_at: number } | { type: "org_selection"; pending_id: string; orgs: AuthOrg[]; user: AuthUser } | { type: "error"; code: string; message: string }
 export type AuthStatus = { authenticated: boolean; user: AuthUser | null; org: AuthOrg | null; expires_at: number | null }
 export type AuthUser = { id: string; email: string; name: string; github_login?: string; idp_provider?: string; idp_login?: string; avatar_url: string }
+/**
+ * Spec 183 — unified boot-gate status query. Combines FR-T1 (sidecar
+ * liveness) and FR-T2 (org session materialised + sync.hello received)
+ * into a single observable the boot-state UI subscribes to. Computed
+ * fresh on every call; the frontend polls (not subscribes) during the
+ * boot phase per FR-T4's explicit-retry posture.
+ */
+export type BootGateStatus = { 
+/**
+ * FR-T1: probe port announced AND TCP-connect succeeds.
+ */
+sidecar_alive: boolean; 
+/**
+ * FR-T2: StagecraftState has a non-empty org_id AND the duplex
+ * consumer has received `sync.hello` from stagecraft.
+ */
+org_session_ready: boolean; 
+/**
+ * Convenience: announced probe port (None if unannounced).
+ */
+axiomregent_port: number | null; 
+/**
+ * Convenience: org_id when present, for surface display only.
+ */
+org_id: string | null }
 export type GitAheadBehind = { ahead: number; behind: number }
 export type GitDiff = { stat: string; diff: string; files_changed: number; insertions: number; deletions: number }
 export type GitError = { type: "NotFound"; message: string } | { type: "RefNotFound"; message: string } | { type: "DetachedHead" } | { type: "Other"; message: string }

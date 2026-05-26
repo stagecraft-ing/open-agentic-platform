@@ -790,13 +790,28 @@ pub async fn auth_take_pending_callback(
 }
 
 /// Clear all auth state — keychain entries and in-memory token.
+///
+/// Spec 183 FR-T5(c) — emits `boot-gate-precondition-lost` with
+/// `precondition: "org-id"` after the clear, so the App.tsx event
+/// listener flips `bootGateOpen` back to false and the cockpit unmounts
+/// in step with the org_id going away. Without this emit, a logout from
+/// inside the cockpit would leave the cockpit visibly mounted against a
+/// cleared session.
 #[tauri::command]
 #[specta::specta]
-pub async fn auth_logout(stagecraft: State<'_, StagecraftState>) -> AppResult<()> {
+pub async fn auth_logout(
+    app: tauri::AppHandle,
+    stagecraft: State<'_, StagecraftState>,
+) -> AppResult<()> {
     keychain_delete("session");
     keychain_delete("refresh_token");
     if let Some(client) = stagecraft.current() {
         client.clear_auth();
     }
+    crate::sidecars::emit_precondition_lost(
+        &app,
+        "org-id",
+        "user signed out (auth_logout cleared org session)",
+    );
     Ok(())
 }

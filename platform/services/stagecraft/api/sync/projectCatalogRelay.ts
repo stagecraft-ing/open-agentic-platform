@@ -167,6 +167,25 @@ export async function sendProjectCatalogSnapshot(
     const sent = await sendTargetedServerEvent(orgId, clientId, withoutMeta);
     if (sent) delivered++;
   }
+  // Spec 112 §7 amendment — emit an explicit snapshot-complete terminator
+  // so the desktop can flip its Projects panel out of "connecting" even when
+  // the org has zero projects (entries === []) and no upsert frames went out.
+  // The desktop reconciles by projectId regardless; this frame's payload is
+  // informational (entryCount + generatedAt). Fire-and-log: a failure here
+  // must not stop the duplex session.
+  const completeFrame = {
+    kind: "project.catalog.snapshot.complete" as const,
+    orgId,
+    entryCount: entries.length,
+    generatedAt: new Date().toISOString(),
+  };
+  await sendTargetedServerEvent(orgId, clientId, completeFrame).catch((err) => {
+    log.warn("project.catalog: snapshot.complete send failed", {
+      orgId,
+      clientId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  });
   log.info("project.catalog: snapshot sent on handshake", {
     orgId,
     clientId,
