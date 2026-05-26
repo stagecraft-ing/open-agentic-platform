@@ -6,8 +6,18 @@
     "repoRoot": "."
   },
   "diagnostics": {
-    "errors": [],
-    "warnings": []
+    "errors": [
+      {
+        "code": "I-008",
+        "message": "172-opc-live-agent-session-introspection: file: path \"product/apps/opc/src/components/ProjectToolbar.tsx\" does not exist on disk"
+      }
+    ],
+    "warnings": [
+      {
+        "code": "I-101",
+        "message": "spec \"172-opc-live-agent-session-introspection\" declares implements path \"product/apps/opc/src/components/ProjectToolbar.tsx\" which is not a known package, adapter, or existing file/directory"
+      }
+    ]
   },
   "inventory": [
     {
@@ -11468,9 +11478,6 @@
                 "file": "product/apps/opc/src/components/ProjectSettings.tsx"
               },
               {
-                "file": "product/apps/opc/src/components/ProjectToolbar.tsx"
-              },
-              {
                 "file": "product/apps/opc/src/components/PromotionPanel.tsx"
               },
               {
@@ -11532,6 +11539,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/ToolWidgets.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ToolsPopover.tsx"
               },
               {
                 "file": "product/apps/opc/src/components/Topbar.tsx"
@@ -12586,9 +12596,6 @@
                 "file": "product/apps/opc/src/components/ProjectSettings.tsx"
               },
               {
-                "file": "product/apps/opc/src/components/ProjectToolbar.tsx"
-              },
-              {
                 "file": "product/apps/opc/src/components/PromotionPanel.tsx"
               },
               {
@@ -12650,6 +12657,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/ToolWidgets.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ToolsPopover.tsx"
               },
               {
                 "file": "product/apps/opc/src/components/Topbar.tsx"
@@ -14744,9 +14754,6 @@
                 "file": "product/apps/opc/src/components/ProjectSettings.tsx"
               },
               {
-                "file": "product/apps/opc/src/components/ProjectToolbar.tsx"
-              },
-              {
                 "file": "product/apps/opc/src/components/PromotionPanel.tsx"
               },
               {
@@ -14808,6 +14815,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/ToolWidgets.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ToolsPopover.tsx"
               },
               {
                 "file": "product/apps/opc/src/components/Topbar.tsx"
@@ -16477,9 +16487,6 @@
                 "file": "product/apps/opc/src/components/ProjectSettings.tsx"
               },
               {
-                "file": "product/apps/opc/src/components/ProjectToolbar.tsx"
-              },
-              {
                 "file": "product/apps/opc/src/components/PromotionPanel.tsx"
               },
               {
@@ -16541,6 +16548,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/ToolWidgets.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ToolsPopover.tsx"
               },
               {
                 "file": "product/apps/opc/src/components/Topbar.tsx"
@@ -21281,11 +21291,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": ".derived/codebase-index/CODEBASE-INDEX.md"
-              }
-            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -22833,9 +22838,6 @@
                 "file": "product/apps/opc/src/components/ProjectSettings.tsx"
               },
               {
-                "file": "product/apps/opc/src/components/ProjectToolbar.tsx"
-              },
-              {
                 "file": "product/apps/opc/src/components/PromotionPanel.tsx"
               },
               {
@@ -22897,6 +22899,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/ToolWidgets.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ToolsPopover.tsx"
               },
               {
                 "file": "product/apps/opc/src/components/Topbar.tsx"
@@ -36267,11 +36272,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "product/apps/opc/src/components/ProjectToolbar.tsx"
-              }
-            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -38238,9 +38238,6 @@
                 "file": "product/apps/opc/src/components/ProjectSettings.tsx"
               },
               {
-                "file": "product/apps/opc/src/components/ProjectToolbar.tsx"
-              },
-              {
                 "file": "product/apps/opc/src/components/PromotionPanel.tsx"
               },
               {
@@ -38302,6 +38299,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/ToolWidgets.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ToolsPopover.tsx"
               },
               {
                 "file": "product/apps/opc/src/components/Topbar.tsx"
@@ -39531,9 +39531,6 @@
                 "file": "product/apps/opc/src/components/ProjectSettings.tsx"
               },
               {
-                "file": "product/apps/opc/src/components/ProjectToolbar.tsx"
-              },
-              {
                 "file": "product/apps/opc/src/components/PromotionPanel.tsx"
               },
               {
@@ -39595,6 +39592,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/ToolWidgets.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/ToolsPopover.tsx"
               },
               {
                 "file": "product/apps/opc/src/components/Topbar.tsx"

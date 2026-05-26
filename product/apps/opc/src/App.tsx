@@ -24,7 +24,6 @@ import { Toast, ToastContainer } from "@opc/ui/toast";
 import { ProjectSettings } from '@/components/ProjectSettings';
 import { TabManager } from "@/components/TabManager";
 import { TabContent } from "@/components/TabContent";
-import { ProjectToolbar } from "@/components/ProjectToolbar";
 import { useTabState } from "@/hooks/useTabState";
 import { useAppLifecycle, useTrackEvent } from "@/hooks";
 import { StartupIntro } from "@/components/StartupIntro";
@@ -401,7 +400,6 @@ function AppContent() {
         return (
           <div className="h-full flex flex-col">
             <TabManager className="flex-shrink-0" />
-            <ProjectToolbar />
             <div className="flex-1 overflow-hidden">
               <TabContent />
             </div>
