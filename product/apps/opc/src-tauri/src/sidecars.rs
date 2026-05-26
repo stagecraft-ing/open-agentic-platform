@@ -364,7 +364,8 @@ pub fn spawn_axiomregent_standalone(port_slot: Arc<Mutex<Option<u16>>>) {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_axiomregent_port_line;
+    use super::{parse_axiomregent_port_line, probe_port_alive};
+    use tokio::net::TcpListener;
 
     #[test]
     fn parse_port_line_accepts_stderr_style() {
@@ -377,5 +378,46 @@ mod tests {
             Some(1)
         );
         assert_eq!(parse_axiomregent_port_line("noise"), None);
+    }
+
+    /// Spec 183 AC-5 — the load-bearing assertion that distinguishes "port
+    /// parsed" from "port parsed AND listener still accepting." A listener
+    /// bound to a loopback port satisfies the FR-T1(b) liveness probe; the
+    /// same port after the listener is dropped MUST NOT satisfy it. This
+    /// closes the gap between the announcement parser (FR-T1(a)) and a
+    /// sidecar that announced and then crashed before completing port-bind.
+    #[tokio::test]
+    async fn probe_port_alive_accepts_when_listener_is_serving() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
+        let port = listener.local_addr().expect("local_addr").port();
+        // Drive the listener in the background so the probe's connect
+        // completes the TCP handshake rather than hanging.
+        tokio::spawn(async move {
+            // Accept-and-drop is sufficient — FR-T1's binary signal is
+            // connection establishment, not a payload exchange.
+            let _ = listener.accept().await;
+        });
+        assert!(
+            probe_port_alive(port).await,
+            "open listener must satisfy FR-T1(b) liveness probe"
+        );
+    }
+
+    #[tokio::test]
+    async fn probe_port_alive_rejects_when_listener_is_closed() {
+        // Bind, capture the port, drop the listener — the OS will reject
+        // subsequent connects with `ConnectionRefused`. Binding+dropping
+        // (rather than picking a random unbound port) avoids the race
+        // where the OS hands the same port to another process between
+        // probe calls in the test environment.
+        let port = {
+            let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
+            listener.local_addr().expect("local_addr").port()
+            // listener drops here, releasing the port
+        };
+        assert!(
+            !probe_port_alive(port).await,
+            "closed listener MUST NOT satisfy FR-T1(b); ConnectionRefused does not pass the gate"
+        );
     }
 }
