@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "18144dbed41c2e43884bd09075196585056682133ea3da2190d203ba8ec5dff1",
+    "contentHash": "75aa9f158cea55cad09f541d21b772629985d043b7857a201c136e63701cb365",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -27918,6 +27918,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/web/app/components/ExtractionView.tsx",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/web/app/lib/fetchWithRefresh.test.ts",
             "source": "spec-implements"
           },
@@ -28087,6 +28091,20 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/knowledge/uploadLimits.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/components/ExtractionView.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/components/ExtractionView.tsx"
             }
           },
           {
@@ -31942,6 +31960,9 @@
               },
               {
                 "file": "platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/components/ExtractionView.tsx"
               },
               {
                 "file": "platform/services/stagecraft/web/app/components/OpenInOpcButton.tsx"

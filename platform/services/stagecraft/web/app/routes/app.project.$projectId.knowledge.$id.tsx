@@ -10,6 +10,7 @@ import {
 } from "../lib/project-api.server";
 import type { KnowledgeObjectRow } from "../lib/project-api.server";
 import { redirect } from "react-router";
+import { ExtractionView } from "../components/ExtractionView";
 
 export async function loader({
   request,
@@ -113,11 +114,6 @@ export default function KnowledgeObjectDetail() {
     importedAt?: string;
   };
 
-  const extractorMeta = (object.extractionOutput as
-    | { extractor?: { kind?: string; version?: string; agentRun?: { modelId?: string; costUsd?: number } } }
-    | null
-    | undefined)?.extractor;
-
   const downloadUrl = (downloadFetcher.data as { downloadUrl?: string } | undefined)?.downloadUrl;
   const retryResult = (retryFetcher.data as { retry?: { runId: string } } | undefined)?.retry;
 
@@ -139,7 +135,7 @@ export default function KnowledgeObjectDetail() {
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-7xl space-y-6">
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 dark:text-gray-400">
         <Link
@@ -154,10 +150,19 @@ export default function KnowledgeObjectDetail() {
         </span>
       </nav>
 
+      {/* Spec 143 §12 FU-018 — two-column layout at ≥md.
+          Left: sticky metadata sidebar (filename/state/progress/MetaRow block).
+          Right: actions + extraction output + classification.
+          Stacks below md. */}
+      <div className="grid gap-6 md:grid-cols-[minmax(280px,360px)_1fr]">
+
+      {/* Sidebar (metadata) */}
+      <aside className="space-y-6 md:sticky md:top-6 md:self-start">
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 break-words">
             {object.filename}
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -165,7 +170,7 @@ export default function KnowledgeObjectDetail() {
           </p>
         </div>
         <span
-          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${STATE_COLORS[object.state] ?? "bg-gray-100 text-gray-800"}`}
+          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${STATE_COLORS[object.state] ?? "bg-gray-100 text-gray-800"}`}
         >
           {object.state}
         </span>
@@ -186,7 +191,7 @@ export default function KnowledgeObjectDetail() {
                 }`}
               />
               <span
-                className={`text-xs ${
+                className={`text-[10px] ${
                   isPast
                     ? "text-gray-900 dark:text-gray-100 font-medium"
                     : "text-gray-400 dark:text-gray-500"
@@ -198,6 +203,38 @@ export default function KnowledgeObjectDetail() {
           );
         })}
       </div>
+
+      {/* Metadata */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <dl className="divide-y divide-gray-200 dark:divide-gray-700">
+          <MetaRow label="ID" value={object.id} />
+          <MetaRow label="Storage Key" value={object.storageKey} />
+          <MetaRow label="Content Hash (SHA-256)" value={object.contentHash} />
+          <MetaRow label="Source Type" value={provenance?.sourceType ?? "—"} />
+          <MetaRow label="Source URI" value={provenance?.sourceUri ?? "—"} />
+          <MetaRow
+            label="Imported At"
+            value={
+              provenance?.importedAt
+                ? new Date(provenance.importedAt).toLocaleString()
+                : "—"
+            }
+          />
+          <MetaRow
+            label="Created"
+            value={new Date(object.createdAt).toLocaleString()}
+          />
+          <MetaRow
+            label="Updated"
+            value={new Date(object.updatedAt).toLocaleString()}
+          />
+        </dl>
+      </div>
+
+      </aside>
+
+      {/* Main panel */}
+      <main className="space-y-6 min-w-0">
 
       {/* Spec 115 FR-028 — extraction status + Retry banner. Visible
           whenever the most recent run failed; the button reuses the
@@ -313,66 +350,16 @@ export default function KnowledgeObjectDetail() {
         filename={object.filename}
       />
 
-
-      {/* Metadata */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <dl className="divide-y divide-gray-200 dark:divide-gray-700">
-          <MetaRow label="ID" value={object.id} />
-          <MetaRow label="Storage Key" value={object.storageKey} />
-          <MetaRow label="Content Hash (SHA-256)" value={object.contentHash} />
-          <MetaRow label="Source Type" value={provenance?.sourceType ?? "—"} />
-          <MetaRow label="Source URI" value={provenance?.sourceUri ?? "—"} />
-          <MetaRow
-            label="Imported At"
-            value={
-              provenance?.importedAt
-                ? new Date(provenance.importedAt).toLocaleString()
-                : "—"
-            }
-          />
-          <MetaRow
-            label="Created"
-            value={new Date(object.createdAt).toLocaleString()}
-          />
-          <MetaRow
-            label="Updated"
-            value={new Date(object.updatedAt).toLocaleString()}
-          />
-        </dl>
-      </div>
-
-      {/* Extraction output */}
+      {/* Spec 143 §12 FU-017 typed view — replaces the quick-win
+          `<pre>` block. ExtractionView renders per-kind header /
+          metadata / outline / text / raw-JSON for the three
+          deterministic kinds (text/pdf-embedded/docx); agent-* kinds
+          fall back to the generic header + text + raw-JSON shape. */}
       {object.extractionOutput && (
-        <section className="space-y-2">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
-            Extraction Output
-          </h3>
-          {/* Spec 115 FR-028 — extractor footer. */}
-          {extractorMeta && (
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Extracted by{" "}
-              <code className="font-mono">{extractorMeta.kind}</code>
-              {extractorMeta.version ? ` v${extractorMeta.version}` : ""}
-              {object.latestRun?.durationMs != null && (
-                <> in {object.latestRun.durationMs} ms</>
-              )}
-              {extractorMeta.agentRun?.modelId && (
-                <>
-                  {" "}via{" "}
-                  <code className="font-mono">
-                    {extractorMeta.agentRun.modelId}
-                  </code>
-                  {extractorMeta.agentRun.costUsd != null && (
-                    <> ({"$"}{extractorMeta.agentRun.costUsd.toFixed(4)})</>
-                  )}
-                </>
-              )}
-            </p>
-          )}
-          <pre className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-xs text-gray-700 dark:text-gray-300 overflow-auto max-h-64">
-            {JSON.stringify(object.extractionOutput, null, 2)}
-          </pre>
-        </section>
+        <ExtractionView
+          output={object.extractionOutput as Parameters<typeof ExtractionView>[0]["output"]}
+          latestRunDurationMs={object.latestRun?.durationMs ?? undefined}
+        />
       )}
 
       {/* Classification */}
@@ -396,17 +383,23 @@ export default function KnowledgeObjectDetail() {
           </div>
         </section>
       )}
+
+      </main>
+      </div>
     </div>
   );
 }
 
 function MetaRow({ label, value }: { label: string; value: string }) {
+  // Spec 143 §12 FU-018 — sidebar is narrow (~320–360px), so labels stack
+  // above values. The previous 3-col sm:grid layout truncated long values
+  // (storage keys, content hashes) under the new two-column document layout.
   return (
-    <div className="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4">
-      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+    <div className="px-4 py-3">
+      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
         {label}
       </dt>
-      <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:mt-0 sm:col-span-2 break-all">
+      <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100 break-all font-mono">
         {value}
       </dd>
     </div>

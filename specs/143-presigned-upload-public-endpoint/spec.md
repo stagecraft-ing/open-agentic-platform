@@ -30,6 +30,7 @@ establishes:
   - unit: { kind: file, path: platform/infra/hetzner/validate/spec-143.sh }
   - unit: { kind: file, path: platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml }
   - unit: { kind: file, path: platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/ExtractionView.tsx }
 extends:
   - spec: "087-unified-workspace-architecture"
     nature: additive
@@ -1312,7 +1313,18 @@ Follow-up tracker (parking lot):
   retired but the latent re-introduction risk remains until
   the chart files are also hardened.
 - **FU-003 — Generalised L-001 amendment for other affected
-  sweepers.** Spec 115 FR-006 (`extraction-staleness-sweeper`,
+  sweepers.** *Deferred 2026-05-26 — out of scope for the
+  spec-143 closure PR (`spec-143-close-outstanding-fus`)
+  because the resolution path is "land a sibling spec",
+  i.e. write a new `specs/NNN-...` directory amending specs
+  115, 087, and 124 with K8s CronJob templates. Sibling-spec
+  creation crosses spec 143's authority boundary and warrants
+  its own owner-spec PR with its own approvals; bundling it
+  here would mix two unrelated spec-spine events into one
+  PR diff. Stays open against spec 143 §12 until the sibling
+  spec lands; the K8s CronJob bug surface on spec 115 / 087 /
+  124 sweepers is unchanged from the 2026-05-08 filing.*
+  Spec 115 FR-006 (`extraction-staleness-sweeper`,
   every 1m), spec 087 §4.4 (`connector-sync-scheduler`,
   every 15m), and spec 124 (`factory-runs-staleness-sweeper`)
   carry the same Encore-CronJob-self-hosted-no-op bug. Each
@@ -1424,7 +1436,21 @@ Follow-up tracker (parking lot):
   sibling spec covering the systemic finding rather than
   per-client fixes, per FU-003 precedent.
 
-- **FU-008 — setup.sh secret-sync granularity.** Spec 143's
+- **FU-008 — setup.sh secret-sync granularity.** *Deferred
+  2026-05-26 — out of scope for the spec-143 closure PR
+  (`spec-143-close-outstanding-fus`) because the stub's
+  done-when explicitly says "Decision needed: which shape
+  (a or b, or hybrid) the Hetzner-without-ESO path should
+  adopt." That is a design call the spec author has not
+  resolved yet; either candidate (`setup.sh` subcommand
+  targets vs. Helm-hook secret materialisation) reshapes
+  the operational surface differently and the seam compounds
+  with FU-003's incoming sweeper rollouts. Stays open
+  against spec 143 §12 with the cross-FU constraint on FU-009
+  intact; the structural fix will land once a shape decision
+  is recorded.*
+
+  Spec 143's
   FU-001 verification surfaced a recurring structural seam:
   on Hetzner-without-ESO, materialising any per-purpose M2M
   Secret requires running the full `setup.sh` monolith. This
@@ -1657,7 +1683,71 @@ Follow-up tracker (parking lot):
   scope and tracked there.
 
 - **FU-011 — M2M validator correctness across platform
-  services + §12 L-008.** Spec 143 FU-001 verification
+  services + §12 L-008.** *Tier 2 closed 2026-05-26 by
+  back-reference to landed code. The audit step (Finding 3)
+  is this closure entry. Findings 1 and 2 were already in
+  code when the audit ran:*
+
+  *Finding 1 (m2mAuth.ts issuer derivation):* Landed
+  2026-05-09 via commit `32129d1e` (`spec(143): land FU-011
+  Finding 1 — m2mAuth.ts issuer via OIDC discovery + L-008`).
+  `validateM2mJwt` calls `getJwksAndIssuer()` (m2mAuth.ts:102)
+  and compares against the discovery-doc-published issuer
+  with `stripSlash` normalisation (m2mAuth.ts:101-105),
+  mirroring `rauthy.ts::validateJwt:201`. JWKS-failure
+  posture is documented inline (m2mAuth.ts:71-80): warn-level
+  reject-on-discovery-failure; deliberate level difference
+  vs. rauthy.ts's error-level rejection, with the same
+  rejection behaviour.
+
+  *Finding 2 (deployd-api-rs RSA-only JWK):* Landed
+  2026-04-20 via commit `d59f8472` (`fix(deployd-api): accept
+  EdDSA (Ed25519) Rauthy JWTs`), refined 2026-05-15 via
+  `fbdbcff0` (`fix(spec-145): align deployd-api auth with
+  jsonwebtoken 10 + Rauthy 0.35 reality`). `auth.rs` now
+  uses `jsonwebtoken::jwk::JwkSet` + `DecodingKey::from_jwk`
+  (auth.rs:47-55) which handle both RSA and OKP/Ed25519
+  parameter shapes without hand-parsing `n/e` or `x/crv`;
+  the algorithm allowlist is `[RS256, EdDSA]` (auth.rs:63)
+  and the per-token verifier narrows to `header.alg`
+  (auth.rs:67-68) because jsonwebtoken 10.x rejects mixed
+  cross-family entries in `validation.algorithms`.
+
+  *Finding 3 (platform-wide M2M validator audit):* This
+  audit. Surface walked 2026-05-26 with the grep:
+  `grep -rln "from_jwk\|DecodingKey\|jsonwebtoken\|validateJwt\|getJwksAndIssuer\|verify_jwt"`
+  against `platform/services/**/*.{ts,rs}` (excluding test
+  files, node_modules, target). Files inspected:
+
+  | File | Validator | Issuer source | Alg surface |
+  |---|---|---|---|
+  | `stagecraft/api/auth/m2mAuth.ts:70-117` | `validateM2mJwt` | `getJwksAndIssuer()` via discovery doc (m2mAuth.ts:102) | RS256 + EdDSA per `key.alg` match (m2mAuth.ts:111-113) |
+  | `stagecraft/api/auth/rauthy.ts:173-` | `validateJwt` | `getJwksAndIssuer()` via discovery doc (rauthy.ts:201) | RS256 + EdDSA |
+  | `stagecraft/api/auth/rauthy.ts:152-` | `getJwksAndIssuer` | Discovery doc `issuer` field (rauthy.ts:147) | n/a (returns JWKS + issuer string) |
+  | `deployd-api-rs/src/auth.rs:21-75` | `verify_jwt` | Discovery doc `issuer` field (auth.rs:110-113) | RS256 + EdDSA via `DecodingKey::from_jwk` (auth.rs:54), allowlist gate (auth.rs:63-66) |
+  | `stagecraft/api/auth/handler.ts:111` | calls `validateJwt` | — | — |
+  | `stagecraft/api/auth/oidc.ts:280` | calls `validateJwt` | — | — |
+  | `stagecraft/api/auth/rauthyCallback.ts:501-503` | decodes payload without sig check; downstream `validateJwt` carries the gate | — | — |
+
+  *Audit verdict.* Every M2M JWT validator on the platform
+  derives `issuer` from the OIDC discovery doc rather than
+  by string concatenation, and every validator that handles
+  Rauthy-signed tokens accepts both RS256 and EdDSA. No
+  latent validators were surfaced. The §12 L-008 invariant
+  is satisfied across the platform.
+
+  *Latent typed-claims note (FU-012 candidate, not landed).*
+  `m2mAuth.ts:19-25` declares `sub: string`, but Rauthy
+  `client_credentials` tokens carry `sub: null` (no end-user
+  principal). Today the validator returns null on issuer
+  mismatch before any consumer reads `sub`, so the
+  type/runtime mismatch is harmless. No consumer code path
+  currently dereferences `M2mClaims.sub` without a guard.
+  Left as a documentation note rather than a new FU; if a
+  consumer adds a sub-driven branch later, audit at that
+  point.
+
+  *Original Tier-2 done-when (pre-closure):* Spec 143 FU-001 verification
   surfaced a third Rauthy-0.35-vs-hand-rolled-validator
   finding, structurally adjacent to FU-006c (deployd-api
   RSA-only validator). The seam is platform-wide:
@@ -2182,7 +2272,20 @@ the trust that markdown matches truth.
 
 - **FU-017 — Knowledge object detail page renders extractor
   output as `JSON.stringify`'d `<pre>`; `text` shows literal
-  `\n` escapes.** Surfaced 2026-05-10 during FU-015 cluster
+  `\n` escapes.** *Closed 2026-05-26 — all three done-when
+  legs satisfied. Leg 1 (text with real newlines) +
+  leg 3 (raw-JSON toggle) landed as the quick-win pass;
+  leg 2 (typed `ExtractionView<Kind>` for the three
+  deterministic kinds) replaced the quick-win block. New
+  component `web/app/components/ExtractionView.tsx` carries:
+  header (kind / version / duration / agent model+cost),
+  per-kind metadata (text: lines/bytes/mime;
+  pdf-embedded: pageCount + pages-with-text; docx: wordCount
+  + mammothMessages count; agent-pdf-vision / agent-image-vision:
+  page count), collapsible outline tree (level-indented with
+  page anchors), text panel with 5k-char collapse + show-all
+  toggle, raw-JSON `<details>` toggle (default off).* Surfaced
+  2026-05-10 during FU-015 cluster
   validation. The detail page (`web/app/routes/app.project.$projectId.knowledge.$objectId.tsx`,
   or wherever the project knowledge object detail route
   lives) renders the full extractor payload via
@@ -2232,7 +2335,18 @@ the trust that markdown matches truth.
   uploaded files; raw-JSON toggle for operator inspection.
 
 - **FU-018 — Knowledge object detail page wastes horizontal
-  space.** Surfaced 2026-05-10 during FU-015 cluster validation.
+  space.** *Closed 2026-05-26 — landed two-column grid
+  `md:grid-cols-[minmax(280px,360px)_1fr]` with a sticky
+  metadata sidebar (`md:sticky md:top-6 md:self-start`)
+  carrying filename header, state badge, progress bar, and
+  the `MetaRow` dl-block; main panel carries extraction
+  status / actions / preview / extraction output /
+  classification. `MetaRow` repositioned label-above-value
+  with `font-mono` values because the narrow sidebar
+  truncates the previous 3-col `sm:grid` layout. Stacks
+  below `md` via the responsive grid. Outer container widened
+  from `max-w-3xl` to `max-w-7xl` to give the two-column
+  layout room.* Surfaced 2026-05-10 during FU-015 cluster validation.
 
   *Target layout.* Two-column at `≥md` breakpoint:
   `[~320–400px sidebar | 1fr panel]`. Sidebar carries
@@ -3243,7 +3357,20 @@ Pinned in `platform/services/stagecraft/test/spec143-fu015.config.test.ts`.
 Done-when (e) of the amended FU-015 stub.
 
 *Optional follow-up — FU-020 — stagecraft-api batch-load
-harness for memory-ceiling regression.* Reusable load-test
+harness for memory-ceiling regression.* *Disposition pinned
+2026-05-26 — stays optional, not pursued in the spec-143
+closure PR. The stub explicitly says "Optional stub; file
+when there is concrete demand to raise the cap or when a
+second memory-ceiling regression surfaces"; neither trigger
+condition has materialised. Today's cgroup floor (spec 146,
+1Gi limit / 256Mi request) + V8 `--max-old-space-size`
+(spec 143 FU-015) + literal `maxConcurrency: 4` on the
+extraction Subscription jointly bound memory under realistic
+batch load (34-file batch sustained on sha-51e050b per §13
+2026-05-10 ~09:01 UTC entry). If a future Subscription
+tuning attempt wants empirical headroom beyond budget math,
+file FU-020 under spec 143 then; until then the harness is
+deferred maintenance, not blocking work.* Reusable load-test
 for FR-006 fan-out (local Encore + MinIO + 34 fixture files +
 concurrent batch driver + heap profile capture). Useful for
 raising `maxConcurrency` past 4 with empirical evidence rather
