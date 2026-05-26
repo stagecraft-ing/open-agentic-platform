@@ -159,7 +159,7 @@ export const CheckpointSettings: React.FC<CheckpointSettingsProps> = ({
         </p>
         <p className="text-caption text-muted-foreground">
           <span className="font-medium">Where to find them.</span>{' '}
-          This panel configures <em>when</em> snapshots are taken (strategy, cleanup quota). To browse and restore actual snapshots, use the <span className="font-medium">Session Timeline</span> (GitBranch icon in the composer toolbar).
+          This panel configures <em>when</em> snapshots are taken (strategy, cleanup quota). To browse and restore actual snapshots, use the <span className="font-medium">Conversation Snapshots Timeline</span> (GitBranch icon in the composer toolbar).
         </p>
         <p className="text-caption text-muted-foreground">
           <span className="font-medium">Not to be confused with Repo Snapshots</span> — those are full-repo Merkle-hashed snapshots produced by axiomregent, scoped to the repo root (not your conversation). Open them via the <em>Repo Snapshots</em> tile in the Tools popover.
