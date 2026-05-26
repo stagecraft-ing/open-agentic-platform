@@ -369,9 +369,25 @@ export default function KnowledgeObjectDetail() {
               )}
             </p>
           )}
-          <pre className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-xs text-gray-700 dark:text-gray-300 overflow-auto max-h-64">
-            {JSON.stringify(object.extractionOutput, null, 2)}
-          </pre>
+          {/* Spec 143 §12 FU-017 quick-win — render extractor `text` with
+              real newlines instead of the JSON.stringify'd `\n` escapes.
+              TODO(FU-017 typed-view): replace this whole section with the
+              typed `ExtractionView<Kind>` discriminated union (per-kind
+              header / metadata / outline / text / raw-JSON toggle). The
+              quick-win MUST NOT ossify into the permanent shape. */}
+          {typeof (object.extractionOutput as { text?: unknown }).text === "string" && (
+            <pre className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-xs text-gray-700 dark:text-gray-300 overflow-auto max-h-96 whitespace-pre-wrap break-words">
+              {(object.extractionOutput as { text: string }).text}
+            </pre>
+          )}
+          <details className="text-xs text-gray-500 dark:text-gray-400">
+            <summary className="cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-300">
+              Raw extraction payload
+            </summary>
+            <pre className="mt-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-xs text-gray-700 dark:text-gray-300 overflow-auto max-h-64">
+              {JSON.stringify(object.extractionOutput, null, 2)}
+            </pre>
+          </details>
         </section>
       )}
 

@@ -2182,7 +2182,15 @@ the trust that markdown matches truth.
 
 - **FU-017 — Knowledge object detail page renders extractor
   output as `JSON.stringify`'d `<pre>`; `text` shows literal
-  `\n` escapes.** Surfaced 2026-05-10 during FU-015 cluster
+  `\n` escapes.** *Quick-win + raw-JSON-toggle legs landed
+  2026-05-26 (leg 1 + leg 3 of the three-leg done-when).
+  Detail page now renders `extractionOutput.text` in its own
+  `<pre class="whitespace-pre-wrap">` block and collapses the
+  full JSON payload behind a `<details>` raw-JSON toggle.
+  Typed `ExtractionView<Kind>` discriminated-union (leg 2)
+  lands in a subsequent commit per §12 ordering note (FU-017
+  quick-win → FU-018 layout → FU-017 typed view).* Surfaced
+  2026-05-10 during FU-015 cluster
   validation. The detail page (`web/app/routes/app.project.$projectId.knowledge.$objectId.tsx`,
   or wherever the project knowledge object detail route
   lives) renders the full extractor payload via
