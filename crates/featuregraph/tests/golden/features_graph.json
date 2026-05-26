@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:1835cf6feb08c5e2d410dd93013d0883c6008dd67e6f19311806b8125d15295d",
+  "graph_fingerprint": "sha256:3aac980b12be0e328d19346402345046d131304743dc634368bb5339af94d43c",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3474,8 +3474,8 @@
       "feature_id": "183-opc-boot-precondition-gate",
       "title": "OPC boot precondition gate — sidecar liveness + materialised org session, with precondition-loss restore",
       "spec_path": "specs/183-opc-boot-precondition-gate/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",

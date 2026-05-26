@@ -1911,4 +1911,71 @@ mod tests {
             other => panic!("unexpected frame: {other:?}"),
         }
     }
+
+    // ── Spec 183 FR-T2(b) — sync.hello observer ──────────────────────────
+    //
+    // AC-6 binds: stagecraft emits `sync.hello` on accepted handshake; the
+    // desktop's observer in `sync_client.rs` MUST flip the org-session
+    // readiness flag exactly when that envelope arrives. The
+    // primitive-level test pins the inner flag state machine; the
+    // dispatch-level test drives a real JSON envelope through
+    // `handle_text_frame` to assert the wire→flag path.
+
+    #[test]
+    fn sync_hello_flag_starts_false_and_flips_via_primitives() {
+        let inner = SyncClientInner::default();
+        assert!(!inner.sync_hello_received(), "default state is false");
+        inner.mark_sync_hello_received();
+        assert!(inner.sync_hello_received(), "mark flips to true");
+        inner.reset_sync_hello_received();
+        assert!(
+            !inner.sync_hello_received(),
+            "reset returns to false (FR-T5(b) give-up reset path)",
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn dispatch_sync_hello_envelope_flips_observer_flag() {
+        let inner = Arc::new(SyncClientInner::default());
+        let dispatch = Arc::new(DispatchTable::new());
+        let last_cursor = Arc::new(RwLock::new(None::<String>));
+        // out_tx is required by handle_text_frame but the sync.hello arm
+        // doesn't push to it; a never-receiving sink is fine here.
+        let (tx, _rx) = mpsc::channel::<OutboundFrame>(8);
+
+        assert!(
+            !inner.sync_hello_received(),
+            "pre-dispatch: org-session gate is closed",
+        );
+
+        // Mirror the wire shape stagecraft emits on an accepted handshake
+        // (`api/sync/duplex.ts` line 121, kind `sync.hello`). The schema
+        // version is v=1 per the envelope-version guard.
+        let hello = r#"{
+            "kind": "sync.hello",
+            "meta": {
+                "v": 1,
+                "eventId": "evt-hello-1",
+                "sentAt": "2026-05-25T00:00:00Z",
+                "orgCursor": "cur-hello-1",
+                "orgId": "org-1"
+            },
+            "sessionId": "session-abc",
+            "cursorGap": false,
+            "serverStartedAt": "2026-05-25T00:00:00Z"
+        }"#;
+
+        handle_text_frame(hello, &dispatch, &last_cursor, &tx, &inner).await;
+
+        assert!(
+            inner.sync_hello_received(),
+            "post-dispatch: FR-T2(b) org-session readiness flips on sync.hello receipt",
+        );
+        // The envelope also updates the last-observed org cursor (resume
+        // anchor for reconnect); confirm that side-effect lands.
+        assert_eq!(
+            last_cursor.read().unwrap().as_deref(),
+            Some("cur-hello-1"),
+        );
+    }
 }

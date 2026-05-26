@@ -2,8 +2,8 @@
 id: "183-opc-boot-precondition-gate"
 slug: opc-boot-precondition-gate
 title: "OPC boot precondition gate — sidecar liveness + materialised org session, with precondition-loss restore"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-25"
 kind: governance
@@ -20,6 +20,18 @@ depends_on:
   - "180"  # opc-shell-codification (broad OPC shell authority; this spec sits on its Tier 1 invariant surface for a runtime-precondition concern)
 code_aliases:
   - "OPC_BOOT_PRECONDITION_GATE"
+extends:
+  # Mechanical featuregraph-golden refresh when this spec's lifecycle
+  # flipped to status: approved + implementation: complete. The
+  # fixture's spec-183 record reflects this spec's frontmatter 1:1;
+  # no semantic change to spec 034's claims (same precedent as
+  # specs 167/168/169 carried during the 178 rename). Required by
+  # spec 177 ci-orchestrator-pr-gate atomicity contract — the
+  # featuregraph-golden check is a ci-gate, so lifecycle flips
+  # must carry their fixture refresh inside the same PR.
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "boot-state-precondition-discipline"
     unit: { kind: file, path: product/apps/opc/src/App.tsx }
@@ -33,6 +45,18 @@ refines:
   - aspect: "boot-gate-auth-callback-coupling"
     unit: { kind: file, path: product/apps/opc/src/contexts/AuthContext.tsx }
     refines_specs: ["106-rauthy-native-oidc-and-membership"]
+  - aspect: "sync-hello-observer-and-duplex-give-up-signal"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/sync_client.rs }
+    refines_specs: ["110-stagecraft-to-opc-factory-trigger"]
+  - aspect: "boot-gate-command-registration-and-quit-handler"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/lib.rs }
+    refines_specs: ["180-opc-shell-codification"]
+  - aspect: "boot-gate-component-affordances"
+    unit: { kind: file, path: product/apps/opc/src/components/boot/BootGate.tsx }
+    refines_specs: ["180-opc-shell-codification"]
+  - aspect: "boot-gate-frontend-tauri-bindings"
+    unit: { kind: file, path: product/apps/opc/src/lib/api.ts }
+    refines_specs: ["180-opc-shell-codification"]
 references:
   - role: parent-authority
     unit: { kind: file, path: specs/180-opc-shell-codification/spec.md }
@@ -99,7 +123,7 @@ separately so 180 can land as drafted without bloating its surface.
 ## 2. Authority enumeration
 
 This spec does not establish new directories. It refines existing
-authority on four files that the boot gate touches:
+authority on eight files that the boot gate touches:
 
 - `product/apps/opc/src/App.tsx` — shell entry point; gains an
   App-level component-state branch between `<BootGate>` and
@@ -107,8 +131,9 @@ authority on four files that the boot gate touches:
   authority).
 - `product/apps/opc/src-tauri/src/sidecars.rs` — sidecar launcher;
   gains a TCP-connect liveness probe added to the existing
-  port-announcement parser (refines spec 073's axiomregent
-  unification authority).
+  port-announcement parser, plus the FR-T4 respawn helper and the
+  FR-T6 Quit handler (refines spec 073's axiomregent unification
+  authority).
 - `product/apps/opc/src-tauri/src/commands/stagecraft_client.rs` —
   the Rust-side org-session holder; gains a "verified org session"
   observability surface keyed on `sync.hello` receipt (refines spec
@@ -117,10 +142,24 @@ authority on four files that the boot gate touches:
   context; gains a tighter coupling to the Rust-side `StagecraftState`
   org_id-materialisation moment (refines spec 106's Rauthy/OIDC
   identity authority).
+- `product/apps/opc/src-tauri/src/commands/sync_client.rs` — the
+  duplex consumer that observes `sync.hello` (FR-T2(b) gate-flip)
+  and emits the duplex give-up signal (FR-T5(b) precondition-loss)
+  (refines spec 110's stagecraft→OPC trigger authority).
+- `product/apps/opc/src-tauri/src/lib.rs` — registers the boot-gate
+  Tauri commands (`boot_gate_status`, `open_logs_folder`,
+  `respawn_axiomregent`, `quit_opc`) into the invoke handler
+  (refines spec 180's OPC shell authority).
+- `product/apps/opc/src/components/boot/BootGate.tsx` — the consumer
+  of the precondition state; renders the four FR-T3 affordances
+  (refines spec 180's `src/components` directory establishment).
+- `product/apps/opc/src/lib/api.ts` — frontend Tauri bindings for
+  the boot-gate command surface (refines spec 180's OPC shell
+  authority).
 
-A new directory `product/apps/opc/src/components/boot/` is expected to
-land with the implementation; it falls under spec 180's `src/components`
-`establishes:` claim so no frontmatter change here is required.
+The directory `product/apps/opc/src/components/boot/` itself remains
+under spec 180's `src/components` `establishes:` claim; spec 183 adds
+file-level refinement on the BootGate component within it.
 
 ### 2.1 Why `refines:`, not `establishes:`
 

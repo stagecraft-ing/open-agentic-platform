@@ -17,6 +17,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tokio::net::TcpStream;
@@ -127,6 +128,48 @@ pub struct BootGateStatus {
     pub org_id: Option<String>,
 }
 
+/// Spec 183 FR-T4 — user-initiated retry of a failed sidecar
+/// precondition. Takes the retained `CommandChild` handle (if any),
+/// kills it, clears the port + child slots, then re-spawns axiomregent
+/// fresh. This is the *act on failure* path the spec binds: distinct
+/// from the BootGate's status poll (which is observation, not retry).
+///
+/// Calling this while a healthy sidecar is running will still tear it
+/// down and start a new one — the contract is "respawn on demand,"
+/// matching the user's mental model of clicking Retry to recover from
+/// an apparently dead sidecar.
+#[tauri::command]
+#[specta::specta]
+pub fn respawn_axiomregent(app: AppHandle) -> Result<(), String> {
+    log::info!("respawn_axiomregent: tearing down current sidecar (spec 183 FR-T4)");
+    let state = app.state::<SidecarState>();
+    let child_opt = {
+        let mut guard = state
+            .axiomregent_child
+            .lock()
+            .map_err(|e| format!("lock child slot: {e}"))?;
+        guard.take()
+    };
+    if let Some(child) = child_opt {
+        let pid = child.pid();
+        match child.kill() {
+            Ok(()) => log::info!("respawn_axiomregent: killed pid {pid}"),
+            Err(e) => log::warn!(
+                "respawn_axiomregent: failed to kill pid {pid}: {e}"
+            ),
+        }
+    }
+    {
+        let mut port_guard = state
+            .axiomregent_port
+            .lock()
+            .map_err(|e| format!("lock port slot: {e}"))?;
+        *port_guard = None;
+    }
+    spawn_axiomregent(&app);
+    Ok(())
+}
+
 /// Spec 183 FR-T6 — boot-state Quit action with deterministic sidecar
 /// teardown. Takes the retained `CommandChild` handle out of
 /// `SidecarState`, signals kill (the shell plugin uses
@@ -147,6 +190,39 @@ pub struct BootGateStatus {
 /// would require shelling out to `kill -TERM <pid>` + sleep + SIGKILL,
 /// which adds complexity without changing the user-observable outcome
 /// (sidecar gone, next launch clean).
+/// Spec 183 FR-T3 — boot-state "Open logs" affordance. Resolves the
+/// platform's app log dir (set up by `tauri_plugin_log` with
+/// `TargetKind::LogDir { file_name: Some("opc") }`) and asks the OS to
+/// open it in the native file browser. The dir is created on first
+/// resolve so the open succeeds on a fresh install before any log line
+/// has been written.
+///
+/// FR-T3 binds the *existence* of the affordance, not its target
+/// representation; the implementation latitude here is intentional and
+/// out of scope per spec §7.
+#[tauri::command]
+#[specta::specta]
+pub fn open_logs_folder(app: AppHandle) -> Result<(), String> {
+    let log_dir = app
+        .path()
+        .app_log_dir()
+        .map_err(|e| format!("resolve app_log_dir: {e}"))?;
+    if !log_dir.exists()
+        && let Err(e) = std::fs::create_dir_all(&log_dir)
+    {
+        return Err(format!(
+            "create log dir {}: {e}",
+            log_dir.display(),
+        ));
+    }
+    let path_str = log_dir
+        .to_str()
+        .ok_or_else(|| format!("non-utf8 log path: {}", log_dir.display()))?;
+    app.opener()
+        .open_path(path_str, None::<&str>)
+        .map_err(|e| format!("open log dir: {e}"))
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn quit_opc(app: AppHandle) {
@@ -364,7 +440,8 @@ pub fn spawn_axiomregent_standalone(port_slot: Arc<Mutex<Option<u16>>>) {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_axiomregent_port_line;
+    use super::{parse_axiomregent_port_line, probe_port_alive};
+    use tokio::net::TcpListener;
 
     #[test]
     fn parse_port_line_accepts_stderr_style() {
@@ -377,5 +454,46 @@ mod tests {
             Some(1)
         );
         assert_eq!(parse_axiomregent_port_line("noise"), None);
+    }
+
+    /// Spec 183 AC-5 — the load-bearing assertion that distinguishes "port
+    /// parsed" from "port parsed AND listener still accepting." A listener
+    /// bound to a loopback port satisfies the FR-T1(b) liveness probe; the
+    /// same port after the listener is dropped MUST NOT satisfy it. This
+    /// closes the gap between the announcement parser (FR-T1(a)) and a
+    /// sidecar that announced and then crashed before completing port-bind.
+    #[tokio::test]
+    async fn probe_port_alive_accepts_when_listener_is_serving() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
+        let port = listener.local_addr().expect("local_addr").port();
+        // Drive the listener in the background so the probe's connect
+        // completes the TCP handshake rather than hanging.
+        tokio::spawn(async move {
+            // Accept-and-drop is sufficient — FR-T1's binary signal is
+            // connection establishment, not a payload exchange.
+            let _ = listener.accept().await;
+        });
+        assert!(
+            probe_port_alive(port).await,
+            "open listener must satisfy FR-T1(b) liveness probe"
+        );
+    }
+
+    #[tokio::test]
+    async fn probe_port_alive_rejects_when_listener_is_closed() {
+        // Bind, capture the port, drop the listener — the OS will reject
+        // subsequent connects with `ConnectionRefused`. Binding+dropping
+        // (rather than picking a random unbound port) avoids the race
+        // where the OS hands the same port to another process between
+        // probe calls in the test environment.
+        let port = {
+            let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
+            listener.local_addr().expect("local_addr").port()
+            // listener drops here, releasing the port
+        };
+        assert!(
+            !probe_port_alive(port).await,
+            "closed listener MUST NOT satisfy FR-T1(b); ConnectionRefused does not pass the gate"
+        );
     }
 }
