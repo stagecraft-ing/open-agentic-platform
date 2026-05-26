@@ -9,127 +9,95 @@
 //! surface: rootless Podman (preferred) or Docker via the Docker
 //! Engine API.
 //!
-//! ## Phase 2 boundary
+//! ## Phase boundary
 //!
-//! Phases landed:
-//!
-//! 1. Scaffolding — type surface, trait wiring, universally Unavailable.
-//! 2. **Runtime detection** — probe DOCKER_HOST + rootless Podman +
-//!    Docker default sockets; resolve to a `bollard::Docker` handle plus
-//!    captured `Version`. (this phase)
-//!
-//! Phases pending: execute() lifecycle, isolation hardening, TTL +
-//! resource ceilings + peak, tests.
-//!
-//! While runtime detection is wired, `execute()` still returns
-//! `Unavailable` with a phase-state diagnostic. This preserves spec 162
-//! FR-009 (fail-closed-by-default) while the backend lights up.
+//! - Phase 1 — scaffolding (universally `Unavailable`).
+//! - Phase 2 — runtime detection (probe Docker / Podman sockets).
+//! - **Phase 3 — execute() happy path** (this phase): container
+//!   lifecycle with all isolation flags applied, TTL kill, output
+//!   artifact hashing, runtime descriptor. Resource peak still
+//!   reported as zero — phase 4 wires the stats-polling task.
+
+mod admission;
+mod descriptor;
+mod hashing;
+mod lifecycle;
+mod runtime;
 
 use async_trait::async_trait;
-use bollard::Docker;
-use bollard::system::Version;
+use std::path::PathBuf;
+
 use factory_contracts::sandbox::{SandboxExecution, SandboxRequest};
 use factory_engine::sandbox::{
     BackendDescriptor, SandboxClient, SandboxError,
 };
-use std::path::{Path, PathBuf};
+
+pub use runtime::DetectedRuntime;
+
+use runtime::{
+    classify_runtime, default_socket_candidates, format_probe_failures, probe_socket,
+    ProbeFailure, RuntimeState,
+};
 
 /// Local-container sandbox backend.
 ///
 /// See spec 185 §2 for the design and §3 for the per-FR backend
 /// behaviour. Construct via [`LocalContainerSandboxClient::new`] for
-/// the default socket-probe sequence, or
-/// [`LocalContainerSandboxClient::with_candidates`] for tests / custom
-/// deployments.
+/// the default socket-probe sequence + default base image, or
+/// [`LocalContainerSandboxClient::with_candidates_and_image`] for
+/// tests / custom deployments.
 pub struct LocalContainerSandboxClient {
     runtime: RuntimeState,
-}
-
-/// Internal state describing the resolved runtime.
-#[derive(Debug)]
-enum RuntimeState {
-    /// No reachable Docker-compatible socket. Every `execute()` call
-    /// returns [`SandboxError::Unavailable`] with the captured
-    /// probe diagnostics.
-    Unavailable { diagnostic: String },
-    /// A socket probe succeeded and the Engine reports a version.
-    /// Subsequent phases will use `docker` to drive the container
-    /// lifecycle; the captured `version` populates `runtime_descriptor`.
-    #[allow(dead_code)] // wired across phases — fields consumed in phase 3.
-    Connected {
-        docker: Docker,
-        socket: PathBuf,
-        runtime: DetectedRuntime,
-        // Boxed to keep RuntimeState compact; Version carries ~360 bytes
-        // of optional fields (Engine version string, components vec, etc.)
-        // that the Unavailable variant does not need.
-        version: Box<Version>,
-    },
-}
-
-/// Runtime family detected at probe time.
-///
-/// Distinguished by inspecting `Version.platform.name` or the
-/// `Components` block — Podman includes a `"Podman Engine"` component;
-/// Docker includes `"Engine"` without that qualifier.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DetectedRuntime {
-    Docker,
-    Podman,
-}
-
-impl DetectedRuntime {
-    /// Lowercase identifier for diagnostics + `runtime_descriptor` JSON.
-    pub fn as_str(self) -> &'static str {
-        match self {
-            DetectedRuntime::Docker => "docker",
-            DetectedRuntime::Podman => "podman",
-        }
-    }
-}
-
-/// A single probe failure, kept for diagnostic compositing.
-#[derive(Debug, Clone)]
-struct ProbeFailure {
-    socket: PathBuf,
-    reason: String,
+    image: String,
 }
 
 impl LocalContainerSandboxClient {
     /// Construct a client using the default socket-probe sequence
-    /// (spec 185 §2.1):
-    ///
-    /// 1. `DOCKER_HOST` env override.
-    /// 2. Rootless Podman socket at
-    ///    `${XDG_RUNTIME_DIR:-/run/user/$UID}/podman/podman.sock`.
-    /// 3. Docker default socket at `/var/run/docker.sock`.
+    /// (spec 185 §2.1) and the default base image
+    /// ([`DEFAULT_IMAGE`]).
     pub async fn new() -> Self {
-        Self::with_candidates(default_socket_candidates()).await
+        Self::with_candidates_and_image(default_socket_candidates(), DEFAULT_IMAGE.to_string())
+            .await
     }
 
-    /// Construct a client by probing an explicit ordered list of socket
-    /// candidates. Used by tests and custom deployments. The first
-    /// candidate whose probe succeeds wins.
+    /// Construct a client by probing an explicit ordered list of
+    /// socket candidates, keeping the default base image.
     pub async fn with_candidates(candidates: Vec<PathBuf>) -> Self {
+        Self::with_candidates_and_image(candidates, DEFAULT_IMAGE.to_string()).await
+    }
+
+    /// Construct a client by probing an explicit ordered list of
+    /// socket candidates *and* picking a non-default base image. The
+    /// image reference is passed verbatim to the runtime; the backend
+    /// does NOT manage pull policy, signing, or registry credentials
+    /// (FU-003 / FU-005 future scope).
+    pub async fn with_candidates_and_image(
+        candidates: Vec<PathBuf>,
+        image: String,
+    ) -> Self {
         if candidates.is_empty() {
             return Self {
                 runtime: RuntimeState::Unavailable {
-                    diagnostic: "no socket candidates provided to LocalContainerSandboxClient::with_candidates".into(),
+                    diagnostic:
+                        "no socket candidates provided to LocalContainerSandboxClient::with_candidates"
+                            .into(),
                 },
+                image,
             };
         }
         let mut failures: Vec<ProbeFailure> = Vec::new();
         for socket in candidates {
             match probe_socket(&socket).await {
                 Ok((docker, version)) => {
-                    let runtime = classify_runtime(&version);
+                    let detected = classify_runtime(&version);
                     return Self {
                         runtime: RuntimeState::Connected {
                             docker,
                             socket,
-                            runtime,
+                            runtime: detected,
                             version: Box::new(version),
                         },
+                        image,
                     };
                 }
                 Err(reason) => failures.push(ProbeFailure { socket, reason }),
@@ -139,12 +107,11 @@ impl LocalContainerSandboxClient {
             runtime: RuntimeState::Unavailable {
                 diagnostic: format_probe_failures(&failures),
             },
+            image,
         }
     }
 
-    /// Reports whether a runtime is currently connected. Useful for
-    /// callers that want to dispatch differently when no runtime is
-    /// available without waiting for the first `execute()` to fail.
+    /// Reports whether a runtime is currently connected.
     pub fn is_available(&self) -> bool {
         matches!(self.runtime, RuntimeState::Connected { .. })
     }
@@ -156,130 +123,42 @@ impl LocalContainerSandboxClient {
             RuntimeState::Unavailable { .. } => None,
         }
     }
-}
 
-/// Default socket-probe sequence per spec 185 §2.1.
-fn default_socket_candidates() -> Vec<PathBuf> {
-    let mut candidates: Vec<PathBuf> = Vec::new();
-    // 1. DOCKER_HOST env override (only honour unix:// forms here; tcp://
-    //    URIs are an FU-005 follow-up — see spec 185 §5).
-    if let Ok(host) = std::env::var("DOCKER_HOST")
-        && let Some(stripped) = host.strip_prefix("unix://")
-    {
-        candidates.push(PathBuf::from(stripped));
-    }
-    // 2. Rootless Podman socket under XDG_RUNTIME_DIR.
-    if let Some(podman) = rootless_podman_socket() {
-        candidates.push(podman);
-    }
-    // 3. Docker default.
-    candidates.push(PathBuf::from("/var/run/docker.sock"));
-    candidates
-}
-
-fn rootless_podman_socket() -> Option<PathBuf> {
-    let runtime_dir: PathBuf = match std::env::var("XDG_RUNTIME_DIR").ok() {
-        Some(dir) => PathBuf::from(dir),
-        None => fallback_runtime_dir()?,
-    };
-    Some(runtime_dir.join("podman").join("podman.sock"))
-}
-
-/// Systemd-convention `/run/user/<uid>` on Linux; `None` on macOS /
-/// Windows (Podman Machine's socket is discoverable via
-/// `podman system connection list`; surfacing that is FU-005).
-#[cfg(target_os = "linux")]
-fn fallback_runtime_dir() -> Option<PathBuf> {
-    let uid = unsafe { libc_getuid() };
-    Some(PathBuf::from(format!("/run/user/{uid}")))
-}
-
-#[cfg(not(target_os = "linux"))]
-fn fallback_runtime_dir() -> Option<PathBuf> {
-    None
-}
-
-#[cfg(target_os = "linux")]
-extern "C" {
-    #[link_name = "getuid"]
-    fn libc_getuid() -> u32;
-}
-
-/// Probe a single Unix socket: connect, call `version()`, capture the
-/// response.
-async fn probe_socket(socket: &Path) -> Result<(Docker, Version), String> {
-    if !socket.exists() {
-        return Err(format!("socket {} does not exist", socket.display()));
-    }
-    let socket_str = socket
-        .to_str()
-        .ok_or_else(|| format!("socket path {} is not valid UTF-8", socket.display()))?;
-    let docker = Docker::connect_with_unix(
-        socket_str,
-        DOCKER_API_TIMEOUT_SECS,
-        bollard::API_DEFAULT_VERSION,
-    )
-    .map_err(|e| format!("bollard connect: {e}"))?;
-    match docker.version().await {
-        Ok(version) => Ok((docker, version)),
-        Err(e) => Err(format!("/version probe failed: {e}")),
+    /// Configured base image reference.
+    pub fn image(&self) -> &str {
+        &self.image
     }
 }
-
-const DOCKER_API_TIMEOUT_SECS: u64 = 4;
-
-/// Distinguish Podman from Docker by inspecting `Version`.
-///
-/// Podman's `Components` list contains an entry whose `Name` starts
-/// with `Podman Engine`. Docker's `Components` begin with `"Engine"`
-/// without that qualifier.
-fn classify_runtime(version: &Version) -> DetectedRuntime {
-    if let Some(components) = version.components.as_ref()
-        && components
-            .iter()
-            .any(|c| c.name.to_lowercase().contains("podman"))
-    {
-        return DetectedRuntime::Podman;
-    }
-    if let Some(platform) = version.platform.as_ref()
-        && platform.name.to_lowercase().contains("podman")
-    {
-        return DetectedRuntime::Podman;
-    }
-    DetectedRuntime::Docker
-}
-
-fn format_probe_failures(failures: &[ProbeFailure]) -> String {
-    if failures.is_empty() {
-        return PHASE_STATE_DIAGNOSTIC.into();
-    }
-    let mut buf = String::from(
-        "no reachable Docker-compatible socket (spec 185 §2.1 probe sequence); attempted: ",
-    );
-    for (i, f) in failures.iter().enumerate() {
-        if i > 0 {
-            buf.push_str(", ");
-        }
-        buf.push_str(&format!("{} ({})", f.socket.display(), f.reason));
-    }
-    buf
-}
-
-const PHASE_STATE_DIAGNOSTIC: &str =
-    "local-container backend connected to runtime; execute() lands in a follow-up phase (spec 185)";
 
 #[async_trait]
 impl SandboxClient for LocalContainerSandboxClient {
     async fn execute(
         &self,
-        _request: SandboxRequest,
+        request: SandboxRequest,
     ) -> Result<SandboxExecution, SandboxError> {
+        // Backend-specific admission rules first; FR-A1..FR-A5
+        // short-circuit before any container API call.
+        admission::check(&request)?;
+
         match &self.runtime {
             RuntimeState::Unavailable { diagnostic } => {
                 Err(SandboxError::Unavailable(diagnostic.clone()))
             }
-            RuntimeState::Connected { .. } => {
-                Err(SandboxError::Unavailable(PHASE_STATE_DIAGNOSTIC.into()))
+            RuntimeState::Connected {
+                docker,
+                runtime,
+                version,
+                ..
+            } => {
+                lifecycle::run(
+                    docker,
+                    &self.image,
+                    request,
+                    *runtime,
+                    version,
+                    env!("CARGO_PKG_VERSION"),
+                )
+                .await
             }
         }
     }
@@ -295,23 +174,25 @@ impl SandboxClient for LocalContainerSandboxClient {
 /// Backend identity. Surfaces via [`BackendDescriptor::name`] (spec 185 FR-002).
 pub const BACKEND_NAME: &str = "local-container";
 
+/// Default base image (spec 185 §2.2). Operator-configurable in FU-005;
+/// the configured image is the *only* image the backend will pull /
+/// resolve.
+pub const DEFAULT_IMAGE: &str = "docker.io/library/alpine:3.20";
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bollard::system::VersionComponents;
     use factory_contracts::sandbox::{
         EgressAllowlistEntry, IsolationTier, ResourceCeilings, SandboxRequest,
         DEFAULT_PID_LIMIT, DEFAULT_TTL_SECONDS,
     };
     use std::collections::BTreeMap;
 
-    fn request() -> SandboxRequest {
+    fn request_with_empty_allowlist() -> SandboxRequest {
         SandboxRequest {
             command: vec!["echo".into(), "hello".into()],
             input_artifacts: vec![],
-            egress_allowlist: vec![EgressAllowlistEntry {
-                hostname: "registry.npmjs.org".into(),
-            }],
+            egress_allowlist: vec![],
             ttl_seconds: DEFAULT_TTL_SECONDS,
             resource_ceilings: ResourceCeilings {
                 cpu_milli_limit: 500,
@@ -325,12 +206,23 @@ mod tests {
         }
     }
 
+    fn request_with_egress_allowlist() -> SandboxRequest {
+        let mut r = request_with_empty_allowlist();
+        r.egress_allowlist.push(EgressAllowlistEntry {
+            hostname: "registry.npmjs.org".into(),
+        });
+        r
+    }
+
     #[tokio::test]
     async fn no_candidates_returns_unavailable_with_diagnostic() {
         let client = LocalContainerSandboxClient::with_candidates(vec![]).await;
         assert!(!client.is_available());
         assert_eq!(client.detected_runtime(), None);
-        let err = client.execute(request()).await.unwrap_err();
+        let err = client
+            .execute(request_with_empty_allowlist())
+            .await
+            .unwrap_err();
         match err {
             SandboxError::Unavailable(msg) => {
                 assert!(msg.contains("no socket candidates"));
@@ -347,7 +239,10 @@ mod tests {
         ];
         let client = LocalContainerSandboxClient::with_candidates(bogus).await;
         assert!(!client.is_available());
-        let err = client.execute(request()).await.unwrap_err();
+        let err = client
+            .execute(request_with_empty_allowlist())
+            .await
+            .unwrap_err();
         match err {
             SandboxError::Unavailable(msg) => {
                 assert!(msg.contains("/tmp/oap-test-nonexistent-sock-a"));
@@ -361,14 +256,14 @@ mod tests {
 
     #[tokio::test]
     async fn socket_not_listening_yields_probe_failure() {
-        // Create a regular file at a path — it "exists" but is not a
-        // listening socket. The connect succeeds at the bollard layer
-        // but the /version HTTP call fails.
         let tmp = tempfile::NamedTempFile::new().unwrap();
         let candidates = vec![tmp.path().to_path_buf()];
         let client = LocalContainerSandboxClient::with_candidates(candidates).await;
         assert!(!client.is_available());
-        let err = client.execute(request()).await.unwrap_err();
+        let err = client
+            .execute(request_with_empty_allowlist())
+            .await
+            .unwrap_err();
         match err {
             SandboxError::Unavailable(msg) => {
                 assert!(msg.contains("/version probe failed"));
@@ -379,69 +274,46 @@ mod tests {
 
     #[test]
     fn backend_descriptor_reports_local_container() {
-        // The runtime identity is conveyed via runtime_descriptor in
-        // execute() outcomes (phase 3+), not via backend_descriptor.
-        // backend_descriptor stays stable across phases.
+        // Construct without async probe — the descriptor is stable
+        // across runtime states.
         let client = LocalContainerSandboxClient {
             runtime: RuntimeState::Unavailable {
                 diagnostic: "test".into(),
             },
+            image: DEFAULT_IMAGE.to_string(),
         };
         let descriptor = client.backend_descriptor();
         assert_eq!(descriptor.name, BACKEND_NAME);
         assert_eq!(descriptor.name, "local-container");
         assert!(!descriptor.version.is_empty());
+        assert_eq!(client.image(), DEFAULT_IMAGE);
     }
 
-    #[test]
-    fn detected_runtime_as_str() {
-        assert_eq!(DetectedRuntime::Docker.as_str(), "docker");
-        assert_eq!(DetectedRuntime::Podman.as_str(), "podman");
-    }
-
-    #[test]
-    fn classify_runtime_recognises_podman_component() {
-        let version = Version {
-            components: Some(vec![VersionComponents {
-                name: "Podman Engine".into(),
-                version: "4.9.0".into(),
-                details: None,
-            }]),
-            ..Default::default()
-        };
-        assert_eq!(classify_runtime(&version), DetectedRuntime::Podman);
-    }
-
-    #[test]
-    fn classify_runtime_defaults_to_docker() {
-        let version = Version {
-            components: Some(vec![VersionComponents {
-                name: "Engine".into(),
-                version: "28.0.0".into(),
-                details: None,
-            }]),
-            ..Default::default()
-        };
-        assert_eq!(classify_runtime(&version), DetectedRuntime::Docker);
-    }
-
-    #[test]
-    fn classify_runtime_recognises_podman_platform_name() {
-        let version = Version {
-            platform: Some(bollard::models::SystemVersionPlatform {
-                name: "podman".into(),
-            }),
-            ..Default::default()
-        };
-        assert_eq!(classify_runtime(&version), DetectedRuntime::Podman);
+    /// Admission rejects non-empty egress allowlist BEFORE any runtime
+    /// probe — this works even with a non-connected client.
+    #[tokio::test]
+    async fn egress_allowlist_rejected_at_admission_even_without_runtime() {
+        let client = LocalContainerSandboxClient::with_candidates(vec![]).await;
+        let err = client
+            .execute(request_with_egress_allowlist())
+            .await
+            .unwrap_err();
+        match err {
+            SandboxError::AdmissionRejected(msg) => {
+                assert!(msg.contains("FU-001"));
+                assert!(msg.contains("registry.npmjs.org"));
+            }
+            other => panic!("expected AdmissionRejected, got {other:?}"),
+        }
     }
 
     /// End-to-end with the spec 162 `exercise()` dispatcher — the
-    /// not-connected client still honours FR-009 fail-closed-by-default.
+    /// not-connected + invalid-admission client honours FR-009
+    /// fail-closed-by-default.
     #[tokio::test]
     async fn exercise_halts_on_unavailable() {
         let client = LocalContainerSandboxClient::with_candidates(vec![]).await;
-        let err = factory_engine::sandbox::exercise(&client, request())
+        let err = factory_engine::sandbox::exercise(&client, request_with_empty_allowlist())
             .await
             .unwrap_err();
         match err {
@@ -454,5 +326,28 @@ mod tests {
             }
             other => panic!("expected SandboxRefusal::unavailable, got {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn exercise_halts_on_admission_rejection() {
+        let client = LocalContainerSandboxClient::with_candidates(vec![]).await;
+        let err = factory_engine::sandbox::exercise(&client, request_with_egress_allowlist())
+            .await
+            .unwrap_err();
+        match err {
+            factory_engine::FactoryError::SandboxRefusal {
+                category,
+                diagnostic,
+            } => {
+                assert_eq!(category, "admission-rejected");
+                assert!(diagnostic.contains("FU-001"));
+            }
+            other => panic!("expected SandboxRefusal::admission-rejected, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn default_image_is_alpine_3_20() {
+        assert_eq!(DEFAULT_IMAGE, "docker.io/library/alpine:3.20");
     }
 }

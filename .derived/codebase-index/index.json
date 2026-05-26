@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "a4091bf2edbb41d333bbab9d8b170f2e704b41493bcfcbb424c69d6c7d479b0e",
+    "contentHash": "7b5849390007897df625d14df4ce18420984574866984ab84976e3e194afb287",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -457,10 +457,16 @@
       ],
       "externalDeps": [
         "async-trait",
+        "base64",
         "bollard",
+        "futures-util",
+        "sha2",
+        "tempfile",
         "thiserror",
         "tokio",
-        "tracing"
+        "tracing",
+        "uuid",
+        "walkdir"
       ],
       "internalDeps": [
         "factory-contracts",
@@ -41143,7 +41149,27 @@
             "source": "multiple"
           },
           {
+            "path": "crates/sandbox-local-container/src/admission.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-local-container/src/descriptor.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-local-container/src/hashing.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/sandbox-local-container/src/lib.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-local-container/src/lifecycle.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-local-container/src/runtime.rs",
             "source": "comment-header"
           }
         ],
@@ -41155,7 +41181,22 @@
                 "file": "crates/sandbox-local-container/Cargo.toml"
               },
               {
+                "file": "crates/sandbox-local-container/src/admission.rs"
+              },
+              {
+                "file": "crates/sandbox-local-container/src/descriptor.rs"
+              },
+              {
+                "file": "crates/sandbox-local-container/src/hashing.rs"
+              },
+              {
                 "file": "crates/sandbox-local-container/src/lib.rs"
+              },
+              {
+                "file": "crates/sandbox-local-container/src/lifecycle.rs"
+              },
+              {
+                "file": "crates/sandbox-local-container/src/runtime.rs"
               }
             ],
             "ownership": true,
