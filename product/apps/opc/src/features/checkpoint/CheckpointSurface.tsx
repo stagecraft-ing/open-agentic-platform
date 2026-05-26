@@ -289,14 +289,23 @@ export const CheckpointSurface: React.FC<CheckpointSurfaceProps> = ({ projectPat
 
   return (
     <div className="p-6 h-full flex flex-col gap-4 text-foreground">
-      <header className="flex flex-col gap-1">
+      <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <History className="h-6 w-6" />
-          Checkpoint / Restore
+          Repo Snapshots
         </h1>
         <p className="text-sm text-muted-foreground">
-          Create, list, restore, diff, and verify project checkpoints.
+          Create, list, restore, diff, and verify full-repo snapshots.
         </p>
+        <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-1.5 max-w-3xl">
+          <p className="text-xs text-foreground">
+            <span className="font-medium">What this is.</span>{' '}
+            A repo snapshot captures the entire working tree as a Merkle-hashed archive (excluding <code>.git</code>, <code>node_modules</code>, <code>target</code>). Snapshots are stored by axiomregent, scoped to the repo root — independent of any Claude conversation. Use them for verifiable governance, full-tree diffs across long timeframes, and restoring repo state across sessions.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            <span className="font-medium">Not to be confused with Conversation Snapshots</span> — those auto-track only the files Claude edits inside one chat and rewind the conversation alongside the files. Find that surface via the <em>Settings</em> (cog) icon in the composer.
+          </p>
+        </div>
       </header>
 
       {/* Init controls — always visible so user can switch projects */}

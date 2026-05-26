@@ -67,7 +67,7 @@ export const ToolsPopover: React.FC<ToolsPopoverProps> = ({ projectPath }) => {
     { key: 'governance', icon: Shield, label: 'Governance', run: () => createGovernanceTab(projectPath) },
     { key: 'semantic-search', icon: Search, label: 'Search', run: () => createSemanticSearchTab(projectPath) },
     { key: 'call-graph', icon: Share2, label: 'Call Graph', run: () => createCallGraphTab(projectPath) },
-    { key: 'checkpoint', icon: History, label: 'Checkpoint', run: () => createCheckpointTab(projectPath) },
+    { key: 'checkpoint', icon: History, label: 'Repo Snapshots', run: () => createCheckpointTab(projectPath) },
     { key: 'live-sessions', icon: Activity, label: 'Live', run: () => createLiveSessionsTab(projectPath) },
     { key: 'portfolio', icon: LayoutGrid, label: 'Portfolio', run: () => createPortfolioTab(projectPath) },
     { key: 'promotion', icon: ShieldCheck, label: 'Promotion', run: () => createPromotionTab(projectPath) },

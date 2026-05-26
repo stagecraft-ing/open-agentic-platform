@@ -7,6 +7,7 @@ import {
   ChevronUp,
   X,
   Hash,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { Button } from "@opc/ui/button";
 import { Input } from "@opc/ui/input";
@@ -22,6 +23,7 @@ import { FloatingPromptInput, type FloatingPromptInputRef } from "./FloatingProm
 import { ErrorBoundary } from "./ErrorBoundary";
 import { TimelineNavigator } from "./TimelineNavigator";
 import { SlashCommandsManager } from "./SlashCommandsManager";
+import { CheckpointSettings } from "./CheckpointSettings";
 import { ToolsPopover } from "./ToolsPopover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@opc/ui/dialog";
 import { TooltipProvider, TooltipSimple } from "@opc/ui/tooltip-modern";
@@ -97,6 +99,7 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
   const [claudeSessionId, setClaudeSessionId] = useState<string | null>(null);
   const [showTimeline, setShowTimeline] = useState(false);
   const [timelineVersion, setTimelineVersion] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
   const [showForkDialog, setShowForkDialog] = useState(false);
   const [showSlashCommandsSettings, setShowSlashCommandsSettings] = useState(false);
   const [forkCheckpointId, setForkCheckpointId] = useState<string | null>(null);
@@ -1636,6 +1639,23 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
                       align="end"
                     />
                   )}
+                  {effectiveSession && (
+                    <TooltipSimple content="Conversation Snapshots" side="top">
+                      <motion.div
+                        whileTap={{ scale: 0.97 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setShowSettings(!showSettings)}
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        >
+                          <SettingsIcon className={cn("h-3.5 w-3.5", showSettings && "text-primary")} />
+                        </Button>
+                      </motion.div>
+                    </TooltipSimple>
+                  )}
                   <ToolsPopover projectPath={projectPath} />
                 </>
               }
@@ -1757,6 +1777,20 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Conversation Snapshots — per-session checkpoint settings */}
+      {showSettings && effectiveSession && (
+        <Dialog open={showSettings} onOpenChange={setShowSettings}>
+          <DialogContent className="max-w-2xl">
+            <CheckpointSettings
+              sessionId={effectiveSession.id}
+              projectId={effectiveSession.project_id}
+              projectPath={projectPath}
+              onClose={() => setShowSettings(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Slash Commands Settings Dialog */}
       {showSlashCommandsSettings && (

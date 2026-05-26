@@ -143,10 +143,27 @@ export const CheckpointSettings: React.FC<CheckpointSettingsProps> = ({
             <Wrench className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <h3 className="text-heading-4 font-semibold">Checkpoint Settings</h3>
-            <p className="text-caption text-muted-foreground mt-0.5">Manage session checkpoints and recovery</p>
+            <h3 className="text-heading-4 font-semibold">Conversation Snapshots</h3>
+            <p className="text-caption text-muted-foreground mt-0.5">
+              Auto-snapshot the files Claude edits in this chat, so you can rewind both the conversation and the working tree together.
+            </p>
           </div>
         </div>
+      </div>
+
+      {/* Discovery blurb */}
+      <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-1.5">
+        <p className="text-caption text-foreground">
+          <span className="font-medium">What this is.</span>{' '}
+          A conversation snapshot captures the files Claude touched during this chat plus the message log at that moment. Restoring rewinds <span className="font-medium">both</span> together — useful for unwinding a bad refactor or forking strategies mid-conversation.
+        </p>
+        <p className="text-caption text-muted-foreground">
+          <span className="font-medium">Where to find them.</span>{' '}
+          This panel configures <em>when</em> snapshots are taken (strategy, cleanup quota). To browse and restore actual snapshots, use the <span className="font-medium">Session Timeline</span> (GitBranch icon in the composer toolbar).
+        </p>
+        <p className="text-caption text-muted-foreground">
+          <span className="font-medium">Not to be confused with Repo Snapshots</span> — those are full-repo Merkle-hashed snapshots produced by axiomregent, scoped to the repo root (not your conversation). Open them via the <em>Repo Snapshots</em> tile in the Tools popover.
+        </p>
       </div>
 
       {/* Experimental Feature Warning */}
