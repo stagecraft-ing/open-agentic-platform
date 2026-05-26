@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5b679550568092b62e6efd39dc5678b0453293df4307e5c728731ddc21955d91",
+    "contentHash": "c8b32398d725918b004a15b788fd5bd3aad081ca03b80710ae92ce63ea0c0809",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -41270,7 +41270,7 @@
           }
         ],
         "specId": "184-claude-shared-config-governance",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -41410,6 +41410,55 @@
         ],
         "specId": "185-sandbox-local-container-backend",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "032",
+          "073",
+          "087",
+          "134",
+          "147",
+          "177",
+          "183"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/183-opc-boot-precondition-gate/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/183-opc-boot-precondition-gate/spec.md"
+            }
+          }
+        ],
+        "specId": "186-opc-e2e-test-harness",
+        "specStatus": "draft"
       },
       {
         "dependsOn": [
