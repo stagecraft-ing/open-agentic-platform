@@ -41169,6 +41169,10 @@
             "source": "comment-header"
           },
           {
+            "path": "crates/sandbox-local-container/src/peak.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/sandbox-local-container/src/runtime.rs",
             "source": "comment-header"
           }
@@ -41194,6 +41198,9 @@
               },
               {
                 "file": "crates/sandbox-local-container/src/lifecycle.rs"
+              },
+              {
+                "file": "crates/sandbox-local-container/src/peak.rs"
               },
               {
                 "file": "crates/sandbox-local-container/src/runtime.rs"

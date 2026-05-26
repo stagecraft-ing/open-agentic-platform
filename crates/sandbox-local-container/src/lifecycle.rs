@@ -17,12 +17,13 @@ use bollard::container::{
 };
 use bollard::models::{HostConfig, Mount, MountTypeEnum};
 use bollard::system::Version;
-use factory_contracts::sandbox::{IsolationTier, ResourcePeak, SandboxExecution, SandboxRequest};
+use factory_contracts::sandbox::{IsolationTier, SandboxExecution, SandboxRequest};
 use factory_engine::sandbox::SandboxError;
 use futures_util::StreamExt;
 
 use crate::descriptor;
 use crate::hashing;
+use crate::peak::PeakTracker;
 use crate::runtime::DetectedRuntime;
 
 /// In-container path the writable output mount lands at.
@@ -129,6 +130,11 @@ async fn run_inner(
         .await
         .map_err(|e| SandboxError::ExecutionFailure(format!("start_container: {e}")))?;
 
+    // 2a. Spawn the resource-peak polling task (FR-008). Drains
+    //     docker.stats while the container is running; aborted after
+    //     wait completes.
+    let peak_tracker = PeakTracker::spawn(docker.clone(), container_name.to_string());
+
     // 3. Wait with TTL.
     let ttl = Duration::from_secs(request.ttl_seconds as u64);
     let mut wait_stream = docker.wait_container::<String>(container_name, None);
@@ -160,19 +166,24 @@ async fn run_inner(
         }
     };
 
-    // 4. Hash output directory.
+    // 4. Stop polling and read peaks. Order matters: collect the peak
+    //    BEFORE removing the container, so a late-arriving stats sample
+    //    can still land in the tracker.
+    let resource_peak = peak_tracker.finish().await;
+
+    // 5. Hash output directory.
     let output_artifact_hashes = hashing::hash_output_dir(output_host_dir)
         .await
         .map_err(|e| SandboxError::ExecutionFailure(format!("hash output dir: {e}")))?;
 
-    // 5. Build runtime descriptor.
+    // 6. Build runtime descriptor.
     let runtime_descriptor = descriptor::build(backend_version, runtime, version);
 
     Ok(SandboxExecution {
         command: request.command,
         input_artifact_hashes: BTreeMap::new(), // Phase 1 admission rejects non-empty input_artifacts.
         output_artifact_hashes,
-        resource_peak: ResourcePeak::default(), // populated by phase 4 polling.
+        resource_peak,
         isolation_tier: IsolationTier::RestrictedContainer,
         runtime_descriptor,
         deadline_hit,

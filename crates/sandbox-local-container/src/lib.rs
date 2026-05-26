@@ -22,6 +22,7 @@ mod admission;
 mod descriptor;
 mod hashing;
 mod lifecycle;
+mod peak;
 mod runtime;
 
 use async_trait::async_trait;
