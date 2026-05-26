@@ -2,8 +2,8 @@
 id: "186-sandbox-k8s-backend"
 slug: sandbox-k8s-backend
 title: "K8s sandbox backend — kube-rs + PodSecurity + RuntimeClass selection (companion to spec 162 ASI05)"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-26"
 kind: capability

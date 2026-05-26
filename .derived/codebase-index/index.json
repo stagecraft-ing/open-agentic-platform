@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "ab0dc1fa93f544c123d9f9c209c43ef53ac0f349b29194cb0e6c33153cd61a17",
+    "contentHash": "2b23c775cadb5b92b868211d0a3ee8a492ca9cbef7a2b97ba948bed817ec4faf",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -41587,7 +41587,7 @@
           }
         ],
         "specId": "186-sandbox-k8s-backend",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [

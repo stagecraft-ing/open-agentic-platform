@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:54090f400433b8e606222e3d9d3d2c10bdf148af59b22f8c979f09abd9f913a1",
+  "graph_fingerprint": "sha256:767dacecb62f2b9d893ba5ef5ef641ad7fbba3bf5a76a4b368c3551e17601483",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3529,8 +3529,8 @@
       "feature_id": "186-sandbox-k8s-backend",
       "title": "K8s sandbox backend — kube-rs + PodSecurity + RuntimeClass selection (companion to spec 162 ASI05)",
       "spec_path": "specs/186-sandbox-k8s-backend/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",
