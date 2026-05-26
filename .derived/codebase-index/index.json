@@ -41204,6 +41204,9 @@
               },
               {
                 "file": "crates/sandbox-local-container/src/runtime.rs"
+              },
+              {
+                "file": "crates/sandbox-local-container/tests/integration_runtime.rs"
               }
             ],
             "ownership": true,
