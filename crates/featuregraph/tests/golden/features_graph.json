@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:01ed3d9e1356bb3b0ba54f9c9578da4e871ceb8500b8e0994ca16d7eb2c64581",
+  "graph_fingerprint": "sha256:1835cf6feb08c5e2d410dd93013d0883c6008dd67e6f19311806b8125d15295d",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3048,8 +3048,8 @@
       "feature_id": "162-sandbox-execution-contract",
       "title": "Sandbox execution contract — ephemeral isolation invariants for factory-engine adapter codegen (ASI05)",
       "spec_path": "specs/162-sandbox-execution-contract/spec.md",
-      "status": "draft",
-      "implementation": "in-progress",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "high",
       "owner": "bart",
       "group": "",
@@ -3503,6 +3503,24 @@
       "owner": "bart",
       "group": "",
       "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "185-sandbox-local-container-backend",
+      "title": "Local-container sandbox backend — rootless Podman / Docker via bollard (companion to spec 162 ASI05)",
+      "spec_path": "specs/185-sandbox-local-container-backend/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "162",
+        "075",
+        "102"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []
@@ -4284,6 +4302,62 @@
       "severity": "error",
       "path": "crates/provenance-validator/tests/validator_tests.rs",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-001 to FR-005, FR-036 to FR-039",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-local-container/src/admission.rs",
+      "message": "Malformed Spec directive: // Spec: specs/185-sandbox-local-container-backend/spec.md — §3 FR-A1..FR-A4",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-local-container/src/descriptor.rs",
+      "message": "Malformed Spec directive: // Spec: specs/185-sandbox-local-container-backend/spec.md — §3 FR-010",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-local-container/src/hashing.rs",
+      "message": "Malformed Spec directive: // Spec: specs/185-sandbox-local-container-backend/spec.md — §3 FR-009",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-local-container/src/lib.rs",
+      "message": "Malformed Spec directive: // Spec: specs/185-sandbox-local-container-backend/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-local-container/src/lifecycle.rs",
+      "message": "Malformed Spec directive: // Spec: specs/185-sandbox-local-container-backend/spec.md — §2.3, §3 FR-004..FR-010",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-local-container/src/peak.rs",
+      "message": "Malformed Spec directive: // Spec: specs/185-sandbox-local-container-backend/spec.md — §3 FR-008",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-local-container/src/runtime.rs",
+      "message": "Malformed Spec directive: // Spec: specs/185-sandbox-local-container-backend/spec.md — §2.1, FR-001",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-local-container/tests/integration_runtime.rs",
+      "message": "Malformed Spec directive: // Spec: specs/185-sandbox-local-container-backend/spec.md — §4 SC-001..SC-008",
       "suggested_fix": "Fix header format"
     },
     {

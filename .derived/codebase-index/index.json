@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "75aa9f158cea55cad09f541d21b772629985d043b7857a201c136e63701cb365",
+    "contentHash": "128996a7f699e48b2c5d51a130489eb7e216f41e0f7ea69b94be4de73e96927e",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -448,6 +448,34 @@
       "name": "run",
       "path": "crates/run",
       "specRef": "052-state-persistence",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "async-trait",
+        "base64",
+        "bollard",
+        "futures-util",
+        "sha2",
+        "tempfile",
+        "thiserror",
+        "tokio",
+        "tracing",
+        "uuid",
+        "walkdir"
+      ],
+      "internalDeps": [
+        "factory-contracts",
+        "factory-engine"
+      ],
+      "kind": "rust-lib",
+      "name": "sandbox-local-container",
+      "path": "crates/sandbox-local-container",
+      "specRef": "185-sandbox-local-container-backend",
       "version": "0.1.0"
     },
     {
@@ -32824,7 +32852,7 @@
           }
         ],
         "specId": "162-sandbox-execution-contract",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -41113,6 +41141,145 @@
         ],
         "specId": "184-claude-shared-config-governance",
         "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "075",
+          "102",
+          "162"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/sandbox-local-container",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/sandbox-local-container/src/admission.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-local-container/src/descriptor.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-local-container/src/hashing.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-local-container/src/lib.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-local-container/src/lifecycle.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-local-container/src/peak.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-local-container/src/runtime.rs",
+            "source": "comment-header"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "crates/sandbox-local-container/Cargo.toml"
+              },
+              {
+                "file": "crates/sandbox-local-container/src/admission.rs"
+              },
+              {
+                "file": "crates/sandbox-local-container/src/descriptor.rs"
+              },
+              {
+                "file": "crates/sandbox-local-container/src/hashing.rs"
+              },
+              {
+                "file": "crates/sandbox-local-container/src/lib.rs"
+              },
+              {
+                "file": "crates/sandbox-local-container/src/lifecycle.rs"
+              },
+              {
+                "file": "crates/sandbox-local-container/src/peak.rs"
+              },
+              {
+                "file": "crates/sandbox-local-container/src/runtime.rs"
+              },
+              {
+                "file": "crates/sandbox-local-container/tests/integration_runtime.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "crates/sandbox-local-container"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/075-factory-workflow-engine/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/075-factory-workflow-engine/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/102-governed-excellence/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/102-governed-excellence/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/162-sandbox-execution-contract/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/162-sandbox-execution-contract/spec.md"
+            }
+          }
+        ],
+        "specId": "185-sandbox-local-container-backend",
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [

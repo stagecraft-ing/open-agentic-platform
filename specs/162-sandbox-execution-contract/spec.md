@@ -2,8 +2,8 @@
 id: "162-sandbox-execution-contract"
 slug: sandbox-execution-contract
 title: "Sandbox execution contract — ephemeral isolation invariants for factory-engine adapter codegen (ASI05)"
-status: draft
-implementation: in-progress
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-22"
 amended: "2026-05-23"
@@ -386,7 +386,9 @@ invariant holds.
   `SandboxClient::execute` call (FR-009 enforcement at the
   exercise dispatcher).
 - The certificate hash algorithm that includes the new fields
-  (bumped `certificate_version: 1.2.0`).
+  (the certificate version was 1.2.0 at the time this spec was first
+  drafted; spec 170's signed-manifest chain bumped it past that, so
+  the landed code targets `certificate_version: 1.3.0`).
 - Unit tests for: type serde round-trips, fail-closed contract
   test, certificate canonical-hash determinism with the new
   stage shape.
@@ -456,11 +458,13 @@ is the structural mitigation; backends are operational delivery.
 - **`platform/k8s/policies/namespace-baseline/`** — precedent
   for the K8s backend (network deny + resource quotas + limit
   range), not normative for the contract.
-- **Companion (not yet filed) — local-container sandbox backend.**
-  Rootless Podman / Docker via `bollard`. Distinct draft.
+- **Spec 185 — local-container sandbox backend.** Rootless
+  Podman / Docker via `bollard`. Lands the Surface A (developer
+  workstation / OPC-laptop) execution path. Filed and landed
+  together with this spec's frontmatter flip.
 - **Companion (not yet filed) — K8s sandbox backend.** kube-rs
-  + PodSecurity admission + RuntimeClass selection. Distinct
-  draft.
+  + PodSecurity admission + RuntimeClass selection. Hits the
+  Surface B (CI / control-plane) execution path. Distinct draft.
 
 ## 8. Reframe history (amendment record)
 
