@@ -2,8 +2,8 @@
 id: "183-opc-boot-precondition-gate"
 slug: opc-boot-precondition-gate
 title: "OPC boot precondition gate — sidecar liveness + materialised org session, with precondition-loss restore"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-25"
 kind: governance
