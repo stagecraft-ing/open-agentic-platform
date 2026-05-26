@@ -2,8 +2,8 @@
 id: "184-claude-shared-config-governance"
 slug: claude-shared-config-governance
 title: "Claude Code shared config governance — .mcp.json and .claude/settings.json as hashed inputs"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-25"
 kind: amendment

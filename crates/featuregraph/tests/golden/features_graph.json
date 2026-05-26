@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:21568f43a9405b016e57de123e656dba7eeb6dc336873b79a159087ea593f401",
+  "graph_fingerprint": "sha256:62aea6b05a4e5109309724b18d2cd3254277471f5d86ce2478ac4fc6ea43c367",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3497,8 +3497,8 @@
       "feature_id": "184-claude-shared-config-governance",
       "title": "Claude Code shared config governance — .mcp.json and .claude/settings.json as hashed inputs",
       "spec_path": "specs/184-claude-shared-config-governance/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "low",
       "owner": "bart",
       "group": "",

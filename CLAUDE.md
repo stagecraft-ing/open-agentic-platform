@@ -121,8 +121,14 @@ path-scoped rules so they only load when relevant:
 - **`.claude/skills/`** — primary surface for slash commands (post-spec-182). One folder per skill, each containing a `SKILL.md` entrypoint. Ten skills today: /init, /setup, /commit, /code-review, /review-branch, /implement-plan, /research, /validate-and-fix, /cleanup, /refactor-claude-md. The folder form supports bundling sibling files (fixtures, checklists, sub-prompts) alongside `SKILL.md`.
 - **`.claude/commands/`** — legacy single-file form (per spec 182). Retained during the migration's transition window so any contributor with staged work doesn't land in an inconsistent state. Will be retired in spec 182's follow-up deprecation PR.
 - **`.claude/rules/`** — Reusable rule files (loaded automatically; `paths:` frontmatter scopes some to specific file types)
+- **`.claude/settings.json`** — Permissions allow/deny, hooks, statusLine, outputStyle, env, model. **Hashed by the codebase indexer per spec 184** — edits trip the staleness gate the same as a `Cargo.toml` or workflow YAML edit. This closes the self-governance loop: the PostToolUse hook glob inside this file guards every other hashed input, so a quiet edit to the glob is now visible in the index diff. Reviewers must still judge whether an edit *narrowed* or *broadened* the protected set — content-hashing surfaces the change, it does not classify its direction (spec 184 AC-7).
+- **`.mcp.json`** (project root) — Team-shared MCP server config consumed by Claude Code. **Hashed by the codebase indexer per spec 184** — a quiet edit to MCP server configuration is no longer invisible across team members.
 - **`AGENTS.md`** — Cross-agent session-init protocol authority (read by Claude Code, Codex CLI, Cursor, GitHub Copilot via the AAIF/Linux Foundation AGENTS.md standard). `.claude/skills/init/SKILL.md` is a thin Claude-Code dispatcher that reads AGENTS.md; the protocol body lives at AGENTS.md only.
 - **`CLAUDE.md`** — Scoped at root, `platform/`, and `platform/services/stagecraft/`
+
+### Edit discipline for hashed JSON configs
+
+`.claude/settings.json` and `.mcp.json` are hashed byte-for-byte. Editor reformatting (different prettier config, re-indent, line-ending normalization) trips the staleness gate even when JSON semantics are unchanged. **Edit these files in place; do not reformat them.** Hook command bodies inside `settings.json` are whitespace-sensitive shell strings, so the indexer cannot "smart-hash" past whitespace without silently allowing shell-command drift (spec 184 §Risk).
 
 ### Worktree posture
 

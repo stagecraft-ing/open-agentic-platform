@@ -609,6 +609,23 @@ fn collect_input_files(
         files.push(allowlist);
     }
 
+    // Claude Code shared MCP server config (spec 184). Team-shared MCP server
+    // config at the repo root — a quiet edit changes Claude Code behavior for
+    // every team member on next session start.
+    let mcp_config = repo_root.join(".mcp.json");
+    if mcp_config.is_file() {
+        files.push(mcp_config);
+    }
+
+    // Claude Code shared settings (spec 184). Permissions allow/deny, hooks,
+    // statusLine, outputStyle, env, model. Hashing this file closes the self-
+    // governance loop: editing the PostToolUse hook glob — which guards every
+    // other hashed input — now itself trips the staleness gate.
+    let claude_settings = repo_root.join(".claude/settings.json");
+    if claude_settings.is_file() {
+        files.push(claude_settings);
+    }
+
     files.sort();
     files.dedup();
     files

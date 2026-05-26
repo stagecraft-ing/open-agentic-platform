@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "2d23eb591757d828efe3c479954c0e930183709fd3d5aaf81d77518f06ae58df",
+    "contentHash": "c8b32398d725918b004a15b788fd5bd3aad081ca03b80710ae92ce63ea0c0809",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -21328,6 +21328,9 @@
                 "file": "tools/spec-spine/codebase-indexer/tests/spec156_provenance.rs"
               },
               {
+                "file": "tools/spec-spine/codebase-indexer/tests/spec184_shared_config_inputs.rs"
+              },
+              {
                 "file": "tools/spec-spine/codebase-indexer/workflow-allowlist.toml"
               }
             ],
@@ -24835,6 +24838,9 @@
               },
               {
                 "file": "tools/spec-spine/codebase-indexer/tests/spec156_provenance.rs"
+              },
+              {
+                "file": "tools/spec-spine/codebase-indexer/tests/spec184_shared_config_inputs.rs"
               },
               {
                 "file": "tools/spec-spine/codebase-indexer/workflow-allowlist.toml"
@@ -30162,6 +30168,9 @@
               },
               {
                 "file": "tools/spec-spine/codebase-indexer/tests/spec156_provenance.rs"
+              },
+              {
+                "file": "tools/spec-spine/codebase-indexer/tests/spec184_shared_config_inputs.rs"
               },
               {
                 "file": "tools/spec-spine/codebase-indexer/workflow-allowlist.toml"
@@ -41261,7 +41270,7 @@
           }
         ],
         "specId": "184-claude-shared-config-governance",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
