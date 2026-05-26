@@ -564,8 +564,17 @@ fn collect_input_files(
         }
     }
 
-    // .claude/ agents, commands, rules
-    for subdir in &[".claude/agents", ".claude/commands", ".claude/rules"] {
+    // .claude/ agents, commands, rules, skills (spec 182: union, not swap —
+    // `.claude/commands/` stays in the walk during the migration's transition
+    // window; `.claude/skills/<name>/SKILL.md` is the primary surface post-
+    // spec-182). collect_md_files recursively gathers *.md files, so the
+    // per-skill subdirectories are walked automatically.
+    for subdir in &[
+        ".claude/agents",
+        ".claude/commands",
+        ".claude/rules",
+        ".claude/skills",
+    ] {
         let dir = repo_root.join(subdir);
         if dir.is_dir() {
             collect_md_files(&dir, &mut files);
