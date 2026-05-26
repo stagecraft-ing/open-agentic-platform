@@ -30,8 +30,10 @@ extends:
   #   - new Tauri command surfaces (list_live_sessions,
   #     get_live_session_thresholds, force_disconnect_session) wired
   #     through commands/mod.rs and lib.rs,
-  #   - a new tab type / tab factory / TabContent case / ProjectToolbar
-  #     entry on the frontend.
+  #   - a new tab type / tab factory / TabContent case / ToolsPopover
+  #     entry on the frontend (Issue 4, 2026-05-26: the toolbar was
+  #     superseded by a wrench-anchored popover in the composer; the
+  #     Live Sessions tile lives in ToolsPopover.tsx).
   # No behavioural change to spec 032's own claims.
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
@@ -53,7 +55,7 @@ extends:
     unit: { kind: file, path: product/apps/opc/src/components/TabContent.tsx }
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
-    unit: { kind: file, path: product/apps/opc/src/components/ProjectToolbar.tsx }
+    unit: { kind: file, path: product/apps/opc/src/components/ToolsPopover.tsx }
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
     unit: { kind: file, path: product/apps/opc/src/contexts/TabContext.tsx }

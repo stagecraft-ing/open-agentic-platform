@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
+import {
   Copy,
   ChevronDown,
   GitBranch,
   ChevronUp,
   X,
   Hash,
-  Wrench
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { Button } from "@opc/ui/button";
 import { Input } from "@opc/ui/input";
@@ -22,8 +22,9 @@ import { StreamMessage } from "./StreamMessage";
 import { FloatingPromptInput, type FloatingPromptInputRef } from "./FloatingPromptInput";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { TimelineNavigator } from "./TimelineNavigator";
-import { CheckpointSettings } from "./CheckpointSettings";
 import { SlashCommandsManager } from "./SlashCommandsManager";
+import { CheckpointSettings } from "./CheckpointSettings";
+import { ToolsPopover } from "./ToolsPopover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@opc/ui/dialog";
 import { TooltipProvider, TooltipSimple } from "@opc/ui/tooltip-modern";
 import { SplitPane } from "@opc/ui/split-pane";
@@ -1578,7 +1579,7 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
               extraMenuItems={
                 <>
                   {effectiveSession && (
-                    <TooltipSimple content="Session Timeline" side="top">
+                    <TooltipSimple content="Conversation Snapshots Timeline" side="top">
                       <motion.div
                         whileTap={{ scale: 0.97 }}
                         transition={{ duration: 0.15 }}
@@ -1638,21 +1639,24 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
                       align="end"
                     />
                   )}
-                  <TooltipSimple content="Checkpoint Settings" side="top">
-                    <motion.div
-                      whileTap={{ scale: 0.97 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setShowSettings(!showSettings)}
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  {effectiveSession && (
+                    <TooltipSimple content="Conversation Snapshots" side="top">
+                      <motion.div
+                        whileTap={{ scale: 0.97 }}
+                        transition={{ duration: 0.15 }}
                       >
-                        <Wrench className={cn("h-3.5 w-3.5", showSettings && "text-primary")} />
-                      </Button>
-                    </motion.div>
-                  </TooltipSimple>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setShowSettings(!showSettings)}
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        >
+                          <SettingsIcon className={cn("h-3.5 w-3.5", showSettings && "text-primary")} />
+                        </Button>
+                      </motion.div>
+                    </TooltipSimple>
+                  )}
+                  <ToolsPopover projectPath={projectPath} />
                 </>
               }
             />
@@ -1694,7 +1698,7 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
               <div className="h-full flex flex-col">
                 {/* Timeline Header */}
                 <div className="flex items-center justify-between p-4 border-b border-border">
-                  <h3 className="text-lg font-semibold">Session Timeline</h3>
+                  <h3 className="text-lg font-semibold">Conversation Snapshots Timeline</h3>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -1774,7 +1778,7 @@ export const ClaudeCodeSession: React.FC<ClaudeCodeSessionProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Settings Dialog */}
+      {/* Conversation Snapshots — per-session checkpoint settings */}
       {showSettings && effectiveSession && (
         <Dialog open={showSettings} onOpenChange={setShowSettings}>
           <DialogContent className="max-w-2xl">
