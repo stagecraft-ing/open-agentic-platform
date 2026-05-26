@@ -26,6 +26,8 @@ import { StorageTab } from "./StorageTab";
 import { HooksEditor } from "./HooksEditor";
 import { SlashCommandsManager } from "./SlashCommandsManager";
 import { ProxySettings } from "./ProxySettings";
+import { Agents } from "./Agents";
+import { MCPManager } from "./MCPManager";
 import { ScopeSelector, type SettingsScope, scopeKey } from "./ScopeSelector";
 import { useOpenProjects } from "@/hooks/useOpenProjects";
 import { useScopedSettings } from "@/hooks/useScopedSettings";
@@ -267,13 +269,15 @@ export const Settings: React.FC<SettingsProps> = ({
       ) : (
         <div className="flex-1 overflow-y-auto p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-8 w-full mb-6 h-auto p-1">
+            <TabsList className="grid grid-cols-10 w-full mb-6 h-auto p-1">
               <TabsTrigger value="general" className="py-2.5 px-3">General</TabsTrigger>
               <TabsTrigger value="permissions" className="py-2.5 px-3">Permissions</TabsTrigger>
               <TabsTrigger value="environment" className="py-2.5 px-3">Environment</TabsTrigger>
               <TabsTrigger value="advanced" className="py-2.5 px-3" disabled={isProjectScope}>Advanced</TabsTrigger>
               <TabsTrigger value="hooks" className="py-2.5 px-3">Hooks</TabsTrigger>
               <TabsTrigger value="commands" className="py-2.5 px-3">Commands</TabsTrigger>
+              <TabsTrigger value="agents" className="py-2.5 px-3">Agents</TabsTrigger>
+              <TabsTrigger value="mcp" className="py-2.5 px-3">MCP Servers</TabsTrigger>
               <TabsTrigger value="storage" className="py-2.5 px-3" disabled={isProjectScope}>Storage</TabsTrigger>
               <TabsTrigger value="proxy" className="py-2.5 px-3" disabled={isProjectScope}>Proxy</TabsTrigger>
             </TabsList>
@@ -1024,7 +1028,23 @@ export const Settings: React.FC<SettingsProps> = ({
                 />
               </Card>
             </TabsContent>
-            
+
+            {/* Agents Tab */}
+            <TabsContent value="agents">
+              <Card className="p-6">
+                <Agents
+                  projectPath={selectedScope.type !== 'user' ? (selectedScope as any).projectPath : undefined}
+                />
+              </Card>
+            </TabsContent>
+
+            {/* MCP Servers Tab */}
+            <TabsContent value="mcp">
+              <Card className="p-6">
+                <MCPManager onBack={() => {}} />
+              </Card>
+            </TabsContent>
+
             {/* Storage Tab */}
             <TabsContent value="storage">
               <StorageTab />
