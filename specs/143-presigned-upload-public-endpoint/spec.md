@@ -2240,7 +2240,18 @@ the trust that markdown matches truth.
   uploaded files; raw-JSON toggle for operator inspection.
 
 - **FU-018 — Knowledge object detail page wastes horizontal
-  space.** Surfaced 2026-05-10 during FU-015 cluster validation.
+  space.** *Closed 2026-05-26 — landed two-column grid
+  `md:grid-cols-[minmax(280px,360px)_1fr]` with a sticky
+  metadata sidebar (`md:sticky md:top-6 md:self-start`)
+  carrying filename header, state badge, progress bar, and
+  the `MetaRow` dl-block; main panel carries extraction
+  status / actions / preview / extraction output /
+  classification. `MetaRow` repositioned label-above-value
+  with `font-mono` values because the narrow sidebar
+  truncates the previous 3-col `sm:grid` layout. Stacks
+  below `md` via the responsive grid. Outer container widened
+  from `max-w-3xl` to `max-w-7xl` to give the two-column
+  layout room.* Surfaced 2026-05-10 during FU-015 cluster validation.
 
   *Target layout.* Two-column at `≥md` breakpoint:
   `[~320–400px sidebar | 1fr panel]`. Sidebar carries

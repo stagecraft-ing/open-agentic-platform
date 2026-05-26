@@ -139,7 +139,7 @@ export default function KnowledgeObjectDetail() {
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-7xl space-y-6">
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 dark:text-gray-400">
         <Link
@@ -154,10 +154,19 @@ export default function KnowledgeObjectDetail() {
         </span>
       </nav>
 
+      {/* Spec 143 §12 FU-018 — two-column layout at ≥md.
+          Left: sticky metadata sidebar (filename/state/progress/MetaRow block).
+          Right: actions + extraction output + classification.
+          Stacks below md. */}
+      <div className="grid gap-6 md:grid-cols-[minmax(280px,360px)_1fr]">
+
+      {/* Sidebar (metadata) */}
+      <aside className="space-y-6 md:sticky md:top-6 md:self-start">
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 break-words">
             {object.filename}
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -165,7 +174,7 @@ export default function KnowledgeObjectDetail() {
           </p>
         </div>
         <span
-          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${STATE_COLORS[object.state] ?? "bg-gray-100 text-gray-800"}`}
+          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${STATE_COLORS[object.state] ?? "bg-gray-100 text-gray-800"}`}
         >
           {object.state}
         </span>
@@ -186,7 +195,7 @@ export default function KnowledgeObjectDetail() {
                 }`}
               />
               <span
-                className={`text-xs ${
+                className={`text-[10px] ${
                   isPast
                     ? "text-gray-900 dark:text-gray-100 font-medium"
                     : "text-gray-400 dark:text-gray-500"
@@ -198,6 +207,38 @@ export default function KnowledgeObjectDetail() {
           );
         })}
       </div>
+
+      {/* Metadata */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <dl className="divide-y divide-gray-200 dark:divide-gray-700">
+          <MetaRow label="ID" value={object.id} />
+          <MetaRow label="Storage Key" value={object.storageKey} />
+          <MetaRow label="Content Hash (SHA-256)" value={object.contentHash} />
+          <MetaRow label="Source Type" value={provenance?.sourceType ?? "—"} />
+          <MetaRow label="Source URI" value={provenance?.sourceUri ?? "—"} />
+          <MetaRow
+            label="Imported At"
+            value={
+              provenance?.importedAt
+                ? new Date(provenance.importedAt).toLocaleString()
+                : "—"
+            }
+          />
+          <MetaRow
+            label="Created"
+            value={new Date(object.createdAt).toLocaleString()}
+          />
+          <MetaRow
+            label="Updated"
+            value={new Date(object.updatedAt).toLocaleString()}
+          />
+        </dl>
+      </div>
+
+      </aside>
+
+      {/* Main panel */}
+      <main className="space-y-6 min-w-0">
 
       {/* Spec 115 FR-028 — extraction status + Retry banner. Visible
           whenever the most recent run failed; the button reuses the
@@ -313,34 +354,6 @@ export default function KnowledgeObjectDetail() {
         filename={object.filename}
       />
 
-
-      {/* Metadata */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <dl className="divide-y divide-gray-200 dark:divide-gray-700">
-          <MetaRow label="ID" value={object.id} />
-          <MetaRow label="Storage Key" value={object.storageKey} />
-          <MetaRow label="Content Hash (SHA-256)" value={object.contentHash} />
-          <MetaRow label="Source Type" value={provenance?.sourceType ?? "—"} />
-          <MetaRow label="Source URI" value={provenance?.sourceUri ?? "—"} />
-          <MetaRow
-            label="Imported At"
-            value={
-              provenance?.importedAt
-                ? new Date(provenance.importedAt).toLocaleString()
-                : "—"
-            }
-          />
-          <MetaRow
-            label="Created"
-            value={new Date(object.createdAt).toLocaleString()}
-          />
-          <MetaRow
-            label="Updated"
-            value={new Date(object.updatedAt).toLocaleString()}
-          />
-        </dl>
-      </div>
-
       {/* Extraction output */}
       {object.extractionOutput && (
         <section className="space-y-2">
@@ -412,17 +425,23 @@ export default function KnowledgeObjectDetail() {
           </div>
         </section>
       )}
+
+      </main>
+      </div>
     </div>
   );
 }
 
 function MetaRow({ label, value }: { label: string; value: string }) {
+  // Spec 143 §12 FU-018 — sidebar is narrow (~320–360px), so labels stack
+  // above values. The previous 3-col sm:grid layout truncated long values
+  // (storage keys, content hashes) under the new two-column document layout.
   return (
-    <div className="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4">
-      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+    <div className="px-4 py-3">
+      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
         {label}
       </dt>
-      <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:mt-0 sm:col-span-2 break-all">
+      <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100 break-all font-mono">
         {value}
       </dd>
     </div>
