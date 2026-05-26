@@ -1,23 +1,13 @@
 {
   "build": {
-    "contentHash": "1756e1a1c85cc718be1323adc8acb70fdc0ff3970ca8e1570b903ad215e5e4eb",
+    "contentHash": "f4ad0b8aa93de853c6bec03a96a876ff0e5959dc9450f47fd6c23e1523e1357b",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
   },
   "diagnostics": {
-    "errors": [
-      {
-        "code": "I-008",
-        "message": "172-opc-live-agent-session-introspection: file: path \"product/apps/opc/src/components/ProjectToolbar.tsx\" does not exist on disk"
-      }
-    ],
-    "warnings": [
-      {
-        "code": "I-101",
-        "message": "spec \"172-opc-live-agent-session-introspection\" declares implements path \"product/apps/opc/src/components/ProjectToolbar.tsx\" which is not a known package, adapter, or existing file/directory"
-      }
-    ]
+    "errors": [],
+    "warnings": []
   },
   "inventory": [
     {
@@ -36077,11 +36067,11 @@
             "source": "spec-implements"
           },
           {
-            "path": "product/apps/opc/src/components/ProjectToolbar.tsx",
+            "path": "product/apps/opc/src/components/TabContent.tsx",
             "source": "spec-implements"
           },
           {
-            "path": "product/apps/opc/src/components/TabContent.tsx",
+            "path": "product/apps/opc/src/components/ToolsPopover.tsx",
             "source": "spec-implements"
           },
           {
@@ -36272,15 +36262,6 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
-              "path": "product/apps/opc/src/components/ProjectToolbar.tsx"
-            }
-          },
-          {
-            "kind": "file",
             "locations": [
               {
                 "file": "product/apps/opc/src/components/TabContent.tsx"
@@ -36291,6 +36272,20 @@
             "unit": {
               "kind": "file",
               "path": "product/apps/opc/src/components/TabContent.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/components/ToolsPopover.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/components/ToolsPopover.tsx"
             }
           },
           {
