@@ -160,10 +160,19 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
   }, []);
 
   const handleOpenLogs = useCallback(async () => {
-    // Stage C: Tauri command that opens the OS log folder (~/Library/Logs/opc
-    // on macOS, %APPDATA%\opc on Windows, ~/.local/share/opc on Linux).
-    // Stub for now — see ~/Library/Logs/opc/ manually.
-    console.warn('Open logs: not yet wired (spec 183 stage C).');
+    // FR-T3 affordance — open the platform's OPC log dir (resolved
+    // server-side from `app_log_dir`) in the native file browser. The
+    // Rust handler creates the dir if it doesn't exist yet, so this
+    // works on a fresh install before any log line has been written.
+    if (!window.__TAURI_INTERNALS__ && !window.__TAURI__) {
+      console.warn('Open logs: only available inside the OPC desktop shell.');
+      return;
+    }
+    try {
+      await api.openLogsFolder();
+    } catch (e) {
+      console.warn('Open logs failed:', e);
+    }
   }, []);
 
   // Org-selection: when AuthContext signals 'org-selection', surface the

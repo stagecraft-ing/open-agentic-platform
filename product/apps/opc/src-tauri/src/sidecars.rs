@@ -17,6 +17,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tokio::net::TcpStream;
@@ -147,6 +148,39 @@ pub struct BootGateStatus {
 /// would require shelling out to `kill -TERM <pid>` + sleep + SIGKILL,
 /// which adds complexity without changing the user-observable outcome
 /// (sidecar gone, next launch clean).
+/// Spec 183 FR-T3 — boot-state "Open logs" affordance. Resolves the
+/// platform's app log dir (set up by `tauri_plugin_log` with
+/// `TargetKind::LogDir { file_name: Some("opc") }`) and asks the OS to
+/// open it in the native file browser. The dir is created on first
+/// resolve so the open succeeds on a fresh install before any log line
+/// has been written.
+///
+/// FR-T3 binds the *existence* of the affordance, not its target
+/// representation; the implementation latitude here is intentional and
+/// out of scope per spec §7.
+#[tauri::command]
+#[specta::specta]
+pub fn open_logs_folder(app: AppHandle) -> Result<(), String> {
+    let log_dir = app
+        .path()
+        .app_log_dir()
+        .map_err(|e| format!("resolve app_log_dir: {e}"))?;
+    if !log_dir.exists()
+        && let Err(e) = std::fs::create_dir_all(&log_dir)
+    {
+        return Err(format!(
+            "create log dir {}: {e}",
+            log_dir.display(),
+        ));
+    }
+    let path_str = log_dir
+        .to_str()
+        .ok_or_else(|| format!("non-utf8 log path: {}", log_dir.display()))?;
+    app.opener()
+        .open_path(path_str, None::<&str>)
+        .map_err(|e| format!("open log dir: {e}"))
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn quit_opc(app: AppHandle) {

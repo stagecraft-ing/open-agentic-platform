@@ -2392,13 +2392,24 @@ export const api = {
   },
 
   /**
-   * Spec 183 FR-T6 — clean OPC exit. Stage B implementation hands off to
-   * `app.exit(0)`; stage C tightens this into a SIGTERM-with-timeout
-   * teardown of the bundled axiomregent sidecar before exit. Frontend
-   * surface is stable across stages.
+   * Spec 183 FR-T6 — clean OPC exit. Kills the retained axiomregent
+   * `CommandChild` handle (the shell plugin's SharedChild::kill is
+   * SIGKILL-equivalent on Unix, TerminateProcess on Windows) before
+   * `app.exit(0)`, so the next OPC launch cannot collide on the probe
+   * port or inherit a stale lockfile.
    */
   async quitOpc(): Promise<void> {
     await apiCall<null>("quit_opc");
+  },
+
+  /**
+   * Spec 183 FR-T3 — boot-state "Open logs" affordance. Asks the OS to
+   * open the OPC log directory (resolved via `app_log_dir`) in the
+   * native file browser. Creates the directory on first call so the
+   * open succeeds on a fresh install before any log line is written.
+   */
+  async openLogsFolder(): Promise<void> {
+    await apiCall<null>("open_logs_folder");
   },
 
   /**
