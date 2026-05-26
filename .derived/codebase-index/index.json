@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "2b23c775cadb5b92b868211d0a3ee8a492ca9cbef7a2b97ba948bed817ec4faf",
+    "contentHash": "2d23eb591757d828efe3c479954c0e930183709fd3d5aaf81d77518f06ae58df",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -41401,6 +41401,55 @@
         ],
         "specId": "185-sandbox-local-container-backend",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "032",
+          "073",
+          "087",
+          "134",
+          "147",
+          "177",
+          "183"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/183-opc-boot-precondition-gate/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/183-opc-boot-precondition-gate/spec.md"
+            }
+          }
+        ],
+        "specId": "186-opc-e2e-test-harness",
+        "specStatus": "draft"
       },
       {
         "dependsOn": [
