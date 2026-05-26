@@ -265,8 +265,12 @@ explicitly rather than implying partial closure.
    - kube-rs returns a watcher error — `SandboxError::ExecutionFailure`
      with the watcher diagnostic.
 6. **Cleanup**:
-   - `Pod.spec.ttlSecondsAfterFinished = 0` so the Pod is GC'd after
-     terminal phase.
+   - Delete the Pod explicitly via `kube::Api::<Pod>::delete` after
+     harvest. (`ttlSecondsAfterFinished` is a `JobSpec` field, not a
+     `PodSpec` field — Pods do not self-GC after terminal phase. The
+     spec 186 backend uses Pods directly rather than Jobs to keep the
+     watcher loop one-resource wide; that choice trades the Job's
+     built-in GC for explicit lifecycle ownership in `lifecycle.rs`.)
    - Delete the NetworkPolicy explicitly (it has no TTL field).
 7. **Emit** the `SandboxExecution` outcome with the realised tier,
    the `runtime_descriptor` (kube-rs version + selected RuntimeClass
@@ -338,12 +342,12 @@ below pin the specific shape this backend takes.
   `runtime_descriptor` to the §2.7 base64 JSON. `resource_peak`
   reports zero across all axes (FU-003 wires metrics-server polling).
 
-- **FR-007** Pod cleanup MUST set `ttlSecondsAfterFinished = 0`.
-  NetworkPolicy cleanup MUST be explicit (the resource has no TTL
-  field). Cleanup failures MUST be logged but MUST NOT mask the
-  execution outcome — a successful run with a failed NetworkPolicy
-  delete is still a successful `execute()`; the cert binds the
-  outcome, the orchestrator handles GC retries.
+- **FR-007** Pod cleanup MUST be an explicit `kube::Api::<Pod>::delete`
+  call after artifact harvest. NetworkPolicy cleanup MUST also be
+  explicit (the resource has no TTL field). Cleanup failures MUST be
+  logged but MUST NOT mask the execution outcome — a successful run
+  with a failed NetworkPolicy delete is still a successful `execute()`;
+  the cert binds the outcome, the orchestrator handles GC retries.
 
 - **FR-008** When the watcher reports `Phase == Failed` with `reason
   == DeadlineExceeded`, the backend MUST set `deadline_hit: true` on

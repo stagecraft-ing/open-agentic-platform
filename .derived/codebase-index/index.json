@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "312cdd5b7e283bf0ed3d43a67c39f6a0fbf12cae49a1c2b17dfa4d1b4829ccfc",
+    "contentHash": "ab0dc1fa93f544c123d9f9c209c43ef53ac0f349b29194cb0e6c33153cd61a17",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -464,6 +464,7 @@
         "serde",
         "serde_json",
         "sha2",
+        "tar",
         "thiserror",
         "tokio",
         "tokio-stream",
@@ -41417,11 +41418,35 @@
             "source": "comment-header"
           },
           {
+            "path": "crates/sandbox-k8s/src/descriptor.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-k8s/src/hashing.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/sandbox-k8s/src/lib.rs",
             "source": "comment-header"
           },
           {
+            "path": "crates/sandbox-k8s/src/lifecycle.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-k8s/src/network_policy.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-k8s/src/pod_spec.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/sandbox-k8s/src/runtime.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-k8s/src/runtime_class.rs",
             "source": "comment-header"
           }
         ],
@@ -41436,10 +41461,31 @@
                 "file": "crates/sandbox-k8s/src/admission.rs"
               },
               {
+                "file": "crates/sandbox-k8s/src/descriptor.rs"
+              },
+              {
+                "file": "crates/sandbox-k8s/src/hashing.rs"
+              },
+              {
                 "file": "crates/sandbox-k8s/src/lib.rs"
               },
               {
+                "file": "crates/sandbox-k8s/src/lifecycle.rs"
+              },
+              {
+                "file": "crates/sandbox-k8s/src/network_policy.rs"
+              },
+              {
+                "file": "crates/sandbox-k8s/src/pod_spec.rs"
+              },
+              {
                 "file": "crates/sandbox-k8s/src/runtime.rs"
+              },
+              {
+                "file": "crates/sandbox-k8s/src/runtime_class.rs"
+              },
+              {
+                "file": "crates/sandbox-k8s/tests/integration_lifecycle.rs"
               }
             ],
             "ownership": true,

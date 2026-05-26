@@ -6,23 +6,39 @@
 //!
 //! Concrete implementation of the [`SandboxClient`] contract defined in
 //! spec 162. Targets the cluster execution surface (Surface B in spec
-//! 162 §1): kube-rs against the operator's cluster, per-execution Pod +
-//! NetworkPolicy synthesis, RuntimeClass-driven isolation tier
+//! 162 §1): kube-rs against the operator's cluster, per-execution Pod
+//! and NetworkPolicy synthesis, RuntimeClass-driven isolation tier
 //! selection.
 //!
-//! ## Phase boundary
+//! ## Module layout
 //!
-//! - **Phase 1** (this phase) — scaffold + admission rules (FR-A1,
-//!   FR-A2). The client is universally [`SandboxError::Unavailable`]
-//!   because the kube-rs probe is wired in Phase 3. Admission rules
-//!   that don't depend on cluster state run pre-probe and short-circuit
-//!   common misconfigurations without needing a cluster.
-//! - Phase 2 — pure builders (`pod_spec`, `network_policy`,
-//!   `runtime_class`, `descriptor`).
-//! - Phase 3 — kube-rs probe + `lifecycle::run` execute() path.
+//! - [`admission`] — cluster-independent Phase 1 admission rules
+//!   (FR-A1, FR-A2). Runs before any cluster I/O.
+//! - [`runtime_class`] — pure RuntimeClass-name → tier selection
+//!   (§2.4) plus the FR-A3 admission check.
+//! - [`pod_spec`] — pure `SandboxRequest → Pod` builder (§2.2).
+//! - [`network_policy`] — pure `SandboxRequest → NetworkPolicy`
+//!   builder (§2.3).
+//! - [`descriptor`] — opaque `runtime_descriptor` encoder (§2.7).
+//! - [`hashing`] — SHA-256 over a tar stream representing the output
+//!   emptyDir contents.
+//! - [`runtime`] — kube-rs probe (`Client::try_default` + namespace
+//!   verify + RuntimeClass list).
+//! - [`lifecycle`] — apply NP → apply Pod → watch → harvest → cleanup.
+//!
+//! All Phase 1 admission rules + the pure builders are fully unit-
+//! tested without a live cluster. Integration tests gated by
+//! `KUBE_SANDBOX_INTEGRATION=1` exercise the lifecycle against an
+//! operator-provided cluster (see `tests/integration_lifecycle.rs`).
 
 mod admission;
+mod descriptor;
+mod hashing;
+mod lifecycle;
+mod network_policy;
+mod pod_spec;
 mod runtime;
+mod runtime_class;
 
 use async_trait::async_trait;
 
@@ -33,49 +49,60 @@ use runtime::RuntimeState;
 
 /// K8s sandbox backend.
 ///
-/// See spec 186 §2 for the design and §3 for the per-FR backend
-/// behaviour. Construct via [`K8sSandboxClient::new`] for the default
-/// kube-rs `Client::try_default` probe sequence + default execution
-/// namespace, or via [`K8sSandboxClient::unavailable`] for tests and
-/// for the documented Phase 1 always-unavailable posture.
+/// See spec 186 §2 for the design and §3 for the per-FR behaviour.
+///
+/// Construction is async because the kube-rs probe sequence
+/// (`Client::try_default` + namespace verify + RuntimeClass list)
+/// involves apiserver I/O. Use [`K8sSandboxClient::new`] for the
+/// default execution namespace (`oap-sandbox`) and the standard
+/// alpine base image, or [`K8sSandboxClient::with_namespace_and_image`]
+/// for custom deployments.
 pub struct K8sSandboxClient {
     runtime: RuntimeState,
+    image: String,
 }
 
 impl K8sSandboxClient {
-    /// Construct a client using kube-rs's default probe sequence
-    /// (in-cluster → kubeconfig → none). Phase 1 always returns an
-    /// [`Self::unavailable`] client — the kube-rs probe is wired in
-    /// Phase 3 (FR-001). The Phase 1 client still honours the spec
-    /// 186 §2.5 admission rules so misconfigured requests fail
-    /// closed before any cluster work would be attempted.
-    pub async fn new() -> Self {
-        Self::unavailable(
-            "spec 186 Phase 1: kube-rs client probe not yet wired \
-            (see spec 186 §2.5 phase boundary); backend is fail-closed by default"
-                .into(),
-        )
-    }
-
-    /// Construct a backend pinned to [`SandboxError::Unavailable`] with
-    /// a custom diagnostic. The diagnostic is surfaced verbatim in the
-    /// returned error so operators see *why* the backend is unavailable.
-    pub fn unavailable(diagnostic: String) -> Self {
-        Self {
-            runtime: RuntimeState::Unavailable { diagnostic },
-        }
-    }
-
-    /// Reports whether a kube-rs client is currently connected. Phase
-    /// 1 always returns `false`; Phase 3 wires the actual probe.
-    pub fn is_available(&self) -> bool {
-        matches!(self.runtime, RuntimeState::Connected { .. })
-    }
-
     /// Default execution namespace name per spec 186 §2.1. Operators
     /// pre-create this namespace with PodSecurity `restricted`
     /// admission labels.
     pub const DEFAULT_NAMESPACE: &'static str = "oap-sandbox";
+
+    /// Default base image per spec 186 §2.2. FU-004 will make this
+    /// operator-configurable through factory-engine config.
+    pub const DEFAULT_IMAGE: &'static str = "docker.io/library/alpine:3.20";
+
+    /// Construct a client using kube-rs's default probe sequence
+    /// (in-cluster → kubeconfig → none) against the default execution
+    /// namespace + default image.
+    pub async fn new() -> Self {
+        Self::with_namespace_and_image(Self::DEFAULT_NAMESPACE, Self::DEFAULT_IMAGE).await
+    }
+
+    /// Construct a client against an explicit execution namespace +
+    /// base image. The probe sequence is the same as [`Self::new`].
+    pub async fn with_namespace_and_image(namespace: &str, image: &str) -> Self {
+        let runtime = RuntimeState::probe(namespace).await;
+        Self {
+            runtime,
+            image: image.to_string(),
+        }
+    }
+
+    /// Construct a backend pinned to [`SandboxError::Unavailable`] with
+    /// a custom diagnostic. Used by tests + for explicit "cluster is
+    /// down" injection by operators.
+    pub fn unavailable(diagnostic: String) -> Self {
+        Self {
+            runtime: RuntimeState::Unavailable { diagnostic },
+            image: Self::DEFAULT_IMAGE.to_string(),
+        }
+    }
+
+    /// Reports whether a kube-rs client is currently connected.
+    pub fn is_available(&self) -> bool {
+        matches!(self.runtime, RuntimeState::Connected { .. })
+    }
 }
 
 impl Default for K8sSandboxClient {
@@ -92,7 +119,7 @@ impl SandboxClient for K8sSandboxClient {
         &self,
         request: SandboxRequest,
     ) -> Result<SandboxExecution, SandboxError> {
-        // Backend-specific admission first; FR-A1..A2 short-circuit
+        // Cluster-independent admission first; FR-A1..A2 short-circuit
         // before the runtime is consulted so misconfigured requests
         // fail closed even when the cluster is unreachable.
         admission::check(&request)?;
@@ -101,16 +128,31 @@ impl SandboxClient for K8sSandboxClient {
             RuntimeState::Unavailable { diagnostic } => {
                 Err(SandboxError::Unavailable(diagnostic.clone()))
             }
-            RuntimeState::Connected { .. } => {
-                // Phase 3 wires lifecycle::run here. Until then the
-                // Connected arm is unreachable (Phase 1 never constructs
-                // Connected). Marking explicit so the surface is honest:
-                // the contract refuses host fallback by construction.
-                Err(SandboxError::Unavailable(
-                    "spec 186 Phase 1: Connected state reached but lifecycle::run \
-                     is not yet wired (FR-001 deferred to Phase 3)"
-                        .into(),
-                ))
+            RuntimeState::Connected {
+                client,
+                namespace,
+                kube_version,
+                selection,
+            } => {
+                // FR-A3: cluster-aware admission needs the realised
+                // selection; runs only on the Connected arm.
+                if let Err(diag) = runtime_class::admission_for_tier1_requirement(
+                    request.minimum_isolation_tier,
+                    selection,
+                ) {
+                    return Err(SandboxError::AdmissionRejected(diag));
+                }
+
+                lifecycle::run(lifecycle::Inputs {
+                    client,
+                    namespace,
+                    request,
+                    selection: selection.clone(),
+                    image: &self.image,
+                    kube_version,
+                    backend_version: env!("CARGO_PKG_VERSION"),
+                })
+                .await
             }
         }
     }
@@ -131,8 +173,8 @@ pub const BACKEND_NAME: &str = "k8s";
 mod tests {
     use super::*;
     use factory_contracts::sandbox::{
-        EgressAllowlistEntry, InputArtifact, IsolationTier, ResourceCeilings,
-        SandboxRequest, DEFAULT_PID_LIMIT, DEFAULT_TTL_SECONDS,
+        EgressAllowlistEntry, InputArtifact, IsolationTier, ResourceCeilings, SandboxRequest,
+        DEFAULT_PID_LIMIT, DEFAULT_TTL_SECONDS,
     };
     use std::collections::BTreeMap;
 
@@ -155,25 +197,27 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn phase_1_client_is_always_unavailable() {
-        let client = K8sSandboxClient::new().await;
+    async fn unavailable_constructor_returns_unavailable_error() {
+        let client = K8sSandboxClient::unavailable("test unavailable diagnostic".into());
         assert!(!client.is_available());
         let err = client.execute(baseline_request()).await.unwrap_err();
         match err {
             SandboxError::Unavailable(msg) => {
-                assert!(msg.contains("spec 186"));
-                assert!(msg.contains("Phase 1") || msg.contains("not yet wired"));
+                assert_eq!(msg, "test unavailable diagnostic");
             }
             other => panic!("expected Unavailable, got {other:?}"),
         }
     }
 
     #[tokio::test]
-    async fn unavailable_constructor_preserves_diagnostic() {
-        let client = K8sSandboxClient::unavailable("cluster reset: dns".into());
+    async fn default_constructor_explicit_unavailable() {
+        let client = K8sSandboxClient::default();
+        assert!(!client.is_available());
         let err = client.execute(baseline_request()).await.unwrap_err();
         match err {
-            SandboxError::Unavailable(msg) => assert_eq!(msg, "cluster reset: dns"),
+            SandboxError::Unavailable(msg) => {
+                assert!(msg.contains("default()"));
+            }
             other => panic!("expected Unavailable, got {other:?}"),
         }
     }
@@ -188,12 +232,13 @@ mod tests {
     }
 
     #[test]
-    fn default_namespace_constant() {
+    fn default_namespace_and_image_constants() {
         assert_eq!(K8sSandboxClient::DEFAULT_NAMESPACE, "oap-sandbox");
+        assert_eq!(K8sSandboxClient::DEFAULT_IMAGE, "docker.io/library/alpine:3.20");
     }
 
     /// FR-A1 — non-empty egress allowlist rejected at admission BEFORE
-    /// the runtime probe, even on a Phase 1 always-unavailable client.
+    /// runtime probe, even on an Unavailable client.
     #[tokio::test]
     async fn fr_a1_egress_allowlist_rejected_pre_probe() {
         let client = K8sSandboxClient::unavailable("would-not-be-reached".into());
@@ -212,7 +257,7 @@ mod tests {
     }
 
     /// FR-A2 — non-empty input artifacts rejected at admission BEFORE
-    /// the runtime probe.
+    /// runtime probe.
     #[tokio::test]
     async fn fr_a2_input_artifacts_rejected_pre_probe() {
         let client = K8sSandboxClient::unavailable("would-not-be-reached".into());
@@ -231,12 +276,14 @@ mod tests {
         }
     }
 
-    /// End-to-end with the spec 162 dispatcher — fail-closed posture
-    /// honours FR-009 on the K8s backend the same way spec 185's
-    /// peer test does on the local-container backend.
+    /// SC-004 / end-to-end with spec 162 dispatcher — fail-closed
+    /// posture honours FR-009 on the K8s backend the same way spec
+    /// 185 does on the local-container backend.
     #[tokio::test]
     async fn exercise_halts_on_unavailable() {
-        let client = K8sSandboxClient::new().await;
+        let client = K8sSandboxClient::unavailable(
+            "spec 186 §2.1: synthetic test diagnostic".into(),
+        );
         let err = factory_engine::sandbox::exercise(&client, baseline_request())
             .await
             .unwrap_err();
@@ -250,5 +297,22 @@ mod tests {
             }
             other => panic!("expected SandboxRefusal::unavailable, got {other:?}"),
         }
+    }
+
+    /// FR-A1 takes precedence over runtime state: even on a probe-
+    /// constructed client (where ::new() may yield Connected in test
+    /// envs that have a kubeconfig pointing at a cluster), the
+    /// admission rules run first. Test against the Unavailable
+    /// constructor for determinism — the rule order is the contract.
+    #[tokio::test]
+    async fn admission_runs_before_runtime_lookup() {
+        let client = K8sSandboxClient::unavailable("unreachable".into());
+        let mut req = baseline_request();
+        req.egress_allowlist.push(EgressAllowlistEntry {
+            hostname: "x.example".into(),
+        });
+        // Should hit FR-A1 (AdmissionRejected), NOT Unavailable.
+        let err = client.execute(req).await.unwrap_err();
+        assert!(matches!(err, SandboxError::AdmissionRejected(_)));
     }
 }
