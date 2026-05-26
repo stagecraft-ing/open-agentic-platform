@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "f4ad0b8aa93de853c6bec03a96a876ff0e5959dc9450f47fd6c23e1523e1357b",
+    "contentHash": "18144dbed41c2e43884bd09075196585056682133ea3da2190d203ba8ec5dff1",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -21281,6 +21281,11 @@
           },
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": ".derived/codebase-index/CODEBASE-INDEX.md"
+              }
+            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -40889,7 +40894,7 @@
           }
         ],
         "specId": "182-claude-skills-migration",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [

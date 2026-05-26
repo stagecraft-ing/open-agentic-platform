@@ -118,9 +118,10 @@ path-scoped rules so they only load when relevant:
 ## Claude Code Extension Points
 
 - **`.claude/agents/`** — architect, explorer, implementer, reviewer, encore-expert
-- **`.claude/commands/`** — /init, /setup, /commit, /code-review, /review-branch, /implement-plan, /research, /validate-and-fix, /cleanup, /refactor-claude-md
+- **`.claude/skills/`** — primary surface for slash commands (post-spec-182). One folder per skill, each containing a `SKILL.md` entrypoint. Ten skills today: /init, /setup, /commit, /code-review, /review-branch, /implement-plan, /research, /validate-and-fix, /cleanup, /refactor-claude-md. The folder form supports bundling sibling files (fixtures, checklists, sub-prompts) alongside `SKILL.md`.
+- **`.claude/commands/`** — legacy single-file form (per spec 182). Retained during the migration's transition window so any contributor with staged work doesn't land in an inconsistent state. Will be retired in spec 182's follow-up deprecation PR.
 - **`.claude/rules/`** — Reusable rule files (loaded automatically; `paths:` frontmatter scopes some to specific file types)
-- **`AGENTS.md`** — Cross-agent session-init protocol authority (read by Claude Code, Codex CLI, Cursor, GitHub Copilot via the AAIF/Linux Foundation AGENTS.md standard)
+- **`AGENTS.md`** — Cross-agent session-init protocol authority (read by Claude Code, Codex CLI, Cursor, GitHub Copilot via the AAIF/Linux Foundation AGENTS.md standard). `.claude/skills/init/SKILL.md` is a thin Claude-Code dispatcher that reads AGENTS.md; the protocol body lives at AGENTS.md only.
 - **`CLAUDE.md`** — Scoped at root, `platform/`, and `platform/services/stagecraft/`
 
 ### Worktree posture

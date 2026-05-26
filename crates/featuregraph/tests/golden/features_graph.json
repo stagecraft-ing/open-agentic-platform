@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:cf761d2aad8c7934a2a0805cd2a392ab2e486176654533ff558a4939b41872e7",
+  "graph_fingerprint": "sha256:01ed3d9e1356bb3b0ba54f9c9578da4e871ceb8500b8e0994ca16d7eb2c64581",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3460,8 +3460,8 @@
       "feature_id": "182-claude-skills-migration",
       "title": "Migrate .claude/commands/ to .claude/skills/ (modern Claude Code surface)",
       "spec_path": "specs/182-claude-skills-migration/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "low",
       "owner": "bart",
       "group": "",
