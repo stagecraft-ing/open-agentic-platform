@@ -10,6 +10,7 @@ import {
 } from "../lib/project-api.server";
 import type { KnowledgeObjectRow } from "../lib/project-api.server";
 import { redirect } from "react-router";
+import { ExtractionView } from "../components/ExtractionView";
 
 export async function loader({
   request,
@@ -112,11 +113,6 @@ export default function KnowledgeObjectDetail() {
     sourceUri?: string;
     importedAt?: string;
   };
-
-  const extractorMeta = (object.extractionOutput as
-    | { extractor?: { kind?: string; version?: string; agentRun?: { modelId?: string; costUsd?: number } } }
-    | null
-    | undefined)?.extractor;
 
   const downloadUrl = (downloadFetcher.data as { downloadUrl?: string } | undefined)?.downloadUrl;
   const retryResult = (retryFetcher.data as { retry?: { runId: string } } | undefined)?.retry;
@@ -354,54 +350,16 @@ export default function KnowledgeObjectDetail() {
         filename={object.filename}
       />
 
-      {/* Extraction output */}
+      {/* Spec 143 §12 FU-017 typed view — replaces the quick-win
+          `<pre>` block. ExtractionView renders per-kind header /
+          metadata / outline / text / raw-JSON for the three
+          deterministic kinds (text/pdf-embedded/docx); agent-* kinds
+          fall back to the generic header + text + raw-JSON shape. */}
       {object.extractionOutput && (
-        <section className="space-y-2">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
-            Extraction Output
-          </h3>
-          {/* Spec 115 FR-028 — extractor footer. */}
-          {extractorMeta && (
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Extracted by{" "}
-              <code className="font-mono">{extractorMeta.kind}</code>
-              {extractorMeta.version ? ` v${extractorMeta.version}` : ""}
-              {object.latestRun?.durationMs != null && (
-                <> in {object.latestRun.durationMs} ms</>
-              )}
-              {extractorMeta.agentRun?.modelId && (
-                <>
-                  {" "}via{" "}
-                  <code className="font-mono">
-                    {extractorMeta.agentRun.modelId}
-                  </code>
-                  {extractorMeta.agentRun.costUsd != null && (
-                    <> ({"$"}{extractorMeta.agentRun.costUsd.toFixed(4)})</>
-                  )}
-                </>
-              )}
-            </p>
-          )}
-          {/* Spec 143 §12 FU-017 quick-win — render extractor `text` with
-              real newlines instead of the JSON.stringify'd `\n` escapes.
-              TODO(FU-017 typed-view): replace this whole section with the
-              typed `ExtractionView<Kind>` discriminated union (per-kind
-              header / metadata / outline / text / raw-JSON toggle). The
-              quick-win MUST NOT ossify into the permanent shape. */}
-          {typeof (object.extractionOutput as { text?: unknown }).text === "string" && (
-            <pre className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-xs text-gray-700 dark:text-gray-300 overflow-auto max-h-96 whitespace-pre-wrap break-words">
-              {(object.extractionOutput as { text: string }).text}
-            </pre>
-          )}
-          <details className="text-xs text-gray-500 dark:text-gray-400">
-            <summary className="cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-300">
-              Raw extraction payload
-            </summary>
-            <pre className="mt-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-xs text-gray-700 dark:text-gray-300 overflow-auto max-h-64">
-              {JSON.stringify(object.extractionOutput, null, 2)}
-            </pre>
-          </details>
-        </section>
+        <ExtractionView
+          output={object.extractionOutput as Parameters<typeof ExtractionView>[0]["output"]}
+          latestRunDurationMs={object.latestRun?.durationMs ?? undefined}
+        />
       )}
 
       {/* Classification */}

@@ -30,6 +30,7 @@ establishes:
   - unit: { kind: file, path: platform/infra/hetzner/validate/spec-143.sh }
   - unit: { kind: file, path: platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml }
   - unit: { kind: file, path: platform/charts/stagecraft/templates/external-secret-knowledge-sweeper.yaml }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/components/ExtractionView.tsx }
 extends:
   - spec: "087-unified-workspace-architecture"
     nature: additive
@@ -2182,14 +2183,19 @@ the trust that markdown matches truth.
 
 - **FU-017 — Knowledge object detail page renders extractor
   output as `JSON.stringify`'d `<pre>`; `text` shows literal
-  `\n` escapes.** *Quick-win + raw-JSON-toggle legs landed
-  2026-05-26 (leg 1 + leg 3 of the three-leg done-when).
-  Detail page now renders `extractionOutput.text` in its own
-  `<pre class="whitespace-pre-wrap">` block and collapses the
-  full JSON payload behind a `<details>` raw-JSON toggle.
-  Typed `ExtractionView<Kind>` discriminated-union (leg 2)
-  lands in a subsequent commit per §12 ordering note (FU-017
-  quick-win → FU-018 layout → FU-017 typed view).* Surfaced
+  `\n` escapes.** *Closed 2026-05-26 — all three done-when
+  legs satisfied. Leg 1 (text with real newlines) +
+  leg 3 (raw-JSON toggle) landed as the quick-win pass;
+  leg 2 (typed `ExtractionView<Kind>` for the three
+  deterministic kinds) replaced the quick-win block. New
+  component `web/app/components/ExtractionView.tsx` carries:
+  header (kind / version / duration / agent model+cost),
+  per-kind metadata (text: lines/bytes/mime;
+  pdf-embedded: pageCount + pages-with-text; docx: wordCount
+  + mammothMessages count; agent-pdf-vision / agent-image-vision:
+  page count), collapsible outline tree (level-indented with
+  page anchors), text panel with 5k-char collapse + show-all
+  toggle, raw-JSON `<details>` toggle (default off).* Surfaced
   2026-05-10 during FU-015 cluster
   validation. The detail page (`web/app/routes/app.project.$projectId.knowledge.$objectId.tsx`,
   or wherever the project knowledge object detail route
