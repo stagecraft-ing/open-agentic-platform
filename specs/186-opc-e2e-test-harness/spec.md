@@ -19,6 +19,15 @@ depends_on:
   - "183"  # opc-boot-precondition-gate (the canonical first consumer — AC-7/8/9 were deferred to this harness)
 code_aliases:
   - "OPC_E2E_HARNESS"
+extends:
+  # Mechanical featuregraph-golden refresh required by spec 177
+  # ci-orchestrator-pr-gate atomicity contract — any new spec
+  # appended to the corpus shifts the golden fingerprint. Same
+  # precedent as specs 167/168/169 (178 rename) and spec 183 (PR
+  # #244). No semantic change to spec 034's claims.
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 references:
   - role: deferral-source
     unit: { kind: file, path: specs/183-opc-boot-precondition-gate/spec.md }

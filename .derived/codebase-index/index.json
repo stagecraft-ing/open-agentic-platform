@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "4393eb430a6b57967a102da3cbf1bb1b97e4396a9b1bf0662219dcb1ebd5fbea",
+    "contentHash": "2d23eb591757d828efe3c479954c0e930183709fd3d5aaf81d77518f06ae58df",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -41403,8 +41403,36 @@
         "specStatus": "approved"
       },
       {
-        "implementingPaths": [],
+        "dependsOn": [
+          "032",
+          "073",
+          "087",
+          "134",
+          "147",
+          "177",
+          "183"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          }
+        ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -41618,8 +41646,7 @@
       "148-auth-driver-registry",
       "149-saml-auth-driver",
       "150-example-tenant-profile",
-      "157-opc-session-model",
-      "186-opc-e2e-test-harness"
+      "157-opc-session-model"
     ],
     "untracedCode": [
       "crates/canonical-json"
