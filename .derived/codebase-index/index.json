@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "2714c64d9e7f7674b0c7769cbac1a356f95082fbe4da03300c093aee831a969f",
+    "contentHash": "312cdd5b7e283bf0ed3d43a67c39f6a0fbf12cae49a1c2b17dfa4d1b4829ccfc",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -448,6 +448,36 @@
       "name": "run",
       "path": "crates/run",
       "specRef": "052-state-persistence",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "async-trait",
+        "base64",
+        "futures-util",
+        "k8s-openapi",
+        "kube",
+        "serde",
+        "serde_json",
+        "sha2",
+        "thiserror",
+        "tokio",
+        "tokio-stream",
+        "tracing",
+        "uuid"
+      ],
+      "internalDeps": [
+        "factory-contracts",
+        "factory-engine"
+      ],
+      "kind": "rust-lib",
+      "name": "sandbox-k8s",
+      "path": "crates/sandbox-k8s",
+      "specRef": "186-sandbox-k8s-backend",
       "version": "0.1.0"
     },
     {
@@ -41370,6 +41400,148 @@
         ],
         "specId": "185-sandbox-local-container-backend",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "075",
+          "102",
+          "162"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/sandbox-k8s",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/sandbox-k8s/src/admission.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-k8s/src/lib.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/sandbox-k8s/src/runtime.rs",
+            "source": "comment-header"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "crates/sandbox-k8s/Cargo.toml"
+              },
+              {
+                "file": "crates/sandbox-k8s/src/admission.rs"
+              },
+              {
+                "file": "crates/sandbox-k8s/src/lib.rs"
+              },
+              {
+                "file": "crates/sandbox-k8s/src/runtime.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "crates/sandbox-k8s"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "platform/k8s/policies/namespace-baseline/limitrange.yaml"
+              },
+              {
+                "file": "platform/k8s/policies/namespace-baseline/networkpolicy-default-deny.yaml"
+              },
+              {
+                "file": "platform/k8s/policies/namespace-baseline/resourcequota.yaml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "platform/k8s/policies/namespace-baseline"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/075-factory-workflow-engine/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/075-factory-workflow-engine/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/102-governed-excellence/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/102-governed-excellence/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/162-sandbox-execution-contract/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/162-sandbox-execution-contract/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/185-sandbox-local-container-backend/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/185-sandbox-local-container-backend/spec.md"
+            }
+          }
+        ],
+        "specId": "186-sandbox-k8s-backend",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [

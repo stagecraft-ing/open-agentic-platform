@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:4b7be73222dc676425847fdbbaedaacec7bf65236c9981b5a925a1bcccfe0f76",
+  "graph_fingerprint": "sha256:cb12e549ecb4e25d56bab9780fa0bd20bec404acd8bf5eb9d71a39082af8e965",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3524,6 +3524,24 @@
       "impl_files": [],
       "test_files": [],
       "violations": []
+    },
+    {
+      "feature_id": "186-sandbox-k8s-backend",
+      "title": "K8s sandbox backend — kube-rs + PodSecurity + RuntimeClass selection (companion to spec 162 ASI05)",
+      "spec_path": "specs/186-sandbox-k8s-backend/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "162",
+        "075",
+        "102"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
     }
   ],
   "violations": [
@@ -4302,6 +4320,27 @@
       "severity": "error",
       "path": "crates/provenance-validator/tests/validator_tests.rs",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-001 to FR-005, FR-036 to FR-039",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-k8s/src/admission.rs",
+      "message": "Malformed Spec directive: // Spec: specs/186-sandbox-k8s-backend/spec.md — §2.5, §3 FR-A1..FR-A3",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-k8s/src/lib.rs",
+      "message": "Malformed Spec directive: // Spec: specs/186-sandbox-k8s-backend/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-k8s/src/runtime.rs",
+      "message": "Malformed Spec directive: // Spec: specs/186-sandbox-k8s-backend/spec.md — §2.1, §3 FR-001",
       "suggested_fix": "Fix header format"
     },
     {
