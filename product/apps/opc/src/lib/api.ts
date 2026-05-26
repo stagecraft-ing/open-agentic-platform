@@ -2413,6 +2413,16 @@ export const api = {
   },
 
   /**
+   * Spec 183 FR-T4 — user-initiated sidecar respawn from the boot
+   * state. Kills the current axiomregent child handle (if any), clears
+   * the port slot, and re-spawns. This is the *act on failure* path;
+   * BootGate's status poll is observation, not retry.
+   */
+  async respawnAxiomregent(): Promise<void> {
+    await apiCall<null>("respawn_axiomregent");
+  },
+
+  /**
    * Read-only preflight safety tier labels (featuregraph semantics).
    */
   async getPreflightSafetyTierReference(): Promise<SafetyTierRef[]> {

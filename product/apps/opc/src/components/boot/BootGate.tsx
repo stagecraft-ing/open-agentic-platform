@@ -8,9 +8,15 @@
 // siblings, satisfying FR-T3's "render ONLY the boot-state UI"
 // invariant.
 //
-// Stage B of the spec 183 implementation: observability + sign-in
-// affordance. Stage C will wire FR-T5 mid-session precondition-loss
-// restore and FR-T6 Quit sidecar teardown.
+// All four FR-T affordances are wired here:
+//   • Precondition status rows (FR-T3)
+//   • Retry sidecar → respawn_axiomregent Tauri command (FR-T4)
+//   • Sign in to stagecraft → AuthContext.login (FR-T2 via FR-T3)
+//   • Open logs → open_logs_folder Tauri command (FR-T3)
+//   • Quit OPC → quit_opc with deterministic child kill (FR-T6)
+// Mid-session precondition-loss restore (FR-T5) is owned by App.tsx,
+// which listens for `boot-gate-precondition-lost` and flips back to
+// rendering this component.
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2, LogIn, ServerCog, ShieldCheck, AlertCircle, RefreshCw, FileText, XCircle } from 'lucide-react';
@@ -129,11 +135,21 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
         ? 'ok'
         : 'failed';
 
-  const handleRetrySidecar = useCallback(() => {
-    // Stage C will wire a Tauri command that signals the sidecar
-    // launcher to respawn. For now, "Retry" forces an immediate
-    // re-poll — useful when the user can see the sidecar process is
-    // alive in another tool and just wants the UI to re-evaluate.
+  const handleRetrySidecar = useCallback(async () => {
+    // FR-T4 retry. Inside the desktop shell we tear down the current
+    // sidecar handle and re-spawn fresh (the load-bearing recovery for
+    // a sidecar that announced its port and then died). In web-mode /
+    // no-Tauri builds the respawn command is unavailable, so we fall
+    // back to a status re-poll — useful when the user can confirm
+    // externally that the sidecar is alive and just wants the UI to
+    // re-evaluate.
+    if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+      try {
+        await api.respawnAxiomregent();
+      } catch (e) {
+        console.warn('Respawn axiomregent failed:', e);
+      }
+    }
     void pollOnce();
   }, [pollOnce]);
 
@@ -142,12 +158,11 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
   }, [auth]);
 
   const handleQuit = useCallback(async () => {
-    // FR-T6 sidecar teardown is stage C — `quit_opc` currently calls
-    // app.exit(0) directly (the spawned axiomregent process is reaped
-    // by the OS when the parent exits, but that's not the deterministic
-    // SIGTERM-with-timeout pattern FR-T6 ultimately binds). The
-    // frontend surface is stable; the implementation behind it
-    // tightens in stage C.
+    // FR-T6 — `quit_opc` kills the retained axiomregent CommandChild
+    // (SharedChild::kill: SIGKILL on Unix, TerminateProcess on Windows)
+    // then app.exit(0). The deterministic teardown forecloses the
+    // probe-port-collision footgun on next launch. Web-mode falls back
+    // to window.close().
     if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
       try {
         await api.quitOpc();

@@ -128,6 +128,48 @@ pub struct BootGateStatus {
     pub org_id: Option<String>,
 }
 
+/// Spec 183 FR-T4 — user-initiated retry of a failed sidecar
+/// precondition. Takes the retained `CommandChild` handle (if any),
+/// kills it, clears the port + child slots, then re-spawns axiomregent
+/// fresh. This is the *act on failure* path the spec binds: distinct
+/// from the BootGate's status poll (which is observation, not retry).
+///
+/// Calling this while a healthy sidecar is running will still tear it
+/// down and start a new one — the contract is "respawn on demand,"
+/// matching the user's mental model of clicking Retry to recover from
+/// an apparently dead sidecar.
+#[tauri::command]
+#[specta::specta]
+pub fn respawn_axiomregent(app: AppHandle) -> Result<(), String> {
+    log::info!("respawn_axiomregent: tearing down current sidecar (spec 183 FR-T4)");
+    let state = app.state::<SidecarState>();
+    let child_opt = {
+        let mut guard = state
+            .axiomregent_child
+            .lock()
+            .map_err(|e| format!("lock child slot: {e}"))?;
+        guard.take()
+    };
+    if let Some(child) = child_opt {
+        let pid = child.pid();
+        match child.kill() {
+            Ok(()) => log::info!("respawn_axiomregent: killed pid {pid}"),
+            Err(e) => log::warn!(
+                "respawn_axiomregent: failed to kill pid {pid}: {e}"
+            ),
+        }
+    }
+    {
+        let mut port_guard = state
+            .axiomregent_port
+            .lock()
+            .map_err(|e| format!("lock port slot: {e}"))?;
+        *port_guard = None;
+    }
+    spawn_axiomregent(&app);
+    Ok(())
+}
+
 /// Spec 183 FR-T6 — boot-state Quit action with deterministic sidecar
 /// teardown. Takes the retained `CommandChild` handle out of
 /// `SidecarState`, signals kill (the shell plugin uses
