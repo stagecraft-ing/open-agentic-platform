@@ -7,14 +7,24 @@ implementation: complete
 kind: platform
 domain: opc
 created: "2026-03-31"
+amended: "2026-05-26"
+amendment_record: |
+  amended by spec 182 (2026-05-26) — acknowledges that the OAP
+  repository now treats `.claude/skills/<name>/SKILL.md` as the
+  primary surface for slash-command-style entries, with
+  `.claude/commands/*.md` retained as the legacy single-file form
+  during the spec-182 transition window. No behavioral change to
+  the factory mechanism; this is a surface-priority note so future
+  authors land new entries under `skills/` by default.
 authors: ["open-agentic-platform"]
 language: en
 summary: >
   Formalizes the skill/command pattern absorbed from Claude Code's extensible
   slash command system. Each skill is a self-contained unit with a prompt
   template, allowed tool list, handler type, and optional hooks. Skills are
-  discoverable from bundled definitions, .claude/commands/ files, and plugin
-  manifests. The factory pattern enables one-file skill authoring with
+  discoverable from bundled definitions, .claude/commands/ files (legacy form),
+  .claude/skills/<name>/SKILL.md folders (primary surface post-spec-182), and
+  plugin manifests. The factory pattern enables one-file skill authoring with
   automatic registration into the tool registry and prompt assembler.
 code_aliases: ["SKILL_COMMAND_FACTORY"]
 sources: ["claude-code"]
@@ -23,6 +33,13 @@ establishes:
 ---
 
 # Feature Specification: Skill and Command Factory
+
+> **Amended by spec 182 (2026-05-26).** The OAP repository now treats
+> `.claude/skills/<name>/SKILL.md` as the primary surface for slash-
+> command-style entries. `.claude/commands/*.md` is retained as the
+> legacy single-file form during the spec-182 transition window and
+> remains in the codebase-indexer's hashed input set (union, not
+> swap). The factory mechanism is unchanged.
 
 ## Purpose
 
