@@ -1658,7 +1658,71 @@ Follow-up tracker (parking lot):
   scope and tracked there.
 
 - **FU-011 — M2M validator correctness across platform
-  services + §12 L-008.** Spec 143 FU-001 verification
+  services + §12 L-008.** *Tier 2 closed 2026-05-26 by
+  back-reference to landed code. The audit step (Finding 3)
+  is this closure entry. Findings 1 and 2 were already in
+  code when the audit ran:*
+
+  *Finding 1 (m2mAuth.ts issuer derivation):* Landed
+  2026-05-09 via commit `32129d1e` (`spec(143): land FU-011
+  Finding 1 — m2mAuth.ts issuer via OIDC discovery + L-008`).
+  `validateM2mJwt` calls `getJwksAndIssuer()` (m2mAuth.ts:102)
+  and compares against the discovery-doc-published issuer
+  with `stripSlash` normalisation (m2mAuth.ts:101-105),
+  mirroring `rauthy.ts::validateJwt:201`. JWKS-failure
+  posture is documented inline (m2mAuth.ts:71-80): warn-level
+  reject-on-discovery-failure; deliberate level difference
+  vs. rauthy.ts's error-level rejection, with the same
+  rejection behaviour.
+
+  *Finding 2 (deployd-api-rs RSA-only JWK):* Landed
+  2026-04-20 via commit `d59f8472` (`fix(deployd-api): accept
+  EdDSA (Ed25519) Rauthy JWTs`), refined 2026-05-15 via
+  `fbdbcff0` (`fix(spec-145): align deployd-api auth with
+  jsonwebtoken 10 + Rauthy 0.35 reality`). `auth.rs` now
+  uses `jsonwebtoken::jwk::JwkSet` + `DecodingKey::from_jwk`
+  (auth.rs:47-55) which handle both RSA and OKP/Ed25519
+  parameter shapes without hand-parsing `n/e` or `x/crv`;
+  the algorithm allowlist is `[RS256, EdDSA]` (auth.rs:63)
+  and the per-token verifier narrows to `header.alg`
+  (auth.rs:67-68) because jsonwebtoken 10.x rejects mixed
+  cross-family entries in `validation.algorithms`.
+
+  *Finding 3 (platform-wide M2M validator audit):* This
+  audit. Surface walked 2026-05-26 with the grep:
+  `grep -rln "from_jwk\|DecodingKey\|jsonwebtoken\|validateJwt\|getJwksAndIssuer\|verify_jwt"`
+  against `platform/services/**/*.{ts,rs}` (excluding test
+  files, node_modules, target). Files inspected:
+
+  | File | Validator | Issuer source | Alg surface |
+  |---|---|---|---|
+  | `stagecraft/api/auth/m2mAuth.ts:70-117` | `validateM2mJwt` | `getJwksAndIssuer()` via discovery doc (m2mAuth.ts:102) | RS256 + EdDSA per `key.alg` match (m2mAuth.ts:111-113) |
+  | `stagecraft/api/auth/rauthy.ts:173-` | `validateJwt` | `getJwksAndIssuer()` via discovery doc (rauthy.ts:201) | RS256 + EdDSA |
+  | `stagecraft/api/auth/rauthy.ts:152-` | `getJwksAndIssuer` | Discovery doc `issuer` field (rauthy.ts:147) | n/a (returns JWKS + issuer string) |
+  | `deployd-api-rs/src/auth.rs:21-75` | `verify_jwt` | Discovery doc `issuer` field (auth.rs:110-113) | RS256 + EdDSA via `DecodingKey::from_jwk` (auth.rs:54), allowlist gate (auth.rs:63-66) |
+  | `stagecraft/api/auth/handler.ts:111` | calls `validateJwt` | — | — |
+  | `stagecraft/api/auth/oidc.ts:280` | calls `validateJwt` | — | — |
+  | `stagecraft/api/auth/rauthyCallback.ts:501-503` | decodes payload without sig check; downstream `validateJwt` carries the gate | — | — |
+
+  *Audit verdict.* Every M2M JWT validator on the platform
+  derives `issuer` from the OIDC discovery doc rather than
+  by string concatenation, and every validator that handles
+  Rauthy-signed tokens accepts both RS256 and EdDSA. No
+  latent validators were surfaced. The §12 L-008 invariant
+  is satisfied across the platform.
+
+  *Latent typed-claims note (FU-012 candidate, not landed).*
+  `m2mAuth.ts:19-25` declares `sub: string`, but Rauthy
+  `client_credentials` tokens carry `sub: null` (no end-user
+  principal). Today the validator returns null on issuer
+  mismatch before any consumer reads `sub`, so the
+  type/runtime mismatch is harmless. No consumer code path
+  currently dereferences `M2mClaims.sub` without a guard.
+  Left as a documentation note rather than a new FU; if a
+  consumer adds a sub-driven branch later, audit at that
+  point.
+
+  *Original Tier-2 done-when (pre-closure):* Spec 143 FU-001 verification
   surfaced a third Rauthy-0.35-vs-hand-rolled-validator
   finding, structurally adjacent to FU-006c (deployd-api
   RSA-only validator). The seam is platform-wide:
