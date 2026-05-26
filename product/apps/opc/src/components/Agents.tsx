@@ -20,7 +20,16 @@ import { GitHubAgentBrowser } from '@/components/GitHubAgentBrowser';
 import { CreateAgent } from '@/components/CreateAgent';
 import { useTabState } from '@/hooks/useTabState';
 
-export const Agents: React.FC = () => {
+interface AgentsProps {
+  /**
+   * Optional project path for scope-aware discovery. Plumbed through by
+   * the Settings panel's scope selector; full project-scope discovery
+   * lands in Issue 10 follow-up.
+   */
+  projectPath?: string;
+}
+
+export const Agents: React.FC<AgentsProps> = ({ projectPath: _projectPath }) => {
   const [activeTab, setActiveTab] = useState('agents');
   const [showCreateAgent, setShowCreateAgent] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);

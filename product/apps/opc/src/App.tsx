@@ -55,8 +55,6 @@ function AppContent() {
   const {
     createSettingsTab,
     createUsageTab,
-    createMCPTab,
-    createAgentsTab,
     createFactoryTab,
     createWorkspaceProjectsTab,
   } = useTabState();
@@ -439,13 +437,12 @@ function AppContent() {
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Custom Titlebar */}
+      {/* Custom Titlebar — Agents + MCP icons removed; both surfaces
+          now live as tabs inside Settings. */}
       <CustomTitlebar
-        onAgentsClick={() => createAgentsTab()}
         onFactoryClick={() => createFactoryTab()}
         onWorkspaceProjectsClick={() => createWorkspaceProjectsTab()}
         onUsageClick={() => createUsageTab()}
-        onMCPClick={() => createMCPTab()}
         onSettingsClick={() => createSettingsTab()}
       />
 
