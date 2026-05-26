@@ -1,63 +1,13 @@
 {
   "build": {
-    "contentHash": "e38c4d22fdbea01ea4d38feb365e147b65228f7e848ac981f4c980b6f6cd7463",
+    "contentHash": "128996a7f699e48b2c5d51a130489eb7e216f41e0f7ea69b94be4de73e96927e",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
   },
   "diagnostics": {
-    "errors": [
-      {
-        "code": "I-008",
-        "message": "154-logical-unit-ownership-grammar: file: path \"crates/featuregraph/tests/golden/features_graph.json\" does not exist on disk"
-      },
-      {
-        "code": "I-008",
-        "message": "156-references-edge-provenance-grammar: file: path \"crates/featuregraph/tests/golden/features_graph.json\" does not exist on disk"
-      },
-      {
-        "code": "I-008",
-        "message": "161-knowledge-requirements-provenance-emission: file: path \"crates/featuregraph/tests/golden/features_graph.json\" does not exist on disk"
-      },
-      {
-        "code": "I-008",
-        "message": "167-born-with-spec-spine-kernel: file: path \"crates/featuregraph/tests/golden/features_graph.json\" does not exist on disk"
-      },
-      {
-        "code": "I-008",
-        "message": "168-per-project-governance-certificate: file: path \"crates/featuregraph/tests/golden/features_graph.json\" does not exist on disk"
-      },
-      {
-        "code": "I-008",
-        "message": "169-tool-schema-strictness: file: path \"crates/featuregraph/tests/golden/features_graph.json\" does not exist on disk"
-      }
-    ],
-    "warnings": [
-      {
-        "code": "I-101",
-        "message": "spec \"154-logical-unit-ownership-grammar\" declares implements path \"crates/featuregraph/tests/golden/features_graph.json\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"156-references-edge-provenance-grammar\" declares implements path \"crates/featuregraph/tests/golden/features_graph.json\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"161-knowledge-requirements-provenance-emission\" declares implements path \"crates/featuregraph/tests/golden/features_graph.json\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"167-born-with-spec-spine-kernel\" declares implements path \"crates/featuregraph/tests/golden/features_graph.json\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"168-per-project-governance-certificate\" declares implements path \"crates/featuregraph/tests/golden/features_graph.json\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"169-tool-schema-strictness\" declares implements path \"crates/featuregraph/tests/golden/features_graph.json\" which is not a known package, adapter, or existing file/directory"
-      }
-    ]
+    "errors": [],
+    "warnings": []
   },
   "inventory": [
     {
@@ -18608,6 +18558,11 @@
           },
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": ".derived/codebase-index/index.json"
+              }
+            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -29887,6 +29842,11 @@
           },
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -30372,6 +30332,11 @@
         "resolvedUnits": [
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -32425,6 +32390,11 @@
         "resolvedUnits": [
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -34796,6 +34766,11 @@
           },
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -35109,6 +35084,11 @@
           },
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -35224,6 +35204,11 @@
           },
           {
             "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {

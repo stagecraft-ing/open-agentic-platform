@@ -86,7 +86,9 @@ fn rootless_podman_socket() -> Option<PathBuf> {
 
 #[cfg(target_os = "linux")]
 fn fallback_runtime_dir() -> Option<PathBuf> {
-    let uid = unsafe { libc_getuid() };
+    // `libc_getuid` is declared `safe fn` inside an `unsafe extern`
+    // block (Rust 2024 syntax) — no `unsafe { ... }` wrapper needed.
+    let uid = libc_getuid();
     Some(PathBuf::from(format!("/run/user/{uid}")))
 }
 
