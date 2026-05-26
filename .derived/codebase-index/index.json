@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "104c2e2786dc5c4024b4b358495c38128a09c00809f3fb46059e796d968c4c0c",
+    "contentHash": "080d416df82f81317ae203c0df5dc89b58581f365eb5702fa56a5f80fcc1b0dd",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -40958,6 +40958,10 @@
         ],
         "implementingPaths": [
           {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
             "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs",
             "source": "spec-implements"
           },
@@ -40991,6 +40995,20 @@
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
           {
             "kind": "file",
             "locations": [

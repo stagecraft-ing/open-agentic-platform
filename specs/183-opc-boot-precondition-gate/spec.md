@@ -20,6 +20,18 @@ depends_on:
   - "180"  # opc-shell-codification (broad OPC shell authority; this spec sits on its Tier 1 invariant surface for a runtime-precondition concern)
 code_aliases:
   - "OPC_BOOT_PRECONDITION_GATE"
+extends:
+  # Mechanical featuregraph-golden refresh when this spec's lifecycle
+  # flipped to status: approved + implementation: complete. The
+  # fixture's spec-183 record reflects this spec's frontmatter 1:1;
+  # no semantic change to spec 034's claims (same precedent as
+  # specs 167/168/169 carried during the 178 rename). Required by
+  # spec 177 ci-orchestrator-pr-gate atomicity contract — the
+  # featuregraph-golden check is a ci-gate, so lifecycle flips
+  # must carry their fixture refresh inside the same PR.
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "boot-state-precondition-discipline"
     unit: { kind: file, path: product/apps/opc/src/App.tsx }
