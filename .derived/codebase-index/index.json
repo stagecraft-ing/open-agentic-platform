@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "080d416df82f81317ae203c0df5dc89b58581f365eb5702fa56a5f80fcc1b0dd",
+    "contentHash": "2714c64d9e7f7674b0c7769cbac1a356f95082fbe4da03300c093aee831a969f",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -32516,7 +32516,7 @@
           }
         ],
         "specId": "161-knowledge-requirements-provenance-emission",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "amends": [

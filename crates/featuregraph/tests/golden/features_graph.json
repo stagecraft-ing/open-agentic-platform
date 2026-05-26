@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:3aac980b12be0e328d19346402345046d131304743dc634368bb5339af94d43c",
+  "graph_fingerprint": "sha256:4b7be73222dc676425847fdbbaedaacec7bf65236c9981b5a925a1bcccfe0f76",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3030,8 +3030,8 @@
       "feature_id": "161-knowledge-requirements-provenance-emission",
       "title": "Knowledge → Requirements provenance: emission contract and Requirements-view rendering",
       "spec_path": "specs/161-knowledge-requirements-provenance-emission/spec.md",
-      "status": "draft",
-      "implementation": "in-progress",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "bart",
       "group": "",
