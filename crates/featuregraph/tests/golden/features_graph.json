@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:01ed3d9e1356bb3b0ba54f9c9578da4e871ceb8500b8e0994ca16d7eb2c64581",
+  "graph_fingerprint": "sha256:516afa8b5bf9dbeaaf3f782229b54f923c6159c85720c931fbbfc54e743a6363",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3506,6 +3506,24 @@
       "impl_files": [],
       "test_files": [],
       "violations": []
+    },
+    {
+      "feature_id": "185-sandbox-local-container-backend",
+      "title": "Local-container sandbox backend — rootless Podman / Docker via bollard (companion to spec 162 ASI05)",
+      "spec_path": "specs/185-sandbox-local-container-backend/spec.md",
+      "status": "draft",
+      "implementation": "in-progress",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "162",
+        "075",
+        "102"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
     }
   ],
   "violations": [
@@ -4284,6 +4302,13 @@
       "severity": "error",
       "path": "crates/provenance-validator/tests/validator_tests.rs",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-001 to FR-005, FR-036 to FR-039",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/sandbox-local-container/src/lib.rs",
+      "message": "Malformed Spec directive: // Spec: specs/185-sandbox-local-container-backend/spec.md",
       "suggested_fix": "Fix header format"
     },
     {

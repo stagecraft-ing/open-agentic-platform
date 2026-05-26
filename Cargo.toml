@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    # 20 OAP library crates.
+    # 21 OAP library crates.
     "crates/agent",
     "crates/agent-frontmatter",
     "crates/artifact-extract",
@@ -18,6 +18,7 @@ members = [
     "crates/provenance-validator",
     "crates/provider-registry",
     "crates/run",
+    "crates/sandbox-local-container",
     "crates/skill-factory",
     "crates/standards-loader",
     "crates/tool-registry",

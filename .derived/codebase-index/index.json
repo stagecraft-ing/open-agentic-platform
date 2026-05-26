@@ -1,13 +1,63 @@
 {
   "build": {
-    "contentHash": "75aa9f158cea55cad09f541d21b772629985d043b7857a201c136e63701cb365",
+    "contentHash": "f5b7c53555d923bb3e0833c9130908edf4c8cdc9b21c30adfc89677d208e1bea",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
   },
   "diagnostics": {
-    "errors": [],
-    "warnings": []
+    "errors": [
+      {
+        "code": "I-008",
+        "message": "154-logical-unit-ownership-grammar: file: path \"crates/featuregraph/tests/golden/features_graph.json\" does not exist on disk"
+      },
+      {
+        "code": "I-008",
+        "message": "156-references-edge-provenance-grammar: file: path \"crates/featuregraph/tests/golden/features_graph.json\" does not exist on disk"
+      },
+      {
+        "code": "I-008",
+        "message": "161-knowledge-requirements-provenance-emission: file: path \"crates/featuregraph/tests/golden/features_graph.json\" does not exist on disk"
+      },
+      {
+        "code": "I-008",
+        "message": "167-born-with-spec-spine-kernel: file: path \"crates/featuregraph/tests/golden/features_graph.json\" does not exist on disk"
+      },
+      {
+        "code": "I-008",
+        "message": "168-per-project-governance-certificate: file: path \"crates/featuregraph/tests/golden/features_graph.json\" does not exist on disk"
+      },
+      {
+        "code": "I-008",
+        "message": "169-tool-schema-strictness: file: path \"crates/featuregraph/tests/golden/features_graph.json\" does not exist on disk"
+      }
+    ],
+    "warnings": [
+      {
+        "code": "I-101",
+        "message": "spec \"154-logical-unit-ownership-grammar\" declares implements path \"crates/featuregraph/tests/golden/features_graph.json\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"156-references-edge-provenance-grammar\" declares implements path \"crates/featuregraph/tests/golden/features_graph.json\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"161-knowledge-requirements-provenance-emission\" declares implements path \"crates/featuregraph/tests/golden/features_graph.json\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"167-born-with-spec-spine-kernel\" declares implements path \"crates/featuregraph/tests/golden/features_graph.json\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"168-per-project-governance-certificate\" declares implements path \"crates/featuregraph/tests/golden/features_graph.json\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"169-tool-schema-strictness\" declares implements path \"crates/featuregraph/tests/golden/features_graph.json\" which is not a known package, adapter, or existing file/directory"
+      }
+    ]
   },
   "inventory": [
     {
@@ -448,6 +498,25 @@
       "name": "run",
       "path": "crates/run",
       "specRef": "052-state-persistence",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs"
+      ],
+      "externalDeps": [
+        "async-trait",
+        "thiserror"
+      ],
+      "internalDeps": [
+        "factory-contracts",
+        "factory-engine"
+      ],
+      "kind": "rust-lib",
+      "name": "sandbox-local-container",
+      "path": "crates/sandbox-local-container",
+      "specRef": "185-sandbox-local-container-backend",
       "version": "0.1.0"
     },
     {
@@ -18530,11 +18599,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": ".derived/codebase-index/index.json"
-              }
-            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -29814,11 +29878,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "crates/featuregraph/tests/golden/features_graph.json"
-              }
-            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -30304,11 +30363,6 @@
         "resolvedUnits": [
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "crates/featuregraph/tests/golden/features_graph.json"
-              }
-            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -32362,11 +32416,6 @@
         "resolvedUnits": [
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "crates/featuregraph/tests/golden/features_graph.json"
-              }
-            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -34738,11 +34787,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "crates/featuregraph/tests/golden/features_graph.json"
-              }
-            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -35056,11 +35100,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "crates/featuregraph/tests/golden/features_graph.json"
-              }
-            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -35176,11 +35215,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "crates/featuregraph/tests/golden/features_graph.json"
-              }
-            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -41112,6 +41146,100 @@
           }
         ],
         "specId": "184-claude-shared-config-governance",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "075",
+          "102",
+          "162"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/sandbox-local-container",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/sandbox-local-container/src/lib.rs",
+            "source": "comment-header"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "crates/sandbox-local-container/Cargo.toml"
+              },
+              {
+                "file": "crates/sandbox-local-container/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "crates/sandbox-local-container"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp/owasp_top_10_agentic_applications_summary.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/075-factory-workflow-engine/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/075-factory-workflow-engine/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/102-governed-excellence/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/102-governed-excellence/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/162-sandbox-execution-contract/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/162-sandbox-execution-contract/spec.md"
+            }
+          }
+        ],
+        "specId": "185-sandbox-local-container-backend",
         "specStatus": "draft"
       }
     ],

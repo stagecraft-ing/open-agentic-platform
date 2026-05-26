@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Bartek Kus
+
+[package]
+name = "sandbox-local-container"
+publish = false   # internal workspace crate
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Local-container sandbox backend — rootless Podman / Docker via bollard (spec 185)"
+rust-version = "1.85"
+
+[lib]
+name = "sandbox_local_container"
+path = "src/lib.rs"
+
+[dependencies]
+factory-engine = { path = "../factory-engine" }
+factory-contracts = { path = "../factory-contracts" }
+async-trait = "0.1"
+thiserror = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+
+[package.metadata.oap]
+spec = "185-sandbox-local-container-backend"
