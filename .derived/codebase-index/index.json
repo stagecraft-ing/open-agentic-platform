@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "128996a7f699e48b2c5d51a130489eb7e216f41e0f7ea69b94be4de73e96927e",
+    "contentHash": "104c2e2786dc5c4024b4b358495c38128a09c00809f3fb46059e796d968c4c0c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -40962,6 +40962,14 @@
             "source": "spec-implements"
           },
           {
+            "path": "product/apps/opc/src-tauri/src/commands/sync_client.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "product/apps/opc/src-tauri/src/sidecars.rs",
             "source": "spec-implements"
           },
@@ -40970,7 +40978,15 @@
             "source": "spec-implements"
           },
           {
+            "path": "product/apps/opc/src/components/boot/BootGate.tsx",
+            "source": "spec-implements"
+          },
+          {
             "path": "product/apps/opc/src/contexts/AuthContext.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/lib/api.ts",
             "source": "spec-implements"
           }
         ],
@@ -41007,6 +41023,34 @@
             "kind": "file",
             "locations": [
               {
+                "file": "product/apps/opc/src-tauri/src/commands/sync_client.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/sync_client.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "product/apps/opc/src-tauri/src/sidecars.rs"
               }
             ],
@@ -41035,6 +41079,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "product/apps/opc/src/components/boot/BootGate.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/components/boot/BootGate.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "product/apps/opc/src/contexts/AuthContext.tsx"
               }
             ],
@@ -41044,10 +41102,24 @@
               "kind": "file",
               "path": "product/apps/opc/src/contexts/AuthContext.tsx"
             }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/lib/api.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/lib/api.ts"
+            }
           }
         ],
         "specId": "183-opc-boot-precondition-gate",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "amends": [
