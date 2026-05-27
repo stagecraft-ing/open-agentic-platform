@@ -39,7 +39,7 @@ sha2 = "0.10"
 # Keeps us off rand's trait-rename train (RngCore → Rng → RngExt across
 # 0.8 → 0.9 → 0.10) for code that only needs an OS CSPRNG handle.
 ed25519-dalek = { version = "2", features = ["rand_core"] }
-rand_core = { version = "0.6", features = ["getrandom"] }
+rand_core = { version = "0.10", features = ["getrandom"] }
 base64 = "0.22"
 jsonschema = "0.46"
 regex = "1"
