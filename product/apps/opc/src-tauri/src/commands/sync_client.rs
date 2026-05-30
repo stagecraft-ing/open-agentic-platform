@@ -34,8 +34,15 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 /// The duplex protocol version this client speaks. Must match
-/// `ENVELOPE_SCHEMA_VERSION` in `platform/services/stagecraft/api/sync/types.ts`.
-pub const ENVELOPE_SCHEMA_VERSION: u8 = 1;
+/// `ENVELOPE_SCHEMA_VERSION` in `platform/services/stagecraft/api/sync/types.ts`,
+/// which spec 119 bumped to **v2** when it collapsed the duplex session key
+/// from `workspaceId` to `orgId`. The desktop already carries the v2 *struct*
+/// shapes (`ServerMeta.org_cursor` / `org_id`), but this constant lagged at 1,
+/// so every server frame failed the `is_server_envelope` version check and
+/// `sync.hello` was never received. That was silent before spec 183, then a
+/// hard boot-gate block once FR-T2(b) gated the cockpit on `sync.hello`
+/// receipt. Bumping to 2 restores parity with the deployed server.
+pub const ENVELOPE_SCHEMA_VERSION: u8 = 2;
 
 /// Spec 123 §7 — per-event-kind contract version constants. Mirror the TS
 /// counterparts in `platform/services/stagecraft/api/sync/types.ts`. Kept as
@@ -73,7 +80,8 @@ pub struct EnvelopeMeta {
 }
 
 /// Meta on server-originated envelopes — extends [`EnvelopeMeta`] with the
-/// workspace cursor the server assigned.
+/// org cursor and org id the server assigned (spec 119 collapsed the former
+/// `workspace` session key to `org`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ServerMeta {
@@ -1221,7 +1229,7 @@ mod tests {
     }
 
     #[test]
-    fn accepts_known_kinds_at_v1() {
+    fn accepts_known_kinds_at_current_version() {
         for kind in [
             "factory.run.request",
             "factory.event",
@@ -1232,7 +1240,7 @@ mod tests {
             "project.catalog.snapshot.complete",
         ] {
             assert!(
-                is_server_envelope(&empty_envelope(kind, 1)),
+                is_server_envelope(&empty_envelope(kind, ENVELOPE_SCHEMA_VERSION)),
                 "kind {kind} should pass the guard",
             );
         }
@@ -1245,7 +1253,7 @@ mod tests {
         let raw = r#"{
           "kind": "project.catalog.upsert",
           "meta": {
-            "v": 1,
+            "v": 2,
             "eventId": "e1",
             "sentAt": "2026-04-23T00:00:00Z",
             "orgCursor": "c-1",
@@ -1285,12 +1293,24 @@ mod tests {
 
     #[test]
     fn rejects_unknown_kind() {
-        assert!(!is_server_envelope(&empty_envelope("totally.made.up", 1)));
+        assert!(!is_server_envelope(&empty_envelope(
+            "totally.made.up",
+            ENVELOPE_SCHEMA_VERSION
+        )));
     }
 
     #[test]
     fn rejects_wrong_schema_version() {
-        assert!(!is_server_envelope(&empty_envelope("sync.hello", 2)));
+        // Post spec-119 the wire is v2 (see ENVELOPE_SCHEMA_VERSION). A frame
+        // carrying the retired v1 — or any future version — must be rejected
+        // by the strict-equality guard, even when the kind is otherwise known.
+        assert!(!is_server_envelope(&empty_envelope("sync.hello", 1)));
+        assert!(!is_server_envelope(&empty_envelope("sync.hello", 99)));
+        // Sanity: the current version is accepted.
+        assert!(is_server_envelope(&empty_envelope(
+            "sync.hello",
+            ENVELOPE_SCHEMA_VERSION
+        )));
     }
 
     #[test]
@@ -1300,7 +1320,7 @@ mod tests {
         let raw = r#"{
           "kind": "factory.run.request",
           "meta": {
-            "v": 1,
+            "v": 2,
             "eventId": "e1",
             "sentAt": "2026-04-21T00:00:00Z",
             "orgCursor": "cur-42",
@@ -1440,7 +1460,7 @@ mod tests {
             "declineReason must be omitted when None"
         );
         assert_eq!(json["observedAt"], "2026-04-21T00:00:01Z");
-        assert_eq!(json["meta"]["v"], 1);
+        assert_eq!(json["meta"]["v"], ENVELOPE_SCHEMA_VERSION);
         assert_eq!(json["meta"]["eventId"], "e1");
     }
 
@@ -1469,10 +1489,10 @@ mod tests {
     // spec 111 §2.3 — agent.catalog.{updated,snapshot} must be recognised as
     // known SERVER→CLIENT kinds so the duplex consumer doesn't drop them.
     #[test]
-    fn accepts_agent_catalog_kinds_at_v1() {
+    fn accepts_agent_catalog_kinds_at_current_version() {
         for kind in ["agent.catalog.updated", "agent.catalog.snapshot"] {
             assert!(
-                is_server_envelope(&empty_envelope(kind, 1)),
+                is_server_envelope(&empty_envelope(kind, ENVELOPE_SCHEMA_VERSION)),
                 "kind {kind} should pass the guard",
             );
         }
@@ -1485,7 +1505,7 @@ mod tests {
         let raw = r###"{
           "kind": "agent.catalog.updated",
           "meta": {
-            "v": 1,
+            "v": 2,
             "eventId": "e-ag",
             "sentAt": "2026-04-22T00:00:00Z",
             "orgCursor": "cur-1",
@@ -1520,7 +1540,7 @@ mod tests {
         let raw = r#"{
           "kind": "agent.catalog.snapshot",
           "meta": {
-            "v": 1,
+            "v": 2,
             "eventId": "e-snap",
             "sentAt": "2026-04-22T00:00:00Z",
             "orgCursor": "cur-2",
@@ -1568,7 +1588,7 @@ mod tests {
         assert_eq!(json["agentId"], "a-1");
         assert_eq!(json["reason"], "hash_mismatch");
         assert_eq!(json["observedAt"], "2026-04-22T00:00:01Z");
-        assert_eq!(json["meta"]["v"], 1);
+        assert_eq!(json["meta"]["v"], ENVELOPE_SCHEMA_VERSION);
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -1602,13 +1622,13 @@ mod tests {
     // spec 123 §7.2 — project.agent_binding.{updated,snapshot} must be
     // recognised as known SERVER→CLIENT kinds.
     #[test]
-    fn accepts_project_agent_binding_kinds_at_v1() {
+    fn accepts_project_agent_binding_kinds_at_current_version() {
         for kind in [
             "project.agent_binding.updated",
             "project.agent_binding.snapshot",
         ] {
             assert!(
-                is_server_envelope(&empty_envelope(kind, 1)),
+                is_server_envelope(&empty_envelope(kind, ENVELOPE_SCHEMA_VERSION)),
                 "kind {kind} should pass the guard",
             );
         }
@@ -1619,7 +1639,7 @@ mod tests {
         let raw = r#"{
           "kind": "project.agent_binding.updated",
           "meta": {
-            "v": 1,
+            "v": 2,
             "eventId": "e-bind",
             "sentAt": "2026-05-01T00:00:00Z",
             "orgCursor": "cur-3",
@@ -1651,7 +1671,7 @@ mod tests {
         let raw = r#"{
           "kind": "project.agent_binding.snapshot",
           "meta": {
-            "v": 1,
+            "v": 2,
             "eventId": "e-bsnap",
             "sentAt": "2026-05-01T00:00:00Z",
             "orgCursor": "cur-4",
@@ -1733,7 +1753,7 @@ mod tests {
         assert_eq!(json["agentRef"]["version"], 3);
         assert_eq!(json["agentRef"]["contentHash"], "h-3");
         assert_eq!(json["startedAt"], "2026-05-01T00:00:01Z");
-        assert_eq!(json["meta"]["v"], 1);
+        assert_eq!(json["meta"]["v"], ENVELOPE_SCHEMA_VERSION);
     }
 
     #[test]
@@ -1950,11 +1970,11 @@ mod tests {
 
         // Mirror the wire shape stagecraft emits on an accepted handshake
         // (`api/sync/duplex.ts` line 121, kind `sync.hello`). The schema
-        // version is v=1 per the envelope-version guard.
+        // version is v=2 per the envelope-version guard (spec 119).
         let hello = r#"{
             "kind": "sync.hello",
             "meta": {
-                "v": 1,
+                "v": 2,
                 "eventId": "evt-hello-1",
                 "sentAt": "2026-05-25T00:00:00Z",
                 "orgCursor": "cur-hello-1",
