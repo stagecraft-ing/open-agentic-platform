@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:40fcb99ea5c2f04450158a2a2a3ed553204d395bae33e5a0d6957a11d14f00ac",
+  "graph_fingerprint": "sha256:44be4e9894380413bcedc4f0f2caf4a54d5400fff9b15db0c5ecac5540757f4f",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3581,6 +3581,13 @@
     }
   ],
   "violations": [
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": ".githooks/enable-merge-driver.sh",
+      "message": "Malformed Spec directive: # Spec: 188-derived-index-merge-serialization",
+      "suggested_fix": "Fix header format"
+    },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "ef2dc4d100ef743bd3e60a577369d3b6426ed51c3e25d3f5487c8df04a9b2913",
+    "contentHash": "c5e44ca95429a59c1b18f7d3a74c9d3a7ed8d66f0ae78d1938951de6f3a643c9",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -18699,8 +18699,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 463,
-                  "startLine": 145
+                  "endLine": 479,
+                  "startLine": 161
                 }
               }
             ],
@@ -18949,8 +18949,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 638,
-                  "startLine": 634
+                  "endLine": 654,
+                  "startLine": 650
                 }
               }
             ],
@@ -19061,8 +19061,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 144,
-                  "startLine": 78
+                  "endLine": 160,
+                  "startLine": 94
                 }
               }
             ],
@@ -21087,8 +21087,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 633,
-                  "startLine": 587
+                  "endLine": 649,
+                  "startLine": 603
                 }
               }
             ],
@@ -24616,8 +24616,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 586,
-                  "startLine": 564
+                  "endLine": 602,
+                  "startLine": 580
                 }
               }
             ],
@@ -24710,8 +24710,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 563,
-                  "startLine": 464
+                  "endLine": 579,
+                  "startLine": 480
                 }
               }
             ],
@@ -25271,8 +25271,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 679,
-                  "startLine": 639
+                  "endLine": 695,
+                  "startLine": 655
                 }
               }
             ],
@@ -25354,8 +25354,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 908,
-                  "startLine": 680
+                  "endLine": 924,
+                  "startLine": 696
                 }
               }
             ],
@@ -30879,8 +30879,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 463,
-                  "startLine": 145
+                  "endLine": 479,
+                  "startLine": 161
                 }
               }
             ],
@@ -41645,7 +41645,15 @@
       {
         "implementingPaths": [
           {
+            "path": ".githooks/enable-merge-driver.sh",
+            "source": "spec-implements"
+          },
+          {
             "path": ".githooks/merge-derived-index.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
             "source": "spec-implements"
           },
           {
@@ -41654,6 +41662,39 @@
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "section",
+            "locations": [
+              {
+                "file": "Makefile",
+                "span": {
+                  "endLine": 93,
+                  "startLine": 81
+                }
+              }
+            ],
+            "ownership": true,
+            "sourceField": "co_authority",
+            "unit": {
+              "anchor": "merge-driver",
+              "file": "Makefile",
+              "kind": "section"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".githooks/enable-merge-driver.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".githooks/enable-merge-driver.sh"
+            }
+          },
           {
             "kind": "file",
             "locations": [
