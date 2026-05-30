@@ -388,18 +388,16 @@ pub fn spawn_axiomregent(app: &AppHandle) {
                         }
                     }
                 }
-                CommandEvent::Stdout(bytes) => {
-                    // Stdout is reserved for MCP framing — do not log frames.
-                    // Tolerate (but don't require) a port line here for
-                    // robustness against older sidecar builds that announced
-                    // on stdout.
-                    if !port_announced {
-                        let line = String::from_utf8_lossy(&bytes);
-                        if let Some(port) = parse_axiomregent_port_line(&line) {
-                            *port_slot.lock().unwrap() = Some(port);
-                            port_announced = true;
-                            log::info!("axiomregent probe port {port}");
-                        }
+                // Stdout is reserved for MCP framing — do not log frames.
+                // Tolerate (but don't require) a port line here for robustness
+                // against older sidecar builds that announced on stdout. Once
+                // the port is known this arm falls through to `_` below.
+                CommandEvent::Stdout(bytes) if !port_announced => {
+                    let line = String::from_utf8_lossy(&bytes);
+                    if let Some(port) = parse_axiomregent_port_line(&line) {
+                        *port_slot.lock().unwrap() = Some(port);
+                        port_announced = true;
+                        log::info!("axiomregent probe port {port}");
                     }
                 }
                 CommandEvent::Error(e) => {
