@@ -10,7 +10,7 @@
 
 .PHONY: setup dev dev-platform dev-all stop \
         axiomregent axiomregent-all fetch-axiomregent fetch-axiomregent-check \
-        registry spec-compile spec-tools \
+        registry spec-compile spec-tools register-merge-driver \
         index index-check index-render pr-prep \
         check-deps \
         agent-frontmatter-ts ci-agent-frontmatter-ts \
@@ -70,7 +70,23 @@ setup: check-deps
 	@echo "==> Building registry-consumer (governed-read CLI for /init)..."
 	cargo build --release --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --target-dir tools/spec-spine/registry-consumer/target
 	@echo ""
+	@echo "==> Registering oap-index-regen git merge driver (spec 188)..."
+	@$(MAKE) register-merge-driver
+	@echo ""
 	@echo "==> Setup complete. Run 'make dev' to start."
+
+# ============================================================
+# Git merge driver registration (spec 188)
+# ============================================================
+## tag: merge-driver
+
+# Register the per-clone `oap-index-regen` merge driver (spec 188). The
+# path→driver assignment is committed in `.gitattributes`; this wires the
+# non-committed `.git/config` registration that activates it. Idempotent;
+# `make setup` runs it, and it stands alone for clones bootstrapped before
+# spec 188 landed. Worktrees inherit the registration from their clone.
+register-merge-driver:
+	@./.githooks/enable-merge-driver.sh
 
 # ============================================================
 # axiomregent sidecar binary

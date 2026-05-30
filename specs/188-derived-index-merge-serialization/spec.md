@@ -27,6 +27,10 @@ extends:
 establishes:
   - unit: { kind: file, path: .githooks/merge-derived-index.sh }
   - unit: { kind: file, path: .githooks/enable-merge-driver.sh }
+co_authority:
+  # `make setup` runs the merge-driver registration (FR-003). This claims
+  # the dedicated `merge-driver` target group of the shared Makefile.
+  - unit: { kind: section, file: Makefile, anchor: merge-driver }
 references:
   - role: precedent
     unit: { kind: file, path: specs/184-claude-shared-config-governance/spec.md }
@@ -209,17 +213,21 @@ until that tension is resolved.
 - **FR-002**: The driver MUST fail closed — exit non-zero, leaving the
   conflict unresolved — when the `codebase-indexer` release binary is not
   built or `compile` fails. It MUST NOT emit a clean-but-wrong index.
-- **FR-003**: Registration MUST be opt-in and documented in `CLAUDE.md`,
-  mirroring the existing `git config core.hooksPath .githooks` opt-in
-  (spec 158 / pre-commit precedent). Driver config lives in per-clone
+- **FR-003**: `make setup` MUST register the driver, so the standard
+  clone-bootstrap step is all that is required — no separate per-clone
+  command. The registration is performed by a committed, idempotent
+  enabler (`.githooks/enable-merge-driver.sh`) which `setup` invokes and
+  which also stands alone for clones bootstrapped before this change
+  (a contributor who keeps multiple clones runs `make setup`, or the
+  enabler directly, in each). Driver config lives in per-clone
   `.git/config`; git worktrees inherit it from the common clone, so one
-  registration covers every agent worktree under that clone. A committed,
-  idempotent enabler (`.githooks/enable-merge-driver.sh`) MUST perform the
-  registration as a single command, so a contributor who keeps multiple
-  clones on one machine enables each identically without copying the raw
-  `git config` invocations. The enabler only writes the non-committed
-  registration; the path→driver assignment (`.gitattributes`) and the
-  driver script both travel with the repo.
+  registration covers every agent worktree under that clone. This differs
+  deliberately from the pre-commit hook (spec 158), which stays *manually*
+  opt-in because it adds per-commit friction: the merge driver adds none —
+  it fires only on an `index.json` merge conflict and only ever yields the
+  deterministic-correct index, so registering it by default is pure
+  benefit. The path→driver assignment (`.gitattributes`) and the driver
+  script travel with the repo; only the registration is per-clone.
 - **FR-004**: Phase 1 MUST NOT change the `ci-codebase-index` staleness
   contract (spec 101 / 184) or the coupling gate contract (spec 127). It
   is additive local ergonomics only: the committed `index.json` stays
@@ -313,7 +321,7 @@ is informed.
 
 | Phase | Scope | Status | Risk |
 |-------|-------|--------|------|
-| 1 | `oap-index-regen` merge driver + `.gitattributes` + opt-in doc | **Implemented in this change** | low |
+| 1 | `oap-index-regen` merge driver + `.gitattributes` + `make setup` registration | **Implemented in this change** | low |
 | 2 | GitHub merge queue (`merge_group:` + `ci-gate`) | Designed only | low–medium |
 | 3 | Staleness gate → post-merge heal on `main` | Designed only, **gated on §spec-184 tension** | medium |
 
