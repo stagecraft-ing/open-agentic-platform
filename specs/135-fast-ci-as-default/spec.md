@@ -7,6 +7,14 @@ owner: bart
 created: "2026-05-03"
 approved: "2026-05-03"
 completed: "2026-05-03"
+amended: "2026-05-30"
+amendment_record: |
+  amended by spec 182 (2026-05-30) — the `validate-and-fix` file this
+  spec extends (wrapping) moved verbatim to
+  `.claude/skills/validate-and-fix/SKILL.md` in the spec-182
+  deprecation PR (legacy command file deleted); the `extends:` unit
+  path is repointed from `.claude/commands/validate-and-fix.md`
+  accordingly. No behavioral change.
 kind: governance
 domain: tooling
 risk: low
@@ -38,7 +46,7 @@ extends:
     unit: { kind: file, path: specs/104-makefile-ci-parity-contract/spec.md }
   - spec: "134-fast-local-ci-mode"
     nature: wrapping
-    unit: { kind: file, path: .claude/commands/validate-and-fix.md }
+    unit: { kind: file, path: .claude/skills/validate-and-fix/SKILL.md }
 summary: >
   Amend spec 104 to (a) collapse the per-manifest crates/* loop in `ci-rust`
   into a single `cargo --workspace` invocation, closing the ghost-crate
@@ -51,6 +59,13 @@ summary: >
 ---
 
 # 135 — Fast CI as Default + Crates Workspace Convergence
+
+> **Amended by spec 182 (2026-05-30).** The `validate-and-fix` file this
+> spec extends (wrapping) now lives at
+> `.claude/skills/validate-and-fix/SKILL.md` (migrated verbatim from the
+> deleted `.claude/commands/validate-and-fix.md` by the spec-182
+> deprecation PR); the `extends:` unit path is repointed accordingly.
+> No behavioral change.
 
 > Amends spec 104 (`makefile-ci-parity-contract`) §2.2. Spec 134
 > (`fast-local-ci-mode`) introduced `make ci-fast` as a sibling target

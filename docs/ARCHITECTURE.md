@@ -135,7 +135,7 @@ The `.claude/` directory ships development infrastructure as a first-class part 
 | Path | Contents |
 |------|---------|
 | `.claude/agents/` | architect, explorer, implementer, reviewer, encore-expert |
-| `.claude/commands/` | init, setup, commit, code-review, review-branch, implement-plan, research, validate-and-fix, cleanup, refactor-claude-md |
+| `.claude/skills/` | init, setup, commit, code-review, review-branch, implement-plan, research, validate-and-fix, cleanup, refactor-claude-md (one `SKILL.md` per folder; `.claude/commands/` is the retired legacy form per spec 182) |
 | `.claude/rules/` | Orchestrator behavioral rules (6 rules for multi-step workflows) |
 | `CLAUDE.md` | Project conventions, build commands, extension points |
 | `AGENTS.md` | Agent protocol and session initialization |

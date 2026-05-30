@@ -18,6 +18,11 @@ code_aliases:
 amends:
   - "071-skill-command-factory"
   - "101-codebase-index-mvp"
+  - "061-conductor-track-lifecycle"
+  - "134-fast-local-ci-mode"
+  - "135-fast-ci-as-default"
+  - "104-makefile-ci-parity-contract"
+  - "103-init-protocol-governed-reads"
 amends_sections: []
 extends:
   - spec: "101-codebase-index-mvp"
@@ -505,14 +510,42 @@ batch, whichever is longer. During the window, watch for:
 
 Atomic landing of:
 
-1. Delete the ten files under `.claude/commands/`.
-2. Regenerate the codebase index (the file deletions
-   change the hash set).
-3. Update CLAUDE.md to remove the "legacy" annotation on
-   `commands/`.
+1. Delete the ten files under `.claude/commands/`. The directory is
+   kept (empty, via `.gitkeep`) so the indexer walk root and any
+   future single-file command remain hashed.
+2. Repoint the four sibling specs whose typed relationship-graph
+   edges targeted the migrated command files (the content moved
+   verbatim to the skills surface):
+   - **061** — `establishes:` on the deleted `implement-plan.md` is
+     converted to a `references:` (role: historical) edge on
+     `.claude/skills/implement-plan/SKILL.md`. Spec 182 (PR 1)
+     already establishes that file, so 061 must not re-establish it.
+   - **134** — `refines:` (`ci-fast-validation`) repointed to
+     `.claude/skills/validate-and-fix/SKILL.md`.
+   - **135** — `extends:` (wrapping) repointed to
+     `.claude/skills/validate-and-fix/SKILL.md`.
+   - **104** — `co_authority:` section claim (`process` anchor, shared
+     with spec 000) and the SC-05 body references repointed to
+     `.claude/skills/validate-and-fix/SKILL.md`.
+   This spec amends 061/134/135/104 (see `amends:`); each carries an
+   `amended:`/`amendment_record:` note. Without this step the deletion
+   would orphan four live edges in the authority graph (surfaced by the
+   spec-127/133 coupling gate, which PR 2's original plan had not
+   anticipated).
+3. Regenerate the codebase index (the file deletions change the
+   hash set).
+4. Update the doc surface that names `.claude/commands/` as the active
+   command location: CLAUDE.md's Extension Points bullet,
+   `docs/ARCHITECTURE.md`, `docs/CONTRIBUTING.md`, and the **Available
+   Commands listing** in AGENTS.md. The AGENTS.md edit couples to
+   spec 103 (which `refines:` AGENTS.md), so this spec also amends 103
+   with a note scoping the change to the listing-path correction.
 
-AGENTS.md is **not** touched in PR 2 — it remains the
-canonical cross-agent protocol body across both PRs.
+AGENTS.md's **protocol body** (`## New Sessions`) is **not** touched in
+PR 2; only the stale path in its Available Commands listing is
+corrected (`.claude/commands/` → `.claude/skills/`). 103's governed-reads
+aspect (FR-01) and AGENTS.md's cross-agent protocol authority are
+unchanged across both PRs.
 
 The `commands/` walk entry in the indexer stays in place — if
 a future contributor adds a single-file command for any

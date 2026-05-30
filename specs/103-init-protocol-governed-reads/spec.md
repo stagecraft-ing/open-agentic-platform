@@ -19,8 +19,20 @@ establishes:
 refines:
   - aspect: "governed-reads"
     unit: { kind: file, path: AGENTS.md }
-amended: "2026-05-23"
-amendment_record: "self-amends — Consumer Binaries table (2026-05-23) refreshed to advertise the new `codebase-indexer orphans` subcommand landed in spec 101's 2026-05-23 self-amendment. The principle is unchanged; the table is the orchestrator-facing index of available governed-read verbs and must track new subcommands as they land."
+amended: "2026-05-30"
+amendment_record: |
+  self-amends — Consumer Binaries table (2026-05-23) refreshed to
+  advertise the new `codebase-indexer orphans` subcommand landed in
+  spec 101's 2026-05-23 self-amendment. The principle is unchanged;
+  the table is the orchestrator-facing index of available governed-read
+  verbs and must track new subcommands as they land.
+
+  amended by spec 182 (2026-05-30) — the spec-182 deprecation PR
+  corrected the stale `.claude/commands/` path in AGENTS.md's
+  "Available Commands" listing to `.claude/skills/`. Documentation
+  path correction only; 103's governed-reads aspect (FR-01) and the
+  `AGENTS.md § New Sessions` protocol body are unchanged. AGENTS.md
+  remains the canonical cross-agent protocol authority.
 summary: >
   Replace ad-hoc parsing of compiled JSON artifacts in orchestrated workflows
   (starting with /init) with governed reads through the consumer binaries
@@ -29,6 +41,13 @@ summary: >
 ---
 
 # 103 — Init Protocol Governed Reads
+
+> **Amended by spec 182 (2026-05-30).** The spec-182 deprecation PR
+> corrected the stale `.claude/commands/` → `.claude/skills/` path in
+> AGENTS.md's "Available Commands" listing. This is a documentation
+> path correction only — 103's governed-reads aspect (FR-01) and the
+> `AGENTS.md § New Sessions` protocol body are unchanged. AGENTS.md
+> remains the canonical cross-agent protocol authority.
 
 ## 1. Problem Statement
 

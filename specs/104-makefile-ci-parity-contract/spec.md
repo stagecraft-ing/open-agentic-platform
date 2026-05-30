@@ -5,8 +5,15 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-16"
-amended: "2026-05-03"
-amendment_record: "135-fast-ci-as-default"
+amended: "2026-05-30"
+amendment_record: |
+  amended by spec 135 (135-fast-ci-as-default, 2026-05-03).
+
+  amended by spec 182 (2026-05-30) — the `process` section this spec
+  co-authors moved verbatim to `.claude/skills/validate-and-fix/SKILL.md`
+  in the spec-182 deprecation PR (legacy `.claude/commands/validate-and-fix.md`
+  deleted); the `co_authority` section unit and the SC-05 body references
+  are repointed accordingly. No contract change.
 kind: governance
 domain: tooling
 risk: low
@@ -29,7 +36,7 @@ co_authority:
     unit: { kind: section, file: Makefile, anchor: ci-parity }
   - with_specs:
       - "000-bootstrap-spec-system"
-    unit: { kind: section, file: .claude/commands/validate-and-fix.md, anchor: process }
+    unit: { kind: section, file: .claude/skills/validate-and-fix/SKILL.md, anchor: process }
 summary: >
   Promote the root Makefile to the authoritative single source of truth for
   local validation parity with every CI-enforcing GitHub Actions workflow.
@@ -38,6 +45,13 @@ summary: >
 ---
 
 # 104 — Makefile as CI Parity Contract
+
+> **Amended by spec 182 (2026-05-30).** The `process` section this spec
+> co-authors (the `/validate-and-fix` contract reference) moved verbatim
+> to `.claude/skills/validate-and-fix/SKILL.md`; the legacy
+> `.claude/commands/validate-and-fix.md` was deleted in the spec-182
+> deprecation PR. The `co_authority` section unit and the SC-05 body
+> references are repointed accordingly. No contract change.
 
 > **Amendment (spec 134, 2026-05-03).** A sibling target `make ci-fast` is
 > now permitted as a parity-exempt, performance-optimised local mirror.
@@ -156,7 +170,7 @@ only prevents the Makefile from silently falling behind them.
 - New Rust crate `tools/oap/ci-parity-check/`
 - New `ci-parity` target in the root `Makefile`
 - New workflow `.github/workflows/ci-parity.yml`
-- `.claude/commands/validate-and-fix.md` gains a one-line reference to
+- `.claude/skills/validate-and-fix/SKILL.md` gains a one-line reference to
   `make ci-parity` in its Process section
 
 **Does not change:**
@@ -277,7 +291,7 @@ too lossy to enforce).
 
 ### SC-05: `/validate-and-fix` References The Contract
 
-`.claude/commands/validate-and-fix.md` MUST mention `make ci-parity` as
+`.claude/skills/validate-and-fix/SKILL.md` MUST mention `make ci-parity` as
 a pre-PR check, alongside the existing `make ci` step.
 
 ## 5. Out of Scope (MVP)
