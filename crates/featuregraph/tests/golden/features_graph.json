@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:44be4e9894380413bcedc4f0f2caf4a54d5400fff9b15db0c5ecac5540757f4f",
+  "graph_fingerprint": "sha256:2c673fa689c778aaf0e3b35af6e9e2cc2fdce884eb2dbf77908726e3bf13ed37",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3575,6 +3575,26 @@
       "owner": "bart",
       "group": "",
       "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "189-duplex-envelope-version-parity",
+      "title": "Duplex envelope schema-version parity — a cross-language tripwire for ENVELOPE_SCHEMA_VERSION",
+      "spec_path": "specs/189-duplex-envelope-version-parity/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "087",
+        "119",
+        "120",
+        "125",
+        "183"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []
