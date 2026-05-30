@@ -4,6 +4,7 @@
 // Spec: specs/120-factory-extraction-stage/spec.md — FR-003, FR-004
 // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-007 (extension)
 // Spec: specs/125-schema-parity-walker-rebuild/spec.md — §3.2 (descriptor walker)
+// Spec: specs/189-duplex-envelope-version-parity/spec.md — §3.2 (envelope-version scalar parity)
 //
 // Schema parity check.
 //
@@ -30,8 +31,8 @@
 //
 // Run order:
 //   1. cargo test --manifest-path crates/factory-contracts/Cargo.toml
-//      (writes build/schema-parity/{rust-knowledge,rust-provenance,rust-stakeholder-doc}-schema.json)
-//   2. bun run tools/schema-parity-check/index.mjs   (this file — needs
+//      (writes .derived/schema-parity/{rust-knowledge,rust-provenance,rust-stakeholder-doc}-schema.json)
+//   2. bun run tools/oap/schema-parity-check/index.mjs   (this file — needs
 //      a runtime that can import .ts, hence bun)
 //
 // Exit codes:
@@ -43,16 +44,89 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { walkDescriptor } from "./walk-descriptor.mjs";
+import { compareEnvelopeVersions } from "./envelope-version.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(SCRIPT_DIR, "..", "..");
+// Repo root is three levels up from tools/oap/schema-parity-check/. The
+// `..,..` form predated the spec-spine crate split (#176), which relocated
+// this tool from tools/schema-parity-check/ into tools/oap/ without updating
+// the climb — leaving every path resolved under tools/ and the gate silently
+// non-functional. (spec 189 §3.0)
+const REPO_ROOT = path.resolve(SCRIPT_DIR, "..", "..", "..");
+
+// Guard (spec 189 §3.0): fail loudly if REPO_ROOT no longer resolves to the
+// repository root — e.g. a future relocation of this tool, the exact failure
+// mode that left the gate dark from #176 until this spec. Without it, a wrong
+// root surfaces only as a confusing "fingerprint not found" several checks in.
+for (const marker of ["crates/factory-contracts", "platform/services/stagecraft"]) {
+  if (!fs.existsSync(path.join(REPO_ROOT, marker))) {
+    fail(
+      2,
+      `schema-parity-check: REPO_ROOT does not resolve to the repo root\n` +
+        `  resolved: ${REPO_ROOT}\n` +
+        `  missing marker: ${marker}\n` +
+        `  This tool likely moved; update the \`..\` climb in index.mjs.`,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Spec: specs/189-duplex-envelope-version-parity/spec.md
+//
+// Protocol-wide duplex envelope schema-version parity (a scalar, not a
+// structural fingerprint). Runs FIRST and independently of the
+// structural-fingerprint checks below — it neither reads the Rust fingerprint
+// files nor imports any stagecraft TS, so it reports even when an unrelated
+// structural check would later error. The desktop (Rust) and server (TS)
+// `ENVELOPE_SCHEMA_VERSION` constants are enforced with strict equality at
+// both wire boundaries, so a one-line skew silently breaks the whole duplex
+// (the spec-119 → spec-183 regression fixed in PR #257).
+// ---------------------------------------------------------------------------
+const DESKTOP_ENVELOPE_PATH = path.join(
+  REPO_ROOT,
+  "product/apps/opc/src-tauri/src/commands/sync_client.rs",
+);
+const SERVER_ENVELOPE_PATH = path.join(
+  REPO_ROOT,
+  "platform/services/stagecraft/api/sync/types.ts",
+);
+{
+  let envelopeResult;
+  try {
+    envelopeResult = compareEnvelopeVersions({
+      desktopSource: fs.readFileSync(DESKTOP_ENVELOPE_PATH, "utf8"),
+      serverSource: fs.readFileSync(SERVER_ENVELOPE_PATH, "utf8"),
+      desktopLabel: path.relative(REPO_ROOT, DESKTOP_ENVELOPE_PATH),
+      serverLabel: path.relative(REPO_ROOT, SERVER_ENVELOPE_PATH),
+    });
+  } catch (e) {
+    fail(2, `schema-parity-check: envelope-version read failed — ${e.message}`);
+  }
+  if (!envelopeResult.ok) {
+    process.stderr.write(
+      `schema-parity-check: envelope-version DRIFT — desktop and server disagree on ENVELOPE_SCHEMA_VERSION\n` +
+        `  desktop v=${envelopeResult.desktop}  ${path.relative(REPO_ROOT, DESKTOP_ENVELOPE_PATH)}\n` +
+        `  server  v=${envelopeResult.server}  ${path.relative(REPO_ROOT, SERVER_ENVELOPE_PATH)}\n\n` +
+        `The duplex stream enforces strict equality on meta.v; a skew drops every\n` +
+        `frame (incl. sync.hello) and stalls the OPC boot gate (spec 183 FR-T2(b)).\n` +
+        `Align the desktop constant to the server's wire version, then rebuild OPC.\n`,
+    );
+    process.exit(1);
+  }
+  process.stdout.write(
+    `schema-parity-check: envelope-version OK (v=${envelopeResult.desktop})\n` +
+      `  desktop: ${path.relative(REPO_ROOT, DESKTOP_ENVELOPE_PATH)}\n` +
+      `  server:  ${path.relative(REPO_ROOT, SERVER_ENVELOPE_PATH)}\n`,
+  );
+}
+
 const TS_SCHEMA_PATH = path.join(
   REPO_ROOT,
   "platform/services/stagecraft/api/knowledge/extractionOutput.ts",
 );
 const RUST_FINGERPRINT_PATH = path.join(
   REPO_ROOT,
-  "build/schema-parity/rust-knowledge-schema.json",
+  ".derived/schema-parity/rust-knowledge-schema.json",
 );
 const RUST_MIRROR_PATH = path.join(
   REPO_ROOT,
@@ -65,7 +139,7 @@ const TS_PROVENANCE_PATH = path.join(
 );
 const RUST_PROVENANCE_FINGERPRINT_PATH = path.join(
   REPO_ROOT,
-  "build/schema-parity/rust-provenance-schema.json",
+  ".derived/schema-parity/rust-provenance-schema.json",
 );
 const RUST_PROVENANCE_MIRROR_PATH = path.join(
   REPO_ROOT,
@@ -79,7 +153,7 @@ const TS_STAKEHOLDER_DOC_PATH = path.join(
 );
 const RUST_STAKEHOLDER_DOC_FINGERPRINT_PATH = path.join(
   REPO_ROOT,
-  "build/schema-parity/rust-stakeholder-doc-schema.json",
+  ".derived/schema-parity/rust-stakeholder-doc-schema.json",
 );
 const RUST_STAKEHOLDER_DOC_MIRROR_PATH = path.join(
   REPO_ROOT,
