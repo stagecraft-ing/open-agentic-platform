@@ -30,9 +30,12 @@ amendment_record: |
   `index.json`. The narrow `ci-config-hash` gate (spec 101 FR-12, spec 184)
   replaces it in the constitutional set — it blocks an unacknowledged
   `.claude/settings.json` / `.mcp.json` edit but depends only on those two
-  files, so it is merge-queue-safe. (Spec 188 Phase 2 will additionally add
-  a `merge_group:` trigger + require `ci-gate` on the merge queue; that edit
-  lands in the Phase 2 change, not here.)
+  files, so it is merge-queue-safe. Spec 188 Phase 2 (same branch) adds the
+  `merge_group:` trigger to `ci.yml` and forces the full routed suite on the
+  speculative merged tree (FR-001); *requiring* `ci-gate` on `merge_group`
+  is the remaining ops step (branch protection), deliberately left to an
+  admin so FR-006's "Phase 2 strictly after Phase 3" holds as an ops
+  ordering.
 establishes:
   - unit: { kind: file, path: .github/workflows/ci.yml }
 references:
@@ -185,7 +188,12 @@ exempt from the lint (workflow-pins.sh §classify).
 ## 3. Functional Requirements
 
 - **FR-001** — `.github/workflows/ci.yml` exists and triggers on
-  `pull_request` (any branch into `main`) and `push: branches: [main]`.
+  `pull_request` (any branch into `main`), `push: branches: [main]`, and
+  `merge_group` (spec 188 Phase 2 — the GitHub merge queue tests each PR
+  against the speculative merged tree). On `merge_group` the paths-filter
+  step is skipped (a merge group has no PR base) and every routed job's
+  gate falls back to `true`, so the full suite runs on the speculative
+  tree; `ci-gate` remains the single required check.
 - **FR-002** — Every existing PR-gate workflow listed in §references is
   callable via `workflow_call:` and retains `workflow_dispatch:`. No
   retained `push:` or `pull_request:` trigger.

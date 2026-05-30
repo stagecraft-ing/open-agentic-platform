@@ -50,6 +50,16 @@ extends:
   - spec: "104-makefile-ci-parity-contract"
     nature: additive
     unit: { kind: file, path: tools/oap/ci-parity-check/src/lib.rs }
+  # Phase 2 — the duplicate-numeric-id lint (V-032) is an additive
+  # cross-corpus check in spec-compiler's compile loop (spec 001), plus the
+  # V_032 code constant in the shared spec-vocabulary crate. No change to
+  # spec 001's existing validation contracts.
+  - spec: "001-spec-compiler-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
+  - spec: "001-spec-compiler-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
 establishes:
   - unit: { kind: file, path: .githooks/merge-derived-index.sh }
   - unit: { kind: file, path: .githooks/enable-merge-driver.sh }
@@ -61,6 +71,9 @@ establishes:
   # 191's establishes of its ci-schema-parity.yml fixture pair.
   - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-config-hash.yml }
   - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-config-hash.yml }
+  # Phase 2 — the V-032 duplicate-numeric-id-prefix test (new file inside
+  # spec 001's crate; same precedent as 191 establishing fixtures in 104's).
+  - unit: { kind: file, path: tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs }
 co_authority:
   # `make setup` runs the merge-driver registration (FR-003). This claims
   # the dedicated `merge-driver` target group of the shared Makefile.
@@ -95,10 +108,12 @@ summary: >
 
 **Feature Branch**: `188-derived-index-merge-serialization`
 **Created**: 2026-05-29
-**Status**: Draft (Phases 1 & 3 implemented; Phase 2 — merge queue +
-duplicate-id lint — lands in the follow-on commit on this branch. The
+**Status**: Draft (Phases 1, 2 & 3 implemented in code on this branch. The
 §spec-184 tension was resolved by re-homing, path 1; see §"The spec-184
-tension → Resolution".)
+tension → Resolution". The one remaining step is an **ops action**, not
+code: a repo admin enables the GitHub merge queue and requires `ci-gate` on
+`merge_group` — deliberately deferred so FR-006's "Phase 2 strictly after
+Phase 3" holds, since the `merge_group:` trigger is inert until then.)
 
 ## Problem
 
@@ -180,7 +195,7 @@ the same rebase leaves a conflict.
    invoked, **Then** it fails closed (exit 1, conflict left in place) with
    a one-line remediation, never producing a wrong-but-clean index.
 
-### User Story 2 — Concurrent agent PRs are serialized and logical conflicts are caught (Priority: P2) — *Phase 2, design-only*
+### User Story 2 — Concurrent agent PRs are serialized and logical conflicts are caught (Priority: P2) — *Phase 2, IMPLEMENTED in code 2026-05-30 (queue enablement = ops step)*
 
 Multiple agents open PRs concurrently. A GitHub merge queue serializes
 the merges and tests each PR against the *speculative* merged result, so
@@ -269,7 +284,7 @@ until that tension is resolved.
   fresh and reviewable exactly as today; the driver only changes how a
   *conflict* on it is resolved.
 
-### Functional Requirements — Phase 2 (designed, NOT implemented)
+### Functional Requirements — Phase 2 (IMPLEMENTED in code 2026-05-30 — merge-queue *enablement* is the one remaining ops step)
 
 - **FR-005**: A GitHub merge queue SHOULD be introduced by adding a
   `merge_group:` trigger to `ci.yml` and requiring `ci-gate` on
@@ -282,6 +297,17 @@ until that tension is resolved.
   speculative rebase produces a stale `index.json` and ejects the PR —
   amplifying churn instead of reducing it. This ordering constraint is a
   hard dependency, not a preference.
+- **FR-006a** *(implemented)*: The complementary cheap guard from User
+  Story 2 — a duplicate-numeric-id registry lint — is implemented as
+  spec-compiler **V-032** (error severity, flips `validation.passed`). It
+  flags any leading numeric prefix (`NNN`) claimed by two or more specs, so
+  the spec-id-186 collision class hard-fails the build (and, once the queue
+  is enabled, the speculative merge of the two colliding PRs) rather than
+  shipping a corpus with a duplicate handle. Resolution status of FR-005's
+  `merge_group:` trigger: **the trigger is added to `ci.yml`** (the routed
+  suite runs full on the speculative tree); *requiring* `ci-gate` on
+  `merge_group` is the branch-protection ops step, intentionally left to an
+  admin so FR-006's ordering holds (the trigger is inert until then).
 
 ### Functional Requirements — Phase 3 (IMPLEMENTED 2026-05-30 — §spec-184 tension resolved by re-homing, path 1)
 
@@ -385,7 +411,10 @@ the codebase-index schema, which lives in a separate validation system.
   manual `index.json` conflict resolutions across the set (down from
   O(N²)). *(Phase 1.)*
 - **SC-003**: A pair of PRs that each add a spec claiming the same id is
-  blocked before reaching `main`. *(Phase 2.)*
+  blocked before reaching `main`. *(Phase 2 — satisfied two ways: V-032
+  hard-fails the spec-compiler build on any shared numeric prefix
+  (implemented + tested now); and once the merge queue is enabled, its
+  speculative build of the two PRs together fails the second.)*
 - **SC-004**: After a merge to `main`, the committed `index.json` on
   `main` matches a fresh recompute (the present-on-clone invariant holds),
   with no per-PR freshness obligation. *(Phase 3 — implemented via the
@@ -401,7 +430,7 @@ the codebase-index schema, which lives in a separate validation system.
 | Phase | Scope | Status | Risk |
 |-------|-------|--------|------|
 | 1 | `oap-index-regen` merge driver + `.gitattributes` + `make setup` registration | **Implemented in this change** | low |
-| 2 | GitHub merge queue (`merge_group:` + `ci-gate`) + duplicate-id lint | Designed; lands in the follow-on commit | low–medium |
+| 2 | GitHub merge queue (`merge_group:` trigger) + duplicate-id lint (V-032) | **Implemented in code 2026-05-30**; merge-queue *enablement* is an ops step | low–medium |
 | 3 | Broad staleness → post-merge heal + narrow `check-config` PR gate | **Implemented 2026-05-30** (re-homing, path 1; FR-007/008/009) | medium |
 
 Phase 1 landed first. Phase 3 lands next (this change), now that the

@@ -1,7 +1,7 @@
 {
   "build": {
     "claudeConfigHash": "bcb796feadcedb0babc2dba9767edf47923f6f7ff84b46a9933f76a2f8770ac2",
-    "contentHash": "20bd8c0acf7a888228199ac7ac5253d3da54a5e27479a5958a1fecbcef524545",
+    "contentHash": "4bdde691ce39a9d07860d232d5ef7c440aafbdf9b8fe7abd97a90c348553c179",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -25141,6 +25141,9 @@
                 "file": "tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs"
               },
               {
+                "file": "tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs"
+              },
+              {
                 "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
               },
               {
@@ -29865,6 +29868,9 @@
                 "file": "tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs"
               },
               {
+                "file": "tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs"
+              },
+              {
                 "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
               },
               {
@@ -30240,6 +30246,9 @@
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs"
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
@@ -41705,7 +41714,19 @@
             "source": "spec-implements"
           },
           {
+            "path": "tools/shared/spec-types/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "tools/spec-spine/codebase-indexer/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs",
             "source": "spec-implements"
           }
         ],
@@ -41836,6 +41857,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "crates/featuregraph/tests/golden/features_graph.json"
               }
             ],
@@ -41878,6 +41913,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "tools/shared/spec-types/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/shared/spec-types/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "tools/spec-spine/codebase-indexer/src/lib.rs"
               }
             ],
@@ -41886,6 +41935,20 @@
             "unit": {
               "kind": "file",
               "path": "tools/spec-spine/codebase-indexer/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-compiler/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-compiler/src/lib.rs"
             }
           },
           {
