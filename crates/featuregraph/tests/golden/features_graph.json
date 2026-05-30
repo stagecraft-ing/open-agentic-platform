@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:f19bdebc0ffea46aee385ddb7d6f8c2a81b2181707a48bf46e7943d33547ff8a",
+  "graph_fingerprint": "sha256:6f903bdeaaf3f8688f9a6008d0d5f10c4879c80c2571898a6a5e3ffa67ce92eb",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3611,6 +3611,26 @@
       "depends_on": [
         "177",
         "178"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "191-schema-parity-ci-job",
+      "title": "Wire ci-schema-parity as an enforcing CI job (bun runtime)",
+      "spec_path": "specs/191-schema-parity-ci-job/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "104",
+        "125",
+        "158",
+        "177",
+        "189"
       ],
       "impl_files": [],
       "test_files": [],

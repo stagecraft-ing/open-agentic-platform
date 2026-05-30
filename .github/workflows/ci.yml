@@ -44,6 +44,7 @@ jobs:
       orchestrator: ${{ steps.f.outputs.orchestrator }}
       parity: ${{ steps.f.outputs.parity }}
       policy_kernel: ${{ steps.f.outputs.policy_kernel }}
+      schema_parity: ${{ steps.f.outputs.schema_parity }}
       stagecraft: ${{ steps.f.outputs.stagecraft }}
       tenant_hello: ${{ steps.f.outputs.tenant_hello }}
     steps:
@@ -94,6 +95,14 @@ jobs:
             policy_kernel:
               - 'crates/policy-kernel/**'
               - '.github/workflows/ci-policy-kernel.yml'
+            schema_parity:
+              - 'crates/factory-contracts/**'
+              - 'platform/services/stagecraft/api/knowledge/**'
+              - 'platform/services/stagecraft/api/governance/**'
+              - 'platform/services/stagecraft/api/sync/**'
+              - 'product/apps/opc/src-tauri/src/commands/sync_client.rs'
+              - 'tools/oap/schema-parity-check/**'
+              - '.github/workflows/ci-schema-parity.yml'
             stagecraft:
               - 'platform/services/stagecraft/**'
               - '.github/workflows/ci-stagecraft.yml'
@@ -143,6 +152,11 @@ jobs:
     if: needs.changes.outputs.policy_kernel == 'true'
     uses: ./.github/workflows/ci-policy-kernel.yml
 
+  schema-parity:
+    needs: changes
+    if: needs.changes.outputs.schema_parity == 'true'
+    uses: ./.github/workflows/ci-schema-parity.yml
+
   stagecraft:
     needs: changes
     if: needs.changes.outputs.stagecraft == 'true'
@@ -182,6 +196,7 @@ jobs:
       - orchestrator
       - parity
       - policy-kernel
+      - schema-parity
       - stagecraft
       - tenant-hello
       - spec-conformance
