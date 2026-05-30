@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "c8b32398d725918b004a15b788fd5bd3aad081ca03b80710ae92ce63ea0c0809",
+    "contentHash": "ef2dc4d100ef743bd3e60a577369d3b6426ed51c3e25d3f5487c8df04a9b2913",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -38876,11 +38876,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "/tmp/briefs/rename-opc-brief.md"
-              }
-            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -41413,55 +41408,6 @@
       },
       {
         "dependsOn": [
-          "032",
-          "073",
-          "087",
-          "134",
-          "147",
-          "177",
-          "183"
-        ],
-        "implementingPaths": [
-          {
-            "path": "crates/featuregraph/tests/golden/features_graph.json",
-            "source": "spec-implements"
-          }
-        ],
-        "resolvedUnits": [
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "crates/featuregraph/tests/golden/features_graph.json"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
-              "path": "crates/featuregraph/tests/golden/features_graph.json"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "specs/183-opc-boot-precondition-gate/spec.md"
-              }
-            ],
-            "ownership": false,
-            "sourceField": "references",
-            "unit": {
-              "kind": "file",
-              "path": "specs/183-opc-boot-precondition-gate/spec.md"
-            }
-          }
-        ],
-        "specId": "186-opc-e2e-test-harness",
-        "specStatus": "draft"
-      },
-      {
-        "dependsOn": [
           "075",
           "102",
           "162"
@@ -41646,6 +41592,169 @@
         ],
         "specId": "186-sandbox-k8s-backend",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "032",
+          "073",
+          "087",
+          "134",
+          "147",
+          "177",
+          "183"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/183-opc-boot-precondition-gate/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/183-opc-boot-precondition-gate/spec.md"
+            }
+          }
+        ],
+        "specId": "187-opc-e2e-test-harness",
+        "specStatus": "draft"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": ".githooks/merge-derived-index.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".githooks/merge-derived-index.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".githooks/merge-derived-index.sh"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/101-codebase-index-mvp/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/101-codebase-index-mvp/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/127-spec-code-coupling-gate/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/127-spec-code-coupling-gate/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/158-workflow-ref-sha-pinning-lint/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/158-workflow-ref-sha-pinning-lint/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/177-ci-orchestrator-pr-gate/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/177-ci-orchestrator-pr-gate/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/184-claude-shared-config-governance/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/184-claude-shared-config-governance/spec.md"
+            }
+          }
+        ],
+        "specId": "188-derived-index-merge-serialization",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [

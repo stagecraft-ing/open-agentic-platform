@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:62aea6b05a4e5109309724b18d2cd3254277471f5d86ce2478ac4fc6ea43c367",
+  "graph_fingerprint": "sha256:40fcb99ea5c2f04450158a2a2a3ed553204d395bae33e5a0d6957a11d14f00ac",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3526,9 +3526,27 @@
       "violations": []
     },
     {
-      "feature_id": "186-opc-e2e-test-harness",
+      "feature_id": "186-sandbox-k8s-backend",
+      "title": "K8s sandbox backend — kube-rs + PodSecurity + RuntimeClass selection (companion to spec 162 ASI05)",
+      "spec_path": "specs/186-sandbox-k8s-backend/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "162",
+        "075",
+        "102"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "187-opc-e2e-test-harness",
       "title": "OPC end-to-end test harness — built-binary driver, mock-stagecraft, process-tree introspection",
-      "spec_path": "specs/186-opc-e2e-test-harness/spec.md",
+      "spec_path": "specs/187-opc-e2e-test-harness/spec.md",
       "status": "draft",
       "implementation": "pending",
       "governance": "medium",
@@ -3548,25 +3566,28 @@
       "violations": []
     },
     {
-      "feature_id": "186-sandbox-k8s-backend",
-      "title": "K8s sandbox backend — kube-rs + PodSecurity + RuntimeClass selection (companion to spec 162 ASI05)",
-      "spec_path": "specs/186-sandbox-k8s-backend/spec.md",
-      "status": "approved",
-      "implementation": "complete",
+      "feature_id": "188-derived-index-merge-serialization",
+      "title": "Derived-index merge serialization — merge driver (now) + merge queue & post-merge heal (designed)",
+      "spec_path": "specs/188-derived-index-merge-serialization/spec.md",
+      "status": "draft",
+      "implementation": "in-progress",
       "governance": "medium",
       "owner": "bart",
       "group": "",
-      "depends_on": [
-        "162",
-        "075",
-        "102"
-      ],
+      "depends_on": [],
       "impl_files": [],
       "test_files": [],
       "violations": []
     }
   ],
   "violations": [
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": ".githooks/merge-derived-index.sh",
+      "message": "Malformed Spec directive: # Spec: 188-derived-index-merge-serialization",
+      "suggested_fix": "Fix header format"
+    },
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",

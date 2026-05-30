@@ -1,5 +1,5 @@
 ---
-id: "186-opc-e2e-test-harness"
+id: "187-opc-e2e-test-harness"
 slug: opc-e2e-test-harness
 title: "OPC end-to-end test harness — built-binary driver, mock-stagecraft, process-tree introspection"
 status: draft
@@ -52,7 +52,7 @@ summary: >
   per-feature flake amnesty.
 ---
 
-# 186 — OPC end-to-end test harness
+# 187 — OPC end-to-end test harness
 
 ## 1. Preamble
 
