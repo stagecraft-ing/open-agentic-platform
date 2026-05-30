@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "ef2dc4d100ef743bd3e60a577369d3b6426ed51c3e25d3f5487c8df04a9b2913",
+    "contentHash": "816507052937fbc9c0dde2a5784bb2115f90595e5baa4f65b13d3a83ce78d389",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -41645,6 +41645,10 @@
       {
         "implementingPaths": [
           {
+            "path": ".githooks/enable-merge-driver.sh",
+            "source": "spec-implements"
+          },
+          {
             "path": ".githooks/merge-derived-index.sh",
             "source": "spec-implements"
           },
@@ -41654,6 +41658,20 @@
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".githooks/enable-merge-driver.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".githooks/enable-merge-driver.sh"
+            }
+          },
           {
             "kind": "file",
             "locations": [

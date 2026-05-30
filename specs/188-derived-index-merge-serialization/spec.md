@@ -26,6 +26,7 @@ extends:
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 establishes:
   - unit: { kind: file, path: .githooks/merge-derived-index.sh }
+  - unit: { kind: file, path: .githooks/enable-merge-driver.sh }
 references:
   - role: precedent
     unit: { kind: file, path: specs/184-claude-shared-config-governance/spec.md }
@@ -212,7 +213,13 @@ until that tension is resolved.
   mirroring the existing `git config core.hooksPath .githooks` opt-in
   (spec 158 / pre-commit precedent). Driver config lives in per-clone
   `.git/config`; git worktrees inherit it from the common clone, so one
-  registration covers every agent worktree under that clone.
+  registration covers every agent worktree under that clone. A committed,
+  idempotent enabler (`.githooks/enable-merge-driver.sh`) MUST perform the
+  registration as a single command, so a contributor who keeps multiple
+  clones on one machine enables each identically without copying the raw
+  `git config` invocations. The enabler only writes the non-committed
+  registration; the path→driver assignment (`.gitattributes`) and the
+  driver script both travel with the repo.
 - **FR-004**: Phase 1 MUST NOT change the `ci-codebase-index` staleness
   contract (spec 101 / 184) or the coupling gate contract (spec 127). It
   is additive local ergonomics only: the committed `index.json` stays

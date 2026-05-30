@@ -109,18 +109,17 @@ git config --unset core.hooksPath     # disable
 
 #### Opt-in: auto-regenerate the index on rebase conflicts (spec 188)
 
-Because the committed `index.json` carries one global content hash, two branches that both regenerated it conflict textually, and rebasing onto a freshly-merged PR forces a regenerate-and-recommit cycle. The `oap-index-regen` git merge driver (spec 188 Phase 1) resolves that conflict automatically — it regenerates the index from the merged tree instead of leaving conflict markers. Like the pre-commit hook, it is opt-in per clone (worktrees inherit it from the common clone, so one registration covers every agent worktree):
+Because the committed `index.json` carries one global content hash, two branches that both regenerated it conflict textually, and rebasing onto a freshly-merged PR forces a regenerate-and-recommit cycle. The `oap-index-regen` git merge driver (spec 188 Phase 1) resolves that conflict automatically — it regenerates the index from the merged tree instead of leaving conflict markers. Like the pre-commit hook, it is opt-in per clone, because the registration lives in `.git/config` (not committed). **Run the enabler once in each clone** — if you keep several clones on one machine, run it in each (worktrees inherit it from their clone, so one run covers every worktree, including agent worktrees):
 
 ```bash
-# enable
-git config merge.oap-index-regen.name "regenerate codebase index on conflict"
-git config merge.oap-index-regen.driver ".githooks/merge-derived-index.sh %O %A %B %P"
+# enable (idempotent; safe to re-run)
+./.githooks/enable-merge-driver.sh
 # disable
 git config --unset merge.oap-index-regen.driver
 git config --unset merge.oap-index-regen.name
 ```
 
-The assignment lives in committed `.gitattributes`; the driver fails closed if the indexer binary is unbuilt, so CI's `codebase-indexer check` stays the source of truth. This is local ergonomics only — it does not change the staleness or coupling gate contracts. The structural levers (GitHub merge queue; moving freshness enforcement post-merge) are designed in spec 188 Phases 2–3 but **not** implemented, pending the spec-184 PR-time-blocking tension recorded there.
+The enabler just wraps the two `git config` lines it would otherwise take. The path→driver assignment lives in committed `.gitattributes` and the driver script in `.githooks/`, so both travel with the repo — only the registration is per-clone. The driver fails closed if the indexer binary is unbuilt, so CI's `codebase-indexer check` stays the source of truth. This is local ergonomics only — it does not change the staleness or coupling gate contracts. The structural levers (GitHub merge queue; moving freshness enforcement post-merge) are designed in spec 188 Phases 2–3 but **not** implemented, pending the spec-184 PR-time-blocking tension recorded there.
 
 Raw cargo invocations behind the Makefile entry points are kept in
 path-scoped rules so they only load when relevant:
