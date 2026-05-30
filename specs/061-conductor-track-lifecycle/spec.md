@@ -7,6 +7,15 @@ implementation: complete
 kind: platform
 domain: opc
 created: "2026-03-29"
+amended: "2026-05-30"
+amendment_record: |
+  amended by spec 182 (2026-05-30) — the `/implement-plan` command
+  this spec established was migrated verbatim to the skills surface
+  (`.claude/skills/implement-plan/SKILL.md`) and the legacy command
+  file deleted in the spec-182 deprecation PR. Because spec 182
+  establishes the skill file, 061's `establishes:` claim on the now-
+  deleted command file is converted to a `references:` (role:
+  historical) edge on the skill successor. No behavioral change.
 authors:
   - "open-agentic-platform"
 language: en
@@ -22,14 +31,21 @@ sources:
   - agents/conductor
   - skills/plan-implementer
   - developer-cc-commands
-establishes:
-  - unit: { kind: file, path: .claude/commands/implement-plan.md }
 references:
+  - role: historical
+    unit: { kind: file, path: .claude/skills/implement-plan/SKILL.md }
   - role: historical
     unit: { kind: file, path: .claude/agents/conductor.md }
 ---
 
 # Feature Specification: Conductor Track Lifecycle
+
+> **Amended by spec 182 (2026-05-30).** The `/implement-plan` command
+> this spec established was migrated verbatim to
+> `.claude/skills/implement-plan/SKILL.md` and the legacy command file
+> deleted in the spec-182 deprecation PR. Spec 182 establishes the
+> skill file; 061's prior `establishes:` claim is recorded as a
+> `references:` (historical) edge. No behavioral change.
 
 ## Purpose
 

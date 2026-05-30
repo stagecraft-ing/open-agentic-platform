@@ -54,7 +54,7 @@ cycle, plus a domain specialist:
 - **`encore-expert`** — Encore.ts framework specialist for stagecraft
   service development. Read-only.
 
-### Commands (`.claude/commands/`)
+### Commands (`.claude/skills/`)
 
 - `/init` — initialise a session (load context, recent activity,
   governed reads of the registry and codebase index)

@@ -60,7 +60,7 @@ Agents live in `.claude/agents/`. Four pipeline agents handle the plan/explore/i
 
 ## Available Commands
 
-Commands live in `.claude/commands/`:
+Commands live in `.claude/skills/` (one `SKILL.md` per folder; `.claude/commands/` is the retired legacy form per spec 182):
 
 - `/init` — Initialize a session (load context, recent activity, memory)
 - `/setup` — One-time contributor setup: build consumer binaries (`spec-compiler`, `codebase-indexer`, `registry-consumer`) and verify governed reads work, so `/init` can report lifecycle and structural counts

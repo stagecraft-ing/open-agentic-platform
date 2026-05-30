@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "3bf1d89c1b286e1ec8de6d243180d185bc81df6cc28120c226cc6d2028bed8c5",
+    "contentHash": "d90c382ad0c4d3fb3cd7801ad7a445c4197c12f4cf718ed8d00af2ffaec6803b",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -10825,10 +10825,6 @@
       {
         "implementingPaths": [
           {
-            "path": ".claude/commands/implement-plan.md",
-            "source": "spec-implements"
-          },
-          {
             "name": "@opc/conductor-track",
             "path": "product/packages/conductor-track",
             "source": "cargo-metadata-crate"
@@ -10837,25 +10833,25 @@
         "resolvedUnits": [
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": ".claude/commands/implement-plan.md"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": ".claude/commands/implement-plan.md"
-            }
-          },
-          {
-            "kind": "file",
             "ownership": false,
             "sourceField": "references",
             "unit": {
               "kind": "file",
               "path": ".claude/agents/conductor.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".claude/skills/implement-plan/SKILL.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".claude/skills/implement-plan/SKILL.md"
             }
           }
         ],
@@ -18910,14 +18906,13 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "135-fast-ci-as-default",
         "dependsOn": [
           "000",
           "006"
         ],
         "implementingPaths": [
           {
-            "path": ".claude/commands/validate-and-fix.md",
+            "path": ".claude/skills/validate-and-fix/SKILL.md",
             "source": "spec-implements"
           },
           {
@@ -18966,7 +18961,7 @@
             "kind": "section",
             "locations": [
               {
-                "file": ".claude/commands/validate-and-fix.md",
+                "file": ".claude/skills/validate-and-fix/SKILL.md",
                 "span": {
                   "endLine": 93,
                   "startLine": 11
@@ -18977,7 +18972,7 @@
             "sourceField": "co_authority",
             "unit": {
               "anchor": "process",
-              "file": ".claude/commands/validate-and-fix.md",
+              "file": ".claude/skills/validate-and-fix/SKILL.md",
               "kind": "section"
             }
           },
@@ -25246,7 +25241,6 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "135-fast-ci-as-default",
         "amends": [
           "104-makefile-ci-parity-contract"
         ],
@@ -25255,7 +25249,7 @@
         ],
         "implementingPaths": [
           {
-            "path": ".claude/commands/validate-and-fix.md",
+            "path": ".claude/skills/validate-and-fix/SKILL.md",
             "source": "spec-implements"
           },
           {
@@ -25305,14 +25299,14 @@
             "kind": "file",
             "locations": [
               {
-                "file": ".claude/commands/validate-and-fix.md"
+                "file": ".claude/skills/validate-and-fix/SKILL.md"
               }
             ],
             "ownership": true,
             "sourceField": "refines",
             "unit": {
               "kind": "file",
-              "path": ".claude/commands/validate-and-fix.md"
+              "path": ".claude/skills/validate-and-fix/SKILL.md"
             }
           }
         ],
@@ -25330,7 +25324,7 @@
         ],
         "implementingPaths": [
           {
-            "path": ".claude/commands/validate-and-fix.md",
+            "path": ".claude/skills/validate-and-fix/SKILL.md",
             "source": "spec-implements"
           },
           {
@@ -25374,14 +25368,14 @@
             "kind": "file",
             "locations": [
               {
-                "file": ".claude/commands/validate-and-fix.md"
+                "file": ".claude/skills/validate-and-fix/SKILL.md"
               }
             ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
               "kind": "file",
-              "path": ".claude/commands/validate-and-fix.md"
+              "path": ".claude/skills/validate-and-fix/SKILL.md"
             }
           },
           {
@@ -40550,7 +40544,12 @@
       {
         "amends": [
           "071-skill-command-factory",
-          "101-codebase-index-mvp"
+          "101-codebase-index-mvp",
+          "061-conductor-track-lifecycle",
+          "134-fast-local-ci-mode",
+          "135-fast-ci-as-default",
+          "104-makefile-ci-parity-contract",
+          "103-init-protocol-governed-reads"
         ],
         "implementingPaths": [
           {

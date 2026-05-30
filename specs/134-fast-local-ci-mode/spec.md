@@ -5,8 +5,16 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-05-03"
-amended: "2026-05-03"
-amendment_record: "135-fast-ci-as-default"
+amended: "2026-05-30"
+amendment_record: |
+  amended by spec 135 (135-fast-ci-as-default, 2026-05-03).
+
+  amended by spec 182 (2026-05-30) — the `ci-fast-validation` aspect
+  this spec refines moved verbatim to
+  `.claude/skills/validate-and-fix/SKILL.md` in the spec-182
+  deprecation PR (legacy command file deleted); the `refines:` unit
+  path is repointed from `.claude/commands/validate-and-fix.md`
+  accordingly. No behavioral change.
 kind: governance
 domain: tooling
 risk: low
@@ -30,7 +38,7 @@ extends:
     unit: { kind: file, path: tools/oap/ci-parity-check/src/lib.rs }
 refines:
   - aspect: "ci-fast-validation"
-    unit: { kind: file, path: .claude/commands/validate-and-fix.md }
+    unit: { kind: file, path: .claude/skills/validate-and-fix/SKILL.md }
 summary: >
   Amend spec 104 to introduce a two-mode CI contract: the parity-bound
   recipe (renamed `make ci-strict` by spec 135) retains strict
@@ -43,6 +51,13 @@ summary: >
 ---
 
 # 134 — Fast Local CI Mode
+
+> **Amended by spec 182 (2026-05-30).** The `ci-fast-validation` aspect
+> this spec refines now lives at
+> `.claude/skills/validate-and-fix/SKILL.md` (migrated verbatim from the
+> deleted `.claude/commands/validate-and-fix.md` by the spec-182
+> deprecation PR); the `refines:` unit path is repointed accordingly.
+> No behavioral change.
 
 > Amends spec 104 (`makefile-ci-parity-contract`). The parity contract on
 > the parity-bound recipe (now `make ci-strict`) is **unchanged**. This
