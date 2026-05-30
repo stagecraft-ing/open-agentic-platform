@@ -15,7 +15,7 @@
         check-deps \
         agent-frontmatter-ts ci-agent-frontmatter-ts \
         build-certificate verify-certificate \
-        ci ci-strict ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity \
+        ci ci-strict ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-schema-parity \
         ci-supply-chain ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm \
         ci-spec-code-coupling \
         ci-cross ci-parity \
@@ -427,9 +427,25 @@ destroy-%:
 #                   requires `rustup target add <triple>` per target.
 # ============================================================
 
-ci-strict: ci-rust ci-tools ci-desktop ci-stagecraft ci-schema-parity ci-spec-code-coupling ci-supply-chain
+ci-strict: ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-schema-parity ci-spec-code-coupling ci-supply-chain
 	@echo ""
 	@echo "==> ci-strict: parity-mirror gates passed."
+
+# ============================================================
+# Narrow Claude shared-config staleness gate (spec 188 Phase 3)
+# ============================================================
+## tag: ci-config-hash
+
+# Mirrors .github/workflows/ci-config-hash.yml for `make ci-strict` parity
+# (spec 104). Verifies the committed `build.claudeConfigHash` slice
+# (.claude/settings.json + .mcp.json) is fresh — the narrow PR-time gate
+# that preserves spec 184's guarantee after the broad index-freshness check
+# moved to the post-merge cd-index-heal.yml (spec 188 Phase 3).
+ci-config-hash:
+	@echo ""
+	@echo "==> ci-config-hash: Claude shared-config slice staleness"
+	cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
+	./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check-config
 
 # Rust validation (spec 135 FR-01): the `crates/` workspace is validated
 # once via `cargo --workspace --manifest-path crates/Cargo.toml`, covering

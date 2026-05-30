@@ -179,8 +179,13 @@ jobs:
   supply-chain:
     uses: ./.github/workflows/ci-supply-chain.yml
 
-  codebase-index:
-    uses: ./.github/workflows/ci-codebase-index.yml
+  # Spec 188 Phase 3: the NARROW config-hash gate replaces the broad
+  # ci-codebase-index staleness gate in the constitutional always-on set.
+  # It blocks a quiet `.claude/settings.json` / `.mcp.json` edit (spec 184)
+  # but depends only on those two files, so it survives a merge queue.
+  # The broad index freshness now heals post-merge (cd-index-heal.yml).
+  config-hash:
+    uses: ./.github/workflows/ci-config-hash.yml
 
   # ─── aggregator ────────────────────────────────────────────────────────
   ci-gate:
@@ -202,7 +207,7 @@ jobs:
       - spec-conformance
       - spec-code-coupling
       - supply-chain
-      - codebase-index
+      - config-hash
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

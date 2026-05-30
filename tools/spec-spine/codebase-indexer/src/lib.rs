@@ -24,6 +24,12 @@ pub enum IndexError {
     Json(serde_json::Error),
     Schema(String),
     Stale { expected: String, actual: String },
+    /// Spec 188 Phase 3 — the narrow Claude shared-config slice
+    /// (`.claude/settings.json` + `.mcp.json`) does not match the
+    /// committed `build.claudeConfigHash`. Distinct from `Stale` so the
+    /// narrow `check-config` gate's failure is legible in CI output and
+    /// never confused with a broad whole-index staleness.
+    ConfigStale { expected: String, actual: String },
     Blocking { code: String, count: usize },
 }
 
@@ -47,6 +53,14 @@ impl std::fmt::Display for IndexError {
             IndexError::Schema(msg) => write!(f, "{msg}"),
             IndexError::Stale { expected, actual } => {
                 write!(f, "index is stale: expected {expected}, got {actual}")
+            }
+            IndexError::ConfigStale { expected, actual } => {
+                write!(
+                    f,
+                    "claude shared-config slice (.claude/settings.json + .mcp.json) is stale: \
+                     expected {expected}, got {actual} — regenerate the index (make registry) so \
+                     the edit is acknowledged (spec 184 / spec 188 Phase 3)"
+                )
             }
             IndexError::Blocking { code, count } => {
                 write!(
@@ -322,6 +336,14 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
     let content_hash =
         hash::compute_content_hash(repo_root, &input_files).map_err(IndexError::Io)?;
 
+    // Spec 188 Phase 3 — the narrow Claude shared-config slice hash, over
+    // ONLY `.claude/settings.json` + `.mcp.json`. Computed via the same
+    // `claude_config_input_files` definition `check_config` uses, so the
+    // value written here and the value verified at PR time can never drift.
+    let claude_config_files = claude_config_input_files(repo_root);
+    let claude_config_hash =
+        hash::compute_content_hash(repo_root, &claude_config_files).map_err(IndexError::Io)?;
+
     // ── Separate warnings and errors ─────────────────────────────────────
 
     all_diagnostics.sort_by(|a, b| a.code.cmp(&b.code).then_with(|| a.message.cmp(&b.message)));
@@ -346,6 +368,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
             indexer_version: indexer_version.clone(),
             repo_root: ".".to_string(),
             content_hash,
+            claude_config_hash,
         },
         inventory: packages,
         traceability,
@@ -437,6 +460,43 @@ pub fn check(repo_root: &Path) -> Result<(), IndexError> {
     Ok(())
 }
 
+/// Spec 188 Phase 3 — narrow config-slice staleness gate.
+///
+/// Recompute the hash over ONLY `.claude/settings.json` + `.mcp.json`
+/// (the spec 184 set) and compare it to the committed index's
+/// `build.claudeConfigHash`. This is the PR-time (and merge-queue) gate
+/// that preserves spec 184's blocking guarantee — a quiet edit to either
+/// file cannot merge without the committed index being regenerated to
+/// acknowledge it — while the broad `check` moves to a post-merge heal
+/// (FR-007/FR-008). Because the slice depends only on the two files a
+/// config PR actually touches, this gate stays valid in a merge queue
+/// regardless of unrelated input churn (FR-006 robustness).
+pub fn check_config(repo_root: &Path) -> Result<(), IndexError> {
+    let index_path = repo_root.join(".derived/codebase-index/index.json");
+    let raw = fs::read_to_string(&index_path)?;
+    let doc: serde_json::Value = serde_json::from_str(&raw)?;
+
+    let existing_hash = doc
+        .get("build")
+        .and_then(|b| b.get("claudeConfigHash"))
+        .and_then(|h| h.as_str())
+        .unwrap_or("")
+        .to_string();
+
+    let config_files = claude_config_input_files(repo_root);
+    let current_hash =
+        hash::compute_content_hash(repo_root, &config_files).map_err(IndexError::Io)?;
+
+    if existing_hash != current_hash {
+        return Err(IndexError::ConfigStale {
+            expected: current_hash,
+            actual: existing_hash,
+        });
+    }
+
+    Ok(())
+}
+
 /// Diagnostic for issue #46 — print every input file's repo-relative path
 /// and its normalized-content sha256 (sorted by path), so dumps from
 /// different platforms can be diffed to find the first divergent line.
@@ -493,6 +553,28 @@ pub fn dump_inputs(repo_root: &Path) -> Result<(), IndexError> {
 // ── Internal helpers ────────────────────────────────────────────────────────
 
 /// Collect all input files that contribute to the content hash.
+/// Spec 188 Phase 3 — the Claude shared-config input slice: `.mcp.json`
+/// and `.claude/settings.json` (the spec 184 set, a subset of
+/// `collect_input_files`). Kept as a dedicated function so `compile`
+/// (which writes `build.claudeConfigHash`) and `check_config` (which
+/// verifies it) hash exactly the same files; any future change to the
+/// slice's membership changes both sides at once. Sorted+deduped to
+/// match `compute_content_hash`'s path ordering.
+fn claude_config_input_files(repo_root: &Path) -> Vec<PathBuf> {
+    let mut files: Vec<PathBuf> = Vec::new();
+    let mcp = repo_root.join(".mcp.json");
+    if mcp.is_file() {
+        files.push(mcp);
+    }
+    let settings = repo_root.join(".claude/settings.json");
+    if settings.is_file() {
+        files.push(settings);
+    }
+    files.sort();
+    files.dedup();
+    files
+}
+
 fn collect_input_files(
     repo_root: &Path,
     rust_tomls: &[PathBuf],

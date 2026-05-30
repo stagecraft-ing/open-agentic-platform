@@ -20,13 +20,26 @@ depends_on:
   - "152"  # path-co-authority — empty-authority bypass for `.github/workflows/`
   - "158"  # workflow-ref-sha-pinning-lint — `uses:` ref pin contract
 code_aliases: ["CI_GATE"]
+amended: "2026-05-30"
+amendment_record: |
+  amended by spec 188 (2026-05-30, Phase 3) — the constitutional always-on
+  PR set (§2.2) swaps `ci-codebase-index.yml` for `ci-config-hash.yml`. The
+  broad index-staleness gate was retired as a per-PR check: its freshness
+  enforcement moved to a post-merge heal on `main` (`cd-index-heal.yml`,
+  established by spec 188), so PRs no longer carry a fresh broad
+  `index.json`. The narrow `ci-config-hash` gate (spec 101 FR-12, spec 184)
+  replaces it in the constitutional set — it blocks an unacknowledged
+  `.claude/settings.json` / `.mcp.json` edit but depends only on those two
+  files, so it is merge-queue-safe. (Spec 188 Phase 2 will additionally add
+  a `merge_group:` trigger + require `ci-gate` on the merge queue; that edit
+  lands in the Phase 2 change, not here.)
 establishes:
   - unit: { kind: file, path: .github/workflows/ci.yml }
 references:
   - role: trigger-consolidation
     unit: { kind: file, path: .github/workflows/ci-axiomregent.yml }
   - role: trigger-consolidation
-    unit: { kind: file, path: .github/workflows/ci-codebase-index.yml }
+    unit: { kind: file, path: .github/workflows/ci-config-hash.yml }
   - role: trigger-consolidation
     unit: { kind: file, path: .github/workflows/ci-crates.yml }
   - role: trigger-consolidation
@@ -106,7 +119,7 @@ only via `workflow_call:` (or manual `workflow_dispatch:`).
 ```
 pull_request → ci.yml ─┬─ changes (paths-filter)
                        ├─ ci-axiomregent     (if changes.axiomregent)
-                       ├─ ci-codebase-index  (always)
+                       ├─ ci-config-hash     (always)   ← spec 188 P3 (was ci-codebase-index)
                        ├─ ci-crates          (if changes.crates)
                        ├─ ci-deployd-api-rs  (if changes.deployd_api_rs)
                        ├─ ci-desktop         (if changes.desktop)
@@ -131,7 +144,7 @@ Four workflows run on every PR regardless of paths-filter output:
 | `spec-conformance.yml`    | Spec 000 / 006 — every PR validates emitted JSON against schemas. |
 | `ci-spec-code-coupling.yml` | Spec 127 — every diff path's authority spec must be edited (or waived). |
 | `ci-supply-chain.yml`     | Spec 116 — blocking-from-day-0 supply-chain posture. |
-| `ci-codebase-index.yml`   | Spec 101 — `index.json` staleness gate. |
+| `ci-config-hash.yml`      | Spec 184 / 188 Phase 3 — narrow `check-config` gate: a `.claude/settings.json` / `.mcp.json` edit cannot merge unacknowledged. (Replaced `ci-codebase-index.yml`, whose broad staleness check moved to the post-merge `cd-index-heal.yml`.) |
 
 Belt and braces: these are also independently SHA-bound through their
 own `# Spec:` headers and the spec-coupling gate's authority graph.
@@ -196,10 +209,12 @@ exempt from the lint (workflow-pins.sh §classify).
 - **AC-3** — `tools/lint/workflow-pins.sh` exits 0 across
   `.github/workflows/**` after the conversion.
 - **AC-4** — On a PR touching only `specs/**`: `spec-conformance`,
-  `ci-spec-code-coupling`, `ci-supply-chain`, `ci-codebase-index`, and
+  `ci-spec-code-coupling`, `ci-supply-chain`, `ci-config-hash`, and
   `ci-featuregraph-golden` jobs run; the rest skip; `ci-gate` is green.
+  (Spec 188 Phase 3: `ci-config-hash` replaced `ci-codebase-index` in the
+  always-on set.)
 - **AC-5** — On a PR touching only `crates/policy-kernel/**`: at minimum
-  `ci-policy-kernel`, `ci-crates`, `ci-codebase-index`, `ci-spec-code-coupling`,
+  `ci-policy-kernel`, `ci-crates`, `ci-config-hash`, `ci-spec-code-coupling`,
   `ci-supply-chain`, `spec-conformance` run; unrelated workflows skip;
   `ci-gate` is green.
 - **AC-6** — Branch protection on `main` requires exactly one check:
