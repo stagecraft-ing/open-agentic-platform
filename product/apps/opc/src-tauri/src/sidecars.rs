@@ -324,6 +324,31 @@ pub fn spawn_axiomregent(app: &AppHandle) {
             return;
         }
     };
+    // A Finder-launched macOS `.app` runs with cwd = `/`, so axiomregent's
+    // default data dir (`<cwd>/.axiomregent/data`, see
+    // `crates/axiomregent/src/config/mod.rs`) resolves under the read-only
+    // root filesystem and `init_hiqlite` fails — the sidecar exits 1 before
+    // it can bind its probe port, so FR-T1(b) can never go green and the boot
+    // gate is stuck. Pin a writable data dir (and a writable cwd) on the child
+    // so the bundled sidecar starts the same way a repo-root `cargo run` does.
+    let cmd = match app.path().app_data_dir() {
+        Ok(base) => {
+            let data_dir = base.join("axiomregent").join("data");
+            if let Err(e) = std::fs::create_dir_all(&data_dir) {
+                log::warn!(
+                    "axiomregent data dir create failed ({}): {e}",
+                    data_dir.display()
+                );
+            }
+            cmd.env("AXIOMREGENT_DATA_DIR", &data_dir).current_dir(&base)
+        }
+        Err(e) => {
+            log::warn!(
+                "app_data_dir unavailable; axiomregent falls back to its cwd-relative default: {e}"
+            );
+            cmd
+        }
+    };
     let app_handle = app.clone();
     tauri::async_runtime::spawn(async move {
         let (mut rx, child) = match cmd.spawn() {
@@ -342,7 +367,7 @@ pub fn spawn_axiomregent(app: &AppHandle) {
         let mut port_announced = false;
         while let Some(event) = rx.recv().await {
             match event {
-                CommandEvent::Stderr(bytes) | CommandEvent::Stdout(bytes) => {
+                CommandEvent::Stderr(bytes) => {
                     let line = String::from_utf8_lossy(&bytes);
                     if !port_announced
                         && let Some(port) = parse_axiomregent_port_line(&line)
@@ -351,6 +376,30 @@ pub fn spawn_axiomregent(app: &AppHandle) {
                         port_announced = true;
                         log::info!("axiomregent probe port {port}");
                         // Do NOT break — keep the loop alive for FR-T5(a).
+                    } else {
+                        // Surface the sidecar's own stderr. Previously
+                        // swallowed, which is why a startup failure (e.g. the
+                        // data-dir error above) showed up only as an opaque
+                        // "terminated code 1" with no cause. FR-T1
+                        // diagnosability.
+                        let trimmed = line.trim_end();
+                        if !trimmed.is_empty() {
+                            log::warn!("axiomregent[stderr]: {trimmed}");
+                        }
+                    }
+                }
+                CommandEvent::Stdout(bytes) => {
+                    // Stdout is reserved for MCP framing — do not log frames.
+                    // Tolerate (but don't require) a port line here for
+                    // robustness against older sidecar builds that announced
+                    // on stdout.
+                    if !port_announced {
+                        let line = String::from_utf8_lossy(&bytes);
+                        if let Some(port) = parse_axiomregent_port_line(&line) {
+                            *port_slot.lock().unwrap() = Some(port);
+                            port_announced = true;
+                            log::info!("axiomregent probe port {port}");
+                        }
                     }
                 }
                 CommandEvent::Error(e) => {

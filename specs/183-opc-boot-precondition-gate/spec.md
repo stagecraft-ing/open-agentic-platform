@@ -133,7 +133,11 @@ authority on eight files that the boot gate touches:
   gains a TCP-connect liveness probe added to the existing
   port-announcement parser, plus the FR-T4 respawn helper and the
   FR-T6 Quit handler (refines spec 073's axiomregent unification
-  authority).
+  authority). The launcher also pins a writable data directory and
+  working directory on the spawned child and surfaces its stderr, so
+  the bundled sidecar starts under a Finder-launched `.app` (cwd `/`)
+  and a startup failure is diagnosable rather than an opaque
+  "terminated code 1" (FR-T1 launch environment, below).
 - `product/apps/opc/src-tauri/src/commands/stagecraft_client.rs` —
   the Rust-side org-session holder; gains a "verified org session"
   observability surface keyed on `sync.hello` receipt (refines spec
@@ -145,7 +149,11 @@ authority on eight files that the boot gate touches:
 - `product/apps/opc/src-tauri/src/commands/sync_client.rs` — the
   duplex consumer that observes `sync.hello` (FR-T2(b) gate-flip)
   and emits the duplex give-up signal (FR-T5(b) precondition-loss)
-  (refines spec 110's stagecraft→OPC trigger authority).
+  (refines spec 110's stagecraft→OPC trigger authority). Its
+  `ENVELOPE_SCHEMA_VERSION` MUST equal the server's (v2 per spec 119);
+  a stale version makes every server frame — `sync.hello` included —
+  fail the `is_server_envelope` guard, so FR-T2(b) can never flip
+  (envelope-version parity, below).
 - `product/apps/opc/src-tauri/src/lib.rs` — registers the boot-gate
   Tauri commands (`boot_gate_status`, `open_logs_folder`,
   `respawn_axiomregent`, `quit_opc`) into the invoke handler
@@ -215,6 +223,24 @@ binding surface).
 > descriptive expectation about the OS-level loopback path, not a
 > binding budget; do not read it as a Tier 3 carve-in.
 
+**FR-T1 launch environment (binding).** The gate observes liveness; it
+cannot manufacture it. The launcher MUST therefore spawn axiomregent in
+an environment where it can actually start:
+
+- A **writable data directory** — `AXIOMREGENT_DATA_DIR` resolved to the
+  OPC app-data dir (with a writable working directory). axiomregent's
+  default store is `<cwd>/.axiomregent/data`
+  (`crates/axiomregent/src/config/mod.rs`); a Finder-launched macOS
+  `.app` inherits `cwd = /`, where `init_hiqlite` cannot create its
+  store and the process exits 1 *before* binding its probe port. A
+  sidecar that cannot start can never satisfy (b), so the launch
+  environment is part of this gate's contract, not an implementation
+  detail.
+- **Surfaced stderr** — the launcher MUST log the sidecar's stderr.
+  Swallowing it (parsing only the `OPC_AXIOMREGENT_PORT=` line) reduces
+  every startup failure to an opaque "terminated code 1" with no cause,
+  defeating the diagnosability the boot screen promises (§1).
+
 **Files FR-T1 binds on:**
 - `product/apps/opc/src-tauri/src/sidecars.rs` — the announcement
   parser is here; the TCP-connect liveness check lives here or in a
@@ -253,6 +279,19 @@ feature uses.
 > context returns `FactoryError::NoOrgId`. Asserting the org session
 > at boot moves the failure mode to the right place (the gate itself,
 > not the feature surface) and lets the per-feature CTA be retired.
+
+**FR-T2(b) envelope-version parity (binding).** Receipt of `sync.hello`
+presupposes the desktop *accepts* the frame. The duplex consumer's
+`is_server_envelope` guard enforces strict equality between the desktop's
+`ENVELOPE_SCHEMA_VERSION` and the server's; spec 119 set the wire to **v2**
+when it collapsed the session key from `workspace` to `org`. A desktop
+pinned to a stale version rejects every server frame — `sync.hello`
+included — so (b) can never flip and the gate stays closed even on a
+fully authenticated, connected socket. Envelope-version parity with the
+deployed server is therefore a precondition of FR-T2(b), not a separate
+concern. (The desktop constant lagged at 1 while the server moved to 2;
+spec 183's gate is what turned that latent skew — previously a silent
+dropped frame — into a hard, observable boot block.)
 
 **Files FR-T2 binds on:**
 - `product/apps/opc/src-tauri/src/commands/stagecraft_client.rs` —
