@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "587eb78ef2f387bb715cc6704ce5735c9ed7fec1568594f0bbdc77f1d46a396d",
+    "contentHash": "3bf1d89c1b286e1ec8de6d243180d185bc81df6cc28120c226cc6d2028bed8c5",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -21404,6 +21404,9 @@
                 "file": ".github/workflows/ci-policy-kernel.yml"
               },
               {
+                "file": ".github/workflows/ci-schema-parity.yml"
+              },
+              {
                 "file": ".github/workflows/ci-spec-code-coupling.yml"
               },
               {
@@ -41930,6 +41933,129 @@
           }
         ],
         "specId": "190-ci-desktop-route-path-fix",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "104",
+          "125",
+          "158",
+          "177",
+          "189"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/ci-schema-parity.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-schema-parity.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-schema-parity.yml",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-schema-parity.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-schema-parity.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-schema-parity.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-schema-parity.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-schema-parity.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-schema-parity.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/src/lib.rs"
+            }
+          }
+        ],
+        "specId": "191-schema-parity-ci-job",
         "specStatus": "approved"
       }
     ],

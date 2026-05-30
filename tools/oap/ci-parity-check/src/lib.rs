@@ -53,6 +53,9 @@ pub const ENFORCING_WORKFLOWS: &[&str] = &[
     "ci-desktop.yml",
     "ci-orchestrator.yml",
     "ci-policy-kernel.yml",
+    // spec 191 — schema-parity gate; `make ci-strict` mirrors it via
+    // the `ci-schema-parity` target (cargo fingerprints + bun walker).
+    "ci-schema-parity.yml",
     "ci-spec-code-coupling.yml",
     "ci-stagecraft.yml",
     "ci-supply-chain.yml",
