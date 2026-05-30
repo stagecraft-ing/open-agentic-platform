@@ -73,7 +73,7 @@ jobs:
               - 'platform/charts/**'
               - '.github/workflows/ci-deployd-api-rs.yml'
             desktop:
-              - 'product/apps/desktop/**'
+              - 'product/apps/opc/**'
               - 'crates/**'
               - 'product/packages/**'
               - '.github/workflows/ci-desktop.yml'

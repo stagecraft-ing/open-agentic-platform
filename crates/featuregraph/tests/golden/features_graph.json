@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:2c673fa689c778aaf0e3b35af6e9e2cc2fdce884eb2dbf77908726e3bf13ed37",
+  "graph_fingerprint": "sha256:f19bdebc0ffea46aee385ddb7d6f8c2a81b2181707a48bf46e7943d33547ff8a",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3594,6 +3594,23 @@
         "120",
         "125",
         "183"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "190-ci-desktop-route-path-fix",
+      "title": "Fix ci.yml desktop paths-filter stranded by the spec-178 product/apps rename",
+      "spec_path": "specs/190-ci-desktop-route-path-fix/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "177",
+        "178"
       ],
       "impl_files": [],
       "test_files": [],
