@@ -20,31 +20,31 @@
 
 ## Landing 2 — completion (this PR, branch `165-decomposition-completion`)
 
-- [ ] T-016 — **Stage caching (FR-007, SC-004).** Re-run lookup in
+- [x] T-016 — **Stage caching (FR-007, SC-004).** Re-run lookup in
   `PipelineRunner`: stages 1-5 emit `StageStatus::Cached` and reuse prior
   output when the recomputed input hash matches the prior run's
   `content_hash`. Stage 6 always re-runs. Test: unchanged-tree second
   run is `Cached` for 1-5 and fast.
-- [ ] T-017 — **`Synthesiser` trait + deterministic impl.** Extract the
+- [x] T-017 — **`Synthesiser` trait + deterministic impl.** Extract the
   current `render_spec` baseline behind a `Synthesiser` trait
   (`synthesise`, `identity`, `prompt_template_hash`). Default impl
   `DeterministicSynthesiser`. Wire the orchestrator to it. Mock double
   for tests. All existing synthesis tests stay green.
-- [ ] T-018 — **`ProviderSynthesiser` (feature `llm-synthesis`).** Behind
+- [x] T-018 — **`ProviderSynthesiser` (feature `llm-synthesis`).** Behind
   the feature flag, depend on `provider-registry`; build a prompt from
   the evidence bundle; extract `AgentEvent::TextComplete`. Off by
   default; never exercised by CI (no network). Unit test via mock
   adapter only.
-- [ ] T-019 — **Governance certificate (FR-009, SC-006).** Depend on
+- [x] T-019 — **Governance certificate (FR-009, SC-006).** Depend on
   `factory-engine`; emit `governance-certificate.json` per run binding
   stage 1-5 hashes + synthesiser identity + prompt-template hash (§2.3) +
   promoted spec hashes. Test: emitted cert verifies via
   `factory_engine::verify_certificate` against the run dir.
-- [ ] T-020 — **Promotion flow (FR-008, SC-005).** `promote_spec(...)`
+- [x] T-020 — **Promotion flow (FR-008, SC-005).** `promote_spec(...)`
   writes `<project>/specs/NNN-slug/spec.md`, runs `spec-compiler compile
   --repo`, runs coupling gate `--paths-from`. Emits the certificate.
   Test against a fixture project repo.
-- [ ] T-021 — **`decomposition_promote` Tauri command.** Register in
+- [x] T-021 — **`decomposition_promote` Tauri command.** Register in
   `src-tauri/src/lib.rs`; wrap `promote_spec` in `spawn_blocking`.
 - [x] T-022 — **Checkpoint branch-of-thought (§2.2).** `CheckpointSink`
   trait in the pipeline crate (`anchor`, `fork`); `NoopCheckpointSink`
@@ -62,21 +62,21 @@
   trait when cross-tool DAG sharing becomes load-bearing (preserves spec
   intent; not a spec edit — mirrors the landing-1 "xray over axiomregent
   for stage 3" decision).
-- [ ] T-024 — **TS api wrappers.** Add `decompositionRun` /
+- [x] T-024 — **TS api wrappers.** Add `decompositionRun` /
   `decompositionListRuns` / `decompositionGetRun` /
   `decompositionPromote` to `api.ts` + `apiAdapter.ts`.
-- [ ] T-025 — **React panel (FR-001).**
+- [x] T-025 — **React panel (FR-001).**
   `features/decomposition/DecompositionSurface.tsx` +
   `components/DecompositionPanel.tsx` + `decomposition` tab type +
   `TabContent` wiring. Action → staging browser → promote.
-- [ ] T-026 — **Panel vitest.** Cover load/error/empty/promote paths
+- [x] T-026 — **Panel vitest.** Cover load/error/empty/promote paths
   mocking `@/lib/apiAdapter`.
-- [ ] T-027 — **Spec 192 (persistent embedding cache).** Author
+- [x] T-027 — **Spec 192 (persistent embedding cache).** Author
   `specs/192-decomposition-embedding-cache/spec.md` (spec-first).
-- [ ] T-028 — **Implement the embedding cache.** Content-addressed on-disk
+- [x] T-028 — **Implement the embedding cache.** Content-addressed on-disk
   cache under `<output_root>/.embedding-cache/`; the `embeddings`-feature
   clustering path reads/writes it. Test cache hit on re-run.
-- [ ] T-029 — **Closure.** Flip spec 165 `implementation: complete`;
+- [x] T-029 — **Closure.** Flip spec 165 `implementation: complete`;
   regenerate codebase index + featuregraph golden (`UPDATE_GOLDEN=1`);
   `cargo clippy --workspace -- -D warnings`; `cargo test`; spec-lint;
   coupling gate. Add Spec-Drift-Waiver to PR body if golden/index churn
