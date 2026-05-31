@@ -4930,16 +4930,23 @@ name = "opc-decomposition-pipeline"
 version = "0.1.0"
 dependencies = [
  "artifact-extract",
+ "async-trait",
  "chrono",
  "factory-contracts",
+ "factory-engine",
+ "futures-core",
+ "futures-util",
  "hex",
+ "open_agentic_spec_compiler",
  "open_agentic_spec_lint",
+ "provider-registry",
  "serde",
  "serde_json",
  "serde_yaml",
  "sha2 0.10.9",
  "tempfile",
  "thiserror 2.0.18",
+ "tokio",
  "walkdir",
  "xray",
 ]

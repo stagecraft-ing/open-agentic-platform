@@ -1,7 +1,7 @@
 {
   "build": {
     "claudeConfigHash": "bcb796feadcedb0babc2dba9767edf47923f6f7ff84b46a9933f76a2f8770ac2",
-    "contentHash": "aec988d63ed98abee72f32a73f7cd1df8fafdb18ce49e2af94beccb5c68296de",
+    "contentHash": "00d111e31671cba09630235005cb7ac049e1c2dba0e6eff0567cacf05039be45",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -306,11 +306,15 @@
         "serde_yaml",
         "sha2",
         "thiserror",
+        "tokio",
         "walkdir"
       ],
       "internalDeps": [
         "artifact-extract",
         "factory-contracts",
+        "factory-engine",
+        "open_agentic_spec_compiler",
+        "provider-registry",
         "xray"
       ],
       "kind": "rust-lib",
@@ -11464,6 +11468,9 @@
                 "file": "product/apps/opc/src/components/CustomTitlebar.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/DecompositionPanel.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/ErrorBoundary.tsx"
               },
               {
@@ -11774,6 +11781,12 @@
               },
               {
                 "file": "product/apps/opc/src/features/checkpoint/useCheckpointFlow.ts"
+              },
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.tsx"
               },
               {
                 "file": "product/apps/opc/src/features/git/GitContextSurface.tsx"
@@ -12582,6 +12595,9 @@
                 "file": "product/apps/opc/src/components/CustomTitlebar.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/DecompositionPanel.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/ErrorBoundary.tsx"
               },
               {
@@ -12892,6 +12908,12 @@
               },
               {
                 "file": "product/apps/opc/src/features/checkpoint/useCheckpointFlow.ts"
+              },
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.tsx"
               },
               {
                 "file": "product/apps/opc/src/features/git/GitContextSurface.tsx"
@@ -14740,6 +14762,9 @@
                 "file": "product/apps/opc/src/components/CustomTitlebar.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/DecompositionPanel.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/ErrorBoundary.tsx"
               },
               {
@@ -15050,6 +15075,12 @@
               },
               {
                 "file": "product/apps/opc/src/features/checkpoint/useCheckpointFlow.ts"
+              },
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.tsx"
               },
               {
                 "file": "product/apps/opc/src/features/git/GitContextSurface.tsx"
@@ -16473,6 +16504,9 @@
                 "file": "product/apps/opc/src/components/CustomTitlebar.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/DecompositionPanel.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/ErrorBoundary.tsx"
               },
               {
@@ -16783,6 +16817,12 @@
               },
               {
                 "file": "product/apps/opc/src/features/checkpoint/useCheckpointFlow.ts"
+              },
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.tsx"
               },
               {
                 "file": "product/apps/opc/src/features/git/GitContextSurface.tsx"
@@ -22840,6 +22880,9 @@
                 "file": "product/apps/opc/src/components/CustomTitlebar.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/DecompositionPanel.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/ErrorBoundary.tsx"
               },
               {
@@ -23150,6 +23193,12 @@
               },
               {
                 "file": "product/apps/opc/src/features/checkpoint/useCheckpointFlow.ts"
+              },
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.tsx"
               },
               {
                 "file": "product/apps/opc/src/features/git/GitContextSurface.tsx"
@@ -33655,11 +33704,27 @@
         ],
         "implementingPaths": [
           {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/opc-decomposition-pipeline",
             "source": "multiple"
           },
           {
+            "path": "crates/opc-decomposition-pipeline/src/certificate.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/opc-decomposition-pipeline/src/checkpoint.rs",
+            "source": "comment-header"
+          },
+          {
             "path": "crates/opc-decomposition-pipeline/src/lib.rs",
+            "source": "comment-header"
+          },
+          {
+            "path": "crates/opc-decomposition-pipeline/src/promotion.rs",
             "source": "comment-header"
           },
           {
@@ -33677,6 +33742,26 @@
           {
             "path": "product/apps/opc/src-tauri/src/lib.rs",
             "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/components/DecompositionPanel.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/components/TabContent.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/contexts/TabContext.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/features/decomposition",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/lib/api.ts",
+            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
@@ -33685,6 +33770,15 @@
             "locations": [
               {
                 "file": "crates/opc-decomposition-pipeline/Cargo.toml"
+              },
+              {
+                "file": "crates/opc-decomposition-pipeline/src/certificate.rs"
+              },
+              {
+                "file": "crates/opc-decomposition-pipeline/src/checkpoint.rs"
+              },
+              {
+                "file": "crates/opc-decomposition-pipeline/src/embedding_cache.rs"
               },
               {
                 "file": "crates/opc-decomposition-pipeline/src/error.rs"
@@ -33697,6 +33791,9 @@
               },
               {
                 "file": "crates/opc-decomposition-pipeline/src/pipeline.rs"
+              },
+              {
+                "file": "crates/opc-decomposition-pipeline/src/promotion.rs"
               },
               {
                 "file": "crates/opc-decomposition-pipeline/src/stages.rs"
@@ -33723,6 +33820,9 @@
                 "file": "crates/opc-decomposition-pipeline/src/types.rs"
               },
               {
+                "file": "crates/opc-decomposition-pipeline/tests/certificate_verify.rs"
+              },
+              {
                 "file": "crates/opc-decomposition-pipeline/tests/end_to_end.rs"
               },
               {
@@ -33737,6 +33837,23 @@
             }
           },
           {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/src/features/decomposition"
+            }
+          },
+          {
             "kind": "file",
             "locations": [
               {
@@ -33748,6 +33865,34 @@
             "unit": {
               "kind": "file",
               "path": "product/apps/opc/src-tauri/src/commands/decomposition.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/components/DecompositionPanel.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/components/DecompositionPanel.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
             }
           },
           {
@@ -34159,6 +34304,48 @@
             "unit": {
               "kind": "file",
               "path": "specs/163-stagecraft-requirements-view/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/components/TabContent.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/components/TabContent.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/contexts/TabContext.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/contexts/TabContext.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src/lib/api.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/lib/api.ts"
             }
           }
         ],
@@ -38286,6 +38473,9 @@
                 "file": "product/apps/opc/src/components/CustomTitlebar.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/DecompositionPanel.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/ErrorBoundary.tsx"
               },
               {
@@ -38596,6 +38786,12 @@
               },
               {
                 "file": "product/apps/opc/src/features/checkpoint/useCheckpointFlow.ts"
+              },
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.test.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/features/decomposition/DecompositionSurface.tsx"
               },
               {
                 "file": "product/apps/opc/src/features/git/GitContextSurface.tsx"
@@ -39572,6 +39768,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/CustomTitlebar.tsx"
+              },
+              {
+                "file": "product/apps/opc/src/components/DecompositionPanel.tsx"
               },
               {
                 "file": "product/apps/opc/src/components/ErrorBoundary.tsx"
@@ -42272,6 +42471,67 @@
         ],
         "specId": "191-schema-parity-ci-job",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "165"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/opc-decomposition-pipeline/src/embedding_cache.rs",
+            "source": "multiple"
+          },
+          {
+            "path": "crates/opc-decomposition-pipeline/src/stages/clustering.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/opc-decomposition-pipeline/src/embedding_cache.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/opc-decomposition-pipeline/src/embedding_cache.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/opc-decomposition-pipeline/src/stages/clustering.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/opc-decomposition-pipeline/src/stages/clustering.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/165-opc-decomposition-pipeline/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/165-opc-decomposition-pipeline/spec.md"
+            }
+          }
+        ],
+        "specId": "192-decomposition-embedding-cache",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [
