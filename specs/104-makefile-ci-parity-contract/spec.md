@@ -5,8 +5,21 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-16"
-amended: "2026-05-30"
+amended: "2026-05-31"
 amendment_record: |
+  amended by the spec-177 ci-gate fold (2026-05-31) — `ai-pr-review.yml` is
+  no longer "not enforcing." It is folded into the orchestrated gate
+  (made reusable, dispatched from `ci.yml`, required via `ci-gate.needs`), so
+  a failed or absent AI review now blocks merge. It nonetheless stays
+  **parity-exempt**: an AI review calls a hosted model and cannot be
+  reproduced by `make ci-strict`, so it is the FIRST gate without a local
+  mirror — a deliberate carve-out. The parity TOOL needs no change: it
+  iterates `ENFORCING_WORKFLOWS` (which `ai-pr-review.yml` is correctly NOT
+  in) and never reads `ci-gate.needs`, so a gate-without-mirror is invisible
+  to it by construction. The §"Explicitly not enforcing" list and the
+  "AI-assist workflow is not enforcing" line are corrected below to record
+  the new gate-but-exempt status honestly.
+
   amended by spec 135 (135-fast-ci-as-default, 2026-05-03).
 
   amended by spec 182 (2026-05-30) — the `process` section this spec
@@ -132,7 +145,15 @@ block a merge. `make ci` MUST mirror their commands:
 
 Explicitly **not** enforcing (excluded from the parity contract):
 
-- `ai-changelog.yml`, `ai-pr-review.yml` — AI-assist, no validation gates
+- `ai-changelog.yml` — AI-assist, no validation gate.
+- `ai-pr-review.yml` — AI-assist that, since the spec-177 fold (2026-05-31),
+  **does** gate merge (dispatched from `ci.yml`, required via
+  `ci-gate.needs`) — yet is still **parity-exempt**. It is the one gate the
+  parity contract intentionally does not require a `make ci-strict` mirror
+  for: a hosted-model review has no deterministic local equivalent. It is
+  therefore (correctly) absent from `ENFORCING_WORKFLOWS`; the tool only
+  obligates mirrors for that list and never inspects `ci-gate.needs`, so the
+  gate-without-mirror carve-out needs no code exception.
 - `build-axiomregent.yml` — build-only matrix (`ci-cross` is the opt-in local mirror)
 - `cd-deployd-api-rs.yml`, `cd-stagecraft.yml` — delegate to enforcing CI via `workflow_call`
 - `release-*.yml` — release packaging, downstream of merge
@@ -312,7 +333,14 @@ a pre-PR check, alongside the existing `make ci` step.
 ## 6. Clarifications
 
 - "Enforcing workflow" means one that can block a merge on validation
-  failure. A release or AI-assist workflow is not enforcing.
+  failure. A release workflow is not enforcing. AI-assist was likewise
+  non-enforcing until the spec-177 fold (2026-05-31) made `ai-pr-review.yml`
+  block merge via `ci-gate`; it is now the sole **enforcing-but-parity-exempt**
+  workflow — it gates merge yet has no `make ci-strict` mirror (a hosted-model
+  review has no deterministic local equivalent), so it is intentionally
+  absent from `ENFORCING_WORKFLOWS` and the parity tool does not obligate a
+  mirror for it. Enforcing ⇏ mirrored is now a recognised (single-instance)
+  exception, not a contradiction.
 - "Significant command line" means a line whose first non-`cd` token is
   in the recognised-command set. The spec deliberately narrows scope: we
   catch cargo/node-ecosystem drift, not every shell utility.

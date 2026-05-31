@@ -20,8 +20,24 @@ depends_on:
   - "152"  # path-co-authority — empty-authority bypass for `.github/workflows/`
   - "158"  # workflow-ref-sha-pinning-lint — `uses:` ref pin contract
 code_aliases: ["CI_GATE"]
-amended: "2026-05-30"
+amended: "2026-05-31"
 amendment_record: |
+  self-amended (2026-05-31) — the AI PR review (`ai-pr-review.yml`, spec 085)
+  is folded into the orchestrated gate. It was a standalone `pull_request`
+  workflow that was green-but-dead on every PR back to ~#220 (an empty
+  `ANTHROPIC_API_KEY` won by precedence over the subscription OAuth token and
+  the failure was swallowed by `|| echo`), so a non-gating "review" gave
+  false assurance. It is now a reusable (`workflow_call`) workflow dispatched
+  from `ci.yml` as the PR-only `ai-review` job and added to the terminal
+  `ci-gate` `needs:`, so a failed or absent review blocks merge (green
+  ci-gate ⇒ actually reviewed). PR-only (it needs PR context, like
+  spec-code-coupling); skipped on push/merge_group, which ci-gate treats as
+  success. Job-level `pull-requests: write` (overriding ci.yml's read
+  default for this job) + `secrets: inherit` give the called workflow the
+  token scope to post its comment. It is parity-EXEMPT (spec 104): an AI
+  review has no `make ci-strict` mirror — the first gate without a local
+  mirror, a carve-out documented in spec 104.
+
   amended by spec 188 (2026-05-30, Phase 3) — the constitutional always-on
   PR set (§2.2) swaps `ci-codebase-index.yml` for `ci-config-hash.yml`. The
   broad index-staleness gate was retired as a per-PR check: the broad
@@ -39,9 +55,20 @@ amendment_record: |
   is the remaining ops step (branch protection), deliberately left to an
   admin so FR-006's "Phase 2 strictly after Phase 3" holds as an ops
   ordering.
+amends:
+  # The ci-gate fold (2026-05-31 self-amendment) amends spec 104's parity
+  # contract: it introduces the first enforcing-but-parity-exempt gate
+  # (`ai-pr-review.yml` blocks merge via ci-gate yet has no `make ci-strict`
+  # mirror). This edge is the coupling authority for the 104 spec.md edit
+  # this change carries (104's "not enforcing"/exempt prose is corrected).
+  - "104-makefile-ci-parity-contract"
 establishes:
   - unit: { kind: file, path: .github/workflows/ci.yml }
 references:
+  # Folded into the gate 2026-05-31 (self-amendment above): dispatched from
+  # ci.yml as the PR-only `ai-review` job and required via ci-gate.
+  - role: trigger-consolidation
+    unit: { kind: file, path: .github/workflows/ai-pr-review.yml }
   - role: trigger-consolidation
     unit: { kind: file, path: .github/workflows/ci-axiomregent.yml }
   - role: trigger-consolidation
@@ -207,6 +234,17 @@ exempt from the lint (workflow-pins.sh §classify).
   the failing job names in the log.
 - **FR-005** — Constitutional workflows (§2.2) are dispatched from `ci.yml`
   without a path-filter `if:` guard.
+  > **Amended 2026-05-31:** the AI PR review (`ai-pr-review.yml`, spec 085)
+  > joins the gate as the PR-only `ai-review` job — made reusable
+  > (`workflow_call`, per FR-002), dispatched from `ci.yml`, and required via
+  > `ci-gate.needs` — so a failed or absent review blocks merge (green
+  > ci-gate ⇒ actually reviewed). It carries `if: github.event_name ==
+  > 'pull_request'` (it needs PR context, like `spec-code-coupling`, and is
+  > skipped — i.e. success — on push/merge_group) plus a job-level
+  > `pull-requests: write` (overriding ci.yml's read default for this job)
+  > and `secrets: inherit`. Parity-exempt (spec 104): unlike every other
+  > gate, an AI review has no `make ci-strict` mirror — the first
+  > gate-without-a-local-mirror, documented there.
 - **FR-006** — All third-party action `uses:` refs in `ci.yml` are
   40-hex SHA-pinned per spec 158.
 

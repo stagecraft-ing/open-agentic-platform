@@ -203,6 +203,26 @@ jobs:
   config-hash:
     uses: ./.github/workflows/ci-config-hash.yml
 
+  # Spec 177 + 085 — AI PR review folded into the gate. It was a standalone
+  # workflow that was green-but-dead on every PR back to ~#220 (auth failure
+  # swallowed by `|| echo`) until #265 fixed it; folding it here makes the
+  # terminal ci-gate `needs:` it, so a failed or absent review blocks merge
+  # (green ci-gate ⇒ actually reviewed). PR-only — it needs PR context
+  # (number, base/head diff), like spec-code-coupling; skipped on
+  # push/merge_group, which ci-gate treats as success. Job-level
+  # `pull-requests: write` overrides ci.yml's read default for this job only
+  # (the workflow posts a review comment); `secrets: inherit` passes
+  # CLAUDE_CODE_OAUTH_TOKEN. Parity-exempt (spec 104): an AI review has no
+  # `make ci-strict` mirror — it is the first gate without a local mirror,
+  # documented as an intentional carve-out there.
+  ai-review:
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets: inherit
+    uses: ./.github/workflows/ai-pr-review.yml
+
   # ─── aggregator ────────────────────────────────────────────────────────
   ci-gate:
     name: ci-gate
@@ -224,6 +244,7 @@ jobs:
       - spec-code-coupling
       - supply-chain
       - config-hash
+      - ai-review
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

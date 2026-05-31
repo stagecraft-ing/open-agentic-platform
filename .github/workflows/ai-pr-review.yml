@@ -14,9 +14,13 @@
 name: AI PR Review
 
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, ready_for_review]
+  # Spec 177 — dispatched as a reusable workflow from ci.yml so the AI review
+  # is part of the orchestrated PR-gate suite and the terminal `ci-gate`
+  # `needs:` it (a failed or absent review now blocks merge; green ci-gate ⇒
+  # actually reviewed). It no longer triggers standalone on `pull_request` —
+  # that would double-run it alongside the ci.yml dispatch.
+  workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
