@@ -19,6 +19,7 @@
 //! promotion flow into `<project>/specs/` and the spec-102 governance
 //! certificate are tracked as follow-up specs.
 
+pub mod certificate;
 pub mod error;
 pub mod persistence;
 pub mod pipeline;

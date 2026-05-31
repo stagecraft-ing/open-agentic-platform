@@ -284,6 +284,17 @@ pub fn run(
         });
     }
 
+    // Record the synthesiser identity + prompt-template hash as a stage
+    // artifact so the governance certificate (spec 165 §2.3) binds them via
+    // per-file hashing and an auditor can read them back verbatim.
+    let meta_path = stage_dir.join("synthesiser.json");
+    let synth_meta = serde_json::json!({
+        "identity": synthesiser.identity(),
+        "promptTemplateHash": synthesiser.prompt_template_hash(),
+    });
+    fs::write(&meta_path, serde_json::to_vec_pretty(&synth_meta)?)
+        .map_err(|e| PipelineError::io(&meta_path, e))?;
+
     let content_hash = hash_stage_dir(&stage_dir)?;
     let status = if emitted.is_empty() || degraded.is_some() {
         StageStatus::Degraded

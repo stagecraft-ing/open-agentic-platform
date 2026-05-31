@@ -132,6 +132,10 @@ impl PipelineRunner {
         };
         run_dir.write_manifest(&manifest)?;
 
+        // FR-009: emit a verifiable governance certificate per run, binding
+        // the stage outputs, synthesiser identity, and staged spec hashes.
+        crate::certificate::emit(&manifest, run_dir.root())?;
+
         Ok(manifest)
     }
 
