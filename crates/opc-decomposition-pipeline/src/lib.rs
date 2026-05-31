@@ -21,6 +21,7 @@
 
 pub mod certificate;
 pub mod checkpoint;
+pub mod embedding_cache;
 pub mod error;
 pub mod persistence;
 pub mod pipeline;
