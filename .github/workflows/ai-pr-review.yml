@@ -73,6 +73,13 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           set -o pipefail
+          # Distinct, surfaced failure if the OAuth secret is unset, so an
+          # operator can tell "secret missing" from "API error" without
+          # decoding a generic CLI failure (raised by the AI review on #265).
+          if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN secret is unset — AI review cannot authenticate."
+            exit 1
+          fi
           PROMPT='You are reviewing a pull request for the Open Agentic Platform. The diff is provided on stdin. Review it for:
           1. Bugs and logic errors
           2. Security vulnerabilities (OWASP top 10)
@@ -91,7 +98,10 @@ jobs:
           claude -p "$PROMPT" --output-format text < /tmp/pr-diff.txt > /tmp/review.md
 
       - name: Post review comment
-        if: steps.diff.outputs.skip != 'true'
+        # Explicit success() (raised by the AI review on #265): the post step
+        # must run only when Run AI Review succeeded, so a future
+        # `continue-on-error` can't let it post a partial/empty review.
+        if: success() && steps.diff.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
