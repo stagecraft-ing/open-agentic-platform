@@ -28,6 +28,7 @@ const CallGraphPanel = lazy(() => import('@/components/CallGraphPanel').then(m =
 const GitContextPanel = lazy(() => import('@/components/GitContextPanel').then(m => ({ default: m.GitContextPanel })));
 const CheckpointPanel = lazy(() => import('@/components/CheckpointPanel').then(m => ({ default: m.CheckpointPanel })));
 const LiveSessionsPanel = lazy(() => import('@/components/LiveSessionsPanel').then(m => ({ default: m.LiveSessionsPanel })));
+const DecompositionPanel = lazy(() => import('@/components/DecompositionPanel').then(m => ({ default: m.DecompositionPanel })));
 const FactoryPipelinePanel = lazy(() => import('@/components/factory/FactoryPipelinePanel').then(m => ({ default: m.FactoryPipelinePanel })));
 const WorkspaceProjectsPanel = lazy(() => import('@/routes/factory/WorkspaceProjectsPanel').then(m => ({ default: m.WorkspaceProjectsPanel })));
 const PortfolioPanel = lazy(() => import('@/components/PortfolioPanel').then(m => ({ default: m.PortfolioPanel })));
@@ -435,6 +436,13 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
         return (
           <div className="h-full">
             <LiveSessionsPanel projectPath={tab.projectPath} />
+          </div>
+        );
+
+      case 'decomposition':
+        return (
+          <div className="h-full">
+            <DecompositionPanel projectPath={tab.projectPath} />
           </div>
         );
 
