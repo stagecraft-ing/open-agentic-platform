@@ -21,6 +21,10 @@ amends:
   # heal; new narrow `check-config`). 177 — constitutional always-on PR set
   # swaps ci-codebase-index → ci-config-hash. 184 — PR-time blocking
   # guarantee re-homed to the narrow gate (not weakened).
+  # Phase 4 deepens the 101/184 amendments: the gated slice is re-homed out
+  # of the broad index (`build.claudeConfigHash`, index schema 2.3.0) into
+  # its own tracked `config-hash.json` (index schema → 3.0.0). 177 is
+  # unaffected by Phase 4 (the ci-config-hash workflow is unchanged).
   - "101-codebase-index-mvp"
   - "177-ci-orchestrator-pr-gate"
   - "184-claude-shared-config-governance"
@@ -35,14 +39,24 @@ extends:
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
   # Phase 3 — additive extension of the codebase-indexer (spec 101): the
   # `claude_config_hash` slice + `check-config` subcommand + schema 2.3.0.
+  # Phase 4 re-touches both: it re-homes the slice out of the broad index
+  # (`check_config` reads config-hash.json; `compile_and_write` writes it)
+  # and bumps the index schema 2.3.0 → 3.0.0 (removes `claudeConfigHash`).
   # Mirrors how spec 184 declared `extends: 101` for its `collect_input_files`
-  # change. No change to spec 101's existing `check`/`compile` contracts.
+  # change.
   - spec: "101-codebase-index-mvp"
     nature: additive
     unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
   - spec: "101-codebase-index-mvp"
     nature: additive
     unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
+  # Phase 4 — the `BuildInfo`/`ConfigHash` struct definitions live in
+  # types.rs, which spec 101 established the indexer over but did not
+  # enumerate. Phase 3 edited types.rs untraced; Phase 4 declares the edge
+  # honestly (removing `BuildInfo.claude_config_hash`, adding `ConfigHash`).
+  - spec: "101-codebase-index-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/types.rs }
   # Phase 3 — adding ci-config-hash.yml to ci-parity-check's
   # ENFORCING_WORKFLOWS (replacing ci-codebase-index.yml) is exactly the
   # action spec 104 FR-01 prescribes when a gating workflow changes.
@@ -62,11 +76,19 @@ extends:
     unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
   # Phase 3 ripple — the additive `BuildInfo.claude_config_hash` field
   # (extends 101) requires the coupling-gate crate (spec 127), which
-  # constructs a `BuildInfo` test fixture, to set the new field. A
-  # one-line additive touch of 127's consumer, not a behaviour change.
+  # constructs a `BuildInfo` test fixture, to set the new field. Phase 4
+  # re-touches the same fixture to DROP the field. A one-line touch of
+  # 127's consumer, not a behaviour change.
   - spec: "127-spec-code-coupling-gate"
     nature: additive
     unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/lib.rs }
+  # Phase 4 ripple — the index schema major bump (2.x → 3.x) trips the
+  # coupling gate's own post-load major-version guard, so its CLI test
+  # fixture (`cli.rs`) must bump the synthetic index's `schemaVersion`
+  # 2.0.0 → 3.0.0 to match. A test-fixture-only touch of 127's consumer.
+  - spec: "127-spec-code-coupling-gate"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/tests/cli.rs }
 establishes:
   - unit: { kind: file, path: .githooks/merge-derived-index.sh }
   - unit: { kind: file, path: .githooks/enable-merge-driver.sh }
@@ -82,6 +104,12 @@ establishes:
   # Phase 2 — the V-032 duplicate-numeric-id-prefix test (new file inside
   # spec 001's crate; same precedent as 191 establishing fixtures in 104's).
   - unit: { kind: file, path: tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs }
+  # Phase 4 — the re-homed config-hash file's schema (new, sibling to spec
+  # 101's codebase-index.schema.json) and the narrow check-config test
+  # (created by Phase 3 but never declared; Phase 4 corrects the omission
+  # as it edits the file to read config-hash.json).
+  - unit: { kind: file, path: standards/schemas/spec-spine/config-hash.schema.json }
+  - unit: { kind: file, path: tools/spec-spine/codebase-indexer/tests/spec188_check_config.rs }
 co_authority:
   # `make setup` runs the merge-driver registration (FR-003). This claims
   # the dedicated `merge-driver` target group of the shared Makefile.
@@ -116,12 +144,17 @@ summary: >
 
 **Feature Branch**: `188-derived-index-merge-serialization`
 **Created**: 2026-05-29
-**Status**: Draft (Phases 1, 2 & 3 implemented in code on this branch. The
+**Status**: Draft (Phases 1, 2, 3 & **4a** implemented in code. The
 §spec-184 tension was resolved by re-homing, path 1; see §"The spec-184
-tension → Resolution". The one remaining step is an **ops action**, not
-code: a repo admin enables the GitHub merge queue and requires `ci-gate` on
-`merge_group` — deliberately deferred so FR-006's "Phase 2 strictly after
-Phase 3" holds, since the `merge_group:` trigger is inert until then.)
+tension → Resolution". Phase 4 was **split**: 4a (re-home `claudeConfigHash`
+to its own tracked `config-hash.json`) is implemented; **4b** (`.gitignore`
+the broad `index.json`) is **deferred** — it reverses spec 101 SC-06's
+present-on-clone decision and is not needed to dissolve the cache/contract
+tension, which 4a fully resolves. Two items remain, neither blocking: the
+merge-queue **ops action** (a repo admin enables the queue and requires
+`ci-gate` on `merge_group` — deferred so FR-006's "Phase 2 strictly after
+Phase 3" holds, since the `merge_group:` trigger is inert until then), and
+Phase 4b if/when SC-06 is revisited on its own merits.)
 
 ## Problem
 
@@ -402,8 +435,11 @@ Mechanism, as implemented:
 
 1. **Narrow sub-hash.** The index gains `build.claudeConfigHash` — a SHA-256
    over ONLY `.claude/settings.json` + `.mcp.json` — independent of the broad
-   `contentHash` (schema 2.2.0 → 2.3.0, additive). A new
-   `codebase-indexer check-config` subcommand verifies just that slice
+   `contentHash` (schema 2.2.0 → 2.3.0, additive). *(Phase 4a later re-homed
+   this slice out of the broad index into its own tracked
+   `config-hash.json`, index schema 2.3.0 → 3.0.0; `check-config` now reads
+   that file. Same hash, same gate — only the storage moved. See §Phase 4.)*
+   A new `codebase-indexer check-config` subcommand verifies just that slice
    (spec 101 FR-12). Wired as the constitutional `ci-config-hash.yml` PR
    workflow, it runs on `pull_request` **and** `merge_group`. Because the
    slice depends only on the two files a config PR controls, it is
@@ -453,17 +489,20 @@ the codebase-index schema, which lives in a separate validation system.
   hard-fails the spec-compiler build on any shared numeric prefix
   (implemented + tested now); and once the merge queue is enabled, its
   speculative build of the two PRs together fails the second.)*
-- **SC-004** *(amended 2026-05-30 — heal retired)*: ~~After a merge to
-  `main`, the committed `index.json` matches a fresh recompute.~~ The broad
-  committed `index.json` is a **best-effort regenerable cache** with no
-  per-PR freshness obligation; its broad `contentHash` MAY lag on `main`.
-  The narrow `claudeConfigHash` slice stays correct on its own (config PRs
-  carry a regenerated index into their squash). The byte-fresh-on-`main`
-  invariant was dropped with the direct-push heal (FR-007); the SC-06
-  agent-orientation cost of a stale cache is recovered as *visibility* via
-  `cd-index-staleness-report.yml`, not as an enforced invariant. The Phase 4
-  re-homing (below) restores the invariant structurally by making the broad
-  index a pure build artifact. *(Phase 3.)*
+- **SC-004** *(amended 2026-05-30 — heal retired; clarified 2026-05-30 —
+  Phase 4 split)*: ~~After a merge to `main`, the committed `index.json`
+  matches a fresh recompute.~~ The broad committed `index.json` is a
+  **best-effort regenerable cache** with no per-PR freshness obligation; its
+  broad `contentHash` MAY lag on `main`. The narrow `claudeConfigHash` slice
+  stays correct on its own (now in its own `config-hash.json`; config PRs
+  regenerate that file). The byte-fresh-on-`main` invariant was dropped with
+  the direct-push heal (FR-007); the SC-06 agent-orientation cost of a stale
+  cache is recovered as *visibility* via `cd-index-staleness-report.yml`,
+  not as an enforced invariant. **Phase 4a (re-home, implemented) does NOT
+  restore this invariant** — the broad index stays committed and may lag, so
+  the staleness-report job remains. Only Phase 4b (`.gitignore` the broad
+  index, **deferred**) would restore it structurally by making the index a
+  pure rebuilt-on-demand artifact. *(Phase 3 / 4a.)*
 - **SC-005**: The PR-time guarantee that a `.claude/settings.json` /
   `.mcp.json` edit cannot merge unacknowledged is preserved (or
   explicitly and documentedly re-homed). *(Phase 3 / FR-009 — satisfied:
@@ -478,7 +517,8 @@ the codebase-index schema, which lives in a separate validation system.
 | 1 | `oap-index-regen` merge driver + `.gitattributes` + `make setup` registration | **Implemented in this change** | low |
 | 2 | GitHub merge queue (`merge_group:` trigger) + duplicate-id lint (V-032) | **Implemented in code 2026-05-30**; merge-queue *enablement* is an ops step | low–medium |
 | 3 | Broad staleness → best-effort cache + narrow `check-config` PR gate; staleness-report job (heal retired) | **Implemented 2026-05-30** (re-homing, path 1; FR-007/008/009) | medium |
-| 4 | Re-home `claudeConfigHash` to its own tracked file; `.gitignore` the broad `index.json` | **Designed only** — dissolves the cache/contract tension | low |
+| 4a | Re-home `claudeConfigHash` to its own tracked `config-hash.json` (index schema 2.3.0 → 3.0.0); `check-config` reads it | **Implemented 2026-05-30** — dissolves the cache/contract tension (the cache now carries nothing governed) | low |
+| 4b | `.gitignore` the broad `index.json` (pure rebuilt-on-demand artifact) | **Deferred** — separable; reverses spec 101 SC-06 (present-on-clone); not needed to dissolve the tension | low–medium |
 
 Phase 1 landed first. Phase 3 (and Phase 2, code-safe alongside it) landed
 in PR #262. The direct-push heal originally specified for Phase 3 was
@@ -486,26 +526,49 @@ in PR #262. The direct-push heal originally specified for Phase 3 was
 signed-commits protection to `main`: a healer cannot push to a protected
 branch, and a bypass actor is a non-starter on a governance platform. The
 broad index became a best-effort cache (FR-007 amended) with a
-report-only staleness job.
+report-only staleness job. Phase 4 was then **split**: 4a (re-home the
+slice) landed; 4b (`.gitignore` the broad index) was held as a separable
+decision because it reverses SC-06 and is not required to close the
+cache/contract tension that motivated Phase 4.
 
-### Phase 4 (designed, not implemented) — dissolve the cache/contract tension
+### Phase 4 — dissolve the cache/contract tension (split: 4a implemented, 4b deferred)
 
 The whole Phase-3 tension exists because the load-bearing `claudeConfigHash`
-*contract* lives **inside** the broad `index.json` *cache*, dragging the
-cache under signed-commit branch protection. Phase 4 separates them:
+*contract* lived **inside** the broad `index.json` *cache*, dragging the
+cache under signed-commit branch protection. Phase 4 separates them in two
+independently-landable steps:
 
-1. Emit `claudeConfigHash` to its own small **tracked** file (e.g.
-   `.derived/codebase-index/config-hash.json`); `check-config` reads that.
-2. `.gitignore` the broad `index.json` entirely — it becomes a pure build
-   artifact (`make index` / `/init`-time), never committed.
+- **4a — Re-home the contract (IMPLEMENTED 2026-05-30).** `compile` emits
+  `claudeConfigHash` to its own small **tracked** file
+  `.derived/codebase-index/config-hash.json` (re-included from `.gitignore`,
+  self-validated against `config-hash.schema.json`); `check_config` reads
+  that file instead of `build.claudeConfigHash`. The broad index schema
+  bumps 2.3.0 → 3.0.0 (the field is removed; major bump under
+  `additionalProperties:false`). Behavior is bit-for-bit unchanged — same
+  slice, same hash, same PR-time blocking — only the storage location moved.
+  **This is the step that dissolves the tension:** once the gated value is
+  outside `index.json`, the broad index carries nothing governed, so it no
+  longer drags a contract under branch protection. Config PRs become a
+  one-line `config-hash.json` diff rather than carrying the whole
+  regenerated index.
 
-Then there is nothing to heal: the only governed, tracked artifact is the
-tiny hash that actually needs a gate, and the broad index is regenerated on
-demand. This restores SC-004's freshness invariant structurally (the broad
-index is *always* fresh because it's never stale-on-disk — it's rebuilt)
-and is more honest about what is a contract versus what is a cache. Deferred
-because it touches the spec 101 commit-the-index contract and the `/init`
-read path; it is the intended end state, scheduled as its own change.
+- **4b — `.gitignore` the broad `index.json` (DEFERRED).** Making the broad
+  index a pure rebuilt-on-demand artifact (never committed) would *also*
+  restore SC-004's freshness invariant structurally (it can't be
+  stale-on-disk if it's always rebuilt). But this is **separable from 4a and
+  not required to dissolve the tension** — and it **reverses spec 101 SC-06**
+  (the deliberate present-on-clone decision) with a wider blast radius: the
+  `/init` read path (`AGENTS.md`, spec 103), the README "Try it" render, and
+  the Makefile `index`/`pr-prep` consumers all assume a committed index.
+  Held as its own decision, to be made on SC-06's merits rather than bundled
+  in because 4a happens to make it possible. Until 4b lands, the broad index
+  stays a committed best-effort cache and `cd-index-staleness-report.yml`
+  remains the visibility mechanism for its drift.
+
+So after 4a the only governed, tracked artifact that needs a gate is the
+tiny `config-hash.json`; the broad index is an ungoverned cache. That is the
+honest contract-vs-cache separation Phase 4 set out to make. 4b is the
+remaining structural cleanup, scheduled separately.
 
 ## Relationships
 

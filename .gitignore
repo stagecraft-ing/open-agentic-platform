@@ -304,10 +304,13 @@ tools/*/build/
 
 # .derived/ — generated-artifacts root (I9 cutover from build/). Ignore
 # contents of each subdir; re-include the deterministic `index.json`
-# (spec 101) that the codebase-indexer staleness gate compares against.
+# (spec 101, best-effort cache) and `config-hash.json` (spec 188 Phase 4 —
+# the re-homed narrow slice the `check-config` gate verifies; the one
+# governed, tracked derived value).
 .derived/spec-registry/*
 .derived/codebase-index/*
 !.derived/codebase-index/index.json
+!.derived/codebase-index/config-hash.json
 .derived/schema-parity/*
 .axiomregent/
 .fastembed_cache/
