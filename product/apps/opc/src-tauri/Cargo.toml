@@ -131,6 +131,12 @@ custom-protocol = ["tauri/custom-protocol"]
 # Exposes the running app to AI assistants via WebSocket on port 9223.
 mcp-dev = ["tauri-plugin-mcp-bridge"]
 
+[dev-dependencies]
+# Spec 180 FR-T5 — deterministic mtime control for the usage-cache freshness
+# test (set a file's mtime without changing its body to assert a cache hit
+# does not re-read).
+filetime = "0.2"
+
 [profile.release]
 strip = true
 opt-level = "z"
