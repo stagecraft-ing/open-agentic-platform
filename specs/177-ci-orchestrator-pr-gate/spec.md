@@ -29,8 +29,12 @@ amendment_record: |
   the failure was swallowed by `|| echo`), so a non-gating "review" gave
   false assurance. It is now a reusable (`workflow_call`) workflow dispatched
   from `ci.yml` as the PR-only `ai-review` job and added to the terminal
-  `ci-gate` `needs:`, so a failed or absent review blocks merge (green
-  ci-gate ⇒ actually reviewed). PR-only (it needs PR context, like
+  `ci-gate` `needs:`, so a failed review blocks merge. A green ci-gate means
+  the AI review ran and passed OR — for a diff over `DIFF_SIZE_CAP` — was
+  skipped with a visible "manual review required" PR comment (the size cap
+  is a documented escape hatch, not a silent bypass; the folded gate caught
+  this hole on its own PR #267 and the skip path was made visible). PR-only
+  (it needs PR context, like
   spec-code-coupling); skipped on push/merge_group, which ci-gate treats as
   success. Job-level `pull-requests: write` (overriding ci.yml's read
   default for this job) + `secrets: inherit` give the called workflow the
@@ -237,8 +241,10 @@ exempt from the lint (workflow-pins.sh §classify).
   > **Amended 2026-05-31:** the AI PR review (`ai-pr-review.yml`, spec 085)
   > joins the gate as the PR-only `ai-review` job — made reusable
   > (`workflow_call`, per FR-002), dispatched from `ci.yml`, and required via
-  > `ci-gate.needs` — so a failed or absent review blocks merge (green
-  > ci-gate ⇒ actually reviewed). It carries `if: github.event_name ==
+  > `ci-gate.needs` — so a failed review blocks merge. A green ci-gate means
+  > the review ran and passed OR (diff over `DIFF_SIZE_CAP`) was skipped with
+  > a visible "manual review required" PR comment — a documented escape
+  > hatch, not a silent bypass. It carries `if: github.event_name ==
   > 'pull_request'` (it needs PR context, like `spec-code-coupling`, and is
   > skipped — i.e. success — on push/merge_group) plus a job-level
   > `pull-requests: write` (overriding ci.yml's read default for this job)
