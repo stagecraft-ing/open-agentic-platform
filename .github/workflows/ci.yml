@@ -198,7 +198,8 @@ jobs:
   # ci-codebase-index staleness gate in the constitutional always-on set.
   # It blocks a quiet `.claude/settings.json` / `.mcp.json` edit (spec 184)
   # but depends only on those two files, so it survives a merge queue.
-  # The broad index freshness now heals post-merge (cd-index-heal.yml).
+  # The broad index is now a best-effort cache; drift is surfaced (not
+  # gated) post-merge by cd-index-staleness-report.yml (spec 188 FR-007).
   config-hash:
     uses: ./.github/workflows/ci-config-hash.yml
 

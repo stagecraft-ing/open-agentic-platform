@@ -1,0 +1,89 @@
+# Spec: 188-derived-index-merge-serialization
+# Spec: 101-codebase-index-mvp
+#
+# Post-merge codebase-index staleness REPORT (spec 188 Phase 3, FR-007 as
+# amended). This replaces the retired `cd-index-heal.yml` direct-push heal,
+# which is incompatible with `main`'s branch protection (a PR-required +
+# signed-commits branch cannot accept an unsigned bot push, and a
+# self-pushing bot that bypasses those rules would be an ideological
+# self-own on a governance platform).
+#
+# Posture (FR-007 as amended): the broad committed `index.json` is a
+# BEST-EFFORT, regenerable cache — no longer kept byte-fresh on `main`.
+# This job runs `codebase-indexer check` on `main` and SURFACES broad
+# staleness (a `::warning::` annotation + a single auto-managed tracking
+# issue) so the SC-06 agent-orientation cost of a stale cache stays
+# VISIBLE. It NEVER pushes and NEVER fails the run — drift is expected and
+# non-blocking.
+#
+# The narrow `claudeConfigHash` guarantee (spec 184 / FR-009) is unaffected
+# and is NOT what this job watches: config-touching PRs regenerate
+# `index.json` and carry the fresh slice into their squash, and
+# `ci-config-hash` (`check-config`) enforces it at PR time. Because nothing
+# here regenerates-and-commits, the FR-009 back door is closed by
+# construction — there is no healer that could silently absorb config drift.
+#
+# NOT a PR gate: `cd-*` post-merge workflow, parity-exempt (spec 104 §5).
+
+name: CD index-staleness-report
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: index-staleness-report-main
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Build codebase-indexer (cached)
+        uses: ./.github/actions/rust-ci
+        with:
+          manifest-path: tools/spec-spine/codebase-indexer/Cargo.toml
+          cache-shared-key: codebase-indexer
+
+      - name: Compile codebase-indexer release binary
+        run: cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
+
+      - name: Report broad-index staleness (never push, never fail)
+        run: |
+          set -u
+          TITLE="Codebase index (broad cache) is stale on main"
+          existing="$(gh issue list --state open --json number,title \
+            --jq ".[] | select(.title==\"$TITLE\") | .number" | head -n1)"
+
+          if ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check; then
+            echo "broad codebase-index is fresh on main"
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" \
+                --comment "Broad index is fresh again on \`main\` (a subsequent merge carried a regenerated \`index.json\`). Auto-closing."
+            fi
+          else
+            echo "::warning title=Codebase index cache stale on main::The broad committed index.json is stale (non-blocking). It is a best-effort regenerable cache (spec 188 Phase 3). Run \`make registry\` and land a refresh PR when convenient. The narrow config-hash gate is unaffected."
+            if [ -z "$existing" ]; then
+              gh issue create --title "$TITLE" --body "$(printf '%s\n' \
+                "The broad committed \`.derived/codebase-index/index.json\` on \`main\` no longer matches a fresh recompute of its inputs." \
+                "" \
+                "This is **non-blocking**. Per spec 188 Phase 3, the broad index is a *best-effort regenerable cache*: no PR gates on it, and the direct-push heal was retired as incompatible with branch protection. The cost is SC-06 (an agent reading a stale index gets stale structural context)." \
+                "" \
+                "**To clear:** run \`make registry\` locally and open a refresh PR (it merges via the queue like any other change). This issue auto-closes when \`main\` is fresh again." \
+                "" \
+                "The narrow \`claudeConfigHash\` guarantee (spec 184 / FR-009) is unaffected — \`ci-config-hash\` enforces it at PR time, independent of this cache.")"
+            else
+              echo "tracking issue #$existing already open; leaving it"
+            fi
+          fi

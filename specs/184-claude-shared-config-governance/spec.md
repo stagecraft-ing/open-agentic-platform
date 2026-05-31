@@ -22,15 +22,17 @@ amendment_record: |
   guarantee is RE-HOMED, not weakened. When 184 landed, the guarantee
   ("a quiet edit to .mcp.json / .claude/settings.json cannot merge
   unacknowledged") was enforced by the broad `codebase-indexer check`
-  staleness gate. Spec 188 Phase 3 moves that broad check to a post-merge
-  heal on `main`, so the guarantee is now carried by a dedicated narrow
-  gate: `codebase-indexer check-config` (spec 101 FR-12) verifies a
-  `build.claudeConfigHash` sub-hash over ONLY these two files, wired as the
-  constitutional `ci-config-hash` PR workflow. The behavioral guarantee is
-  unchanged (still PR-time, still blocking); only the mechanism narrowed.
-  Spec 188 FR-009 additionally requires the post-merge heal to FAIL LOUD on
-  a config-slice delta rather than silently regenerate it, so the heal
-  cannot quietly defeat this guarantee through its back door. AC-4 and AC-7
+  staleness gate. Spec 188 Phase 3 drops that broad check as a per-PR gate
+  (the broad index becomes a best-effort cache), so the guarantee is now
+  carried by a dedicated narrow gate: `codebase-indexer check-config`
+  (spec 101 FR-12) verifies a `build.claudeConfigHash` sub-hash over ONLY
+  these two files, wired as the constitutional `ci-config-hash` PR workflow.
+  The behavioral guarantee is unchanged (still PR-time, still blocking);
+  only the mechanism narrowed. The FR-009 "back door" (a healer silently
+  absorbing config drift) is closed **by construction**: spec 188's
+  direct-push heal was retired (incompatible with `main`'s PR-required +
+  signed-commits protection), so nothing on `main` regenerates-and-commits
+  the index — there is no healer that could absorb drift. AC-4 and AC-7
   below carry inline notes recording the mechanism change.
 amends:
   - "101-codebase-index-mvp"
@@ -271,8 +273,9 @@ Out of scope (explicit):
   both files independently.
   > **Amended by spec 188 Phase 3 (2026-05-30):** the *required PR-time*
   > mechanism is now `codebase-indexer check-config` (narrow, this slice
-  > only), wired as `ci-config-hash`; the broad `check` referenced above
-  > moved to the post-merge heal. The round-trip property holds identically
+  > only), wired as `ci-config-hash`; the broad `check` referenced above is
+  > no longer a required PR gate (the broad index is a best-effort cache).
+  > The round-trip property holds identically
   > for `check-config`: editing either file then `make index` makes
   > `check-config` exit zero, and editing without regenerating makes it
   > exit non-zero — independently of any other input's freshness.

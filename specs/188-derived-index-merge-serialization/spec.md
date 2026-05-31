@@ -1,7 +1,7 @@
 ---
 id: "188-derived-index-merge-serialization"
 slug: derived-index-merge-serialization
-title: "Derived-index merge serialization — merge driver (now) + merge queue & post-merge heal (designed)"
+title: "Derived-index merge serialization — merge driver + merge queue + narrow config-hash gate (broad index demoted to best-effort cache)"
 status: draft
 implementation: in-progress
 owner: bart
@@ -70,9 +70,10 @@ extends:
 establishes:
   - unit: { kind: file, path: .githooks/merge-derived-index.sh }
   - unit: { kind: file, path: .githooks/enable-merge-driver.sh }
-  # Phase 3 — the narrow PR gate and the post-merge heal workflows.
+  # Phase 3 — the narrow PR gate and the post-merge staleness-report job
+  # (the latter replaced the retired cd-index-heal.yml; see FR-007).
   - unit: { kind: file, path: .github/workflows/ci-config-hash.yml }
-  - unit: { kind: file, path: .github/workflows/cd-index-heal.yml }
+  - unit: { kind: file, path: .github/workflows/cd-index-staleness-report.yml }
   # Phase 3 — ci-parity-check fixture stubs for the new enforcing workflow
   # (renamed from the retired ci-codebase-index.yml stubs). Mirrors spec
   # 191's establishes of its ci-schema-parity.yml fixture pair.
@@ -318,22 +319,45 @@ until that tension is resolved.
 
 ### Functional Requirements — Phase 3 (IMPLEMENTED 2026-05-30 — §spec-184 tension resolved by re-homing, path 1)
 
-- **FR-007**: Index freshness SHOULD move from a required per-PR gate to a
-  post-merge heal: a `push: main` job runs `make registry` and commits the
-  regenerated `index.json` back under a bot identity, with
-  `paths-ignore: ['.derived/**']` to avoid a heal loop. The committed
-  `index.json` remains the present-on-clone cache; `main` is always
-  healed.
-- **FR-008**: The per-PR `codebase-indexer check` SHOULD drop from
-  blocking to advisory (or move entirely to the post-merge job). This is
-  the edit that removes pains (i) and (ii) at the source: PRs no longer
-  need to carry a fresh `index.json`.
+- **FR-007** *(amended 2026-05-30 — heal retired)*: Index freshness moves
+  off the required per-PR gate. The broad committed `index.json` is a
+  **best-effort, regenerable cache** — *not* kept byte-fresh on `main`.
+  > **Why the originally-specified direct-push heal was retired.** FR-007
+  > first proposed a `push: main` job that ran `make registry` and committed
+  > the regenerated `index.json` back under a bot identity. When the GitHub
+  > merge queue was enabled, `main` gained **PR-required + signed-commits**
+  > branch protection (the queue's prerequisite). A direct bot push is
+  > rejected twice over by that protection (no PR; unsigned commit), and the
+  > only way to keep the design — a bypass actor with unreviewed `main`
+  > write — is an attack surface and an ideological self-own on a governance
+  > platform. So the heal is **retired**, not bypassed. Replacement:
+  > `cd-index-staleness-report.yml` runs `codebase-indexer check` on `main`
+  > and **reports** broad staleness (a `::warning::` annotation + a single
+  > auto-managed tracking issue) so the SC-06 agent-orientation cost stays
+  > visible; it **never pushes and never fails the run**. The cache is
+  > refreshed opportunistically: config-touching PRs carry a regenerated
+  > `index.json` into their squash, and any contributor can land a refresh
+  > PR via the queue. The *intended end state* is the Phase 4 re-homing
+  > below, which dissolves the need to heal at all.
+- **FR-008**: The per-PR `codebase-indexer check` (broad) drops from a
+  required blocking gate; PRs no longer need to carry a fresh broad
+  `index.json`. This is the edit that removes pains (i) and (ii) at the
+  source. The remaining required per-PR check is the narrow `check-config`
+  (`ci-config-hash`), not the broad `check`.
 - **FR-009**: Phase 3 MUST preserve, or explicitly re-home, the PR-time
   blocking property that spec 184 installed for `.claude/settings.json`
   and `.mcp.json`. It MUST NOT be implemented until that tension is
   resolved by an explicit decision and the corresponding amendments to
   specs 101, 177, and 184 are authored. Phase 3 changes the *enforcement
   timing* of the self-governance loop; it must not silently weaken it.
+  > **Satisfied, and strengthened by the heal retirement.** The guarantee
+  > is re-homed to the narrow `check-config` / `ci-config-hash` gate
+  > (PR-time + `merge_group`). The earlier "fail-loud config guard" existed
+  > so the *direct-push heal* could not silently absorb config drift. With
+  > the heal retired (FR-007), that back door is closed **by construction**:
+  > nothing on `main` regenerates-and-commits the index, so there is no
+  > healer that could absorb config drift — `cd-index-staleness-report.yml`
+  > only reads (`check`) and reports, never writes.
 
 ## The spec-184 tension *(load-bearing — read before implementing Phase 3)*
 
@@ -389,18 +413,25 @@ Mechanism, as implemented:
    inputs, so it would re-introduce the speculative-rebase ejection FR-006
    exists to eliminate, precisely for the trust-critical config path.*
 
-2. **Broad freshness → post-merge heal.** `cd-index-heal.yml` (push: `main`)
-   regenerates and commits `index.json` under a bot identity, with
-   `paths-ignore: ['.derived/**']` to avoid a heal loop.
+2. **Broad freshness → best-effort cache + reporting** *(amended 2026-05-30)*.
+   The broad committed `index.json` is a best-effort, regenerable cache; it
+   is no longer kept byte-fresh on `main`. The originally-specified
+   direct-push heal (`cd-index-heal.yml`) was **retired** when the merge
+   queue brought PR-required + signed-commits protection to `main` — a bot
+   that pushes around that protection is rejected (no PR; unsigned) and the
+   only "fix" (a bypass actor) is an attack surface, not a design.
+   `cd-index-staleness-report.yml` replaces it: it runs `check` on `main`
+   and **reports** broad staleness (annotation + auto-managed tracking
+   issue) so the SC-06 cost stays visible, but never pushes and never fails.
 
-3. **Back-door corollary (FR-009).** The heal must NOT silently absorb config
-   drift, or it would defeat the narrow gate from behind: a config edit that
-   reached `main` unacknowledged would be quietly regenerated-and-committed —
-   "healed quietly", the exact thing 184 was built to stop. So the heal runs
-   `check-config` **first** and **fails loud** on a config-slice delta
-   (treating it as an incident — the PR gate was bypassed) rather than
-   committing over it. Config must be *impossible to merge dirty*, not merely
-   *impossible to persist dirty*.
+3. **Back-door corollary (FR-009) — now closed by construction.** The worry
+   was that a healer could *silently* regenerate-and-commit a drifted config
+   slice — "healed quietly", the exact thing 184 was built to stop. With the
+   heal retired, **there is no healer that writes**: nothing on `main`
+   regenerates-and-commits the index, so config drift cannot be silently
+   absorbed. Config remains *impossible to merge dirty* (the narrow
+   `ci-config-hash` gate blocks it at PR time + in the queue), which is
+   strictly stronger than *impossible to persist dirty*.
 
 This satisfies SC-005 ("preserved"): the guarantee is unchanged; only the
 enforcement mechanism narrowed. Specs 101, 177, and 184 carry the
@@ -422,15 +453,23 @@ the codebase-index schema, which lives in a separate validation system.
   hard-fails the spec-compiler build on any shared numeric prefix
   (implemented + tested now); and once the merge queue is enabled, its
   speculative build of the two PRs together fails the second.)*
-- **SC-004**: After a merge to `main`, the committed `index.json` on
-  `main` matches a fresh recompute (the present-on-clone invariant holds),
-  with no per-PR freshness obligation. *(Phase 3 — implemented via the
-  `cd-index-heal.yml` post-merge heal.)*
+- **SC-004** *(amended 2026-05-30 — heal retired)*: ~~After a merge to
+  `main`, the committed `index.json` matches a fresh recompute.~~ The broad
+  committed `index.json` is a **best-effort regenerable cache** with no
+  per-PR freshness obligation; its broad `contentHash` MAY lag on `main`.
+  The narrow `claudeConfigHash` slice stays correct on its own (config PRs
+  carry a regenerated index into their squash). The byte-fresh-on-`main`
+  invariant was dropped with the direct-push heal (FR-007); the SC-06
+  agent-orientation cost of a stale cache is recovered as *visibility* via
+  `cd-index-staleness-report.yml`, not as an enforced invariant. The Phase 4
+  re-homing (below) restores the invariant structurally by making the broad
+  index a pure build artifact. *(Phase 3.)*
 - **SC-005**: The PR-time guarantee that a `.claude/settings.json` /
   `.mcp.json` edit cannot merge unacknowledged is preserved (or
   explicitly and documentedly re-homed). *(Phase 3 / FR-009 — satisfied:
-  preserved, re-homed to the narrow `check-config` / `ci-config-hash` gate;
-  the heal's fail-loud config guard closes the back door.)*
+  preserved, re-homed to the narrow `check-config` / `ci-config-hash` gate.
+  With the heal retired, the back door is closed by construction — no
+  healer writes, so config drift cannot be silently absorbed.)*
 
 ## Phased delivery
 
@@ -438,15 +477,35 @@ the codebase-index schema, which lives in a separate validation system.
 |-------|-------|--------|------|
 | 1 | `oap-index-regen` merge driver + `.gitattributes` + `make setup` registration | **Implemented in this change** | low |
 | 2 | GitHub merge queue (`merge_group:` trigger) + duplicate-id lint (V-032) | **Implemented in code 2026-05-30**; merge-queue *enablement* is an ops step | low–medium |
-| 3 | Broad staleness → post-merge heal + narrow `check-config` PR gate | **Implemented 2026-05-30** (re-homing, path 1; FR-007/008/009) | medium |
+| 3 | Broad staleness → best-effort cache + narrow `check-config` PR gate; staleness-report job (heal retired) | **Implemented 2026-05-30** (re-homing, path 1; FR-007/008/009) | medium |
+| 4 | Re-home `claudeConfigHash` to its own tracked file; `.gitignore` the broad `index.json` | **Designed only** — dissolves the cache/contract tension | low |
 
-Phase 1 landed first. Phase 3 lands next (this change), now that the
-§spec-184 tension is resolved (FR-009). Phase 2 follows in the same branch's
-next commit — code-safe to land alongside Phase 3 because the `merge_group:`
-trigger is **inert until a repo admin enables the merge queue** in branch
-protection, so FR-006's "Phase 2 strictly after Phase 3" is honoured as an
-*ops* ordering (don't enable the queue until Phase 3 is on `main`), not a
-code-merge ordering.
+Phase 1 landed first. Phase 3 (and Phase 2, code-safe alongside it) landed
+in PR #262. The direct-push heal originally specified for Phase 3 was
+**retired** in the follow-up once the merge queue brought PR-required +
+signed-commits protection to `main`: a healer cannot push to a protected
+branch, and a bypass actor is a non-starter on a governance platform. The
+broad index became a best-effort cache (FR-007 amended) with a
+report-only staleness job.
+
+### Phase 4 (designed, not implemented) — dissolve the cache/contract tension
+
+The whole Phase-3 tension exists because the load-bearing `claudeConfigHash`
+*contract* lives **inside** the broad `index.json` *cache*, dragging the
+cache under signed-commit branch protection. Phase 4 separates them:
+
+1. Emit `claudeConfigHash` to its own small **tracked** file (e.g.
+   `.derived/codebase-index/config-hash.json`); `check-config` reads that.
+2. `.gitignore` the broad `index.json` entirely — it becomes a pure build
+   artifact (`make index` / `/init`-time), never committed.
+
+Then there is nothing to heal: the only governed, tracked artifact is the
+tiny hash that actually needs a gate, and the broad index is regenerated on
+demand. This restores SC-004's freshness invariant structurally (the broad
+index is *always* fresh because it's never stale-on-disk — it's rebuilt)
+and is more honest about what is a contract versus what is a cache. Deferred
+because it touches the spec 101 commit-the-index contract and the `/init`
+read path; it is the intended end state, scheduled as its own change.
 
 ## Relationships
 

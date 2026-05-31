@@ -48,10 +48,11 @@ struct Step {
 pub const ENFORCING_WORKFLOWS: &[&str] = &[
     "ci-axiomregent.yml",
     // spec 188 Phase 3 — the broad `ci-codebase-index.yml` staleness gate
-    // was retired (its freshness check moved to the post-merge
-    // `cd-index-heal.yml`, parity-exempt per §5). The NARROW config-hash
-    // gate replaces it in the constitutional set: `make ci-config-hash`
-    // mirrors its `check-config` run-block.
+    // was retired (the broad index is now a best-effort cache; drift is
+    // surfaced post-merge by the report-only `cd-index-staleness-report.yml`,
+    // parity-exempt per §5). The NARROW config-hash gate replaces it in the
+    // constitutional set: `make ci-config-hash` mirrors its `check-config`
+    // run-block.
     "ci-config-hash.yml",
     "ci-crates.yml",
     "ci-deployd-api-rs.yml",

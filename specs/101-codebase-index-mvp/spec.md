@@ -11,15 +11,21 @@ amended: "2026-05-30"
 amendment_record: |
   amended by spec 188 (2026-05-30, Phase 3) — index freshness enforcement
   is re-homed. The broad `codebase-indexer check` (whole-index staleness,
-  FR-10) moves from a required per-PR gate to a post-merge heal on `main`
-  (`cd-index-heal.yml`): PRs are no longer required to carry a fresh broad
-  `index.json`. A new narrow `codebase-indexer check-config` subcommand
-  (§2.4) verifies a dedicated `build.claudeConfigHash` sub-hash over ONLY
-  `.claude/settings.json` + `.mcp.json` (the spec 184 slice); it is the
-  PR-time blocking gate that preserves spec 184's guarantee independently
-  of the broad hash, and — because it depends only on those two files — it
-  stays valid in a merge queue. Schema bumped 2.2.0 → 2.3.0 (additive
-  `build.claudeConfigHash`). See FR-12.
+  FR-10) drops from a required per-PR gate; PRs are no longer required to
+  carry a fresh broad `index.json`. The broad committed `index.json`
+  becomes a **best-effort regenerable cache** — its byte-freshness on
+  `main` is no longer enforced. (A direct-push post-merge heal was
+  specified then **retired** in the same spec when the merge queue brought
+  PR-required + signed-commits protection to `main`, which a bot push
+  cannot satisfy; a report-only `cd-index-staleness-report.yml` surfaces
+  drift instead — see spec 188 FR-007.) A new narrow `codebase-indexer
+  check-config` subcommand (§2.4) verifies a dedicated
+  `build.claudeConfigHash` sub-hash over ONLY `.claude/settings.json` +
+  `.mcp.json` (the spec 184 slice); it is the PR-time blocking gate that
+  preserves spec 184's guarantee independently of the broad hash, and —
+  because it depends only on those two files — it stays valid in a merge
+  queue. Schema bumped 2.2.0 → 2.3.0 (additive `build.claudeConfigHash`).
+  See FR-12.
 
   amended by spec 182 (2026-05-26) — FR-08 and Layer 4 add
   `.claude/skills/**/SKILL.md` to the documented inventory inputs;
@@ -274,17 +280,21 @@ Same pattern as the spec registry:
   the index as part of the change
 
 > **Amended by spec 188 Phase 3 (2026-05-30).** The broad `check` above is
-> no longer a required *per-PR* gate. It runs **post-merge** as a heal job
-> on `main` (`cd-index-heal.yml`), which regenerates and commits a fresh
-> `index.json` under a bot identity — so `main` always carries a fresh,
-> present-on-clone index without every PR having to regenerate it (this is
-> what removes the merge-serialization toil; see spec 188 §Problem). The
-> only required *per-PR* freshness obligation that remains is the **narrow**
-> `check-config` gate over `.claude/settings.json` + `.mcp.json` (FR-12),
-> wired as the constitutional `ci-config-hash` workflow. The post-merge heal
-> **fails loud** (rather than silently regenerating) if it finds the config
-> slice drifted on `main`, so the narrow gate cannot be defeated through the
-> heal's back door (spec 188 FR-009).
+> no longer a required *per-PR* gate, and the broad committed `index.json`
+> is a **best-effort regenerable cache** — not kept byte-fresh on `main`
+> (this removes the merge-serialization toil; see spec 188 §Problem). A
+> direct-push post-merge heal was specified then **retired** when the merge
+> queue brought PR-required + signed-commits protection to `main` (a bot
+> push can't satisfy it; a bypass actor is a non-starter). Instead,
+> `cd-index-staleness-report.yml` runs `check` on `main` and *reports*
+> broad drift (annotation + tracking issue) without pushing. The only
+> required *per-PR* freshness obligation is the **narrow** `check-config`
+> gate over `.claude/settings.json` + `.mcp.json` (FR-12), wired as the
+> constitutional `ci-config-hash` workflow. With no healer that writes, the
+> FR-009 back door is closed by construction — config drift cannot be
+> silently absorbed. (Spec 188 Phase 4 will re-home `claudeConfigHash` to
+> its own tracked file and `.gitignore` the broad index, dissolving the
+> cache/contract split entirely.)
 
 ### 2.6 Agent Orientation
 
@@ -391,9 +401,11 @@ The indexer MUST validate its own output before writing.
 `index.json` content hash and exit non-zero if they differ.
 
 > **Scope note (spec 188 Phase 3).** `check` remains the broad whole-index
-> staleness comparison. Its *enforcement timing* moved: it is now run by the
-> post-merge heal on `main` (`cd-index-heal.yml`), not as a required per-PR
-> gate. The per-PR blocking obligation is carried by `check-config` (FR-12).
+> staleness comparison, but it is no longer a required per-PR gate. It runs
+> post-merge on `main` in report-only mode (`cd-index-staleness-report.yml`
+> surfaces drift without pushing) and locally via `make pr-prep` /
+> `ci-strict`. The per-PR blocking obligation is carried by `check-config`
+> (FR-12); the broad index is a best-effort cache (spec 188 FR-007).
 
 ### FR-11: Markdown Rendering
 
@@ -444,13 +456,17 @@ unimplemented specs that exist as of spec creation date.
 A PR that adds a new crate without updating `index.json` MUST fail the CI check.
 
 > **Amended by spec 188 Phase 3 (2026-05-30).** This broad-freshness
-> obligation is now enforced **post-merge** (the `cd-index-heal.yml` heal
-> regenerates and commits `index.json` on `main`), not as a required
-> per-PR gate — so a PR adding a crate without regenerating the broad
-> index is healed on merge rather than blocked. The remaining *per-PR*
+> obligation is **no longer a required per-PR gate** — a PR adding a crate
+> without regenerating the broad index is not blocked. The broad committed
+> `index.json` is a best-effort cache; post-merge, `cd-index-staleness-
+> report.yml` *reports* drift on `main` (annotation + tracking issue)
+> without pushing — a direct-push heal was retired as incompatible with
+> `main`'s PR-required + signed-commits protection. The remaining *per-PR*
 > enforcement is the narrow `check-config` gate: a PR editing
 > `.claude/settings.json` or `.mcp.json` without regenerating the index
-> MUST fail `ci-config-hash` (preserving spec 184's guarantee).
+> MUST fail `ci-config-hash` (preserving spec 184's guarantee). Spec 188
+> Phase 4 restores the broad-freshness invariant structurally by making the
+> index a pure build artifact (`.gitignore`d, regenerated on demand).
 
 ### SC-06: Agent Startup Acceleration
 
