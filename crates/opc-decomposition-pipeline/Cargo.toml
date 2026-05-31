@@ -18,6 +18,14 @@ factory-contracts = { path = "../factory-contracts" }
 artifact-extract  = { path = "../artifact-extract" }
 xray              = { path = "../xray", features = ["analysis-call-graph"] }
 
+# LLM-backed stage-6 synthesiser substrate (spec 042). Optional + default
+# features off: this crate uses only the `ProviderAdapter` trait + types;
+# the concrete adapter (and the tokio io driver it needs) are supplied by
+# the OPC binary's full dependency graph. Gated behind `llm-synthesis` so
+# the default build (and CI) never pulls reqwest or touches the network.
+provider-registry = { path = "../provider-registry", optional = true, default-features = false }
+tokio             = { version = "1", optional = true, features = ["rt", "time"] }
+
 serde       = { version = "1", features = ["derive"] }
 serde_json  = { version = "1", features = ["preserve_order"] }
 serde_yaml  = "0.9"
@@ -33,6 +41,12 @@ tempfile = "3"
 # spec must lint clean. Calling the library directly avoids depending
 # on a pre-built binary path in CI.
 open_agentic_spec_lint = { path = "../../tools/spec-spine/spec-lint" }
+# Used only by the `llm-synthesis` mock-adapter test (a hand-rolled
+# ProviderAdapter double + empty event stream). Dev-only; not in the
+# default runtime graph.
+async-trait  = "0.1"
+futures-util = "0.3"
+futures-core = "0.3"
 
 [features]
 # Default build is light: stage 3 falls back to directory-based clustering
@@ -41,6 +55,9 @@ open_agentic_spec_lint = { path = "../../tools/spec-spine/spec-lint" }
 # analysis-embeddings feature; clusters then use vector similarity.
 default    = []
 embeddings = ["xray/analysis-embeddings"]
+# Compiles the LLM-backed ProviderSynthesiser (stage 6). Off by default so
+# CI is network-free; the OPC binary enables it and injects the adapter.
+llm-synthesis = ["dep:provider-registry", "dep:tokio"]
 
 [package.metadata.oap]
 spec = "165-opc-decomposition-pipeline"

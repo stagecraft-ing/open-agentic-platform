@@ -88,6 +88,149 @@ impl Synthesiser for DeterministicSynthesiser {
     }
 }
 
+/// System prompt for the LLM-backed synthesiser. Hashed to produce
+/// `ProviderSynthesiser::prompt_template_hash`; bump it when the prompt
+/// shape changes so the certificate reflects a different template.
+#[cfg(feature = "llm-synthesis")]
+const PROVIDER_SYSTEM_TEMPLATE: &str = "\
+You are a spec-spine decomposition synthesiser. Given a cluster of related \
+source files from a project, emit a single Markdown spec document. It MUST \
+begin with YAML frontmatter containing: status: draft; origin with \
+retroactive: true; a declared kind: from the spec-kind grammar; an \
+establishes: list declaring each source path as a logical unit \
+{ kind: file, path: ... }; and a references: entry with \
+role: decomposition-origin and a provenance: block (kind: code-fingerprint, \
+the supplied fingerprint hash as source). Write an intent-first summary of \
+what the cluster does. Output only the spec.md content, no commentary.";
+
+/// LLM-backed stage-6 synthesiser (spec 165 §2.1). Provider-agnostic: it
+/// holds an injected [`provider_registry::ProviderAdapter`], so tests use a
+/// mock and the OPC layer supplies the concrete (e.g. Anthropic) adapter.
+/// Falls back to the deterministic baseline if the model output misses the
+/// emission-contract markers, so FR-004/FR-005 hold regardless of the model.
+#[cfg(feature = "llm-synthesis")]
+pub struct ProviderSynthesiser {
+    adapter: std::sync::Arc<dyn provider_registry::ProviderAdapter>,
+    model: String,
+    max_tokens: u32,
+}
+
+#[cfg(feature = "llm-synthesis")]
+impl ProviderSynthesiser {
+    pub fn new(
+        adapter: std::sync::Arc<dyn provider_registry::ProviderAdapter>,
+        model: impl Into<String>,
+        max_tokens: u32,
+    ) -> Self {
+        Self {
+            adapter,
+            model: model.into(),
+            max_tokens,
+        }
+    }
+}
+
+/// Build the per-cluster user prompt from stage-3 evidence. Pure.
+#[cfg(feature = "llm-synthesis")]
+fn build_user_prompt(cluster: &Cluster, fingerprint_hash: &str) -> String {
+    let files = cluster.paths.join("\n");
+    format!(
+        "Cluster id: {id}\nRoot directory: {root}\nStage-3 summary: {summary}\n\
+         xray fingerprint hash (use as provenance source): {fp}\n\
+         Files in this cluster:\n{files}\n",
+        id = cluster.id,
+        root = cluster.root_dir,
+        summary = cluster.summary,
+        fp = fingerprint_hash,
+        files = files,
+    )
+}
+
+/// Concatenate the `TextComplete` payloads from a provider's events. Pure.
+#[cfg(feature = "llm-synthesis")]
+fn extract_text(events: Vec<provider_registry::AgentEvent>) -> String {
+    events
+        .into_iter()
+        .filter_map(|e| match e {
+            provider_registry::AgentEvent::TextComplete { text } => Some(text),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Does the model output carry the minimum emission-contract markers
+/// (FR-004 provenance role + FR-005 kind)? If not, the caller falls back
+/// to the deterministic baseline. Pure.
+#[cfg(feature = "llm-synthesis")]
+fn passes_emission_guard(text: &str) -> bool {
+    text.contains("role: decomposition-origin") && text.contains("kind:")
+}
+
+/// Drive an async future to completion from a synchronous context. The
+/// pipeline always runs on a blocking thread (the Tauri commands wrap it
+/// in `spawn_blocking`), so a fresh current-thread runtime is safe; do not
+/// call this from within an async runtime worker.
+#[cfg(feature = "llm-synthesis")]
+fn run_blocking<F: std::future::Future>(fut: F) -> Result<F::Output, PipelineError> {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| PipelineError::Synthesis(format!("tokio runtime: {e}")))?;
+    Ok(rt.block_on(fut))
+}
+
+#[cfg(feature = "llm-synthesis")]
+impl Synthesiser for ProviderSynthesiser {
+    fn synthesise(&self, input: &SynthesisInput) -> Result<String, PipelineError> {
+        use provider_registry::{Message, MessageContent, QueryParams, Role};
+
+        let params = QueryParams {
+            model: Some(self.model.clone()),
+            messages: vec![Message {
+                role: Role::User,
+                content: MessageContent::Text(build_user_prompt(
+                    input.cluster,
+                    input.fingerprint_hash,
+                )),
+            }],
+            system_prompt: Some(PROVIDER_SYSTEM_TEMPLATE.to_string()),
+            tools: Vec::new(),
+            max_tokens: Some(self.max_tokens),
+            temperature: Some(0.2),
+        };
+
+        let adapter = self.adapter.clone();
+        let events = run_blocking(async move {
+            let session = adapter
+                .spawn(None)
+                .await
+                .map_err(|e| PipelineError::Synthesis(format!("spawn: {e}")))?;
+            adapter
+                .query(&session, params)
+                .await
+                .map_err(|e| PipelineError::Synthesis(format!("query: {e}")))
+        })??;
+
+        let text = extract_text(events);
+        if passes_emission_guard(&text) {
+            Ok(text)
+        } else {
+            // Model output is not contract-compliant; guarantee FR-004/005
+            // by falling back to the deterministic baseline for this cluster.
+            DeterministicSynthesiser.synthesise(input)
+        }
+    }
+
+    fn identity(&self) -> String {
+        format!("provider:{}", self.model)
+    }
+
+    fn prompt_template_hash(&self) -> String {
+        hex::encode(Sha256::digest(PROVIDER_SYSTEM_TEMPLATE.as_bytes()))
+    }
+}
+
 pub struct SynthesisOutput {
     pub record: StageRecord,
     pub emitted: Vec<DraftSpecRef>,
@@ -408,5 +551,129 @@ mod tests {
         let synth = run(&cfg, &rd, &DeterministicSynthesiser).unwrap();
         assert!(synth.emitted.is_empty());
         assert_eq!(synth.record.status, StageStatus::Degraded);
+    }
+}
+
+#[cfg(all(test, feature = "llm-synthesis"))]
+mod llm_tests {
+    use super::*;
+    use chrono::Utc;
+    use provider_registry::{
+        AgentEvent, AgentSession, ProviderAdapter, ProviderCapabilities, ProviderConfig,
+        ProviderError, QueryParams,
+    };
+    use std::pin::Pin;
+    use std::sync::Arc;
+
+    /// Hand-rolled `ProviderAdapter` double: returns a fixed body from
+    /// `query`, no network. Proves the async drive + event extraction +
+    /// emission-guard fallback without a live model.
+    struct StubAdapter {
+        caps: ProviderCapabilities,
+        body: String,
+    }
+
+    #[async_trait::async_trait]
+    impl ProviderAdapter for StubAdapter {
+        fn id(&self) -> &str {
+            "stub"
+        }
+        fn capabilities(&self) -> &ProviderCapabilities {
+            &self.caps
+        }
+        async fn spawn(
+            &self,
+            _config: Option<&ProviderConfig>,
+        ) -> Result<AgentSession, ProviderError> {
+            Ok(AgentSession {
+                session_id: "s".into(),
+                provider_id: "stub".into(),
+                model: "stub-model".into(),
+                created_at: 0,
+            })
+        }
+        async fn query(
+            &self,
+            _session: &AgentSession,
+            _params: QueryParams,
+        ) -> Result<Vec<AgentEvent>, ProviderError> {
+            Ok(vec![AgentEvent::TextComplete {
+                text: self.body.clone(),
+            }])
+        }
+        fn stream(
+            &self,
+            _session: AgentSession,
+            _params: QueryParams,
+        ) -> Pin<
+            Box<dyn futures_core::Stream<Item = Result<AgentEvent, ProviderError>> + Send + 'static>,
+        > {
+            Box::pin(futures_util::stream::empty())
+        }
+        async fn abort(&self, _session: &AgentSession) -> Result<(), ProviderError> {
+            Ok(())
+        }
+    }
+
+    fn caps() -> ProviderCapabilities {
+        ProviderCapabilities {
+            streaming: false,
+            tool_use: false,
+            vision: false,
+            extended_thinking: false,
+            max_context_tokens: 1000,
+        }
+    }
+
+    fn cluster() -> Cluster {
+        Cluster {
+            id: "c001".into(),
+            paths: vec!["crates/a/lib.rs".into()],
+            root_dir: "crates".into(),
+            summary: "x".into(),
+        }
+    }
+
+    #[test]
+    fn returns_compliant_model_output_verbatim() {
+        let body = "---\nstatus: draft\nkind: capability\nreferences:\n  - role: decomposition-origin\n---\n# Spec\n".to_string();
+        let synth = ProviderSynthesiser::new(Arc::new(StubAdapter { caps: caps(), body }), "stub-model", 1024);
+        let c = cluster();
+        let input = SynthesisInput { cluster: &c, fingerprint_hash: "abc123", started_at: Utc::now() };
+        let out = synth.synthesise(&input).unwrap();
+        assert!(out.contains("role: decomposition-origin"));
+        assert!(out.starts_with("---"), "model body should be returned verbatim when compliant");
+        assert_eq!(synth.identity(), "provider:stub-model");
+        assert_eq!(synth.prompt_template_hash().len(), 64);
+    }
+
+    #[test]
+    fn falls_back_to_deterministic_when_output_non_compliant() {
+        let synth = ProviderSynthesiser::new(
+            Arc::new(StubAdapter { caps: caps(), body: "just prose, no frontmatter".into() }),
+            "stub-model",
+            256,
+        );
+        let c = cluster();
+        let input = SynthesisInput { cluster: &c, fingerprint_hash: "def456", started_at: Utc::now() };
+        let out = synth.synthesise(&input).unwrap();
+        // Guard tripped → deterministic baseline guarantees the contract.
+        assert!(out.contains("role: decomposition-origin"));
+        assert!(out.contains("kind: capability"));
+        assert!(out.contains("establishes:"));
+    }
+
+    #[test]
+    fn pure_helpers_behave() {
+        assert!(passes_emission_guard("kind: x\nrole: decomposition-origin"));
+        assert!(!passes_emission_guard("nothing useful"));
+        let prompt = build_user_prompt(&cluster(), "fp123");
+        assert!(prompt.contains("crates/a/lib.rs"));
+        assert!(prompt.contains("fp123"));
+        let text = extract_text(vec![
+            AgentEvent::TextDelta { delta: "ignored".into() },
+            AgentEvent::TextComplete { text: "kept".into() },
+        ]);
+        assert_eq!(text, "kept");
     }
 }
