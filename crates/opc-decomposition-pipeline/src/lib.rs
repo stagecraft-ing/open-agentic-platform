@@ -23,12 +23,14 @@ pub mod certificate;
 pub mod error;
 pub mod persistence;
 pub mod pipeline;
+pub mod promotion;
 pub mod stages;
 pub mod types;
 
 pub use error::PipelineError;
 pub use persistence::{RunDirectory, list_runs, load_run};
 pub use pipeline::PipelineRunner;
+pub use promotion::{PromotionOutcome, PromotionRequest, promote_spec};
 pub use stages::synthesis::{DeterministicSynthesiser, SynthesisInput, Synthesiser};
 pub use types::{
     Cluster, DegradedReason, DraftSpecRef, LogicalUnit, PipelineConfig, PipelineRun, Provenance,

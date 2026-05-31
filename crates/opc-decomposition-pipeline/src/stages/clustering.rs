@@ -68,12 +68,36 @@ pub fn load_clusters(run_dir: &RunDirectory) -> Result<ClusteringOutput, Pipelin
     Ok(serde_json::from_slice(&bytes)?)
 }
 
+/// Top-level directories excluded from clustering: VCS, build output, and
+/// crucially the pipeline's own `.opc/` scratch dir — otherwise stage 6
+/// would emit "specs" describing the decomposition run's own artifacts.
+/// Mirrors xray's `IGNORED_DIRS` plus `.opc`.
+const CLUSTER_IGNORED_DIRS: &[&str] = &[
+    ".opc",
+    ".git",
+    ".bin",
+    "node_modules",
+    "dist",
+    "build",
+    "out",
+    "vendor",
+    "target",
+    ".cache",
+    ".tmp",
+    "coverage",
+    ".axiomregent",
+];
+
 /// Group files by their top-level path component. Stable across runs:
-/// clusters and `paths` within them are sorted lexicographically.
+/// clusters and `paths` within them are sorted lexicographically. Files
+/// under `CLUSTER_IGNORED_DIRS` (incl. the run's own `.opc/`) are dropped.
 fn directory_clusters(index: &xray::XrayIndex) -> Vec<Cluster> {
     let mut buckets: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for f in &index.files {
         let top = top_dir(&f.path);
+        if CLUSTER_IGNORED_DIRS.contains(&top.as_str()) {
+            continue;
+        }
         buckets.entry(top).or_default().push(f.path.clone());
     }
     let mut clusters = Vec::with_capacity(buckets.len());
@@ -113,6 +137,9 @@ fn embedding_clusters(
     let mut code_blocks: Vec<String> = Vec::with_capacity(index.files.len());
     let mut paths: Vec<String> = Vec::with_capacity(index.files.len());
     for f in &index.files {
+        if CLUSTER_IGNORED_DIRS.contains(&top_dir(&f.path).as_str()) {
+            continue;
+        }
         let abs = project_root.join(&f.path);
         let bytes = match fs::read(&abs) {
             Ok(b) => b,

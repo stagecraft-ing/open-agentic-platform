@@ -28,7 +28,6 @@ use sha2::{Digest, Sha256};
 use crate::error::PipelineError;
 use crate::persistence::{RunDirectory, hash_file, hash_stage_dir};
 use crate::stages::clustering;
-use crate::stages::fingerprint as fp;
 use crate::types::{
     Cluster, DegradedReason, DraftSpecRef, PipelineConfig, StageId, StageRecord, StageStatus,
 };
@@ -39,7 +38,8 @@ use crate::types::{
 pub struct SynthesisInput<'a> {
     /// The semantic cluster this draft spec is derived from (stage 3).
     pub cluster: &'a Cluster,
-    /// The stage-2 xray structural fingerprint hash (provenance anchor).
+    /// Full SHA-256 of the stage-2 xray fingerprint artifact — the body of
+    /// the `xray-fingerprint://<sha256>` provenance ref (spec 156).
     pub fingerprint_hash: &'a str,
     /// Synthesis-stage start time, stamped into the draft frontmatter.
     pub started_at: DateTime<Utc>,
@@ -250,7 +250,12 @@ pub fn run(
     let specs_dir = run_dir.synthesis_specs_dir();
     fs::create_dir_all(&specs_dir).map_err(|e| PipelineError::io(&specs_dir, e))?;
 
-    let fingerprint = fp::load_fingerprint(run_dir)?;
+    // Full SHA-256 of the stage-2 fingerprint artifact — the provenance
+    // ref anchor. xray's `Fingerprint.hash` is an 8-char short hash, which
+    // is NOT a valid `xray-fingerprint://<sha256>` body (spec 156 V-028);
+    // the artifact's full content hash is.
+    let fp_digest =
+        hash_file(&run_dir.stage_dir(StageId::Fingerprint).join("fingerprint.json"))?;
     let clusters = clustering::load_clusters(run_dir)?;
 
     let mut emitted: Vec<DraftSpecRef> = Vec::new();
@@ -269,7 +274,7 @@ pub fn run(
         let spec_path = dir.join("spec.md");
         let input = SynthesisInput {
             cluster,
-            fingerprint_hash: &fingerprint.hash,
+            fingerprint_hash: &fp_digest,
             started_at,
         };
         let body = synthesiser.synthesise(&input)?;
@@ -357,6 +362,8 @@ fn sanitise(s: &str) -> String {
 fn render_spec(cluster: &Cluster, fingerprint_hash: &str, started_at: DateTime<Utc>) -> String {
     let slug = slug_for(cluster);
     let id = slug.clone();
+    // spec 161 FR-007 (spec-lint W-161) requires an ISO-8601 timestamp on
+    // every `role: decomposition-origin` provenance entry.
     let derived_at = started_at.to_rfc3339_opts(SecondsFormat::Secs, true);
     let created = started_at.format("%Y-%m-%d").to_string();
 
@@ -374,6 +381,21 @@ fn render_spec(cluster: &Cluster, fingerprint_hash: &str, started_at: DateTime<U
         sources_md.push_str("`\n");
     }
 
+    // Single-line, double-quoted scalar. A YAML block scalar (`summary: >`)
+    // is brittle to emit from a Rust format string — line-continuations
+    // strip the required continuation indentation and the spec-compiler's
+    // serde_yaml parser then rejects it. One quoted line round-trips through
+    // both spec-lint and the spec-compiler.
+    let summary_line = format!(
+        "Draft spec emitted by the OPC decomposition pipeline (spec 165) from \
+cluster {cluster_id} rooted at {root}, synthesised from {n_files} file(s) by \
+the deterministic baseline synthesiser. Review, rename, and renumber before \
+promotion.",
+        cluster_id = cluster.id,
+        root = cluster.root_dir,
+        n_files = cluster.paths.len(),
+    );
+
     format!(
         "---\n\
 id: \"{id}\"\n\
@@ -386,13 +408,9 @@ created: \"{created}\"\n\
 kind: capability\n\
 risk: medium\n\
 origin:\n  retroactive: true\n\
-summary: >\n  Draft spec emitted by the OPC decomposition pipeline (spec 165)\n\
-  from cluster {cluster_id} rooted at {root}. Synthesised from\n\
-  {n_files} file(s) using the deterministic baseline synthesiser; an\n\
-  LLM swap (spec 165 follow-up F-001) will replace the prose without\n\
-  changing the contract. Review, rename, and renumber before promotion.\n\
+summary: \"{summary_line}\"\n\
 establishes:\n{establishes}\
-references:\n  - role: decomposition-origin\n    provenance:\n      kind: code-fingerprint\n      source: \"{fingerprint_hash}\"\n      derived_at: \"{derived_at}\"\n\
+references:\n  - role: decomposition-origin\n    provenance:\n      kind: code-fingerprint\n      ref: \"xray-fingerprint://{fingerprint_hash}\"\n      derived_at: \"{derived_at}\"\n\
 ---\n\n\
 # {id} — Decomposed unit from cluster {cluster_id}\n\n\
 This draft spec was synthesised by the OPC decomposition pipeline\n\
@@ -409,8 +427,8 @@ review, refine, and promote it into the project's spec spine.\n\n\
 ## Provenance\n\n\
 The `references:` edge above carries `role: decomposition-origin`\n\
 with `provenance.kind: code-fingerprint` per spec 161 §2.1. The\n\
-`source:` field is the xray structural fingerprint of the project\n\
-at synthesis time (stage 2 of the spec-165 pipeline); see\n\
+`ref:` is `xray-fingerprint://<sha256>` of the project's stage-2\n\
+xray structural fingerprint at synthesis time; see\n\
 `crates/xray::fingerprint`.\n\n\
 ## Next steps\n\n\
 1. Rename the spec to a meaningful slug.\n\
@@ -430,6 +448,7 @@ at synthesis time (stage 2 of the spec-165 pipeline); see\n\
         created = created,
         establishes = establishes,
         sources_md = sources_md,
+        summary_line = summary_line,
     )
 }
 

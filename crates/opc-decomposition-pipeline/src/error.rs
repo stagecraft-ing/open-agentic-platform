@@ -39,6 +39,9 @@ pub enum PipelineError {
 
     #[error("synthesis failed: {0}")]
     Synthesis(String),
+
+    #[error("promotion failed: {0}")]
+    Promotion(String),
 }
 
 impl PipelineError {

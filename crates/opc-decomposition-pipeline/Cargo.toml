@@ -18,6 +18,9 @@ factory-contracts = { path = "../factory-contracts" }
 factory-engine    = { path = "../factory-engine" }
 artifact-extract  = { path = "../artifact-extract" }
 xray              = { path = "../xray", features = ["analysis-call-graph"] }
+# Promotion (FR-008) recompiles the project's spec registry in-process via
+# the spec-compiler library, rather than shelling out to its binary.
+open_agentic_spec_compiler = { path = "../../tools/spec-spine/spec-compiler" }
 
 # LLM-backed stage-6 synthesiser substrate (spec 042). Optional + default
 # features off: this crate uses only the `ProviderAdapter` trait + types;
