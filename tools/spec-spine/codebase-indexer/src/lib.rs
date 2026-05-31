@@ -14,7 +14,10 @@ use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use types::{BuildInfo, CodebaseIndex, Diagnostic, Diagnostics, INDEXER_ID, SCHEMA_VERSION};
+use types::{
+    BuildInfo, CONFIG_HASH_SCHEMA_VERSION, CodebaseIndex, ConfigHash, Diagnostic, Diagnostics,
+    INDEXER_ID, SCHEMA_VERSION,
+};
 
 // ── Error type ──────────────────────────────────────────────────────────────
 
@@ -24,11 +27,11 @@ pub enum IndexError {
     Json(serde_json::Error),
     Schema(String),
     Stale { expected: String, actual: String },
-    /// Spec 188 Phase 3 — the narrow Claude shared-config slice
+    /// Spec 188 Phase 4 — the narrow Claude shared-config slice
     /// (`.claude/settings.json` + `.mcp.json`) does not match the
-    /// committed `build.claudeConfigHash`. Distinct from `Stale` so the
-    /// narrow `check-config` gate's failure is legible in CI output and
-    /// never confused with a broad whole-index staleness.
+    /// committed `config-hash.json` (`claudeConfigHash`). Distinct from
+    /// `Stale` so the narrow `check-config` gate's failure is legible in
+    /// CI output and never confused with a broad whole-index staleness.
     ConfigStale { expected: String, actual: String },
     Blocking { code: String, count: usize },
 }
@@ -59,7 +62,7 @@ impl std::fmt::Display for IndexError {
                     f,
                     "claude shared-config slice (.claude/settings.json + .mcp.json) is stale: \
                      expected {expected}, got {actual} — regenerate the index (make registry) so \
-                     the edit is acknowledged (spec 184 / spec 188 Phase 3)"
+                     config-hash.json acknowledges the edit (spec 184 / spec 188 Phase 4)"
                 )
             }
             IndexError::Blocking { code, count } => {
@@ -142,10 +145,11 @@ impl From<serde_json::Error> for IndexReaderError {
 /// [`types::CodebaseIndex`].
 ///
 /// Peeks at `schemaVersion` to dispatch. Recognizes the 1.x family
-/// (pre-W-07c) and the 2.x family (post-W-07c, Layer 3-5 lifted out
-/// to oap-code-index-enrich). Both decode through the same
-/// `schema_v1_v2` arm because `serde(default)` handles the absent
-/// fields — extra fields are ignored by serde.
+/// (pre-W-07c), the 2.x family (post-W-07c, Layer 3-5 lifted out to
+/// oap-code-index-enrich), and the 3.x family (spec 188 Phase 4,
+/// `build.claudeConfigHash` re-homed out). All decode through the same
+/// `schema_v1_v2` arm because `serde(default)` handles absent fields and
+/// extra fields are ignored by serde.
 pub fn load(path: &Path) -> Result<CodebaseIndex, IndexReaderError> {
     let raw = fs::read_to_string(path)?;
     let v: Value = serde_json::from_str(&raw)?;
@@ -154,19 +158,22 @@ pub fn load(path: &Path) -> Result<CodebaseIndex, IndexReaderError> {
         .and_then(|x| x.as_str())
         .unwrap_or("")
         .to_string();
-    if version.starts_with("1.") || version.starts_with("2.") {
+    if version.starts_with("1.") || version.starts_with("2.") || version.starts_with("3.") {
         return schema_v1_v2::parse(v);
     }
     Err(IndexReaderError::UnknownSchemaVersion(version))
 }
 
 mod schema_v1_v2 {
-    //! Schema 1.x + 2.x dispatch arm. The crate's own
+    //! Schema 1.x + 2.x + 3.x dispatch arm. The crate's own
     //! `types::CodebaseIndex` is the deserialization shape; the 2.x
     //! bump removed Layer 3-5 fields (factory, infrastructure,
-    //! workflowTraceability) from the typed view, so a 1.x index
-    //! with those fields still decodes (serde silently ignores
-    //! unknown fields) and a 2.x index without them decodes too.
+    //! workflowTraceability) from the typed view, and the 3.x bump
+    //! removed `build.claudeConfigHash` (re-homed by spec 188 Phase 4).
+    //! Serde silently ignores unknown fields, so a 1.x/2.x index still
+    //! decodes against the current `BuildInfo` and a 3.x index decodes
+    //! too — the typed view is forward- and backward-compatible across
+    //! the field's lifecycle.
     use super::*;
 
     pub(super) fn parse(v: Value) -> Result<CodebaseIndex, IndexReaderError> {
@@ -177,19 +184,30 @@ mod schema_v1_v2 {
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-/// Result of a compile: index JSON bytes (deterministic) + build-meta JSON bytes (ephemeral).
+/// Result of a compile: index JSON bytes (deterministic) + build-meta JSON
+/// bytes (ephemeral) + config-hash JSON bytes (the re-homed narrow slice,
+/// spec 188 Phase 4 — deterministic, written to its own tracked file).
 pub struct CompileOutput {
     pub index_json: Vec<u8>,
     pub build_meta_json: Vec<u8>,
+    pub config_hash_json: Vec<u8>,
 }
 
-/// Compile the codebase index and write to `build/codebase-index/`.
+/// Compile the codebase index and write to `.derived/codebase-index/`.
+///
+/// Writes three files: the broad `index.json` (best-effort cache), the
+/// ephemeral `build-meta.json`, and `config-hash.json` (the re-homed
+/// governed slice that `check_config` gates on — spec 188 Phase 4). The
+/// hash inside `config-hash.json` is computed from the same input slice
+/// `check_config` re-derives, so a `compile` followed by `check-config`
+/// can never report drift on an unchanged tree.
 pub fn compile_and_write(repo_root: &Path) -> Result<CompileOutput, IndexError> {
     let out = compile(repo_root)?;
     let out_dir = repo_root.join(".derived/codebase-index");
     fs::create_dir_all(&out_dir)?;
     fs::write(out_dir.join("index.json"), &out.index_json)?;
     fs::write(out_dir.join("build-meta.json"), &out.build_meta_json)?;
+    fs::write(out_dir.join("config-hash.json"), &out.config_hash_json)?;
     Ok(out)
 }
 
@@ -336,10 +354,13 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
     let content_hash =
         hash::compute_content_hash(repo_root, &input_files).map_err(IndexError::Io)?;
 
-    // Spec 188 Phase 3 — the narrow Claude shared-config slice hash, over
+    // Spec 188 Phase 4 — the narrow Claude shared-config slice hash, over
     // ONLY `.claude/settings.json` + `.mcp.json`. Computed via the same
     // `claude_config_input_files` definition `check_config` uses, so the
     // value written here and the value verified at PR time can never drift.
+    // Phase 4 re-homed this out of `build.claudeConfigHash` into its own
+    // tracked file `config-hash.json` (serialized below), leaving the broad
+    // `index.json` carrying nothing governed.
     let claude_config_files = claude_config_input_files(repo_root);
     let claude_config_hash =
         hash::compute_content_hash(repo_root, &claude_config_files).map_err(IndexError::Io)?;
@@ -368,7 +389,6 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
             indexer_version: indexer_version.clone(),
             repo_root: ".".to_string(),
             content_hash,
-            claude_config_hash,
         },
         inventory: packages,
         traceability,
@@ -386,6 +406,20 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
         return Err(IndexError::Schema(msg));
     }
 
+    // ── Re-homed config-hash file (spec 188 Phase 4) ─────────────────────
+    // The narrow gated slice lives in its own deterministic, self-validated
+    // file so the broad index above carries nothing governed.
+
+    let config_hash = ConfigHash {
+        schema_version: CONFIG_HASH_SCHEMA_VERSION.to_string(),
+        claude_config_hash,
+    };
+    let config_hash_value = serde_json::to_value(&config_hash)?;
+    let config_hash_json = canonical_json_bytes(&config_hash_value)?;
+    if let Err(msg) = schema::validate_config_hash_against_schema(&config_hash_json, repo_root) {
+        return Err(IndexError::Schema(msg));
+    }
+
     // ── Build meta (ephemeral) ───────────────────────────────────────────
 
     let build_meta = json!({
@@ -398,6 +432,7 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
     Ok(CompileOutput {
         index_json,
         build_meta_json,
+        config_hash_json,
     })
 }
 
@@ -460,25 +495,30 @@ pub fn check(repo_root: &Path) -> Result<(), IndexError> {
     Ok(())
 }
 
-/// Spec 188 Phase 3 — narrow config-slice staleness gate.
+/// Spec 188 Phase 4 — narrow config-slice staleness gate.
 ///
 /// Recompute the hash over ONLY `.claude/settings.json` + `.mcp.json`
-/// (the spec 184 set) and compare it to the committed index's
-/// `build.claudeConfigHash`. This is the PR-time (and merge-queue) gate
-/// that preserves spec 184's blocking guarantee — a quiet edit to either
-/// file cannot merge without the committed index being regenerated to
-/// acknowledge it — while the broad `check` moves to a post-merge heal
-/// (FR-007/FR-008). Because the slice depends only on the two files a
-/// config PR actually touches, this gate stays valid in a merge queue
-/// regardless of unrelated input churn (FR-006 robustness).
+/// (the spec 184 set) and compare it to the committed
+/// `.derived/codebase-index/config-hash.json` (`claudeConfigHash`). This
+/// is the PR-time (and merge-queue) gate that preserves spec 184's
+/// blocking guarantee — a quiet edit to either file cannot merge without
+/// the committed hash file being regenerated to acknowledge it — while the
+/// broad `check` is best-effort/report-only (FR-007/FR-008). Because the
+/// slice depends only on the two files a config PR actually touches, this
+/// gate stays valid in a merge queue regardless of unrelated input churn
+/// (FR-006 robustness).
+///
+/// Phase 4 re-homed the gated value out of the broad `index.json`
+/// (`build.claudeConfigHash` at index schema 2.3.0) into its own tracked
+/// file: behavior is bit-for-bit unchanged, only the storage location
+/// moved. `compile` writes the file; this is the only reader.
 pub fn check_config(repo_root: &Path) -> Result<(), IndexError> {
-    let index_path = repo_root.join(".derived/codebase-index/index.json");
-    let raw = fs::read_to_string(&index_path)?;
+    let config_hash_path = repo_root.join(".derived/codebase-index/config-hash.json");
+    let raw = fs::read_to_string(&config_hash_path)?;
     let doc: serde_json::Value = serde_json::from_str(&raw)?;
 
     let existing_hash = doc
-        .get("build")
-        .and_then(|b| b.get("claudeConfigHash"))
+        .get("claudeConfigHash")
         .and_then(|h| h.as_str())
         .unwrap_or("")
         .to_string();
@@ -553,13 +593,13 @@ pub fn dump_inputs(repo_root: &Path) -> Result<(), IndexError> {
 // ── Internal helpers ────────────────────────────────────────────────────────
 
 /// Collect all input files that contribute to the content hash.
-/// Spec 188 Phase 3 — the Claude shared-config input slice: `.mcp.json`
+/// Spec 188 Phase 4 — the Claude shared-config input slice: `.mcp.json`
 /// and `.claude/settings.json` (the spec 184 set, a subset of
 /// `collect_input_files`). Kept as a dedicated function so `compile`
-/// (which writes `build.claudeConfigHash`) and `check_config` (which
-/// verifies it) hash exactly the same files; any future change to the
-/// slice's membership changes both sides at once. Sorted+deduped to
-/// match `compute_content_hash`'s path ordering.
+/// (which writes `config-hash.json`) and `check_config` (which verifies
+/// it) hash exactly the same files; any future change to the slice's
+/// membership changes both sides at once. Sorted+deduped to match
+/// `compute_content_hash`'s path ordering.
 fn claude_config_input_files(repo_root: &Path) -> Vec<PathBuf> {
     let mut files: Vec<PathBuf> = Vec::new();
     let mcp = repo_root.join(".mcp.json");
