@@ -154,12 +154,17 @@ lto = true
 codegen-units = 1
 panic = "abort"
 
-# Spec 180 FR-T8 — the bench profile must not inherit release's
-# `panic = "abort"` + LTO: the criterion bench harness requires unwinding, and
-# abort across the cross-workspace path deps (orchestrator, factory-engine, …)
-# produces panic-strategy rlib mismatches ("can't find crate"). Optimize for a
-# representative-but-buildable bench (opt-level 3, no whole-program LTO); the
-# Tier 2 gate compares relative regression, not absolute latency (FR-T10).
+# Spec 180 FR-T8 — decouple the bench profile from release's `panic = "abort"`
+# + whole-program LTO. The cross-workspace path deps (orchestrator,
+# factory-engine, …) otherwise hit panic-strategy rlib mismatches
+# ("can't find crate for `orchestrator`"): Cargo forces the bench *binary* to
+# unwind but, without an explicit `panic` here, compiles the dep graph with the
+# inherited `abort`. `panic = "unwind"` IS load-bearing (verified: removing it
+# reintroduces the failure) even though Cargo prints "`panic` setting is
+# ignored for `bench` profile" — that note is about the bench target itself, not
+# its deps. `lto = false` + `opt-level = 3` keep the build representative but
+# buildable. The Tier 2 gate is relative-regression only (FR-T10), so full
+# release codegen is unnecessary.
 [profile.bench]
 panic = "unwind"
 opt-level = 3

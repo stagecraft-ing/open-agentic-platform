@@ -1,7 +1,7 @@
 {
   "build": {
     "claudeConfigHash": "bcb796feadcedb0babc2dba9767edf47923f6f7ff84b46a9933f76a2f8770ac2",
-    "contentHash": "5f7dd8dd1bc9a349f91a6ec093452ac8005a0f9ecccfc28dfe84406a7887e931",
+    "contentHash": "1dac06f729d66a2f50cb18a0c78e4f1c209d079169230966463e4046b513c5c2",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
