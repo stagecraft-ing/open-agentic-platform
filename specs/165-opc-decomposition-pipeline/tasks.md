@@ -1,69 +1,86 @@
 # 165 — Tasks
 
-## In this PR (deterministic backbone)
+## Landing 1 — deterministic backbone (merged, PR #205)
 
 - [x] T-001 — Create branch `165-opc-decomposition-pipeline`.
-- [x] T-002 — Author `plan.md` + this tasks file.
-- [ ] T-003 — Scaffold `crates/opc-decomposition-pipeline/`: Cargo.toml,
-  src/lib.rs, src/types.rs, src/persistence.rs, src/error.rs, src/stages/
-  module with stage stubs, src/pipeline.rs orchestrator stub. Register
-  crate in root `Cargo.toml`.
-- [ ] T-004 — Stage 1: wire `artifact_extract::extract_deterministic` for
-  each file in the bundle directory; emit `ExtractionRecord` JSONL under
-  `<run>/s1-extraction/`. Handle `ExtractError::RequiresAgent` by
-  recording a `requires-agent` placeholder rather than failing the run.
-- [ ] T-005 — Stage 2: run `xray::scan_target(project_root, None)`, then
-  `xray::fingerprint::generate_fingerprint(&index)`. Persist
-  `index.json` + `fingerprint.json` under `<run>/s2-fingerprint/`.
-- [ ] T-006 — Stage 3: cluster source files. Default impl groups by
-  top-level directory; `embeddings` feature flag adds fastembed-backed
-  clustering via xray's `analysis-embeddings`. Emit cluster summaries
-  under `<run>/s3-clusters/clusters.json`.
-- [ ] T-007 — Stage 4: invoke `xray::analysis::call_graph::analyze_directory`,
-  persist graph + summary under `<run>/s4-callgraph/`.
-- [ ] T-008 — Stage 5: temporal lineage. Shell out to git via
-  `std::process::Command`; per logical unit emit
-  `{ unit, first_commit, last_commit, churn }`. Degraded: no `.git` →
-  `unknown` lineage. Persist under `<run>/s5-lineage/lineage.jsonl`.
-- [ ] T-009 — Stage 6: deterministic synthesiser. For each cluster
-  produced by stage 3, emit one `spec.md` under
-  `<run>/s6-synthesis/specs/NNN-slug/spec.md`. Spec satisfies emission
-  contract (status: draft, origin retroactive, kind, references with
-  decomposition-origin role and provenance pointing at the originating
-  cluster + fingerprint).
-- [ ] T-010 — Orchestrator: `PipelineRunner::run(PipelineConfig)`. Walks
-  stages, persists outputs, computes per-stage content hash, writes
-  `<run>/run.json` manifest.
-- [ ] T-011 — Tauri commands: `decomposition_run(project_path) ->
-  RunSummary`, `decomposition_list_runs(project_path) ->
-  Vec<RunSummary>`, `decomposition_get_run(project_path, run_id) ->
-  RunDetail`. Registered in `src-tauri/src/lib.rs`.
-- [ ] T-012 — Integration tests: `tests/fixture_min_repo.rs` runs the
-  pipeline against a copied fixture project; asserts:
-  - ≥ 1 draft spec emitted (SC-001),
-  - Emitted spec passes `spec-lint` at warn-or-better (SC-002),
-  - Emitted spec carries `role: decomposition-origin` (SC-003),
-  - Second run with unchanged tree completes ≤ 30s and reuses cached
-    stage outputs (SC-004).
-- [ ] T-013 — Spec 165 frontmatter: flip `implementation: pending →
-  in-progress`; declare `establishes:` with logical-unit grammar
-  pointing at `crates/opc-decomposition-pipeline/` and the new Tauri
-  command files.
-- [ ] T-014 — Regenerate codebase index (`make pr-prep`).
-- [ ] T-015 — Open PR, watch CI, fix red checks.
+- [x] T-002 — Author `plan.md` + tasks file.
+- [x] T-003 — Scaffold `crates/opc-decomposition-pipeline/`.
+- [x] T-004 — Stage 1: extraction via `artifact-extract`.
+- [x] T-005 — Stage 2: structural fingerprint via `xray`.
+- [x] T-006 — Stage 3: clustering (directory default; embeddings feature).
+- [x] T-007 — Stage 4: call graph via `xray`.
+- [x] T-008 — Stage 5: temporal lineage via `git log`.
+- [x] T-009 — Stage 6: deterministic synthesiser.
+- [x] T-010 — Orchestrator + run manifest persistence.
+- [x] T-011 — Tauri commands (`decomposition_run` / `_list_runs` / `_get_run`).
+- [x] T-012 — Integration tests (SC-001 / SC-002 / SC-003).
+- [x] T-013 — Frontmatter `implementation: pending → in-progress` + `establishes:`.
+- [x] T-014 — Codebase index regenerated.
+- [x] T-015 — PR #205 opened and merged.
 
-## Follow-ups (separate PRs)
+## Landing 2 — completion (this PR, branch `165-decomposition-completion`)
 
-- F-001 — Real LLM-backed `Synthesiser` impl behind the same trait.
-  Selects model via platform config (spec 165 §5 defers this).
-- F-002 — Promotion flow: write staged specs into `<project>/specs/`;
-  invoke project's spec-compiler; run coupling gate as a sanity check
-  (FR-008, SC-005).
-- F-003 — Governance certificate emission at promotion (spec 102,
-  FR-009, SC-006).
-- F-004 — React panel in `product/apps/opc`: "Decompose project"
-  action button, staging-area browser, promotion UI.
-- F-005 — Checkpoint integration (spec 095): run the pipeline as a
-  branch-of-thought, allow multiple synthesis trajectories.
-- F-006 — Persistent embedding cache for stage 3 (the originally-named
-  axiomregent substrate). Cross-run reuse.
+- [ ] T-016 — **Stage caching (FR-007, SC-004).** Re-run lookup in
+  `PipelineRunner`: stages 1-5 emit `StageStatus::Cached` and reuse prior
+  output when the recomputed input hash matches the prior run's
+  `content_hash`. Stage 6 always re-runs. Test: unchanged-tree second
+  run is `Cached` for 1-5 and fast.
+- [ ] T-017 — **`Synthesiser` trait + deterministic impl.** Extract the
+  current `render_spec` baseline behind a `Synthesiser` trait
+  (`synthesise`, `identity`, `prompt_template_hash`). Default impl
+  `DeterministicSynthesiser`. Wire the orchestrator to it. Mock double
+  for tests. All existing synthesis tests stay green.
+- [ ] T-018 — **`ProviderSynthesiser` (feature `llm-synthesis`).** Behind
+  the feature flag, depend on `provider-registry`; build a prompt from
+  the evidence bundle; extract `AgentEvent::TextComplete`. Off by
+  default; never exercised by CI (no network). Unit test via mock
+  adapter only.
+- [ ] T-019 — **Governance certificate (FR-009, SC-006).** Depend on
+  `factory-engine`; emit `governance-certificate.json` per run binding
+  stage 1-5 hashes + synthesiser identity + prompt-template hash (§2.3) +
+  promoted spec hashes. Test: emitted cert verifies via
+  `factory_engine::verify_certificate` against the run dir.
+- [ ] T-020 — **Promotion flow (FR-008, SC-005).** `promote_spec(...)`
+  writes `<project>/specs/NNN-slug/spec.md`, runs `spec-compiler compile
+  --repo`, runs coupling gate `--paths-from`. Emits the certificate.
+  Test against a fixture project repo.
+- [ ] T-021 — **`decomposition_promote` Tauri command.** Register in
+  `src-tauri/src/lib.rs`; wrap `promote_spec` in `spawn_blocking`.
+- [ ] T-022 — **Checkpoint branch-of-thought (§2.2).** `CheckpointSink`
+  trait in the pipeline crate (`anchor`, `fork`); no-op default;
+  recording mock for tests. Orchestrator anchors after stage 5 and forks
+  per stage-6 trial.
+- [ ] T-023 — **axiomregent-backed `CheckpointSink` in Tauri.** Implement
+  the sink against axiomregent's `CheckpointStore` in the OPC backend
+  (the layer that already boots axiomregent). No new dep on the core
+  crate.
+- [ ] T-024 — **TS api wrappers.** Add `decompositionRun` /
+  `decompositionListRuns` / `decompositionGetRun` /
+  `decompositionPromote` to `api.ts` + `apiAdapter.ts`.
+- [ ] T-025 — **React panel (FR-001).**
+  `features/decomposition/DecompositionSurface.tsx` +
+  `components/DecompositionPanel.tsx` + `decomposition` tab type +
+  `TabContent` wiring. Action → staging browser → promote.
+- [ ] T-026 — **Panel vitest.** Cover load/error/empty/promote paths
+  mocking `@/lib/apiAdapter`.
+- [ ] T-027 — **Spec 192 (persistent embedding cache).** Author
+  `specs/192-decomposition-embedding-cache/spec.md` (spec-first).
+- [ ] T-028 — **Implement the embedding cache.** Content-addressed on-disk
+  cache under `<output_root>/.embedding-cache/`; the `embeddings`-feature
+  clustering path reads/writes it. Test cache hit on re-run.
+- [ ] T-029 — **Closure.** Flip spec 165 `implementation: complete`;
+  regenerate codebase index + featuregraph golden (`UPDATE_GOLDEN=1`);
+  `cargo clippy --workspace -- -D warnings`; `cargo test`; spec-lint;
+  coupling gate. Add Spec-Drift-Waiver to PR body if golden/index churn
+  requires it.
+- [ ] T-030 — **PR + CI watch.** Open PR, monitor checks, fix red.
+
+## Deferred to future specs (unchanged from landing 1)
+
+- F-001b — Synthesiser prompt-engineering *library* per project shape
+  (spec 165 §5; the trait + a single provider impl land here, the
+  template library does not).
+- F-004b — Stage-6 model-selection *UX* / per-developer per-project
+  overrides (spec 165 §5).
+- Cross-project decomposition (spec 096 portfolio-intelligence).
+- Self-improving synthesis from developer edits (spec 165 §5).

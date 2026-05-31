@@ -1,117 +1,139 @@
 # 165 — Implementation plan
 
-> Status: in progress (deterministic backbone landing).
+> Status: completion landing (full feature).
 > Owner: bart
-> Branch: `165-opc-decomposition-pipeline`
+> Branches: `165-opc-decomposition-pipeline` (backbone, merged PR #205),
+> `165-decomposition-completion` (this landing).
 
-## Scope of this landing
+## Landing history
 
-Initial PR delivers the **deterministic backbone** of the pipeline:
+### Landing 1 — deterministic backbone (merged, PR #205)
+
+Delivered the deterministic backbone of the pipeline:
 
 - Stages 1-5 wired to existing substrates (`artifact-extract`, `xray`).
-- Stage 6 implemented as a **deterministic baseline synthesiser** that
-  emits a draft `spec.md` satisfying spec 161 emission contract, spec 147
-  kind grammar, and spec 154 logical-unit grammar.
+- Stage 6 as a **deterministic baseline synthesiser** emitting a draft
+  `spec.md` satisfying the spec 161 emission contract, spec 147 kind
+  grammar, and spec 154 logical-unit grammar.
 - Run persistence under `<project>/.opc/decomposition/<run-id>/`.
-- Tauri command surface in `product/apps/opc/src-tauri` so the
-  pipeline is invocable from OPC.
-- Fixture-based integration tests proving SC-001 / SC-002 / SC-003 / SC-004.
+- Tauri command surface (`decomposition_run` / `decomposition_list_runs`
+  / `decomposition_get_run`) in `product/apps/opc/src-tauri`.
+- Fixture-based integration tests proving SC-001 / SC-002 / SC-003.
 
-## Explicitly out of this PR (follow-up specs/PRs)
+### Landing 2 — completion (this PR)
 
-- **Real LLM stage-6 synthesis.** Spec §5 defers stage-6 model selection
-  to platform-level config; this PR ships a deterministic baseline. A
-  future PR swaps the `Synthesiser` trait impl for an LLM-backed one.
-- **Promotion + governance certificate flow.** FR-008 / FR-009 / SC-005 /
-  SC-006 require writing into `<project>/specs/`, re-running the
-  project's spec-compiler + coupling gate, and emitting a spec-102
-  certificate at promotion. Tracked separately.
-- **React UI panel.** FR-001 surfaces a "Decompose project" action; this
-  PR exposes the Tauri command but does not render a polished panel in
-  the desktop app. The Requirements view (spec 163) is itself draft.
+Completes spec 165 to **all ten FRs and all six SCs**, taking
+`implementation:` from `in-progress` to `complete`. Every item below was
+already part of spec 165's *contract* (its FRs / §5 in-scope list); the
+backbone PR deferred them to a follow-up PR for size reasons. This is
+that follow-up.
 
-## Substrate decisions
+The scope decision to land the full feature in one PR is the owner's
+(2026-05-31). It does not contradict the spec: FR-007/008/009 and the
+§2.2 checkpoint mode and FR-001 UI are all already contracted. The only
+genuinely *new* contract — a persistent embedding cache — is split into
+its own spec (see "New spec" below), authored before its implementation
+per spec-first discipline.
 
-### Stage 3 substrate: xray, not axiomregent
+## Completion phases (each phase = TDD red→green + one commit)
 
-The spec §2.1 names `crates/axiomregent` (via its `search` module) as the
-stage-3 substrate. In practice, axiomregent's semantic search and xray's
-`analysis-embeddings` feature both wrap `fastembed`; the vector-matching
-primitive is identical. axiomregent layers persistent indexing via
-hiqlite + reqwest + octocrab on top, which this pipeline does not need
-and which would inflate the crate's dependency tree by ~25 transitive
-deps.
+1. **Stage caching (FR-007, SC-004).** `PipelineRunner` gains a re-run
+   path: before executing stages 1-5, look up the most recent prior run
+   for the same `project_root`; if a stage's recomputed input hash
+   matches the prior `StageRecord.content_hash`, copy the cached output
+   and mark `StageStatus::Cached` instead of re-running. Stage 6 always
+   re-runs (it is the synthesis trajectory). Test: second run over an
+   unchanged tree emits `Cached` for stages 1-5 and completes fast.
 
-This PR uses `xray/analysis-embeddings` for stage 3. FR-010 explicitly
-defines the xray-only fallback as the degraded path; the deterministic
-backbone treats it as the primary path. A future spec can introduce an
-axiomregent-backed persistent-index implementation behind the same
-`Clustering` trait if cross-run cache-reuse becomes load-bearing.
+2. **LLM-backed synthesiser (§2.1 stage 6).** Introduce a `Synthesiser`
+   trait (`synthesise(&SynthesisInput) -> SynthesisOutcome`, plus
+   `identity()` and `prompt_template_hash()`). Two impls:
+   - `DeterministicSynthesiser` — the current `render_spec`; default,
+     CI-safe, no network.
+   - `ProviderSynthesiser` — feature-gated (`llm-synthesis`), holds a
+     `provider-registry` adapter, builds a prompt from the evidence
+     bundle, extracts `AgentEvent::TextComplete`. Off by default so CI
+     never hits the network. Tested via a `MockSynthesiser` trait double.
+   Deferred to future specs (spec 165 §5, unchanged): the prompt-template
+   *library* per project shape, and the model-selection *UX*.
 
-This is an engineering choice, not a spec amendment: the spec's intent
-("semantic clustering via vector matching") is preserved.
+3. **Governance certificate (FR-009, SC-006).** Depend on
+   `factory-engine` and use its `CertificateBuilder` /
+   `generate_certificate_with_stage_ids` / `persist_certificate`. Emit
+   `governance-certificate.json` into the run dir binding: stage 1-5
+   output hashes, the synthesiser identity + prompt-template hash
+   (§2.3), and promoted spec file hashes. Verifiable via the existing
+   `make verify-certificate FILE=… ARTIFACT_DIR=…` (binary-agnostic; no
+   Makefile change). Ed25519 signing resolves from `OAP_SIGNING_KEY` /
+   `OAP_SIGNING_KEY_PATH`, else ephemeral.
 
-### Stage 6 synthesiser: deterministic baseline
+4. **Promotion flow (FR-008, SC-005).** `promote_spec(run, slug, dest)`
+   writes the staged `spec.md` into `<project>/specs/NNN-slug/spec.md`,
+   shells out to the project's `spec-compiler compile --repo <project>`,
+   then runs the coupling gate (`--paths-from` the new spec path) as a
+   sanity check. Emits the certificate (phase 3) at promotion. A new
+   `decomposition_promote` Tauri command exposes it.
 
-The trait `Synthesiser` takes `EvidenceBundle` (the merged outputs of
-stages 1-5) and returns `Vec<DraftSpec>`. The baseline implementation
-walks xray's clusters + call-graph entry points and emits one
-`spec.md` per significant cluster, populating:
+5. **Checkpoint branch-of-thought (§2.2).** Define a light
+   `CheckpointSink` trait in the pipeline crate (`anchor(run)` after
+   stages 1-5; `fork(anchor, label)` per stage-6 re-synthesis trial) so
+   the core crate keeps its light dependency set. The Tauri layer
+   provides an axiomregent-`CheckpointStore`-backed impl; tests use a
+   recording mock. A no-op default sink keeps non-OPC callers working.
 
-- `status: draft`
-- `origin: retroactive: true`
-- `kind: capability` (spec 147)
-- `category:` from the cluster's dominant top-level directory
-- `establishes:` with logical-unit declarations (spec 154) for each path
-- `references: [{ role: decomposition-origin, unit: ..., provenance: ... }]`
-  per spec 161
+6. **React panel (FR-001).** `features/decomposition/DecompositionSurface.tsx`
+   + `components/DecompositionPanel.tsx` shim, a `decomposition` tab
+   type, TS api wrappers (`decompositionRun` / `…ListRuns` / `…GetRun` /
+   `…Promote`) in `api.ts` + `apiAdapter.ts`, vitest coverage mocking
+   `@/lib/apiAdapter`. Action button → staging browser → promote.
 
-The synthesis is mechanical: enough to pass spec-lint, satisfy the
-emission contract, and round-trip through the spec-compiler. The LLM
-swap improves the prose quality of the summary, not the contract.
+7. **Persistent embedding cache (new spec 192).** Author
+   `specs/192-decomposition-embedding-cache/spec.md` first (spec-first),
+   then implement a content-addressed on-disk embedding cache under
+   `<output_root>/.embedding-cache/` keyed by file content hash, so the
+   `embeddings`-feature clustering path reuses vectors across runs.
+   Closes plan-§"Substrate decisions" follow-up F-006 without pulling
+   hiqlite into the pipeline crate.
 
-## Phases
+8. **Closure.** Flip spec 165 `implementation: complete`; update this
+   plan + tasks; regenerate `.derived/codebase-index/` and the
+   featuregraph golden; run `cargo clippy --workspace -D warnings`,
+   `cargo test`, spec-lint, coupling gate. Commit.
 
-1. **Scaffold** — crate at `crates/opc-decomposition-pipeline/`, wired
-   into the workspace, types and traits defined, stages stubbed.
-2. **Stage 1: extraction** — call `artifact_extract::extract_deterministic`
-   per knowledge object; emit JSONL `ExtractionOutput` under
-   `s1-extraction/`. Degraded: empty output when bundle missing.
-3. **Stage 2: structural fingerprint** — call `xray::scan_target` then
-   `xray::fingerprint::generate_fingerprint`; persist the full
-   `XrayIndex` and the `Fingerprint` under `s2-fingerprint/`.
-4. **Stage 3: semantic clustering** — call into `xray::analysis::embeddings`
-   to embed code blocks; group blocks whose cosine similarity > 0.85
-   into clusters; emit cluster summaries under `s3-clusters/`. Degraded:
-   skip embeddings (no feature, or load failure) → cluster by top-level
-   directory only.
-5. **Stage 4: call graph** — call `xray::analysis::call_graph::analyze_directory`;
-   persist graph + summary under `s4-callgraph/`.
-6. **Stage 5: temporal lineage** — invoke `git log --follow` per logical
-   unit; persist `(unit, first_commit, last_commit, churn)` tuples under
-   `s5-lineage/`. Degraded: `unknown` lineage when no `.git`.
-7. **Stage 6: synthesiser** — deterministic baseline emits `<staging>/specs/*/spec.md`.
-8. **Orchestrator + persistence** — `PipelineRunner::run(config)` walks
-   stages 1→6, content-addresses each output, caches re-runs.
-9. **Tauri command surface** — `decomposition_run`, `decomposition_list_runs`,
-   `decomposition_get_run` in `src-tauri/src/commands/`.
-10. **Integration tests + fixture project** — `tests/fixture_min_repo.rs`
-    asserts emitted draft passes spec-lint and carries
-    `role: decomposition-origin`.
-11. **Spec status + index refresh + PR** — flip `implementation:
-    pending → in-progress`, declare `establishes:` with logical units,
-    regenerate `.derived/codebase-index/`, open PR.
-12. **CI watch** — iterate on red checks until green.
+9. **PR + CI watch.** Open the PR; iterate until all checks are green.
+
+## Substrate decisions (carried from landing 1, still in force)
+
+### Stage 3 substrate: xray, not axiomregent (default path)
+
+The default build uses `xray/analysis-embeddings`-free directory
+clustering (FR-010 degraded path is the default). The `embeddings`
+feature adds fastembed vector clustering. Phase 7's cache accelerates the
+`embeddings` path; it does not change the default. axiomregent-backed
+persistent indexing remains a further future option, noted in spec 192.
+
+### Stage 6 synthesiser: trait with deterministic default
+
+Landing 2 generalises the baseline into the `Synthesiser` trait. The
+deterministic impl stays the default and the sole CI-exercised path; the
+provider-backed impl is feature-gated. The trait is the seam spec 165 §5
+anticipated ("a future PR swaps the `Synthesiser` trait impl").
 
 ## Risks
 
-- **xray embeddings feature pulls fastembed** — heavy build. Mitigated:
-  feature-gate stage 3's embedding path. Default build skips it.
-- **Tauri's separate workspace** — `product/apps/opc/src-tauri` is
-  excluded from the root workspace and cannot depend on the new crate
-  via path without adding it as a path dep in its own Cargo.toml. The
-  Tauri commands call into the new crate as a normal Cargo path
-  dependency.
-- **CONST-005** — stage 3 substrate substitution (xray vs axiomregent)
-  is documented above as an engineering choice that preserves spec
-  intent. Not a spec edit; not gate-driven.
+- **factory-engine dep weight.** Adds the certificate stack to the
+  pipeline crate's build. Acceptable: it is a workspace path dep already
+  compiled by CI. The `verify-certificate` binary is reused, not rebuilt
+  here.
+- **axiomregent in the core crate.** Avoided by the `CheckpointSink`
+  trait seam (phase 5); the heavy dep stays in the Tauri layer that
+  already boots axiomregent.
+- **LLM non-determinism in CI.** Avoided by feature-gating the
+  provider impl and exercising only the deterministic / mock path in
+  tests. No API key is ever required by CI.
+- **CONST-005.** No spec is edited to justify an action. FR-007/008/009,
+  §2.2, FR-001 are already contracted; plan/tasks scoping is updated to
+  match the owner's land-it-all decision. The one new contract
+  (embedding cache) is authored as spec 192 before its code.
+- **Diff size (CONST-004 warn).** The PR is large by design (full
+  feature). Mitigated by per-phase commits for bisect-safe history.
