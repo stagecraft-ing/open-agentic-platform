@@ -239,7 +239,7 @@ mod tests {
     #[test]
     fn marks_unsupported_as_requires_agent() {
         let bundle = tempdir().unwrap();
-        fs::write(bundle.path().join("image.png"), &[0x89, 0x50, 0x4E, 0x47]).unwrap();
+        fs::write(bundle.path().join("image.png"), [0x89, 0x50, 0x4E, 0x47]).unwrap();
 
         let project = tempdir().unwrap();
         let out = tempdir().unwrap();

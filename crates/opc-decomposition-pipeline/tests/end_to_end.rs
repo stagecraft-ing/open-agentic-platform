@@ -108,6 +108,77 @@ fn full_pipeline_emits_drafts_and_records_manifest() {
 }
 
 #[test]
+fn second_run_over_unchanged_tree_caches_deterministic_stages() {
+    // SC-004 / FR-007: re-running against an unchanged working tree reuses
+    // stages 1-5 (status: Cached) and only re-runs stage 6 (synthesis).
+    let project = tempfile::tempdir().unwrap();
+    fixture_project(project.path());
+    let output_root = project.path().join(".opc").join("decomposition");
+
+    let cfg = || PipelineConfig {
+        project_root: project.path().to_path_buf(),
+        knowledge_bundle: None,
+        output_root: output_root.clone(),
+        embeddings_enabled: false,
+    };
+
+    let run1 = PipelineRunner::new(cfg()).run().unwrap();
+    // First run computes everything; nothing is cached.
+    for s in &run1.stages {
+        assert_ne!(s.status, StageStatus::Cached, "stage {:?} unexpectedly cached on first run", s.id);
+    }
+
+    let run2 = PipelineRunner::new(cfg()).run().unwrap();
+    assert_ne!(run2.run_id, run1.run_id, "second run must get a distinct run id");
+
+    // Stages 1-5 (extraction..lineage) reuse the prior run's output.
+    for s in &run2.stages[..5] {
+        assert_eq!(s.status, StageStatus::Cached, "stage {:?} should be cached on unchanged re-run", s.id);
+    }
+    // Cached stages preserve the prior run's content hash.
+    for i in 0..5 {
+        assert_eq!(
+            run2.stages[i].content_hash, run1.stages[i].content_hash,
+            "cached stage {:?} content hash drifted", run2.stages[i].id
+        );
+    }
+    // Stage 6 (synthesis) always re-runs — it is the synthesis trajectory.
+    assert_eq!(run2.stages[5].id, StageId::Synthesis);
+    assert_ne!(run2.stages[5].status, StageStatus::Cached, "synthesis must re-run");
+    // It still emits drafts.
+    assert!(!run2.emitted_specs.is_empty());
+}
+
+#[test]
+fn tree_change_invalidates_the_cache() {
+    // FR-007 guard: a changed working tree must NOT reuse cached stages.
+    let project = tempfile::tempdir().unwrap();
+    fixture_project(project.path());
+    let output_root = project.path().join(".opc").join("decomposition");
+    let cfg = || PipelineConfig {
+        project_root: project.path().to_path_buf(),
+        knowledge_bundle: None,
+        output_root: output_root.clone(),
+        embeddings_enabled: false,
+    };
+
+    let _run1 = PipelineRunner::new(cfg()).run().unwrap();
+
+    // Mutate a source file in the project tree.
+    fs::write(
+        project.path().join("crates").join("alpha").join("lib.rs"),
+        "fn alpha_one() { alpha_two(); }\nfn alpha_two() { alpha_one(); }\nfn alpha_three() {}\n",
+    )
+    .unwrap();
+
+    let run2 = PipelineRunner::new(cfg()).run().unwrap();
+    // Fingerprint (stage 2) depends on the tree; it must NOT be cached.
+    let fp = &run2.stages[1];
+    assert_eq!(fp.id, StageId::Fingerprint);
+    assert_ne!(fp.status, StageStatus::Cached, "fingerprint must recompute after a tree change");
+}
+
+#[test]
 fn knowledge_bundle_drives_extraction_stage_to_complete() {
     let project = tempfile::tempdir().unwrap();
     fixture_project(project.path());

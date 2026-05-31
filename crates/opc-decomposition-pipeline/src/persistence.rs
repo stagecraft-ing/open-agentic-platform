@@ -122,6 +122,105 @@ pub fn hash_file(path: &Path) -> Result<String, PipelineError> {
     Ok(hex::encode(hasher.finalize()))
 }
 
+/// Directory names excluded from the cache tree signature. Mirrors xray's
+/// `IGNORED_DIRS` plus `.opc` — the pipeline's own output dir, which would
+/// otherwise change the signature on every run and defeat the cache.
+const SIGNATURE_IGNORED_DIRS: &[&str] = &[
+    ".git",
+    ".opc",
+    ".bin",
+    "node_modules",
+    "dist",
+    "build",
+    "out",
+    "vendor",
+    "target",
+    ".cache",
+    ".tmp",
+    "coverage",
+    ".axiomregent",
+];
+
+/// Content signature of a project working tree: SHA-256 over every source
+/// file's relative path, length, and bytes, in lexicographic order, with
+/// `SIGNATURE_IGNORED_DIRS` pruned. This is the cache key the orchestrator
+/// uses to decide whether the tree-dependent stages can be reused. Cheap
+/// (IO-bound walk + hash); the expensive work it gates is xray parsing,
+/// the call graph, and embeddings.
+pub fn compute_tree_signature(project_root: &Path) -> Result<String, PipelineError> {
+    let mut hasher = Sha256::new();
+    let walker = walkdir::WalkDir::new(project_root)
+        .sort_by_file_name()
+        .into_iter()
+        .filter_entry(|e| {
+            !e.file_name()
+                .to_str()
+                .map(|n| SIGNATURE_IGNORED_DIRS.contains(&n))
+                .unwrap_or(false)
+        });
+    for entry in walker.filter_map(|e| e.ok()).filter(|e| e.file_type().is_file()) {
+        let path = entry.path();
+        let rel = path.strip_prefix(project_root).unwrap_or(path);
+        let bytes = fs::read(path).map_err(|e| PipelineError::io(path, e))?;
+        hasher.update(rel.to_string_lossy().as_bytes());
+        hasher.update(b"\0");
+        hasher.update((bytes.len() as u64).to_le_bytes());
+        hasher.update(&bytes);
+        hasher.update(b"\0");
+    }
+    Ok(hex::encode(hasher.finalize()))
+}
+
+/// Content signature of the knowledge bundle directory, or the empty
+/// string when no bundle is configured. The cache key for stage 1.
+pub fn compute_knowledge_signature(bundle: Option<&Path>) -> Result<String, PipelineError> {
+    let Some(dir) = bundle else {
+        return Ok(String::new());
+    };
+    if !dir.is_dir() {
+        return Ok(String::new());
+    }
+    let mut hasher = Sha256::new();
+    for entry in walkdir::WalkDir::new(dir)
+        .sort_by_file_name()
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file())
+    {
+        let path = entry.path();
+        let rel = path.strip_prefix(dir).unwrap_or(path);
+        let bytes = fs::read(path).map_err(|e| PipelineError::io(path, e))?;
+        hasher.update(rel.to_string_lossy().as_bytes());
+        hasher.update(b"\0");
+        hasher.update(&bytes);
+        hasher.update(b"\0");
+    }
+    Ok(hex::encode(hasher.finalize()))
+}
+
+/// Recursively copy the contents of `src` into `dst` (which must already
+/// exist). Used to materialise a cached stage's output into a fresh run
+/// directory so each run stays self-contained for certification.
+pub fn copy_dir_contents(src: &Path, dst: &Path) -> Result<(), PipelineError> {
+    for entry in walkdir::WalkDir::new(src).into_iter().filter_map(|e| e.ok()) {
+        let path = entry.path();
+        let rel = match path.strip_prefix(src) {
+            Ok(r) if !r.as_os_str().is_empty() => r,
+            _ => continue,
+        };
+        let target = dst.join(rel);
+        if entry.file_type().is_dir() {
+            fs::create_dir_all(&target).map_err(|e| PipelineError::io(&target, e))?;
+        } else if entry.file_type().is_file() {
+            if let Some(parent) = target.parent() {
+                fs::create_dir_all(parent).map_err(|e| PipelineError::io(parent, e))?;
+            }
+            fs::copy(path, &target).map_err(|e| PipelineError::io(&target, e))?;
+        }
+    }
+    Ok(())
+}
+
 /// Enumerate every run directory under `output_root`. The Tauri layer
 /// surfaces this to OPC so a developer can browse prior decomposition
 /// runs without parsing the filesystem layout themselves. Each entry
