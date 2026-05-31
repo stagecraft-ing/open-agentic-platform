@@ -52,6 +52,7 @@ jobs:
       crates: ${{ steps.f.outputs.crates == 'true' || github.event_name == 'merge_group' }}
       deployd_api_rs: ${{ steps.f.outputs.deployd_api_rs == 'true' || github.event_name == 'merge_group' }}
       desktop: ${{ steps.f.outputs.desktop == 'true' || github.event_name == 'merge_group' }}
+      opc_bench: ${{ steps.f.outputs.opc_bench == 'true' || github.event_name == 'merge_group' }}
       featuregraph: ${{ steps.f.outputs.featuregraph == 'true' || github.event_name == 'merge_group' }}
       orchestrator: ${{ steps.f.outputs.orchestrator == 'true' || github.event_name == 'merge_group' }}
       parity: ${{ steps.f.outputs.parity == 'true' || github.event_name == 'merge_group' }}
@@ -93,6 +94,9 @@ jobs:
               - 'crates/**'
               - 'product/packages/**'
               - '.github/workflows/ci-desktop.yml'
+            opc_bench:
+              - 'product/apps/opc/src-tauri/**'
+              - '.github/workflows/ci-opc-bench.yml'
             featuregraph:
               - 'specs/**'
               - 'tools/spec-spine/spec-compiler/**'
@@ -146,6 +150,13 @@ jobs:
     needs: changes
     if: needs.changes.outputs.desktop == 'true'
     uses: ./.github/workflows/ci-desktop.yml
+
+  # Spec 180 §5.3 — Tier 2 bench gate for the filesystem-scanning OPC usage
+  # handler. Path-filtered on the src-tauri subtree; composes into ci-gate.
+  opc-bench:
+    needs: changes
+    if: needs.changes.outputs.opc_bench == 'true'
+    uses: ./.github/workflows/ci-opc-bench.yml
 
   featuregraph-golden:
     needs: changes
@@ -213,6 +224,7 @@ jobs:
       - crates
       - deployd-api-rs
       - desktop
+      - opc-bench
       - featuregraph-golden
       - orchestrator
       - parity

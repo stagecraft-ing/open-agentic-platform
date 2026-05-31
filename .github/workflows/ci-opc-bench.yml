@@ -1,0 +1,155 @@
+# Spec: 180-opc-shell-codification
+#
+# Tier 2 bench gate for the filesystem-scanning OPC usage handler
+# (spec 180 §5 / FR-T8..FR-T10). Reusable workflow dispatched from ci.yml on
+# PRs/pushes touching product/apps/opc/src-tauri/** (spec 177 §2.4 needs +
+# if: always() aggregator pattern), plus an independent nightly schedule.
+#
+# Modes (selected by github.event_name):
+#   pull_request / merge_group → GATE: N=200, compare to the saved `main`
+#       baseline, FAIL on >25% relative-mean regression (FR-T9). No baseline
+#       yet (inaugural) → measure-only pass.
+#   push (to main, via ci.yml) → BASELINE: N=200, --save-baseline main, cache
+#       it for PRs to compare against ("baseline after each merge to main").
+#   schedule                   → NIGHTLY REPORT: N=2000, non-gating; compares
+#       to the previous nightly and surfaces the delta to the maintainer.
+#
+# FR-T10 / Tier 3 exclusion: this gate asserts NO absolute latency value —
+# only relative delta vs a saved baseline.
+#
+# Parity posture (spec 104/135): intentionally NOT in ci-parity-check's
+# ENFORCING_WORKFLOWS. The gate is CI-stateful (its baseline lives in the
+# Actions cache, refreshed on merge to main) and cannot be faithfully mirrored
+# by a local `make ci-strict` recipe — the same parity-exempt shape as
+# cd-index-staleness-report.yml.
+#
+# macОС runner: the opc crate's macos-private-api / cocoa features can't build
+# on Linux (ci-desktop.yml's cross-target matrix was removed for this reason),
+# so the bench runs on the same aarch64-apple-darwin target as ci-desktop.
+
+name: CI OPC Bench
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  schedule:
+    # Nightly N=2000 report (non-gating). Off-peak, offset from the hour.
+    - cron: '17 7 * * *'
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  MANIFEST: product/apps/opc/src-tauri/Cargo.toml
+  BENCH_DIR: product/apps/opc/src-tauri/target/criterion
+
+jobs:
+  bench:
+    runs-on: macos-latest
+    name: opc-bench / usage scan (relative regression)
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # pinned for rust-toolchain.toml lockstep
+        with:
+          toolchain: '1.95.0'
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: product/apps/opc/src-tauri
+          shared-key: ci-opc-bench-aarch64-apple-darwin
+
+      - name: Create dist stub for web_server include_str!
+        run: |
+          mkdir -p product/apps/opc/dist
+          echo '<!doctype html><html><body>stub</body></html>' > product/apps/opc/dist/index.html
+
+      - name: Create sidecar binary stub for Tauri build.rs
+        run: |
+          mkdir -p product/apps/opc/src-tauri/binaries
+          touch product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin
+          chmod +x product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin
+
+      # PR gate compares against the most recent `main` baseline.
+      - name: Restore main bench baseline (PR/merge_group)
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ${{ env.BENCH_DIR }}
+          key: opc-usage-bench-main-${{ github.sha }}
+          restore-keys: |
+            opc-usage-bench-main-
+
+      # Nightly compares against the previous nightly baseline.
+      - name: Restore nightly bench baseline (schedule)
+        if: github.event_name == 'schedule'
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ${{ env.BENCH_DIR }}
+          key: opc-usage-bench-nightly-${{ github.run_id }}
+          restore-keys: |
+            opc-usage-bench-nightly-
+
+      - name: Run usage-scan bench + evaluate relative regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ github.event_name }}" in
+            push)                      N=200;  BL=main;    SAVE=1; GATE=0 ;;
+            schedule)                  N=2000; BL=nightly; SAVE=1; GATE=0 ;;
+            pull_request|merge_group)  N=200;  BL=main;    SAVE=0; GATE=1 ;;
+            *)                         N=200;  BL=main;    SAVE=0; GATE=0 ;;
+          esac
+          BENCH_ID="usage_scan_cold_n${N}"
+          echo "event=${{ github.event_name }} N=$N baseline=$BL gate=$GATE save=$SAVE bench_id=$BENCH_ID"
+
+          # --save-baseline reports the change vs the existing same-named
+          # baseline (if any) and then overwrites it; --baseline-lenient
+          # compares without erroring when the baseline is absent (inaugural).
+          if [ "$SAVE" = "1" ]; then
+            OPC_BENCH_N=$N cargo bench --manifest-path "$MANIFEST" --bench usage_scan -- --save-baseline "$BL"
+          else
+            OPC_BENCH_N=$N cargo bench --manifest-path "$MANIFEST" --bench usage_scan -- --baseline-lenient "$BL"
+          fi
+
+          CHANGE="$BENCH_DIR/$BENCH_ID/change/estimates.json"
+          if [ ! -f "$CHANGE" ]; then
+            echo "::notice::No '$BL' baseline to compare against yet (inaugural run) — regression gate not applied."
+            { echo "### OPC usage bench — $BENCH_ID"; echo "No \`$BL\` baseline yet → no regression evaluated (inaugural)."; } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # mean.point_estimate is the relative change vs baseline (0.25 = +25%).
+          MEAN=$(jq -r '.mean.point_estimate' "$CHANGE")
+          PCT=$(awk -v m="$MEAN" 'BEGIN { printf "%+.1f", m * 100 }')
+          OVER=$(awk -v m="$MEAN" 'BEGIN { print (m > 0.25) ? 1 : 0 }')
+          { echo "### OPC usage bench — $BENCH_ID"; echo "Relative mean change vs \`$BL\` baseline: ${PCT}% (threshold: +25.0%)"; } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$OVER" = "1" ]; then
+            if [ "$GATE" = "1" ]; then
+              echo "::error::usage_scan regressed ${PCT}% (> +25%) vs the '$BL' baseline"
+              exit 1
+            fi
+            echo "::warning::usage_scan regressed ${PCT}% vs the '$BL' baseline (non-gating — maintainer review per spec 180 §5.4)"
+          fi
+
+      # Persist the fresh baseline (immutable per-key cache; restore-keys picks
+      # the latest by prefix). Save runs inline, before Swatinem's post step.
+      - name: Save main bench baseline (push to main)
+        if: github.event_name == 'push'
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ${{ env.BENCH_DIR }}
+          key: opc-usage-bench-main-${{ github.sha }}
+
+      - name: Save nightly bench baseline (schedule)
+        if: github.event_name == 'schedule'
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ${{ env.BENCH_DIR }}
+          key: opc-usage-bench-nightly-${{ github.run_id }}
