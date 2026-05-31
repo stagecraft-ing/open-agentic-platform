@@ -20,10 +20,14 @@ fn repo_root() -> std::path::PathBuf {
 }
 
 fn install_schema(root: &Path) {
-    let schema_src = repo_root().join("standards/schemas/spec-spine/codebase-index.schema.json");
-    let schema_dst = root.join("standards/schemas/spec-spine/codebase-index.schema.json");
-    fs::create_dir_all(schema_dst.parent().unwrap()).unwrap();
-    fs::copy(&schema_src, &schema_dst).unwrap();
+    let src_dir = repo_root().join("standards/schemas/spec-spine");
+    let dst_dir = root.join("standards/schemas/spec-spine");
+    fs::create_dir_all(&dst_dir).unwrap();
+    // Both schemas `compile()` self-validates against: the broad index and
+    // the re-homed config-hash file (spec 188 Phase 4).
+    for name in ["codebase-index.schema.json", "config-hash.schema.json"] {
+        fs::copy(src_dir.join(name), dst_dir.join(name)).unwrap();
+    }
 }
 
 const PROJ: &str = "8c4f1234-1234-4abc-9def-1234567890ab";

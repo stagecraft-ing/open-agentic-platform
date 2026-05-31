@@ -437,10 +437,12 @@ ci-strict: ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-schema-pa
 ## tag: ci-config-hash
 
 # Mirrors .github/workflows/ci-config-hash.yml for `make ci-strict` parity
-# (spec 104). Verifies the committed `build.claudeConfigHash` slice
+# (spec 104). Verifies the committed config-hash.json slice
 # (.claude/settings.json + .mcp.json) is fresh — the narrow PR-time gate
 # that preserves spec 184's guarantee after the broad index-freshness check
-# moved to the post-merge cd-index-heal.yml (spec 188 Phase 3).
+# became best-effort/report-only (cd-index-staleness-report.yml, spec 188
+# Phase 3). Phase 4 re-homed the slice out of the broad index's
+# build.claudeConfigHash into config-hash.json; behavior is unchanged.
 ci-config-hash:
 	@echo ""
 	@echo "==> ci-config-hash: Claude shared-config slice staleness"

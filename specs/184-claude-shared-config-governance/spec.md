@@ -18,6 +18,17 @@ code_aliases:
   - CLAUDE_SETTINGS_PATH
 amended: "2026-05-30"
 amendment_record: |
+  amended by spec 188 (2026-05-30, Phase 4a) — the guarantee's STORAGE
+  moved, behavior bit-for-bit unchanged. The `claudeConfigHash` slice that
+  Phase 3 placed at `build.claudeConfigHash` inside the broad `index.json`
+  is re-homed to its own tracked file `.derived/codebase-index/config-hash.json`
+  (index schema 2.3.0 → 3.0.0). `check-config` now reads that file. The
+  PR-time blocking guarantee this spec installed is identical — same two
+  files, same hash, same `ci-config-hash` gate — only the storage location
+  changed, so the broad index carries nothing governed (spec 188 §Phase 4).
+  AC-4/AC-7 below are unaffected: `make index` still regenerates the slice
+  and `check-config` still trips on a quiet edit.
+
   amended by spec 188 (2026-05-30, Phase 3) — the PR-time blocking
   guarantee is RE-HOMED, not weakened. When 184 landed, the guarantee
   ("a quiet edit to .mcp.json / .claude/settings.json cannot merge
@@ -279,6 +290,10 @@ Out of scope (explicit):
   > for `check-config`: editing either file then `make index` makes
   > `check-config` exit zero, and editing without regenerating makes it
   > exit non-zero — independently of any other input's freshness.
+  > **Phase 4a (2026-05-30):** `check-config` reads the re-homed
+  > `.derived/codebase-index/config-hash.json` rather than the broad index's
+  > `build.claudeConfigHash`; the round-trip property is identical (`make
+  > index` writes that file too).
 - **AC-5:** `.derived/codebase-index/index.json` in the PR
   carries both content hashes; `git diff` shows the index
   changed because the input set grew by two entries.

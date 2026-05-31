@@ -14,9 +14,13 @@
 name: AI PR Review
 
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, ready_for_review]
+  # Spec 177 — dispatched as a reusable workflow from ci.yml so the AI review
+  # is part of the orchestrated PR-gate suite and the terminal `ci-gate`
+  # `needs:` it (a failed or absent review now blocks merge; green ci-gate ⇒
+  # actually reviewed). It no longer triggers standalone on `pull_request` —
+  # that would double-run it alongside the ci.yml dispatch.
+  workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -117,6 +121,25 @@ jobs:
           } > /tmp/comment.md
           gh pr comment "$PR_NUMBER" --body-file /tmp/comment.md
 
-      - name: Skip notice
+      - name: Skip notice (oversized diff — make the skip VISIBLE, not silent)
+        # When the diff exceeds DIFF_SIZE_CAP the review can't run, but the
+        # job still succeeds, so ci-gate passes. That would be a SILENT hole
+        # in spec 177's "green ci-gate ⇒ reviewed" claim — the folded gate
+        # caught it on PR #267. Post a PR comment so the skip is visible and
+        # a human knows manual review is required; spec 177's claim is scoped
+        # to "reviewed OR visibly-skipped-as-oversized" accordingly.
         if: steps.diff.outputs.skip == 'true'
-        run: echo "::notice::Skipping AI review — diff exceeds ${DIFF_SIZE_CAP} lines (${{ steps.diff.outputs.lines }})"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DIFF_LINES: ${{ steps.diff.outputs.lines }}
+        run: |
+          echo "::warning::AI review SKIPPED — diff exceeds ${DIFF_SIZE_CAP} lines (${DIFF_LINES}); manual review required."
+          {
+            echo "## AI Code Review — SKIPPED (oversized diff)"
+            echo ""
+            echo "⚠️ This PR's diff (**${DIFF_LINES} lines**) exceeds \`DIFF_SIZE_CAP\` (${DIFF_SIZE_CAP}), so the automated AI review did **not** run."
+            echo ""
+            echo "\`ci-gate\` still passes (the review job is skipped, not failed) — so **a human reviewer must review this PR manually.** A green \`ci-gate\` on this PR does **not** imply an AI review happened."
+          } > /tmp/skip-comment.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/skip-comment.md

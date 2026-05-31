@@ -41,14 +41,18 @@ fn write(path: &Path, content: &str) {
 /// levels up under `standards/schemas/spec-spine/`.
 fn install_schemas(root: &Path) {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let schema_src = manifest_dir
+    let src_dir = manifest_dir
         .ancestors()
         .nth(3)
         .expect("repo root above crate")
-        .join("standards/schemas/spec-spine/codebase-index.schema.json");
-    let schema_dst = root.join("standards/schemas/spec-spine/codebase-index.schema.json");
-    fs::create_dir_all(schema_dst.parent().unwrap()).unwrap();
-    fs::copy(&schema_src, &schema_dst).unwrap();
+        .join("standards/schemas/spec-spine");
+    let dst_dir = root.join("standards/schemas/spec-spine");
+    fs::create_dir_all(&dst_dir).unwrap();
+    // Both schemas `compile()` self-validates against: the broad index and
+    // the re-homed config-hash file (spec 188 Phase 4).
+    for name in ["codebase-index.schema.json", "config-hash.schema.json"] {
+        fs::copy(src_dir.join(name), dst_dir.join(name)).unwrap();
+    }
 }
 
 fn package(name: &str, path: &str, kind: PackageKind) -> PackageRecord {

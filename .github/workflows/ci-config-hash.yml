@@ -2,9 +2,11 @@
 # Spec: 188-derived-index-merge-serialization
 # Spec: 177-ci-orchestrator-pr-gate
 #
-# Narrow Claude shared-config staleness gate (spec 188 Phase 3). Verifies
-# that `.claude/settings.json` + `.mcp.json` match the committed
-# `build.claudeConfigHash` in `.derived/codebase-index/index.json`.
+# Narrow Claude shared-config staleness gate (spec 188 Phase 3, re-homed in
+# Phase 4). Verifies that `.claude/settings.json` + `.mcp.json` match the
+# committed `claudeConfigHash` in `.derived/codebase-index/config-hash.json`
+# (Phase 4 re-homed this out of the broad index's `build.claudeConfigHash`
+# so the cache carries nothing governed; behavior is bit-for-bit unchanged).
 #
 # This is the PR-time (and `merge_group`) blocking gate that preserves
 # spec 184's guarantee — a quiet edit to either file cannot merge

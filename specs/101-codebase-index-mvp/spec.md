@@ -9,6 +9,20 @@ kind: tooling
 domain: tooling
 amended: "2026-05-30"
 amendment_record: |
+  amended by spec 188 (2026-05-30, Phase 4a) — the narrow config-slice hash
+  is RE-HOMED out of the broad index. It lived at `build.claudeConfigHash`
+  (index schema 2.3.0, Phase 3); Phase 4a moves it to its own tracked file
+  `.derived/codebase-index/config-hash.json` (schema config-hash.schema.json
+  1.0.0) and bumps the index schema 2.3.0 → 3.0.0 (the field is removed; a
+  major bump because it was required under `additionalProperties:false`).
+  `compile` writes the file (self-validated, FR-09 parity); `check-config`
+  (§2.4, FR-12) reads it. Behavior is bit-for-bit unchanged — same slice,
+  same hash, same PR-time blocking gate — only the storage location moved.
+  This leaves the broad `index.json` carrying nothing governed, dissolving
+  the cache/contract tension Phase 3 surfaced. Phase 4b (`.gitignore` the
+  broad index) is DEFERRED — it would reverse SC-06 (below) and is not
+  needed to dissolve the tension. See FR-12 and spec 188 §Phase 4.
+
   amended by spec 188 (2026-05-30, Phase 3) — index freshness enforcement
   is re-homed. The broad `codebase-indexer check` (whole-index staleness,
   FR-10) drops from a required per-PR gate; PRs are no longer required to
@@ -24,8 +38,8 @@ amendment_record: |
   `.mcp.json` (the spec 184 slice); it is the PR-time blocking gate that
   preserves spec 184's guarantee independently of the broad hash, and —
   because it depends only on those two files — it stays valid in a merge
-  queue. Schema bumped 2.2.0 → 2.3.0 (additive `build.claudeConfigHash`).
-  See FR-12.
+  queue. Schema bumped 2.2.0 → 2.3.0 (additive `build.claudeConfigHash`;
+  re-homed and removed at 3.0.0 by Phase 4a, above). See FR-12.
 
   amended by spec 182 (2026-05-26) — FR-08 and Layer 4 add
   `.claude/skills/**/SKILL.md` to the documented inventory inputs;
@@ -258,11 +272,13 @@ Subcommands:
 - `codebase-indexer compile` — full index, emits `index.json` + `build-meta.json`
 - `codebase-indexer render` — emits `CODEBASE-INDEX.md` from existing `index.json`
 - `codebase-indexer check` — exits non-zero if `index.json` is stale vs current tree
-- `codebase-indexer check-config` — (spec 188 Phase 3) exits non-zero if the
-  Claude shared-config slice (`.claude/settings.json` + `.mcp.json`) does not
-  match the committed `build.claudeConfigHash`. Narrow counterpart to `check`:
-  it hashes only those two files, so it is independent of broad-input churn
-  and stays valid in a merge queue. Powers the constitutional `ci-config-hash`
+- `codebase-indexer check-config` — (spec 188 Phase 3; re-homed Phase 4a)
+  exits non-zero if the Claude shared-config slice (`.claude/settings.json` +
+  `.mcp.json`) does not match the committed `claudeConfigHash` in
+  `.derived/codebase-index/config-hash.json` (re-homed Phase 4a out of the
+  broad index's `build.claudeConfigHash`). Narrow counterpart to `check`: it
+  hashes only those two files, so it is independent of broad-input churn and
+  stays valid in a merge queue. Powers the constitutional `ci-config-hash`
   PR gate that preserves spec 184's blocking guarantee (FR-12).
 - `codebase-indexer orphans` — prints the `traceability.orphanedSpecs` list from
   `index.json` (newline-delimited by default; `--json` emits a JSON array). Added
@@ -292,9 +308,12 @@ Same pattern as the spec registry:
 > gate over `.claude/settings.json` + `.mcp.json` (FR-12), wired as the
 > constitutional `ci-config-hash` workflow. With no healer that writes, the
 > FR-009 back door is closed by construction — config drift cannot be
-> silently absorbed. (Spec 188 Phase 4 will re-home `claudeConfigHash` to
-> its own tracked file and `.gitignore` the broad index, dissolving the
-> cache/contract split entirely.)
+> silently absorbed. (Spec 188 **Phase 4a (done)** re-homed `claudeConfigHash`
+> to its own tracked `config-hash.json`, so the broad index now carries
+> nothing governed — `check-config` reads the re-homed file. **Phase 4b
+> (deferred)** — `.gitignore`-ing the broad index — is separable and not
+> required to dissolve the cache/contract split; until it lands the broad
+> index stays committed as this best-effort cache.)
 
 ### 2.6 Agent Orientation
 
@@ -412,21 +431,32 @@ The indexer MUST validate its own output before writing.
 `codebase-indexer render` MUST produce a human-readable markdown document from
 `index.json` that presents all four layers in a structured format.
 
-### FR-12: Narrow Config-Slice Check (spec 188 Phase 3)
+### FR-12: Narrow Config-Slice Check (spec 188 Phase 3; re-homed Phase 4a)
 
 `codebase-indexer check-config` MUST compare ONLY the Claude shared-config
 slice (`.claude/settings.json` + `.mcp.json`, the spec 184 input set)
-against a dedicated `build.claudeConfigHash` field in `index.json`, and exit
-non-zero if they differ. The slice hash MUST be computed by the same input
-definition `compile` uses to write `build.claudeConfigHash`, so the written
-and verified values cannot drift. Because the slice depends only on those
-two files, `check-config` MUST be independent of any other hashed input:
-editing an unrelated input (a `spec.md`, a `Cargo.toml`) MUST NOT cause
-`check-config` to fail. This independence is what lets `check-config` serve
-as a merge-queue-safe PR-time gate (spec 188 FR-006) while preserving spec
-184's guarantee that a quiet edit to either config file cannot merge
-unacknowledged (spec 188 FR-009). The index schema carrying
-`build.claudeConfigHash` is version 2.3.0 (additive over 2.2.0).
+against the dedicated `claudeConfigHash` field in
+`.derived/codebase-index/config-hash.json`, and exit non-zero if they
+differ. The slice hash MUST be computed by the same input definition
+`compile` uses to write `config-hash.json`, so the written and verified
+values cannot drift. Because the slice depends only on those two files,
+`check-config` MUST be independent of any other hashed input: editing an
+unrelated input (a `spec.md`, a `Cargo.toml`) MUST NOT cause `check-config`
+to fail. This independence is what lets `check-config` serve as a
+merge-queue-safe PR-time gate (spec 188 FR-006) while preserving spec 184's
+guarantee that a quiet edit to either config file cannot merge unacknowledged
+(spec 188 FR-009).
+
+> **Re-homed in Phase 4a (2026-05-30).** This slice originally lived at
+> `build.claudeConfigHash` inside `index.json` (index schema 2.3.0). Phase
+> 4a moved it to its own tracked file `.derived/codebase-index/config-hash.json`
+> (schema `config-hash.schema.json` 1.0.0, re-included from `.gitignore`)
+> and bumped the index schema **2.3.0 → 3.0.0** (the field is removed — a
+> major bump because it was required under `additionalProperties:false`).
+> `compile` self-validates `config-hash.json` against its schema (FR-09
+> parity). Behavior is bit-for-bit unchanged; only the storage location
+> moved. The motivation: leave the broad `index.json` carrying nothing
+> governed, dissolving the cache/contract tension (spec 188 §Phase 4).
 
 ## 4. Success Criteria
 
@@ -465,8 +495,13 @@ A PR that adds a new crate without updating `index.json` MUST fail the CI check.
 > enforcement is the narrow `check-config` gate: a PR editing
 > `.claude/settings.json` or `.mcp.json` without regenerating the index
 > MUST fail `ci-config-hash` (preserving spec 184's guarantee). Spec 188
-> Phase 4 restores the broad-freshness invariant structurally by making the
-> index a pure build artifact (`.gitignore`d, regenerated on demand).
+> **Phase 4a (done)** re-homed the gated `claudeConfigHash` slice to its own
+> tracked `config-hash.json` — but this does **not** restore the
+> broad-freshness invariant: the broad `index.json` stays committed and MAY
+> lag on `main`, so `cd-index-staleness-report.yml` remains the visibility
+> mechanism. Only **Phase 4b (deferred)** — `.gitignore`-ing the broad index
+> so it is a pure rebuilt-on-demand artifact — would restore that invariant
+> structurally, and it is held as a separable decision (it reverses SC-06).
 
 ### SC-06: Agent Startup Acceleration
 

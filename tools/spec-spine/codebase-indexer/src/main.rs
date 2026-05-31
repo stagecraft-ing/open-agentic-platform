@@ -26,13 +26,14 @@ enum Command {
         #[arg(long)]
         repo: Option<PathBuf>,
     },
-    /// Spec 188 Phase 3 — narrow config-slice staleness gate. Verify that
+    /// Spec 188 Phase 4 — narrow config-slice staleness gate. Verify that
     /// `.claude/settings.json` + `.mcp.json` match the committed
-    /// `build.claudeConfigHash`. Exits non-zero if either file changed
-    /// without the index being regenerated. This is the PR-time blocking
-    /// gate that preserves spec 184's guarantee while the broad `check`
-    /// moves to a post-merge heal; it depends only on those two files, so
-    /// it stays valid in a merge queue regardless of unrelated churn.
+    /// `.derived/codebase-index/config-hash.json`. Exits non-zero if either
+    /// file changed without the hash file being regenerated. This is the
+    /// PR-time blocking gate that preserves spec 184's guarantee while the
+    /// broad `check` is best-effort/report-only; it depends only on those
+    /// two files, so it stays valid in a merge queue regardless of
+    /// unrelated churn.
     CheckConfig {
         /// Repository root (default: current directory)
         #[arg(long)]
