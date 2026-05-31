@@ -28,6 +28,7 @@ pub mod types;
 pub use error::PipelineError;
 pub use persistence::{RunDirectory, list_runs, load_run};
 pub use pipeline::PipelineRunner;
+pub use stages::synthesis::{DeterministicSynthesiser, SynthesisInput, Synthesiser};
 pub use types::{
     Cluster, DegradedReason, DraftSpecRef, LogicalUnit, PipelineConfig, PipelineRun, Provenance,
     ReferenceEdge, RunId, StageId, StageRecord, StageStatus,

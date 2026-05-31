@@ -23,6 +23,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use chrono::{DateTime, SecondsFormat, Utc};
+use sha2::{Digest, Sha256};
 
 use crate::error::PipelineError;
 use crate::persistence::{RunDirectory, hash_file, hash_stage_dir};
@@ -32,14 +33,74 @@ use crate::types::{
     Cluster, DegradedReason, DraftSpecRef, PipelineConfig, StageId, StageRecord, StageStatus,
 };
 
+/// Evidence handed to a [`Synthesiser`] to produce one draft `spec.md`.
+/// Borrowed from the run's stage outputs; a richer (LLM) synthesiser can
+/// be given more fields here without changing the orchestrator.
+pub struct SynthesisInput<'a> {
+    /// The semantic cluster this draft spec is derived from (stage 3).
+    pub cluster: &'a Cluster,
+    /// The stage-2 xray structural fingerprint hash (provenance anchor).
+    pub fingerprint_hash: &'a str,
+    /// Synthesis-stage start time, stamped into the draft frontmatter.
+    pub started_at: DateTime<Utc>,
+}
+
+/// Stage 6's pluggable backend (spec 165 §2.1 "LLM synthesis"). The
+/// deterministic baseline and any LLM-backed impl both satisfy this trait;
+/// the orchestrator never names a concrete backend. `identity` and
+/// `prompt_template_hash` are bound into the governance certificate (§2.3)
+/// so a promoted decomposition records *who* synthesised it and *under
+/// which prompt*.
+pub trait Synthesiser: Send + Sync {
+    /// Produce the full `spec.md` text for one cluster's evidence.
+    fn synthesise(&self, input: &SynthesisInput) -> Result<String, PipelineError>;
+
+    /// Stable backend identity, e.g. `"deterministic-baseline"` or
+    /// `"anthropic:claude-sonnet-4-20250514"`.
+    fn identity(&self) -> String;
+
+    /// SHA-256 hex of the prompt template / format this backend uses.
+    fn prompt_template_hash(&self) -> String;
+}
+
+/// Identifier hashed to produce the deterministic synthesiser's
+/// `prompt_template_hash`. Bump the suffix when `render_spec`'s shape
+/// changes so the certificate reflects a different template.
+const DETERMINISTIC_TEMPLATE_ID: &str = "opc-decomposition-deterministic-template-v1";
+
+/// The default, CI-safe stage-6 backend: the templated baseline that turns
+/// a cluster + fingerprint into a spec.md satisfying the emission contract.
+/// No network, fully deterministic.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct DeterministicSynthesiser;
+
+impl Synthesiser for DeterministicSynthesiser {
+    fn synthesise(&self, input: &SynthesisInput) -> Result<String, PipelineError> {
+        Ok(render_spec(input.cluster, input.fingerprint_hash, input.started_at))
+    }
+
+    fn identity(&self) -> String {
+        "deterministic-baseline".to_string()
+    }
+
+    fn prompt_template_hash(&self) -> String {
+        hex::encode(Sha256::digest(DETERMINISTIC_TEMPLATE_ID.as_bytes()))
+    }
+}
+
 pub struct SynthesisOutput {
     pub record: StageRecord,
     pub emitted: Vec<DraftSpecRef>,
+    /// Backend identity + prompt-template hash, lifted into the run
+    /// manifest and the governance certificate (spec 165 §2.3).
+    pub synthesiser_identity: String,
+    pub prompt_template_hash: String,
 }
 
 pub fn run(
     _config: &PipelineConfig,
     run_dir: &RunDirectory,
+    synthesiser: &dyn Synthesiser,
 ) -> Result<SynthesisOutput, PipelineError> {
     let started_at = Utc::now();
     let stage_dir = run_dir.stage_dir(StageId::Synthesis);
@@ -63,7 +124,12 @@ pub fn run(
         let dir = specs_dir.join(&slug);
         fs::create_dir_all(&dir).map_err(|e| PipelineError::io(&dir, e))?;
         let spec_path = dir.join("spec.md");
-        let body = render_spec(cluster, &fingerprint.hash, started_at);
+        let input = SynthesisInput {
+            cluster,
+            fingerprint_hash: &fingerprint.hash,
+            started_at,
+        };
+        let body = synthesiser.synthesise(&input)?;
         fs::write(&spec_path, &body).map_err(|e| PipelineError::io(&spec_path, e))?;
 
         let content_hash = hash_file(&spec_path)?;
@@ -90,7 +156,12 @@ pub fn run(
         completed_at: Utc::now(),
         degraded,
     };
-    Ok(SynthesisOutput { record, emitted })
+    Ok(SynthesisOutput {
+        record,
+        emitted,
+        synthesiser_identity: synthesiser.identity(),
+        prompt_template_hash: synthesiser.prompt_template_hash(),
+    })
 }
 
 fn make_relpath(_specs_dir: &std::path::Path, spec_path: &std::path::Path, stage_dir: &std::path::Path) -> String {
@@ -267,13 +338,48 @@ mod tests {
         (cfg, rd)
     }
 
+    /// A test double proving the orchestrator routes through the trait and
+    /// never hard-codes the deterministic backend — the same seam the
+    /// feature-gated provider synthesiser plugs into.
+    struct MockSynthesiser;
+    impl Synthesiser for MockSynthesiser {
+        fn synthesise(&self, input: &SynthesisInput) -> Result<String, PipelineError> {
+            Ok(format!(
+                "MOCK SPEC for cluster {} ({} files)\n",
+                input.cluster.id,
+                input.cluster.paths.len()
+            ))
+        }
+        fn identity(&self) -> String {
+            "mock-synthesiser".to_string()
+        }
+        fn prompt_template_hash(&self) -> String {
+            "deadbeef".to_string()
+        }
+    }
+
+    #[test]
+    fn routes_through_the_synthesiser_trait() {
+        let project = tempdir().unwrap();
+        let out = tempdir().unwrap();
+        let (cfg, rd) = prep(project.path(), out.path());
+        let synth = run(&cfg, &rd, &MockSynthesiser).unwrap();
+        assert!(!synth.emitted.is_empty());
+        assert_eq!(synth.synthesiser_identity, "mock-synthesiser");
+        assert_eq!(synth.prompt_template_hash, "deadbeef");
+        let files = list_emitted_specs(&rd).unwrap();
+        let body = fs::read_to_string(&files[0]).unwrap();
+        assert!(body.starts_with("MOCK SPEC for cluster"), "mock body not used: {body}");
+    }
+
     #[test]
     fn synthesises_one_spec_per_cluster() {
         let project = tempdir().unwrap();
         let out = tempdir().unwrap();
         let (cfg, rd) = prep(project.path(), out.path());
-        let synth = run(&cfg, &rd).unwrap();
+        let synth = run(&cfg, &rd, &DeterministicSynthesiser).unwrap();
         assert!(!synth.emitted.is_empty());
+        assert_eq!(synth.synthesiser_identity, "deterministic-baseline");
         for r in &synth.emitted {
             assert!(r.slug.starts_with("999-decomposed-"));
         }
@@ -299,7 +405,7 @@ mod tests {
         fingerprint::run(&cfg, &rd).unwrap();
         clustering::run(&cfg, &rd).unwrap();
 
-        let synth = run(&cfg, &rd).unwrap();
+        let synth = run(&cfg, &rd, &DeterministicSynthesiser).unwrap();
         assert!(synth.emitted.is_empty());
         assert_eq!(synth.record.status, StageStatus::Degraded);
     }

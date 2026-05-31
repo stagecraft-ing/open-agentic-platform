@@ -15,6 +15,7 @@ use chrono::Utc;
 
 use crate::error::PipelineError;
 use crate::persistence::{self, RunDirectory};
+use crate::stages::synthesis::{DeterministicSynthesiser, Synthesiser};
 use crate::stages::{callgraph, clustering, extraction, fingerprint, lineage, synthesis};
 use crate::types::{
     PIPELINE_RUN_SCHEMA_VERSION, PipelineConfig, PipelineRun, RunId, StageId, StageRecord,
@@ -43,11 +44,26 @@ struct ReusablePrior {
 
 pub struct PipelineRunner {
     config: PipelineConfig,
+    synthesiser: Box<dyn Synthesiser>,
 }
 
 impl PipelineRunner {
+    /// Construct a runner with the default deterministic, CI-safe stage-6
+    /// synthesiser. Use [`PipelineRunner::with_synthesiser`] to inject an
+    /// LLM-backed backend.
     pub fn new(config: PipelineConfig) -> Self {
-        Self { config }
+        Self {
+            config,
+            synthesiser: Box::new(DeterministicSynthesiser),
+        }
+    }
+
+    /// Construct a runner with an explicit stage-6 synthesiser backend.
+    pub fn with_synthesiser(config: PipelineConfig, synthesiser: Box<dyn Synthesiser>) -> Self {
+        Self {
+            config,
+            synthesiser,
+        }
     }
 
     pub fn config(&self) -> &PipelineConfig {
@@ -95,7 +111,7 @@ impl PipelineRunner {
             }
         }
 
-        let synth = synthesis::run(&self.config, &run_dir)?;
+        let synth = synthesis::run(&self.config, &run_dir, self.synthesiser.as_ref())?;
         stages.push(synth.record);
         let emitted_specs = synth.emitted;
 
@@ -111,6 +127,8 @@ impl PipelineRunner {
             embeddings_enabled: self.config.embeddings_enabled,
             tree_signature,
             knowledge_signature,
+            synthesiser_identity: synth.synthesiser_identity,
+            prompt_template_hash: synth.prompt_template_hash,
         };
         run_dir.write_manifest(&manifest)?;
 

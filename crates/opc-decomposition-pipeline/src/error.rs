@@ -36,6 +36,9 @@ pub enum PipelineError {
 
     #[error("git invocation failed: {0}")]
     Git(String),
+
+    #[error("synthesis failed: {0}")]
+    Synthesis(String),
 }
 
 impl PipelineError {

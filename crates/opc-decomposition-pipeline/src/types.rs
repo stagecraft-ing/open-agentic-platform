@@ -164,6 +164,14 @@ pub struct PipelineRun {
     /// cache key for stage 1 (extraction).
     #[serde(default)]
     pub knowledge_signature: String,
+    /// Identity of the stage-6 synthesiser backend that produced the
+    /// emitted specs, e.g. `"deterministic-baseline"`. Bound into the
+    /// governance certificate (spec 165 §2.3).
+    #[serde(default)]
+    pub synthesiser_identity: String,
+    /// SHA-256 hex of the synthesiser's prompt template (spec 165 §2.3).
+    #[serde(default)]
+    pub prompt_template_hash: String,
 }
 
 pub const PIPELINE_RUN_SCHEMA_VERSION: &str = "0.1.0";
