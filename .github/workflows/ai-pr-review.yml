@@ -65,7 +65,12 @@ jobs:
       - name: Run AI Review
         if: steps.diff.outputs.skip != 'true'
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Subscription-backed auth via the Claude Code OAuth token, NOT an
+          # API key. ANTHROPIC_API_KEY is deliberately NOT set here: an
+          # empty/unset API key wins by precedence over the OAuth token and
+          # was the silent auth failure that made every review since ~#220
+          # emit "Review generation failed" while the job stayed green.
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           set -o pipefail
           PROMPT='You are reviewing a pull request for the Open Agentic Platform. The diff is provided on stdin. Review it for:
@@ -75,8 +80,15 @@ jobs:
           4. Performance concerns
 
           Be concise. Focus on issues, not praise. Format as markdown with ## sections.'
-          claude -p "$PROMPT" --output-format text < /tmp/pr-diff.txt > /tmp/review.md \
-            || echo "Review generation failed" > /tmp/review.md
+          # No `|| echo` swallow: let claude's real exit code and stderr
+          # surface in the runner log so an auth failure can't masquerade as
+          # a green check. On failure this step exits non-zero and the
+          # "Post review comment" step (implicit success() in its `if`) is
+          # skipped — yielding a red check + visible stderr, never a
+          # misleading "passed" comment. Promoting this into the required
+          # `ci-gate` is a deliberate follow-up, gated on first confirming a
+          # review genuinely runs under the OAuth token.
+          claude -p "$PROMPT" --output-format text < /tmp/pr-diff.txt > /tmp/review.md
 
       - name: Post review comment
         if: steps.diff.outputs.skip != 'true'
