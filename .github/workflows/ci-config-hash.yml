@@ -8,8 +8,10 @@
 #
 # This is the PR-time (and `merge_group`) blocking gate that preserves
 # spec 184's guarantee — a quiet edit to either file cannot merge
-# unacknowledged — after the BROAD index-freshness check moved to a
-# post-merge heal (`cd-index-heal.yml`, spec 188 Phase 3 FR-007/008).
+# unacknowledged — after the BROAD index-freshness check stopped being a
+# required PR gate (the broad index is now a best-effort cache; drift is
+# surfaced post-merge by `cd-index-staleness-report.yml`, spec 188
+# FR-007/008).
 # Because the config slice depends ONLY on those two files, this gate
 # stays valid in a merge queue regardless of unrelated input churn
 # (FR-006 robustness): a config-touching PR is never ejected by another

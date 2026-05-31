@@ -1,7 +1,7 @@
 {
   "build": {
     "claudeConfigHash": "bcb796feadcedb0babc2dba9767edf47923f6f7ff84b46a9933f76a2f8770ac2",
-    "contentHash": "1bc12e36333689cf2d2e1738ea42bdc368e0f46cbc254a071a79c93ba3693cd7",
+    "contentHash": "aec988d63ed98abee72f32a73f7cd1df8fafdb18ce49e2af94beccb5c68296de",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -21370,7 +21370,7 @@
                 "file": ".github/workflows/cd-deployd-api-rs.yml"
               },
               {
-                "file": ".github/workflows/cd-index-heal.yml"
+                "file": ".github/workflows/cd-index-staleness-report.yml"
               },
               {
                 "file": ".github/workflows/cd-stagecraft.yml"
@@ -41682,7 +41682,7 @@
             "source": "spec-implements"
           },
           {
-            "path": ".github/workflows/cd-index-heal.yml",
+            "path": ".github/workflows/cd-index-staleness-report.yml",
             "source": "spec-implements"
           },
           {
@@ -41805,14 +41805,14 @@
             "kind": "file",
             "locations": [
               {
-                "file": ".github/workflows/cd-index-heal.yml"
+                "file": ".github/workflows/cd-index-staleness-report.yml"
               }
             ],
             "ownership": true,
             "sourceField": "establishes",
             "unit": {
               "kind": "file",
-              "path": ".github/workflows/cd-index-heal.yml"
+              "path": ".github/workflows/cd-index-staleness-report.yml"
             }
           },
           {

@@ -83,10 +83,11 @@ jobs:
       - name: spec-lint tests
         run: cargo test --manifest-path tools/spec-spine/spec-lint/Cargo.toml
 
-      # Broad codebase-index staleness check moved post-merge to
-      # cd-index-heal.yml (spec 188 Phase 3); the narrow PR-time gate is
-      # ci-config-hash.yml. Smoke + tests still run here because they
-      # belong to the spec-tooling conformance bundle.
+      # Broad codebase-index staleness is no longer a required PR gate
+      # (spec 188 Phase 3): the broad index is a best-effort cache, drift
+      # surfaced post-merge by cd-index-staleness-report.yml; the narrow
+      # PR-time gate is ci-config-hash.yml. Smoke + tests still run here
+      # because they belong to the spec-tooling conformance bundle.
       - name: Build codebase-indexer (Feature 101)
         run: cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
 

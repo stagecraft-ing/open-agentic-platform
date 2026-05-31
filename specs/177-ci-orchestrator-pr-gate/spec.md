@@ -24,10 +24,13 @@ amended: "2026-05-30"
 amendment_record: |
   amended by spec 188 (2026-05-30, Phase 3) — the constitutional always-on
   PR set (§2.2) swaps `ci-codebase-index.yml` for `ci-config-hash.yml`. The
-  broad index-staleness gate was retired as a per-PR check: its freshness
-  enforcement moved to a post-merge heal on `main` (`cd-index-heal.yml`,
-  established by spec 188), so PRs no longer carry a fresh broad
-  `index.json`. The narrow `ci-config-hash` gate (spec 101 FR-12, spec 184)
+  broad index-staleness gate was retired as a per-PR check: the broad
+  committed `index.json` became a best-effort cache, and PRs no longer
+  carry a fresh broad `index.json`. (A direct-push post-merge heal was
+  specified then retired as incompatible with `main`'s PR-required +
+  signed-commits protection; the report-only `cd-index-staleness-report.yml`
+  surfaces drift instead — spec 188 FR-007.) The narrow `ci-config-hash`
+  gate (spec 101 FR-12, spec 184)
   replaces it in the constitutional set — it blocks an unacknowledged
   `.claude/settings.json` / `.mcp.json` edit but depends only on those two
   files, so it is merge-queue-safe. Spec 188 Phase 2 (same branch) adds the
@@ -147,7 +150,7 @@ Four workflows run on every PR regardless of paths-filter output:
 | `spec-conformance.yml`    | Spec 000 / 006 — every PR validates emitted JSON against schemas. |
 | `ci-spec-code-coupling.yml` | Spec 127 — every diff path's authority spec must be edited (or waived). |
 | `ci-supply-chain.yml`     | Spec 116 — blocking-from-day-0 supply-chain posture. |
-| `ci-config-hash.yml`      | Spec 184 / 188 Phase 3 — narrow `check-config` gate: a `.claude/settings.json` / `.mcp.json` edit cannot merge unacknowledged. (Replaced `ci-codebase-index.yml`, whose broad staleness check moved to the post-merge `cd-index-heal.yml`.) |
+| `ci-config-hash.yml`      | Spec 184 / 188 Phase 3 — narrow `check-config` gate: a `.claude/settings.json` / `.mcp.json` edit cannot merge unacknowledged. (Replaced `ci-codebase-index.yml`; the broad staleness check is no longer a PR gate — the broad index is a best-effort cache surfaced post-merge by `cd-index-staleness-report.yml`.) |
 
 Belt and braces: these are also independently SHA-bound through their
 own `# Spec:` headers and the spec-coupling gate's authority graph.
