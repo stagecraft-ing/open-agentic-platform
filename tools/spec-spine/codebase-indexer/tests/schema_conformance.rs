@@ -84,11 +84,14 @@ members = ["test-crate"]
     )
     .unwrap();
 
-    // Copy the schema so self-validation works
+    // Copy the schemas so self-validation works: the broad index and the
+    // re-homed config-hash file (spec 188 Phase 4).
     let schemas_dir = root.join("standards/schemas/spec-spine");
     fs::create_dir_all(&schemas_dir).unwrap();
-    let real_schema = repo_root().join("standards/schemas/spec-spine/codebase-index.schema.json");
-    fs::copy(&real_schema, schemas_dir.join("codebase-index.schema.json")).unwrap();
+    let src_dir = repo_root().join("standards/schemas/spec-spine");
+    for name in ["codebase-index.schema.json", "config-hash.schema.json"] {
+        fs::copy(src_dir.join(name), schemas_dir.join(name)).unwrap();
+    }
 
     let out = open_agentic_codebase_indexer::compile(root).expect("compile fixture");
 

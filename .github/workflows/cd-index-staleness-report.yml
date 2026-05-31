@@ -17,11 +17,12 @@
 # non-blocking.
 #
 # The narrow `claudeConfigHash` guarantee (spec 184 / FR-009) is unaffected
-# and is NOT what this job watches: config-touching PRs regenerate
-# `index.json` and carry the fresh slice into their squash, and
-# `ci-config-hash` (`check-config`) enforces it at PR time. Because nothing
-# here regenerates-and-commits, the FR-009 back door is closed by
-# construction — there is no healer that could silently absorb config drift.
+# and is NOT what this job watches: since spec 188 Phase 4 the slice lives
+# in its own tracked `config-hash.json` (re-homed out of the broad index),
+# config-touching PRs regenerate that file, and `ci-config-hash`
+# (`check-config`) enforces it at PR time. Because nothing here
+# regenerates-and-commits, the FR-009 back door is closed by construction —
+# there is no healer that could silently absorb config drift.
 #
 # NOT a PR gate: `cd-*` post-merge workflow, parity-exempt (spec 104 §5).
 
@@ -82,7 +83,7 @@ jobs:
                 "" \
                 "**To clear:** run \`make registry\` locally and open a refresh PR (it merges via the queue like any other change). This issue auto-closes when \`main\` is fresh again." \
                 "" \
-                "The narrow \`claudeConfigHash\` guarantee (spec 184 / FR-009) is unaffected — \`ci-config-hash\` enforces it at PR time, independent of this cache.")"
+                "The narrow \`claudeConfigHash\` guarantee (spec 184 / FR-009) is unaffected — it lives in its own \`config-hash.json\` (spec 188 Phase 4), and \`ci-config-hash\` enforces it at PR time, independent of this cache.")"
             else
               echo "tracking issue #$existing already open; leaving it"
             fi

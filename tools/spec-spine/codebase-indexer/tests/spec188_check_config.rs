@@ -39,17 +39,24 @@ fn repo_with_config() -> tempfile::TempDir {
     fs::create_dir_all(root.join(".claude")).unwrap();
     fs::write(root.join(".claude/settings.json"), "{\"permissions\":{}}\n").unwrap();
 
-    // `compile` self-validates against the real JSON schema, so the temp
-    // repo needs a copy at the expected path. Copying the in-tree schema
-    // keeps the test exercising the real validation contract (including
-    // the new required `claudeConfigHash` field).
-    let schema_rel = "standards/schemas/spec-spine/codebase-index.schema.json";
-    let real_schema = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../..")
-        .join(schema_rel);
+    // `compile` self-validates BOTH the broad index against
+    // codebase-index.schema.json AND the re-homed config-hash.json against
+    // config-hash.schema.json (spec 188 Phase 4, FR-09 parity), so the temp
+    // repo needs both schemas at their expected paths. Copying the in-tree
+    // schemas keeps the test round-tripping through the real validation
+    // contracts — the `2.`→`3.` index bump and the new config-hash schema —
+    // not just asserting CLI exit codes.
     fs::create_dir_all(root.join("standards/schemas/spec-spine")).unwrap();
-    fs::copy(&real_schema, root.join(schema_rel))
-        .unwrap_or_else(|e| panic!("copy schema from {}: {e}", real_schema.display()));
+    for schema_rel in [
+        "standards/schemas/spec-spine/codebase-index.schema.json",
+        "standards/schemas/spec-spine/config-hash.schema.json",
+    ] {
+        let real_schema = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../..")
+            .join(schema_rel);
+        fs::copy(&real_schema, root.join(schema_rel))
+            .unwrap_or_else(|e| panic!("copy schema from {}: {e}", real_schema.display()));
+    }
 
     tmp
 }
@@ -78,16 +85,50 @@ fn index_json(repo: &Path) -> serde_json::Value {
     serde_json::from_str(&raw).expect("parse index.json")
 }
 
+fn config_hash_json(repo: &Path) -> serde_json::Value {
+    let raw = fs::read_to_string(repo.join(".derived/codebase-index/config-hash.json"))
+        .expect("read committed config-hash.json");
+    serde_json::from_str(&raw).expect("parse config-hash.json")
+}
+
 #[test]
 fn compile_emits_64hex_claude_config_hash() {
+    // Spec 188 Phase 4: the hash lives in its own re-homed file now, and
+    // `compile` self-validates it against config-hash.schema.json — so a
+    // successful compile already proves the value matched the schema's
+    // `^[0-9a-f]{64}$` pattern. Assert shape here too for a direct signal.
+    let tmp = repo_with_config();
+    compile(tmp.path());
+    let doc = config_hash_json(tmp.path());
+    assert_eq!(
+        doc["schemaVersion"].as_str(),
+        Some("1.0.0"),
+        "config-hash.json carries its own schema version"
+    );
+    let h = doc["claudeConfigHash"]
+        .as_str()
+        .expect("claudeConfigHash present in config-hash.json");
+    assert_eq!(h.len(), 64, "claudeConfigHash must be a sha256 hex string");
+    assert!(h.chars().all(|c| c.is_ascii_hexdigit()));
+}
+
+#[test]
+fn index_is_3_0_0_and_carries_no_config_hash() {
+    // Spec 188 Phase 4: the broad index round-trips through the real 3.0.0
+    // schema (compile self-validates it) and must NOT carry the re-homed
+    // field — the cache holds nothing governed.
     let tmp = repo_with_config();
     compile(tmp.path());
     let doc = index_json(tmp.path());
-    let h = doc["build"]["claudeConfigHash"]
-        .as_str()
-        .expect("claudeConfigHash present");
-    assert_eq!(h.len(), 64, "claudeConfigHash must be a sha256 hex string");
-    assert!(h.chars().all(|c| c.is_ascii_hexdigit()));
+    assert_eq!(
+        doc["schemaVersion"].as_str(),
+        Some("3.0.0"),
+        "broad index bumped to 3.0.0 (claudeConfigHash removed)"
+    );
+    assert!(
+        doc["build"].get("claudeConfigHash").is_none(),
+        "build.claudeConfigHash must be re-homed out of the broad index"
+    );
 }
 
 #[test]

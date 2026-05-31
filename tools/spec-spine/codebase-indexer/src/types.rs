@@ -40,8 +40,21 @@ use serde::{Deserialize, Serialize};
 /// post-merge heal without weakening 184. The field defaults to an empty
 /// string under serde, so 2.2.0 consumers keep deserializing 2.3.0
 /// indices unchanged).
-pub const SCHEMA_VERSION: &str = "2.3.0";
+/// Bumped to 3.0.0 in spec 188 Phase 4 (BREAKING: `build.claudeConfigHash`
+/// removed and re-homed to its own tracked file
+/// `.derived/codebase-index/config-hash.json` (see [`ConfigHash`]). The
+/// broad `index.json` now carries nothing governed/gated — `check_config`
+/// reads the re-homed file, and the broad index is a pure best-effort
+/// cache. Removing a required field under `additionalProperties:false` is a
+/// major bump, so [`load`](crate::load) gains a `"3."` arm).
+pub const SCHEMA_VERSION: &str = "3.0.0";
 pub const INDEXER_ID: &str = "codebase-indexer";
+
+/// Schema version of the re-homed config-hash file
+/// (`.derived/codebase-index/config-hash.json`, spec 188 Phase 4).
+/// Independent of [`SCHEMA_VERSION`] (the broad index) — the two artifacts
+/// version separately now that the gated value lives in its own file.
+pub const CONFIG_HASH_SCHEMA_VERSION: &str = "1.0.0";
 
 // ── Top-level output ────────────────────────────────────────────────────────
 
@@ -62,14 +75,25 @@ pub struct BuildInfo {
     pub indexer_version: String,
     pub repo_root: String,
     pub content_hash: String,
-    /// Spec 188 Phase 3 — sub-hash over ONLY the Claude shared-config
-    /// inputs (`.claude/settings.json` + `.mcp.json`, the spec 184 set).
-    /// Independent of `content_hash` so the narrow `check-config` PR gate
-    /// stays valid in a merge queue regardless of unrelated input churn:
-    /// it depends only on the two files a config PR actually touches.
-    /// `#[serde(default)]` keeps 2.2.0 indices deserializable (empty
-    /// string) during the version transition.
-    #[serde(default)]
+}
+
+/// The re-homed Claude shared-config slice hash (spec 188 Phase 4).
+///
+/// Emitted by `compile` to `.derived/codebase-index/config-hash.json` (a
+/// tracked file, re-included from `.gitignore`) and read by `check_config`
+/// as the narrow PR-time blocking gate that preserves spec 184's guarantee.
+/// It lived inside [`BuildInfo`] as `claudeConfigHash` at index schema
+/// 2.3.0 (Phase 3); Phase 4 moved it to its own file so the broad
+/// `index.json` carries nothing governed — dissolving the cache/contract
+/// tension. Maps to `standards/schemas/spec-spine/config-hash.schema.json`.
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConfigHash {
+    pub schema_version: String,
+    /// SHA-256 over ONLY `.claude/settings.json` + `.mcp.json` (the spec
+    /// 184 set). Computed by the same `claude_config_input_files`
+    /// definition `check_config` re-derives, so the written and verified
+    /// values cannot drift.
     pub claude_config_hash: String,
 }
 

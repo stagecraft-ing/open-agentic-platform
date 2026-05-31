@@ -1,7 +1,6 @@
 {
   "build": {
-    "claudeConfigHash": "bcb796feadcedb0babc2dba9767edf47923f6f7ff84b46a9933f76a2f8770ac2",
-    "contentHash": "1dac06f729d66a2f50cb18a0c78e4f1c209d079169230966463e4046b513c5c2",
+    "contentHash": "0d36baead0627c04a25d0c401b7e614c3cf31399a2bf4def29b630879fb5def1",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1524,7 +1523,7 @@
       "version": "0.1.0"
     }
   ],
-  "schemaVersion": "2.3.0",
+  "schemaVersion": "3.0.0",
   "traceability": {
     "mappings": [
       {
@@ -18981,8 +18980,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 670,
-                  "startLine": 666
+                  "endLine": 672,
+                  "startLine": 668
                 }
               }
             ],
@@ -21119,8 +21118,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 665,
-                  "startLine": 619
+                  "endLine": 667,
+                  "startLine": 621
                 }
               }
             ],
@@ -24669,8 +24668,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 618,
-                  "startLine": 596
+                  "endLine": 620,
+                  "startLine": 598
                 }
               }
             ],
@@ -24763,8 +24762,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 595,
-                  "startLine": 496
+                  "endLine": 597,
+                  "startLine": 498
                 }
               }
             ],
@@ -25329,8 +25328,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 711,
-                  "startLine": 671
+                  "endLine": 713,
+                  "startLine": 673
                 }
               }
             ],
@@ -25412,8 +25411,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 940,
-                  "startLine": 712
+                  "endLine": 942,
+                  "startLine": 714
                 }
               }
             ],
@@ -41872,6 +41871,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "standards/schemas/spec-spine/config-hash.schema.json",
+            "source": "spec-implements"
+          },
+          {
             "path": "tools/oap/ci-parity-check/src/lib.rs",
             "source": "spec-implements"
           },
@@ -41892,7 +41895,19 @@
             "source": "spec-implements"
           },
           {
+            "path": "tools/spec-spine/codebase-indexer/src/types.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/codebase-indexer/tests/spec188_check_config.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-code-coupling-check/tests/cli.rs",
             "source": "spec-implements"
           },
           {
@@ -41911,7 +41926,7 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 495,
+                  "endLine": 497,
                   "startLine": 437
                 }
               }
@@ -42003,6 +42018,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "standards/schemas/spec-spine/config-hash.schema.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "standards/schemas/spec-spine/config-hash.schema.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-config-hash.yml"
               }
             ],
@@ -42025,6 +42054,20 @@
             "unit": {
               "kind": "file",
               "path": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-config-hash.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/codebase-indexer/tests/spec188_check_config.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/codebase-indexer/tests/spec188_check_config.rs"
             }
           },
           {
@@ -42115,6 +42158,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "tools/spec-spine/codebase-indexer/src/types.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/codebase-indexer/src/types.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs"
               }
             ],
@@ -42123,6 +42180,20 @@
             "unit": {
               "kind": "file",
               "path": "tools/spec-spine/spec-code-coupling-check/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-code-coupling-check/tests/cli.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-code-coupling-check/tests/cli.rs"
             }
           },
           {
