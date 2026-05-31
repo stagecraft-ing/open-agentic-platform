@@ -60,6 +60,13 @@ extends:
   - spec: "001-spec-compiler-mvp"
     nature: additive
     unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
+  # Phase 3 ripple — the additive `BuildInfo.claude_config_hash` field
+  # (extends 101) requires the coupling-gate crate (spec 127), which
+  # constructs a `BuildInfo` test fixture, to set the new field. A
+  # one-line additive touch of 127's consumer, not a behaviour change.
+  - spec: "127-spec-code-coupling-gate"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/lib.rs }
 establishes:
   - unit: { kind: file, path: .githooks/merge-derived-index.sh }
   - unit: { kind: file, path: .githooks/enable-merge-driver.sh }
