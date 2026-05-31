@@ -344,7 +344,11 @@ impl UsageCache {
 /// Gather every usage entry under `~/.claude/projects`, reading each file at
 /// most once via the cache (FR-T5/T6) and applying deterministic cross-file
 /// dedup in earliest-timestamp order.
-fn get_all_usage_entries(claude_path: &Path, cache: &UsageCache) -> Vec<UsageEntry> {
+///
+/// Public so the Tier 2 criterion bench (FR-T8) can exercise this exact scan
+/// path — the peer-public function the filesystem-scanning handlers delegate
+/// to — over a synthetic corpus rooted at an arbitrary `claude_path`.
+pub fn get_all_usage_entries(claude_path: &Path, cache: &UsageCache) -> Vec<UsageEntry> {
     let projects_dir = claude_path.join("projects");
 
     let mut files_to_process: Vec<(PathBuf, String)> = Vec::new();

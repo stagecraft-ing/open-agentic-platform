@@ -136,6 +136,16 @@ mcp-dev = ["tauri-plugin-mcp-bridge"]
 # test (set a file's mtime without changing its body to assert a cache hit
 # does not re-read).
 filetime = "0.2"
+# Spec 180 FR-T8 — criterion bench harness for the filesystem-scanning usage
+# handler. Matches the spec-spine bench precedent (policy-kernel, policy-
+# compiler, codebase-indexer all use criterion 0.8 with harness = false).
+criterion = "0.8"
+
+# Spec 180 §5 / FR-T8 — Tier 2 bench-presence for the user-filesystem-scanning
+# usage handler. Relative-regression gating (FR-T9) is wired in CI, not here.
+[[bench]]
+name = "usage_scan"
+harness = false
 
 [profile.release]
 strip = true
@@ -143,3 +153,15 @@ opt-level = "z"
 lto = true
 codegen-units = 1
 panic = "abort"
+
+# Spec 180 FR-T8 — the bench profile must not inherit release's
+# `panic = "abort"` + LTO: the criterion bench harness requires unwinding, and
+# abort across the cross-workspace path deps (orchestrator, factory-engine, …)
+# produces panic-strategy rlib mismatches ("can't find crate"). Optimize for a
+# representative-but-buildable bench (opt-level 3, no whole-program LTO); the
+# Tier 2 gate compares relative regression, not absolute latency (FR-T10).
+[profile.bench]
+panic = "unwind"
+opt-level = 3
+lto = false
+codegen-units = 16
