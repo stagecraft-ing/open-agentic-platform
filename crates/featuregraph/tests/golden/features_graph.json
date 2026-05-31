@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:6f903bdeaaf3f8688f9a6008d0d5f10c4879c80c2571898a6a5e3ffa67ce92eb",
+  "graph_fingerprint": "sha256:68d1313ffdbb0794a046bf39a58e6f0c88ee10369f01577ef7ff72d652e29be1",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3567,7 +3567,7 @@
     },
     {
       "feature_id": "188-derived-index-merge-serialization",
-      "title": "Derived-index merge serialization — merge driver (now) + merge queue & post-merge heal (designed)",
+      "title": "Derived-index merge serialization — merge driver + merge queue + narrow config-hash gate (broad index demoted to best-effort cache)",
       "spec_path": "specs/188-derived-index-merge-serialization/spec.md",
       "status": "draft",
       "implementation": "in-progress",
