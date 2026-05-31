@@ -23,6 +23,14 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # Spec 188 Phase 2 — GitHub merge queue. Each queued PR is tested against
+  # the speculative merged tree, so a green PR can't be silently invalidated
+  # by the one ahead of it, and conflicts that pass alone but break together
+  # (e.g. the spec-id-186 collision class) are caught before reaching main.
+  # INERT until a repo admin enables the merge queue in branch protection
+  # and requires `ci-gate` on merge_group — honouring FR-006's "Phase 2
+  # strictly after Phase 3" as an ops ordering.
+  merge_group:
   workflow_dispatch:
 
 permissions:
@@ -35,22 +43,29 @@ jobs:
     runs-on: ubuntu-latest
     name: route / paths-filter
     timeout-minutes: 5
+    # Spec 188 Phase 2: on `merge_group` the paths-filter step is skipped
+    # (a merge group has no PR base to diff against), so every output falls
+    # back to `true` and the full suite runs against the speculative merged
+    # tree. On `pull_request` the filter drives them as before.
     outputs:
-      axiomregent: ${{ steps.f.outputs.axiomregent }}
-      crates: ${{ steps.f.outputs.crates }}
-      deployd_api_rs: ${{ steps.f.outputs.deployd_api_rs }}
-      desktop: ${{ steps.f.outputs.desktop }}
-      featuregraph: ${{ steps.f.outputs.featuregraph }}
-      orchestrator: ${{ steps.f.outputs.orchestrator }}
-      parity: ${{ steps.f.outputs.parity }}
-      policy_kernel: ${{ steps.f.outputs.policy_kernel }}
-      schema_parity: ${{ steps.f.outputs.schema_parity }}
-      stagecraft: ${{ steps.f.outputs.stagecraft }}
-      tenant_hello: ${{ steps.f.outputs.tenant_hello }}
+      axiomregent: ${{ steps.f.outputs.axiomregent == 'true' || github.event_name == 'merge_group' }}
+      crates: ${{ steps.f.outputs.crates == 'true' || github.event_name == 'merge_group' }}
+      deployd_api_rs: ${{ steps.f.outputs.deployd_api_rs == 'true' || github.event_name == 'merge_group' }}
+      desktop: ${{ steps.f.outputs.desktop == 'true' || github.event_name == 'merge_group' }}
+      featuregraph: ${{ steps.f.outputs.featuregraph == 'true' || github.event_name == 'merge_group' }}
+      orchestrator: ${{ steps.f.outputs.orchestrator == 'true' || github.event_name == 'merge_group' }}
+      parity: ${{ steps.f.outputs.parity == 'true' || github.event_name == 'merge_group' }}
+      policy_kernel: ${{ steps.f.outputs.policy_kernel == 'true' || github.event_name == 'merge_group' }}
+      schema_parity: ${{ steps.f.outputs.schema_parity == 'true' || github.event_name == 'merge_group' }}
+      stagecraft: ${{ steps.f.outputs.stagecraft == 'true' || github.event_name == 'merge_group' }}
+      tenant_hello: ${{ steps.f.outputs.tenant_hello == 'true' || github.event_name == 'merge_group' }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: f
+        # Run on pull_request and push (both have a base to diff); skip only
+        # on merge_group, which has none — the outputs fall back to `true`.
+        if: github.event_name != 'merge_group'
         with:
           filters: |
             axiomregent:
@@ -179,8 +194,13 @@ jobs:
   supply-chain:
     uses: ./.github/workflows/ci-supply-chain.yml
 
-  codebase-index:
-    uses: ./.github/workflows/ci-codebase-index.yml
+  # Spec 188 Phase 3: the NARROW config-hash gate replaces the broad
+  # ci-codebase-index staleness gate in the constitutional always-on set.
+  # It blocks a quiet `.claude/settings.json` / `.mcp.json` edit (spec 184)
+  # but depends only on those two files, so it survives a merge queue.
+  # The broad index freshness now heals post-merge (cd-index-heal.yml).
+  config-hash:
+    uses: ./.github/workflows/ci-config-hash.yml
 
   # ─── aggregator ────────────────────────────────────────────────────────
   ci-gate:
@@ -202,7 +222,7 @@ jobs:
       - spec-conformance
       - spec-code-coupling
       - supply-chain
-      - codebase-index
+      - config-hash
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

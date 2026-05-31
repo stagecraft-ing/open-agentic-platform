@@ -1023,6 +1023,8 @@ mod tests {
                 indexer_version: "test".to_string(),
                 repo_root: ".".to_string(),
                 content_hash: "test".to_string(),
+                // Spec 188 Phase 3 — narrow config-slice hash (test fixture).
+                claude_config_hash: "test".to_string(),
             },
             inventory: Vec::new(),
             traceability: Traceability {

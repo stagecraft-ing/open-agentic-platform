@@ -553,6 +553,44 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
 
     features.sort_by(|a, b| a.id.cmp(&b.id));
 
+    // ── V-032 (spec 188 Phase 2): duplicate numeric-id prefix ──
+    // `seen_ids` keys on the full id string, so two specs allocated the same
+    // `NNN` under different slugs (the real spec-186 collision:
+    // `186-sandbox-k8s-backend` vs `186-opc-e2e-test-harness`) each pass the
+    // V-003 full-id check and compile as distinct records. This cross-corpus
+    // pass flags any leading numeric prefix claimed by 2+ specs as a hard
+    // error, so the merge queue's speculative build (spec 188 FR-005) fails
+    // the second of two PRs that independently allocate one numeric id.
+    let mut prefix_owners: BTreeMap<String, Vec<&PathBuf>> = BTreeMap::new();
+    for (id, path) in &seen_ids {
+        let prefix: String = id.chars().take_while(|c| c.is_ascii_digit()).collect();
+        if !prefix.is_empty() {
+            prefix_owners.entry(prefix).or_default().push(path);
+        }
+    }
+    for (prefix, owners) in &prefix_owners {
+        if owners.len() < 2 {
+            continue;
+        }
+        let mut shared: Vec<String> = owners
+            .iter()
+            .map(|p| normalize_repo_path(repo_root, p))
+            .collect();
+        shared.sort();
+        for path in owners {
+            violations.push(Violation {
+                code: "V-032".to_string(),
+                severity: "error".to_string(),
+                message: format!(
+                    "duplicate numeric-id prefix {prefix:?}: {} specs share it ({})",
+                    shared.len(),
+                    shared.join(", ")
+                ),
+                path: Some(normalize_repo_path(repo_root, path)),
+            });
+        }
+    }
+
     // ── V-008: validate depends_on references resolve to existing IDs (102 FR-028) ──
     // depends_on may use short numeric prefixes (e.g. "089") or full slugs ("089-governed-convergence-plan").
     let all_ids: BTreeSet<String> = seen_ids.keys().cloned().collect();

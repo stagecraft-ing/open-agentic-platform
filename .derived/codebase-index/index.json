@@ -1,6 +1,7 @@
 {
   "build": {
-    "contentHash": "d90c382ad0c4d3fb3cd7801ad7a445c4197c12f4cf718ed8d00af2ffaec6803b",
+    "claudeConfigHash": "bcb796feadcedb0babc2dba9767edf47923f6f7ff84b46a9933f76a2f8770ac2",
+    "contentHash": "1bc12e36333689cf2d2e1738ea42bdc368e0f46cbc254a071a79c93ba3693cd7",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1523,7 +1524,7 @@
       "version": "0.1.0"
     }
   ],
-  "schemaVersion": "2.2.0",
+  "schemaVersion": "2.3.0",
   "traceability": {
     "mappings": [
       {
@@ -18695,7 +18696,7 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 479,
+                  "endLine": 436,
                   "startLine": 161
                 }
               }
@@ -18944,8 +18945,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 654,
-                  "startLine": 650
+                  "endLine": 670,
+                  "startLine": 666
                 }
               }
             ],
@@ -21082,8 +21083,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 649,
-                  "startLine": 603
+                  "endLine": 665,
+                  "startLine": 619
                 }
               }
             ],
@@ -21326,6 +21327,9 @@
                 "file": "tools/spec-spine/codebase-indexer/tests/spec184_shared_config_inputs.rs"
               },
               {
+                "file": "tools/spec-spine/codebase-indexer/tests/spec188_check_config.rs"
+              },
+              {
                 "file": "tools/spec-spine/codebase-indexer/workflow-allowlist.toml"
               }
             ],
@@ -21366,6 +21370,9 @@
                 "file": ".github/workflows/cd-deployd-api-rs.yml"
               },
               {
+                "file": ".github/workflows/cd-index-heal.yml"
+              },
+              {
                 "file": ".github/workflows/cd-stagecraft.yml"
               },
               {
@@ -21375,7 +21382,7 @@
                 "file": ".github/workflows/ci-axiomregent.yml"
               },
               {
-                "file": ".github/workflows/ci-codebase-index.yml"
+                "file": ".github/workflows/ci-config-hash.yml"
               },
               {
                 "file": ".github/workflows/ci-crates.yml"
@@ -24614,8 +24621,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 602,
-                  "startLine": 580
+                  "endLine": 618,
+                  "startLine": 596
                 }
               }
             ],
@@ -24708,8 +24715,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 579,
-                  "startLine": 480
+                  "endLine": 595,
+                  "startLine": 496
                 }
               }
             ],
@@ -24839,6 +24846,9 @@
               },
               {
                 "file": "tools/spec-spine/codebase-indexer/tests/spec184_shared_config_inputs.rs"
+              },
+              {
+                "file": "tools/spec-spine/codebase-indexer/tests/spec188_check_config.rs"
               },
               {
                 "file": "tools/spec-spine/codebase-indexer/workflow-allowlist.toml"
@@ -25131,6 +25141,9 @@
                 "file": "tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs"
               },
               {
+                "file": "tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs"
+              },
+              {
                 "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
               },
               {
@@ -25268,8 +25281,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 695,
-                  "startLine": 655
+                  "endLine": 711,
+                  "startLine": 671
                 }
               }
             ],
@@ -25351,8 +25364,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 924,
-                  "startLine": 696
+                  "endLine": 940,
+                  "startLine": 712
                 }
               }
             ],
@@ -29855,6 +29868,9 @@
                 "file": "tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs"
               },
               {
+                "file": "tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs"
+              },
+              {
                 "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
               },
               {
@@ -30170,6 +30186,9 @@
                 "file": "tools/spec-spine/codebase-indexer/tests/spec184_shared_config_inputs.rs"
               },
               {
+                "file": "tools/spec-spine/codebase-indexer/tests/spec188_check_config.rs"
+              },
+              {
                 "file": "tools/spec-spine/codebase-indexer/workflow-allowlist.toml"
               }
             ],
@@ -30227,6 +30246,9 @@
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs"
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
@@ -30876,7 +30898,7 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 479,
+                  "endLine": 436,
                   "startLine": 161
                 }
               }
@@ -37567,14 +37589,14 @@
             "kind": "file",
             "locations": [
               {
-                "file": ".github/workflows/ci-codebase-index.yml"
+                "file": ".github/workflows/ci-config-hash.yml"
               }
             ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
               "kind": "file",
-              "path": ".github/workflows/ci-codebase-index.yml"
+              "path": ".github/workflows/ci-config-hash.yml"
             }
           },
           {
@@ -41645,6 +41667,11 @@
         "specStatus": "draft"
       },
       {
+        "amends": [
+          "101-codebase-index-mvp",
+          "177-ci-orchestrator-pr-gate",
+          "184-claude-shared-config-governance"
+        ],
         "implementingPaths": [
           {
             "path": ".githooks/enable-merge-driver.sh",
@@ -41655,15 +41682,78 @@
             "source": "spec-implements"
           },
           {
+            "path": ".github/workflows/cd-index-heal.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci-config-hash.yml",
+            "source": "spec-implements"
+          },
+          {
             "path": "Makefile",
             "source": "spec-implements"
           },
           {
             "path": "crates/featuregraph/tests/golden/features_graph.json",
             "source": "spec-implements"
+          },
+          {
+            "path": "standards/schemas/spec-spine/codebase-index.schema.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-config-hash.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-config-hash.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/shared/spec-types/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/codebase-indexer/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs",
+            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "section",
+            "locations": [
+              {
+                "file": "Makefile",
+                "span": {
+                  "endLine": 495,
+                  "startLine": 437
+                }
+              }
+            ],
+            "ownership": true,
+            "sourceField": "co_authority",
+            "unit": {
+              "anchor": "ci-config-hash",
+              "file": "Makefile",
+              "kind": "section"
+            }
+          },
           {
             "kind": "section",
             "locations": [
@@ -41715,6 +41805,76 @@
             "kind": "file",
             "locations": [
               {
+                "file": ".github/workflows/cd-index-heal.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/cd-index-heal.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-config-hash.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-config-hash.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-config-hash.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-config-hash.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-config-hash.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-config-hash.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "crates/featuregraph/tests/golden/features_graph.json"
               }
             ],
@@ -41729,14 +41889,84 @@
             "kind": "file",
             "locations": [
               {
-                "file": "specs/101-codebase-index-mvp/spec.md"
+                "file": "standards/schemas/spec-spine/codebase-index.schema.json"
               }
             ],
-            "ownership": false,
-            "sourceField": "references",
+            "ownership": true,
+            "sourceField": "extends",
             "unit": {
               "kind": "file",
-              "path": "specs/101-codebase-index-mvp/spec.md"
+              "path": "standards/schemas/spec-spine/codebase-index.schema.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/shared/spec-types/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/shared/spec-types/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/codebase-indexer/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/codebase-indexer/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-code-coupling-check/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-compiler/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/spec-spine/spec-compiler/src/lib.rs"
             }
           },
           {
@@ -41765,20 +41995,6 @@
             "unit": {
               "kind": "file",
               "path": "specs/158-workflow-ref-sha-pinning-lint/spec.md"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "specs/177-ci-orchestrator-pr-gate/spec.md"
-              }
-            ],
-            "ownership": false,
-            "sourceField": "references",
-            "unit": {
-              "kind": "file",
-              "path": "specs/177-ci-orchestrator-pr-gate/spec.md"
             }
           },
           {

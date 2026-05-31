@@ -32,7 +32,15 @@ use serde::{Deserialize, Serialize};
 /// two additional values, `knowledge` and `code-fingerprint`, for
 /// the references-edge provenance arm; emitted with `ownership: false`
 /// and empty `locations` per spec 156 §6.3).
-pub const SCHEMA_VERSION: &str = "2.2.0";
+/// Bumped to 2.3.0 in spec 188 Phase 3 (additive: `build.claudeConfigHash`,
+/// a sub-hash over ONLY `.claude/settings.json` + `.mcp.json`. It powers
+/// the narrow `check-config` PR gate that preserves spec 184's PR-time
+/// blocking guarantee for those two files independently of the broad
+/// `contentHash`, so the broad index-freshness check can move to a
+/// post-merge heal without weakening 184. The field defaults to an empty
+/// string under serde, so 2.2.0 consumers keep deserializing 2.3.0
+/// indices unchanged).
+pub const SCHEMA_VERSION: &str = "2.3.0";
 pub const INDEXER_ID: &str = "codebase-indexer";
 
 // ── Top-level output ────────────────────────────────────────────────────────
@@ -54,6 +62,15 @@ pub struct BuildInfo {
     pub indexer_version: String,
     pub repo_root: String,
     pub content_hash: String,
+    /// Spec 188 Phase 3 — sub-hash over ONLY the Claude shared-config
+    /// inputs (`.claude/settings.json` + `.mcp.json`, the spec 184 set).
+    /// Independent of `content_hash` so the narrow `check-config` PR gate
+    /// stays valid in a merge queue regardless of unrelated input churn:
+    /// it depends only on the two files a config PR actually touches.
+    /// `#[serde(default)]` keeps 2.2.0 indices deserializable (empty
+    /// string) during the version transition.
+    #[serde(default)]
+    pub claude_config_hash: String,
 }
 
 // ── Layer 1: Crate & Package Inventory ──────────────────────────────────────

@@ -333,6 +333,17 @@ pub const V_030: ViolationCode = ViolationCode("V-030");
 /// clean).
 pub const V_031: ViolationCode = ViolationCode("V-031");
 
+/// Spec 188 Phase 2 — fired by spec-compiler when two or more specs share
+/// the same leading numeric id prefix (the `NNN` in `specs/NNN-slug/`).
+/// `seen_ids` keys on the full id string, so two specs allocated id `186`
+/// under different slugs (the real spec-186 collision: `sandbox-k8s-backend`
+/// vs `opc-e2e-test-harness`) compiled silently as distinct records. Hard
+/// error: a numeric id is meant to be a unique handle, and the merge
+/// queue's speculative build must hard-fail the second of two PRs that
+/// independently allocate one id rather than ship a corpus with a
+/// duplicate handle. Complements the GitHub merge queue (spec 188 FR-005).
+pub const V_032: ViolationCode = ViolationCode("V-032");
+
 // Lint W-codes (emitted by spec-lint).
 pub const W_001: ViolationCode = ViolationCode("W-001");
 pub const W_002: ViolationCode = ViolationCode("W-002");

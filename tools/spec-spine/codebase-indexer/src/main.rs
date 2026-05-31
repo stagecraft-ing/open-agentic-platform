@@ -26,6 +26,18 @@ enum Command {
         #[arg(long)]
         repo: Option<PathBuf>,
     },
+    /// Spec 188 Phase 3 — narrow config-slice staleness gate. Verify that
+    /// `.claude/settings.json` + `.mcp.json` match the committed
+    /// `build.claudeConfigHash`. Exits non-zero if either file changed
+    /// without the index being regenerated. This is the PR-time blocking
+    /// gate that preserves spec 184's guarantee while the broad `check`
+    /// moves to a post-merge heal; it depends only on those two files, so
+    /// it stays valid in a merge queue regardless of unrelated churn.
+    CheckConfig {
+        /// Repository root (default: current directory)
+        #[arg(long)]
+        repo: Option<PathBuf>,
+    },
     /// Dump every input file's path + content hash (sorted). Diagnostic for
     /// cross-platform hash divergence (issue #46).
     DumpInputs {
@@ -82,6 +94,19 @@ fn main() {
                     match e {
                         open_agentic_codebase_indexer::IndexError::Stale { .. } => 2,
                         open_agentic_codebase_indexer::IndexError::Blocking { .. } => 2,
+                        _ => 3,
+                    }
+                }
+            }
+        }
+        Command::CheckConfig { repo } => {
+            let root = repo.unwrap_or_else(|| std::env::current_dir().expect("cwd"));
+            match open_agentic_codebase_indexer::check_config(&root) {
+                Ok(()) => 0,
+                Err(e) => {
+                    eprintln!("codebase-indexer: {e}");
+                    match e {
+                        open_agentic_codebase_indexer::IndexError::ConfigStale { .. } => 2,
                         _ => 3,
                     }
                 }

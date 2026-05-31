@@ -16,6 +16,22 @@ language: en
 code_aliases:
   - MCP_CONFIG_PATH
   - CLAUDE_SETTINGS_PATH
+amended: "2026-05-30"
+amendment_record: |
+  amended by spec 188 (2026-05-30, Phase 3) — the PR-time blocking
+  guarantee is RE-HOMED, not weakened. When 184 landed, the guarantee
+  ("a quiet edit to .mcp.json / .claude/settings.json cannot merge
+  unacknowledged") was enforced by the broad `codebase-indexer check`
+  staleness gate. Spec 188 Phase 3 moves that broad check to a post-merge
+  heal on `main`, so the guarantee is now carried by a dedicated narrow
+  gate: `codebase-indexer check-config` (spec 101 FR-12) verifies a
+  `build.claudeConfigHash` sub-hash over ONLY these two files, wired as the
+  constitutional `ci-config-hash` PR workflow. The behavioral guarantee is
+  unchanged (still PR-time, still blocking); only the mechanism narrowed.
+  Spec 188 FR-009 additionally requires the post-merge heal to FAIL LOUD on
+  a config-slice delta rather than silently regenerate it, so the heal
+  cannot quietly defeat this guarantee through its back door. AC-4 and AC-7
+  below carry inline notes recording the mechanism change.
 amends:
   - "101-codebase-index-mvp"
 extends:
@@ -253,6 +269,13 @@ Out of scope (explicit):
   then running `make index` followed by `check` exits zero
   (clean regeneration round-trips). This test passes for
   both files independently.
+  > **Amended by spec 188 Phase 3 (2026-05-30):** the *required PR-time*
+  > mechanism is now `codebase-indexer check-config` (narrow, this slice
+  > only), wired as `ci-config-hash`; the broad `check` referenced above
+  > moved to the post-merge heal. The round-trip property holds identically
+  > for `check-config`: editing either file then `make index` makes
+  > `check-config` exit zero, and editing without regenerating makes it
+  > exit non-zero — independently of any other input's freshness.
 - **AC-5:** `.derived/codebase-index/index.json` in the PR
   carries both content hashes; `git diff` shows the index
   changed because the input set grew by two entries.
@@ -276,6 +299,12 @@ Out of scope (explicit):
   protected path classes; that is a follow-up spec, not
   spec 184's scope. AC-7 is the visibility gate, not the
   narrowing gate.
+  > **Amended by spec 188 Phase 3 (2026-05-30):** the visibility gate is
+  > now carried by `codebase-indexer check-config` on every PR (the
+  > constitutional `ci-config-hash` workflow), not the broad `check`.
+  > Editing the PostToolUse hook glob still trips it (the glob lives in
+  > `.claude/settings.json`, which is in the narrow slice). The "visible,
+  > not narrowing" caveat is unchanged — a reviewer still judges intent.
 
 ## Risk and mitigation
 

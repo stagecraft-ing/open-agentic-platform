@@ -7,8 +7,20 @@ owner: bart
 created: "2026-04-14"
 kind: tooling
 domain: tooling
-amended: "2026-05-26"
+amended: "2026-05-30"
 amendment_record: |
+  amended by spec 188 (2026-05-30, Phase 3) — index freshness enforcement
+  is re-homed. The broad `codebase-indexer check` (whole-index staleness,
+  FR-10) moves from a required per-PR gate to a post-merge heal on `main`
+  (`cd-index-heal.yml`): PRs are no longer required to carry a fresh broad
+  `index.json`. A new narrow `codebase-indexer check-config` subcommand
+  (§2.4) verifies a dedicated `build.claudeConfigHash` sub-hash over ONLY
+  `.claude/settings.json` + `.mcp.json` (the spec 184 slice); it is the
+  PR-time blocking gate that preserves spec 184's guarantee independently
+  of the broad hash, and — because it depends only on those two files — it
+  stays valid in a merge queue. Schema bumped 2.2.0 → 2.3.0 (additive
+  `build.claudeConfigHash`). See FR-12.
+
   amended by spec 182 (2026-05-26) — FR-08 and Layer 4 add
   `.claude/skills/**/SKILL.md` to the documented inventory inputs;
   `collect_input_files` in `tools/spec-spine/codebase-indexer/src/lib.rs`
@@ -240,6 +252,12 @@ Subcommands:
 - `codebase-indexer compile` — full index, emits `index.json` + `build-meta.json`
 - `codebase-indexer render` — emits `CODEBASE-INDEX.md` from existing `index.json`
 - `codebase-indexer check` — exits non-zero if `index.json` is stale vs current tree
+- `codebase-indexer check-config` — (spec 188 Phase 3) exits non-zero if the
+  Claude shared-config slice (`.claude/settings.json` + `.mcp.json`) does not
+  match the committed `build.claudeConfigHash`. Narrow counterpart to `check`:
+  it hashes only those two files, so it is independent of broad-input churn
+  and stays valid in a merge queue. Powers the constitutional `ci-config-hash`
+  PR gate that preserves spec 184's blocking guarantee (FR-12).
 - `codebase-indexer orphans` — prints the `traceability.orphanedSpecs` list from
   `index.json` (newline-delimited by default; `--json` emits a JSON array). Added
   by the 2026-05-23 self-amendment to close the gap between the count rendered in
@@ -254,6 +272,19 @@ Same pattern as the spec registry:
 - `codebase-indexer check` runs in CI and fails the build if the index is stale
 - PRs that add/remove/move crates, packages, specs, adapters, or tools must update
   the index as part of the change
+
+> **Amended by spec 188 Phase 3 (2026-05-30).** The broad `check` above is
+> no longer a required *per-PR* gate. It runs **post-merge** as a heal job
+> on `main` (`cd-index-heal.yml`), which regenerates and commits a fresh
+> `index.json` under a bot identity — so `main` always carries a fresh,
+> present-on-clone index without every PR having to regenerate it (this is
+> what removes the merge-serialization toil; see spec 188 §Problem). The
+> only required *per-PR* freshness obligation that remains is the **narrow**
+> `check-config` gate over `.claude/settings.json` + `.mcp.json` (FR-12),
+> wired as the constitutional `ci-config-hash` workflow. The post-merge heal
+> **fails loud** (rather than silently regenerating) if it finds the config
+> slice drifted on `main`, so the narrow gate cannot be defeated through the
+> heal's back door (spec 188 FR-009).
 
 ### 2.6 Agent Orientation
 
@@ -359,10 +390,31 @@ The indexer MUST validate its own output before writing.
 `codebase-indexer check` MUST compare the current repo state against the existing
 `index.json` content hash and exit non-zero if they differ.
 
+> **Scope note (spec 188 Phase 3).** `check` remains the broad whole-index
+> staleness comparison. Its *enforcement timing* moved: it is now run by the
+> post-merge heal on `main` (`cd-index-heal.yml`), not as a required per-PR
+> gate. The per-PR blocking obligation is carried by `check-config` (FR-12).
+
 ### FR-11: Markdown Rendering
 
 `codebase-indexer render` MUST produce a human-readable markdown document from
 `index.json` that presents all four layers in a structured format.
+
+### FR-12: Narrow Config-Slice Check (spec 188 Phase 3)
+
+`codebase-indexer check-config` MUST compare ONLY the Claude shared-config
+slice (`.claude/settings.json` + `.mcp.json`, the spec 184 input set)
+against a dedicated `build.claudeConfigHash` field in `index.json`, and exit
+non-zero if they differ. The slice hash MUST be computed by the same input
+definition `compile` uses to write `build.claudeConfigHash`, so the written
+and verified values cannot drift. Because the slice depends only on those
+two files, `check-config` MUST be independent of any other hashed input:
+editing an unrelated input (a `spec.md`, a `Cargo.toml`) MUST NOT cause
+`check-config` to fail. This independence is what lets `check-config` serve
+as a merge-queue-safe PR-time gate (spec 188 FR-006) while preserving spec
+184's guarantee that a quiet edit to either config file cannot merge
+unacknowledged (spec 188 FR-009). The index schema carrying
+`build.claudeConfigHash` is version 2.3.0 (additive over 2.2.0).
 
 ## 4. Success Criteria
 
@@ -390,6 +442,15 @@ unimplemented specs that exist as of spec creation date.
 ### SC-05: CI Enforcement
 
 A PR that adds a new crate without updating `index.json` MUST fail the CI check.
+
+> **Amended by spec 188 Phase 3 (2026-05-30).** This broad-freshness
+> obligation is now enforced **post-merge** (the `cd-index-heal.yml` heal
+> regenerates and commits `index.json` on `main`), not as a required
+> per-PR gate — so a PR adding a crate without regenerating the broad
+> index is healed on merge rather than blocked. The remaining *per-PR*
+> enforcement is the narrow `check-config` gate: a PR editing
+> `.claude/settings.json` or `.mcp.json` without regenerating the index
+> MUST fail `ci-config-hash` (preserving spec 184's guarantee).
 
 ### SC-06: Agent Startup Acceleration
 

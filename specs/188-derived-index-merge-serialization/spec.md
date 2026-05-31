@@ -15,6 +15,15 @@ authors:
 language: en
 code_aliases:
   - oap-index-regen
+amends:
+  # Phase 3 enacts the amendments spec 188 originally staged as `planned`
+  # references. 101 — staleness contract re-homed (broad check → post-merge
+  # heal; new narrow `check-config`). 177 — constitutional always-on PR set
+  # swaps ci-codebase-index → ci-config-hash. 184 — PR-time blocking
+  # guarantee re-homed to the narrow gate (not weakened).
+  - "101-codebase-index-mvp"
+  - "177-ci-orchestrator-pr-gate"
+  - "184-claude-shared-config-governance"
 extends:
   # Mechanical featuregraph-golden refresh required by spec 177
   # ci-orchestrator-pr-gate atomicity contract — appending this spec to
@@ -24,13 +33,60 @@ extends:
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+  # Phase 3 — additive extension of the codebase-indexer (spec 101): the
+  # `claude_config_hash` slice + `check-config` subcommand + schema 2.3.0.
+  # Mirrors how spec 184 declared `extends: 101` for its `collect_input_files`
+  # change. No change to spec 101's existing `check`/`compile` contracts.
+  - spec: "101-codebase-index-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
+  - spec: "101-codebase-index-mvp"
+    nature: additive
+    unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
+  # Phase 3 — adding ci-config-hash.yml to ci-parity-check's
+  # ENFORCING_WORKFLOWS (replacing ci-codebase-index.yml) is exactly the
+  # action spec 104 FR-01 prescribes when a gating workflow changes.
+  # Mirrors how spec 191 declared `extends: 104` for the same edit.
+  - spec: "104-makefile-ci-parity-contract"
+    nature: additive
+    unit: { kind: file, path: tools/oap/ci-parity-check/src/lib.rs }
+  # Phase 2 — the duplicate-numeric-id lint (V-032) is an additive
+  # cross-corpus check in spec-compiler's compile loop (spec 001), plus the
+  # V_032 code constant in the shared spec-vocabulary crate. No change to
+  # spec 001's existing validation contracts.
+  - spec: "001-spec-compiler-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
+  - spec: "001-spec-compiler-mvp"
+    nature: additive
+    unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
+  # Phase 3 ripple — the additive `BuildInfo.claude_config_hash` field
+  # (extends 101) requires the coupling-gate crate (spec 127), which
+  # constructs a `BuildInfo` test fixture, to set the new field. A
+  # one-line additive touch of 127's consumer, not a behaviour change.
+  - spec: "127-spec-code-coupling-gate"
+    nature: additive
+    unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/lib.rs }
 establishes:
   - unit: { kind: file, path: .githooks/merge-derived-index.sh }
   - unit: { kind: file, path: .githooks/enable-merge-driver.sh }
+  # Phase 3 — the narrow PR gate and the post-merge heal workflows.
+  - unit: { kind: file, path: .github/workflows/ci-config-hash.yml }
+  - unit: { kind: file, path: .github/workflows/cd-index-heal.yml }
+  # Phase 3 — ci-parity-check fixture stubs for the new enforcing workflow
+  # (renamed from the retired ci-codebase-index.yml stubs). Mirrors spec
+  # 191's establishes of its ci-schema-parity.yml fixture pair.
+  - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-config-hash.yml }
+  - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-config-hash.yml }
+  # Phase 2 — the V-032 duplicate-numeric-id-prefix test (new file inside
+  # spec 001's crate; same precedent as 191 establishing fixtures in 104's).
+  - unit: { kind: file, path: tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs }
 co_authority:
   # `make setup` runs the merge-driver registration (FR-003). This claims
   # the dedicated `merge-driver` target group of the shared Makefile.
   - unit: { kind: section, file: Makefile, anchor: merge-driver }
+  # Phase 3 — the `ci-config-hash` parity-mirror target (FR-008 wiring).
+  - unit: { kind: section, file: Makefile, anchor: ci-config-hash }
 references:
   - role: precedent
     unit: { kind: file, path: specs/184-claude-shared-config-governance/spec.md }
@@ -38,10 +94,6 @@ references:
     unit: { kind: file, path: specs/158-workflow-ref-sha-pinning-lint/spec.md }
   - role: pair-spec
     unit: { kind: file, path: specs/127-spec-code-coupling-gate/spec.md }
-  - role: planned
-    unit: { kind: file, path: specs/177-ci-orchestrator-pr-gate/spec.md }
-  - role: planned
-    unit: { kind: file, path: specs/101-codebase-index-mvp/spec.md }
 summary: >
   Multi-PR / multi-agent merge friction in OAP reduces to a single
   serialization point: the committed `.derived/codebase-index/index.json`
@@ -63,7 +115,12 @@ summary: >
 
 **Feature Branch**: `188-derived-index-merge-serialization`
 **Created**: 2026-05-29
-**Status**: Draft (Phase 1 implemented; Phases 2–3 design-only)
+**Status**: Draft (Phases 1, 2 & 3 implemented in code on this branch. The
+§spec-184 tension was resolved by re-homing, path 1; see §"The spec-184
+tension → Resolution". The one remaining step is an **ops action**, not
+code: a repo admin enables the GitHub merge queue and requires `ci-gate` on
+`merge_group` — deliberately deferred so FR-006's "Phase 2 strictly after
+Phase 3" holds, since the `merge_group:` trigger is inert until then.)
 
 ## Problem
 
@@ -145,7 +202,7 @@ the same rebase leaves a conflict.
    invoked, **Then** it fails closed (exit 1, conflict left in place) with
    a one-line remediation, never producing a wrong-but-clean index.
 
-### User Story 2 — Concurrent agent PRs are serialized and logical conflicts are caught (Priority: P2) — *Phase 2, design-only*
+### User Story 2 — Concurrent agent PRs are serialized and logical conflicts are caught (Priority: P2) — *Phase 2, IMPLEMENTED in code 2026-05-30 (queue enablement = ops step)*
 
 Multiple agents open PRs concurrently. A GitHub merge queue serializes
 the merges and tests each PR against the *speculative* merged result, so
@@ -171,7 +228,7 @@ complementary cheap guard.
 id; confirm both pass their own CI; confirm the merge queue's speculative
 build fails the second.
 
-### User Story 3 — Index stays fresh on main without per-PR serialization (Priority: P3) — *Phase 3, design-only, gated*
+### User Story 3 — Index stays fresh on main without per-PR serialization (Priority: P3) — *Phase 3, IMPLEMENTED 2026-05-30*
 
 The committed `index.json` remains a fresh, reviewable, present-on-clone
 cache on `main`, but its freshness is enforced **post-merge** (a `main`
@@ -234,7 +291,7 @@ until that tension is resolved.
   fresh and reviewable exactly as today; the driver only changes how a
   *conflict* on it is resolved.
 
-### Functional Requirements — Phase 2 (designed, NOT implemented)
+### Functional Requirements — Phase 2 (IMPLEMENTED in code 2026-05-30 — merge-queue *enablement* is the one remaining ops step)
 
 - **FR-005**: A GitHub merge queue SHOULD be introduced by adding a
   `merge_group:` trigger to `ci.yml` and requiring `ci-gate` on
@@ -247,8 +304,19 @@ until that tension is resolved.
   speculative rebase produces a stale `index.json` and ejects the PR —
   amplifying churn instead of reducing it. This ordering constraint is a
   hard dependency, not a preference.
+- **FR-006a** *(implemented)*: The complementary cheap guard from User
+  Story 2 — a duplicate-numeric-id registry lint — is implemented as
+  spec-compiler **V-032** (error severity, flips `validation.passed`). It
+  flags any leading numeric prefix (`NNN`) claimed by two or more specs, so
+  the spec-id-186 collision class hard-fails the build (and, once the queue
+  is enabled, the speculative merge of the two colliding PRs) rather than
+  shipping a corpus with a duplicate handle. Resolution status of FR-005's
+  `merge_group:` trigger: **the trigger is added to `ci.yml`** (the routed
+  suite runs full on the speculative tree); *requiring* `ci-gate` on
+  `merge_group` is the branch-protection ops step, intentionally left to an
+  admin so FR-006's ordering holds (the trigger is inert until then).
 
-### Functional Requirements — Phase 3 (designed, NOT implemented, gated on §spec-184 tension)
+### Functional Requirements — Phase 3 (IMPLEMENTED 2026-05-30 — §spec-184 tension resolved by re-homing, path 1)
 
 - **FR-007**: Index freshness SHOULD move from a required per-PR gate to a
   post-merge heal: a `push: main` job runs `make registry` and commits the
@@ -300,6 +368,47 @@ decided, not now):
 This spec does **not** enact either. It records the trade so the decision
 is informed.
 
+### Resolution (enacted 2026-05-30, Phase 3)
+
+**Path 1 (re-home the block) was chosen.** The decision: preserve spec 184's
+PR-time blocking property on a *narrow* surface while the *broad* index
+freshness moves post-merge.
+
+Mechanism, as implemented:
+
+1. **Narrow sub-hash.** The index gains `build.claudeConfigHash` — a SHA-256
+   over ONLY `.claude/settings.json` + `.mcp.json` — independent of the broad
+   `contentHash` (schema 2.2.0 → 2.3.0, additive). A new
+   `codebase-indexer check-config` subcommand verifies just that slice
+   (spec 101 FR-12). Wired as the constitutional `ci-config-hash.yml` PR
+   workflow, it runs on `pull_request` **and** `merge_group`. Because the
+   slice depends only on the two files a config PR controls, it is
+   merge-queue-safe (FR-006): an unrelated code PR ahead of it in the queue
+   cannot make it stale. *Why a sub-hash and not "run the broad check on
+   `pull_request` only": the broad hash depends on every other queued PR's
+   inputs, so it would re-introduce the speculative-rebase ejection FR-006
+   exists to eliminate, precisely for the trust-critical config path.*
+
+2. **Broad freshness → post-merge heal.** `cd-index-heal.yml` (push: `main`)
+   regenerates and commits `index.json` under a bot identity, with
+   `paths-ignore: ['.derived/**']` to avoid a heal loop.
+
+3. **Back-door corollary (FR-009).** The heal must NOT silently absorb config
+   drift, or it would defeat the narrow gate from behind: a config edit that
+   reached `main` unacknowledged would be quietly regenerated-and-committed —
+   "healed quietly", the exact thing 184 was built to stop. So the heal runs
+   `check-config` **first** and **fails loud** on a config-slice delta
+   (treating it as an incident — the PR gate was bypassed) rather than
+   committing over it. Config must be *impossible to merge dirty*, not merely
+   *impossible to persist dirty*.
+
+This satisfies SC-005 ("preserved"): the guarantee is unchanged; only the
+enforcement mechanism narrowed. Specs 101, 177, and 184 carry the
+corresponding amendments (spec 188 `amends:` all three). The originally-feared
+envelope-version / schema-parity ripple (specs 189/190/191) does **not**
+apply: those gate the OPC↔stagecraft WebSocket duplex protocol version, not
+the codebase-index schema, which lives in a separate validation system.
+
 ## Success Criteria
 
 - **SC-001**: With the Phase 1 driver registered, a rebase whose only
@@ -309,26 +418,35 @@ is informed.
   manual `index.json` conflict resolutions across the set (down from
   O(N²)). *(Phase 1.)*
 - **SC-003**: A pair of PRs that each add a spec claiming the same id is
-  blocked before reaching `main`. *(Phase 2.)*
+  blocked before reaching `main`. *(Phase 2 — satisfied two ways: V-032
+  hard-fails the spec-compiler build on any shared numeric prefix
+  (implemented + tested now); and once the merge queue is enabled, its
+  speculative build of the two PRs together fails the second.)*
 - **SC-004**: After a merge to `main`, the committed `index.json` on
   `main` matches a fresh recompute (the present-on-clone invariant holds),
-  with no per-PR freshness obligation. *(Phase 3.)*
+  with no per-PR freshness obligation. *(Phase 3 — implemented via the
+  `cd-index-heal.yml` post-merge heal.)*
 - **SC-005**: The PR-time guarantee that a `.claude/settings.json` /
   `.mcp.json` edit cannot merge unacknowledged is preserved (or
-  explicitly and documentedly re-homed). *(Phase 3 / FR-009.)*
+  explicitly and documentedly re-homed). *(Phase 3 / FR-009 — satisfied:
+  preserved, re-homed to the narrow `check-config` / `ci-config-hash` gate;
+  the heal's fail-loud config guard closes the back door.)*
 
 ## Phased delivery
 
 | Phase | Scope | Status | Risk |
 |-------|-------|--------|------|
 | 1 | `oap-index-regen` merge driver + `.gitattributes` + `make setup` registration | **Implemented in this change** | low |
-| 2 | GitHub merge queue (`merge_group:` + `ci-gate`) | Designed only | low–medium |
-| 3 | Staleness gate → post-merge heal on `main` | Designed only, **gated on §spec-184 tension** | medium |
+| 2 | GitHub merge queue (`merge_group:` trigger) + duplicate-id lint (V-032) | **Implemented in code 2026-05-30**; merge-queue *enablement* is an ops step | low–medium |
+| 3 | Broad staleness → post-merge heal + narrow `check-config` PR gate | **Implemented 2026-05-30** (re-homing, path 1; FR-007/008/009) | medium |
 
-Phase 1 is the agreed first step and lands now. Phases 2 and 3 are
-recorded here as the design of record; each will be promoted to
-implementation in its own change, Phase 2 strictly after Phase 3 (FR-006),
-and Phase 3 strictly after the §spec-184 tension is resolved (FR-009).
+Phase 1 landed first. Phase 3 lands next (this change), now that the
+§spec-184 tension is resolved (FR-009). Phase 2 follows in the same branch's
+next commit — code-safe to land alongside Phase 3 because the `merge_group:`
+trigger is **inert until a repo admin enables the merge queue** in branch
+protection, so FR-006's "Phase 2 strictly after Phase 3" is honoured as an
+*ops* ordering (don't enable the queue until Phase 3 is on `main`), not a
+code-merge ordering.
 
 ## Relationships
 
