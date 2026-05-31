@@ -20,6 +20,7 @@
 //! certificate are tracked as follow-up specs.
 
 pub mod certificate;
+pub mod checkpoint;
 pub mod error;
 pub mod persistence;
 pub mod pipeline;
@@ -27,6 +28,7 @@ pub mod promotion;
 pub mod stages;
 pub mod types;
 
+pub use checkpoint::{CheckpointSink, FsCheckpointSink, NoopCheckpointSink};
 pub use error::PipelineError;
 pub use persistence::{RunDirectory, list_runs, load_run};
 pub use pipeline::PipelineRunner;

@@ -172,6 +172,14 @@ pub struct PipelineRun {
     /// SHA-256 hex of the synthesiser's prompt template (spec 165 §2.3).
     #[serde(default)]
     pub prompt_template_hash: String,
+    /// Branch-of-thought anchor (the evidence base, stages 1-5) this run's
+    /// synthesis forked from (spec 165 §2.2). Empty when checkpointing is
+    /// disabled (`NoopCheckpointSink`).
+    #[serde(default)]
+    pub checkpoint_anchor_id: String,
+    /// Branch-of-thought trajectory id for this run's synthesis (§2.2).
+    #[serde(default)]
+    pub checkpoint_trajectory_id: String,
 }
 
 pub const PIPELINE_RUN_SCHEMA_VERSION: &str = "0.1.0";

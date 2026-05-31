@@ -150,6 +150,34 @@ fn second_run_over_unchanged_tree_caches_deterministic_stages() {
 }
 
 #[test]
+fn runs_over_same_evidence_share_anchor_distinct_trajectories() {
+    // §2.2 branch-of-thought: two synthesis runs over the same evidence base
+    // fork from one shared anchor as distinct trajectories.
+    let project = tempfile::tempdir().unwrap();
+    fixture_project(project.path());
+    let output_root = project.path().join(".opc").join("decomposition");
+    let cfg = || PipelineConfig {
+        project_root: project.path().to_path_buf(),
+        knowledge_bundle: None,
+        output_root: output_root.clone(),
+        embeddings_enabled: false,
+    };
+    let r1 = PipelineRunner::new(cfg()).run().unwrap();
+    let r2 = PipelineRunner::new(cfg()).run().unwrap();
+
+    assert!(!r1.checkpoint_anchor_id.is_empty(), "run should record an anchor");
+    assert!(!r1.checkpoint_trajectory_id.is_empty(), "run should record a trajectory");
+    assert_eq!(
+        r1.checkpoint_anchor_id, r2.checkpoint_anchor_id,
+        "same evidence base must reuse the anchor"
+    );
+    assert_ne!(
+        r1.checkpoint_trajectory_id, r2.checkpoint_trajectory_id,
+        "distinct runs must be distinct trajectories"
+    );
+}
+
+#[test]
 fn tree_change_invalidates_the_cache() {
     // FR-007 guard: a changed working tree must NOT reuse cached stages.
     let project = tempfile::tempdir().unwrap();

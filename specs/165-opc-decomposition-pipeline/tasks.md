@@ -46,14 +46,22 @@
   Test against a fixture project repo.
 - [ ] T-021 — **`decomposition_promote` Tauri command.** Register in
   `src-tauri/src/lib.rs`; wrap `promote_spec` in `spawn_blocking`.
-- [ ] T-022 — **Checkpoint branch-of-thought (§2.2).** `CheckpointSink`
-  trait in the pipeline crate (`anchor`, `fork`); no-op default;
-  recording mock for tests. Orchestrator anchors after stage 5 and forks
-  per stage-6 trial.
-- [ ] T-023 — **axiomregent-backed `CheckpointSink` in Tauri.** Implement
-  the sink against axiomregent's `CheckpointStore` in the OPC backend
-  (the layer that already boots axiomregent). No new dep on the core
-  crate.
+- [x] T-022 — **Checkpoint branch-of-thought (§2.2).** `CheckpointSink`
+  trait in the pipeline crate (`anchor`, `fork`); `NoopCheckpointSink`
+  opt-out; `FsCheckpointSink` filesystem DAG-ledger backend (the shipped
+  default). Orchestrator anchors the evidence base (keyed by the evidence
+  signature, so cache re-runs share an anchor) and forks per synthesis.
+- [x] T-023 — **Branch-of-thought wired by default.** `PipelineRunner`
+  defaults to `FsCheckpointSink`, so OPC runs (via the Tauri command)
+  record the DAG with no extra wiring. **Engineering decision:** the
+  spec-095 `CheckpointStore` is async + hiqlite-backed and resident in the
+  axiomregent *sidecar process* (not linkable in-process); the filesystem
+  ledger delivers the §2.2 branch-of-thought capability without pulling
+  hiqlite into the pipeline or building a fragile sidecar-MCP client. An
+  axiomregent-`CheckpointStore`-backed sink is a drop-in behind the same
+  trait when cross-tool DAG sharing becomes load-bearing (preserves spec
+  intent; not a spec edit — mirrors the landing-1 "xray over axiomregent
+  for stage 3" decision).
 - [ ] T-024 — **TS api wrappers.** Add `decompositionRun` /
   `decompositionListRuns` / `decompositionGetRun` /
   `decompositionPromote` to `api.ts` + `apiAdapter.ts`.

@@ -13,6 +13,7 @@ use std::path::PathBuf;
 
 use chrono::Utc;
 
+use crate::checkpoint::{CheckpointSink, FsCheckpointSink};
 use crate::error::PipelineError;
 use crate::persistence::{self, RunDirectory};
 use crate::stages::synthesis::{DeterministicSynthesiser, Synthesiser};
@@ -45,25 +46,38 @@ struct ReusablePrior {
 pub struct PipelineRunner {
     config: PipelineConfig,
     synthesiser: Box<dyn Synthesiser>,
+    checkpoint: Box<dyn CheckpointSink>,
 }
 
 impl PipelineRunner {
     /// Construct a runner with the default deterministic, CI-safe stage-6
-    /// synthesiser. Use [`PipelineRunner::with_synthesiser`] to inject an
-    /// LLM-backed backend.
+    /// synthesiser and a filesystem branch-of-thought ledger. Use
+    /// [`PipelineRunner::with_synthesiser`] / [`PipelineRunner::with_checkpoint`]
+    /// to inject alternatives.
     pub fn new(config: PipelineConfig) -> Self {
+        let checkpoint = Box::new(FsCheckpointSink::new(config.output_root.clone()));
         Self {
             config,
             synthesiser: Box::new(DeterministicSynthesiser),
+            checkpoint,
         }
     }
 
     /// Construct a runner with an explicit stage-6 synthesiser backend.
     pub fn with_synthesiser(config: PipelineConfig, synthesiser: Box<dyn Synthesiser>) -> Self {
+        let checkpoint = Box::new(FsCheckpointSink::new(config.output_root.clone()));
         Self {
             config,
             synthesiser,
+            checkpoint,
         }
+    }
+
+    /// Inject a branch-of-thought sink (e.g. [`crate::NoopCheckpointSink`] to
+    /// disable recording, or an axiomregent-backed sink).
+    pub fn with_checkpoint(mut self, checkpoint: Box<dyn CheckpointSink>) -> Self {
+        self.checkpoint = checkpoint;
+        self
     }
 
     pub fn config(&self) -> &PipelineConfig {
@@ -111,9 +125,21 @@ impl PipelineRunner {
             }
         }
 
+        // §2.2: anchor the evidence base (stages 1-5) so each synthesis is a
+        // trajectory forked from it. The anchor is keyed by the evidence
+        // signature, so re-runs over an unchanged tree fork from the same
+        // anchor — the branch-of-thought DAG.
+        let evidence_key = format!("{tree_signature}\0{knowledge_signature}");
+        let checkpoint_anchor_id = self.checkpoint.anchor(&evidence_key, run_id.as_str())?;
+
         let synth = synthesis::run(&self.config, &run_dir, self.synthesiser.as_ref())?;
         stages.push(synth.record);
         let emitted_specs = synth.emitted;
+
+        let fork_label = format!("{} @ {}", synth.synthesiser_identity, run_id);
+        let checkpoint_trajectory_id =
+            self.checkpoint
+                .fork(&checkpoint_anchor_id, run_id.as_str(), &fork_label)?;
 
         let completed_at = Utc::now();
         let manifest = PipelineRun {
@@ -129,6 +155,8 @@ impl PipelineRunner {
             knowledge_signature,
             synthesiser_identity: synth.synthesiser_identity,
             prompt_template_hash: synth.prompt_template_hash,
+            checkpoint_anchor_id,
+            checkpoint_trajectory_id,
         };
         run_dir.write_manifest(&manifest)?;
 
