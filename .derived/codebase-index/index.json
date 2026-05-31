@@ -1,7 +1,7 @@
 {
   "build": {
     "claudeConfigHash": "bcb796feadcedb0babc2dba9767edf47923f6f7ff84b46a9933f76a2f8770ac2",
-    "contentHash": "aec988d63ed98abee72f32a73f7cd1df8fafdb18ce49e2af94beccb5c68296de",
+    "contentHash": "58285974e1ce0854ecda6770de29ca315a241dea437f43e6fb08008ad86a585c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -37541,6 +37541,9 @@
         "specStatus": "approved"
       },
       {
+        "amends": [
+          "104-makefile-ci-parity-contract"
+        ],
         "dependsOn": [
           "104",
           "116",
@@ -37569,6 +37572,20 @@
             "unit": {
               "kind": "file",
               "path": ".github/workflows/ci.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ai-pr-review.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ai-pr-review.yml"
             }
           },
           {
