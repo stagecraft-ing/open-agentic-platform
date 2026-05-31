@@ -2,8 +2,8 @@
 id: "180-opc-shell-codification"
 slug: opc-shell-codification
 title: "OPC shell codification — broad authority on the un-bound desktop shell, narrow Tier 1 invariants on the tab/IPC seam"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-24"
 kind: governance
@@ -48,6 +48,37 @@ establishes:
   - unit: { kind: file, path: product/apps/opc/src/components/UsageDashboard.tsx }
   - unit: { kind: file, path: product/apps/opc/src/components/TabManager.tsx }
   - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/usage.rs }
+  # Phase 2 — Tier 2 (FR-T8/T9). The benches/ tree and the ci-opc-bench.yml
+  # reusable workflow are inaugurated by this spec; declaring them closes the
+  # authority seam so `registry-consumer by-authority` returns 180, not silence
+  # (the §2 note pre-authorised this follow-up amendment once benches/ existed).
+  - unit: { kind: directory, path: product/apps/opc/src-tauri/benches }
+  - unit: { kind: file, path: .github/workflows/ci-opc-bench.yml }
+extends:
+  # Phase 2 adds the opc-bench job + paths-filter route + ci-gate need to
+  # ci.yml — an additive extension of spec 177's orchestrator. The coupling
+  # gate bypasses .github/ (spec 152 §3.2), so this edge is for honest graph
+  # representation / registry-consumer discoverability, mirroring specs 188/191.
+  - spec: "177-ci-orchestrator-pr-gate"
+    nature: additive
+    unit: { kind: file, path: .github/workflows/ci.yml }
+  # Phase 2 adds the criterion/filetime dev-deps, the [[bench]] target, and a
+  # dedicated [profile.bench] to the opc package manifest for FR-T8 — an
+  # additive extension of spec 032's package manifest (032 stays primary
+  # owner per §10; this is the same additive-deps shape 064/065/076/119/165/
+  # 172/178 already use on this file), satisfying the coupling gate for the
+  # manifest edit without displacing the primary-owner claim.
+  - spec: "032-opc-inspect-governance-wiring-mvp"
+    nature: additive
+    unit: { kind: file, path: product/apps/opc/src-tauri/Cargo.toml }
+  # Adding spec 180's relationship-graph rows (and the Phase 2 establishes/
+  # extends edges) changes spec 180's entry in the featuregraph golden
+  # fixture (owned by spec 034). This additive extension claims that fixture
+  # path, the same shape specs 188/190/191 use when their registry rows move
+  # the golden — so regenerating the golden is coupling-satisfied here.
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "tab-list-reconciliation-discipline"
     unit: { kind: file, path: product/apps/opc/src/components/TabContent.tsx }
