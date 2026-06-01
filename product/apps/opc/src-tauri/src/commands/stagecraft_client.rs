@@ -221,7 +221,11 @@ impl StagecraftClient {
     /// access/refresh pair. Returns Ok only when the new bearer is live;
     /// callers retry the failing request once on success and surface the
     /// original 401 on failure.
-    async fn refresh_jwt(&self) -> Result<(), StagecraftError> {
+    ///
+    /// `pub(crate)` so the duplex sync consumer (spec 110 / 183) can drive the
+    /// same silent refresh when its WebSocket upgrade is rejected 401, rather
+    /// than retrying an expired bearer forever.
+    pub(crate) async fn refresh_jwt(&self) -> Result<(), StagecraftError> {
         let refresh_token = keyring::Entry::new("dev.opc.stagecraft", "refresh_token")
             .ok()
             .and_then(|e| e.get_password().ok())

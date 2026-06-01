@@ -394,3 +394,15 @@ not a footnote.
   directive" case: a client synthesising `factory.run.request` on the
   inbox must fail `isClientEnvelope`. This encodes the authority
   invariant at the guard layer, not only at the schema layer.
+- *Amended 2026-06-01 (duplex auth lifecycle):* the `sync_client.rs`
+  reconnect loop resolves its bearer JWT at connect time from the shared OS
+  keychain (`StagecraftClient`) rather than from a launch-time snapshot, and
+  on a 401 during the WebSocket upgrade it drives the same silent Rauthy
+  refresh the REST path uses (`StagecraftClient::refresh_jwt`, now
+  `pub(crate)`) before retrying. The consumer now spawns whenever a Stagecraft
+  base URL is configured — without requiring a token at launch — and idles on
+  a short poll until sign-in writes a session to the keychain. Previously the
+  loop baked the launch-time token into `SyncClientConfig.auth_token` and
+  retried that exact value forever, so an expired access token produced an
+  unrecoverable `401 → 60s backoff → 401` loop and `sync.hello` never
+  arrived. See spec 183 §3.2 for the boot-gate symptom this closed.

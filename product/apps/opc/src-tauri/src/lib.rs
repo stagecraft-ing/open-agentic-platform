@@ -245,9 +245,12 @@ pub fn run() {
                     log::info!("Restored Stagecraft auth token from OS keychain");
                 }
 
-                // Spec 110 Phase 2: duplex sync consumer. Only spawn when a
-                // base URL is configured AND a JWT is loaded — the stream
-                // requires auth. Reconnects are handled internally.
+                // Spec 110 Phase 2: duplex sync consumer. Spawn whenever a base
+                // URL is configured — the JWT is resolved (and refreshed) at
+                // connect time from the shared keychain, not snapshotted here,
+                // so a consumer started before sign-in or with an expired token
+                // recovers on its own instead of wedging the boot gate (spec
+                // 183). Reconnects and token refresh are handled internally.
                 let sync_state = SyncClientState::new();
                 // Stable OPC instance identity used in factory.run.ack frames
                 // (spec 110 §2.2): reuse the sync client id so logs in the
@@ -255,27 +258,30 @@ pub fn run() {
                 let opc_instance_id = std::env::var("OPC_SYNC_CLIENT_ID")
                     .unwrap_or_else(|_| uuid::Uuid::new_v4().to_string());
                 if let Some(ref client) = sc
-                    && let Some(token) = client.auth_token()
                     && !base_url.is_empty()
                 {
                     let config = SyncClientConfig {
                         base_url: client.base_url().to_string(),
                         client_id: opc_instance_id.clone(),
                         client_version: Some(env!("CARGO_PKG_VERSION").to_string()),
-                        auth_token: token,
                     };
+                    // Auth handle for the reconnect loop. A clone carries its
+                    // own in-memory token cell but is backed by the same OS
+                    // keychain, which is the shared source of truth the loop
+                    // reloads/refreshes against (spec 110 / 183).
+                    let auth = client.clone();
                     let handle = app.handle().clone();
                     tauri::async_runtime::spawn(async move {
                         let state = handle.state::<SyncClientState>();
                         // Spec 183 FR-T5(b) — AppHandle threaded into the
                         // reconnect loop so it can emit the precondition-
                         // loss event when the give-up threshold is crossed.
-                        state.spawn(config, handle.clone()).await;
+                        state.spawn(config, auth, handle.clone()).await;
                     });
                     log::info!("sync_client: duplex consumer starting");
                 } else {
                     log::info!(
-                        "sync_client: duplex consumer disabled (no base URL or JWT yet)"
+                        "sync_client: duplex consumer disabled (no Stagecraft base URL configured)"
                     );
                 }
                 app.manage(sync_state);

@@ -293,6 +293,22 @@ concern. (The desktop constant lagged at 1 while the server moved to 2;
 spec 183's gate is what turned that latent skew — previously a silent
 dropped frame — into a hard, observable boot block.)
 
+**FR-T2(b) token liveness (binding, amended 2026-06-01).** Receipt of
+`sync.hello` also presupposes the duplex upgrade is *authorized*. The consumer
+attaches a Rauthy bearer JWT to the WebSocket handshake; stagecraft's Encore
+gateway rejects a missing/expired/invalid token with HTTP 401 *before* the
+socket opens, so (b) can never flip. The duplex consumer therefore resolves
+its bearer at connect time from the shared OS keychain and, on a 401, drives a
+silent Rauthy refresh (`StagecraftClient::refresh_jwt`) before retrying —
+recovering an expired access token without user action as long as the refresh
+token is still valid. It also spawns whenever a Stagecraft base URL is
+configured (idling until sign-in materialises a session) rather than requiring
+a token at launch. Before this, an expired access token loaded from the
+keychain wedged the org-session gate in an unrecoverable `401 → backoff → 401`
+loop with `sync.hello` never received — the precise hang this gate made
+observable. Sites: `sync_client.rs::run_forever` / `connect_and_run`, `lib.rs`
+(consumer spawn), `stagecraft_client.rs::refresh_jwt`.
+
 **Files FR-T2 binds on:**
 - `product/apps/opc/src-tauri/src/commands/stagecraft_client.rs` —
   org_id residence + the verified-receipt flag.
