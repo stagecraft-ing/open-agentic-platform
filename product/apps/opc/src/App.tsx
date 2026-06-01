@@ -470,7 +470,11 @@ function AppContent() {
           BootGate internally surfaces sidecar status, sign-in / org-selection
           affordances, logs entrypoint, and Quit. authStatus is consumed
           inside BootGate, not branched here. */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div
+        className="flex-1 overflow-hidden flex flex-col"
+        data-testid="opc-phase"
+        data-phase={bootGateOpen ? "cockpit" : "boot"}
+      >
         {bootGateOpen ? (
           renderContent()
         ) : (

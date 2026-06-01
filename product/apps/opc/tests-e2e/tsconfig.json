@@ -13,5 +13,10 @@
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["harness/**/*.ts", "fixtures/**/*.ts", "*.ts"]
+  // Local typecheck scope: the pure-Node harness primitives + the driver
+  // abstraction (no wdio dep). wdio.conf.ts and fixtures/** import the
+  // WebdriverIO toolchain, which the nightly workflow installs and exercises
+  // (FR-T5); they are intentionally outside the local typecheck.
+  "include": ["harness/**/*.ts"],
+  "exclude": ["node_modules", "fixtures", "wdio.conf.ts"]
 }
