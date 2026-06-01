@@ -2,8 +2,8 @@
 id: "187-opc-e2e-test-harness"
 slug: opc-e2e-test-harness
 title: "OPC end-to-end test harness — built-binary driver, mock-stagecraft, process-tree introspection"
-status: draft
-implementation: pending
+status: approved
+implementation: in-progress
 owner: bart
 created: "2026-05-26"
 kind: capability
@@ -19,6 +19,14 @@ depends_on:
   - "183"  # opc-boot-precondition-gate (the canonical first consumer — AC-7/8/9 were deferred to this harness)
 code_aliases:
   - "OPC_E2E_HARNESS"
+establishes:
+  # Implementation-time amendment (spec 187 §2): these paths now exist on
+  # disk, so the establishes: units the §2 enumeration mandated are declared
+  # here. `registry-consumer by-authority <path>` now returns this spec.
+  - unit: { kind: directory, path: product/apps/opc/tests-e2e }
+  - unit: { kind: directory, path: product/apps/opc/tests-e2e/harness }
+  - unit: { kind: directory, path: product/apps/opc/tests-e2e/fixtures }
+  - unit: { kind: file, path: .github/workflows/opc-e2e-nightly.yml }
 extends:
   # Mechanical featuregraph-golden refresh required by spec 177
   # ci-orchestrator-pr-gate atomicity contract — any new spec
@@ -28,6 +36,13 @@ extends:
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+  # FR-T1 needs a WebDriver-observable marker for the BootGate<->Cockpit
+  # transition. App.tsx's boot-gate branch is governed by spec 183; this is a
+  # render-neutral data-testid="opc-phase"/data-phase additive touch (no
+  # behavioral change), so it extends 183 rather than amending it.
+  - spec: "183-opc-boot-precondition-gate"
+    nature: additive
+    unit: { kind: file, path: product/apps/opc/src/App.tsx }
 references:
   - role: deferral-source
     unit: { kind: file, path: specs/183-opc-boot-precondition-gate/spec.md }
@@ -90,12 +105,12 @@ This spec will **establish** new test infrastructure under a new
 root directory once that directory is created during implementation.
 The directory layout below is deliberate so consumer specs can add
 their AC fixtures alongside without entangling load-bearing harness
-primitives. All four paths below are mandated by this spec but NOT
-yet declared in `establishes:` because they do not exist on disk
-(spec 154 §3.5 hard-errors on missing-directory units at compile
-time, same pattern as spec 180 §3 for the benches/ directory). A
-follow-up frontmatter amendment to this spec lands at implementation
-time alongside the directory creation.
+primitives. All four paths below are mandated by this spec. They were
+held out of `establishes:` while they did not yet exist on disk (spec
+154 §3.5 hard-errors on missing-directory units at compile time, same
+pattern as spec 180 §3 for the benches/ directory); the
+implementation-time amendment that created them now declares the
+`establishes:` units in the frontmatter above.
 
 - `product/apps/opc/tests-e2e/` — the harness root.
 - `product/apps/opc/tests-e2e/harness/` — the load-bearing harness
@@ -220,8 +235,15 @@ per-PR. The canonical landing is a nightly job
 
 (a) runs at a fixed schedule (cron) AND on workflow_dispatch;
 
-(b) builds OPC across the supported targets matrix (the same targets
-as the per-PR `desktop / rust` matrix);
+(b) builds OPC across the supported targets matrix — the
+WebDriver-capable subset of the release matrix. `tauri-driver` has a
+Linux (WebKitWebDriver) / Windows (Edge) backend but **no macOS
+WKWebView backend**, so the per-PR `desktop / rust` target
+(aarch64-apple-darwin) cannot execute the WebView path; the nightly
+builds + drives on Linux today, with Windows as future work (§8).
+*(Implementation finding: the original "same targets as the per-PR
+desktop/rust matrix" wording assumed that matrix was WebDriver-capable;
+macOS-only, it is not.)*;
 
 (c) executes all registered AC fixtures against each target's
 binary;
@@ -350,15 +372,40 @@ absence of a skip flag, not a flake-rate ceiling.
   `.github/workflows/opc-e2e-nightly.yml`, is SHA-pinned per spec
   158, and triggers on schedule + workflow_dispatch.
 - **AC-9.** Spec 183's AC-7, AC-8, AC-9 are migrated to harness
-  fixtures under `product/apps/opc/tests-e2e/fixtures/183/` and pass
-  in the nightly run. This is the load-bearing assertion that the
-  harness's first consumer is honored — the deferral pattern is
-  retired only when the deferred ACs run.
+  fixtures under `product/apps/opc/tests-e2e/fixtures/183/`. **AC-7**
+  (boot stays sticky when stagecraft is unreachable) and **AC-9** (no
+  orphan axiomregent after Quit) are migrated and registered in the
+  nightly run; neither requires sign-in. Both are *verified by the
+  first green nightly* — they have never executed locally, because
+  tauri-driver has no macOS WebView backend and the binary-driving
+  fixtures run only on Linux (FR-T5). **AC-8** (cockpit reverts to
+  `<BootGate>` on sidecar kill) is migrated as a `describe.skip` with a
+  recorded reason (FR-T6 "manual-only" path — NOT a flake skip): it
+  begins "from a fully-signed-in cockpit", and reaching that state
+  headlessly is not yet possible. *Precise cause:* OPC sign-in is a full
+  GitHub OAuth/PKCE browser flow against Rauthy
+  (`product/apps/opc/src-tauri/src/commands/auth.rs`) with no dev bypass,
+  and `org_session_ready` requires a materialised `org_id`; no
+  headless auth-state seeding exists. The follow-up
+  `[[opc-e2e-auth-state-seeding]]` adds the seeding helper and un-skips
+  AC-8. This is a precise-cause staging finding, not a weakening of the
+  claim: the deferral pattern is retired for AC-7/AC-9 now and for AC-8
+  when seeding lands.
 
 AC-1 through AC-4 are spec-shape gates and ride per-PR. AC-5 through
 AC-9 are implementation gates that ride post-implementation; they
 gate the harness's `implementation: complete` flip, not this spec's
 `status: approved` flip.
+
+The landing PR therefore flips `status: approved` (AC-1..AC-4 met) and
+holds `implementation: in-progress`. The binary-driving paths
+(AC-5/AC-7/AC-9) have never executed end-to-end — by FR-T5 they run
+only in the post-merge Linux nightly — so asserting
+`implementation: complete` at PR time would claim completion of code
+that has never run. `implementation: complete` is deferred to a small
+follow-up PR after the first green nightly confirms AC-5/AC-7/AC-9
+pass on Linux. That second PR is the verification gate working as
+designed, not friction.
 
 ## 7. Out of scope (and why)
 
@@ -380,6 +427,14 @@ gate the harness's `implementation: complete` flip, not this spec's
 
 ## 8. Future work
 
+- `[[opc-e2e-auth-state-seeding]]` — a `seedSignedInSession` helper
+  (seed the keychain `session` token + a materialised `org_id`; the mock
+  duplex already accepts any bearer) plus a `killProcess({name})` helper,
+  so the spec-183 AC-8 fixture (cockpit → sidecar kill → `<BootGate>`)
+  can run in the nightly. Un-skips
+  `fixtures/183/ac8-precondition-loss.e2e.ts`. Blocking cause recorded in
+  §6 AC-9; this is the prerequisite for flipping `implementation:
+  complete`.
 - `[[opc-e2e-fast-pre-merge-subset]]` — proposal to opt a small
   subset of fixtures into per-PR runs once the nightly cadence has
   established a non-flaky baseline. Amends FR-T5.

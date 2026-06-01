@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "9fc1b73cf0b38bf810d64a8957763735b594298303ad65e26b8dc3a73bdd8141",
+    "contentHash": "09ec231d65ab22881d2e645f61cfcda9ec2522b3009a95e6bcc4e9cdac579d17",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -12073,6 +12073,60 @@
                 "file": "product/apps/opc/src/vite-env.d.ts"
               },
               {
+                "file": "product/apps/opc/tests-e2e/.gitignore"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac7-boot-sticky.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac8-precondition-loss.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac9-no-orphan-on-quit.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/_session.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package-lock.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/tsconfig.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.config.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.e2e.config.ts"
+              },
+              {
                 "file": "product/apps/opc/tsconfig.json"
               },
               {
@@ -13207,6 +13261,60 @@
               },
               {
                 "file": "product/apps/opc/src/vite-env.d.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/.gitignore"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac7-boot-sticky.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac8-precondition-loss.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac9-no-orphan-on-quit.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/_session.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package-lock.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/tsconfig.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.config.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.e2e.config.ts"
               },
               {
                 "file": "product/apps/opc/tsconfig.json"
@@ -15385,6 +15493,60 @@
                 "file": "product/apps/opc/src/vite-env.d.ts"
               },
               {
+                "file": "product/apps/opc/tests-e2e/.gitignore"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac7-boot-sticky.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac8-precondition-loss.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac9-no-orphan-on-quit.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/_session.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package-lock.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/tsconfig.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.config.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.e2e.config.ts"
+              },
+              {
                 "file": "product/apps/opc/tsconfig.json"
               },
               {
@@ -17134,6 +17296,60 @@
               },
               {
                 "file": "product/apps/opc/src/vite-env.d.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/.gitignore"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac7-boot-sticky.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac8-precondition-loss.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac9-no-orphan-on-quit.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/_session.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package-lock.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/tsconfig.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.config.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.e2e.config.ts"
               },
               {
                 "file": "product/apps/opc/tsconfig.json"
@@ -21502,6 +21718,9 @@
                 "file": ".github/workflows/ci.yml"
               },
               {
+                "file": ".github/workflows/opc-e2e-nightly.yml"
+              },
+              {
                 "file": ".github/workflows/release-axiomregent.yml"
               },
               {
@@ -23522,6 +23741,60 @@
               },
               {
                 "file": "product/apps/opc/src/vite-env.d.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/.gitignore"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac7-boot-sticky.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac8-precondition-loss.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac9-no-orphan-on-quit.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/_session.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package-lock.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/tsconfig.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.config.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.e2e.config.ts"
               },
               {
                 "file": "product/apps/opc/tsconfig.json"
@@ -39161,6 +39434,60 @@
                 "file": "product/apps/opc/src/vite-env.d.ts"
               },
               {
+                "file": "product/apps/opc/tests-e2e/.gitignore"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac7-boot-sticky.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac8-precondition-loss.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac9-no-orphan-on-quit.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/_session.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package-lock.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/tsconfig.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.config.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.e2e.config.ts"
+              },
+              {
                 "file": "product/apps/opc/tsconfig.json"
               },
               {
@@ -42015,11 +42342,168 @@
         ],
         "implementingPaths": [
           {
+            "path": ".github/workflows/opc-e2e-nightly.yml",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src/App.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/tests-e2e",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/tests-e2e/fixtures",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/tests-e2e/harness",
             "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/tests-e2e/.gitignore"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac7-boot-sticky.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac8-precondition-loss.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac9-no-orphan-on-quit.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/_session.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package-lock.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/package.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/tsconfig.json"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.config.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/vitest.e2e.config.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/tests-e2e"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac7-boot-sticky.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac8-precondition-loss.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/183/ac9-no-orphan-on-quit.e2e.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/fixtures/_session.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/tests-e2e/fixtures"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/driver.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/process_tree.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.test.ts"
+              },
+              {
+                "file": "product/apps/opc/tests-e2e/harness/wait.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/tests-e2e/harness"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/opc-e2e-nightly.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/opc-e2e-nightly.yml"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -42038,6 +42522,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "product/apps/opc/src/App.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src/App.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "specs/183-opc-boot-precondition-gate/spec.md"
               }
             ],
@@ -42050,7 +42548,7 @@
           }
         ],
         "specId": "187-opc-e2e-test-harness",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "amends": [
