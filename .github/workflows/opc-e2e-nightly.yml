@@ -1,0 +1,151 @@
+# Spec: 187-opc-e2e-test-harness
+# Spec: 158-workflow-ref-sha-pinning-lint
+#
+# OPC end-to-end harness -- nightly (FR-T5). This is NOT a required per-PR
+# check: consuming specs opt their fixtures in; the default posture is
+# post-merge nightly so the per-PR runtime budget (spec 134) is not eroded.
+#
+# Target: Linux only. tauri-driver has a WebKitWebDriver (Linux) / Edge
+# (Windows) backend but NO macOS WebView backend, so the per-PR desktop/rust
+# matrix target (aarch64-apple-darwin) cannot run the WebView path. The harness
+# therefore runs on the WebDriver-capable subset of the release matrix; Windows
+# is future work (spec 187 FR-T5 note + §8). All `uses:` are SHA-pinned to the
+# same refs the rest of the repo uses (spec 158).
+name: OPC E2E Nightly
+
+on:
+  schedule:
+    # 06:23 UTC daily, offset from ci-opc-bench's 07:17 nightly report.
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write # FR-T5(e): file a regression issue on failure
+
+concurrency:
+  group: opc-e2e-nightly
+  cancel-in-progress: false
+
+env:
+  TARGET: x86_64-unknown-linux-gnu
+
+jobs:
+  e2e-linux:
+    name: e2e / linux (x86_64-unknown-linux-gnu)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # toolchain 1.95.0 lockstep
+        with:
+          toolchain: '1.95.0'
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: |
+            .
+            product/apps/opc/src-tauri
+          shared-key: opc-e2e-nightly-linux
+
+      - uses: pnpm/action-setup@4f4305e1fe60ad818b8ae6fc4a697cc47eab0b2d # v6
+        with:
+          package_json_file: product/package.json
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: product/pnpm-lock.yaml
+
+      - name: Install Linux system dependencies (Tauri + WebKitWebDriver + xvfb)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev \
+            webkit2gtk-driver \
+            xvfb
+
+      # AC-8/AC-9 need a real, killable axiomregent sidecar; AC-7 needs it alive
+      # while stagecraft is unreachable. Build it like release Stage 1 and drop
+      # it where the Tauri build.rs expects the per-target sidecar.
+      - name: Build axiomregent sidecar
+        run: |
+          cargo build --release --manifest-path crates/axiomregent/Cargo.toml
+          mkdir -p product/apps/opc/src-tauri/binaries
+          cp target/release/axiomregent \
+             "product/apps/opc/src-tauri/binaries/axiomregent-${TARGET}"
+          chmod +x "product/apps/opc/src-tauri/binaries/axiomregent-${TARGET}"
+
+      - name: Install frontend dependencies
+        working-directory: product
+        run: pnpm install --frozen-lockfile
+
+      # Build via tauri-action with the Linux conf -- the proven release recipe.
+      # The base tauri.conf.json enables macos-private-api unconditionally, so a
+      # raw `cargo build` on Linux trips build.rs; the Linux conf reconciles it.
+      - name: Build OPC binary (Linux conf)
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: product/apps/opc
+          tauriScript: pnpm tauri
+          args: --config src-tauri/tauri.linux.conf.json
+
+      - name: Install tauri-driver
+        run: cargo install tauri-driver --locked
+
+      # The WebdriverIO toolchain is installed here rather than pinned in the
+      # standalone package's lockfile, keeping it out of the per-PR install.
+      - name: Install e2e harness dependencies
+        working-directory: product/apps/opc/tests-e2e
+        run: |
+          npm install --no-fund --no-audit
+          npm install --no-fund --no-audit --save-dev \
+            webdriverio @wdio/cli @wdio/local-runner @wdio/mocha-framework \
+            @wdio/spec-reporter @types/mocha tsx
+
+      - name: Run e2e fixtures (xvfb + tauri-driver)
+        id: e2e
+        working-directory: product/apps/opc/tests-e2e
+        run: xvfb-run -a npm run test:e2e 2>&1 | tee e2e-output.log
+
+      # FR-T5(d): per-run summary on the CI orchestrator surface (spec 177). The
+      # nightly is non-gating, so it reports via the job summary + artifact
+      # rather than composing into ci-gate.
+      - name: Report summary
+        if: always()
+        run: |
+          {
+            echo "## OPC E2E nightly"
+            echo ""
+            echo "- target: \`${TARGET}\`"
+            echo "- commit: \`${{ github.sha }}\`"
+            echo "- result: ${{ steps.e2e.outcome }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload e2e logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: opc-e2e-nightly-logs
+          path: product/apps/opc/tests-e2e/e2e-output.log
+          if-no-files-found: ignore
+
+      # FR-T5(e) + FR-T6: capture the regression even when no one is watching.
+      - name: Open issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "OPC E2E nightly failed ($(date -u +%F))" \
+            --body "OPC e2e nightly failed on ${{ github.sha }}. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} . Spec 187 FR-T6 forbids flake amnesty -- triage, fix, or move the fixture to manual-only via amendment." \
+            --label e2e || true
