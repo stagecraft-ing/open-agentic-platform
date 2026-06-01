@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "34d24ce31eb803882ea1684c8586817c37f17a85cde9945b75c1a1461e4421d9",
+    "contentHash": "9fc1b73cf0b38bf810d64a8957763735b594298303ad65e26b8dc3a73bdd8141",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -37371,6 +37371,10 @@
         ],
         "implementingPaths": [
           {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/audit/audit.ts",
             "source": "spec-implements"
           },
@@ -37618,6 +37622,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "platform/services/stagecraft/api/audit/audit.ts"
               }
             ],
@@ -37714,7 +37732,7 @@
           }
         ],
         "specId": "175-stagecraft-project-dashboard-observability",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "amends": [
