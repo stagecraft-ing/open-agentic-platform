@@ -406,3 +406,14 @@ not a footnote.
   retried that exact value forever, so an expired access token produced an
   unrecoverable `401 → 60s backoff → 401` loop and `sync.hello` never
   arrived. See spec 183 §3.2 for the boot-gate symptom this closed.
+- *Amended 2026-06-01 (reconnect-loop hardening):* `run_forever` now
+  distinguishes a *recoverable* 401 from a *genuine* failure. A 401 whose
+  silent refresh succeeds resets the backoff to its floor and retries
+  promptly without advancing the give-up counter (that threshold means
+  "service unreachable", not "session token rotated"); only transient stream
+  errors, a failed refresh, or repeated 401s past a per-outage refresh budget
+  (`MAX_REFRESHES_PER_OUTAGE = 3`, guarding a clock-skew hot-loop) count
+  toward `DUPLEX_GIVE_UP_FAILURES`. The keychain re-read on a failed refresh
+  also moved off the tokio worker via `spawn_blocking`
+  (`read_session_token_from_keychain` + `StagecraftClient::adopt_token`),
+  splitting the blocking OS keychain read from the in-memory token apply.

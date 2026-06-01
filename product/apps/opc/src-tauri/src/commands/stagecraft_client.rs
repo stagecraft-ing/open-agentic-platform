@@ -157,6 +157,17 @@ impl StagecraftClient {
         }
     }
 
+    /// Set the in-memory token (and derive `org_id`) WITHOUT a keychain write.
+    /// Used by the duplex consumer (spec 110 / 183) when the session value was
+    /// already read off-thread via [`read_session_token_from_keychain`] under
+    /// `tokio::task::spawn_blocking` — splitting the blocking keychain read
+    /// from this cheap in-memory apply keeps OS keychain I/O off the tokio
+    /// worker. Distinct from [`load_token_from_keychain`], which performs the
+    /// (blocking) read itself.
+    pub(crate) fn adopt_token(&self, token: &str) {
+        self.apply_token(token);
+    }
+
     /// Load the auth token from the OS keychain (called on startup).
     pub fn load_token_from_keychain(&self) -> bool {
         if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "session")
@@ -839,6 +850,18 @@ impl StagecraftClient {
         }
         retry.json().await.map_err(StagecraftError::Decode)
     }
+}
+
+/// Blocking keychain read of the persisted session token. Free function (no
+/// `&self`) because the entry coordinates are constant, so it is safe to hand
+/// to `tokio::task::spawn_blocking` without borrowing a client across the
+/// thread boundary. Pair with [`StagecraftClient::adopt_token`] to apply the
+/// result in-memory once it has been read off the async executor
+/// (spec 110 / 183 duplex consumer).
+pub(crate) fn read_session_token_from_keychain() -> Option<String> {
+    keyring::Entry::new("dev.opc.stagecraft", "session")
+        .ok()
+        .and_then(|e| e.get_password().ok())
 }
 
 // ---------------------------------------------------------------------------

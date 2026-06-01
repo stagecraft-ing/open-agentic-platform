@@ -526,6 +526,14 @@ axiomregent's `build.rs`).
      log-noise fix, not a data-path change. Site:
      `crates/axiomregent/src/db/mod.rs::init_hiqlite` (the init landed here
      rather than `main.rs` as Phase 1 originally sketched).
+   - *Amended 2026-06-01 (follow-up hardening):* the resolve-ports →
+     `start_node` step is now wrapped in a bounded retry
+     (`HIQLITE_BIND_ATTEMPTS = 3`). Because hiqlite has no fd-passing API, the
+     freed ports are exposed to a TOCTOU window where another process can
+     claim one before hiqlite rebinds; a lost race now re-resolves a fresh
+     pair (`free_loopback_pair()`) and retries rather than failing startup.
+     `migrate()` stays outside the retry — a DDL error is a real failure to
+     propagate, not a bind race to retry.
 4. Introduce `ToolProvider` trait and refactor router from monolithic match to trait dispatch
 5. Make `handle_request` async; migrate all `std::process::Command` to `tokio::process::Command`
 6. Migrate `snapshot/store.rs` from rusqlite to hiqlite tables

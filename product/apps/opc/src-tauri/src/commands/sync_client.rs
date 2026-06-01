@@ -850,6 +850,14 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(25);
 /// blip" boundary without making the user wait minutes.
 const DUPLEX_GIVE_UP_FAILURES: u32 = 5;
 
+/// Cap on consecutive refresh-then-still-401 cycles within a single outage
+/// before we stop treating the 401 as "recoverable" and let it count toward
+/// the give-up threshold. Guards against a hot-loop if the server keeps
+/// rejecting a freshly minted token (e.g. clock skew between the desktop and
+/// Rauthy). Reset on every clean connection so a long-lived session that
+/// expires repeatedly over its lifetime is not penalised.
+const MAX_REFRESHES_PER_OUTAGE: u32 = 3;
+
 /// Poll interval while the consumer is running but no Stagecraft JWT exists
 /// yet (e.g. launched before the user signed in). Kept short and *separate*
 /// from the connect-failure backoff so a sign-in is picked up within a few
@@ -879,14 +887,42 @@ impl std::fmt::Display for ConnectError {
 /// keychain (the shared source of truth across `StagecraftClient` clones), so
 /// reloading here lets the loop pick it up without a re-spawn. Returns `None`
 /// when no session exists yet.
-fn resolve_token(auth: &StagecraftClient) -> Option<String> {
+///
+/// The keychain read is blocking OS I/O (on macOS, `SecKeychainFind…`), so it
+/// runs under `spawn_blocking` to avoid stalling the tokio worker that drives
+/// this loop; the cheap in-memory apply (`adopt_token`) stays on this task.
+async fn resolve_token(auth: &StagecraftClient) -> Option<String> {
     if let Some(token) = auth.auth_token() {
         return Some(token);
     }
-    if auth.load_token_from_keychain() {
-        return auth.auth_token();
+    let from_keychain = tokio::task::spawn_blocking(
+        crate::commands::stagecraft_client::read_session_token_from_keychain,
+    )
+    .await
+    .ok()
+    .flatten();
+    if let Some(token) = from_keychain {
+        auth.adopt_token(&token);
+        return Some(token);
     }
     None
+}
+
+/// Re-read the persisted session off the executor and apply it in-memory.
+/// Called when a silent JWT refresh fails, to pick up a session a fresh
+/// sign-in may have written out from under the loop. Best-effort: a missing
+/// session leaves the in-memory token untouched and the next `resolve_token`
+/// drops to the idle wait.
+async fn reload_session_token(auth: &StagecraftClient) {
+    if let Some(token) = tokio::task::spawn_blocking(
+        crate::commands::stagecraft_client::read_session_token_from_keychain,
+    )
+    .await
+    .ok()
+    .flatten()
+    {
+        auth.adopt_token(&token);
+    }
 }
 
 async fn run_forever(
@@ -897,6 +933,7 @@ async fn run_forever(
 ) {
     let mut backoff = MIN_BACKOFF;
     let mut consecutive_failures: u32 = 0;
+    let mut refreshes_this_outage: u32 = 0;
     let mut give_up_emitted = false;
     let mut announced_waiting = false;
     loop {
@@ -904,7 +941,7 @@ async fn run_forever(
         // snapshot. Without a token we wait (short poll) rather than attempting
         // an upgrade that is guaranteed to 401 — this is the idle pre-sign-in
         // state, not a failure.
-        let token = match resolve_token(&auth) {
+        let token = match resolve_token(&auth).await {
             Some(token) => {
                 announced_waiting = false;
                 token
@@ -927,6 +964,7 @@ async fn run_forever(
                 log::info!("sync_client: duplex stream closed cleanly — reconnecting");
                 backoff = MIN_BACKOFF;
                 consecutive_failures = 0;
+                refreshes_this_outage = 0;
                 if give_up_emitted {
                     log::info!(
                         "sync_client: duplex recovered from give-up state — boot gate will re-open on next sync.hello"
@@ -935,37 +973,68 @@ async fn run_forever(
                 }
             }
             Err(err) => {
-                consecutive_failures += 1;
                 match err {
                     // The bearer was rejected. Drive the same silent Rauthy
                     // refresh the REST path uses (reads the rotating
-                    // refresh_token from the keychain); the next attempt
-                    // re-resolves the token and picks up the new access token.
-                    // This is the fix for the boot-gate hang: previously the
-                    // loop retried the same expired JWT forever (401 → 60s →
-                    // 401 …) and `sync.hello` never arrived.
-                    ConnectError::Unauthorized(msg) => {
+                    // refresh_token from the keychain). A refresh-recovered
+                    // 401 is a *session expiry*, not an unreachable service:
+                    // retry promptly on the new bearer and do NOT advance the
+                    // give-up counter (that threshold means "service
+                    // unreachable", not "token rotated"). The per-outage
+                    // refresh budget bounds a pathological refresh→still-401
+                    // hot-loop (e.g. clock skew) so the give-up signal stays
+                    // reachable. This is the fix for the boot-gate hang:
+                    // previously the loop retried the same expired JWT forever
+                    // (401 → 60s → 401 …) and `sync.hello` never arrived.
+                    ConnectError::Unauthorized(msg)
+                        if refreshes_this_outage < MAX_REFRESHES_PER_OUTAGE =>
+                    {
                         log::warn!(
-                            "sync_client: duplex unauthorized (attempt #{consecutive_failures}) — refreshing JWT: {msg}"
+                            "sync_client: duplex unauthorized — refreshing JWT: {msg}"
                         );
                         match auth.refresh_jwt().await {
-                            Ok(()) => log::info!(
-                                "sync_client: Stagecraft JWT refreshed — retrying duplex with new bearer"
-                            ),
+                            Ok(()) => {
+                                log::info!(
+                                    "sync_client: Stagecraft JWT refreshed — retrying duplex promptly with new bearer"
+                                );
+                                refreshes_this_outage += 1;
+                                // Recoverable session expiry: reset the backoff
+                                // so a token that rotated mid-outage is not
+                                // penalised by an earlier transient failure's
+                                // grown backoff, retry promptly (the ~1s sleep
+                                // lets the new bearer propagate), and skip the
+                                // give-up counting + backoff growth at the
+                                // bottom of the loop.
+                                backoff = MIN_BACKOFF;
+                                inner.set_outbound(None);
+                                tokio::time::sleep(backoff).await;
+                                continue;
+                            }
                             Err(e) => {
                                 // Refresh failed (no/expired refresh_token).
-                                // Reload the keychain in case a fresh sign-in
-                                // replaced the session out from under us; if
-                                // not, the next resolve_token returns None and
-                                // we drop back to the idle wait.
+                                // Reload the keychain off-thread in case a fresh
+                                // sign-in replaced the session out from under us;
+                                // if not, the next resolve_token returns None and
+                                // we drop back to the idle wait. A genuine
+                                // failure, so it counts toward give-up.
                                 log::warn!(
                                     "sync_client: JWT refresh failed ({e}) — reloading keychain session"
                                 );
-                                auth.load_token_from_keychain();
+                                reload_session_token(&auth).await;
+                                consecutive_failures += 1;
                             }
                         }
                     }
+                    // Refresh budget exhausted this outage → treat the 401 as a
+                    // genuine failure so the give-up threshold stays reachable.
+                    ConnectError::Unauthorized(msg) => {
+                        consecutive_failures += 1;
+                        log::warn!(
+                            "sync_client: repeated 401s despite refresh (attempt #{consecutive_failures}) — backing off: {msg}"
+                        );
+                    }
                     ConnectError::Transient(msg) => {
+                        consecutive_failures += 1;
                         log::warn!(
                             "sync_client: duplex stream error (attempt #{consecutive_failures}) — reconnecting in {:?}: {msg}",
                             backoff
