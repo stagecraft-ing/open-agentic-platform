@@ -102,15 +102,15 @@ jobs:
       - name: Install tauri-driver
         run: cargo install tauri-driver --locked
 
-      # The WebdriverIO toolchain is installed here rather than pinned in the
-      # standalone package's lockfile, keeping it out of the per-PR install.
+      # The WebdriverIO client is installed here rather than pinned in the
+      # standalone package's lockfile, keeping it out of the per-PR install. The
+      # fixtures use standalone webdriverio.remote() under vitest (already a base
+      # dep), so only `webdriverio` itself is added here.
       - name: Install e2e harness dependencies
         working-directory: product/apps/opc/tests-e2e
         run: |
           npm install --no-fund --no-audit
-          npm install --no-fund --no-audit --save-dev \
-            webdriverio @wdio/cli @wdio/local-runner @wdio/mocha-framework \
-            @wdio/spec-reporter @types/mocha tsx
+          npm install --no-fund --no-audit --save-dev webdriverio
 
       - name: Run e2e fixtures (xvfb + tauri-driver)
         id: e2e

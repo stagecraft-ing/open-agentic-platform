@@ -1,0 +1,90 @@
+// Spec 187 — per-fixture OPC session helper (CI-only; imports webdriverio, so
+// it lives under fixtures/ outside the local typecheck scope).
+//
+// Each fixture launches its own built OPC binary through tauri-driver, pointed
+// at a mock-stagecraft instance in the requested mode. STAGECRAFT_BASE_URL is
+// set on the tauri-driver process so the launched OPC inherits it (lib.rs URL
+// resolution order: app_settings -> STAGECRAFT_BASE_URL env -> default), which
+// is what lets a fixture redirect the binary at the mock with no src-tauri
+// change.
+
+import { spawn, type ChildProcess } from "node:child_process";
+import { connect } from "node:net";
+import { remote } from "webdriverio";
+import { MockStagecraft, type MockMode } from "../harness/mock_stagecraft";
+import { OpcDriver, opcBinaryPath, type WebDriverLike } from "../harness/driver";
+
+export interface OpcSession {
+  driver: OpcDriver;
+  mock: MockStagecraft;
+  browser: WebElementHost;
+  teardown: () => Promise<void>;
+}
+
+// The subset of WebdriverIO's Browser the fixtures touch directly (element
+// lookup for affordance clicks); OpcDriver consumes the rest via WebDriverLike.
+interface WebElementHost extends WebDriverLike {
+  $(selector: string): Promise<{ click(): Promise<void>; isExisting(): Promise<boolean>; getAttribute(n: string): Promise<string | null> }>;
+}
+
+export interface LaunchOptions {
+  mode: MockMode;
+  orgId?: string;
+  extraEnv?: Record<string, string>;
+}
+
+export async function launchOpc(opts: LaunchOptions): Promise<OpcSession> {
+  const mock = new MockStagecraft({ mode: opts.mode, orgId: opts.orgId });
+  const { url } = await mock.start();
+  const httpBase = url.replace(/^ws:\/\//, "http://").replace(/\/api\/sync\/duplex$/, "");
+
+  // tauri-driver spawns the OPC binary, so the binary inherits tauri-driver's
+  // env. A fresh tauri-driver per fixture keeps STAGECRAFT_BASE_URL per-mode.
+  const tauriDriver = spawn("tauri-driver", [], {
+    stdio: ["ignore", "inherit", "inherit"],
+    env: { ...process.env, STAGECRAFT_BASE_URL: httpBase, ...opts.extraEnv },
+  });
+  await waitForPort(4444, 10_000);
+
+  const browser = (await remote({
+    hostname: "127.0.0.1",
+    port: 4444,
+    path: "/",
+    capabilities: {
+      browserName: "wry",
+      "tauri:options": { application: opcBinaryPath() },
+    } as Record<string, unknown>,
+  })) as unknown as WebElementHost;
+
+  const driver = new OpcDriver(browser);
+
+  return {
+    driver,
+    mock,
+    browser,
+    teardown: async () => {
+      await browser.deleteSession().catch(() => undefined);
+      tauriDriver.kill();
+      await mock.stop();
+    },
+  };
+}
+
+function waitForPort(port: number, timeoutMs: number): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  return new Promise((resolve, reject) => {
+    const attempt = () => {
+      const socket = connect(port, "127.0.0.1");
+      socket.once("connect", () => {
+        socket.destroy();
+        resolve();
+      });
+      socket.once("error", () => {
+        socket.destroy();
+        if (Date.now() >= deadline) reject(new Error(`tauri-driver port ${port} not up in ${timeoutMs}ms`));
+        else setTimeout(attempt, 200);
+      });
+    };
+    attempt();
+  });
+}
