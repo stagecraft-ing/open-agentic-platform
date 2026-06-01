@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:82f120907ef8010968cb678426a588e744b9762cfcfe83798ab0cccf0a7e3931",
+  "graph_fingerprint": "sha256:89a865e71f2b70b30d3e9e1711a9cae1062bd157971433ad8957a58f1bb5ee26",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3547,8 +3547,8 @@
       "feature_id": "187-opc-e2e-test-harness",
       "title": "OPC end-to-end test harness — built-binary driver, mock-stagecraft, process-tree introspection",
       "spec_path": "specs/187-opc-e2e-test-harness/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "in-progress",
       "governance": "medium",
       "owner": "bart",
       "group": "",
