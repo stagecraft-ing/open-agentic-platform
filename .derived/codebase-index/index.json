@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "97d0d04e0bdcdce569124c5128e02d5f127fc0d6415db2f0e34e94ccf31e1fa5",
+    "contentHash": "0d36baead0627c04a25d0c401b7e614c3cf31399a2bf4def29b630879fb5def1",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -11013,6 +11013,9 @@
                 "file": "product/apps/opc/src-tauri/Info.plist"
               },
               {
+                "file": "product/apps/opc/src-tauri/benches/usage_scan.rs"
+              },
+              {
                 "file": "product/apps/opc/src-tauri/binaries/.gitignore"
               },
               {
@@ -11604,6 +11607,9 @@
                 "file": "product/apps/opc/src/components/XrayPanel.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/__tests__/tabReconciliation.test.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/auth/LoginScreen.tsx"
               },
               {
@@ -11740,6 +11746,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/index.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/tabPanelMemo.ts"
               },
               {
                 "file": "product/apps/opc/src/components/widgets/BashWidget.tsx"
@@ -12131,6 +12140,9 @@
                 "file": "product/apps/opc/src-tauri/Info.plist"
               },
               {
+                "file": "product/apps/opc/src-tauri/benches/usage_scan.rs"
+              },
+              {
                 "file": "product/apps/opc/src-tauri/binaries/.gitignore"
               },
               {
@@ -12722,6 +12734,9 @@
                 "file": "product/apps/opc/src/components/XrayPanel.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/__tests__/tabReconciliation.test.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/auth/LoginScreen.tsx"
               },
               {
@@ -12858,6 +12873,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/index.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/tabPanelMemo.ts"
               },
               {
                 "file": "product/apps/opc/src/components/widgets/BashWidget.tsx"
@@ -14289,6 +14307,9 @@
                 "file": "product/apps/opc/src-tauri/Info.plist"
               },
               {
+                "file": "product/apps/opc/src-tauri/benches/usage_scan.rs"
+              },
+              {
                 "file": "product/apps/opc/src-tauri/binaries/.gitignore"
               },
               {
@@ -14880,6 +14901,9 @@
                 "file": "product/apps/opc/src/components/XrayPanel.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/__tests__/tabReconciliation.test.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/auth/LoginScreen.tsx"
               },
               {
@@ -15016,6 +15040,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/index.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/tabPanelMemo.ts"
               },
               {
                 "file": "product/apps/opc/src/components/widgets/BashWidget.tsx"
@@ -16022,6 +16049,9 @@
                 "file": "product/apps/opc/src-tauri/Info.plist"
               },
               {
+                "file": "product/apps/opc/src-tauri/benches/usage_scan.rs"
+              },
+              {
                 "file": "product/apps/opc/src-tauri/binaries/.gitignore"
               },
               {
@@ -16613,6 +16643,9 @@
                 "file": "product/apps/opc/src/components/XrayPanel.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/__tests__/tabReconciliation.test.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/auth/LoginScreen.tsx"
               },
               {
@@ -16749,6 +16782,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/index.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/tabPanelMemo.ts"
               },
               {
                 "file": "product/apps/opc/src/components/widgets/BashWidget.tsx"
@@ -21396,6 +21432,9 @@
                 "file": ".github/workflows/ci-featuregraph-golden.yml"
               },
               {
+                "file": ".github/workflows/ci-opc-bench.yml"
+              },
+              {
                 "file": ".github/workflows/ci-orchestrator.yml"
               },
               {
@@ -22389,6 +22428,9 @@
                 "file": "product/apps/opc/src-tauri/Info.plist"
               },
               {
+                "file": "product/apps/opc/src-tauri/benches/usage_scan.rs"
+              },
+              {
                 "file": "product/apps/opc/src-tauri/binaries/.gitignore"
               },
               {
@@ -22980,6 +23022,9 @@
                 "file": "product/apps/opc/src/components/XrayPanel.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/__tests__/tabReconciliation.test.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/auth/LoginScreen.tsx"
               },
               {
@@ -23116,6 +23161,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/index.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/tabPanelMemo.ts"
               },
               {
                 "file": "product/apps/opc/src/components/widgets/BashWidget.tsx"
@@ -37852,6 +37900,9 @@
                 "file": "product/apps/opc/src-tauri/Info.plist"
               },
               {
+                "file": "product/apps/opc/src-tauri/benches/usage_scan.rs"
+              },
+              {
                 "file": "product/apps/opc/src-tauri/binaries/.gitignore"
               },
               {
@@ -38443,6 +38494,9 @@
                 "file": "product/apps/opc/src/components/XrayPanel.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/__tests__/tabReconciliation.test.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/auth/LoginScreen.tsx"
               },
               {
@@ -38579,6 +38633,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/index.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/tabPanelMemo.ts"
               },
               {
                 "file": "product/apps/opc/src/components/widgets/BashWidget.tsx"
@@ -39164,6 +39221,26 @@
         ],
         "implementingPaths": [
           {
+            "path": ".github/workflows/ci-opc-bench.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/benches",
+            "source": "spec-implements"
+          },
+          {
             "path": "product/apps/opc/src-tauri/src",
             "source": "spec-implements"
           },
@@ -39237,6 +39314,20 @@
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/benches/usage_scan.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/apps/opc/src-tauri/benches"
+            }
+          },
           {
             "kind": "directory",
             "locations": [
@@ -39731,6 +39822,9 @@
                 "file": "product/apps/opc/src/components/XrayPanel.tsx"
               },
               {
+                "file": "product/apps/opc/src/components/__tests__/tabReconciliation.test.tsx"
+              },
+              {
                 "file": "product/apps/opc/src/components/auth/LoginScreen.tsx"
               },
               {
@@ -39867,6 +39961,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/index.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/tabPanelMemo.ts"
               },
               {
                 "file": "product/apps/opc/src/components/widgets/BashWidget.tsx"
@@ -40248,6 +40345,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": ".github/workflows/ci-opc-bench.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-opc-bench.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "product/apps/opc/src-tauri/src/commands/usage.rs"
               }
             ],
@@ -40312,6 +40423,48 @@
             "unit": {
               "kind": "file",
               "path": "product/apps/opc/vite.config.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/Cargo.toml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/Cargo.toml"
             }
           },
           {
@@ -40470,7 +40623,7 @@
           }
         ],
         "specId": "180-opc-shell-codification",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "amends": [

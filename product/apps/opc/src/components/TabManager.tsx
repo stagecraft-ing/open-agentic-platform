@@ -5,6 +5,7 @@ import { useTabState } from '@/hooks/useTabState';
 import { Tab, useTabContext } from '@/contexts/TabContext';
 import { cn } from '@/lib/utils';
 import { useTrackEvent } from '@/hooks';
+import { tabItemPropsAreEqual } from '@/components/tabPanelMemo';
 
 interface TabItemProps {
   tab: Tab;
@@ -15,7 +16,7 @@ interface TabItemProps {
   setDraggedTabId?: (id: string | null) => void;
 }
 
-const TabItem: React.FC<TabItemProps> = ({ tab, isActive, onClose, onClick, isDragging = false, setDraggedTabId }) => {
+const TabItemInner: React.FC<TabItemProps> = ({ tab, isActive, onClose, onClick, isDragging = false, setDraggedTabId }) => {
   const [isHovered, setIsHovered] = useState(false);
   
   const getIcon = () => {
@@ -128,6 +129,10 @@ const TabItem: React.FC<TabItemProps> = ({ tab, isActive, onClose, onClick, isDr
     </Reorder.Item>
   );
 };
+
+// Spec 180 §3.3 FR-T2 — the per-tab strip item is memoized so a state change
+// on one tab reconciles only that strip item, not every tab in the strip.
+const TabItem = React.memo(TabItemInner, tabItemPropsAreEqual);
 
 interface TabManagerProps {
   className?: string;
