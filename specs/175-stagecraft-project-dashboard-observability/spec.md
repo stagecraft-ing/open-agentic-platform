@@ -2,8 +2,8 @@
 id: "175-stagecraft-project-dashboard-observability"
 slug: stagecraft-project-dashboard-observability
 title: "Stagecraft project dashboard — observability refinement of `_index`"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-23"
 kind: platform
@@ -43,6 +43,16 @@ extends:
   - spec: "163-stagecraft-requirements-view"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/audit/audit.ts }
+  # Lifecycle-flip golden refresh: 175's lifecycle state is snapshotted in
+  # the featuregraph golden, so flipping draft→approved + pending→complete
+  # shifts the golden fingerprint. The additive edge declares that true
+  # relationship per the established convention (precedent: specs
+  # 165/167/168/169/183/188). No semantic change to spec 034's claims; 175
+  # lacking this edge was a latent gap surfaced when the flip moved the
+  # golden alone.
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }
