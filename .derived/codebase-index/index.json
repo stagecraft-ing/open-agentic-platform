@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "c547ed8fde1be75cfa7f7e4754754936c54e4b0c0bd1e917f780a20278b928f5",
+    "contentHash": "34d24ce31eb803882ea1684c8586817c37f17a85cde9945b75c1a1461e4421d9",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -34397,7 +34397,7 @@
           }
         ],
         "specId": "165-opc-decomposition-pipeline",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -42453,7 +42453,7 @@
           }
         ],
         "specId": "188-derived-index-merge-serialization",
-        "specStatus": "draft"
+        "specStatus": "approved"
       },
       {
         "dependsOn": [
@@ -42772,7 +42772,7 @@
           }
         ],
         "specId": "192-decomposition-embedding-cache",
-        "specStatus": "draft"
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [

@@ -2,7 +2,7 @@
 id: "165-opc-decomposition-pipeline"
 slug: opc-decomposition-pipeline
 title: "OPC decomposition pipeline — reverse-engineering and born-with spec spawning"
-status: draft
+status: approved
 implementation: complete
 owner: bart
 created: "2026-05-22"
