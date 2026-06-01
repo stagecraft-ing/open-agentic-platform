@@ -19,7 +19,7 @@ establishes:
 refines:
   - aspect: "governed-reads"
     unit: { kind: file, path: AGENTS.md }
-amended: "2026-05-30"
+amended: "2026-06-01"
 amendment_record: |
   self-amends — Consumer Binaries table (2026-05-23) refreshed to
   advertise the new `codebase-indexer orphans` subcommand landed in
@@ -33,6 +33,17 @@ amendment_record: |
   path correction only; 103's governed-reads aspect (FR-01) and the
   `AGENTS.md § New Sessions` protocol body are unchanged. AGENTS.md
   remains the canonical cross-agent protocol authority.
+
+  self-amends (2026-06-01) — added FR-06 (registry freshness) to the
+  `AGENTS.md § New Sessions` protocol. The spec registry
+  (`.derived/spec-registry/registry.json`) is gitignored — a per-clone
+  local cache — so FR-03's staleness surface, which compares a committed
+  `index.json` hash, has no committed reference for the registry. `/init`
+  now runs `spec-compiler compile` before the registry-consumer reads so
+  lifecycle counts reflect current `spec.md` frontmatter, not a stale
+  cache. Motivated by a 2026-06-01 session where `/init` under-reported
+  approved specs (165/175/187/188/192) from a month-old local registry.
+  The governed-reads aspect (FR-01) is unchanged.
 summary: >
   Replace ad-hoc parsing of compiled JSON artifacts in orchestrated workflows
   (starting with /init) with governed reads through the consumer binaries
@@ -48,6 +59,14 @@ summary: >
 > path correction only — 103's governed-reads aspect (FR-01) and the
 > `AGENTS.md § New Sessions` protocol body are unchanged. AGENTS.md
 > remains the canonical cross-agent protocol authority.
+
+> **Self-amended (2026-06-01).** Added FR-06 (registry freshness). The
+> spec registry is gitignored, so the staleness mechanism FR-03 uses for
+> the committed codebase index has no committed reference to check against
+> for the registry — `/init` recompiles it (`spec-compiler compile`)
+> before reading lifecycle counts so they reflect current `spec.md`
+> frontmatter. See **FR-06** and §6. Governed-reads aspect (FR-01)
+> unchanged.
 
 ## 1. Problem Statement
 
@@ -179,6 +198,23 @@ orchestrated workflow in `.claude/commands/**` and every agent in
 `.claude/agents/**`, not only to `/init`. No other command is rewritten as
 part of this MVP; the rule is the enforcement surface.
 
+### FR-06: Registry Freshness Before Lifecycle Read
+
+`AGENTS.md § New Sessions` MUST run `spec-compiler compile` before the
+`registry-consumer status-report` / `list` reads. Rationale: the spec
+registry (`.derived/spec-registry/registry.json`) is gitignored — a
+per-clone local cache, never committed — so FR-03's staleness *check*,
+which compares a committed `index.json` hash, has no committed reference
+for the registry. Recompiling is the only mechanism that guarantees
+lifecycle counts reflect the current `specs/*/spec.md` frontmatter. The
+recompile is deterministic (constitution Principle IV) and idempotent; on
+an already-fresh tree it changes nothing. Unlike FR-03 (which *surfaces*
+staleness and continues), FR-06 *eliminates* the staleness, because for a
+gitignored artifact there is no committed truth to diverge from — only
+source (`spec.md`) and derived cache. This is read-side hygiene, not a new
+authoring channel: the recompile is the same `spec-compiler compile` that
+already produces the canonical registry (constitution Principle II).
+
 ## 4. Success Criteria
 
 ### SC-01: Init Does Not Invoke Python Against Build Artifacts
@@ -242,3 +278,10 @@ migration.
 - The rule does not forbid reading compiled JSON — it forbids parsing it
   ad-hoc. A consumer binary IS allowed to `serde_json::from_reader` the
   artifact; that is what makes it the consumer.
+- FR-06's recompile applies to the spec registry because it is gitignored
+  (`.gitignore`: `.derived/spec-registry/*`). The codebase index
+  (`.derived/codebase-index/index.json`) is committed and therefore uses
+  FR-03's hash *check* instead. The two derived artifacts get different
+  freshness treatment for exactly this reason: one has a committed
+  reference, the other does not. If a future change commits the registry,
+  FR-06 should be revisited in favour of an FR-03-style check.

@@ -15,7 +15,10 @@ Run `/init` as the mandatory first action of every new session. The command read
    `.claude/rules/adversarial-prompt-refusal.md` (the three loaded
    automatically by every orchestrated workflow per spec 103 +
    spec 131).
-1. **Parallel reads** (dispatch simultaneously):
+1. **Refresh the registry, then parallel reads.** Run `spec-compiler
+   compile` *first* (see **Registry freshness** below — the spec registry
+   is a gitignored local cache with no committed reference to staleness-check
+   against), then dispatch the following simultaneously:
    - `CLAUDE.md` — project overview and conventions
    - `README.md` — full project description
    - `standards/spec/contract.md` — graduated spec spine contract
@@ -43,6 +46,8 @@ Run `/init` as the mandatory first action of every new session. The command read
 **Read discipline (spec 103):** the init protocol MUST NOT parse `.derived/**/*.json` directly (no `python`, `jq`, `awk`, `sed` against compiled artifacts). All structural and lifecycle data comes from the consumer binaries and the rendered markdown view.
 
 **Staleness surface:** if `codebase-indexer check` exits non-zero, include `Structural index: stale — run `codebase-indexer compile`` in the summary and continue. If `CODEBASE-INDEX.md` is missing and `render` fails (no `index.json`), report `Structural index: not built` and continue without structural counts.
+
+**Registry freshness (spec 103 FR-06):** the spec registry `.derived/spec-registry/registry.json` is **gitignored** — a per-clone local cache, never committed — so unlike the codebase index there is no committed reference for a staleness *check*. `/init` therefore runs `spec-compiler compile` *before* the `registry-consumer` reads, guaranteeing lifecycle counts reflect the current `specs/*/spec.md` frontmatter rather than a month-old cache. The recompile is deterministic (constitution Principle IV) and effectively a no-op on an already-fresh tree; if it would change the registry, the prior counts were stale and are now correct. This differs from the codebase-index step (FR-03 surfaces staleness and continues) because for a gitignored artifact there is no committed truth to diverge from — only source (`spec.md`) and derived cache.
 
 **Binary missing:** if a consumer binary is not built, instruct the user to `cargo build --release --manifest-path tools/<name>/Cargo.toml` and continue — do NOT fall back to ad-hoc parsing.
 

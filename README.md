@@ -220,7 +220,7 @@ make setup
 ./tools/spec-spine/registry-consumer/target/release/registry-consumer \
     status-report --json --nonzero-only
 # Lifecycle inventory across the 193-spec corpus.
-# 186 approved, 3 draft, 4 superseded.
+# 188 approved, 1 draft, 4 superseded.
 
 ./tools/oap/oap-code-index-enrich/target/release/oap-code-index-enrich render
 cat .derived/codebase-index/CODEBASE-INDEX.md
