@@ -104,12 +104,32 @@ const SCHEMA_SQL: &[&str] = &[
 pub async fn init_hiqlite(data_dir: &Path) -> Result<Client> {
     let data_dir_str = data_dir.to_string_lossy().to_string();
 
+    // Resolve concrete loopback ports for the single-node Raft + API
+    // listeners. hiqlite records these addresses in its Raft membership and
+    // the in-process client dials `addr_api` for its background WS stream.
+    // Advertising `:0` directly leaves port 0 in the membership — never a
+    // connectable target — so the client floods stderr with EADDRNOTAVAIL
+    // (os error 49) once per second. We grab two free loopback ports the same
+    // way `main.rs` resolves the probe port (bind `:0` → read `local_addr` →
+    // release), holding both listeners until both ports are known so they
+    // cannot collapse onto the same number, then hand the concrete ports to
+    // hiqlite, which rebinds them. The single-node data path runs in-process
+    // regardless of the WS stream; this purely quiets that background task.
+    let (raft_port, api_port) = {
+        let raft_listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+        let api_listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+        let raft_port = raft_listener.local_addr()?.port();
+        let api_port = api_listener.local_addr()?.port();
+        (raft_port, api_port)
+        // both listeners drop here, freeing the ports for hiqlite to rebind
+    };
+
     let config = NodeConfig {
         node_id: 1,
         nodes: vec![Node {
             id: 1,
-            addr_raft: "127.0.0.1:0".to_string(),
-            addr_api: "127.0.0.1:0".to_string(),
+            addr_raft: format!("127.0.0.1:{raft_port}"),
+            addr_api: format!("127.0.0.1:{api_port}"),
         }],
         data_dir: data_dir_str.into(),
         filename_db: "axiomregent.db".into(),

@@ -513,6 +513,19 @@ axiomregent's `build.rs`).
 1. Add `hiqlite` dependency to axiomregent with features `sqlite`, `dlock`, `listen_notify_local`, `cache`
 2. Define the hiqlite schema (checkpoints, manifest_entries, blob_refs, leases, runs, audit_log)
 3. Implement `hiqlite::start_node()` in `main.rs` with single-node config
+   - *Amended 2026-06-01:* the single node's `addr_raft`/`addr_api` are
+     resolved to concrete free loopback ports (`bind 127.0.0.1:0` → read
+     `local_addr()` → release both listeners → advertise the concrete ports
+     to `start_node`, which rebinds them) — the same resolve-back pattern
+     `main.rs` already uses for the stderr-announced probe port. Advertising
+     `127.0.0.1:0` directly recorded port 0 in Raft membership, so the
+     in-process client's background WS stream dialed an unconnectable address
+     and flooded stderr with `EADDRNOTAVAIL` (os error 49) once per second.
+     The single-node data path runs in-process regardless of that stream
+     (`is_leader_*_with_state()` short-circuits to local Raft), so this is a
+     log-noise fix, not a data-path change. Site:
+     `crates/axiomregent/src/db/mod.rs::init_hiqlite` (the init landed here
+     rather than `main.rs` as Phase 1 originally sketched).
 4. Introduce `ToolProvider` trait and refactor router from monolithic match to trait dispatch
 5. Make `handle_request` async; migrate all `std::process::Command` to `tokio::process::Command`
 6. Migrate `snapshot/store.rs` from rusqlite to hiqlite tables

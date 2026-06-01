@@ -33,6 +33,8 @@ use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::protocol::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
+use super::stagecraft_client::StagecraftClient;
+
 /// The duplex protocol version this client speaks. Must match
 /// `ENVELOPE_SCHEMA_VERSION` in `platform/services/stagecraft/api/sync/types.ts`,
 /// which spec 119 bumped to **v2** when it collapsed the duplex session key
@@ -563,8 +565,6 @@ pub struct SyncClientConfig {
     pub client_id: String,
     /// Human-readable client version — informational only.
     pub client_version: Option<String>,
-    /// Rauthy JWT used in the Authorization header on the handshake.
-    pub auth_token: String,
 }
 
 /// Shared inner state for the duplex consumer. Held in an `Arc` so external
@@ -801,15 +801,22 @@ impl SyncClientState {
     /// existing task is running the old task is aborted first. The
     /// AppHandle is threaded through so the reconnect loop can emit the
     /// FR-T5(b) precondition-loss event when it crosses the give-up
-    /// threshold (spec 183 stage C).
-    pub async fn spawn(&self, config: SyncClientConfig, app: tauri::AppHandle) {
+    /// threshold (spec 183 stage C). `auth` is the Stagecraft client handle
+    /// the loop uses to resolve and refresh the bearer JWT at connect time
+    /// (spec 110 / 183) rather than from a launch-time snapshot.
+    pub async fn spawn(
+        &self,
+        config: SyncClientConfig,
+        auth: StagecraftClient,
+        app: tauri::AppHandle,
+    ) {
         let mut guard = self.join.lock().await;
         if let Some(prev) = guard.take() {
             prev.abort();
         }
         let inner = self.inner.clone();
         let task = tokio::spawn(async move {
-            run_forever(config, inner, app).await;
+            run_forever(config, auth, inner, app).await;
         });
         *guard = Some(task);
     }
@@ -843,17 +850,79 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(25);
 /// blip" boundary without making the user wait minutes.
 const DUPLEX_GIVE_UP_FAILURES: u32 = 5;
 
+/// Poll interval while the consumer is running but no Stagecraft JWT exists
+/// yet (e.g. launched before the user signed in). Kept short and *separate*
+/// from the connect-failure backoff so a sign-in is picked up within a few
+/// seconds — without hammering the keychain or attempting unauthenticated
+/// upgrades that would 401-spam the log.
+const WAIT_FOR_TOKEN: Duration = Duration::from_secs(3);
+
+/// Outcome of a single duplex connection attempt. A 401 on the WebSocket
+/// upgrade is recoverable (the bearer is stale → refresh and retry); every
+/// other failure is transient and handled by plain backoff.
+enum ConnectError {
+    Unauthorized(String),
+    Transient(String),
+}
+
+impl std::fmt::Display for ConnectError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConnectError::Unauthorized(m) | ConnectError::Transient(m) => write!(f, "{m}"),
+        }
+    }
+}
+
+/// Resolve the bearer token at connect time: prefer the in-memory value, then
+/// fall back to a keychain reload. The reload covers a consumer that started
+/// before the user signed in — OAuth sign-in persists the session to the OS
+/// keychain (the shared source of truth across `StagecraftClient` clones), so
+/// reloading here lets the loop pick it up without a re-spawn. Returns `None`
+/// when no session exists yet.
+fn resolve_token(auth: &StagecraftClient) -> Option<String> {
+    if let Some(token) = auth.auth_token() {
+        return Some(token);
+    }
+    if auth.load_token_from_keychain() {
+        return auth.auth_token();
+    }
+    None
+}
+
 async fn run_forever(
     config: SyncClientConfig,
+    auth: StagecraftClient,
     inner: Arc<SyncClientInner>,
     app: tauri::AppHandle,
 ) {
     let mut backoff = MIN_BACKOFF;
     let mut consecutive_failures: u32 = 0;
     let mut give_up_emitted = false;
+    let mut announced_waiting = false;
     loop {
+        // Resolve the bearer fresh each attempt instead of from a launch
+        // snapshot. Without a token we wait (short poll) rather than attempting
+        // an upgrade that is guaranteed to 401 — this is the idle pre-sign-in
+        // state, not a failure.
+        let token = match resolve_token(&auth) {
+            Some(token) => {
+                announced_waiting = false;
+                token
+            }
+            None => {
+                if !announced_waiting {
+                    log::info!(
+                        "sync_client: duplex consumer idle — no Stagecraft JWT yet, waiting for sign-in"
+                    );
+                    announced_waiting = true;
+                }
+                tokio::time::sleep(WAIT_FOR_TOKEN).await;
+                continue;
+            }
+        };
+
         let cursor_snapshot = inner.last_cursor.read().ok().and_then(|g| g.clone());
-        match connect_and_run(&config, cursor_snapshot, &inner).await {
+        match connect_and_run(&config, &token, cursor_snapshot, &inner).await {
             Ok(()) => {
                 log::info!("sync_client: duplex stream closed cleanly — reconnecting");
                 backoff = MIN_BACKOFF;
@@ -867,10 +936,42 @@ async fn run_forever(
             }
             Err(err) => {
                 consecutive_failures += 1;
-                log::warn!(
-                    "sync_client: duplex stream error (attempt #{consecutive_failures}) — reconnecting in {:?}: {err}",
-                    backoff
-                );
+                match err {
+                    // The bearer was rejected. Drive the same silent Rauthy
+                    // refresh the REST path uses (reads the rotating
+                    // refresh_token from the keychain); the next attempt
+                    // re-resolves the token and picks up the new access token.
+                    // This is the fix for the boot-gate hang: previously the
+                    // loop retried the same expired JWT forever (401 → 60s →
+                    // 401 …) and `sync.hello` never arrived.
+                    ConnectError::Unauthorized(msg) => {
+                        log::warn!(
+                            "sync_client: duplex unauthorized (attempt #{consecutive_failures}) — refreshing JWT: {msg}"
+                        );
+                        match auth.refresh_jwt().await {
+                            Ok(()) => log::info!(
+                                "sync_client: Stagecraft JWT refreshed — retrying duplex with new bearer"
+                            ),
+                            Err(e) => {
+                                // Refresh failed (no/expired refresh_token).
+                                // Reload the keychain in case a fresh sign-in
+                                // replaced the session out from under us; if
+                                // not, the next resolve_token returns None and
+                                // we drop back to the idle wait.
+                                log::warn!(
+                                    "sync_client: JWT refresh failed ({e}) — reloading keychain session"
+                                );
+                                auth.load_token_from_keychain();
+                            }
+                        }
+                    }
+                    ConnectError::Transient(msg) => {
+                        log::warn!(
+                            "sync_client: duplex stream error (attempt #{consecutive_failures}) — reconnecting in {:?}: {msg}",
+                            backoff
+                        );
+                    }
+                }
 
                 // FR-T5(b) — give-up signal. Fires once per outage; resets
                 // when reconnect succeeds. Resetting sync_hello_received
@@ -945,32 +1046,47 @@ type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
 async fn connect_and_run(
     config: &SyncClientConfig,
+    token: &str,
     cursor: Option<String>,
     inner: &Arc<SyncClientInner>,
-) -> Result<(), String> {
+) -> Result<(), ConnectError> {
     let url = build_duplex_url(&config.base_url, &config.client_id, cursor.as_deref());
     log::info!("sync_client: connecting to {url}");
 
     let mut req = url
         .into_client_request()
-        .map_err(|e| format!("build handshake request: {e}"))?;
+        .map_err(|e| ConnectError::Transient(format!("build handshake request: {e}")))?;
     req.headers_mut().insert(
         "Authorization",
-        format!("Bearer {}", config.auth_token)
+        format!("Bearer {token}")
             .parse()
-            .map_err(|e| format!("bad auth header: {e}"))?,
+            .map_err(|e| ConnectError::Transient(format!("bad auth header: {e}")))?,
     );
 
-    let (stream, _response) = tokio_tungstenite::connect_async(req)
-        .await
-        .map_err(|e| format!("connect: {e}"))?;
+    let (stream, _response) = match tokio_tungstenite::connect_async(req).await {
+        Ok(pair) => pair,
+        Err(e) => {
+            // tungstenite surfaces an HTTP error on the upgrade as
+            // `Error::Http` *before* the socket is established. A 401 there is
+            // the stale-bearer case the reconnect loop recovers via refresh;
+            // everything else is transient.
+            if let tokio_tungstenite::tungstenite::Error::Http(ref resp) = e
+                && resp.status().as_u16() == 401
+            {
+                return Err(ConnectError::Unauthorized(format!("connect: {e}")));
+            }
+            return Err(ConnectError::Transient(format!("connect: {e}")));
+        }
+    };
 
     log::info!(
         "sync_client: duplex connected (client_id={})",
         config.client_id
     );
 
-    run_duplex_session(stream, inner).await
+    run_duplex_session(stream, inner)
+        .await
+        .map_err(ConnectError::Transient)
 }
 
 async fn run_duplex_session(
