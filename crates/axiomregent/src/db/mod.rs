@@ -97,6 +97,15 @@ const SCHEMA_SQL: &[&str] = &[
 // Public API
 // ---------------------------------------------------------------------------
 
+/// Bounded retries around the resolve-ports → `start_node` window. Because
+/// hiqlite has no fd-passing API, ports are resolved by binding `:0`, reading
+/// the assigned number, releasing, and handing the concrete port to hiqlite to
+/// rebind. Another process can claim a freed port in that narrow window
+/// (TOCTOU); when that happens hiqlite's own bind fails, so we re-resolve a
+/// fresh pair and try again rather than surfacing a transient bind race as a
+/// hard startup error.
+const HIQLITE_BIND_ATTEMPTS: u32 = 3;
+
 /// Initialise a single-node hiqlite instance rooted at `data_dir`.
 ///
 /// The database file is `axiomregent.db` inside `data_dir`. All schema tables
@@ -111,37 +120,56 @@ pub async fn init_hiqlite(data_dir: &Path) -> Result<Client> {
     // connectable target — so the client floods stderr with EADDRNOTAVAIL
     // (os error 49) once per second. We grab two free loopback ports the same
     // way `main.rs` resolves the probe port (bind `:0` → read `local_addr` →
-    // release), holding both listeners until both ports are known so they
-    // cannot collapse onto the same number, then hand the concrete ports to
-    // hiqlite, which rebinds them. The single-node data path runs in-process
-    // regardless of the WS stream; this purely quiets that background task.
-    let (raft_port, api_port) = {
-        let raft_listener = std::net::TcpListener::bind("127.0.0.1:0")?;
-        let api_listener = std::net::TcpListener::bind("127.0.0.1:0")?;
-        let raft_port = raft_listener.local_addr()?.port();
-        let api_port = api_listener.local_addr()?.port();
-        (raft_port, api_port)
-        // both listeners drop here, freeing the ports for hiqlite to rebind
-    };
+    // release), then hand the concrete ports to hiqlite, which rebinds them.
+    // The single-node data path runs in-process regardless of the WS stream;
+    // this purely quiets that background task. A lost bind race re-resolves
+    // a fresh pair (see HIQLITE_BIND_ATTEMPTS) rather than failing startup.
+    let mut last_err: Option<anyhow::Error> = None;
+    for attempt in 1..=HIQLITE_BIND_ATTEMPTS {
+        let (raft_port, api_port) = free_loopback_pair()?;
 
-    let config = NodeConfig {
-        node_id: 1,
-        nodes: vec![Node {
-            id: 1,
-            addr_raft: format!("127.0.0.1:{raft_port}"),
-            addr_api: format!("127.0.0.1:{api_port}"),
-        }],
-        data_dir: data_dir_str.into(),
-        filename_db: "axiomregent.db".into(),
-        secret_raft: "axiomregent-raft-00".into(),
-        secret_api: "axiomregent-api-000".into(),
-        log_statements: false,
-        ..NodeConfig::default()
-    };
+        let config = NodeConfig {
+            node_id: 1,
+            nodes: vec![Node {
+                id: 1,
+                addr_raft: format!("127.0.0.1:{raft_port}"),
+                addr_api: format!("127.0.0.1:{api_port}"),
+            }],
+            data_dir: data_dir_str.clone().into(),
+            filename_db: "axiomregent.db".into(),
+            secret_raft: "axiomregent-raft-00".into(),
+            secret_api: "axiomregent-api-000".into(),
+            log_statements: false,
+            ..NodeConfig::default()
+        };
 
-    let client = hiqlite::start_node(config).await?;
-    migrate(&client).await?;
-    Ok(client)
+        match hiqlite::start_node(config).await {
+            Ok(client) => {
+                // migrate stays outside the retry: a DDL error is a real
+                // failure to propagate, not a bind race to retry.
+                migrate(&client).await?;
+                return Ok(client);
+            }
+            Err(e) => {
+                log::warn!(
+                    "init_hiqlite: start_node bind attempt {attempt}/{HIQLITE_BIND_ATTEMPTS} failed: {e}"
+                );
+                last_err = Some(e.into());
+            }
+        }
+    }
+    Err(last_err
+        .unwrap_or_else(|| anyhow::anyhow!("init_hiqlite: exhausted bind attempts")))
+}
+
+/// Resolve two distinct free loopback ports. Both listeners are held until
+/// both numbers have been read so the OS cannot hand the same port to the
+/// raft and api listeners; both are then released for hiqlite to rebind.
+fn free_loopback_pair() -> Result<(u16, u16)> {
+    let raft = std::net::TcpListener::bind("127.0.0.1:0")?;
+    let api = std::net::TcpListener::bind("127.0.0.1:0")?;
+    Ok((raft.local_addr()?.port(), api.local_addr()?.port()))
+    // both listeners drop here, freeing the ports for hiqlite to rebind
 }
 
 // ---------------------------------------------------------------------------
@@ -166,4 +194,20 @@ async fn migrate(client: &Client) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The raft and api listeners must never collapse onto the same port —
+    /// holding both listeners until both numbers are read is what guarantees
+    /// it. Regression here would feed hiqlite two identical addresses.
+    #[test]
+    fn free_loopback_pair_yields_two_distinct_ports() {
+        let (raft, api) = free_loopback_pair().expect("loopback binds in test env");
+        assert_ne!(raft, 0, "raft port must be a concrete resolved port");
+        assert_ne!(api, 0, "api port must be a concrete resolved port");
+        assert_ne!(raft, api, "raft and api ports must be distinct");
+    }
 }

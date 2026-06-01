@@ -309,6 +309,20 @@ loop with `sync.hello` never received — the precise hang this gate made
 observable. Sites: `sync_client.rs::run_forever` / `connect_and_run`, `lib.rs`
 (consumer spawn), `stagecraft_client.rs::refresh_jwt`.
 
+*Amended 2026-06-01 (follow-up hardening).* The recovery path above is
+hardened so the gate cannot be left wedged by its own reconnect bookkeeping:
+(1) a refresh-recovered 401 resets the backoff to its floor and retries
+promptly without counting toward the `DUPLEX_GIVE_UP_FAILURES` threshold —
+only genuine unreachability (transient errors, failed refresh, or 401s past a
+per-outage refresh budget) trips the precondition-loss signal, so a routine
+session rotation no longer races the gate toward give-up; and (2) the blocking
+OS keychain read is moved off the tokio worker via `spawn_blocking`, split into
+the free function `stagecraft_client.rs::read_session_token_from_keychain`
+(blocking read) and `StagecraftClient::adopt_token` (in-memory apply), so the
+gate's connect loop cannot stall a worker thread on keychain I/O. Sites:
+`sync_client.rs::run_forever` / `resolve_token` / `reload_session_token`,
+`stagecraft_client.rs::{read_session_token_from_keychain, adopt_token}`.
+
 **Files FR-T2 binds on:**
 - `product/apps/opc/src-tauri/src/commands/stagecraft_client.rs` —
   org_id residence + the verified-receipt flag.
