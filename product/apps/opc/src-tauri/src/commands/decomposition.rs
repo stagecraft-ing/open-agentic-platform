@@ -21,8 +21,8 @@
 use std::path::PathBuf;
 
 use opc_decomposition_pipeline::{
-    PipelineConfig, PipelineRun, PipelineRunner, list_runs as pl_list_runs,
-    load_run as pl_load_run, types::RunId,
+    PipelineConfig, PipelineRun, PipelineRunner, PromotionOutcome, PromotionRequest,
+    list_runs as pl_list_runs, load_run as pl_load_run, promote_spec, types::RunId,
 };
 use tauri::command;
 
@@ -93,5 +93,39 @@ pub async fn decomposition_get_run(
     tokio::task::spawn_blocking(move || pl_load_run(&root, &rid))
         .await
         .map_err(|e| format!("decomposition_get_run task panicked: {e}"))?
+        .map_err(|e| e.to_string())
+}
+
+/// Promote a staged draft spec into the project's own spec spine (FR-008).
+///
+/// Writes `<project>/specs/<target_slug>/spec.md` from the staged spec under
+/// run `run_id`, recompiles the project's spec registry, and (when
+/// `coupling_check_bin` is supplied) runs the coupling gate as a sanity
+/// check. `coupling_check_bin` is the path to the project's
+/// `spec-code-coupling-check` binary; pass `None`/empty to skip the gate
+/// (the recompile remains the primary FR-008 check).
+#[command]
+pub async fn decomposition_promote(
+    project_path: String,
+    run_id: String,
+    staged_slug: String,
+    target_slug: String,
+    coupling_check_bin: Option<String>,
+) -> Result<PromotionOutcome, String> {
+    let project_root = PathBuf::from(&project_path);
+    let run_root = opc_decomp_root(&project_path).join(&run_id);
+    let req = PromotionRequest {
+        project_root,
+        run_root,
+        staged_slug,
+        target_slug,
+    };
+    let bin = coupling_check_bin
+        .filter(|s| !s.is_empty())
+        .map(PathBuf::from);
+
+    tokio::task::spawn_blocking(move || promote_spec(&req, bin.as_deref()))
+        .await
+        .map_err(|e| format!("decomposition_promote task panicked: {e}"))?
         .map_err(|e| e.to_string())
 }

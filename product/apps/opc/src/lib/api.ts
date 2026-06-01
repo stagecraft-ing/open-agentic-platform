@@ -2516,10 +2516,114 @@ export const api = {
       request: { projectId },
     });
   },
+
+  // -------------------------------------------------------------------------
+  // Spec 165 — OPC decomposition pipeline. Tauri-only (needs filesystem
+  // access to the project working tree); no web REST mapping.
+  // -------------------------------------------------------------------------
+
+  /** Run the six-stage pipeline against a project working tree (FR-001). */
+  async decompositionRun(args: {
+    projectPath: string;
+    knowledgeBundle?: string;
+    embeddingsEnabled?: boolean;
+  }): Promise<DecompositionRunDto> {
+    return apiCall<DecompositionRunDto>("decomposition_run", {
+      projectPath: args.projectPath,
+      knowledgeBundle: args.knowledgeBundle ?? null,
+      embeddingsEnabled: args.embeddingsEnabled ?? false,
+    });
+  },
+
+  /** List prior decomposition runs under `<project>/.opc/decomposition/`. */
+  async decompositionListRuns(projectPath: string): Promise<DecompositionRunDto[]> {
+    return apiCall<DecompositionRunDto[]>("decomposition_list_runs", { projectPath });
+  },
+
+  /** Fetch one run's manifest by id (null when absent/malformed). */
+  async decompositionGetRun(
+    projectPath: string,
+    runId: string,
+  ): Promise<DecompositionRunDto | null> {
+    return apiCall<DecompositionRunDto | null>("decomposition_get_run", {
+      projectPath,
+      runId,
+    });
+  },
+
+  /** Promote a staged draft into the project's spec spine (FR-008). */
+  async decompositionPromote(args: {
+    projectPath: string;
+    runId: string;
+    stagedSlug: string;
+    targetSlug: string;
+    couplingCheckBin?: string;
+  }): Promise<DecompositionPromotionDto> {
+    return apiCall<DecompositionPromotionDto>("decomposition_promote", {
+      projectPath: args.projectPath,
+      runId: args.runId,
+      stagedSlug: args.stagedSlug,
+      targetSlug: args.targetSlug,
+      couplingCheckBin: args.couplingCheckBin ?? null,
+    });
+  },
 };
 
 export interface RefreshCloneTokenResponse {
   ok: boolean;
   token?: StoredCloneToken;
   error?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Spec 165 — decomposition pipeline DTOs. Mirror the Rust serde
+// (`rename_all = "camelCase"`) shapes from `opc_decomposition_pipeline`.
+// ---------------------------------------------------------------------------
+
+/** One stage record from a run manifest. `status`/`id` are kebab-case enums. */
+export interface DecompositionStageDto {
+  id: string;
+  status: string;
+  contentHash: string;
+  outputRelpath: string;
+  degraded?: string | { other: string } | null;
+}
+
+/** A staged draft spec emitted by stage 6. */
+export interface DecompositionDraftSpecDto {
+  slug: string;
+  relpath: string;
+  contentHash: string;
+}
+
+/** A decomposition run manifest. */
+export interface DecompositionRunDto {
+  runId: string;
+  projectRoot: string;
+  schemaVersion: string;
+  startedAt: string;
+  completedAt?: string | null;
+  stages: DecompositionStageDto[];
+  emittedSpecs: DecompositionDraftSpecDto[];
+  embeddingsEnabled: boolean;
+  treeSignature: string;
+  knowledgeSignature: string;
+  synthesiserIdentity: string;
+  promptTemplateHash: string;
+  checkpointAnchorId: string;
+  checkpointTrajectoryId: string;
+}
+
+/** One sub-step of a promotion (compile / coupling). */
+export interface DecompositionPromotionStepDto {
+  ran: boolean;
+  ok: boolean;
+  detail: string;
+}
+
+/** Result of promoting a staged draft into the project's spec spine. */
+export interface DecompositionPromotionDto {
+  promotedRelpath: string;
+  compile: DecompositionPromotionStepDto;
+  coupling: DecompositionPromotionStepDto;
 }

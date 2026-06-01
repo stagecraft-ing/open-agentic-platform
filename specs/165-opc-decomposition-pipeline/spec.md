@@ -3,7 +3,7 @@ id: "165-opc-decomposition-pipeline"
 slug: opc-decomposition-pipeline
 title: "OPC decomposition pipeline — reverse-engineering and born-with spec spawning"
 status: draft
-implementation: in-progress
+implementation: complete
 owner: bart
 created: "2026-05-22"
 kind: capability
@@ -23,6 +23,10 @@ code_aliases: ["OPC_DECOMPOSITION", "REVERSE_ENGINEERING_PIPELINE", "BORN_WITH_P
 establishes:
   - unit: { kind: directory, path: crates/opc-decomposition-pipeline }
   - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/decomposition.rs }
+  # FR-001 React panel (completion landing): the "Decompose project"
+  # surface + its panel shim.
+  - unit: { kind: directory, path: product/apps/opc/src/features/decomposition }
+  - unit: { kind: file, path: product/apps/opc/src/components/DecompositionPanel.tsx }
 extends:
   # The OPC desktop's Tauri command boundary is co-authored under the
   # spec-032 inspect-governance MVP. Spec 165 additively adds a new
@@ -38,6 +42,26 @@ extends:
   - spec: "032-opc-inspect-governance-wiring-mvp"
     nature: additive
     unit: { kind: file, path: product/apps/opc/src-tauri/src/lib.rs }
+  # The new spec (and spec 192) entering the registry regenerates the
+  # featuregraph golden; an additive touch to spec 034's fixture.
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+refines:
+  # FR-001 panel wiring threads through the OPC shell's tab plumbing + the
+  # frontend Tauri bindings, whose authority is spec 180 (spec 183 set the
+  # precedent of refining 180 for api.ts). Additive case/branch + wrapper
+  # additions (a new 'decomposition' tab type, lazy case, and the four
+  # decomposition* api wrappers), not behavioural changes to spec 180.
+  - aspect: "decomposition-panel-shell-wiring"
+    unit: { kind: file, path: product/apps/opc/src/lib/api.ts }
+    refines_specs: ["180-opc-shell-codification"]
+  - aspect: "decomposition-panel-shell-wiring"
+    unit: { kind: file, path: product/apps/opc/src/contexts/TabContext.tsx }
+    refines_specs: ["180-opc-shell-codification"]
+  - aspect: "decomposition-panel-shell-wiring"
+    unit: { kind: file, path: product/apps/opc/src/components/TabContent.tsx }
+    refines_specs: ["180-opc-shell-codification"]
 references:
   - role: decomposition-source
     unit: { kind: file, path: docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md }

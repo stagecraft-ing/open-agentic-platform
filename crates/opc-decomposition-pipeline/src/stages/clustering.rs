@@ -31,7 +31,7 @@ pub fn run(config: &PipelineConfig, run_dir: &RunDirectory) -> Result<StageRecor
     let index = fp::load_index(run_dir)?;
 
     let (clusters, method, degraded) = if config.embeddings_enabled {
-        embedding_clusters(&index, &config.project_root)?
+        embedding_clusters(&index, &config.project_root, &config.output_root)?
     } else {
         let c = directory_clusters(&index);
         (c, "by-top-dir".to_string(), Some(DegradedReason::NoEmbeddingsBackend))
@@ -68,12 +68,36 @@ pub fn load_clusters(run_dir: &RunDirectory) -> Result<ClusteringOutput, Pipelin
     Ok(serde_json::from_slice(&bytes)?)
 }
 
+/// Top-level directories excluded from clustering: VCS, build output, and
+/// crucially the pipeline's own `.opc/` scratch dir — otherwise stage 6
+/// would emit "specs" describing the decomposition run's own artifacts.
+/// Mirrors xray's `IGNORED_DIRS` plus `.opc`.
+const CLUSTER_IGNORED_DIRS: &[&str] = &[
+    ".opc",
+    ".git",
+    ".bin",
+    "node_modules",
+    "dist",
+    "build",
+    "out",
+    "vendor",
+    "target",
+    ".cache",
+    ".tmp",
+    "coverage",
+    ".axiomregent",
+];
+
 /// Group files by their top-level path component. Stable across runs:
-/// clusters and `paths` within them are sorted lexicographically.
+/// clusters and `paths` within them are sorted lexicographically. Files
+/// under `CLUSTER_IGNORED_DIRS` (incl. the run's own `.opc/`) are dropped.
 fn directory_clusters(index: &xray::XrayIndex) -> Vec<Cluster> {
     let mut buckets: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for f in &index.files {
         let top = top_dir(&f.path);
+        if CLUSTER_IGNORED_DIRS.contains(&top.as_str()) {
+            continue;
+        }
         buckets.entry(top).or_default().push(f.path.clone());
     }
     let mut clusters = Vec::with_capacity(buckets.len());
@@ -104,15 +128,25 @@ fn top_dir(path: &str) -> String {
 fn embedding_clusters(
     index: &xray::XrayIndex,
     project_root: &std::path::Path,
+    output_root: &std::path::Path,
 ) -> Result<(Vec<Cluster>, String, Option<DegradedReason>), PipelineError> {
+    use crate::embedding_cache::EmbeddingCache;
     use xray::analysis::embeddings;
 
-    // Embed each file as a code block. We give the embedder up to ~2KB
-    // of file content; longer files dominate fastembed's truncation
+    // Spec 192: front the embedder with a content-addressed cache so
+    // unchanged content is never re-embedded across runs.
+    let cache = EmbeddingCache::new(output_root);
+
+    // Build per-file (path, snippet, content-key). We give the embedder up
+    // to ~2KB of file content; longer files dominate fastembed's truncation
     // window anyway, so trimming is safe and keeps the run bounded.
-    let mut code_blocks: Vec<String> = Vec::with_capacity(index.files.len());
     let mut paths: Vec<String> = Vec::with_capacity(index.files.len());
+    let mut snippets: Vec<String> = Vec::with_capacity(index.files.len());
+    let mut keys: Vec<String> = Vec::with_capacity(index.files.len());
     for f in &index.files {
+        if CLUSTER_IGNORED_DIRS.contains(&top_dir(&f.path).as_str()) {
+            continue;
+        }
         let abs = project_root.join(&f.path);
         let bytes = match fs::read(&abs) {
             Ok(b) => b,
@@ -122,14 +156,44 @@ fn embedding_clusters(
         if snippet.trim().is_empty() {
             continue;
         }
-        code_blocks.push(snippet);
+        keys.push(EmbeddingCache::key(snippet.as_bytes()));
+        snippets.push(snippet);
         paths.push(f.path.clone());
     }
-    if code_blocks.is_empty() {
+    if paths.is_empty() {
         return Ok((Vec::new(), "embedding".to_string(), Some(DegradedReason::EmptyProjectTree)));
     }
-    let vectors = embeddings::embed_batch(&code_blocks)
-        .map_err(|e| PipelineError::XrayScan(format!("embed_batch: {e}")))?;
+
+    // Resolve embeddings through the cache; only misses hit the model.
+    let mut resolved: Vec<Option<[f32; 384]>> = vec![None; paths.len()];
+    let mut miss_indices: Vec<usize> = Vec::new();
+    let mut miss_blocks: Vec<String> = Vec::new();
+    for (i, key) in keys.iter().enumerate() {
+        match cache.get(key) {
+            Some(v) if v.len() == 384 => {
+                resolved[i] = Some(v.try_into().expect("len checked == 384"));
+            }
+            _ => {
+                miss_indices.push(i);
+                miss_blocks.push(snippets[i].clone());
+            }
+        }
+    }
+    if !miss_blocks.is_empty() {
+        let embedded = embeddings::embed_batch(&miss_blocks)
+            .map_err(|e| PipelineError::XrayScan(format!("embed_batch: {e}")))?;
+        for (j, &i) in miss_indices.iter().enumerate() {
+            let arr = embedded[j];
+            // Cache write is best-effort: a failure here must not fail the
+            // run (spec 192 FR-003 — the cache is an optimisation).
+            let _ = cache.put(&keys[i], &arr);
+            resolved[i] = Some(arr);
+        }
+    }
+    let vectors: Vec<[f32; 384]> = resolved
+        .into_iter()
+        .map(|v| v.expect("every embedding resolved (cache hit or fresh embed)"))
+        .collect();
 
     // Threshold-clustered union-find: any pair with cosine sim > 0.85
     // joins. Deterministic for a given input ordering.
@@ -201,6 +265,7 @@ fn embedding_clusters(
 fn embedding_clusters(
     _index: &xray::XrayIndex,
     _project_root: &std::path::Path,
+    _output_root: &std::path::Path,
 ) -> Result<(Vec<Cluster>, String, Option<DegradedReason>), PipelineError> {
     // Embeddings requested but feature not compiled in. Surface this
     // as the FR-010 degraded path so the orchestrator can flag it.

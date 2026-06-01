@@ -7,21 +7,33 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+/// Process-monotonic sequence appended to each `RunId` so two runs that
+/// land in the same wall-clock millisecond still get distinct ids (e.g.
+/// back-to-back runs in a test or a fast re-synthesis). Reset per process;
+/// cross-run ordering is taken from `PipelineRun::started_at`, not the id.
+static RUN_SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
 /// Identifier for a single decomposition run. Format:
-/// `YYYYMMDD-HHMMSS-<8-char hex hash of project_root>`.
-/// The timestamp is wall-clock; the hash binds the run to the project
-/// so two concurrent runs against different projects don't collide.
+/// `YYYYMMDD-HHMMSS-<millis>-<seq>-<8-char hex hash of project_root>`.
+/// The timestamp is wall-clock; the hash binds the run to the project so
+/// two concurrent runs against different projects don't collide; the
+/// millis + process-monotonic seq guarantee uniqueness for rapid re-runs.
+/// All components are fixed-width so lexicographic order matches time order
+/// within a process.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct RunId(pub String);
 
 impl RunId {
     pub fn new(project_root: &std::path::Path, now: DateTime<Utc>) -> Self {
         use sha2::{Digest, Sha256};
+        use std::sync::atomic::Ordering;
         let mut hasher = Sha256::new();
         hasher.update(project_root.to_string_lossy().as_bytes());
         let hash = hex::encode(&hasher.finalize()[..4]);
         let ts = now.format("%Y%m%d-%H%M%S");
-        Self(format!("{ts}-{hash}"))
+        let millis = now.timestamp_subsec_millis();
+        let seq = RUN_SEQ.fetch_add(1, Ordering::Relaxed);
+        Self(format!("{ts}-{millis:03}-{seq:06}-{hash}"))
     }
 
     pub fn as_str(&self) -> &str {
@@ -142,6 +154,32 @@ pub struct PipelineRun {
     pub emitted_specs: Vec<DraftSpecRef>,
     /// Whether `embeddings` feature was enabled when the run executed.
     pub embeddings_enabled: bool,
+    /// Content signature of the project working tree (source files only;
+    /// `.opc`, `.git`, and build dirs excluded). The cache key for the
+    /// tree-dependent stages (2, 4, 5). `#[serde(default)]` so manifests
+    /// written before caching landed still deserialize (empty → no hit).
+    #[serde(default)]
+    pub tree_signature: String,
+    /// Content signature of the knowledge bundle (empty when none). The
+    /// cache key for stage 1 (extraction).
+    #[serde(default)]
+    pub knowledge_signature: String,
+    /// Identity of the stage-6 synthesiser backend that produced the
+    /// emitted specs, e.g. `"deterministic-baseline"`. Bound into the
+    /// governance certificate (spec 165 §2.3).
+    #[serde(default)]
+    pub synthesiser_identity: String,
+    /// SHA-256 hex of the synthesiser's prompt template (spec 165 §2.3).
+    #[serde(default)]
+    pub prompt_template_hash: String,
+    /// Branch-of-thought anchor (the evidence base, stages 1-5) this run's
+    /// synthesis forked from (spec 165 §2.2). Empty when checkpointing is
+    /// disabled (`NoopCheckpointSink`).
+    #[serde(default)]
+    pub checkpoint_anchor_id: String,
+    /// Branch-of-thought trajectory id for this run's synthesis (§2.2).
+    #[serde(default)]
+    pub checkpoint_trajectory_id: String,
 }
 
 pub const PIPELINE_RUN_SCHEMA_VERSION: &str = "0.1.0";

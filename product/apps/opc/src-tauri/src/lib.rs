@@ -674,6 +674,7 @@ pub fn run() {
             commands::decomposition::decomposition_run,
             commands::decomposition::decomposition_list_runs,
             commands::decomposition::decomposition_get_run,
+            commands::decomposition::decomposition_promote,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
