@@ -2,7 +2,7 @@
 id: "192-decomposition-embedding-cache"
 slug: decomposition-embedding-cache
 title: "Decomposition embedding cache — content-addressed cross-run reuse for stage-3 clustering"
-status: draft
+status: approved
 implementation: complete
 owner: bart
 created: "2026-05-31"

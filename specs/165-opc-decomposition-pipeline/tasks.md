@@ -81,7 +81,7 @@
   `cargo clippy --workspace -- -D warnings`; `cargo test`; spec-lint;
   coupling gate. Add Spec-Drift-Waiver to PR body if golden/index churn
   requires it.
-- [ ] T-030 — **PR + CI watch.** Open PR, monitor checks, fix red.
+- [x] T-030 — **PR + CI watch.** Open PR, monitor checks, fix red.
 
 ## Deferred to future specs (unchanged from landing 1)
 

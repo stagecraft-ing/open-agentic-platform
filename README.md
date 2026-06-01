@@ -1,7 +1,7 @@
 # open-agentic-platform
 
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
-[![Specs: 160](https://img.shields.io/badge/specs-160-informational)](specs/)
+[![Specs: 193](https://img.shields.io/badge/specs-193-informational)](specs/)
 [![Languages](https://img.shields.io/badge/lang-Rust%20%7C%20TypeScript-orange)](#)
 [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-yellow)](#status)
 
@@ -11,7 +11,7 @@ deterministic JSON registry; every agent action is reconcilable to the spec
 that authorised it — and the audit chain is a single artifact you can hand
 to a regulator.
 
-- **Spec spine** — 160 markdown specs compile to a deterministic
+- **Spec spine** — 193 markdown specs compile to a deterministic
   `registry.json`. Drift between spec and code fails CI before merge
   ([spec 127](specs/127-spec-code-coupling-gate/spec.md)).
 - **Governed agent execution** — agents act through scoped tools, policy
@@ -219,8 +219,8 @@ make setup
 
 ./tools/spec-spine/registry-consumer/target/release/registry-consumer \
     status-report --json --nonzero-only
-# Lifecycle inventory across the 160-spec corpus.
-# 152 approved, 4 draft, 4 superseded.
+# Lifecycle inventory across the 193-spec corpus.
+# 186 approved, 3 draft, 4 superseded.
 
 ./tools/oap/oap-code-index-enrich/target/release/oap-code-index-enrich render
 cat .derived/codebase-index/CODEBASE-INDEX.md
@@ -281,7 +281,7 @@ today vs. what is staged and what is roadmap, by spec ID.
 
 ### Works today
 
-- **Spec compilation and querying** — 160 specs compile deterministically.
+- **Spec compilation and querying** — 193 specs compile deterministically.
   `registry-consumer` is a typed read-only CLI; ad-hoc JSON parsing is a
   workflow violation ([spec 103](specs/103-init-protocol-governed-reads/spec.md)).
 - **Spec/code coupling gate** — every code path claimed by a spec's
@@ -354,7 +354,7 @@ today vs. what is staged and what is roadmap, by spec ID.
 
 | Path | What lives there |
 |---|---|
-| `specs/` | The authoritative spec spine. 160 specs as of 2026-05-22. |
+| `specs/` | The authoritative spec spine. 193 specs as of 2026-05-31. |
 | `tools/` | Rust CLIs: `spec-compiler`, `registry-consumer`, `spec-lint`, `codebase-indexer`, `policy-compiler`, `spec-code-coupling-check`, others. |
 | `crates/` | Library crates: `factory-engine`, `factory-contracts`, `policy-kernel`, `orchestrator`, `agent`, `tool-registry`, `axiomregent`, `xray`, others. |
 | `product/apps/opc/` | OPC desktop (Tauri v2 + React + TypeScript). |

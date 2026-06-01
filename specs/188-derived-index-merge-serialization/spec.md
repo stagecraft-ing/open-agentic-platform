@@ -2,8 +2,8 @@
 id: "188-derived-index-merge-serialization"
 slug: derived-index-merge-serialization
 title: "Derived-index merge serialization — merge driver + merge queue + narrow config-hash gate (broad index demoted to best-effort cache)"
-status: draft
-implementation: in-progress
+status: approved
+implementation: complete
 owner: bart
 created: "2026-05-29"
 kind: governance
@@ -144,17 +144,23 @@ summary: >
 
 **Feature Branch**: `188-derived-index-merge-serialization`
 **Created**: 2026-05-29
-**Status**: Draft (Phases 1, 2, 3 & **4a** implemented in code. The
-§spec-184 tension was resolved by re-homing, path 1; see §"The spec-184
-tension → Resolution". Phase 4 was **split**: 4a (re-home `claudeConfigHash`
-to its own tracked `config-hash.json`) is implemented; **4b** (`.gitignore`
-the broad `index.json`) is **deferred** — it reverses spec 101 SC-06's
-present-on-clone decision and is not needed to dissolve the cache/contract
-tension, which 4a fully resolves. Two items remain, neither blocking: the
-merge-queue **ops action** (a repo admin enables the queue and requires
-`ci-gate` on `merge_group` — deferred so FR-006's "Phase 2 strictly after
-Phase 3" holds, since the `merge_group:` trigger is inert until then), and
-Phase 4b if/when SC-06 is revisited on its own merits.)
+**Status**: Approved · implementation **complete** (closed out 2026-05-31).
+All code phases are merged: Phase 1 (`oap-index-regen` merge driver +
+`make setup` registration), Phase 2 (`merge_group:` trigger + V-032 dup-id
+lint), Phase 3 (narrow `ci-config-hash` gate + report-only staleness job;
+direct-push heal retired), and Phase 4a (re-home `claudeConfigHash` to its own
+tracked `config-hash.json`, index schema → 3.0.0). The §spec-184 tension was
+resolved by re-homing, path 1; see §"The spec-184 tension → Resolution".
+The Phase 2 **merge-queue ops action** — enabling the GitHub merge queue and
+requiring `ci-gate` on `merge_group` — is **done** (enabled in branch
+protection 2026-05-31; FR-006's "Phase 2 strictly after Phase 3" ordering was
+satisfied once Phase 3 landed, so the previously-inert `merge_group:` trigger is
+now live). **Phase 4b** (`.gitignore` the broad `index.json`) is the single
+remaining item and is **explicitly deferred / out-of-scope-for-done**: it is
+separable from 4a, is not required to dissolve the cache/contract tension (4a
+fully resolves it), and reverses spec 101 SC-06's present-on-clone decision —
+so it is tracked as its own future decision on SC-06's merits, not as a blocker
+on this spec's completion.
 
 ## Problem
 
@@ -515,7 +521,7 @@ the codebase-index schema, which lives in a separate validation system.
 | Phase | Scope | Status | Risk |
 |-------|-------|--------|------|
 | 1 | `oap-index-regen` merge driver + `.gitattributes` + `make setup` registration | **Implemented in this change** | low |
-| 2 | GitHub merge queue (`merge_group:` trigger) + duplicate-id lint (V-032) | **Implemented in code 2026-05-30**; merge-queue *enablement* is an ops step | low–medium |
+| 2 | GitHub merge queue (`merge_group:` trigger) + duplicate-id lint (V-032) | **Complete** — code landed 2026-05-30; merge-queue *enablement* done in branch protection 2026-05-31 | low–medium |
 | 3 | Broad staleness → best-effort cache + narrow `check-config` PR gate; staleness-report job (heal retired) | **Implemented 2026-05-30** (re-homing, path 1; FR-007/008/009) | medium |
 | 4a | Re-home `claudeConfigHash` to its own tracked `config-hash.json` (index schema 2.3.0 → 3.0.0); `check-config` reads it | **Implemented 2026-05-30** — dissolves the cache/contract tension (the cache now carries nothing governed) | low |
 | 4b | `.gitignore` the broad `index.json` (pure rebuilt-on-demand artifact) | **Deferred** — separable; reverses spec 101 SC-06 (present-on-clone); not needed to dissolve the tension | low–medium |
