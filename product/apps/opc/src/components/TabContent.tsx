@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useTabState } from '@/hooks/useTabState';
+import { tabPanelPropsAreEqual } from '@/components/tabPanelMemo';
 import { useScreenTracking } from '@/hooks/useAnalytics';
 import { Tab } from '@/contexts/TabContext';
 import { Loader2, Plus, ArrowLeft, FileText, Upload } from 'lucide-react';
@@ -41,7 +42,7 @@ interface TabPanelProps {
   isActive: boolean;
 }
 
-const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
+const TabPanelInner: React.FC<TabPanelProps> = ({ tab, isActive }) => {
   const { updateTab } = useTabState();
   const [projects, setProjects] = React.useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = React.useState<Project | null>(null);
@@ -517,6 +518,11 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive }) => {
   );
 };
 
+// Spec 180 FR-T2 — per-tab panels are memoized so a single-panel state
+// change (FR-T3) reconciles only the affected panel, not the whole list.
+// The comparator (tab.id + isActive + updatedAt) lives in tabPanelMemo.ts.
+const TabPanel = React.memo(TabPanelInner, tabPanelPropsAreEqual);
+
 export const TabContent: React.FC = () => {
   const { tabs, activeTabId, createChatTab, createProjectsTab, findTabBySessionId, createSpecMarkdownTab, createAgentExecutionTab, createCreateAgentTab, createImportAgentTab, closeTab, updateTab } = useTabState();
   
@@ -623,16 +629,19 @@ export const TabContent: React.FC = () => {
   
   return (
     <div className="flex-1 h-full relative">
-      <AnimatePresence mode="wait">
-        {tabs.map((tab) => (
-          <TabPanel
-            key={tab.id}
-            tab={tab}
-            isActive={tab.id === activeTabId}
-          />
-        ))}
-      </AnimatePresence>
-      
+      {/* Spec 180 FR-T1 — the mapped panel list reconciles directly. The
+          framer-motion wait-mode presence wrapper was removed: it gated
+          reconciliation of every panel behind a sibling's exit animation.
+          Per-panel exit animation, if reintroduced, must be local to the
+          closing panel rather than wrapping the mapped set. */}
+      {tabs.map((tab) => (
+        <TabPanel
+          key={tab.id}
+          tab={tab}
+          isActive={tab.id === activeTabId}
+        />
+      ))}
+
       {tabs.length === 0 && (
         <div className="flex items-center justify-center h-full text-muted-foreground">
           <div className="text-center">

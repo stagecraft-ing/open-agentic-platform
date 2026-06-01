@@ -375,6 +375,11 @@ pub fn run() {
             app.manage(commands::window_ctrl::ZoomState::default());
             app.manage(WorktreeAgentsState::default());
 
+            // Spec 180 FR-T7 — process-lifetime cache for the filesystem-scanning
+            // usage handlers, registered so they retrieve it via State<'_, _>
+            // rather than constructing per call.
+            app.manage(commands::usage::UsageCache::default());
+
             // Initialize quick pane (hidden, shown via global shortcut)
             if let Err(e) = commands::quick_pane::init_quick_pane(app.handle()) {
                 log::error!("Failed to create quick pane: {e}");

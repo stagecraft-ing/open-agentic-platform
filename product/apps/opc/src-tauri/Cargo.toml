@@ -131,9 +131,42 @@ custom-protocol = ["tauri/custom-protocol"]
 # Exposes the running app to AI assistants via WebSocket on port 9223.
 mcp-dev = ["tauri-plugin-mcp-bridge"]
 
+[dev-dependencies]
+# Spec 180 FR-T5 — deterministic mtime control for the usage-cache freshness
+# test (set a file's mtime without changing its body to assert a cache hit
+# does not re-read).
+filetime = "0.2"
+# Spec 180 FR-T8 — criterion bench harness for the filesystem-scanning usage
+# handler. Matches the spec-spine bench precedent (policy-kernel, policy-
+# compiler, codebase-indexer all use criterion 0.8 with harness = false).
+criterion = "0.8"
+
+# Spec 180 §5 / FR-T8 — Tier 2 bench-presence for the user-filesystem-scanning
+# usage handler. Relative-regression gating (FR-T9) is wired in CI, not here.
+[[bench]]
+name = "usage_scan"
+harness = false
+
 [profile.release]
 strip = true
 opt-level = "z"
 lto = true
 codegen-units = 1
 panic = "abort"
+
+# Spec 180 FR-T8 — decouple the bench profile from release's `panic = "abort"`
+# + whole-program LTO. The cross-workspace path deps (orchestrator,
+# factory-engine, …) otherwise hit panic-strategy rlib mismatches
+# ("can't find crate for `orchestrator`"): Cargo forces the bench *binary* to
+# unwind but, without an explicit `panic` here, compiles the dep graph with the
+# inherited `abort`. `panic = "unwind"` IS load-bearing (verified: removing it
+# reintroduces the failure) even though Cargo prints "`panic` setting is
+# ignored for `bench` profile" — that note is about the bench target itself, not
+# its deps. `lto = false` + `opt-level = 3` keep the build representative but
+# buildable. The Tier 2 gate is relative-regression only (FR-T10), so full
+# release codegen is unnecessary.
+[profile.bench]
+panic = "unwind"
+opt-level = 3
+lto = false
+codegen-units = 16
