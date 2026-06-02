@@ -7,6 +7,8 @@ implementation: deferred
 kind: process
 domain: substrate
 created: "2026-04-08"
+amended: "2026-06-01"
+amendment_record: "193-paired-release-cadence"
 authors:
   - "open-agentic-platform"
 language: en
@@ -44,6 +46,11 @@ references:
 > definition of done.
 
 # 086 — Open Source Launch Readiness
+
+> **Amended by [193-paired-release-cadence](../193-paired-release-cadence/spec.md) (2026-06-01).**
+> `release-tools.yml` (which attaches the CLI-tool archives) now keys its
+> `workflow_run` gate on the `opc-v` tag prefix and participates in the
+> version-consistency guard. The launch-readiness scope here is unchanged.
 
 ## Purpose
 

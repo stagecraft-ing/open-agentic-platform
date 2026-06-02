@@ -9,6 +9,8 @@ created: "2026-04-28"
 kind: governance
 domain: tooling
 risk: medium
+amended: "2026-06-01"
+amendment_record: "193-paired-release-cadence"
 depends_on:
   - "000"  # bootstrap-spec-system
   - "037"  # cross-platform-axiomregent (release matrix precedent)
@@ -36,6 +38,12 @@ summary: >
 ---
 
 # 117 — Release Artifact Attestations
+
+> **Amended by [193-paired-release-cadence](../193-paired-release-cadence/spec.md) (2026-06-01).**
+> The release-{desktop,axiomregent,tools} workflows this spec refines now run a
+> pre-publish version-consistency guard (tag == committed sources == SBOM), and
+> axiomregent publishes draft-first instead of live. The attestation contract
+> here is unchanged; spec 193 adds the version-alignment gate around it.
 
 ## 1. Problem Statement
 

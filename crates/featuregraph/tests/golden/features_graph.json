@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:89a865e71f2b70b30d3e9e1711a9cae1062bd157971433ad8957a58f1bb5ee26",
+  "graph_fingerprint": "sha256:d1221551f28a0d13f655d0e8c49acac71435902ca80e78820aa20780d81ab743",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3651,6 +3651,26 @@
       "impl_files": [],
       "test_files": [],
       "violations": []
+    },
+    {
+      "feature_id": "193-paired-release-cadence",
+      "title": "Paired release cadence + version-consistency guard (amends 037, 086, 117)",
+      "spec_path": "specs/193-paired-release-cadence/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "037",
+        "086",
+        "117",
+        "116",
+        "158"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
     }
   ],
   "violations": [
@@ -5150,6 +5170,20 @@
       "severity": "error",
       "path": "product/packages/skill-command-factory/src/types.ts",
       "message": "Malformed Feature directive: // Feature: 071-skill-command-factory",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "tools/lint/release-version-guard-test.sh",
+      "message": "Malformed Spec directive: # Spec: 193-paired-release-cadence",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "tools/lint/release-version-guard.sh",
+      "message": "Malformed Spec directive: # Spec: 193-paired-release-cadence (amends 037, 086, 117)",
       "suggested_fix": "Fix header format"
     },
     {
