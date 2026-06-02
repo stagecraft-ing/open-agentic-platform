@@ -32,8 +32,53 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # ── Stage 0: Fail-fast version guard (no build) ─────────────────────
+  # spec 193 — the committed-source version check hoisted into a standalone
+  # job that needs nothing but a checkout. It reads only tauri.conf.json /
+  # package.json / Cargo.toml / Cargo.lock — all present in a bare checkout,
+  # no sidecar or build output required. Every other job `needs:` this one, so
+  # a tag-vs-committed mismatch dies in ~30s with ZERO sidecar/build minutes
+  # burned, no draft, no tag. The in-`release` pre-build guard (defense-in-depth
+  # for the build runner's own checkout) and the post-build SBOM guard
+  # (build-time drift) are retained below — this job is the fast-fail front gate,
+  # not a replacement for them.
+  version-guard:
+    runs-on: ubuntu-latest
+    name: version-guard
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      # Same prefix-aware resolver as the release job (spec 193 tag grammar).
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          if [ -z "$TAG" ]; then
+            echo "::error::No release tag resolved — did you forget the tag input?"
+            exit 1
+          fi
+          PRODUCT="${TAG%-v*}"      # opc-v0.4.0 -> opc
+          VERSION="${TAG##*-v}"     # opc-v0.4.0 -> 0.4.0
+          VERSION="${VERSION#v}"    # tolerate a stray leading 'v'
+          if [ "$PRODUCT" != "opc" ]; then
+            echo "::error::Release Desktop expects an 'opc-v<semver>' tag; got '$TAG' (product='$PRODUCT'). Bare 'v*' tags were retired in spec 193."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Guard — committed version == tag (fail-fast, pre-build)
+        shell: bash
+        run: tools/lint/release-version-guard.sh opc "${{ steps.tag.outputs.version }}"
+
   # ── Stage 1: Build sidecar binaries ────────────────────────────────
   sidecar:
+    needs: [version-guard]
     strategy:
       fail-fast: false
       matrix:
@@ -99,6 +144,7 @@ jobs:
 
   # ── Stage 1b: Linux ARM64 sidecar (cross-compiled) ────────────────
   sidecar-linux-arm64:
+    needs: [version-guard]
     runs-on: ubuntu-24.04
     name: sidecar / aarch64-unknown-linux-gnu
 
@@ -145,7 +191,7 @@ jobs:
 
   # ── Stage 2: Build & release desktop app ───────────────────────────
   release:
-    needs: [sidecar, sidecar-linux-arm64]
+    needs: [version-guard, sidecar, sidecar-linux-arm64]
     strategy:
       fail-fast: false
       matrix:
@@ -253,12 +299,14 @@ jobs:
             echo "version=$VERSION"
           } >> "$GITHUB_OUTPUT"
 
-      # spec 193 — pre-build version guard. Fail fast unless every committed
-      # version source (tauri.conf.json / package.json / Cargo.toml /
-      # Cargo.lock) equals the resolved tag version. Runs BEFORE tauri-action,
-      # so on mismatch nothing is built and no draft is created — the version
-      # is not burned. This is the structural fix for the 0.3.4-assets-under-a-
-      # v0.3.6-envelope class of bug.
+      # spec 193 — pre-build version guard (defense-in-depth). The standalone
+      # `version-guard` job is the fast-fail front gate (this job `needs:` it via
+      # the sidecar matrix), so a mismatch is normally rejected before any build
+      # minutes. This in-job re-check guards the release runner's OWN checkout
+      # against the committed sources (tauri.conf.json / package.json /
+      # Cargo.toml / Cargo.lock) and still runs BEFORE tauri-action, so nothing
+      # is built and no draft is created on the (theoretical) divergent-checkout
+      # path. Structural fix for the 0.3.4-assets-under-a-v0.3.6-envelope bug.
       - name: Guard — committed version == tag (pre-build)
         shell: bash
         run: tools/lint/release-version-guard.sh opc "${{ steps.tag.outputs.version }}"
