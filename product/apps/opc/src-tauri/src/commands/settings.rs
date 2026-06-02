@@ -3,7 +3,7 @@
 //! Currently manages the Stagecraft base URL so users can switch servers at
 //! runtime without setting env vars. Persisted in the `app_settings` k/v table.
 
-use log::{info, warn};
+use log::info;
 use rusqlite::params;
 use tauri::{AppHandle, Manager, State};
 
@@ -75,15 +75,21 @@ pub async fn set_stagecraft_base_url(
 ) -> Result<(), String> {
     let trimmed = base_url.trim().trim_end_matches('/').to_string();
 
-    // Validate non-empty values parse as http(s) URLs.
-    if !(trimmed.is_empty()
-        || trimmed.starts_with("http://")
-        || trimmed.starts_with("https://"))
-    {
-        return Err("URL must start with http:// or https://".into());
+    // Reject malformed / non-http(s) URLs before any state is mutated.
+    validate_stagecraft_base_url(&trimmed)?;
+
+    // Build the replacement client BEFORE touching the keychain or DB, so a
+    // failure here never strands the user with their old session wiped and no
+    // client installed. `new` returns `None` for an empty URL (intentional
+    // disable) or — rarely — a reqwest builder failure on a non-empty URL; the
+    // latter is a hard error that must not have already cleared credentials.
+    let user_id = std::env::var("OPC_USER_ID").unwrap_or_else(|_| "opc-desktop".into());
+    let new_client = StagecraftClient::new(&trimmed, &user_id).map(std::sync::Arc::new);
+    if !trimmed.is_empty() && new_client.is_none() {
+        return Err("failed to initialise Stagecraft HTTP client".into());
     }
 
-    // Persist to DB.
+    // Persist to DB — only now that the URL is known-good.
     {
         let conn = db.0.lock().map_err(|e| e.to_string())?;
         conn.execute(
@@ -96,20 +102,23 @@ pub async fn set_stagecraft_base_url(
     // Delete the old server's keychain session — the token belongs to the old
     // server and must not leak to the new one. Routed through the client's
     // single-source-of-truth helper so this list cannot drift from clear_auth.
-    // We do NOT call clear_auth() on the old client: the duplex loop bound to
-    // it is aborted by the re-spawn below and the old Arc is then dropped, so
-    // its in-memory state is moot.
+    // Done only after the replacement client is in hand (above): a rejected URL
+    // returns early and leaves the existing session intact. We do NOT call
+    // clear_auth() on the old client: the duplex loop bound to it is aborted by
+    // the re-spawn below and the old Arc is then dropped, so its in-memory
+    // state is moot.
     StagecraftClient::clear_keychain_entries();
 
-    // Rebuild the client.
-    let user_id = std::env::var("OPC_USER_ID").unwrap_or_else(|_| "opc-desktop".into());
-    let new_client = StagecraftClient::new(&trimmed, &user_id).map(std::sync::Arc::new);
     if new_client.is_some() {
         info!("Stagecraft base URL updated → {trimmed}");
     } else {
-        warn!("Stagecraft base URL cleared — integration disabled");
+        info!("Stagecraft base URL cleared — integration disabled");
     }
-    stagecraft.replace(new_client);
+
+    // Install the new client and drive the duplex loop off the SAME Arc we just
+    // installed — not a second `stagecraft.current()` read, which a concurrent
+    // URL change could swap out from under us between the two calls.
+    stagecraft.replace(new_client.clone());
 
     // Follow the new URL on the duplex loop (spec 183 FR-T2(a)): re-spawn the
     // consumer against the new client — `spawn` aborts the prior task first, so
@@ -118,7 +127,7 @@ pub async fn set_stagecraft_base_url(
     // is cleared, stop the loop entirely. This is the authoritative resolution
     // of the spawn-time-binding caveat: the loop no longer keeps targeting the
     // old host after a URL change.
-    match stagecraft.current() {
+    match new_client {
         Some(client) => {
             let config = SyncClientConfig {
                 base_url: trimmed.clone(),
@@ -135,4 +144,58 @@ pub async fn set_stagecraft_base_url(
     }
 
     Ok(())
+}
+
+/// Validate a trimmed Stagecraft base URL. Empty is allowed — it means
+/// "disable the integration". Non-empty must parse as a well-formed `http` or
+/// `https` URL. A prefix check (`starts_with("http://")`) would wave through
+/// malformed authorities like `http://bad::url`, which then fail every request
+/// while sitting persisted in the DB with no signal to the user; a real parse
+/// rejects them up front. `http` is intentionally permitted so self-hosted and
+/// localhost-dev servers work — this runs in a desktop app where the user owns
+/// the endpoint, so host-level egress filtering is out of scope here.
+fn validate_stagecraft_base_url(trimmed: &str) -> Result<(), String> {
+    if trimmed.is_empty() {
+        return Ok(());
+    }
+    match url::Url::parse(trimmed) {
+        Ok(u) if matches!(u.scheme(), "http" | "https") => Ok(()),
+        Ok(u) => Err(format!("URL scheme must be http or https, got {:?}", u.scheme())),
+        Err(e) => Err(format!("invalid Stagecraft base URL: {e}")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_stagecraft_base_url as validate;
+
+    #[test]
+    fn empty_url_is_allowed_meaning_disable() {
+        assert!(validate("").is_ok());
+    }
+
+    #[test]
+    fn well_formed_http_and_https_are_accepted() {
+        assert!(validate("https://stagecraft.ing").is_ok());
+        assert!(validate("http://localhost:4000").is_ok());
+        assert!(validate("http://127.0.0.1:8080").is_ok());
+    }
+
+    #[test]
+    fn malformed_authority_is_rejected_before_persist() {
+        // The retired prefix check accepted this; a real parse rejects it so it
+        // never reaches the DB or wipes the keychain.
+        assert!(validate("http://bad::url").is_err());
+    }
+
+    #[test]
+    fn non_http_scheme_is_rejected() {
+        assert!(validate("file:///etc/passwd").is_err());
+        assert!(validate("ftp://example.com").is_err());
+    }
+
+    #[test]
+    fn garbage_without_scheme_is_rejected() {
+        assert!(validate("not a url").is_err());
+    }
 }

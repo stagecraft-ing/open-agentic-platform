@@ -829,6 +829,16 @@ impl SyncClientState {
         auth: Arc<StagecraftClient>,
         app: tauri::AppHandle,
     ) {
+        // `self.join` is a *tokio* mutex, so holding the guard across the
+        // `.await` below is sound — the std-`Mutex` "never hold across await"
+        // rule does not apply to `tokio::sync::Mutex`. The hold is deliberate:
+        // take → abort → await → store must be atomic so two re-spawns can
+        // never overlap or orphan a task (releasing the lock mid-teardown would
+        // let a concurrent spawn install its own handle, which we'd then
+        // clobber). The hold is brief — `abort()` wakes the loop at its next
+        // cancellation point, and every await in `run_forever` is one, so
+        // `prev.await` returns promptly — and `run_forever` never locks
+        // `self.join`, so there is no deadlock.
         let mut guard = self.join.lock().await;
         if let Some(prev) = guard.take() {
             // Abort the prior loop AND await its teardown before starting the
