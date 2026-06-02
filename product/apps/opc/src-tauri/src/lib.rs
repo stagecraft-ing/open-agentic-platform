@@ -68,7 +68,7 @@ use commands::orchestrator::{
 };
 use commands::proxy::{apply_proxy_settings, get_proxy_settings, save_proxy_settings};
 use commands::stagecraft_client::StagecraftState;
-use commands::sync_client::{SyncClientConfig, SyncClientState};
+use commands::sync_client::{OpcInstanceId, SyncClientConfig, SyncClientState};
 use commands::storage::{
     storage_delete_row, storage_execute_sql, storage_insert_row, storage_list_tables,
     storage_read_table, storage_reset_database, storage_update_row,
@@ -232,7 +232,8 @@ pub fn run() {
             {
                 let user_id = std::env::var("OPC_USER_ID").unwrap_or_else(|_| "opc-desktop".into());
                 let base_url = commands::settings::resolve_stagecraft_base_url(app.handle());
-                let sc = commands::stagecraft_client::StagecraftClient::new(&base_url, &user_id);
+                let sc = commands::stagecraft_client::StagecraftClient::new(&base_url, &user_id)
+                    .map(std::sync::Arc::new);
                 if sc.is_some() {
                     log::info!("Stagecraft client enabled → {base_url}");
                 } else {
@@ -265,10 +266,17 @@ pub fn run() {
                         client_id: opc_instance_id.clone(),
                         client_version: Some(env!("CARGO_PKG_VERSION").to_string()),
                     };
-                    // Auth handle for the reconnect loop. A clone carries its
-                    // own in-memory token cell but is backed by the same OS
-                    // keychain, which is the shared source of truth the loop
-                    // reloads/refreshes against (spec 110 / 183).
+                    // Auth handle for the reconnect loop, captured here at
+                    // spawn time. `StagecraftState` holds an
+                    // `Arc<StagecraftClient>` (spec 183), so for the lifetime of
+                    // *this* client it is a shared handle to the SAME instance
+                    // the boot gate and REST commands read — a token/org write
+                    // on any handle is visible to all, and the loop's keychain
+                    // reload/refresh (spec 110 / 183) is visible to them in
+                    // turn. A base-URL change (`set_stagecraft_base_url` →
+                    // `StagecraftState::replace`) installs a NEW client and
+                    // re-spawns this consumer against it (spec 183 FR-T2(a)),
+                    // so the loop follows the switch — see `SyncClientState::spawn`.
                     let auth = client.clone();
                     let handle = app.handle().clone();
                     tauri::async_runtime::spawn(async move {
@@ -292,6 +300,10 @@ pub fn run() {
                 // default `source` to `stagecraft` (Rollout Phase 6), but safe
                 // to register unconditionally — the dispatch table is empty
                 // for this kind otherwise.
+                // Expose the stable instance id as managed state so a
+                // settings-driven duplex re-spawn (spec 183 FR-T2(a)) reuses
+                // the same `client_id` instead of minting a new one.
+                app.manage(OpcInstanceId(opc_instance_id.clone()));
                 commands::factory::register_factory_run_handler(
                     app.handle().clone(),
                     opc_instance_id,
