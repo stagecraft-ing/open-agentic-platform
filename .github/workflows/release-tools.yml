@@ -262,12 +262,17 @@ jobs:
           TAG: ${{ needs.resolve-tag.outputs.tag }}
         run: |
           set -euo pipefail
-          # spec 194 — publish-boundary guard: this is the reactive workflow_run
-          # chain off Release Desktop; never let it upload to a release the
-          # operator has already published. Automation mutates drafts only.
-          state="$(gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null || true)"
+          # spec 194 — publish-boundary guard (reactive workflow_run chain off
+          # Release Desktop). Three states, three messages: gh-lookup-failed /
+          # published / draft. Check gh's exit code FIRST so a gone/auth failure
+          # is not mislabeled "published"; gh's stderr is left to surface in the log.
+          if state="$(gh release view "$TAG" --json isDraft -q .isDraft)"; then :; else
+            rc=$?
+            echo "::error::publish-boundary (spec 194): 'gh release view $TAG' failed (exit $rc; see gh error above) — failing closed, not uploading tool archives. Release may be gone or gh failed to authenticate; resolve manually."
+            exit 1
+          fi
           if [ "$state" != "true" ]; then
-            echo "::error::publish-boundary (spec 194): release '$TAG' is not a draft (isDraft='${state:-unknown}') — refusing to upload tool archives. Publish only after Release Tools is green, or attach manually."
+            echo "::error::publish-boundary (spec 194): release '$TAG' is published (isDraft='$state') — refusing to upload tool archives. Automation mutates drafts only; publish after Release Tools is green, or attach manually."
             exit 1
           fi
           gh release upload "$TAG" \

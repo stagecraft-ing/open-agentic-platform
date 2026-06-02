@@ -15,7 +15,6 @@ depends_on:
   - "086"  # open-source-launch — established release-tools.yml (tool-archive attach)
   - "117"  # release-artifact-attestations — established release-desktop.yml upload/attest steps
   - "037"  # cross-platform-axiomregent — release matrix context
-code_aliases: ["PUBLISH_BOUNDARY_GUARD"]
 refines:
   - aspect: "release-publish-boundary"
     unit: { kind: file, path: .github/workflows/release-desktop.yml }

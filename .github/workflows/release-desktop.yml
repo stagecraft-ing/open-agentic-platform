@@ -385,14 +385,20 @@ jobs:
           sbom="product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json"
           if ! tools/lint/release-version-guard.sh opc "$VERSION" "$sbom"; then
             echo "::error::version guard failed post-build for '$TAG'."
-            # spec 194 — publish-boundary guard: only discard a DRAFT. If a human
-            # published it during the build, refuse to delete a published release.
-            state="$(gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null || true)"
-            if [ "$state" = "true" ]; then
-              echo "::error::discarding DRAFT '$TAG' (no version burned)."
-              gh release delete "$TAG" --yes --cleanup-tag --repo "$GITHUB_REPOSITORY" || true
+            # spec 194 — publish-boundary guard. Three states, three messages:
+            # gh-lookup-failed (gone / never created / auth) → do NOT delete and
+            # say so truthfully; draft → discard (no version burned); published →
+            # refuse. gh's stderr surfaces in the log (no 2>/dev/null).
+            if state="$(gh release view "$TAG" --json isDraft -q .isDraft)"; then
+              if [ "$state" = "true" ]; then
+                echo "::error::discarding DRAFT '$TAG' (no version burned)."
+                gh release delete "$TAG" --yes --cleanup-tag --repo "$GITHUB_REPOSITORY" || true
+              else
+                echo "::error::publish-boundary (spec 194): release '$TAG' is published (isDraft='$state') — refusing to delete a published release; resolve manually."
+              fi
             else
-              echo "::error::publish-boundary (spec 194): '$TAG' is not a draft (isDraft='${state:-unknown}') — refusing to delete a published release; resolve manually."
+              rc=$?
+              echo "::error::publish-boundary (spec 194): 'gh release view $TAG' failed (exit $rc; see gh error above) — NOT deleting. Release may already be gone or gh failed to authenticate; resolve manually."
             fi
             exit 1
           fi
@@ -438,10 +444,17 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           set -euo pipefail
-          # spec 194 — publish-boundary guard: never upload to a published release.
-          state="$(gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null || true)"
+          # spec 194 — publish-boundary guard. Three states, three messages:
+          # gh-lookup-failed / published / draft. Check gh's exit code FIRST so a
+          # gone/auth failure is not mislabeled "published"; gh's stderr surfaces
+          # in the log (no 2>/dev/null).
+          if state="$(gh release view "$TAG" --json isDraft -q .isDraft)"; then :; else
+            rc=$?
+            echo "::error::publish-boundary (spec 194): 'gh release view $TAG' failed (exit $rc; see gh error above) — failing closed, not uploading SBOM/attestations. Release may be gone or gh failed to authenticate; resolve manually."
+            exit 1
+          fi
           if [ "$state" != "true" ]; then
-            echo "::error::publish-boundary (spec 194): release '$TAG' is not a draft (isDraft='${state:-unknown}') — refusing to upload. Automation mutates drafts only; attach to a published release manually."
+            echo "::error::publish-boundary (spec 194): release '$TAG' is published (isDraft='$state') — refusing to upload SBOM/attestations. Automation mutates drafts only; attach to a published release manually."
             exit 1
           fi
           target_root="product/apps/opc/src-tauri/target"
@@ -463,10 +476,17 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           set -euo pipefail
-          # spec 194 — publish-boundary guard: never upload to a published release.
-          state="$(gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null || true)"
+          # spec 194 — publish-boundary guard. Three states, three messages:
+          # gh-lookup-failed / published / draft. Check gh's exit code FIRST so a
+          # gone/auth failure is not mislabeled "published"; gh's stderr surfaces
+          # in the log (no 2>/dev/null).
+          if state="$(gh release view "$TAG" --json isDraft -q .isDraft)"; then :; else
+            rc=$?
+            echo "::error::publish-boundary (spec 194): 'gh release view $TAG' failed (exit $rc; see gh error above) — failing closed, not uploading SHA-256 sidecars. Release may be gone or gh failed to authenticate; resolve manually."
+            exit 1
+          fi
           if [ "$state" != "true" ]; then
-            echo "::error::publish-boundary (spec 194): release '$TAG' is not a draft (isDraft='${state:-unknown}') — refusing to upload SHA-256 sidecars. Automation mutates drafts only."
+            echo "::error::publish-boundary (spec 194): release '$TAG' is published (isDraft='$state') — refusing to upload SHA-256 sidecars. Automation mutates drafts only; attach to a published release manually."
             exit 1
           fi
           target_root="product/apps/opc/src-tauri/target"
