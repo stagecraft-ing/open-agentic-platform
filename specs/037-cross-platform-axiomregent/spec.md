@@ -7,6 +7,8 @@ implementation: complete
 kind: platform
 domain: opc
 created: "2026-03-29"
+amended: "2026-06-01"
+amendment_record: "193-paired-release-cadence"
 authors:
   - "open-agentic-platform"
 language: en
@@ -25,6 +27,12 @@ extends:
 ---
 
 # Feature Specification: cross-platform axiomregent binaries
+
+> **Amended by [193-paired-release-cadence](../193-paired-release-cadence/spec.md) (2026-06-01).**
+> `release-axiomregent.yml` now resolves the version from an `axiomregent-v*`
+> tag, runs the pre-publish version-consistency guard, and creates the release
+> as a **draft** (was: live/immutable publish). The cross-platform build matrix
+> this spec establishes is unchanged.
 
 ## Purpose
 

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "18f0a6c61f7a6809cf6289744c652b0a39502667ec1469dcc7925627e80ed740",
+    "contentHash": "6625c97ec61ab6dfd0cef428f8e8d54fcdfa060f8579182abbbc3567c5ad13db",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -129,7 +129,7 @@
       "name": "axiomregent",
       "path": "crates/axiomregent",
       "specRef": "073-axiomregent-unification",
-      "version": "0.2.0"
+      "version": "0.4.0"
     },
     {
       "edition": "2024",
@@ -763,7 +763,7 @@
       "name": "@opc/desktop",
       "path": "product/apps/opc",
       "specRef": "032-opc-inspect-governance-wiring-mvp",
-      "version": "0.3.4"
+      "version": "0.4.0"
     },
     {
       "edition": "2024",
@@ -853,7 +853,7 @@
       "name": "opc",
       "path": "product/apps/opc/src-tauri",
       "specRef": "032-opc-inspect-governance-wiring-mvp",
-      "version": "0.3.4"
+      "version": "0.4.0"
     },
     {
       "entryPoints": [
@@ -9130,6 +9130,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "193-paired-release-cadence",
         "implementingPaths": [
           {
             "path": "crates/axiomregent",
@@ -17505,6 +17506,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "193-paired-release-cadence",
         "implementingPaths": [
           {
             "path": "docs/ARCHITECTURE.md",
@@ -21420,6 +21422,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "193-paired-release-cadence",
         "dependsOn": [
           "000",
           "037",
@@ -43288,6 +43291,206 @@
           }
         ],
         "specId": "192-decomposition-embedding-cache",
+        "specStatus": "approved"
+      },
+      {
+        "amends": [
+          "037-cross-platform-axiomregent",
+          "086-open-source-launch",
+          "117-release-artifact-attestations"
+        ],
+        "dependsOn": [
+          "037",
+          "086",
+          "116",
+          "117",
+          "158"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/ci-supply-chain.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/release-axiomregent.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/release-desktop.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/release-tools.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/axiomregent/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/package.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/tauri.conf.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/lint/release-version-guard-test.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/lint/release-version-guard.sh",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/lint/release-version-guard-test.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/lint/release-version-guard-test.sh"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/lint/release-version-guard.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/lint/release-version-guard.sh"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-supply-chain.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-supply-chain.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/release-axiomregent.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/release-axiomregent.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/release-desktop.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/release-desktop.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/release-tools.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/release-tools.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/axiomregent/Cargo.toml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/axiomregent/Cargo.toml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/package.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/package.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/Cargo.toml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/Cargo.toml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/tauri.conf.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/tauri.conf.json"
+            }
+          }
+        ],
+        "specId": "193-paired-release-cadence",
         "specStatus": "approved"
       }
     ],

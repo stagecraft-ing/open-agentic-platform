@@ -2,7 +2,12 @@
 # Spec: 117-release-artifact-attestations
 #
 # Release axiomregent MCP server as standalone OS-specific binaries.
-# Triggered by pushing an axiomregent version tag (e.g. axiomregent-v0.1.0).
+# Triggered by pushing an axiomregent version tag (e.g. axiomregent-v0.4.0).
+#
+# spec 193: the release is created as a DRAFT and only after the pre-publish
+# version guard passes (tag == committed sources == SBOM). Publishing the draft
+# is a separate, human-gated action — this workflow no longer publishes a live,
+# immutable release directly.
 #
 # Each binary ships with a CycloneDX SBOM and a SLSA build-provenance
 # attestation per spec 117 (M2). Verify with:
@@ -148,15 +153,29 @@ jobs:
           merge-multiple: true
           path: dist/
 
+      # spec 193 — prefix-aware resolver. Tag grammar: axiomregent-v<semver>.
       - name: Resolve tag
         id: tag
         shell: bash
         run: |
+          set -euo pipefail
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+            TAG="${{ github.event.inputs.tag }}"
           else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+            TAG="${GITHUB_REF#refs/tags/}"
           fi
+          PRODUCT="${TAG%-v*}"      # axiomregent-v0.4.0 -> axiomregent
+          VERSION="${TAG##*-v}"     # axiomregent-v0.4.0 -> 0.4.0
+          VERSION="${VERSION#v}"
+          if [ "$PRODUCT" != "axiomregent" ]; then
+            echo "::error::Release axiomregent expects an 'axiomregent-v<semver>' tag; got '$TAG' (product='$PRODUCT')."
+            exit 1
+          fi
+          {
+            echo "tag=$TAG"
+            echo "product=$PRODUCT"
+            echo "version=$VERSION"
+          } >> "$GITHUB_OUTPUT"
 
       - name: List artifacts
         run: ls -lh dist/
@@ -231,7 +250,17 @@ jobs:
             dist/axiomregent-x86_64-pc-windows-msvc.exe.intoto.jsonl
           ls -lh dist/*.intoto.jsonl
 
-      - name: Create GitHub Release
+      # spec 193 — pre-publish version guard. The release is created ONLY if the
+      # tag version equals every committed source AND the SBOM component version.
+      # Runs before `gh release create`, so on mismatch nothing is published and
+      # no tag is burned. With --draft below, the axiomregent publish path is now
+      # guard-gated AND human-gated — it previously published a live, immutable
+      # release straight from workflow_dispatch (see the v0.3.1 investigation).
+      - name: Guard — version == tag + SBOM (pre-publish)
+        shell: bash
+        run: tools/lint/release-version-guard.sh axiomregent "${{ steps.tag.outputs.version }}" dist/sbom-axiomregent.cdx.json
+
+      - name: Create GitHub Release (draft — publish is human-gated)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -239,6 +268,7 @@ jobs:
           gh release create "$TAG" dist/* \
             --repo "${{ github.repository }}" \
             --title "$TAG" \
+            --draft \
             --generate-notes \
             --notes "## axiomregent MCP Server
 
