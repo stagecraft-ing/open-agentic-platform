@@ -32,8 +32,47 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # ── Stage 0: Fail-fast version guard (no build) ─────────────────────
+  # spec 193 — committed-source version check hoisted into a standalone job
+  # that needs nothing but a checkout (reads crates/axiomregent/Cargo.toml +
+  # Cargo.lock, both present in a bare checkout). Every build/publish job
+  # `needs:` this one, so a tag-vs-committed mismatch dies in ~30s with ZERO
+  # build minutes burned, no draft, no tag. The in-`publish` pre-publish guard
+  # keeps the +SBOM assertion (build-time drift) as defense-in-depth.
+  version-guard:
+    runs-on: ubuntu-latest
+    name: version-guard
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          PRODUCT="${TAG%-v*}"      # axiomregent-v0.4.0 -> axiomregent
+          VERSION="${TAG##*-v}"     # axiomregent-v0.4.0 -> 0.4.0
+          VERSION="${VERSION#v}"
+          if [ "$PRODUCT" != "axiomregent" ]; then
+            echo "::error::Release axiomregent expects an 'axiomregent-v<semver>' tag; got '$TAG' (product='$PRODUCT')."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # Committed-source-only check (no SBOM): the SBOM is generated downstream
+      # and the committed sources are what make this build-independent and fast.
+      - name: Guard — committed version == tag (fail-fast, pre-build)
+        shell: bash
+        run: tools/lint/release-version-guard.sh axiomregent "${{ steps.tag.outputs.version }}"
+
   # ── Build for macOS, Linux x86_64, Windows ────────────────────────
   build:
+    needs: [version-guard]
     strategy:
       fail-fast: false
       matrix:
@@ -88,6 +127,7 @@ jobs:
 
   # ── Linux ARM64 (cross-compiled) ──────────────────────────────────
   build-linux-arm64:
+    needs: [version-guard]
     runs-on: ubuntu-24.04
     name: build / aarch64-unknown-linux-gnu
 
@@ -134,7 +174,7 @@ jobs:
 
   # ── Publish GitHub Release ────────────────────────────────────────
   publish:
-    needs: [build, build-linux-arm64]
+    needs: [version-guard, build, build-linux-arm64]
     runs-on: ubuntu-latest
     name: publish release
     timeout-minutes: 15
@@ -250,12 +290,15 @@ jobs:
             dist/axiomregent-x86_64-pc-windows-msvc.exe.intoto.jsonl
           ls -lh dist/*.intoto.jsonl
 
-      # spec 193 — pre-publish version guard. The release is created ONLY if the
-      # tag version equals every committed source AND the SBOM component version.
-      # Runs before `gh release create`, so on mismatch nothing is published and
-      # no tag is burned. With --draft below, the axiomregent publish path is now
-      # guard-gated AND human-gated — it previously published a live, immutable
-      # release straight from workflow_dispatch (see the v0.3.1 investigation).
+      # spec 193 — pre-publish version guard (now + SBOM, defense-in-depth). The
+      # standalone `version-guard` job is the fast-fail front gate (this job
+      # `needs:` it), so a committed-source mismatch is rejected before any build
+      # minutes. This in-job re-check ADDS the SBOM component assertion — the one
+      # thing the early job cannot see — and still runs before `gh release
+      # create`, so on mismatch nothing is published and no tag is burned. With
+      # --draft below, the axiomregent publish path is guard-gated AND
+      # human-gated — it previously published a live, immutable release straight
+      # from workflow_dispatch (see the v0.3.1 investigation).
       - name: Guard — version == tag + SBOM (pre-publish)
         shell: bash
         run: tools/lint/release-version-guard.sh axiomregent "${{ steps.tag.outputs.version }}" dist/sbom-axiomregent.cdx.json

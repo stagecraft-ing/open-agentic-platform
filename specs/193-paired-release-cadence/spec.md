@@ -165,6 +165,30 @@ the spec-158 precedent.
 The result: no release — desktop or axiomregent — can publish with a version
 the artifacts do not actually carry, and no release publishes without a human.
 
+### 5.1 Fast-fail front gate (refinement, 2026-06-01)
+
+The pre-build guard above was first placed as a *step inside* the build job
+(`release` for desktop, `publish` for axiomregent). Those jobs `needs:` the
+build/sidecar matrix, so GitHub Actions cannot start them — and cannot run the
+guard — until the full matrix completes. A mismatched dispatch therefore still
+burned the entire matrix (~16m35s of axiomregent cross-compiles for the
+`opc-v0.4.1` mismatch test, run `26793968624`; guard executed at `02:24:33Z`
+against a run created `02:07:58Z`) before the guard rejected it. Protection
+held — the guard fired before tauri-action, so no draft and no desktop build —
+but the *fail-fast* intent stated above did not hold: the sidecar matrix is the
+real cost, and an in-job step cannot pre-empt the job's own `needs:`.
+
+The guard reads only committed sources (`tauri.conf.json` / `package.json` /
+`Cargo.toml` / `Cargo.lock`), which are present in a bare checkout, so it needs
+no build output. This spec therefore requires the committed-source check to run
+as a **standalone `version-guard` job that the entire build/sidecar matrix
+`needs:`** — the structural front gate. A mismatch now dies in ~30s with zero
+build minutes burned, no draft, no tag. The in-job guards are **retained as
+defense-in-depth**: the desktop `release` job re-checks its own checkout before
+tauri-action, and the axiomregent `publish` job keeps the **SBOM-component**
+assertion the front gate cannot see. The post-build SBOM guard (build-time
+drift) is unchanged. See `docs/analysis/release-prebuild-guard-fastfail-2026-06-01.md`.
+
 ## 6. Acceptance criteria
 
 - **AC-1.** `release-version-guard.sh opc` and `… axiomregent` exit `0` on the
@@ -180,6 +204,11 @@ the artifacts do not actually carry, and no release publishes without a human.
 - **AC-6.** Committed versions: `opc = 0.4.0` across tauri.conf.json /
   package.json / Cargo.toml / Cargo.lock; `axiomregent = 0.4.0` across
   Cargo.toml / Cargo.lock. *(verified under `cargo metadata --locked`)*
+- **AC-7.** Both release workflows gate the entire build/sidecar matrix on a
+  standalone `version-guard` job (committed-source check, no build output); a
+  tag-vs-committed mismatch fails before any build/sidecar job starts (§5.1).
+  The in-job pre-build / pre-publish guards and the post-build SBOM guard are
+  retained as defense-in-depth.
 
 ## 7. Out of scope (human-gated, deferred)
 
