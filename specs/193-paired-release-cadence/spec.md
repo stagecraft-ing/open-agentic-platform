@@ -21,6 +21,13 @@ code_aliases: ["RELEASE_CADENCE", "RELEASE_VERSION_GUARD"]
 establishes:
   - unit: { kind: file, path: tools/lint/release-version-guard.sh }
   - unit: { kind: file, path: tools/lint/release-version-guard-test.sh }
+extends:
+  # Mechanical featuregraph-golden refresh: appending spec 193 to the corpus
+  # shifts the golden fingerprint. No semantic change to spec 034's claims.
+  # Same precedent as spec 187 (PR #272), 167/168/169, 183.
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "release-version-alignment"
     unit: { kind: file, path: .github/workflows/release-desktop.yml }

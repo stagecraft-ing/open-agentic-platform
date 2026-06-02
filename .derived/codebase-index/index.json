@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "6625c97ec61ab6dfd0cef428f8e8d54fcdfa060f8579182abbbc3567c5ad13db",
+    "contentHash": "6cd2191380ea464aee186e75487d6f00e792f74018ca29c1273412445e18c5fc",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -43328,6 +43328,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
             "path": "product/apps/opc/package.json",
             "source": "spec-implements"
           },
@@ -43375,6 +43379,20 @@
             "unit": {
               "kind": "file",
               "path": "tools/lint/release-version-guard.sh"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
             }
           },
           {
