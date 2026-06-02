@@ -196,7 +196,7 @@ fn parse_retired_agent_body(body: &str) -> Option<FactoryError> {
 /// converts an empty string to `Ok(None)` so the platform client's
 /// `MissingToken` path fires uniformly. The platform client is responsible
 /// for refresh policy — see spec 112 §6.3 in `stagecraft_client.rs`.
-pub struct StagecraftOidcProvider(pub StagecraftClient);
+pub struct StagecraftOidcProvider(pub Arc<StagecraftClient>);
 
 #[async_trait]
 impl OidcTokenProvider for StagecraftOidcProvider {

@@ -323,6 +323,56 @@ gate's connect loop cannot stall a worker thread on keychain I/O. Sites:
 `sync_client.rs::run_forever` / `resolve_token` / `reload_session_token`,
 `stagecraft_client.rs::{read_session_token_from_keychain, adopt_token}`.
 
+**FR-T2(a) in-memory propagation (binding, amended 2026-06-02).** Receipt
+of a non-empty `org_id` (a) presupposes the value *propagates* to the
+boot-gate reader. `boot_gate_status` reads `org_id` from the live
+`StagecraftState` (`sidecars.rs::boot_gate_status`), not from the OS
+keychain, so (a)'s local-presence test is only meaningful if the
+sign-in's `org_id` write lands on the *same* client instance that read
+serves. `StagecraftState` previously held a value-type `StagecraftClient`
+whose `current()` returned a snapshot clone, and the OAuth callback
+(`auth.rs::auth_handle_callback` / `auth_select_org`) mutated that
+throwaway clone via `set_org_id` / `set_auth_token` without writing it
+back. The keychain was updated, but the stored client's in-memory
+`org_id` stayed empty — so (a) read `false` and the gate stuck at
+"Waiting for stagecraft duplex handshake (sync.hello)…" *even after*
+`sync.hello` had been received and (b) was satisfied. A relaunch masked
+it: startup's `load_token_from_keychain` repopulates the stored client.
+The fix makes `StagecraftState` hold an `Arc<StagecraftClient>` so the
+boot-gate reader, the duplex consumer's auth handle (FR-T2(b)), and every
+authenticated REST command share ONE interior-mutable instance — a
+`set_org_id` / `set_auth_token` / `adopt_token` write is visible to all of
+them at once. This also closes the latent in-session REST-auth gap the
+value-clone left (a fresh sign-in's token never reached REST callers until
+the next launch). The `Arc` widening threads mechanically through the
+`current()`-consuming call sites that take the handle by value
+(`factory.rs::resolve_sc_context` and the factory dual-write paths,
+`factory_platform.rs::StagecraftOidcProvider`, `settings.rs`); those edits
+are pure type propagation with no behavioural change to their own domains.
+Sites: `stagecraft_client.rs::{StagecraftState, current, replace}`,
+`lib.rs` (consumer wiring — `sc` and the duplex `auth` handle are one
+shared `Arc`), `sync_client.rs::{spawn, run_forever}` (accept
+`Arc<StagecraftClient>`). Regression guard: the `stagecraft_client.rs`
+unit test `stagecraft_state_shares_one_client_across_current_handles`.
+
+*Spawn-time binding — resolved 2026-06-02.* The Arc-sharing invariant holds
+for a client's lifetime; a base-URL change swaps the instance via
+`StagecraftState::replace`. `commands::settings::set_stagecraft_base_url`
+therefore **re-spawns the duplex consumer** against the new client (the
+re-`spawn` aborts the prior loop; a cleared URL stops it via
+`SyncClientState::shutdown`), so the loop follows the URL switch instead of
+authenticating against the old host indefinitely. The stable `client_id`
+survives the re-spawn via the `OpcInstanceId` managed state. Sites:
+`settings.rs::set_stagecraft_base_url`, `lib.rs` (`OpcInstanceId` manage),
+`sync_client.rs::OpcInstanceId`.
+
+*Lock-poison robustness.* `StagecraftState::{current, replace}` recover a
+poisoned `RwLock` (log + `into_inner`) rather than swallowing to `None` /
+dropping the write silently — a panicked holder would otherwise wedge the
+boot gate and skip REST dual-write with no trace, a wider blast radius now
+that all callers share one `Arc`. Guard:
+`stagecraft_state_recovers_from_poisoned_lock`.
+
 **Files FR-T2 binds on:**
 - `product/apps/opc/src-tauri/src/commands/stagecraft_client.rs` —
   org_id residence + the verified-receipt flag.

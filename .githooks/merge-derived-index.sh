@@ -34,6 +34,13 @@
 # (`codebase-indexer check`, spec 101/184) remains the source of truth;
 # this driver is a convenience over the conflict, never a replacement for
 # the gate.
+#
+# Known limitation (spec 188, observed 2026-06-02): regeneration is only as
+# complete as the working tree at git's driver-invocation moment, so on some
+# rebases the auto-heal can still emit a stale-but-clean hash (it cannot
+# self-detect — a `check` right after `compile` agrees with the same tree).
+# The CI staleness gate / `make pr-prep` is the freshness source of truth,
+# not this driver — see spec 188 User Story 1 "Known limitation".
 
 set -eu
 

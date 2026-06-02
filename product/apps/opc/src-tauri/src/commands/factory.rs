@@ -521,8 +521,8 @@ fn sc_update_status(
 /// Resolve the Stagecraft client + project_id + pipeline_id triple if dual-write is active.
 fn resolve_sc_context(
     ctx: &FactoryRunContext,
-    sc_client: &Option<StagecraftClient>,
-) -> Option<(StagecraftClient, String, String)> {
+    sc_client: &Option<Arc<StagecraftClient>>,
+) -> Option<(Arc<StagecraftClient>, String, String)> {
     let sc = sc_client.as_ref()?;
     let project_id = ctx.stagecraft_project_id.as_ref()?;
     let pipeline_id = ctx.stagecraft_pipeline_id.lock().ok()?.clone()?;
@@ -1000,7 +1000,7 @@ pub async fn start_factory_pipeline(
 
     // Dual-write: register pipeline with Stagecraft (fire-and-forget).
     if let Some(sc_project_id) = &stagecraft_project_id {
-        let sc_opt: Option<StagecraftClient> =
+        let sc_opt: Option<Arc<StagecraftClient>> =
             app.try_state::<StagecraftState>().and_then(|s| s.current());
         if let Some(sc) = sc_opt {
             let pid = sc_project_id.clone();
@@ -1049,7 +1049,7 @@ pub async fn start_factory_pipeline(
     let adapter_for_spawn = adapter_name.clone();
     let ctx_for_spawn = ctx.clone();
     let project_id_for_spawn = stagecraft_project_id.clone();
-    let sc_client: Option<StagecraftClient> = stagecraft_project_id
+    let sc_client: Option<Arc<StagecraftClient>> = stagecraft_project_id
         .as_ref()
         .and_then(|_| app.try_state::<StagecraftState>())
         .and_then(|s| s.current());
@@ -1680,7 +1680,7 @@ pub async fn confirm_factory_stage(
 
     // Dual-write: confirm stage in Stagecraft (fire-and-forget).
     if let Some(pid) = sc_project_id {
-        let sc_opt: Option<StagecraftClient> =
+        let sc_opt: Option<Arc<StagecraftClient>> =
             app.try_state::<StagecraftState>().and_then(|s| s.current());
         if let Some(sc) = sc_opt {
             let sid = stage_id;
@@ -1735,7 +1735,7 @@ pub async fn reject_factory_stage(
 
     // Dual-write: reject stage in Stagecraft (fire-and-forget).
     if let Some(pid) = sc_project_id {
-        let sc_opt: Option<StagecraftClient> =
+        let sc_opt: Option<Arc<StagecraftClient>> =
             app.try_state::<StagecraftState>().and_then(|s| s.current());
         if let Some(sc) = sc_opt {
             let sid = stage_id;
@@ -1793,7 +1793,7 @@ pub async fn cancel_factory_pipeline(
 
     // Dual-write: cancel in Stagecraft
     if let Some(pid) = sc_project_id {
-        let sc_opt: Option<StagecraftClient> =
+        let sc_opt: Option<Arc<StagecraftClient>> =
             app.try_state::<StagecraftState>().and_then(|s| s.current());
         if let Some(sc) = sc_opt {
             tokio::spawn(async move {

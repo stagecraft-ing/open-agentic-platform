@@ -9,6 +9,7 @@ use tauri::{AppHandle, Manager, State};
 
 use super::agents::AgentDb;
 use super::stagecraft_client::{StagecraftClient, StagecraftState};
+use super::sync_client::{OpcInstanceId, SyncClientConfig, SyncClientState};
 
 /// Production default when nothing is configured.
 pub const DEFAULT_STAGECRAFT_BASE_URL: &str = "https://stagecraft.ing";
@@ -68,6 +69,9 @@ pub async fn set_stagecraft_base_url(
     base_url: String,
     db: State<'_, AgentDb>,
     stagecraft: State<'_, StagecraftState>,
+    sync_state: State<'_, SyncClientState>,
+    instance: State<'_, OpcInstanceId>,
+    app: AppHandle,
 ) -> Result<(), String> {
     let trimmed = base_url.trim().trim_end_matches('/').to_string();
 
@@ -89,25 +93,46 @@ pub async fn set_stagecraft_base_url(
         .map_err(|e| format!("failed to save stagecraft_base_url: {e}"))?;
     }
 
-    // Clear keychain auth — the old token belongs to the old server.
-    if let Some(old) = stagecraft.current() {
-        old.clear_auth();
-    }
-    for key in ["session", "refresh_token"] {
-        if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", key) {
-            let _ = entry.delete_credential();
-        }
-    }
+    // Delete the old server's keychain session — the token belongs to the old
+    // server and must not leak to the new one. Routed through the client's
+    // single-source-of-truth helper so this list cannot drift from clear_auth.
+    // We do NOT call clear_auth() on the old client: the duplex loop bound to
+    // it is aborted by the re-spawn below and the old Arc is then dropped, so
+    // its in-memory state is moot.
+    StagecraftClient::clear_keychain_entries();
 
     // Rebuild the client.
     let user_id = std::env::var("OPC_USER_ID").unwrap_or_else(|_| "opc-desktop".into());
-    let new_client = StagecraftClient::new(&trimmed, &user_id);
+    let new_client = StagecraftClient::new(&trimmed, &user_id).map(std::sync::Arc::new);
     if new_client.is_some() {
         info!("Stagecraft base URL updated → {trimmed}");
     } else {
         warn!("Stagecraft base URL cleared — integration disabled");
     }
     stagecraft.replace(new_client);
+
+    // Follow the new URL on the duplex loop (spec 183 FR-T2(a)): re-spawn the
+    // consumer against the new client — `spawn` aborts the prior task first, so
+    // the old loop (old host, old credentials) is torn down rather than left
+    // running against a server it can no longer authenticate to. When the URL
+    // is cleared, stop the loop entirely. This is the authoritative resolution
+    // of the spawn-time-binding caveat: the loop no longer keeps targeting the
+    // old host after a URL change.
+    match stagecraft.current() {
+        Some(client) => {
+            let config = SyncClientConfig {
+                base_url: trimmed.clone(),
+                client_id: instance.0.clone(),
+                client_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+            };
+            sync_state.spawn(config, client, app).await;
+            info!("Stagecraft duplex sync loop re-spawned for {trimmed}");
+        }
+        None => {
+            sync_state.shutdown().await;
+            info!("Stagecraft duplex sync loop stopped (integration disabled)");
+        }
+    }
 
     Ok(())
 }

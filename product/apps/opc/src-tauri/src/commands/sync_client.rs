@@ -567,6 +567,14 @@ pub struct SyncClientConfig {
     pub client_version: Option<String>,
 }
 
+/// Stable per-process OPC instance identity, exposed as Tauri managed state so
+/// the duplex `client_id` survives a settings-driven re-spawn (spec 183
+/// FR-T2(a): `commands::settings::set_stagecraft_base_url` re-spawns the
+/// consumer on a base-URL change). Mirrors the id used for `factory.run.ack`
+/// correlation (spec 110 §2.2), so desktop logs and the envelopes stagecraft
+/// receives stay aligned across a URL switch.
+pub struct OpcInstanceId(pub String);
+
 /// Shared inner state for the duplex consumer. Held in an `Arc` so external
 /// modules (e.g. the factory.run.request handler) can clone a handle and
 /// post `factory.run.ack` frames without touching the Tauri state registry
@@ -797,22 +805,38 @@ impl SyncClientState {
         self.inner.clone()
     }
 
-    /// Spawn the background reconnect loop. Returns immediately. If an
-    /// existing task is running the old task is aborted first. The
+    /// Spawn the background reconnect loop. If an existing task is running it
+    /// is aborted and awaited first (so a re-spawn never overlaps two loops),
+    /// then the new loop is launched. The
     /// AppHandle is threaded through so the reconnect loop can emit the
     /// FR-T5(b) precondition-loss event when it crosses the give-up
     /// threshold (spec 183 stage C). `auth` is the Stagecraft client handle
     /// the loop uses to resolve and refresh the bearer JWT at connect time
     /// (spec 110 / 183) rather than from a launch-time snapshot.
+    ///
+    /// Spawn-time binding (spec 183 FR-T2(a)): `auth` is an
+    /// `Arc<StagecraftClient>` captured *now*. The Arc-sharing invariant — that
+    /// a write through any `StagecraftState::current()` handle is visible to
+    /// this loop — holds for that client's lifetime. A base-URL change
+    /// (`commands::settings::set_stagecraft_base_url` → `StagecraftState::replace`)
+    /// installs a *new* client and **re-spawns this consumer** against it (the
+    /// re-`spawn` aborts and awaits the prior task first), so the loop follows the URL
+    /// change rather than keeping the old handle. Between spawns the running
+    /// loop is always bound to the client it was spawned with.
     pub async fn spawn(
         &self,
         config: SyncClientConfig,
-        auth: StagecraftClient,
+        auth: Arc<StagecraftClient>,
         app: tauri::AppHandle,
     ) {
         let mut guard = self.join.lock().await;
         if let Some(prev) = guard.take() {
+            // Abort the prior loop AND await its teardown before starting the
+            // new one, so a user-triggered re-spawn (settings URL change) never
+            // briefly runs two loops bound to different clients (spec 183
+            // FR-T2(a)). abort() alone only signals cancellation.
             prev.abort();
+            let _ = prev.await;
         }
         let inner = self.inner.clone();
         let task = tokio::spawn(async move {
@@ -927,7 +951,7 @@ async fn reload_session_token(auth: &StagecraftClient) {
 
 async fn run_forever(
     config: SyncClientConfig,
-    auth: StagecraftClient,
+    auth: Arc<StagecraftClient>,
     inner: Arc<SyncClientInner>,
     app: tauri::AppHandle,
 ) {

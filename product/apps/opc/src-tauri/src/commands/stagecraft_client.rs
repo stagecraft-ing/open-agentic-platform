@@ -13,7 +13,7 @@
 use base64::Engine as _;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 /// Tauri-managed wrapper for the optional Stagecraft HTTP client.
@@ -22,18 +22,54 @@ use std::time::Duration;
 /// settings UI (see `commands::settings::set_stagecraft_base_url`). When the
 /// URL is unset, the inner `Option` is `None` and factory commands run
 /// local-only.
-pub struct StagecraftState(pub RwLock<Option<StagecraftClient>>);
+pub struct StagecraftState(pub RwLock<Option<Arc<StagecraftClient>>>);
 
 impl StagecraftState {
-    /// Return a clone of the current client, if any.
-    pub fn current(&self) -> Option<StagecraftClient> {
-        self.0.read().ok().and_then(|g| g.clone())
+    /// Return a shared handle to the current client, if any.
+    ///
+    /// The client is held in an `Arc` so every holder — the boot-gate status
+    /// reader (spec 183 FR-T2), the duplex consumer's auth handle (spec 110),
+    /// and each authenticated REST command — shares ONE interior-mutable
+    /// instance. A `set_auth_token` / `set_org_id` / `adopt_token` write is
+    /// therefore visible to all of them immediately. When this was a value
+    /// type, `current()` returned a snapshot clone, so a sign-in's
+    /// `set_org_id` mutated a throwaway copy and the boot gate's in-memory
+    /// `org_id` read stayed empty — wedging the cockpit at "Waiting for
+    /// stagecraft duplex handshake" even after `sync.hello` arrived.
+    pub fn current(&self) -> Option<Arc<StagecraftClient>> {
+        match self.0.read() {
+            Ok(g) => g.clone(),
+            // A panic in some other holder poisons the lock, but the inner
+            // `Option<Arc<…>>` is not corrupted by that. Recover and log rather
+            // than `.ok()` → `None`, which would silently disable Stagecraft
+            // (boot gate stuck "not ready", REST dual-write skipped) with no
+            // trace of why.
+            Err(poisoned) => {
+                // Recover, then clear the poison so this logs once per poison
+                // event rather than on every subsequent op (the lock stays
+                // poisoned after into_inner()). The inner Option<Arc<…>> is not
+                // corrupted by an unrelated holder's panic.
+                log::error!(
+                    "StagecraftState RwLock poisoned (read) — recovering inner and clearing poison"
+                );
+                let value = poisoned.into_inner().clone();
+                self.0.clear_poison();
+                value
+            }
+        }
     }
 
     /// Replace the current client (used when the base URL changes).
-    pub fn replace(&self, client: Option<StagecraftClient>) {
-        if let Ok(mut g) = self.0.write() {
-            *g = client;
+    pub fn replace(&self, client: Option<Arc<StagecraftClient>>) {
+        match self.0.write() {
+            Ok(mut g) => *g = client,
+            Err(poisoned) => {
+                log::error!(
+                    "StagecraftState RwLock poisoned (write) — recovering inner and clearing poison"
+                );
+                *poisoned.into_inner() = client;
+                self.0.clear_poison();
+            }
         }
     }
 }
@@ -102,6 +138,12 @@ impl Clone for StagecraftClient {
         }
     }
 }
+
+/// OS-keychain entry names this client persists under service
+/// `dev.opc.stagecraft`. Single source of truth so the logout path
+/// (`clear_auth`) and the settings URL-change cleanup cannot drift — a new
+/// credential added here is cleared by both at once.
+const KEYCHAIN_ENTRIES: &[&str] = &["session", "refresh_token"];
 
 impl StagecraftClient {
     /// Build a new client.  Returns `None` when `base_url` is empty (integration disabled).
@@ -200,11 +242,19 @@ impl StagecraftClient {
     pub fn clear_auth(&self) {
         *self.auth_token.write().unwrap() = None;
         *self.org_id.write().unwrap() = String::new();
-        if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "session") {
-            let _ = entry.delete_credential();
-        }
-        if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", "refresh_token") {
-            let _ = entry.delete_credential();
+        Self::clear_keychain_entries();
+    }
+
+    /// Delete every persisted OS-keychain entry for this client (the old
+    /// server's session). Single source of truth for the entry list, so the
+    /// `clear_auth` logout path and the settings URL-change cleanup
+    /// (`set_stagecraft_base_url`) cannot drift — a credential added to
+    /// `KEYCHAIN_ENTRIES` is cleared by both at once.
+    pub(crate) fn clear_keychain_entries() {
+        for key in KEYCHAIN_ENTRIES {
+            if let Ok(entry) = keyring::Entry::new("dev.opc.stagecraft", key) {
+                let _ = entry.delete_credential();
+            }
         }
     }
 
@@ -1577,5 +1627,74 @@ mod tests {
         // Garbage token (wrong segment count).
         client.apply_token("not.a.jwt.at.all");
         assert_eq!(client.org_id(), "org-prior");
+    }
+
+    /// Pin the spec 183 boot-gate fix: `StagecraftState` holds ONE shared
+    /// `Arc<StagecraftClient>`, so a write through any `current()` handle is
+    /// visible through every other handle and through a fresh read. Before
+    /// this was an `Arc`, `current()` returned a value-snapshot clone — a
+    /// sign-in's `set_org_id` mutated a throwaway copy while the boot gate's
+    /// in-memory `org_id` read stayed empty, wedging the cockpit at "Waiting
+    /// for stagecraft duplex handshake (sync.hello)…" even after `sync.hello`
+    /// had been received.
+    #[test]
+    fn stagecraft_state_shares_one_client_across_current_handles() {
+        let client = StagecraftClient::new("http://example.test", "actor-1")
+            .expect("client builds");
+        let state = StagecraftState(std::sync::RwLock::new(Some(std::sync::Arc::new(client))));
+
+        let handle_a = state.current().expect("client present");
+        let handle_b = state.current().expect("client present");
+
+        // A write through one handle is visible through the other and through
+        // a fresh current() read — exactly what boot_gate_status relies on.
+        handle_a.set_org_id("org-xyz");
+        assert_eq!(handle_b.org_id(), "org-xyz");
+        assert_eq!(state.current().unwrap().org_id(), "org-xyz");
+
+        // Token path is equally shared: adopt_token (the in-memory half of
+        // set_auth_token, minus the keychain write) through one handle is
+        // visible — the token AND the org_id it derives — through the others.
+        // Covers the set_auth_token / adopt_token surface named in spec 183
+        // FR-T2(a), not just set_org_id.
+        let token = fake_jwt(&serde_json::json!({ "oap_org_id": "org-from-token" }));
+        handle_b.adopt_token(&token);
+        assert_eq!(handle_a.auth_token().as_deref(), Some(token.as_str()));
+        assert_eq!(state.current().unwrap().org_id(), "org-from-token");
+    }
+
+    /// A poisoned `StagecraftState` lock must NOT silently disable Stagecraft.
+    /// `current()`/`replace()` recover the inner value AND clear the poison, so
+    /// a panicked holder logs once per poison event (not on every op) and never
+    /// wedges the boot gate ("not ready") or silently skips REST dual-write —
+    /// a broader blast radius now that all callers share one Arc.
+    #[test]
+    fn stagecraft_state_recovers_from_poisoned_lock() {
+        fn poison(st: &std::sync::Arc<StagecraftState>) {
+            let p = st.clone();
+            let _ = std::thread::spawn(move || {
+                let _g = p.0.write().unwrap();
+                panic!("intentional panic to poison the lock");
+            })
+            .join();
+            assert!(st.0.is_poisoned(), "lock should be poisoned");
+        }
+
+        let state = std::sync::Arc::new(StagecraftState(std::sync::RwLock::new(Some(
+            std::sync::Arc::new(
+                StagecraftClient::new("http://example.test", "actor-1").expect("client builds"),
+            ),
+        ))));
+
+        // current() recovers AND clears the poison (no permanent error spam).
+        poison(&state);
+        assert!(state.current().is_some(), "current() must recover from poison");
+        assert!(!state.0.is_poisoned(), "current() must clear the poison");
+
+        // replace() likewise recovers and clears.
+        poison(&state);
+        state.replace(None);
+        assert!(!state.0.is_poisoned(), "replace() must clear the poison");
+        assert!(state.current().is_none(), "replace() must write through poison");
     }
 }
