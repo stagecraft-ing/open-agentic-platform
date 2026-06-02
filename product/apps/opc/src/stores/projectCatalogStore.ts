@@ -102,6 +102,7 @@ export async function subscribeProjectCatalog(): Promise<() => void> {
     return () => {};
   }
   const { listen } = await import('@tauri-apps/api/event');
+  const { invoke } = await import('@tauri-apps/api/core');
   const { applyUpsert, markSnapshotComplete } = useProjectCatalogStore.getState();
   const unlistenUpsert = await listen<ProjectCatalogUpsertEventPayload>(
     'project-catalog-upsert',
@@ -115,6 +116,32 @@ export async function subscribeProjectCatalog(): Promise<() => void> {
       markSnapshotComplete();
     }
   );
+
+  // Pull-after-subscribe (spec 112 §7). The duplex handshake snapshot is
+  // delivered ONCE, before this panel mounts — the panel renders only
+  // after the boot gate opens, and the boot gate opens only after the
+  // handshake (`sync.hello`). Tauri does not buffer events for listeners
+  // attached later, so without this pull the store could stay
+  // un-hydrated forever ("Connecting to stagecraft…") until the next
+  // duplex reconnect. The Rust side caches the catalog; we pull it AFTER
+  // attaching the live listeners above, so any frame delivered between the
+  // pull and now is still captured (applyUpsert is idempotent by id).
+  try {
+    const snapshot = await invoke<{
+      entries: ProjectCatalogUpsertEventPayload[];
+      hydrated: boolean;
+    }>('get_project_catalog');
+    for (const entry of snapshot.entries) {
+      applyUpsert(entry);
+    }
+    if (snapshot.hydrated) {
+      markSnapshotComplete();
+    }
+  } catch (err) {
+    // Non-fatal: a later upsert or a duplex reconnect still hydrates.
+    console.warn('[projectCatalogStore] get_project_catalog pull failed:', err);
+  }
+
   return () => {
     unlistenUpsert();
     unlistenComplete();

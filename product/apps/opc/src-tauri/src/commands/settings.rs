@@ -89,6 +89,15 @@ pub async fn set_stagecraft_base_url(
         return Err("failed to initialise Stagecraft HTTP client".into());
     }
 
+    // Decide whether this is a *genuine* server change. A same-server
+    // re-save must NOT wipe the keychain session — doing so would force a
+    // needless re-sign-in even though the saved token is still valid
+    // ("stay signed in unless the credential is actually invalid"). Read
+    // the previously-stored URL before we overwrite it below.
+    let previous_url =
+        read_stagecraft_url_from_db(&app).map(|u| u.trim().trim_end_matches('/').to_string());
+    let server_changed = previous_url.as_deref() != Some(trimmed.as_str());
+
     // Persist to DB — only now that the URL is known-good.
     {
         let conn = db.0.lock().map_err(|e| e.to_string())?;
@@ -99,18 +108,19 @@ pub async fn set_stagecraft_base_url(
         .map_err(|e| format!("failed to save stagecraft_base_url: {e}"))?;
     }
 
-    // Delete the old server's keychain session — the token belongs to the old
-    // server and must not leak to the new one. Routed through the client's
-    // single-source-of-truth helper so this list cannot drift from clear_auth.
-    // Done only after the replacement client is in hand (above): a rejected URL
-    // returns early and leaves the existing session intact. We do NOT call
-    // clear_auth() on the old client: the duplex loop bound to it is aborted by
-    // the re-spawn below and the old Arc is then dropped, so its in-memory
-    // state is moot.
-    StagecraftClient::clear_keychain_entries();
+    // Drop the old server's keychain session ONLY on a genuine server change
+    // — the token belongs to the old server and must not leak to a new one.
+    // On a same-server re-save we keep it so the user stays signed in. Routed
+    // through the client's single-source-of-truth helper so the entry list
+    // cannot drift from clear_auth. We do NOT call clear_auth() on the old
+    // client: the duplex loop bound to it is aborted by the re-spawn below and
+    // the old Arc is then dropped, so its in-memory state is moot.
+    if server_changed {
+        StagecraftClient::clear_keychain_entries();
+    }
 
     if new_client.is_some() {
-        info!("Stagecraft base URL updated → {trimmed}");
+        info!("Stagecraft base URL updated → {trimmed} (server_changed={server_changed})");
     } else {
         info!("Stagecraft base URL cleared — integration disabled");
     }
@@ -119,6 +129,20 @@ pub async fn set_stagecraft_base_url(
     // installed — not a second `stagecraft.current()` read, which a concurrent
     // URL change could swap out from under us between the two calls.
     stagecraft.replace(new_client.clone());
+
+    // On a same-server re-save, restore the still-valid session onto the
+    // freshly-built client. A new `StagecraftClient` starts with
+    // `auth_token: None` and an empty `org_id`; without this restore the boot
+    // gate (`org_session_ready = has_org && sync_hello`) would wedge a
+    // signed-in user behind a re-sign-in prompt even though the keychain holds
+    // a valid token. On a genuine server change we intentionally skip this —
+    // the new server requires its own sign-in.
+    if !server_changed
+        && let Some(ref client) = new_client
+        && client.load_token_from_keychain()
+    {
+        info!("Stagecraft auth token restored from keychain onto new client (same server)");
+    }
 
     // Follow the new URL on the duplex loop (spec 183 FR-T2(a)): re-spawn the
     // consumer against the new client — `spawn` aborts the prior task first, so

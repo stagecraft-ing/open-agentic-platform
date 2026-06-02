@@ -226,6 +226,12 @@ pub fn run() {
             app.manage(SidecarState::default());
             sidecars::spawn_axiomregent(app.handle());
 
+            // Pull-side project catalog cache (spec 112 §7) — lets the
+            // Projects panel recover the handshake snapshot it may have
+            // missed by subscribing after the duplex delivered it. Managed
+            // unconditionally so `get_project_catalog` always has state.
+            app.manage(commands::project_catalog_sync::ProjectCatalogCache::default());
+
             // Initialize Stagecraft Factory API client (dual-write governance).
             // URL resolution order: app_settings.stagecraft_base_url (DB) →
             // STAGECRAFT_BASE_URL env var → default "https://stagecraft.ing".
@@ -550,6 +556,7 @@ pub fn run() {
             get_live_session_thresholds,
             force_disconnect_session,
             // Factory Pipeline (076)
+            commands::factory::list_factory_adapters,
             start_factory_pipeline,
             get_factory_pipeline_status,
             confirm_factory_stage,
@@ -561,6 +568,7 @@ pub fn run() {
             cancel_factory_pipeline,
             detect_factory_project,
             fetch_project_opc_bundle,
+            commands::project_catalog_sync::get_project_catalog,
             clone_project_from_bundle,
             refresh_clone_token,
             // Provenance review (spec 121 FR-041)

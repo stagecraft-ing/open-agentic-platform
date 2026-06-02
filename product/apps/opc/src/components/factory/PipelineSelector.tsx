@@ -4,13 +4,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FolderOpen, FolderTree, LogIn, Play, PlayCircle, Square } from 'lucide-react';
 import { Button } from '@opc/ui/button';
-import { Input } from '@opc/ui/input';
+import { SelectComponent } from '@opc/ui/select';
 import { open } from '@tauri-apps/plugin-dialog';
 import { exists, readDir } from '@tauri-apps/plugin-fs';
 import { api } from '@/lib/api';
 import type { OpcBundle } from '@/types/factoryBundle';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFactoryPipeline } from './FactoryPipelineContext';
+import { stagesFromProcessDefinition } from './types';
 
 const ADAPTER_FALLBACK = 'next-prisma';
 const PROJECTS_SUBDIR = 'oap-projects';
@@ -93,6 +94,41 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
     const next = bundle?.adapter?.name;
     if (next) setAdapterName(next);
   }, [bundle?.adapter?.name]);
+
+  // Adapters resolved from the platform (spec 076) so the picker reflects
+  // what the org actually has rather than a free-typed/hardcoded name.
+  // Loaded once the user is signed in; on failure the picker still offers
+  // the current/bundle adapter (see `adapterOptions`) so the form is usable.
+  const [adapters, setAdapters] = useState<{ name: string; version: string }[]>([]);
+  useEffect(() => {
+    if (needsSignIn) return;
+    let cancelled = false;
+    void api
+      .listFactoryAdapters()
+      .then((list) => {
+        if (!cancelled) setAdapters(list);
+      })
+      .catch(() => {
+        if (!cancelled) setAdapters([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [needsSignIn]);
+
+  // Options for the adapter dropdown. Always include the currently-selected
+  // adapter so a bundle-seeded value (or a not-yet-loaded list) stays
+  // selectable rather than silently resetting to a placeholder.
+  const adapterOptions = useMemo(() => {
+    const opts = adapters.map((a) => ({
+      value: a.name,
+      label: `${a.name} · v${a.version}`,
+    }));
+    if (adapterName && !opts.some((o) => o.value === adapterName)) {
+      opts.unshift({ value: adapterName, label: adapterName });
+    }
+    return opts;
+  }, [adapters, adapterName]);
 
   // Lazy-load the home directory once. Used to derive a fallback project path
   // (`<homeDir>/oap-projects/<slug>`) when the panel is opened with a bundle
@@ -250,6 +286,14 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
         adapterName.trim() || ADAPTER_FALLBACK,
         businessDocs,
         bundle?.project?.id,
+        // Forward the platform's current process name (what this panel
+        // renders under "Processes"). Omitted when the bundle has none —
+        // the backend then resolves it from the platform. Never a name
+        // baked into the client, so a platform rename needs no rebuild.
+        bundle?.processes?.[0]?.name,
+        // Seed the DAG from the platform process definition (spec 076) so
+        // the displayed stage list is server-resolved, not hardcoded.
+        stagesFromProcessDefinition(bundle?.processes?.[0]?.definition),
       );
     } catch (err) {
       // The Tauri command swallows errors silently — surface them inline so
@@ -383,10 +427,11 @@ export const PipelineSelector: React.FC<PipelineSelectorProps> = ({
 
       <div className="space-y-1.5">
         <label className="text-xs text-muted-foreground">Adapter</label>
-        <Input
+        <SelectComponent
           value={adapterName}
-          onChange={(e) => setAdapterName(e.target.value)}
-          placeholder={ADAPTER_FALLBACK}
+          onValueChange={setAdapterName}
+          options={adapterOptions}
+          placeholder="Select an adapter…"
           className="h-8 text-xs"
           disabled={starting || needsSignIn}
         />

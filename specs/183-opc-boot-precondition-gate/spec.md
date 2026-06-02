@@ -384,6 +384,30 @@ that all callers share one `Arc`. Guard:
 - `product/apps/opc/src/components/boot/` (to be created) — the
   consumer of the org-session state.
 
+#### 3.2.1 Session continuity (no re-prompt while a valid token exists)
+
+The org-session gate must not strand a *signed-in* user behind a sign-in
+prompt: once a session is persisted to the OS keychain, the desktop
+re-prompts only when the credential is genuinely invalid (refresh fails).
+Three reinforcements keep `org_session_ready` reachable from a saved
+session without user re-entry:
+
+- **Keychain survives a same-server settings save.**
+  `set_stagecraft_base_url` clears the keychain and forces re-auth only on
+  a *genuine* base-URL change; a same-server re-save keeps the session and
+  reloads it onto the freshly-built `StagecraftClient` (a new client starts
+  with empty `auth_token`/`org_id`, which would otherwise wedge the gate).
+- **`auth_get_status` is self-healing.** On an expired access token it
+  attempts a silent `refresh_jwt` before reporting `authenticated: false`,
+  and on a valid token it adopts it onto the in-memory client when
+  `org_id` is empty — so the gate's `org_id` read reflects the saved
+  session even on a warm path that never ran a fresh sign-in.
+- **Background refresh is surfaced.** When the duplex loop silently
+  refreshes an expired bearer (`sync_client.rs`), it emits a
+  `session-refreshed` event; `AuthContext` re-checks status on it instead
+  of leaving a stale "Sign in" prompt for a session that was just
+  recovered.
+
 ### 3.3 Observational boot state (FR-T3)
 
 **FR-T3.** While in the boot state, the shell MUST render ONLY a

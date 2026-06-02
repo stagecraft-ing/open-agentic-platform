@@ -25,7 +25,8 @@ use factory_engine::agent_resolver::{
 
 use crate::error::FactoryClientError;
 use crate::wire::{
-    AdapterBody, ContractBody, ListRunsQuery, ListRunsResponse, ProcessBody, ReserveRunRequest,
+    AdapterBody, AdapterSummary, ContractBody, ListAdaptersResponse, ListProcessesResponse,
+    ListRunsQuery, ListRunsResponse, ProcessBody, ProcessSummary, ReserveRunRequest,
     RunReservation, RunRow, RunSummaryRow,
 };
 
@@ -232,6 +233,17 @@ impl PlatformClient {
         self.get_with_retry::<AdapterBody>(&path).await
     }
 
+    /// List the org's factory adapters (name + version, no manifest).
+    ///
+    /// Backs the desktop's adapter picker: the selectable adapters are
+    /// whatever the platform reports for the org, never a name compiled
+    /// into the client. Idempotent, so it uses the GET-retry helper.
+    pub async fn list_adapters(&self) -> Result<Vec<AdapterSummary>, FactoryClientError> {
+        self.get_with_retry::<ListAdaptersResponse>("/api/factory/adapters")
+            .await
+            .map(|r| r.adapters)
+    }
+
     pub async fn get_contract(
         &self,
         name: &str,
@@ -246,6 +258,19 @@ impl PlatformClient {
     ) -> Result<ProcessBody, FactoryClientError> {
         let path = format!("/api/factory/processes/{}", url_segment(name));
         self.get_with_retry::<ProcessBody>(&path).await
+    }
+
+    /// List the org's factory processes (name + version, no definition).
+    ///
+    /// Backs the "resolve the default process by the platform's current
+    /// name" path: when an OPC caller starts a run without specifying a
+    /// process, the desktop lists processes here and uses what the
+    /// platform reports rather than a name compiled into the client. The
+    /// endpoint is idempotent, so it uses the GET-retry helper.
+    pub async fn list_processes(&self) -> Result<Vec<ProcessSummary>, FactoryClientError> {
+        self.get_with_retry::<ListProcessesResponse>("/api/factory/processes")
+            .await
+            .map(|r| r.processes)
     }
 
     pub async fn reserve_run(

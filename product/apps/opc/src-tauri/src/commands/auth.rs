@@ -572,7 +572,12 @@ pub async fn auth_get_status(stagecraft: State<'_, StagecraftState>) -> AppResul
         }
     };
 
-    let claims = match decode_jwt_claims(&token) {
+    // `token`/`claims`/`exp` are mutable: a silent refresh below can rotate
+    // them in place so an expired-but-refreshable session reports as still
+    // signed in (the "stay signed in unless the credential is invalid"
+    // contract) rather than bouncing the user to a sign-in prompt.
+    let mut token = token;
+    let mut claims = match decode_jwt_claims(&token) {
         Some(c) => c,
         None => {
             return Ok(AuthStatus {
@@ -589,18 +594,35 @@ pub async fn auth_get_status(stagecraft: State<'_, StagecraftState>) -> AppResul
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0);
 
-    let exp = claims.get("exp").and_then(|v| v.as_i64()).unwrap_or(0);
+    let mut exp = claims.get("exp").and_then(|v| v.as_i64()).unwrap_or(0);
 
     if exp <= now {
-        // Token has expired — check if we can use stagecraft state to determine
-        // whether the client still holds one (in-memory may differ from keychain)
-        let _ = stagecraft; // accessed to satisfy State borrow rules
-        return Ok(AuthStatus {
-            authenticated: false,
-            user: None,
-            org: None,
-            expires_at: Some(exp),
-        });
+        // Token expired — attempt a silent refresh BEFORE declaring the user
+        // signed out. Only a genuinely failed refresh (no/invalid refresh
+        // token) should surface as unauthenticated and re-prompt. `refresh_jwt`
+        // rotates both the in-memory token and the keychain session on success.
+        let refreshed = match stagecraft.current() {
+            Some(client) => client.refresh_jwt().await.is_ok(),
+            None => false,
+        };
+        if refreshed
+            && let Some(fresh) = keychain_get("session")
+            && let Some(fresh_claims) = decode_jwt_claims(&fresh)
+        {
+            exp = fresh_claims.get("exp").and_then(|v| v.as_i64()).unwrap_or(0);
+            token = fresh;
+            claims = fresh_claims;
+        }
+        if exp <= now {
+            // Refresh failed or returned a still-stale token — only now is the
+            // user truly signed out.
+            return Ok(AuthStatus {
+                authenticated: false,
+                user: None,
+                org: None,
+                expires_at: Some(exp),
+            });
+        }
     }
 
     let user = AuthUser {
@@ -666,6 +688,17 @@ pub async fn auth_get_status(stagecraft: State<'_, StagecraftState>) -> AppResul
             .unwrap_or("")
             .to_string(),
     };
+
+    // Restore the in-memory client from the (valid) keychain token so the boot
+    // gate's `org_id` read reflects the saved session even if the in-memory
+    // client started empty (a warm path that never ran a fresh sign-in).
+    // Idempotent — only adopts when `org_id` is currently empty, so it never
+    // clobbers a live session.
+    if let Some(client) = stagecraft.current()
+        && client.org_id().is_empty()
+    {
+        client.adopt_token(&token);
+    }
 
     Ok(AuthStatus {
         authenticated: true,

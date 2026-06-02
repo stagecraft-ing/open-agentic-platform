@@ -101,6 +101,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { unlisten?.(); };
   }, []);
 
+  // Re-check auth status when the duplex loop silently refreshes the JWT
+  // (spec 183). The duplex consumer rotates an expired bearer in the
+  // background; without this listener AuthContext would keep showing a stale
+  // "Sign in" prompt for a session that was just recovered, defeating the
+  // "stay signed in unless the credential is invalid" contract.
+  useEffect(() => {
+    if (!window.__TAURI_INTERNALS__ && !window.__TAURI__) return;
+    let unlisten: (() => void) | undefined;
+    (async () => {
+      const { listen } = await import('@tauri-apps/api/event');
+      unlisten = await listen('session-refreshed', () => {
+        void (async () => {
+          try {
+            const result = await api.authGetStatus();
+            if (result.authenticated && result.user && result.org) {
+              setUser(result.user);
+              setOrg(result.org);
+              setStatus('authenticated');
+              scheduleRefresh(result.expires_at);
+            }
+            // Deliberately do NOT flip to 'unauthenticated' on a negative
+            // read here: the refresh event means the session was just
+            // recovered, so a racing status read must not sign the user out.
+          } catch {
+            // ignore — keep current status
+          }
+        })();
+      });
+    })();
+    return () => { unlisten?.(); };
+  }, []);
+
   // Cleanup refresh timer
   useEffect(() => {
     return () => {
