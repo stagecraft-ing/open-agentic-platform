@@ -71,11 +71,32 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
-        docker build \
-          --platform linux/amd64 \
-          -f Dockerfile.base \
-          -t stagecraft-base:${{ github.sha }} \
-          .
+        # Bounded retry to ride out transient Docker Hub / Debian-mirror
+        # network flakes when resolving the `node:22-slim` base image (or
+        # running apt-get). Observed in the merge queue 2026-06-02:
+        #   node:22-slim: failed to resolve source metadata ...
+        #   dial tcp ...:443: i/o timeout
+        # That is a registry timeout, not a build error, so a few retries
+        # with linear backoff are the correct response. Docker layer caching
+        # makes a retry after a FROM-resolution failure cheap.
+        attempt=1
+        max=3
+        while true; do
+          if docker build \
+            --platform linux/amd64 \
+            -f Dockerfile.base \
+            -t stagecraft-base:${{ github.sha }} \
+            .; then
+            break
+          fi
+          if [ "$attempt" -ge "$max" ]; then
+            echo "::error::runtime base image build failed after ${max} attempts"
+            exit 1
+          fi
+          echo "::warning::base image build attempt ${attempt} failed; retrying in $((attempt * 10))s"
+          sleep "$((attempt * 10))"
+          attempt=$((attempt + 1))
+        done
 
     # Install Encore CLI via the dedicated composite action (DRY with
     # ci-stagecraft typecheck which needs the same install for codegen).
