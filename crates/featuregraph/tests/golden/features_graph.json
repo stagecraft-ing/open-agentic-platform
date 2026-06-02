@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:d1221551f28a0d13f655d0e8c49acac71435902ca80e78820aa20780d81ab743",
+  "graph_fingerprint": "sha256:9225afa8d0359910545064ab9750eb28eef98493661b681d3d15021d8e882387",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3667,6 +3667,25 @@
         "117",
         "116",
         "158"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "194-release-publish-boundary-guard",
+      "title": "Publish-boundary guard — automation mutates draft releases only (resolves 193 §7)",
+      "spec_path": "specs/194-release-publish-boundary-guard/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "193",
+        "086",
+        "117",
+        "037"
       ],
       "impl_files": [],
       "test_files": [],
