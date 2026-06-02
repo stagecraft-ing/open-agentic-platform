@@ -27,6 +27,24 @@ extends:
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+amended: "2026-06-02"
+amendment_record: |
+  self-amends (2026-06-02) — §3 mechanism correction. The
+  `release-tools.yml` precondition `gh release view "$TAG" --json isDraft`
+  was missing the `--repo "$GITHUB_REPOSITORY"` pin that the sibling
+  `gh release upload` four lines down in the same step already carries.
+  The `publish` job's only checkout uses `path: src` (the SBOM-scan
+  checkout), so the workspace root has no `.git`; gh's fallback
+  repo-inference from a cwd git remote fails ("not a git repository"),
+  the precondition exits non-zero, and the guard fails CLOSED on the
+  gh-lookup-failed branch — mislabeling the cause as "release gone or
+  auth failed" rather than reading the draft's true isDraft state.
+  Fail-closed preserved draft integrity (no spurious upload onto a
+  published release), but on the wrong reason and before a healthy draft
+  could ever be reached. The fix pins the precondition to the same repo
+  as the mutation call so the two gh calls are identical; the three-state
+  exit-code-first / published / draft structure is unchanged. Latent
+  since #277; first reached on the 2026-06-02 opc-v0.4.0 tools backfill.
 compliance:
   - framework: "owasp-asi-2026"
     # ASI04 (supply-chain compromise). Uploading assets to — or deleting — an
@@ -120,6 +138,17 @@ guard) because the call sites have heterogeneous checkouts — `release-tools`'s
 `tools/lint/<script>` is not present there. The invariant is documented
 centrally here; the inline blocks are uniform and each carry a
 `# spec 194 — publish-boundary guard` marker.
+
+> **Amendment (2026-06-02) — repo pin on the precondition.** The same
+> `src/`-only checkout that rules out a shared `tools/lint/` script also
+> means `gh release view` cannot infer the target repo from a cwd git
+> remote — the `publish` job's workspace root has no `.git`. The
+> precondition therefore MUST carry `--repo "$GITHUB_REPOSITORY"`, matching
+> the `gh release upload` mutation in the same step. Without it the view
+> exits non-zero and the guard fails closed on the gh-lookup-failed branch
+> (mislabeling the cause), so a healthy draft is never reached. Pinning
+> both gh calls to the same repo makes them self-evidently consistent; the
+> three-state structure above is otherwise unchanged.
 
 **Happy path is unchanged.** When these steps run normally the release is
 always a draft (just created; not yet published), so the assertion passes and
