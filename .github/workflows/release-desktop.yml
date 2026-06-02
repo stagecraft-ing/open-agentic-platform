@@ -384,8 +384,16 @@ jobs:
           set -euo pipefail
           sbom="product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json"
           if ! tools/lint/release-version-guard.sh opc "$VERSION" "$sbom"; then
-            echo "::error::version guard failed post-build — discarding draft '$TAG' (no version burned)."
-            gh release delete "$TAG" --yes --cleanup-tag --repo "$GITHUB_REPOSITORY" || true
+            echo "::error::version guard failed post-build for '$TAG'."
+            # spec 194 — publish-boundary guard: only discard a DRAFT. If a human
+            # published it during the build, refuse to delete a published release.
+            state="$(gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null || true)"
+            if [ "$state" = "true" ]; then
+              echo "::error::discarding DRAFT '$TAG' (no version burned)."
+              gh release delete "$TAG" --yes --cleanup-tag --repo "$GITHUB_REPOSITORY" || true
+            else
+              echo "::error::publish-boundary (spec 194): '$TAG' is not a draft (isDraft='${state:-unknown}') — refusing to delete a published release; resolve manually."
+            fi
             exit 1
           fi
 
@@ -430,6 +438,12 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           set -euo pipefail
+          # spec 194 — publish-boundary guard: never upload to a published release.
+          state="$(gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null || true)"
+          if [ "$state" != "true" ]; then
+            echo "::error::publish-boundary (spec 194): release '$TAG' is not a draft (isDraft='${state:-unknown}') — refusing to upload. Automation mutates drafts only; attach to a published release manually."
+            exit 1
+          fi
           target_root="product/apps/opc/src-tauri/target"
           gh release upload "$TAG" \
             "product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json" \
@@ -449,6 +463,12 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           set -euo pipefail
+          # spec 194 — publish-boundary guard: never upload to a published release.
+          state="$(gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null || true)"
+          if [ "$state" != "true" ]; then
+            echo "::error::publish-boundary (spec 194): release '$TAG' is not a draft (isDraft='${state:-unknown}') — refusing to upload SHA-256 sidecars. Automation mutates drafts only."
+            exit 1
+          fi
           target_root="product/apps/opc/src-tauri/target"
           # Portable across bash 3.2 (macOS) — no `mapfile`.
           hash_cmd=""

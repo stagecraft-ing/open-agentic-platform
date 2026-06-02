@@ -261,6 +261,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.resolve-tag.outputs.tag }}
         run: |
+          set -euo pipefail
+          # spec 194 — publish-boundary guard: this is the reactive workflow_run
+          # chain off Release Desktop; never let it upload to a release the
+          # operator has already published. Automation mutates drafts only.
+          state="$(gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null || true)"
+          if [ "$state" != "true" ]; then
+            echo "::error::publish-boundary (spec 194): release '$TAG' is not a draft (isDraft='${state:-unknown}') — refusing to upload tool archives. Publish only after Release Tools is green, or attach manually."
+            exit 1
+          fi
           gh release upload "$TAG" \
             release/* \
             --repo "$GITHUB_REPOSITORY" \

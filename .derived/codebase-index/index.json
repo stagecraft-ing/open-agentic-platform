@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "6cd2191380ea464aee186e75487d6f00e792f74018ca29c1273412445e18c5fc",
+    "contentHash": "1334d640bf18df8a9ec706d1c932e4dd50476b1d45e0d9f3240dc9a3f94403c9",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -43509,6 +43509,74 @@
           }
         ],
         "specId": "193-paired-release-cadence",
+        "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "037",
+          "086",
+          "117",
+          "193"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/release-desktop.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/release-tools.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/release-desktop.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/release-desktop.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/release-tools.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/release-tools.yml"
+            }
+          }
+        ],
+        "specId": "194-release-publish-boundary-guard",
         "specStatus": "approved"
       }
     ],
