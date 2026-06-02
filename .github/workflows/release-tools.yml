@@ -13,7 +13,10 @@
 #
 # Each archive ships with a CycloneDX SBOM and SLSA build-provenance
 # attestation per spec 117. workflow_dispatch retains the manual entry
-# point for backfill.
+# point for backfill; on that path the tools build from a commit SHA
+# (the `ref` input, defaulting to the dispatch commit github.sha), never
+# the release tag — a draft release has no tag yet, and the tools must
+# share the desktop build commit for coherent provenance (spec 195).
 
 name: Release Tools
 
@@ -26,6 +29,9 @@ on:
       tag:
         description: 'Tag to attach assets to (e.g. opc-v0.4.0)'
         required: true
+      ref:
+        description: 'Commit SHA to build tools from. Defaults to the dispatch commit (github.sha — HEAD of the branch this run is dispatched against). On the draft-backfill path the tag does not exist yet, so tools build from a commit, never the tag, and should match the commit the desktop release was built from for coherent SLSA provenance (spec 117/195).'
+        required: false
 
 permissions:
   contents: write
@@ -53,13 +59,23 @@ jobs:
       - id: tag
         env:
           INPUT_TAG: ${{ github.event.inputs.tag }}
+          INPUT_REF: ${{ github.event.inputs.ref }}
+          DISPATCH_SHA: ${{ github.sha }}
           UPSTREAM_BRANCH: ${{ github.event.workflow_run.head_branch }}
           UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG="$INPUT_TAG"
-            REF="refs/tags/$TAG"
+            # spec 195 — build the tools from a COMMIT, never a tag. On the
+            # draft-backfill path the release tag does not exist yet (drafts
+            # don't tag until publish), so `refs/tags/$TAG` is an invalid
+            # checkout ref. The tools must also build from the same commit as
+            # the desktop binaries for coherent SLSA provenance (spec 117), so
+            # default REF to the dispatch commit (github.sha); the operator can
+            # pin an explicit commit via the `ref` input when main has advanced
+            # past the commit the desktop release was built from.
+            REF="${INPUT_REF:-$DISPATCH_SHA}"
           else
             TAG="$UPSTREAM_BRANCH"
             REF="$UPSTREAM_SHA"

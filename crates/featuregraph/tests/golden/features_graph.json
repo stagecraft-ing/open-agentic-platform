@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:9225afa8d0359910545064ab9750eb28eef98493661b681d3d15021d8e882387",
+  "graph_fingerprint": "sha256:2fb9624eb1e90f0cac05de59fffcbec6d3ee5ed67a8f317f033e258d64088d94",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3686,6 +3686,24 @@
         "086",
         "117",
         "037"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "195-release-tools-dispatch-build-ref",
+      "title": "Release Tools dispatch build-ref — build from a commit, never the (absent) draft tag",
+      "spec_path": "specs/195-release-tools-dispatch-build-ref/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "086",
+        "117",
+        "194"
       ],
       "impl_files": [],
       "test_files": [],
