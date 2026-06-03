@@ -15,7 +15,7 @@ use base64::Engine as _;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::sync::Mutex;
-use tauri::State;
+use tauri::{Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
 // ---------------------------------------------------------------------------
@@ -840,6 +840,13 @@ pub async fn auth_logout(
     keychain_delete("refresh_token");
     if let Some(client) = stagecraft.current() {
         client.clear_auth();
+    }
+    // Drop the org-scoped project catalog cache so a different user signing in
+    // on this same process never sees the prior session's projects before the
+    // fresh handshake snapshot lands (the in-memory cache otherwise outlives
+    // the session it was populated for).
+    if let Some(cache) = app.try_state::<super::project_catalog_sync::ProjectCatalogCache>() {
+        cache.clear();
     }
     crate::sidecars::emit_precondition_lost(
         &app,

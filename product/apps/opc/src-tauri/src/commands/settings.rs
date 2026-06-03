@@ -89,24 +89,44 @@ pub async fn set_stagecraft_base_url(
         return Err("failed to initialise Stagecraft HTTP client".into());
     }
 
-    // Decide whether this is a *genuine* server change. A same-server
-    // re-save must NOT wipe the keychain session — doing so would force a
-    // needless re-sign-in even though the saved token is still valid
-    // ("stay signed in unless the credential is actually invalid"). Read
-    // the previously-stored URL before we overwrite it below.
-    let previous_url =
-        read_stagecraft_url_from_db(&app).map(|u| u.trim().trim_end_matches('/').to_string());
-    let server_changed = previous_url.as_deref() != Some(trimmed.as_str());
-
-    // Persist to DB — only now that the URL is known-good.
-    {
+    // Decide whether this is a *genuine* server change, then persist — both
+    // through the SAME managed connection. A same-server re-save must NOT
+    // wipe the keychain session: doing so would force a needless re-sign-in
+    // even though the saved token is still valid ("stay signed in unless the
+    // credential is actually invalid").
+    //
+    // The previous value is read with `.optional()` so a real DB error is
+    // distinct from "no row yet". A bare `Option` (the startup-only
+    // `read_stagecraft_url_from_db`) collapses both into `None`, which on a
+    // transient read failure during a same-server re-save would read as
+    // `server_changed = true` and silently clear a valid session. Here an
+    // indeterminate read instead aborts the whole operation BEFORE any
+    // mutation, so the destructive clear below fires only on a *confirmed*
+    // change. Reading through the managed connection (rather than opening a
+    // second one to the same file) also removes the lock contention that
+    // makes such a transient failure possible in the first place.
+    let server_changed = {
+        use rusqlite::OptionalExtension;
         let conn = db.0.lock().map_err(|e| e.to_string())?;
+        let previous_url: Option<String> = conn
+            .query_row(
+                "SELECT value FROM app_settings WHERE key = 'stagecraft_base_url'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(|e| format!("failed to read current stagecraft_base_url: {e}"))?
+            .map(|u| u.trim().trim_end_matches('/').to_string());
+        let changed = previous_url.as_deref() != Some(trimmed.as_str());
+
+        // Persist to DB — only now that the URL is known-good.
         conn.execute(
             "INSERT OR REPLACE INTO app_settings (key, value) VALUES ('stagecraft_base_url', ?1)",
             params![trimmed],
         )
         .map_err(|e| format!("failed to save stagecraft_base_url: {e}"))?;
-    }
+        changed
+    };
 
     // Drop the old server's keychain session ONLY on a genuine server change
     // — the token belongs to the old server and must not leak to a new one.
@@ -117,6 +137,14 @@ pub async fn set_stagecraft_base_url(
     // the old Arc is then dropped, so its in-memory state is moot.
     if server_changed {
         StagecraftClient::clear_keychain_entries();
+        // The project catalog cache belongs to the old server's org; drop it
+        // so a sign-in to the new server never momentarily surfaces the prior
+        // org's projects before its handshake snapshot lands.
+        if let Some(cache) =
+            app.try_state::<super::project_catalog_sync::ProjectCatalogCache>()
+        {
+            cache.clear();
+        }
     }
 
     if new_client.is_some() {

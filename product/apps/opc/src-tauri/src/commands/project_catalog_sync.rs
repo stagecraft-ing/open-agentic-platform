@@ -172,6 +172,17 @@ impl ProjectCatalogCache {
         self.inner.lock().unwrap_or_else(|p| p.into_inner()).hydrated = true;
     }
 
+    /// Drop every cached entry and reset hydration. Called when the session
+    /// ends (logout) or the active server changes, so a subsequent sign-in —
+    /// possibly a different user or org in the same OPC process — never
+    /// observes the prior session's catalog before its fresh handshake
+    /// snapshot arrives. Idempotent and cheap.
+    pub fn clear(&self) {
+        let mut g = self.inner.lock().unwrap_or_else(|p| p.into_inner());
+        g.by_id.clear();
+        g.hydrated = false;
+    }
+
     fn snapshot(&self) -> ProjectCatalogSnapshot {
         let g = self.inner.lock().unwrap_or_else(|p| p.into_inner());
         ProjectCatalogSnapshot {
@@ -457,5 +468,30 @@ mod tests {
             org_id: "".into(),
         };
         assert!(extract_snapshot_complete(&env).is_none());
+    }
+
+    #[test]
+    fn clear_drops_entries_and_resets_hydration() {
+        // Session-end invariant: after clear() a late `get_project_catalog`
+        // sees an empty, un-hydrated snapshot — so a re-login (possibly a
+        // different org in the same process) re-waits for its own handshake
+        // snapshot instead of surfacing the prior session's projects.
+        let cache = ProjectCatalogCache::default();
+        let ev = extract_upsert(&server_envelope(
+            "project.catalog.upsert",
+            json!({ "projectId": "p-1", "orgId": "org-1", "name": "Alpha" }),
+        ))
+        .expect("parses");
+        cache.apply_upsert(&ev);
+
+        let before = cache.snapshot();
+        assert_eq!(before.entries.len(), 1);
+        assert!(before.hydrated);
+
+        cache.clear();
+
+        let after = cache.snapshot();
+        assert!(after.entries.is_empty());
+        assert!(!after.hydrated);
     }
 }

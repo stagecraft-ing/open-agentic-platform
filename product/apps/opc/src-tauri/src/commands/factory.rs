@@ -2756,6 +2756,35 @@ mod tests {
         assert!(!is_lowercase_hex_sha256(&"g".repeat(64)), "non-hex rejected");
     }
 
+    #[test]
+    fn stage_display_name_matches_ts_titleize_parity() {
+        // Parity lock with the TS `stagesFromProcessDefinition` /
+        // `titleizeStageId` in
+        // product/apps/opc/src/components/factory/types.ts (test
+        // `label parity with Rust stage_display_name`). The SAME
+        // (input, expected) vector is asserted on both sides so the two
+        // stage-label implementations cannot silently diverge.
+        //
+        // A leading `sN-` prefix is stripped ONLY when every char after `s`
+        // is a digit — matching the TS `/^s\d+-/` regex. So `ss-something`
+        // and `s1a-foo` are NOT stripped, and `s` alone (len 1) is never a
+        // prefix. (This is the case the AI review claimed diverged; both
+        // languages keep it intact and titleise to the same string.)
+        let cases = [
+            ("s0-preflight", "Pre-flight"),         // curated canonical label
+            ("s6-scaffolding", "Scaffolding"),      // sN- stripped (all-digit)
+            ("s10-deep-dive", "Deep Dive"),         // multi-digit prefix stripped
+            ("s6a-entity-user", "S6a Entity User"), // "6a" not all-digit → kept
+            ("ss-something", "Ss Something"),       // not stripped (disputed case)
+            ("s1a-foo", "S1a Foo"),                 // "1a" not all-digit → kept
+            ("s-foo", "S Foo"),                     // "s" alone is not an sN- prefix
+            ("adapter-handoff", "Adapter Handoff"), // no prefix
+        ];
+        for (input, expected) in cases {
+            assert_eq!(stage_display_name(input), expected, "input={input}");
+        }
+    }
+
     #[tokio::test(flavor = "multi_thread")]
     async fn materialize_uses_cached_file_when_hash_matches() {
         let tmp = tempfile::tempdir().unwrap();
