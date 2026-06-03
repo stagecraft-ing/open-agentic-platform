@@ -2438,8 +2438,15 @@ export const api = {
 
   // ── Factory Pipeline (076) ───────────────────────────────────────────
 
-  async startFactoryPipeline(projectPath: string, adapterName: string, businessDocPaths: string[], stagecraftProjectId?: string): Promise<{ run_id: string }> {
-    return await apiCall<{ run_id: string }>("start_factory_pipeline", { projectPath, adapterName, businessDocPaths, stagecraftProjectId });
+  async startFactoryPipeline(projectPath: string, adapterName: string, businessDocPaths: string[], stagecraftProjectId?: string, processName?: string): Promise<{ run_id: string }> {
+    return await apiCall<{ run_id: string }>("start_factory_pipeline", { projectPath, adapterName, businessDocPaths, stagecraftProjectId, processName });
+  },
+
+  /** Spec 076 — adapters resolved from the stagecraft platform (`GET
+   *  /api/factory/adapters`) so the desktop's adapter picker reflects what
+   *  the org actually has rather than a free-typed/hardcoded name. */
+  async listFactoryAdapters(): Promise<{ name: string; version: string }[]> {
+    return await apiCall<{ name: string; version: string }[]>("list_factory_adapters");
   },
 
   async getFactoryPipelineStatus(runId: string): Promise<any> {

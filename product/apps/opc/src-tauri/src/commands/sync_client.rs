@@ -1031,6 +1031,15 @@ async fn run_forever(
                                 log::info!(
                                     "sync_client: Stagecraft JWT refreshed — retrying duplex promptly with new bearer"
                                 );
+                                // Surface the silent recovery to the frontend so
+                                // AuthContext re-checks status instead of leaving
+                                // a stale "Sign in" prompt for a session that was
+                                // just refreshed under it (spec 183 — never
+                                // re-prompt while a valid session can be restored).
+                                {
+                                    use tauri::Emitter as _;
+                                    let _ = app.emit("session-refreshed", ());
+                                }
                                 refreshes_this_outage += 1;
                                 // Recoverable session expiry: reset the backoff
                                 // so a token that rotated mid-outage is not

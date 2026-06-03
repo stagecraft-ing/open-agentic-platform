@@ -50,6 +50,13 @@ interface FactoryPipelineContextType {
     adapterName: string,
     businessDocPaths: string[],
     stagecraftProjectId?: string,
+    /** Platform process name from the project bundle. Omitted → the
+     *  backend resolves the org's current process from the platform, so
+     *  a platform-side rename needs no client change. */
+    processName?: string,
+    /** Stage list derived from the platform process definition (spec 076).
+     *  Omitted/empty → the canonical fallback stages are used. */
+    stages?: { id: string; name: string }[],
   ) => Promise<string>;
   confirmStage: (stageId: string) => Promise<void>;
   rejectStage: (stageId: string, feedback: string) => Promise<void>;
@@ -547,12 +554,15 @@ export const FactoryPipelineProvider: React.FC<{
       adapterName: string,
       businessDocPaths: string[],
       stagecraftProjectId?: string,
+      processName?: string,
+      stages?: { id: string; name: string }[],
     ): Promise<string> => {
       const resp = await apiCall<{ run_id: string }>('start_factory_pipeline', {
         projectPath,
         adapterName,
         businessDocPaths,
         stagecraftProjectId,
+        processName,
       });
       const runId = resp.run_id;
 
@@ -564,7 +574,10 @@ export const FactoryPipelineProvider: React.FC<{
           details: `adapter=${adapterName} project=${projectPath}`,
         };
         return {
-          ...createInitialPipelineState(),
+          // Seed the DAG from the platform-derived stage list (spec 076);
+          // createInitialPipelineState falls back to the canonical stages
+          // when `stages` is undefined/empty.
+          ...createInitialPipelineState(stages),
           runId,
           phase: 'process',
           auditTrail: [auditEntry],

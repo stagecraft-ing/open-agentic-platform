@@ -278,6 +278,56 @@ alongside the spec-123 catalog/binding kinds. The desktop and platform
 honour the embedded-schema-version convention (compile-time const,
 build-error on mismatch) the same way spec 123 §7.3 describes.
 
+### 6.2 Default process resolution — the platform owns process naming
+
+Step 1 above ("User picks adapter + process") presumes the desktop knows
+*which* process to reserve against. The process is named on the platform
+side — spec 108/139 store it in the substrate and `api/factory/projection.ts`
+projects it under a name (`"7-stage-build"` today). The client MUST NOT
+bake that name into a compiled constant: a rename on the platform would
+then silently break every reservation (`process "<old-name>" not found`)
+until the desktop is rebuilt. The name is platform-owned data, not a
+client contract.
+
+Resolution is therefore always sourced from the platform:
+
+1. **Name forwarded (normal path).** The OPC factory panel renders the
+   project bundle's processes; it forwards the selected process name —
+   today `bundle.processes[0].name`, the same value the panel displays —
+   into `start_factory_pipeline`. Because the bundle carries the
+   platform's *current* name, a platform-side rename flows through with
+   no client change.
+2. **No name supplied (fallback path).** A no-bundle or programmatic
+   caller passes no name. `prepare_run_root` then calls the platform's
+   process-list endpoint (`GET /api/factory/processes`, exposed by
+   `api/factory/browse.ts::listProcesses`, surfaced on the client by
+   `PlatformClient::list_processes`) and uses the org's process
+   (deterministically the first by name; one process per org today, until
+   a picker lands per step 1). Zero processes is a clear error, never a
+   guessed literal.
+
+The client-side default sentinel (`commands/factory.rs::DEFAULT_PROCESS_NAME`)
+is the **empty string**, meaning "resolve from the platform" — it never
+travels to `/api/factory/*` as a literal process name. `prepare_run_root`
+returns the resolved name on `PreparedRun.process_name` so the audit/log
+line records the real process, not the empty sentinel. This closes the
+drift where a client-baked `"factory"` default no longer matched the
+platform's `"7-stage-build"` process.
+
+The same "resolve from the platform" posture extends to the other run
+inputs the desktop previously hardcoded:
+
+- **Adapters.** `PlatformClient::list_adapters` (backed by
+  `GET /api/factory/adapters`) feeds the desktop's adapter dropdown
+  (spec 076), so the selectable set is the org's adapters rather than a
+  constant.
+- **Stage list.** `prepare_run_root` walks the process definition for every
+  stage id (`walk_stage_ids`) and returns them on `PreparedRun.stage_ids`.
+  `start_factory_pipeline` seeds the run's per-stage tracking (and the
+  status response) from that list, falling back to the canonical six only
+  when the definition can't be parsed. The desktop's DAG is therefore
+  platform-derived too, not a stage list compiled into the client.
+
 ## 7. UI Surface
 
 Adds two views to `/app/factory`:

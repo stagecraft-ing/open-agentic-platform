@@ -16,7 +16,8 @@
 //! best-effort: malformed envelopes log a warning and drop the frame
 //! rather than killing the consumer.
 
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use log::{info, warn};
 use serde::Serialize;
@@ -127,6 +128,95 @@ pub fn extract_upsert(env: &ServerEnvelopeWire) -> Option<ProjectCatalogUpsertEv
     })
 }
 
+// ---------------------------------------------------------------------------
+// Pull-side cache — closes the late-listener race (the "stuck Connecting…")
+// ---------------------------------------------------------------------------
+
+/// In-memory mirror of the project catalog, updated by the duplex handlers
+/// as upserts / snapshot-complete arrive.
+///
+/// The dispatch handlers fire the moment the duplex handshake delivers the
+/// snapshot — which is **before** the Projects panel mounts and registers
+/// its Tauri event listeners (the panel only renders after the boot gate
+/// opens, and the boot gate opens only after `sync.hello`, i.e. after the
+/// snapshot was already sent). Tauri does not buffer events for listeners
+/// attached later, so a panel subscribing after the snapshot fired would
+/// otherwise never hydrate — the permanent "Connecting to stagecraft…"
+/// state. This cache lets a late subscriber pull the current catalog via
+/// [`get_project_catalog`] instead of waiting for the next duplex reconnect.
+#[derive(Default)]
+pub struct ProjectCatalogCache {
+    inner: Mutex<ProjectCatalogCacheInner>,
+}
+
+#[derive(Default)]
+struct ProjectCatalogCacheInner {
+    by_id: HashMap<String, ProjectCatalogUpsertEvent>,
+    /// Mirrors the frontend store's `hydrated` flag: set once either an
+    /// upsert OR a snapshot-complete frame has been observed.
+    hydrated: bool,
+}
+
+impl ProjectCatalogCache {
+    fn apply_upsert(&self, ev: &ProjectCatalogUpsertEvent) {
+        let mut g = self.inner.lock().unwrap_or_else(|p| p.into_inner());
+        if ev.tombstone {
+            g.by_id.remove(&ev.project_id);
+        } else {
+            g.by_id.insert(ev.project_id.clone(), ev.clone());
+        }
+        g.hydrated = true;
+    }
+
+    fn mark_complete(&self) {
+        self.inner.lock().unwrap_or_else(|p| p.into_inner()).hydrated = true;
+    }
+
+    /// Drop every cached entry and reset hydration. Called when the session
+    /// ends (logout) or the active server changes, so a subsequent sign-in —
+    /// possibly a different user or org in the same OPC process — never
+    /// observes the prior session's catalog before its fresh handshake
+    /// snapshot arrives. Idempotent and cheap.
+    pub fn clear(&self) {
+        let mut g = self.inner.lock().unwrap_or_else(|p| p.into_inner());
+        g.by_id.clear();
+        g.hydrated = false;
+    }
+
+    fn snapshot(&self) -> ProjectCatalogSnapshot {
+        let g = self.inner.lock().unwrap_or_else(|p| p.into_inner());
+        ProjectCatalogSnapshot {
+            entries: g.by_id.values().cloned().collect(),
+            hydrated: g.hydrated,
+        }
+    }
+}
+
+/// Current desktop view of the catalog, returned by [`get_project_catalog`].
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectCatalogSnapshot {
+    pub entries: Vec<ProjectCatalogUpsertEvent>,
+    pub hydrated: bool,
+}
+
+/// Pull the desktop's current project catalog (spec 112 §7). The Projects
+/// panel calls this immediately after registering its duplex listeners so
+/// a snapshot that arrived during the handshake — before the listeners
+/// were attached — is recovered instead of leaving the panel stuck on
+/// "Connecting to stagecraft…". Idempotent and cheap; safe to call when
+/// stagecraft is disabled (returns an empty, un-hydrated snapshot).
+#[tauri::command]
+pub fn get_project_catalog(app: AppHandle) -> ProjectCatalogSnapshot {
+    match app.try_state::<ProjectCatalogCache>() {
+        Some(cache) => cache.snapshot(),
+        None => ProjectCatalogSnapshot {
+            entries: Vec::new(),
+            hydrated: false,
+        },
+    }
+}
+
 /// Install the Phase 8 handler on the shared dispatch table. No-op
 /// (plus a single info log) when the duplex `SyncClientState` has not
 /// been managed yet — the consumer wires it up at app startup, so this
@@ -162,6 +252,11 @@ fn on_project_upsert(app: AppHandle, env: &ServerEnvelopeWire) {
         warn!("project.catalog.upsert missing required fields — ignored");
         return;
     };
+    // Mirror into the pull-side cache first so a late `get_project_catalog`
+    // sees this row even if the live event below outraces the listener.
+    if let Some(cache) = app.try_state::<ProjectCatalogCache>() {
+        cache.apply_upsert(&payload);
+    }
     if let Err(e) = app.emit(EVENT_PROJECT_CATALOG_UPSERT, &payload) {
         warn!("project.catalog.upsert: failed to emit frontend event: {e}");
     }
@@ -172,6 +267,9 @@ fn on_snapshot_complete(app: AppHandle, env: &ServerEnvelopeWire) {
         warn!("project.catalog.snapshot.complete missing orgId — ignored");
         return;
     };
+    if let Some(cache) = app.try_state::<ProjectCatalogCache>() {
+        cache.mark_complete();
+    }
     if let Err(e) = app.emit(EVENT_PROJECT_CATALOG_SNAPSHOT_COMPLETE, &payload) {
         warn!(
             "project.catalog.snapshot.complete: failed to emit frontend event: {e}"
@@ -370,5 +468,30 @@ mod tests {
             org_id: "".into(),
         };
         assert!(extract_snapshot_complete(&env).is_none());
+    }
+
+    #[test]
+    fn clear_drops_entries_and_resets_hydration() {
+        // Session-end invariant: after clear() a late `get_project_catalog`
+        // sees an empty, un-hydrated snapshot — so a re-login (possibly a
+        // different org in the same process) re-waits for its own handshake
+        // snapshot instead of surfacing the prior session's projects.
+        let cache = ProjectCatalogCache::default();
+        let ev = extract_upsert(&server_envelope(
+            "project.catalog.upsert",
+            json!({ "projectId": "p-1", "orgId": "org-1", "name": "Alpha" }),
+        ))
+        .expect("parses");
+        cache.apply_upsert(&ev);
+
+        let before = cache.snapshot();
+        assert_eq!(before.entries.len(), 1);
+        assert!(before.hydrated);
+
+        cache.clear();
+
+        let after = cache.snapshot();
+        assert!(after.entries.is_empty());
+        assert!(!after.hydrated);
     }
 }

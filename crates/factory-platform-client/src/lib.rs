@@ -39,7 +39,8 @@ pub use materialise::{
     collect_contract_names, walk_process_for_agent_refs, RunRoot,
 };
 pub use wire::{
-    AdapterBody, ContractBody, ListRunsQuery, ListRunsResponse, ProcessBody, ReserveRunRequest,
+    AdapterBody, AdapterSummary, ContractBody, ListAdaptersResponse, ListProcessesResponse,
+    ListRunsQuery, ListRunsResponse, ProcessBody, ProcessSummary, ReserveRunRequest,
     RunReservation, RunRow, RunSummaryRow, WireAgentRef, WireSourceShas,
 };
 

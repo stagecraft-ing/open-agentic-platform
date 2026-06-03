@@ -89,28 +89,66 @@ pub async fn set_stagecraft_base_url(
         return Err("failed to initialise Stagecraft HTTP client".into());
     }
 
-    // Persist to DB — only now that the URL is known-good.
-    {
+    // Decide whether this is a *genuine* server change, then persist — both
+    // through the SAME managed connection. A same-server re-save must NOT
+    // wipe the keychain session: doing so would force a needless re-sign-in
+    // even though the saved token is still valid ("stay signed in unless the
+    // credential is actually invalid").
+    //
+    // The previous value is read with `.optional()` so a real DB error is
+    // distinct from "no row yet". A bare `Option` (the startup-only
+    // `read_stagecraft_url_from_db`) collapses both into `None`, which on a
+    // transient read failure during a same-server re-save would read as
+    // `server_changed = true` and silently clear a valid session. Here an
+    // indeterminate read instead aborts the whole operation BEFORE any
+    // mutation, so the destructive clear below fires only on a *confirmed*
+    // change. Reading through the managed connection (rather than opening a
+    // second one to the same file) also removes the lock contention that
+    // makes such a transient failure possible in the first place.
+    let server_changed = {
+        use rusqlite::OptionalExtension;
         let conn = db.0.lock().map_err(|e| e.to_string())?;
+        let previous_url: Option<String> = conn
+            .query_row(
+                "SELECT value FROM app_settings WHERE key = 'stagecraft_base_url'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(|e| format!("failed to read current stagecraft_base_url: {e}"))?
+            .map(|u| u.trim().trim_end_matches('/').to_string());
+        let changed = previous_url.as_deref() != Some(trimmed.as_str());
+
+        // Persist to DB — only now that the URL is known-good.
         conn.execute(
             "INSERT OR REPLACE INTO app_settings (key, value) VALUES ('stagecraft_base_url', ?1)",
             params![trimmed],
         )
         .map_err(|e| format!("failed to save stagecraft_base_url: {e}"))?;
+        changed
+    };
+
+    // Drop the old server's keychain session ONLY on a genuine server change
+    // — the token belongs to the old server and must not leak to a new one.
+    // On a same-server re-save we keep it so the user stays signed in. Routed
+    // through the client's single-source-of-truth helper so the entry list
+    // cannot drift from clear_auth. We do NOT call clear_auth() on the old
+    // client: the duplex loop bound to it is aborted by the re-spawn below and
+    // the old Arc is then dropped, so its in-memory state is moot.
+    if server_changed {
+        StagecraftClient::clear_keychain_entries();
+        // The project catalog cache belongs to the old server's org; drop it
+        // so a sign-in to the new server never momentarily surfaces the prior
+        // org's projects before its handshake snapshot lands.
+        if let Some(cache) =
+            app.try_state::<super::project_catalog_sync::ProjectCatalogCache>()
+        {
+            cache.clear();
+        }
     }
 
-    // Delete the old server's keychain session — the token belongs to the old
-    // server and must not leak to the new one. Routed through the client's
-    // single-source-of-truth helper so this list cannot drift from clear_auth.
-    // Done only after the replacement client is in hand (above): a rejected URL
-    // returns early and leaves the existing session intact. We do NOT call
-    // clear_auth() on the old client: the duplex loop bound to it is aborted by
-    // the re-spawn below and the old Arc is then dropped, so its in-memory
-    // state is moot.
-    StagecraftClient::clear_keychain_entries();
-
     if new_client.is_some() {
-        info!("Stagecraft base URL updated → {trimmed}");
+        info!("Stagecraft base URL updated → {trimmed} (server_changed={server_changed})");
     } else {
         info!("Stagecraft base URL cleared — integration disabled");
     }
@@ -119,6 +157,20 @@ pub async fn set_stagecraft_base_url(
     // installed — not a second `stagecraft.current()` read, which a concurrent
     // URL change could swap out from under us between the two calls.
     stagecraft.replace(new_client.clone());
+
+    // On a same-server re-save, restore the still-valid session onto the
+    // freshly-built client. A new `StagecraftClient` starts with
+    // `auth_token: None` and an empty `org_id`; without this restore the boot
+    // gate (`org_session_ready = has_org && sync_hello`) would wedge a
+    // signed-in user behind a re-sign-in prompt even though the keychain holds
+    // a valid token. On a genuine server change we intentionally skip this —
+    // the new server requires its own sign-in.
+    if !server_changed
+        && let Some(ref client) = new_client
+        && client.load_token_from_keychain()
+    {
+        info!("Stagecraft auth token restored from keychain onto new client (same server)");
+    }
 
     // Follow the new URL on the duplex loop (spec 183 FR-T2(a)): re-spawn the
     // consumer against the new client — `spawn` aborts the prior task first, so

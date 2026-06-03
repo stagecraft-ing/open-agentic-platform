@@ -109,6 +109,78 @@ async fn get_adapter_round_trips_and_sends_bearer_auth() {
 }
 
 #[tokio::test]
+async fn list_processes_round_trips_and_unwraps_envelope() {
+    // Spec 124 §6.2 — the desktop resolves the default process from the
+    // platform's process list (no client-baked name). `list_processes`
+    // hits the un-parameterised `/api/factory/processes` endpoint and
+    // unwraps the `{ processes: [...] }` envelope.
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/api/factory/processes"))
+        .and(header("authorization", "Bearer test-token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "processes": [
+                { "name": "7-stage-build", "version": "v1", "sourceSha": "proc-sha-1", "syncedAt": "2026-05-01T12:00:00Z" }
+            ]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let client = PlatformClient::new(server.uri(), provider());
+    let processes = client.list_processes().await.unwrap();
+    assert_eq!(processes.len(), 1);
+    assert_eq!(processes[0].name, "7-stage-build");
+    assert_eq!(processes[0].source_sha, "proc-sha-1");
+}
+
+#[tokio::test]
+async fn list_adapters_round_trips_and_unwraps_envelope() {
+    // Spec 124 §6.2 — the desktop populates its adapter picker from the
+    // platform's adapter list (no client-baked set). `list_adapters` hits the
+    // un-parameterised `/api/factory/adapters` endpoint and unwraps the
+    // `{ adapters: [...] }` envelope. The first row carries the optional
+    // synthesised `id`, the second omits it — exercising the
+    // `#[serde(default)]` on `AdapterSummary::id` in both directions.
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/api/factory/adapters"))
+        .and(header("authorization", "Bearer test-token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "adapters": [
+                {
+                    "id": "org-1:aim-vue-node",
+                    "name": "aim-vue-node",
+                    "version": "v1",
+                    "sourceSha": "ada-sha-1",
+                    "syncedAt": "2026-05-01T12:00:00Z"
+                },
+                {
+                    "name": "next-prisma",
+                    "version": "v2",
+                    "sourceSha": "ada-sha-2",
+                    "syncedAt": "2026-05-01T12:00:00Z"
+                }
+            ]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let client = PlatformClient::new(server.uri(), provider());
+    let adapters = client.list_adapters().await.unwrap();
+    assert_eq!(adapters.len(), 2);
+    assert_eq!(adapters[0].name, "aim-vue-node");
+    assert_eq!(adapters[0].id.as_deref(), Some("org-1:aim-vue-node"));
+    assert_eq!(adapters[0].source_sha, "ada-sha-1");
+    assert_eq!(adapters[1].name, "next-prisma");
+    assert_eq!(adapters[1].id, None);
+    assert_eq!(adapters[1].source_sha, "ada-sha-2");
+}
+
+#[tokio::test]
 async fn reserve_run_posts_camel_case_body_and_decodes_response() {
     let server = MockServer::start().await;
 

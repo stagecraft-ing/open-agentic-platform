@@ -223,10 +223,14 @@ export interface AgentOutputLine {
 
 // ── Process stage constants ──────────────────────────────────────────
 
-// Stage ids must match the backend constants in
-// apps/desktop/src-tauri/src/commands/factory.rs (PROCESS_STAGES). Events
+// Canonical six-stage pipeline. Post spec 076 this is the FALLBACK + the
+// display-label source: a live run derives its stage list from the platform
+// process definition (`stagesFromProcessDefinition`), and falls back to these
+// when no definition is available. Stage ids are load-bearing — events
 // `factory:step_started` / `step_completed` / `gate_reached` arrive with these
-// full ids; if they drift the DAG never advances out of `pending`.
+// full ids; if they drift the DAG never advances out of `pending`. The ids
+// here match the platform definition because both derive from the same factory
+// template, so the fallback stays consistent with a server-derived list.
 export const PROCESS_STAGES: { id: string; name: string }[] = [
   { id: 's0-preflight', name: 'Pre-flight' },
   { id: 's1-business-requirements', name: 'Business Requirements' },
@@ -235,6 +239,46 @@ export const PROCESS_STAGES: { id: string; name: string }[] = [
   { id: 's4-api-specification', name: 'API Specification' },
   { id: 's5-ui-specification', name: 'UI Specification' },
 ];
+
+/** Curated display labels for the canonical stage ids, used to label
+ *  server-derived stages; unknown ids fall back to a titleised id. */
+const STAGE_LABELS: Record<string, string> = Object.fromEntries(
+  PROCESS_STAGES.map((s) => [s.id, s.name]),
+);
+
+/** Drop a leading `sN-` ordering prefix (when present) and capitalise words
+ *  so a platform-defined stage the client hasn't seen still reads cleanly. */
+function titleizeStageId(id: string): string {
+  const body = /^s\d+-/.test(id) ? id.replace(/^s\d+-/, '') : id;
+  return body
+    .split('-')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+/**
+ * Derive the pipeline stage list from a platform process definition
+ * (spec 076) — `definition.stages: [{ id }]`. The id is load-bearing (must
+ * match the duplex events / backend); the label uses the curated map,
+ * falling back to a titleised id for stages the client hasn't seen. Returns
+ * [] when the definition has no recognisable stages, so callers fall back to
+ * PROCESS_STAGES rather than rendering an empty DAG.
+ */
+export function stagesFromProcessDefinition(
+  definition: unknown,
+): { id: string; name: string }[] {
+  const stages = (definition as { stages?: unknown } | null | undefined)?.stages;
+  if (!Array.isArray(stages)) return [];
+  const out: { id: string; name: string }[] = [];
+  for (const s of stages) {
+    const id = (s as { id?: unknown } | null)?.id;
+    if (typeof id === 'string' && id.length > 0) {
+      out.push({ id, name: STAGE_LABELS[id] ?? titleizeStageId(id) });
+    }
+  }
+  return out;
+}
 
 export const SCAFFOLD_CATEGORY_LABELS: Record<ScaffoldCategory, string> = {
   data: 'Data Entities',
@@ -245,12 +289,20 @@ export const SCAFFOLD_CATEGORY_LABELS: Record<ScaffoldCategory, string> = {
   validate: 'Final Validation',
 };
 
-/** Create initial empty pipeline state. */
-export function createInitialPipelineState(): FactoryPipelineState {
+/**
+ * Create initial empty pipeline state. Pass `stages` (e.g. from
+ * `stagesFromProcessDefinition(bundle.processes[0].definition)`) to seed the
+ * DAG from the platform process definition (spec 076); omit/empty to fall
+ * back to the canonical `PROCESS_STAGES` so the DAG is never empty.
+ */
+export function createInitialPipelineState(
+  stages: { id: string; name: string }[] = PROCESS_STAGES,
+): FactoryPipelineState {
+  const effective = stages.length > 0 ? stages : PROCESS_STAGES;
   return {
     runId: null,
     phase: 'idle',
-    stages: PROCESS_STAGES.map((s, i) => ({
+    stages: effective.map((s, i) => ({
       id: s.id,
       name: s.name,
       index: i,

@@ -53,6 +53,56 @@ pub struct ProcessBody {
     pub definition: serde_json::Value,
 }
 
+/// Summary row from `GET /api/factory/processes` (the list endpoint,
+/// `api/factory/browse.ts::listProcesses`). Like [`ProcessBody`] but
+/// without `definition` — that is fetched per-process via `get_process`.
+///
+/// The desktop uses this to resolve the org's process by the platform's
+/// *current* name when the caller did not pass one, instead of baking a
+/// process name into the client. The platform owns process naming
+/// (spec 124 §6); a rename there must not require a client rebuild.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProcessSummary {
+    pub name: String,
+    pub version: String,
+    pub source_sha: String,
+    pub synced_at: String,
+}
+
+/// Response envelope for `GET /api/factory/processes`.
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ListProcessesResponse {
+    pub processes: Vec<ProcessSummary>,
+}
+
+/// Summary row from `GET /api/factory/adapters` (the list endpoint,
+/// `api/factory/browse.ts::listAdapters`). Like [`AdapterBody`] but
+/// without the `manifest` — that is fetched per-adapter via `get_adapter`.
+///
+/// The desktop populates its adapter picker from this list so the set of
+/// selectable adapters is whatever the platform reports for the org, not a
+/// constant compiled into the client.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AdapterSummary {
+    /// `(orgId, name)`-stable synthesised id; informational for the picker.
+    #[serde(default)]
+    pub id: Option<String>,
+    pub name: String,
+    pub version: String,
+    pub source_sha: String,
+    pub synced_at: String,
+}
+
+/// Response envelope for `GET /api/factory/adapters`.
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ListAdaptersResponse {
+    pub adapters: Vec<AdapterSummary>,
+}
+
 // ---------------------------------------------------------------------------
 // /api/factory/runs — reservation + read shapes
 // ---------------------------------------------------------------------------

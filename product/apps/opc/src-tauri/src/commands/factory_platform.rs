@@ -276,6 +276,29 @@ pub fn walk_stage_agents(
     out
 }
 
+/// Extract every stage id from a process definition's `stages: [...]`
+/// array, in document order. Unlike [`walk_stage_agents`] this does NOT
+/// require a per-stage `agent_ref` — it captures the full structural stage
+/// list so the desktop can seed its per-stage tracking and DAG from the
+/// platform's process definition rather than a stage list compiled into
+/// the client (spec 076). Returns empty for an unrecognised shape; callers
+/// fall back to their built-in default in that case.
+pub fn walk_stage_ids(process_definition: &serde_json::Value) -> Vec<String> {
+    let Some(stages) = process_definition.get("stages").and_then(|v| v.as_array()) else {
+        return Vec::new();
+    };
+    stages
+        .iter()
+        .filter_map(|s| s.get("id").and_then(|v| v.as_str()))
+        // Drop empty-string ids (parity with the TS `stagesFromProcessDefinition`
+        // `id.length > 0` guard in types.ts): an empty id would seed a stage
+        // tracker that the engine's `factory:step_started` / `gate_reached`
+        // events can never match, leaving that stage stuck at `pending` forever.
+        .filter(|id| !id.is_empty())
+        .map(String::from)
+        .collect()
+}
+
 // ---------------------------------------------------------------------------
 // PreparedRun — the result of a successful platform-side reservation
 // ---------------------------------------------------------------------------
@@ -286,6 +309,12 @@ pub fn walk_stage_agents(
 /// against.
 pub struct PreparedRun {
     pub run_id: String,
+    /// The process name the run was reserved against. When the caller
+    /// passed an explicit name this echoes it; when it passed none, this
+    /// is the name resolved from the platform's process list (spec 124 §6
+    /// — the platform owns process naming). Callers use it for audit/log
+    /// lines instead of re-deriving the default.
+    pub process_name: String,
     pub run_root: RunRoot,
     pub engine_factory_root: PathBuf,
     /// `(stage_id, agent_ref)` pairs in stage order. The desktop stamps
@@ -294,6 +323,11 @@ pub struct PreparedRun {
     /// Same triples by index in `source_shas.agents[]` for downstream
     /// completeness (e.g. token-spend rollup).
     pub source_agents: Vec<FactoryAgentRef>,
+    /// Every stage id from the platform process definition, in order
+    /// (spec 076). The desktop seeds its per-stage tracking + DAG from this
+    /// instead of a hardcoded stage list. Empty when the definition shape is
+    /// unrecognised — the caller then falls back to its built-in default.
+    pub stage_ids: Vec<String>,
 }
 
 impl PreparedRun {
@@ -321,10 +355,34 @@ pub async fn prepare_run_root(
 ) -> Result<PreparedRun, FactoryError> {
     let client_run_id = Uuid::new_v4().to_string();
 
+    // Spec 124 §6 — the platform owns process naming. When the caller
+    // supplies a name (the desktop forwards the bundle's current process
+    // name) we use it verbatim. When it supplies none — a no-bundle or
+    // programmatic caller — we resolve the name from the platform's
+    // process list rather than from a name compiled into the client, so a
+    // rename on the platform never requires a desktop rebuild.
+    let resolved_process_name: String = if process_name.trim().is_empty() {
+        let mut processes = ctx.client.list_processes().await?;
+        // `listProcesses` returns name-sorted; sort again so the pick is
+        // deterministic regardless of server ordering. Today every org has
+        // exactly one process; the first is the default until a process
+        // picker lands (spec 124 §6 step 1, Phase 7).
+        processes.sort_by(|a, b| a.name.cmp(&b.name));
+        processes.into_iter().next().map(|p| p.name).ok_or_else(|| {
+            FactoryError::Reservation(
+                "no factory process configured for this organization".to_string(),
+            )
+        })?
+    } else {
+        process_name.to_string()
+    };
+    let process_name: &str = &resolved_process_name;
+
     // Pre-flight resolver walk: catch retired bindings before the server
     // round-trip so the UI deep-link surfaces with full structured info.
     let process = ctx.client.get_process(process_name).await?;
     let stage_pairs = walk_stage_agents(&process.definition);
+    let stage_ids = walk_stage_ids(&process.definition);
     for (_stage_id, reference) in &stage_pairs {
         if let Err(e) = ctx.resolver.resolve(reference.clone()).await {
             return Err(map_resolve_err(e, reference, project_id));
@@ -386,10 +444,12 @@ pub async fn prepare_run_root(
 
     Ok(PreparedRun {
         run_id: reservation.run_id,
+        process_name: resolved_process_name,
         run_root,
         engine_factory_root,
         stage_agents,
         source_agents,
+        stage_ids,
     })
 }
 
@@ -820,6 +880,44 @@ mod tests {
         let pairs = walk_stage_agents(&proc_def);
         assert_eq!(pairs.len(), 1);
         assert_eq!(pairs[0].0, "s1");
+    }
+
+    #[test]
+    fn walk_stage_ids_collects_ids_in_document_order() {
+        let proc_def = json!({
+            "stages": [
+                { "id": "s0-preflight" },
+                { "id": "s1-business-requirements" },
+            ]
+        });
+        assert_eq!(
+            walk_stage_ids(&proc_def),
+            vec![
+                "s0-preflight".to_string(),
+                "s1-business-requirements".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn walk_stage_ids_skips_empty_and_missing_ids_parity_with_ts() {
+        // Parity with the TS `stagesFromProcessDefinition` (types.ts), which
+        // guards `id.length > 0`. An empty-string id must be dropped — seeding
+        // it as a stage tracker would leave a stage the engine's events can
+        // never match stuck at `pending` forever. Stages with no `id` at all
+        // are likewise skipped.
+        let proc_def = json!({
+            "stages": [
+                { "id": "s0" },
+                { "id": "" },
+                { "no_id": true },
+                { "id": "s1" },
+            ]
+        });
+        assert_eq!(
+            walk_stage_ids(&proc_def),
+            vec!["s0".to_string(), "s1".to_string()]
+        );
     }
 
     #[test]

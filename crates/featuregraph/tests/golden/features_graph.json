@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:2fb9624eb1e90f0cac05de59fffcbec6d3ee5ed67a8f317f033e258d64088d94",
+  "graph_fingerprint": "sha256:1daea206c99ab44d1e17c3dc1e08445ef18e3b0ee1da9c4eb4cee5cf9a40b1d2",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -5025,6 +5025,13 @@
       "severity": "error",
       "path": "product/apps/opc/src/components/factory/__tests__/planTypes.test.ts",
       "message": "Malformed Spec directive: // Spec: specs/171-opc-structural-diff-plan-ui/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "product/apps/opc/src/components/factory/__tests__/stageLabelParity.test.ts",
+      "message": "Malformed Spec directive: // Spec: specs/076-factory-desktop-panel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {

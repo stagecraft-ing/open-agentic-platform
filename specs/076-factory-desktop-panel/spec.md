@@ -271,11 +271,39 @@ listen('factory:scaffold_progress', (event) => { ... });
 listen('factory:token_update', (event) => { ... });
 
 // Invoke Tauri commands
-invoke('start_factory_pipeline', { projectPath, adapterName, businessDocPaths });
+invoke('start_factory_pipeline', {
+  projectPath, adapterName, businessDocPaths,
+  stagecraftProjectId,  // org/project binding for the platform reservation
+  processName,          // see "Process name forwarding" below
+});
 invoke('confirm_factory_stage', { runId, stageId });
 invoke('reject_factory_stage', { runId, stageId, feedback });
 invoke('get_factory_pipeline_status', { runId });
 ```
+
+#### Server-resolved pipeline inputs
+
+The "Start New Pipeline" form resolves its structure from platform data
+rather than free-typed or client-baked values. The platform owns adapter,
+process, and stage naming (spec 124 §6.2); resolving from platform data
+means a rename or addition on the platform needs no desktop rebuild.
+
+- **Adapter** — a dropdown (`@opc/ui/select`) populated from
+  `GET /api/factory/adapters` via the `list_factory_adapters` Tauri command,
+  not a free-text field. The currently-selected adapter is always kept
+  selectable so a bundle-seeded value survives even before the list loads.
+- **Process name** — `PipelineSelector` forwards the bundle's current
+  process name (`bundle.processes[0].name`, the value the panel renders
+  under "Processes") as the `processName` argument. When the bundle carries
+  no process, the argument is omitted and the backend resolves the org's
+  process from the platform list. The selector never sends a process name
+  baked into the client.
+- **Pipeline stages (DAG)** — `createInitialPipelineState` seeds the stage
+  list from the process definition via
+  `stagesFromProcessDefinition(bundle.processes[0].definition)`. Stage ids
+  are load-bearing (they must match the duplex stage events); the curated
+  `PROCESS_STAGES` constant is retained only as the display-label source and
+  the fallback when no definition is available, so the DAG is never empty.
 
 ## Implementation Approach
 

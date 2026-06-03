@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "dd2a691e465eaa0e4b3f8af7dbd6253cf5c7f2942850baaff9363fc86c4b6677",
+    "contentHash": "e47d615b37e4cae8924a48caa248612099f20bba8f9d1d811f0024cbc0c4d549",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -11741,6 +11741,9 @@
                 "file": "product/apps/opc/src/components/factory/__tests__/planTypes.test.ts"
               },
               {
+                "file": "product/apps/opc/src/components/factory/__tests__/stageLabelParity.test.ts"
+              },
+              {
                 "file": "product/apps/opc/src/components/factory/planAnalysis.ts"
               },
               {
@@ -12929,6 +12932,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/factory/__tests__/planTypes.test.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/stageLabelParity.test.ts"
               },
               {
                 "file": "product/apps/opc/src/components/factory/planAnalysis.ts"
@@ -15161,6 +15167,9 @@
                 "file": "product/apps/opc/src/components/factory/__tests__/planTypes.test.ts"
               },
               {
+                "file": "product/apps/opc/src/components/factory/__tests__/stageLabelParity.test.ts"
+              },
+              {
                 "file": "product/apps/opc/src/components/factory/planAnalysis.ts"
               },
               {
@@ -16964,6 +16973,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/factory/__tests__/planTypes.test.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/stageLabelParity.test.ts"
               },
               {
                 "file": "product/apps/opc/src/components/factory/planAnalysis.ts"
@@ -23411,6 +23423,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/factory/__tests__/planTypes.test.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/stageLabelParity.test.ts"
               },
               {
                 "file": "product/apps/opc/src/components/factory/planAnalysis.ts"
@@ -36615,6 +36630,9 @@
                 "file": "product/apps/opc/src/components/factory/__tests__/planTypes.test.ts"
               },
               {
+                "file": "product/apps/opc/src/components/factory/__tests__/stageLabelParity.test.ts"
+              },
+              {
                 "file": "product/apps/opc/src/components/factory/planAnalysis.ts"
               },
               {
@@ -39104,6 +39122,9 @@
                 "file": "product/apps/opc/src/components/factory/__tests__/planTypes.test.ts"
               },
               {
+                "file": "product/apps/opc/src/components/factory/__tests__/stageLabelParity.test.ts"
+              },
+              {
                 "file": "product/apps/opc/src/components/factory/planAnalysis.ts"
               },
               {
@@ -40495,6 +40516,9 @@
                 "file": "product/apps/opc/src/components/factory/__tests__/planTypes.test.ts"
               },
               {
+                "file": "product/apps/opc/src/components/factory/__tests__/stageLabelParity.test.ts"
+              },
+              {
                 "file": "product/apps/opc/src/components/factory/planAnalysis.ts"
               },
               {
@@ -40630,6 +40654,9 @@
               },
               {
                 "file": "product/apps/opc/src/components/factory/__tests__/planTypes.test.ts"
+              },
+              {
+                "file": "product/apps/opc/src/components/factory/__tests__/stageLabelParity.test.ts"
               },
               {
                 "file": "product/apps/opc/src/components/factory/planAnalysis.ts"

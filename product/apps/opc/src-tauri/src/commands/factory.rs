@@ -26,12 +26,15 @@ use super::sync_client::{
     KnowledgeBundle as WireKnowledgeBundle, ServerEnvelopeWire, SyncClientState,
 };
 
-/// Default process name used when a Tauri caller does not specify one.
-/// Spec 124 §4 makes `processName` required at the platform boundary; the
-/// in-tree process body before spec 108 §8 was a single, unnamed
-/// definition — keeping a documented default keeps the desktop UX
-/// uncluttered until Phase 7 surfaces a process picker.
-const DEFAULT_PROCESS_NAME: &str = "factory";
+/// Sentinel meaning "no process name supplied — let the platform resolve
+/// its current process." The client must NOT bake in a process name: the
+/// platform owns process naming (spec 124 §6), so a rename there must not
+/// require a desktop rebuild. When a name is absent, `prepare_run_root`
+/// lists the org's processes and uses the platform's current name; when
+/// the desktop forwards `bundle.processes[].name`, that name is used
+/// verbatim. The empty string flows through to that resolution path —
+/// it never reaches the platform as a literal process name.
+const DEFAULT_PROCESS_NAME: &str = "";
 
 /// Spec 112 §6.4.5 — load the project's clone token from the OS
 /// keychain and surface it as `{ GITHUB_TOKEN: <value> }` for the
@@ -426,6 +429,10 @@ struct FactoryRunContext {
     adapter_name: String,
     audit_trail: Mutex<Vec<AuditEntry>>,
     stage_status: Mutex<HashMap<String, StageTracker>>,
+    /// The run's stage list (spec 076) — platform-derived ids + display
+    /// names. `build_status_response` iterates this so the status it returns
+    /// reflects the platform process definition, not a hardcoded skeleton.
+    stage_defs: Vec<StageDef>,
     /// When set, lifecycle events are dual-written to this Stagecraft project.
     stagecraft_project_id: Option<String>,
     /// The Stagecraft-assigned pipeline ID, captured from init_pipeline response.
@@ -467,6 +474,11 @@ static FACTORY_RUN_REQUESTS_SEEN: LazyLock<Mutex<HashSet<String>>> =
 // Process stage constants (the 6 Factory pipeline stages)
 // ---------------------------------------------------------------------------
 
+/// Canonical six-stage pipeline. Post spec 076 this is the FALLBACK + the
+/// display-name source: a live run seeds its stage list from the platform
+/// process definition (so the structure is platform-owned, not client-baked),
+/// and falls back to these when the definition can't be parsed. The names
+/// here are the curated labels for the canonical ids.
 const PROCESS_STAGES: &[(&str, &str)] = &[
     ("s0-preflight", "Pre-flight"),
     ("s1-business-requirements", "Business Requirements"),
@@ -475,6 +487,69 @@ const PROCESS_STAGES: &[(&str, &str)] = &[
     ("s4-api-specification", "API Specification"),
     ("s5-ui-specification", "UI Specification"),
 ];
+
+/// A pipeline stage seeded for a run: load-bearing `id` (matches the engine
+/// and duplex events) plus a cosmetic display `name`.
+#[derive(Debug, Clone)]
+pub struct StageDef {
+    pub id: String,
+    pub name: String,
+}
+
+/// Display name for a stage id: the curated label when the id is one of the
+/// canonical six, else a titleised form of the id (drop a leading `sN-`
+/// index, replace dashes with spaces, capitalise words) so a platform-defined
+/// stage the client has never seen still renders a readable name.
+fn stage_display_name(id: &str) -> String {
+    if let Some((_, name)) = PROCESS_STAGES.iter().find(|(sid, _)| *sid == id) {
+        return name.to_string();
+    }
+    // Strip a leading `sN-` ordering prefix (only when it really is one) so
+    // ids like `adapter-handoff` keep their first word.
+    let body = match id.split_once('-') {
+        Some((prefix, rest))
+            if prefix.len() >= 2
+                && prefix.starts_with('s')
+                && prefix[1..].chars().all(|c| c.is_ascii_digit()) =>
+        {
+            rest
+        }
+        _ => id,
+    };
+    body.split('-')
+        .filter(|w| !w.is_empty())
+        .map(|w| {
+            let mut chars = w.chars();
+            match chars.next() {
+                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Build the stage list for a run: the platform process definition's stage
+/// ids when available (spec 076), else the canonical [`PROCESS_STAGES`]
+/// fallback so a definition the client can't parse never yields an empty DAG.
+fn stage_defs_for_run(stage_ids: &[String]) -> Vec<StageDef> {
+    if stage_ids.is_empty() {
+        return PROCESS_STAGES
+            .iter()
+            .map(|(id, name)| StageDef {
+                id: id.to_string(),
+                name: name.to_string(),
+            })
+            .collect();
+    }
+    stage_ids
+        .iter()
+        .map(|id| StageDef {
+            id: id.clone(),
+            name: stage_display_name(id),
+        })
+        .collect()
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -744,13 +819,14 @@ fn build_status_response(ctx: &FactoryRunContext) -> PipelineStatusResponse {
         factory_engine::FactoryPhase::Failed => "failed",
     };
 
-    let stages: Vec<StageInfo> = PROCESS_STAGES
+    let stages: Vec<StageInfo> = ctx
+        .stage_defs
         .iter()
-        .map(|(id, name)| {
-            let tracker = stage_status.get(*id);
+        .map(|sd| {
+            let tracker = stage_status.get(&sd.id);
             StageInfo {
-                id: id.to_string(),
-                name: name.to_string(),
+                id: sd.id.clone(),
+                name: sd.name.clone(),
                 status: tracker
                     .map(|t| t.status.clone())
                     .unwrap_or_else(|| "pending".into()),
@@ -853,6 +929,35 @@ fn build_status_response(ctx: &FactoryRunContext) -> PipelineStatusResponse {
 // Commands
 // ---------------------------------------------------------------------------
 
+/// Adapter option for the desktop's adapter picker (spec 076). Mirrors the
+/// platform's `GET /api/factory/adapters` summary — `name` + `version`.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct FactoryAdapterOption {
+    pub name: String,
+    pub version: String,
+}
+
+/// List the org's factory adapters so the desktop can populate its adapter
+/// dropdown from platform data instead of a free-text field. The platform
+/// owns adapter naming (spec 124 §6.2 establishes the same posture for
+/// processes); the selectable set is whatever the org's substrate reports.
+#[tauri::command]
+pub async fn list_factory_adapters(app: AppHandle) -> Result<Vec<FactoryAdapterOption>, String> {
+    let ctx = platform_context(&app).map_err(FactoryError::into_user_message)?;
+    let adapters = ctx
+        .client
+        .list_adapters()
+        .await
+        .map_err(|e| FactoryError::from(e).into_user_message())?;
+    Ok(adapters
+        .into_iter()
+        .map(|a| FactoryAdapterOption {
+            name: a.name,
+            version: a.version,
+        })
+        .collect())
+}
+
 /// Start a new Factory pipeline run.
 ///
 /// Creates a real `FactoryEngine`, generates a Phase 1 manifest, and dispatches
@@ -942,17 +1047,21 @@ pub async fn start_factory_pipeline(
         details: Some(format!(
             "adapter={} process={} platform_run_id={} docs={}",
             adapter_name,
-            process_name,
+            prepared.process_name,
             platform_run_id,
             business_doc_paths.join(",")
         )),
         feedback: None,
     };
 
+    // Seed the per-stage tracker from the platform process definition (spec
+    // 076) rather than a stage list compiled into the client. Falls back to
+    // the canonical six when the definition can't be parsed.
+    let stage_defs = stage_defs_for_run(&prepared.stage_ids);
     let mut initial_stages = HashMap::new();
-    for (id, _name) in PROCESS_STAGES {
+    for sd in &stage_defs {
         initial_stages.insert(
-            id.to_string(),
+            sd.id.clone(),
             StageTracker {
                 status: "pending".into(),
                 token_spend: 0,
@@ -974,6 +1083,7 @@ pub async fn start_factory_pipeline(
         adapter_name: adapter_name.clone(),
         audit_trail: Mutex::new(vec![initial_audit]),
         stage_status: Mutex::new(initial_stages),
+        stage_defs,
         stagecraft_project_id: stagecraft_project_id.clone(),
         stagecraft_pipeline_id: Mutex::new(None),
         // Tab/execution session (spec 110 §2.4). Stagecraft-triggered runs
@@ -2644,6 +2754,35 @@ mod tests {
         assert!(!is_lowercase_hex_sha256(&"a".repeat(63)));
         assert!(!is_lowercase_hex_sha256(&"A".repeat(64)), "uppercase rejected");
         assert!(!is_lowercase_hex_sha256(&"g".repeat(64)), "non-hex rejected");
+    }
+
+    #[test]
+    fn stage_display_name_matches_ts_titleize_parity() {
+        // Parity lock with the TS `stagesFromProcessDefinition` /
+        // `titleizeStageId` in
+        // product/apps/opc/src/components/factory/types.ts (test
+        // `label parity with Rust stage_display_name`). The SAME
+        // (input, expected) vector is asserted on both sides so the two
+        // stage-label implementations cannot silently diverge.
+        //
+        // A leading `sN-` prefix is stripped ONLY when every char after `s`
+        // is a digit — matching the TS `/^s\d+-/` regex. So `ss-something`
+        // and `s1a-foo` are NOT stripped, and `s` alone (len 1) is never a
+        // prefix. (This is the case the AI review claimed diverged; both
+        // languages keep it intact and titleise to the same string.)
+        let cases = [
+            ("s0-preflight", "Pre-flight"),         // curated canonical label
+            ("s6-scaffolding", "Scaffolding"),      // sN- stripped (all-digit)
+            ("s10-deep-dive", "Deep Dive"),         // multi-digit prefix stripped
+            ("s6a-entity-user", "S6a Entity User"), // "6a" not all-digit → kept
+            ("ss-something", "Ss Something"),       // not stripped (disputed case)
+            ("s1a-foo", "S1a Foo"),                 // "1a" not all-digit → kept
+            ("s-foo", "S Foo"),                     // "s" alone is not an sN- prefix
+            ("adapter-handoff", "Adapter Handoff"), // no prefix
+        ];
+        for (input, expected) in cases {
+            assert_eq!(stage_display_name(input), expected, "input={input}");
+        }
     }
 
     #[tokio::test(flavor = "multi_thread")]
