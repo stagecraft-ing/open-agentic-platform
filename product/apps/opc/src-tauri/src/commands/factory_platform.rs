@@ -289,7 +289,13 @@ pub fn walk_stage_ids(process_definition: &serde_json::Value) -> Vec<String> {
     };
     stages
         .iter()
-        .filter_map(|s| s.get("id").and_then(|v| v.as_str()).map(String::from))
+        .filter_map(|s| s.get("id").and_then(|v| v.as_str()))
+        // Drop empty-string ids (parity with the TS `stagesFromProcessDefinition`
+        // `id.length > 0` guard in types.ts): an empty id would seed a stage
+        // tracker that the engine's `factory:step_started` / `gate_reached`
+        // events can never match, leaving that stage stuck at `pending` forever.
+        .filter(|id| !id.is_empty())
+        .map(String::from)
         .collect()
 }
 
@@ -874,6 +880,44 @@ mod tests {
         let pairs = walk_stage_agents(&proc_def);
         assert_eq!(pairs.len(), 1);
         assert_eq!(pairs[0].0, "s1");
+    }
+
+    #[test]
+    fn walk_stage_ids_collects_ids_in_document_order() {
+        let proc_def = json!({
+            "stages": [
+                { "id": "s0-preflight" },
+                { "id": "s1-business-requirements" },
+            ]
+        });
+        assert_eq!(
+            walk_stage_ids(&proc_def),
+            vec![
+                "s0-preflight".to_string(),
+                "s1-business-requirements".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn walk_stage_ids_skips_empty_and_missing_ids_parity_with_ts() {
+        // Parity with the TS `stagesFromProcessDefinition` (types.ts), which
+        // guards `id.length > 0`. An empty-string id must be dropped — seeding
+        // it as a stage tracker would leave a stage the engine's events can
+        // never match stuck at `pending` forever. Stages with no `id` at all
+        // are likewise skipped.
+        let proc_def = json!({
+            "stages": [
+                { "id": "s0" },
+                { "id": "" },
+                { "no_id": true },
+                { "id": "s1" },
+            ]
+        });
+        assert_eq!(
+            walk_stage_ids(&proc_def),
+            vec!["s0".to_string(), "s1".to_string()]
+        );
     }
 
     #[test]
