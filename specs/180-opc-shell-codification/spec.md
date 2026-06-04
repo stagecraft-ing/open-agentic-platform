@@ -724,3 +724,182 @@ spec 178 already landed.
   brought every path in this spec to its post-rename form.
 - **Spec 179** — domain frontmatter field; the precondition that
   makes `domain: opc` filterable.
+
+## 12. Profile alignment for build reuse (completion, 2026-06-03)
+
+This spec landed the OPC desktop's build **mechanism** — its own Cargo
+workspace (split from root), an aggressive size-optimised
+`[profile.release]` (`opt-level="z"`, `lto=true`, `codegen-units=1`,
+`panic="abort"`, `strip=true`), and the `[profile.bench]` carve-out that
+FR-T8's benches needed to compile under that release profile. It recorded
+the mechanism but **not the rationale that made the mechanism necessary**,
+leaving the reasoning to be re-derived by investigation. This section
+completes 180 by recording that rationale and updating the mechanism to its
+now-correct form. It does **not** overturn 180; it makes 180 complete enough
+that this reasoning is never re-litigated.
+
+### 12.1 Why the workspace split exists (the libsqlite3-sys isolation)
+
+`product/apps/opc/src-tauri` is a **self-contained Cargo workspace, excluded
+from the root workspace** (`exclude = ["product/apps/opc/src-tauri", …]` in
+root `Cargo.toml`). The reason is a hard Cargo constraint, not ergonomics:
+
+- Both sides link SQLite. OPC links it directly via `rusqlite`; axiomregent
+  links it via `hiqlite → rusqlite → libsqlite3-sys`.
+- `libsqlite3-sys` declares `links = "sqlite3"`. **Cargo permits exactly one
+  package declaring a given `links` key per dependency graph.** If two
+  *different* `libsqlite3-sys` versions ever co-resolved in one graph, the
+  build fails hard: *"multiple packages link to native library `sqlite3`"*.
+- Separate workspaces = separate Cargo resolution graphs = each side resolves
+  its **own single** `libsqlite3-sys`, so the collision cannot occur. This is
+  the isolation the split buys. (The rationale was previously implicit in a
+  one-line comment on `src-tauri/Cargo.toml`; it is now recorded here.)
+
+### 12.2 The merge is rejected (and stays rejected)
+
+Folding `src-tauri` into the root workspace was evaluated and **rejected**.
+A single workspace re-exposes exactly what the split prevents:
+
+1. **The `links="sqlite3"` collision returns.** A unified graph has one
+   resolution; if OPC's `rusqlite` range and hiqlite's ever resolve to
+   incompatible `libsqlite3-sys` majors, the unified build hard-errors.
+2. **`rusqlite` feature-union.** axiomregent (via hiqlite) activates a large
+   `rusqlite` feature set (`load_extension`, `vtab`, `series`, `functions`,
+   `backup`, …); OPC activates a minimal set. A `--workspace` build unifies
+   features → OPC's bundled SQLite would silently gain `load_extension`/`vtab`
+   — a change to installer contents and security surface.
+
+The merge buys **zero additional reuse** over the route in §12.3, while
+re-introducing both hazards. Do not re-propose it; the reuse goal is met
+without it.
+
+### 12.3 How shared-crate reuse is actually delivered
+
+OPC and axiomregent share a 9-crate internal core (`agent`,
+`agent-frontmatter`, `canonical-json`, `featuregraph`, `policy-kernel`,
+`registry-reader`, `spec-types`, `run`, `xray`) and ~555 packages total
+across their two dependency graphs. Reuse is delivered by **three aligned
+conditions, not by merging**:
+
+1. **Profile-match.** Cargo keys artifact reuse by a per-unit fingerprint
+   (package id, features, profile codegen flags, target, rustc, RUSTFLAGS,
+   dependency metadata-hashes) — *not* by workspace identity. So two separate
+   workspaces sharing a `CARGO_TARGET_DIR` (or an `sccache` cache) reuse a
+   crate's compiled `.rlib` **iff** the fingerprints match. This is why
+   `[profile.release]` is aligned to the root workspace's **cargo defaults**
+   (`opt-level=3`, `lto=false`, `codegen-units=16`, `panic="unwind"`): a
+   matching profile is a precondition of the shared fingerprint.
+2. **Shared target/cache** across both builds (Part B follow-on; `sccache` is
+   recommended over a raw shared `CARGO_TARGET_DIR` for cross-runner CI reuse).
+3. **Lock-alignment.** Profile-match is necessary but **not sufficient** — a
+   shared crate only reuses if its whole transitive subtree resolves
+   identically. The two `Cargo.lock`s currently diverge on ~94 packages; the
+   divergent shared subgraphs that block reuse must be aligned (watching the
+   crypto/TLS path — `aws-lc-rs`/`openssl`/`h2` — where any shared bump changes
+   **both** shipped binaries). This is Part B follow-on work, measured
+   before/after so the win is quantified, not assumed.
+
+`strip` is a **link-time** step on the final binary only; it does not key
+dependency-`.rlib` reuse, so OPC keeps `strip=true` for a tidy binary while
+still sharing the core.
+
+### 12.4 The corrected profile decision: reuse-over-size
+
+Operator decision (settled): **optimise the OPC release profile for
+shared-crate build reuse / CI speed over binary size.** Tauri v2's lean
+baseline (a ~29.7 MB dmg) makes the size knobs (`opt-level="z"`, `lto=true`,
+`codegen-units=1`) **not worth their build-time cost** — `lto` + `cu=1`
+serialise codegen and add whole-program link time, and they diverge OPC's
+fingerprint from root, defeating reuse. `[profile.release]` is therefore
+aligned to cargo defaults; only `strip=true` remains (link-only, reuse-safe).
+
+### 12.5 Why `panic = "unwind"` — behavioral, not size
+
+The `panic="abort"` → `panic="unwind"` change is decided on **behavioral**
+grounds, independent of the size decision:
+
+- OPC has **no dependence on abort semantics**. The only `abort` calls in
+  `src-tauri` are `tokio::JoinHandle::abort()` (async task cancellation);
+  `src-tauri/src` itself has no `catch_unwind`, no `std::panic` hook, and no
+  `extern "C"`/`#[no_mangle]` FFI.
+- The one `catch_unwind` reachable in OPC's *dependency graph* —
+  `provenance-validator`'s `validate()`/`audit()` (pulled in via
+  `factory-engine`) — is a deliberate **fail-closed** safety net: a validator
+  panic is converted to a `ProvenanceMode::Rejected` report (`panic_report`),
+  never silently allowed past a gate. **The caller enforces it**:
+  `factory-engine`'s quality gate treats a caught validator panic as an
+  *unconditional* `Fail` (`stages/quality_gates.rs` FR-005 — "Always Fail;
+  never depends on mode"; module doc: "any `Rejected` claim FAILs the gate").
+  It is **already exercised under `unwind`** in the `factory-engine`/axiomregent
+  path today (the root workspace is `unwind`), so OPC→`unwind` makes OPC
+  *consistent* with that established behavior rather than introducing it. Under
+  OPC's prior `abort` the catch was inert (abort does not unwind, so a validator
+  panic crashed OPC instead of rejecting) — `unwind` is therefore strictly safer
+  here, not riskier.
+- The `cdylib`/`staticlib` crate-types are Tauri's **mobile** FFI artifacts,
+  not compiled into the desktop dmg. The only mobile FFI entry point is `run()`
+  decorated `#[cfg_attr(mobile, tauri::mobile_entry_point)]`
+  (`src-tauri/src/lib.rs:91`) — Tauri's macro emits it as `extern "C"`, which
+  auto-aborts on unwind (Rust ≥1.81), and it is `#[cfg(mobile)]`-gated. No naked
+  Rust panic crosses a non-`extern "C"` `cdylib` boundary, so `unwind` is not UB
+  even on a mobile build.
+- `unwind` is **more resilient**: a panicking Tauri command unwinds to a
+  `JoinError` at the tokio task boundary instead of aborting the whole app.
+- **axiomregent stays `unwind` (the default) — do NOT flip it to `abort`.**
+  axiomregent is a long-lived stdio MCP server with embedded hiqlite (raft +
+  SQLite); under `abort` a single panicking handler would kill the server and
+  in-flight state. Alignment is OPC→unwind (toward axiomregent's existing
+  default), never axiomregent→abort.
+
+### 12.6 The `[profile.bench]` carve-out is retired (FR-T8 persists)
+
+The `[profile.bench]` block existed for one reason: to decouple FR-T8's
+criterion benches from release's `panic="abort"` + whole-program LTO, which
+otherwise produced panic-strategy rlib mismatches on the cross-workspace path
+deps (*"can't find crate for `orchestrator`"*). With `[profile.release]` now
+at `unwind` + defaults, `bench` inherits the correct strategy and the carve-out
+is redundant — it is **removed**. **FR-T8 (bench-presence for fs-scanning
+handlers) is unchanged and remains required**; only the now-moot
+profile-decoupling mechanism is gone. The `usage_scan` bench carries no
+panic/abort dependency beyond buildability, which the inherited `unwind`
+release profile satisfies.
+
+### 12.7 Standing obligation: the SQLite drift-guard
+
+By recording §12.1–12.2 — "separate workspaces preserve the
+`links="sqlite3"` isolation" — 180 now **asserts** that guarantee, and
+therefore owns the obligation to detect if it silently erodes. The erosion
+mode is precise: **OPC's `rusqlite` range and hiqlite's `rusqlite` range
+resolving to incompatible `libsqlite3-sys` MAJORS.** Today they are aligned
+(`libsqlite3-sys 0.37.0`, `rusqlite 0.39.0` on both locks); the merge-rejection
+argument holds only while they stay single-major-compatible.
+
+**FR-T11 (sqlite-isolation drift-guard).** CI MUST detect when the OPC
+workspace lock (`product/apps/opc/src-tauri/Cargo.lock`) and the root
+workspace lock (`Cargo.lock`) resolve `libsqlite3-sys` to **different major
+versions**. On divergence the guard fails with a diagnostic pointing here
+(§12.2): the shared-target reuse assumption and the "merge is safe to avoid"
+argument both rest on single-major-compatibility, and a major split means the
+two binaries no longer share the SQLite native layer.
+
+- **Proposed home:** a small shell check under `tools/lint/` (the spec-158 /
+  spec-193 `release-version-guard.sh` precedent — a fixture-tested shell lint),
+  wired as a `make ci` sub-target so it runs in the fast local loop and the
+  PR gate. It reads the two committed lockfiles only (present in a bare
+  checkout, no build), so it is cheap and fail-fast.
+- **Scope note:** the guard checks *major* compatibility, not exact-version
+  equality — patch/minor drift between the two locks is expected and harmless;
+  only a `links="sqlite3"` major incompatibility is the failure this guards.
+- Implementation is the immediate follow-on (with Part B); this section specs
+  the obligation and its home so it is not lost.
+
+### 12.8 What this completion changed
+
+- `product/apps/opc/src-tauri/Cargo.toml`: `[profile.release]` aligned to
+  cargo defaults (size knobs + `panic="abort"` removed; `strip=true` kept);
+  `[profile.bench]` block removed.
+- This section (§12) recording the rationale, the merge-rejection, the reuse
+  mechanism, and FR-T11.
+- **Not changed:** axiomregent's profile (stays `unwind`/default); FR-T8
+  bench-presence; 032's primary-owner claim on the manifest (§10); the
+  workspace split itself (kept, per §12.1–12.2).

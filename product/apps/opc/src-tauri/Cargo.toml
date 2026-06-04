@@ -147,26 +147,10 @@ criterion = "0.8"
 name = "usage_scan"
 harness = false
 
+# Aligned to cargo release defaults (only `strip` set explicitly) so OPC's
+# shared-crate fingerprints match the root workspace, unlocking shared-target
+# build reuse. Do NOT re-add opt-level="z" / lto=true / codegen-units=1 /
+# panic="abort": each diverges the fingerprint and kills reuse. Rationale,
+# panic-strategy reasoning, and the [profile.bench] removal: spec 180 §12.
 [profile.release]
 strip = true
-opt-level = "z"
-lto = true
-codegen-units = 1
-panic = "abort"
-
-# Spec 180 FR-T8 — decouple the bench profile from release's `panic = "abort"`
-# + whole-program LTO. The cross-workspace path deps (orchestrator,
-# factory-engine, …) otherwise hit panic-strategy rlib mismatches
-# ("can't find crate for `orchestrator`"): Cargo forces the bench *binary* to
-# unwind but, without an explicit `panic` here, compiles the dep graph with the
-# inherited `abort`. `panic = "unwind"` IS load-bearing (verified: removing it
-# reintroduces the failure) even though Cargo prints "`panic` setting is
-# ignored for `bench` profile" — that note is about the bench target itself, not
-# its deps. `lto = false` + `opt-level = 3` keep the build representative but
-# buildable. The Tier 2 gate is relative-regression only (FR-T10), so full
-# release codegen is unnecessary.
-[profile.bench]
-panic = "unwind"
-opt-level = 3
-lto = false
-codegen-units = 16
