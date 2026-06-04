@@ -194,7 +194,11 @@ group user lands as Admin. No local Grafana passwords.
 
 - **FR-002 (collector shape):** the collector MUST be a Prometheus **server**
   with `--web.enable-remote-write-receiver` enabled — not agent mode — so it
-  serves all three roles (receive / scrape / query) per the Architecture §.
+  serves all three roles (receive / scrape / query) per the Architecture §. The
+  Prometheus **admin API (`--web.enable-admin-api`) MUST remain disabled** (the
+  HelmRelease values MUST NOT enable it) — it exposes series-deletion, snapshots,
+  and TSDB compaction, a data-destruction surface reachable from `monitoring`;
+  parallel to Grafana's `auth.basic_enabled` closure (FR-004).
 
 - **FR-003 (scrape the unconsumed targets):** Prometheus MUST scrape the
   already-annotated pull targets — deployd-api-rs, the Flux controllers,
@@ -211,7 +215,10 @@ group user lands as Admin. No local Grafana passwords.
   (`platform/infra/hetzner/.env.example`: "[manual] OIDC clients … create in
   Rauthy admin … fill these in and re-run ./setup.sh") — exactly as
   `stagecraft-server`, the SPA/M2M clients, and the GitHub/Google upstream
-  providers already are. Its `client_id`/`client_secret` are captured into the
+  providers already are. The client MUST pin the **exact** redirect URI
+  `https://grafana.<DOMAIN>/login/generic_oauth` — no wildcards, path-prefix, or
+  trailing-slash variants (open-redirect / token-harvest prevention). Its
+  `client_id`/`client_secret` are captured into the
   env/secret set; Grafana's HelmRelease consumes them plus the issuer to drive
   `generic_oauth`, with `role_attribute_path` mapping the Rauthy groups claim to
   Admin/Editor/Viewer. Grafana MUST be **OIDC-only** such that **no known or
@@ -345,15 +352,19 @@ group user lands as Admin. No local Grafana passwords.
   HelmRelease-pinned version, Prometheus + Grafana retention is PVC-bounded, and
   the deployed `collection_interval` honours the FR-001 floor (≥`15s`) — proving
   FR-005, FR-007, FR-010, and guarding FR-001's bound against later drift.
-- **SC-008 (inbound isolation, both ports):** Prometheus's remote_write ingest
-  port is reachable **only** from `stagecraft-system`, and Grafana's port
-  **only** from ingress-nginx (FR-006 (a)/(c)). The negative test covers a
-  generic namespace **and every namespace granted `monitoring`-egress under
-  FR-006 (b)** (`flux-system`, deployd-api, ingress-nginx) — those scrape-target
-  namespaces are the ones most likely to be wrongly granted the reverse inbound.
+- **SC-008 (receiver inbound isolation — Phase 1):** Prometheus's remote_write
+  ingest port is reachable **only** from `stagecraft-system`. The negative test
+  confirms pods in a generic namespace **and in each scrape-target namespace to
+  which `monitoring` holds egress under FR-006 (b)** (`flux-system`, deployd-api,
+  ingress-nginx) **cannot initiate connections to** the receiver port — those
+  scrape targets are the most likely to be wrongly granted the reverse inbound.
   This is the test closure for the spec's primary security risk (the
   unauthenticated receiver): FR-006 isolates *inbound*, not merely leaving egress
-  un-weakened (SC-005).
+  un-weakened (SC-005). Verifiable in **Phase 1** (the receiver + its
+  NetworkPolicies land there).
+- **SC-009 (Grafana inbound isolation — Phase 2):** Grafana's port is reachable
+  **only** from ingress-nginx (FR-006 (c)); a pod in any other namespace cannot
+  initiate a connection to it. Verifiable in **Phase 2** (Grafana lands there).
 
 ## Out of scope (MVP)
 
