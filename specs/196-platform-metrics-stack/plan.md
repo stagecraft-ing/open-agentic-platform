@@ -68,8 +68,8 @@ FR-003, FR-005, FR-006, FR-007, FR-010, FR-011 (and FR-009's *declaration*).
 SC-003 forbids a local Grafana password, so Grafana cannot come up before its
 OIDC client exists.
 - **Manual step (operator):** create the `grafana` OIDC client in the Rauthy admin UI (redirect `https://grafana.<DOMAIN>/login/generic_oauth`, `authorization_code`), capture `GRAFANA_OIDC_CLIENT_ID`/`_SECRET` into the env/secret set (the implementation PR adds these as `[manual]` stub entries in `platform/infra/hetzner/.env.example`, alongside the existing `OIDC_*`/`RAUTHY_CLIENT_*` placeholders), re-run `setup.sh` — exactly the documented `[manual]` OIDC-client flow.
-- **HelmRelease values (196-owned):** Grafana `generic_oauth` with `client_id`/`client_secret`/issuer + `role_attribute_path` mapping the Rauthy groups claim → Admin/Editor/Viewer; the OIDC-only four-knob lockdown **`auth.disable_login_form: true` + `auth.basic_enabled: false` + `oauth_auto_login: true`** + default-admin disabled/randomized (FR-004/SC-003); Grafana ingress at `grafana.<DOMAIN>`; the Grafana ingress NetworkPolicy.
-- **Exit:** SC-003 (group→role mapping verified + OIDC-only auth), SC-004 (`git diff` shows zero `stagecraft/api/**` change), **SC-009 Grafana-port isolation** (Grafana + its ingress land here).
+- **HelmRelease values (196-owned):** Grafana `generic_oauth` with `client_id`/`client_secret`/issuer + `role_attribute_path` mapping the Rauthy `platform_role` claim → Grafana role (`owner`/`admin` → **Admin**, `member` → **Viewer**; the locked FR-004 map, `Editor` unused — **not** a Rauthy "groups" array); **Grafana configured OIDC-only per FR-004's property** — every non-OIDC auth path disabled (`disable_login_form`, `basic_enabled`, `anonymous.enabled`, `oauth_auto_login`, default-admin disabled, + proxy/JWT/API-key/service-account). **FR-004 is the authoritative knob set; this plan does not re-enumerate it** (avoids spec/plan drift). Grafana ingress at `grafana.<DOMAIN>`; the Grafana ingress NetworkPolicy.
+- **Exit:** SC-003 (`platform_role`→role mapping verified + OIDC-only auth confirmed by a negative non-OIDC probe returning 401/403), SC-004 (`git diff` shows the only `platform/services/stagecraft/**` change is the `infra.config.hetzner.json` metrics block — service-wide, not `api/**`-only), **SC-009 Grafana-port isolation**, **SC-010 end-to-end visibility** (the SC-001-recorded stagecraft series renders in a Grafana panel) — Grafana + its ingress land here.
 
 Phase 1 is independent and can land alone; Phase 2 depends only on Phase 1 (the
 stack must exist) plus the manual client.
@@ -83,15 +83,22 @@ stack must exist) plus the manual client.
 - **Grafana PVC**: `2Gi` *(dashboards provisioned as code; state only)*
 - **Encore `collection_interval`**: `60s` — bounds remote_write volume; never sub-`15s` (FR-001)
 
-## Open decision — yours, not a default
+## Access-policy decision — RESOLVED (owner, 2026-06-04)
 
-- **Rauthy-group → Grafana-role map (access policy).** Proposed starting point,
-  to confirm or override: group `platform-admin` → **Admin**; `platform-operator`
-  → **Editor**; any other authenticated Rauthy user → **Viewer** (or no access).
-  This decides who holds Admin on the observability plane.
-  **Hard Phase-2 precondition:** this map MUST be resolved (group names pinned)
-  **before** the Phase-2 implementation PR opens — SC-003 is unverifiable until
-  then, and it does not ride inside the implementation PR.
+- **`platform_role` → Grafana-role map.** **Locked:** the Rauthy `platform_role`
+  claim (spec 106 Principle 2; values `owner`/`admin`/`member`, per
+  `seed-rauthy.mjs:77`) maps `owner` **and** `admin` → Grafana **Admin**,
+  `member` → **Viewer**. Grafana's `Editor` role is unused. This decides who
+  holds Admin on the observability plane: anyone with platform owner/admin.
+- **Vocabulary correction.** An earlier draft proposed inventing the groups
+  `platform-admin` → Admin / `platform-operator` → Editor / others → Viewer.
+  Those names do **not** exist in the identity model — OAP drives roles through
+  the scope-driven `platform_role` claim, not a Rauthy "groups" array, and there
+  is no `operator`/`viewer`/`editor` vocabulary. The invented names have been
+  corrected throughout 196 (FR-004, SC-003, User Story 3).
+- **Phase-2 verifiability.** With the map locked, SC-003 is verifiable at Phase 2
+  with no pending precondition; it no longer "does not ride inside the
+  implementation PR."
 
 ## Complexity Tracking
 

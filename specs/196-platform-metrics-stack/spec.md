@@ -165,10 +165,10 @@ deploy; it returns data.
 
 ### User Story 3 — Identity-scoped Grafana access (Priority: P2)
 
-A user in the Rauthy "viewer" group lands in Grafana as a Viewer; an "admin"
-group user lands as Admin. No local Grafana passwords.
+A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
+`owner`/`admin` user lands as Admin. No local Grafana passwords.
 
-**Independent Test**: sign in as each group; confirm the mapped Grafana role.
+**Independent Test**: sign in as each role; confirm the mapped Grafana role.
 
 ### Edge Cases
 
@@ -206,8 +206,9 @@ group user lands as Admin. No local Grafana passwords.
   This closes the emitted-but-unconsumed gap, not just the stagecraft gap.
 
 - **FR-004 (Grafana auth via Rauthy OIDC):** Grafana MUST authenticate via
-  **native generic OIDC against Rauthy** (spec 106), mapping Rauthy groups to
-  Grafana `Admin`/`Editor`/`Viewer` roles. Fronting Grafana with the existing
+  **native generic OIDC against Rauthy** (spec 106), mapping the Rauthy
+  `platform_role` claim (spec 106 Principle 2; values `owner`/`admin`/`member`,
+  per `seed-rauthy.mjs`) to Grafana roles. Fronting Grafana with the existing
   `oauth2-proxy-gate` chart is explicitly rejected: it forces Grafana into
   proxy-auth/anonymous mode and forfeits clean role mapping. The Grafana OIDC
   client MUST be **created manually in the Rauthy admin UI**, following the
@@ -220,15 +221,21 @@ group user lands as Admin. No local Grafana passwords.
   trailing-slash variants (open-redirect / token-harvest prevention). Its
   `client_id`/`client_secret` are captured into the
   env/secret set; Grafana's HelmRelease consumes them plus the issuer to drive
-  `generic_oauth`, with `role_attribute_path` mapping the Rauthy groups claim to
-  Admin/Editor/Viewer. Grafana MUST be **OIDC-only** such that **no known or
-  default credential reaches the admin API**: `auth.disable_login_form: true`
-  hides the form but is insufficient alone — the built-in `admin` stays reachable
-  via Basic-auth to `/api/*`. The definitive closure is **`auth.basic_enabled:
-  false`** (disables the `Authorization: Basic` API path entirely); with that
-  plus `disable_login_form`, a disabled/randomized default admin, and
-  `oauth_auto_login: true`, these four knobs leave **no** non-OIDC auth path.
-  196 therefore touches **no** stagecraft code — and the seeder
+  `generic_oauth`, with `role_attribute_path` mapping the Rauthy `platform_role`
+  claim to a Grafana role under the **locked map: `owner` and `admin` → `Admin`,
+  `member` → `Viewer`** (Grafana's `Editor` role is unused). This is the existing
+  scope-driven `platform_role` claim, **not** a Rauthy "groups" array — there is
+  no `operator`/`viewer`/`editor` vocabulary in the identity model. Grafana MUST
+  be **OIDC-only** — **every non-OIDC
+  authentication path disabled so Rauthy OIDC is the sole auth provider**. This
+  is a *property*, not a fixed knob-list (enumerating each knob is a whack-a-mole
+  that never terminates): the known knobs are `auth.disable_login_form: true`,
+  `auth.basic_enabled: false` (closes the `Authorization: Basic` API path),
+  `auth.anonymous.enabled: false`, `oauth_auto_login: true`, and a
+  disabled/randomized default admin — with proxy/JWT/API-key/service-account
+  paths and the exhaustive set pinned at implementation. The **contract** is the
+  property (no credential authenticates outside OIDC); the full knob enumeration
+  is implementation detail. 196 therefore touches **no** stagecraft code — and the seeder
   not at all; its only identity relationship is the runtime `depends_on: 106`
   (Relationships §).
 
@@ -321,33 +328,54 @@ group user lands as Admin. No local Grafana passwords.
 - **Cloud binding** — a (cloud, infra.config file, metrics `type`, endpoint)
   tuple. Hetzner: `prometheus` / in-cluster literal. Azure: declared, null,
   deferred (FR-009).
-- **Grafana OIDC client** — a Rauthy client + group→role mapping (FR-004).
+- **Grafana OIDC client** — a Rauthy client + `platform_role`→Grafana-role
+  mapping (FR-004).
 
 ## Success Criteria *(mandatory)*
 
-- **SC-001:** stagecraft series are queryable in Prometheus and rendered in
-  Grafana within ~one `collection_interval` of a request (remote_write path
-  works).
-- **SC-002:** at least one known series from each of deployd-api, Flux, and
+- **SC-001 (Phase 1):** stagecraft series are queryable in **Prometheus** within
+  ~one `collection_interval` of a request (remote_write path works); the
+  validating run MUST **name and record the concrete series** it confirmed — e.g.
+  an Encore-emitted stagecraft request-count series — as the evidence anchor that
+  **SC-010** reuses verbatim (the spec does not guess Encore's exact metric name;
+  the validated name is captured at test time). This gates
+  the Prometheus (push) half only; end-to-end visibility in **Grafana** is a
+  separate Phase-2 criterion (**SC-010**), since Grafana doesn't exist yet — note
+  SC-003 covers Grafana *auth*, not data visibility.
+- **SC-002 (Phase 1):** at least one known series from each of deployd-api, Flux, and
   ingress-nginx is queryable post-deploy — the previously-unconsumed
   annotations are now consumed (scrape path works).
-- **SC-003:** a Rauthy "viewer"-group user lands in Grafana as Viewer and an
-  "admin"-group user as Admin (OIDC role mapping works); **and** Basic Auth is
-  disabled (`auth.basic_enabled: false`) so **no credential authenticates outside
+- **SC-003 (Phase 2):** a Rauthy user whose `platform_role` is `member` lands in
+  Grafana as **Viewer**, and an `owner`/`admin` user as **Admin** — the locked
+  FR-004 `platform_role`→role map (OIDC role mapping works); **and** every
+  non-OIDC auth path is disabled (Basic Auth, anonymous, proxy, JWT, API-key,
+  service-account — per FR-004's set) so **no credential authenticates outside
   OIDC** — not merely the form hidden or the default password rotated (FR-004).
-- **SC-004:** `git diff` for the implementing branch shows **zero** changes
-  under `platform/services/stagecraft/api/**` — the stagecraft-side change is
-  confined to its `infra.config` metrics block (proves FR-011).
-- **SC-005:** an un-allowed egress from `stagecraft-system` is still dropped
+  The OIDC-only property MUST be confirmed by an **actual negative probe, not
+  config inspection**: at least one non-OIDC request against the Grafana API —
+  e.g. `Authorization: Basic …` **and** a service-account
+  `Authorization: Bearer glsa_…` — MUST return `401`/`403`. The map is locked in
+  `plan.md` (owner decision, 2026-06-04), so SC-003 is verifiable at Phase 2 with
+  no pending precondition.
+- **SC-004 (Phase 2):** `git diff` for the implementing branch shows the **only**
+  changed file anywhere under `platform/services/stagecraft/**` is
+  `infra.config.hetzner.json` (and only its `metrics` block) — **zero** changes
+  elsewhere in the service tree, explicitly including `api/**`, `encore.app`,
+  `package.json`, and `scripts/seed-rauthy.mjs`. FR-011's invariant is
+  service-wide ("no stagecraft file at all" except the metrics block), so the
+  check is scoped to the whole service root, not `api/**` alone — `infra.config.*`
+  and the seeder live at the service root, outside `api/**`, and an `api/**`-only
+  glob would pass silently on a stray edit to any of them (proves FR-011).
+- **SC-005 (Phase 1):** an un-allowed egress from `stagecraft-system` is still dropped
   after deploy — the default-deny posture is intact, only the named flows are
   open (proves FR-006 did not globally weaken the policy).
-- **SC-006:** post-deploy, Alertmanager pods are **absent** and the
+- **SC-006 (Phase 1):** post-deploy, Alertmanager pods are **absent** and the
   `PrometheusRule`s **installed by the kube-prometheus-stack release** are
   absent/disabled (the phase-1 allowed set from this release is ∅; alerting is a
   separate later spec; FR-008) — proving the prune held and the ~100 bundled
   defaults were not silently inherited. (Pre-existing rules from other tooling
   are out of scope.)
-- **SC-007:** the stack is reconciled by Flux (no imperative `helm install` in
+- **SC-007 (Phase 1):** the stack is reconciled by Flux (no imperative `helm install` in
   the deploy path), the Prometheus Operator CRDs are present at the
   HelmRelease-pinned version, Prometheus + Grafana retention is PVC-bounded, and
   the deployed `collection_interval` honours the FR-001 floor (≥`15s`) — proving
@@ -365,6 +393,10 @@ group user lands as Admin. No local Grafana passwords.
 - **SC-009 (Grafana inbound isolation — Phase 2):** Grafana's port is reachable
   **only** from ingress-nginx (FR-006 (c)); a pod in any other namespace cannot
   initiate a connection to it. Verifiable in **Phase 2** (Grafana lands there).
+- **SC-010 (end-to-end visibility — Phase 2):** the **exact stagecraft series
+  named and recorded in SC-001** **renders in a Grafana dashboard panel** —
+  confirming the Prometheus datasource is wired and the full push → store →
+  visualize pipeline works, not merely that Grafana is up and OIDC-gated (SC-003).
 
 ## Out of scope (MVP)
 
@@ -471,9 +503,9 @@ PR therefore changes no claimed code path except the golden.
   pillar, tracing pillar — each a separate spec.
 
 `plan.md` decides phasing (single-spec sequenced vs. split), carries the
-concrete Grafana OIDC client values (client_id, redirect_uri, and the
-Rauthy-group → Grafana-role map) as the manual Rauthy-admin setup step plus the
-Grafana HelmRelease OIDC config, and pins the FR-010 retention values. No
+concrete Grafana OIDC client values (client_id, redirect_uri, and the locked
+`platform_role` → Grafana-role map) as the manual Rauthy-admin setup step plus
+the Grafana HelmRelease OIDC config, and pins the FR-010 retention values. No
 `compliance:` mapping is asserted here: an OWASP-ASI detection/monitoring
 mapping may apply but is a plan-time determination, not a frontmatter claim
 made on faith.
