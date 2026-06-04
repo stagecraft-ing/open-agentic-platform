@@ -639,9 +639,10 @@ pub fn resolve_signing_material() -> (SigningKey, SigningAttestation) {
             },
         );
     }
-    let mut rng = rand_core::OsRng;
+    let mut seed = [0u8; 32];
+    getrandom::fill(&mut seed).expect("OS RNG unavailable");
     (
-        SigningKey::generate(&mut rng),
+        SigningKey::from_bytes(&seed),
         SigningAttestation {
             kind: SigningAttestationKind::Ephemeral,
             note: Some("auto-generated for pipeline run".into()),

@@ -72,7 +72,7 @@ updates:
     labels: [dependencies, rust]
 
   - package-ecosystem: cargo
-    directory: /apps/desktop/src-tauri
+    directory: /product/apps/opc/src-tauri
     schedule:
       interval: weekly
     open-pull-requests-limit: 3

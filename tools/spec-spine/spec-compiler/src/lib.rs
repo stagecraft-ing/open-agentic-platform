@@ -1729,7 +1729,9 @@ fn discover_workspace_crate_ids(repo_root: &Path) -> Result<BTreeSet<String>, Co
     let manifest_path = repo_root.join("Cargo.toml");
     if manifest_path.is_file() {
         let raw = fs::read_to_string(&manifest_path)?;
-        if let Ok(parsed) = raw.parse::<toml::Value>() {
+        // `toml` 1.0 changed `FromStr for Value` to parse a single value
+        // (not a whole document); `toml::from_str` is the document parser.
+        if let Ok(parsed) = toml::from_str::<toml::Value>(&raw) {
             if let Some(members) = parsed
                 .get("workspace")
                 .and_then(|w| w.get("members"))
@@ -1743,7 +1745,7 @@ fn discover_workspace_crate_ids(repo_root: &Path) -> Result<BTreeSet<String>, Co
                     let Ok(member_raw) = fs::read_to_string(&member_manifest) else {
                         continue;
                     };
-                    let Ok(member_parsed) = member_raw.parse::<toml::Value>() else {
+                    let Ok(member_parsed) = toml::from_str::<toml::Value>(&member_raw) else {
                         continue;
                     };
                     if let Some(name) = member_parsed
