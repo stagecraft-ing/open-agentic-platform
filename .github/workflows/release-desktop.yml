@@ -688,8 +688,10 @@ jobs:
           # spec 194 — publish-boundary guard. Three states, three messages:
           # gh-lookup-failed / published / draft. Check gh's exit code FIRST so a
           # gone/auth failure is not mislabeled "published"; gh's stderr surfaces
-          # in the log (no 2>/dev/null).
-          if state="$(gh release view "$TAG" --json isDraft -q .isDraft)"; then :; else
+          # in the log (no 2>/dev/null). --repo is REQUIRED here: this job has no
+          # checkout, so gh cannot infer the repo from a cwd git remote (the exact
+          # omission spec 194's 2026-06-02 amendment fixed in release-tools.yml).
+          if state="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft -q .isDraft)"; then :; else
             rc=$?
             echo "::error::publish-boundary (spec 194): 'gh release view $TAG' failed (exit $rc; see gh error above) — failing closed, not uploading the sidecar SBOM. Release may be gone or gh failed to authenticate; resolve manually."
             exit 1

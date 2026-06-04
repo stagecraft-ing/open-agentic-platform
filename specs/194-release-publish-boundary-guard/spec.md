@@ -110,10 +110,12 @@ boundary autonomously:
    would **delete a published release and its tag** — the most severe crossing,
    because it destroys rather than appends.
 
-`release-axiomregent.yml` (create-draft-only; `gh release create` on an
-existing tag fails by construction) and `ai-changelog.yml` (edits release
-*notes* only — mutable metadata, legal under asset-immutability) are **not**
-boundary violations and are left unchanged.
+`ai-changelog.yml` (edits release *notes* only — mutable metadata, legal under
+asset-immutability) is **not** a boundary violation and is left unchanged.
+_(Amended 2026-06-04: `release-axiomregent.yml`, formerly listed here as a
+create-draft-only non-violation, is **retired** — 037/117, amended. Its upload
+surface is gone; the bundled-sidecar SBOM it would have carried now attaches via
+the guarded `attach-sidecar-sbom` job in release-desktop.yml, §4.)_
 
 ## 2. The invariant
 
@@ -176,7 +178,8 @@ the step errors and leaves the published release intact for manual handling.
 | `release-desktop.yml` → attach-sidecar-sbom job (`gh release upload`) | upload asset (sidecar SBOM) | assert draft before upload |
 | `release-tools.yml` → Upload tool archives + SBOM + attestations (`gh release upload`) | upload assets | assert draft before upload |
 
-`release-axiomregent.yml` and `ai-changelog.yml`: **unchanged** (§1).
+`release-axiomregent.yml`: **retired** (037/117, amended). `ai-changelog.yml`:
+**unchanged** (§1).
 
 ## 5. Operator runbook note
 
@@ -197,8 +200,9 @@ publishes.
   published release it errors without deleting.
 - **AC-3.** Happy-path behaviour is unchanged: on a normal release run every
   assertion passes (the release is a draft) and the same assets are attached.
-- **AC-4.** `release-axiomregent.yml` (create-draft-only) and `ai-changelog.yml`
-  (notes-only edit) are unmodified.
+- **AC-4.** `ai-changelog.yml` (notes-only edit) is unmodified.
+  (`release-axiomregent.yml` is retired by 037/117, amended — no longer a release
+  surface; the new `attach-sidecar-sbom` upload site carries the guard, §4.)
 - **AC-5.** The coupling gate is satisfied via this spec's `refines` claim over
   both edited workflow files; no Spec-Drift-Waiver is used.
 
