@@ -1922,7 +1922,6 @@ checksum = "70e796c081cee67dc755e1a36a0a172b897fab85fc3f6bc48307991f64e4eca9"
 dependencies = [
  "curve25519-dalek",
  "ed25519",
- "rand_core 0.6.4",
  "serde",
  "sha2 0.10.9",
  "subtle",
@@ -2169,13 +2168,13 @@ dependencies = [
  "dirs 6.0.0",
  "ed25519-dalek",
  "factory-contracts",
+ "getrandom 0.4.2",
  "infer",
  "jsonschema",
  "open_agentic_policy_kernel",
  "open_agentic_spec_registry_reader",
  "orchestrator",
  "provenance-validator",
- "rand_core 0.6.4",
  "regex",
  "reqwest 0.13.3",
  "serde",
@@ -5049,10 +5048,10 @@ dependencies = [
  "chrono",
  "dirs 6.0.0",
  "ed25519-dalek",
+ "getrandom 0.4.2",
  "glob",
  "hex",
  "notify",
- "rand_core 0.6.4",
  "regex",
  "serde",
  "serde_json",
@@ -5071,7 +5070,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2 0.11.0",
- "toml 0.8.2",
+ "toml 1.1.2+spec-1.1.0",
  "walkdir",
 ]
 
@@ -7172,9 +7171,9 @@ checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
 
 [[package]]
 name = "similar"
-version = "2.7.0"
+version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
+checksum = "e6505efef05804732ed8a3f2d4f279429eb485bd69d5b0cc6b19cc02005cda16"
 dependencies = [
  "bstr",
  "unicode-segmentation",
