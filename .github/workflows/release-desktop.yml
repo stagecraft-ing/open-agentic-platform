@@ -210,8 +210,17 @@ jobs:
         with:
           toolchain: '1.95.0'
 
-      - name: Generate workspace Cargo.lock for sidecar SBOM scan
-        run: cargo generate-lockfile --manifest-path Cargo.toml
+      - name: Generate workspace Cargo.lock and stage it into the scan path
+        run: |
+          cargo generate-lockfile --manifest-path Cargo.toml
+          # crates/ is a workspace MEMBER subtree, not the workspace root. The
+          # single authoritative lock lands at repo-root ./Cargo.lock (committed
+          # per spec 116; .gitignore:18 re-includes it, :16 ignores per-member
+          # locks). syft's rust-cargo-lock-cataloger reads a Cargo.lock INSIDE
+          # the scan path and does not walk to an ancestor — so stage the
+          # workspace lock into crates/ (transient; ignored by .gitignore:16).
+          # Without this the scan finds no lock -> 0 components (spec 117 AC-6).
+          cp Cargo.lock crates/Cargo.lock
 
       - name: Generate axiomregent sidecar SBOM (CycloneDX)
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0 (ships syft 1.30+; v0.17.8's syft 1.11 returned 0 rust components)
@@ -219,6 +228,12 @@ jobs:
           path: crates
           format: cyclonedx-json
           output-file: sbom-axiomregent.cdx.json
+
+      - name: Assert sidecar SBOM is populated (spec 117 AC-6 — no empty BOM-Link)
+        run: |
+          n="$(jq '.components | length' sbom-axiomregent.cdx.json)"
+          echo "axiomregent sidecar SBOM components: $n"
+          [ "$n" -gt 0 ] || { echo "::error::sidecar SBOM has 0 components — scan geometry regressed (spec 117 AC-6)"; exit 1; }
 
       - name: Upload sidecar SBOM artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

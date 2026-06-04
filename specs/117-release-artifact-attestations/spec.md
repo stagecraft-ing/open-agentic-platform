@@ -23,6 +23,11 @@ amendment_record: |
   (build-ref == bundle-ref), single-commit provenance covers it — no build-ref→
   bundle-ref span clause is needed. The prior amendment (193) added the
   version-alignment gate; that is unchanged for OPC.
+  Same-day correction: the bundled-sidecar SBOM recipe (§2.1) as merged scanned
+  `crates/` while the workspace lock lands at repo-root ./Cargo.lock, yielding 0
+  components; it now stages the lock into the scan path and AC-6 is enforced
+  in-workflow by a component-count gate (see §2.1 provenance correction + AC-6
+  lesson #4).
 depends_on:
   - "000"  # bootstrap-spec-system
   - "037"  # cross-platform-axiomregent (sidecar build + bundle; SBOM source)
@@ -142,11 +147,16 @@ sidecar would have **zero** SBOM coverage.
 **Mechanism (chosen): generate-once + reference (CycloneDX BOM-Link).**
 
 1. **Generate ONCE** in a standalone `axiomregent-sbom` job (gated on
-   `version-guard`, `runs-on: ubuntu-latest`), lifting the *exact* proven SBOM
-   generation from the retired `release-axiomregent.yml` (the steps §AC-6
-   validated to a populated component count): `cargo generate-lockfile
-   --manifest-path Cargo.toml`, then `anchore/sbom-action` (pinned ≥ v0.24.0)
-   scanning `crates`. The result is uploaded as a workflow artifact. **Single
+   `version-guard`, `runs-on: ubuntu-latest`). The recipe — originally lifted
+   from the retired `release-axiomregent.yml` and described as "the steps §AC-6
+   validated to a populated component count" (a description now withdrawn; see
+   the provenance correction below) — is: `cargo generate-lockfile
+   --manifest-path Cargo.toml`, **stage the workspace lock into the scan path**
+   (`cp Cargo.lock crates/Cargo.lock` — `crates/` is a workspace *member
+   subtree*, and syft's `rust-cargo-lock-cataloger` reads only a `Cargo.lock`
+   inside the scan path, never an ancestor), then `anchore/sbom-action`
+   (pinned ≥ v0.24.0) scanning `crates`, then a **fail-closed component-count
+   assertion** (AC-6). The result is uploaded as a workflow artifact. **Single
    source of truth** — the per-target `release` legs do **not** regenerate it.
    This is deliberate: regenerating the SBOM in each of the three matrix legs
    (macOS/Linux/Windows) would (a) be non-deterministic — three syft runs on
@@ -155,7 +165,24 @@ sidecar would have **zero** SBOM coverage.
    the syft work on the already-expensive cross-compile matrix. One generation →
    identical bytes and identical `serialNumber` (hence identical BOM-Link URN)
    across every leg. No new SBOM-generation logic is invented — it is relocated,
-   not redesigned.
+   not redesigned. The scan captures the whole-workspace Rust closure (a
+   superset of axiomregent's link set); narrowing to the sidecar's own subgraph
+   is a deferred design change, not part of this correction.
+
+   > **Provenance correction (2026-06-04).** This recipe was carried over from
+   > `release-axiomregent.yml` and described above as steps "§AC-6 validated to
+   > a populated component count." That description is withdrawn — it is not
+   > supported by the AC-6 record. Smoke runs #1–#3 each returned 0 components
+   > on a clean CI checkout; the catalogers and scopes were still changing
+   > between runs, and the final scan-`crates/` recipe was adopted only after #3
+   > (per lesson #3's "now scans `crates/` rather than `crates/axiomregent`")
+   > with no green smoke on record. The only >0 result (661) came from local
+   > runs that lesson #3 attributes to a cached `target/`, not a clean checkout;
+   > and no published axiomregent release ever exercised the path. A clean
+   > `git archive` reproduction confirms the recipe as written (scan `crates/`,
+   > workspace lock committed at repo-root only) yields 0 components, and 855
+   > after staging the lock into the scan path. AC-6 is now enforced in-workflow
+   > by a component-count gate rather than asserted in prose. See lesson #4.
 2. **Reference** it from each `sbom-desktop-<target>.cdx.json` by adding a
    CycloneDX `externalReferences` entry of type `bom` whose `url` is a
    **conformant BOM-Link URN** — `urn:cdx:<serialNumber>/<version>` derived from
@@ -436,6 +463,25 @@ the Sigstore Rekor log).
      --manifest-path <workspace>/Cargo.toml` before the SBOM step, and
      scan the workspace root (where the lockfile lands) — not the member
      crate. axiomregent now scans `crates/` rather than `crates/axiomregent`.
+
+  4. **Correction (2026-06-04).** Lesson #3 is internally inconsistent and
+     records no green CI validation. It states the right principle — "scan the
+     workspace root (where the lockfile lands)" — then mis-applies it as
+     "axiomregent now scans `crates/`": `crates/` is a workspace *member*
+     subtree, not the workspace root. The single authoritative lock is committed
+     at repo-root `./Cargo.lock` (spec 116; `.gitignore:18` re-includes the root
+     lock while `:16` ignores `crates/Cargo.lock`), which lies outside the
+     `crates/` scan path — so syft finds no lock and catalogs 0 Rust components.
+     This is consistent with smokes #1–#3, all of which returned 0; the
+     661-component figure (lessons #2–#3) came from local runs, which lesson #3
+     attributes to a cached `target/`, not a clean checkout — so the recipe was
+     never validated green in CI. Lesson #3's stated cause ("`crates/Cargo.lock`
+     is gitignored → no lockfile in CI") is also imprecise: the workspace lock
+     *is* present in CI, at the repo root — just outside the scanned member
+     subtree. Confirmed by clean `git archive` reproduction: 0 components
+     scanning `crates/`, 855 after `cp Cargo.lock crates/Cargo.lock`. The §2.1
+     recipe now stages the lock into the scan path, and AC-6 is enforced
+     in-workflow by a `.components | length > 0` gate.
 
 ## 7. Risks and Mitigations
 
