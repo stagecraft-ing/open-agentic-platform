@@ -19,12 +19,14 @@ code_aliases: ["METRICS_STACK", "PROMETHEUS_REMOTE_WRITE", "GRAFANA_OIDC"]
 #   all forward-described in the body but NOT listed here:
 #     1. gitops monitoring HelmRelease
 #        platform/gitops/clusters/hetzner-prod/infrastructure/monitoring.yaml
-#     2. monitoring-ns ingress NetworkPolicy (to Prometheus + Grafana)
+#     2. monitoring-ns NetworkPolicy: Prometheus ingress ← stagecraft-system
+#        (remote_write) ONLY + Grafana ingress ← ingress-nginx; monitoring
+#        egress → scrape-target metrics ports (pull). See FR-006.
 #        platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml
-#     3. stagecraft-system egress NetworkPolicy (remote_write → monitoring)
+#     3. stagecraft-system egress NetworkPolicy (remote_write → monitoring),
+#        plus target-namespace ingress-from-monitoring allows (FR-006 (b)).
 #        platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml
-#   FR-006's three flows span TWO namespaces, so the network policy is ≥2 objects
-#   (items 2 + 3), not one. The spec-compiler existence-checks `kind: file` units
+#   FR-006's flows span multiple namespaces, so the policy is ≥2 objects, not one. The spec-compiler existence-checks `kind: file` units
 #   (V-023 errors on a missing path) and CONST-005 forbids creating these before
 #   this body locks, so their `establishes:` edges land in the implementation PR
 #   that creates them — exactly when the coupling gate (spec 127) wants the
@@ -214,25 +216,37 @@ group user lands as Admin. No local Grafana passwords.
   providers already are. Its `client_id`/`client_secret` are captured into the
   env/secret set; Grafana's HelmRelease consumes them plus the issuer to drive
   `generic_oauth`, with `role_attribute_path` mapping the Rauthy groups claim to
-  Admin/Editor/Viewer. 196 therefore touches **no** stagecraft code — and the
-  seeder not at all; its only identity relationship is the runtime
-  `depends_on: 106` (Relationships §).
+  Admin/Editor/Viewer. Grafana MUST also set `auth.disable_login_form: true`
+  (and disable/secure the default `admin` local account) so OIDC is the *only*
+  auth path — `generic_oauth` alone leaves the local username/password form
+  exposed. 196 therefore touches **no** stagecraft code — and the seeder not at
+  all; its only identity relationship is the runtime `depends_on: 106`
+  (Relationships §).
 
 - **FR-005 (declarative deploy, Hetzner):** the stack MUST deploy as a Flux
-  `HelmRelease` + `HelmRepository` under
-  `platform/gitops/clusters/hetzner-prod/infrastructure/`, reconciled exactly
-  like the existing infra HelmReleases (reflector, cert-manager, ingress-nginx,
-  rauthy) per spec 151. No imperative `helm install`.
+  `HelmRelease` under `platform/gitops/clusters/hetzner-prod/infrastructure/`,
+  sourced from a `prometheus-community` **`HelmRepository`** — the same Flux
+  source kind already used by cert-manager (jetstack), ingress-nginx, and
+  reflector (emberstack); only rauthy uses an in-tree `GitRepository` chart. The
+  reconciliation model (drift-reverted GitOps) is identical to every existing
+  infra release per spec 151. No imperative `helm install`.
 
 - **FR-006 (network policy, fail-safe):** the namespace default-deny posture
-  MUST be preserved. This spec adds **additive** allow policies — (a) egress
-  from `stagecraft-system` to the monitoring namespace's remote_write port,
-  (b) ingress to Prometheus from scrape targets, (c) ingress to Grafana via
-  ingress-nginx. The global default-deny is not weakened; only the named flows
-  are opened. Flow (a) is a `stagecraft-system`-namespaced policy while (b)/(c)
-  are `monitoring`-namespaced, so this requires **at least two NetworkPolicy
-  objects across two namespaces** — i.e. ≥2 `establishes:` edges at
-  implementation, not one (see the deferred-establishes note in frontmatter).
+  MUST be preserved. This spec adds **additive** allow flows, in the directions
+  the actual traffic takes:
+  - **(a) remote_write (push):** `stagecraft-system` egress → Prometheus, and
+    Prometheus ingress ← `stagecraft-system` **only**. The unauthenticated
+    receiver's inbound surface is reachable from nowhere else (SC-008).
+  - **(b) scrape (pull):** Prometheus *initiates* the connection — so
+    `monitoring` egress → each scrape-target namespace's metrics port, and each
+    target namespace ingress ← `monitoring`. There is **no** ingress to
+    Prometheus from scrape targets; that would expose the receiver port
+    (`9090`) to `flux-system`/deployd-api and undercut SC-008.
+  - **(c) Grafana UI:** Grafana ingress ← ingress-nginx.
+  The global default-deny is not weakened; only these named flows open. Because
+  they span `stagecraft-system`, `monitoring`, and the target namespaces,
+  implementation creates **multiple NetworkPolicy objects across namespaces**
+  (≥2 `establishes:` edges; see the deferred-establishes note in frontmatter).
 
 - **FR-007 (Operator CRDs as a governed dependency surface):** adopting
   kube-prometheus-stack introduces the Prometheus Operator CRDs
@@ -309,8 +323,9 @@ group user lands as Admin. No local Grafana passwords.
   ingress-nginx is queryable post-deploy — the previously-unconsumed
   annotations are now consumed (scrape path works).
 - **SC-003:** a Rauthy "viewer"-group user lands in Grafana as Viewer and an
-  "admin"-group user as Admin; no local Grafana password exists (OIDC role
-  mapping works).
+  "admin"-group user as Admin (OIDC role mapping works); **and** the local
+  username/password login form is disabled (`auth.disable_login_form: true`)
+  so OIDC is the only auth path — not merely "no password set" (FR-004).
 - **SC-004:** `git diff` for the implementing branch shows **zero** changes
   under `platform/services/stagecraft/api/**` — the stagecraft-side change is
   confined to its `infra.config` metrics block (proves FR-011).
@@ -325,11 +340,13 @@ group user lands as Admin. No local Grafana passwords.
   the deploy path), the Prometheus Operator CRDs are present at the
   HelmRelease-pinned version, and Prometheus + Grafana retention is PVC-bounded
   — proving FR-005, FR-007, FR-010.
-- **SC-008 (inbound receiver isolation):** a pod in an arbitrary namespace
-  *other than* `stagecraft-system` (e.g. a tenant workload) **cannot** reach
-  Prometheus's remote_write ingest port — the test closure for the spec's
-  primary security risk (the unauthenticated receiver). FR-006 must isolate it
-  *inbound*, not merely leave egress un-weakened (SC-005).
+- **SC-008 (inbound receiver isolation):** a pod in a namespace other than
+  `stagecraft-system` **cannot** reach Prometheus's remote_write ingest port —
+  tested with **both** a generic/tenant namespace **and** a named scrape-target
+  namespace (`flux-system`), since scrape targets are the namespaces most likely
+  to be wrongly granted inbound access (FR-006 (b)). This is the test closure
+  for the spec's primary security risk (the unauthenticated receiver): FR-006
+  must isolate it *inbound*, not merely leave egress un-weakened (SC-005).
 
 ## Out of scope (MVP)
 
