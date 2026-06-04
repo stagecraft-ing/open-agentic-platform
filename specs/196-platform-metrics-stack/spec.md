@@ -332,7 +332,7 @@ group user lands as Admin. No local Grafana passwords.
   the Prometheus (push) half only; end-to-end visibility in **Grafana** is a
   separate Phase-2 criterion (**SC-010**), since Grafana doesn't exist yet — note
   SC-003 covers Grafana *auth*, not data visibility.
-- **SC-002:** at least one known series from each of deployd-api, Flux, and
+- **SC-002 (Phase 1):** at least one known series from each of deployd-api, Flux, and
   ingress-nginx is queryable post-deploy — the previously-unconsumed
   annotations are now consumed (scrape path works).
 - **SC-003 (Phase 2):** a Rauthy "viewer"-group user lands in Grafana as Viewer
@@ -343,19 +343,19 @@ group user lands as Admin. No local Grafana passwords.
   password rotated (FR-004). The concrete Rauthy group→role map is a hard
   Phase-2 precondition pinned in `plan.md` (owner's decision); the "viewer"/
   "admin" names here are illustrative and anchor to it at implementation.
-- **SC-004:** `git diff` for the implementing branch shows **zero** changes
+- **SC-004 (Phase 2):** `git diff` for the implementing branch shows **zero** changes
   under `platform/services/stagecraft/api/**` — the stagecraft-side change is
   confined to its `infra.config` metrics block (proves FR-011).
-- **SC-005:** an un-allowed egress from `stagecraft-system` is still dropped
+- **SC-005 (Phase 1):** an un-allowed egress from `stagecraft-system` is still dropped
   after deploy — the default-deny posture is intact, only the named flows are
   open (proves FR-006 did not globally weaken the policy).
-- **SC-006:** post-deploy, Alertmanager pods are **absent** and the
+- **SC-006 (Phase 1):** post-deploy, Alertmanager pods are **absent** and the
   `PrometheusRule`s **installed by the kube-prometheus-stack release** are
   absent/disabled (the phase-1 allowed set from this release is ∅; alerting is a
   separate later spec; FR-008) — proving the prune held and the ~100 bundled
   defaults were not silently inherited. (Pre-existing rules from other tooling
   are out of scope.)
-- **SC-007:** the stack is reconciled by Flux (no imperative `helm install` in
+- **SC-007 (Phase 1):** the stack is reconciled by Flux (no imperative `helm install` in
   the deploy path), the Prometheus Operator CRDs are present at the
   HelmRelease-pinned version, Prometheus + Grafana retention is PVC-bounded, and
   the deployed `collection_interval` honours the FR-001 floor (≥`15s`) — proving
