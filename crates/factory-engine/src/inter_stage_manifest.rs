@@ -401,8 +401,9 @@ impl StageHandoffSigner {
     ) -> Result<Self, ManifestError> {
         let run_id = run_id.into();
         let run_dir = run_dir.into();
-        let mut rng = rand_core::OsRng;
-        let root_key = SigningKey::generate(&mut rng);
+        let mut seed = [0u8; 32];
+        getrandom::fill(&mut seed).expect("OS RNG unavailable");
+        let root_key = SigningKey::from_bytes(&seed);
         let chain = RunKeyChain::new_with_root(run_id.clone(), &root_key);
         let session = Self {
             run_id,
@@ -642,11 +643,11 @@ fn collect_stage_artifact_hashes(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand_core::OsRng;
 
     fn fresh_root() -> SigningKey {
-        let mut rng = OsRng;
-        SigningKey::generate(&mut rng)
+        let mut seed = [0u8; 32];
+        getrandom::fill(&mut seed).expect("OS RNG unavailable");
+        SigningKey::from_bytes(&seed)
     }
 
     fn artifacts(pairs: &[(&str, &str)]) -> BTreeMap<String, String> {

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "29909479d6be68afbfe57db42aefc34547d413bf73329c4101894106010bbb9a",
+    "contentHash": "a91f5e404efb79fe1fe1b439c031a60bb2e497378585c59b55dd39a3369d0720",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -185,9 +185,9 @@
         "clap",
         "dirs",
         "ed25519-dalek",
+        "getrandom",
         "infer",
         "jsonschema",
-        "rand_core",
         "regex",
         "reqwest",
         "serde",
@@ -368,10 +368,10 @@
         "chrono",
         "dirs",
         "ed25519-dalek",
+        "getrandom",
         "glob",
         "hex",
         "notify",
-        "rand_core",
         "regex",
         "serde",
         "serde_json",

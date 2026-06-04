@@ -913,7 +913,7 @@ dependencies = [
  "parking_lot",
  "rayon",
  "regex",
- "reqwest 0.12.28",
+ "reqwest 0.13.3",
  "run",
  "serde",
  "serde_json",
@@ -2381,7 +2381,6 @@ checksum = "70e796c081cee67dc755e1a36a0a172b897fab85fc3f6bc48307991f64e4eca9"
 dependencies = [
  "curve25519-dalek",
  "ed25519",
- "rand_core 0.6.4",
  "serde",
  "sha2 0.10.9",
  "subtle",
@@ -2567,13 +2566,13 @@ dependencies = [
  "dirs",
  "ed25519-dalek",
  "factory-contracts",
+ "getrandom 0.4.2",
  "infer",
  "jsonschema 0.46.5",
  "open_agentic_policy_kernel",
  "open_agentic_spec_registry_reader",
  "orchestrator",
  "provenance-validator",
- "rand_core 0.6.4",
  "regex",
  "reqwest 0.13.3",
  "serde",
@@ -3405,6 +3404,16 @@ dependencies = [
  "http 1.4.0",
  "http-body 1.0.1",
  "pin-project-lite",
+]
+
+[[package]]
+name = "http-serde"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f056c8559e3757392c8d091e796416e4649d8e49e88b8d76df6c002f05027fd"
+dependencies = [
+ "http 1.4.0",
+ "serde",
 ]
 
 [[package]]
@@ -4831,9 +4840,9 @@ dependencies = [
 
 [[package]]
 name = "octocrab"
-version = "0.51.0"
+version = "0.53.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb2ad8abffe4e2b05f9cdc7e061de63d305a6dca0af81ca1064a7d98e0b78267"
+checksum = "46a4184473c1d00a892dad5259e1d19421ab1f8e4b7d714113a6cfdb213d9980"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -4848,6 +4857,7 @@ dependencies = [
  "http 1.4.0",
  "http-body 1.0.1",
  "http-body-util",
+ "http-serde",
  "hyper",
  "hyper-rustls",
  "hyper-timeout",
@@ -5055,10 +5065,10 @@ dependencies = [
  "criterion 0.8.2",
  "dirs",
  "ed25519-dalek",
+ "getrandom 0.4.2",
  "glob",
  "hex",
  "notify",
- "rand_core 0.6.4",
  "regex",
  "serde",
  "serde_json",
@@ -5106,7 +5116,7 @@ dependencies = [
  "serde_yaml",
  "sha2 0.11.0",
  "tempfile",
- "toml 0.8.23",
+ "toml 1.1.2+spec-1.1.0",
  "walkdir",
 ]
 
@@ -6288,6 +6298,7 @@ dependencies = [
  "rustls-platform-verifier 0.7.0",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "sync_wrapper",
  "tokio",
  "tokio-rustls",
@@ -7666,6 +7677,21 @@ dependencies = [
  "toml_parser",
  "toml_writer",
  "winnow 0.7.15",
+]
+
+[[package]]
+name = "toml"
+version = "1.1.2+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81f3d15e84cbcd896376e6730314d59fb5a87f31e4b038454184435cd57defee"
+dependencies = [
+ "indexmap 2.14.0",
+ "serde_core",
+ "serde_spanned 1.1.1",
+ "toml_datetime 1.1.1+spec-1.1.0",
+ "toml_parser",
+ "toml_writer",
+ "winnow 1.0.3",
 ]
 
 [[package]]
