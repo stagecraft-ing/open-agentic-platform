@@ -577,10 +577,16 @@ jobs:
           gh release upload "$TAG" \
             "product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json" \
             --clobber --repo "$GITHUB_REPOSITORY"
-          # spec 117 §2.1 — co-attach the bundled-sidecar SBOM the installer SBOM BOM-Links to.
-          gh release upload "$TAG" \
-            "product/apps/opc/src-tauri/target/sbom-axiomregent.cdx.json" \
-            --clobber --repo "$GITHUB_REPOSITORY"
+          # spec 117 §2.1 — co-attach the bundled-sidecar SBOM the installer SBOM
+          # BOM-Links to. Upload ONCE (from a single leg): the file is byte-identical
+          # across all three legs (generated once in axiomregent-sbom), so a per-leg
+          # --clobber re-upload would be redundant. Every leg's installer SBOM still
+          # references it via the urn:cdx: BOM-Link regardless of which leg attaches it.
+          if [ "${{ matrix.target }}" = "x86_64-unknown-linux-gnu" ]; then
+            gh release upload "$TAG" \
+              "product/apps/opc/src-tauri/target/sbom-axiomregent.cdx.json" \
+              --clobber --repo "$GITHUB_REPOSITORY"
+          fi
           while IFS= read -r att; do
             [ -z "$att" ] && continue
             gh release upload "$TAG" "$att" --clobber --repo "$GITHUB_REPOSITORY"

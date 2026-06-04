@@ -150,10 +150,12 @@ fetch-axiomregent:
 	 echo "==> fetch-axiomregent: $$HOST (latest build-axiomregent.yml artifact)"; \
 	 RUN_ID=$$(gh run list --repo $(AXIOMREGENT_REPO) --workflow build-axiomregent.yml \
 	    --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId'); \
-	 if [ -z "$$RUN_ID" ]; then \
+	 if [ -z "$$RUN_ID" ] || [ "$$RUN_ID" = "null" ]; then \
 	   echo "  no successful build-axiomregent.yml run found on main — build from source: make axiomregent"; \
 	   exit 1; \
 	 fi; \
+	 echo "  WARNING: fetching an UNATTESTED per-commit CI artifact (run $$RUN_ID), not a verified release."; \
+	 echo "           For a verified, build-from-your-checkout sidecar: make axiomregent"; \
 	 TMP=$$(mktemp -d); \
 	 gh run download "$$RUN_ID" --repo $(AXIOMREGENT_REPO) --name "$$ART" --dir "$$TMP" \
 	   || { rm -rf "$$TMP"; echo "  download failed — build from source: make axiomregent"; exit 1; }; \
