@@ -30,18 +30,16 @@ code_aliases: ["METRICS_STACK", "PROMETHEUS_REMOTE_WRITE", "GRAFANA_OIDC"]
 #   (V-023 errors on a missing path) and CONST-005 forbids creating these before
 #   this body locks, so their `establishes:` edges land in the implementation PR
 #   that creates them — exactly when the coupling gate (spec 127) wants the
-#   spec↔code link. (refines: below points only at files that already exist.)
-refines:
-  # The metrics-export aspect of the HETZNER stagecraft infra config — 196 adds
-  # its `metrics` block at implementation (FR-001); this is the first field to
-  # make the two infra configs diverge.
-  # infra.config.json (Azure) is deliberately NOT refined here: 196 makes no
-  # edit to it (FR-009 deferred-null = ABSENCE of a metrics block, not an
-  # explicit write — an explicit `"metrics": null` would be meaningless noise).
-  # Its refine/edit edge lands when FR-009's trigger fires, exactly like the
-  # deferred establishes edges — avoiding a phantom claim on an untouched file.
-  - aspect: "metrics-export"
-    unit: { kind: file, path: platform/services/stagecraft/infra.config.hetzner.json }
+#   spec↔code link.
+# refines: (also deferred to the implementation PR — same principle as the
+#   establishes edges above: an edge lands in the PR that touches the code, not
+#   this spec-only filing). 196 WILL refine the `metrics-export` aspect of
+#   platform/services/stagecraft/infra.config.hetzner.json (adding its `metrics`
+#   block, FR-001), but this filing PR does NOT edit that file — declaring the
+#   edge now would claim an untouched file. The edge is added at implementation,
+#   when the coupling gate wants the spec↔code link. (infra.config.json / Azure
+#   is never refined by 196 — FR-009 deferred-null.) The filing PR's only live
+#   code-path edge is the mechanical featuregraph-golden `extends` below.
 extends:
   # Mechanical featuregraph-golden refresh: appending spec 196 to the corpus
   # shifts the golden fingerprint. No semantic change to spec 034's claims.
@@ -216,11 +214,13 @@ group user lands as Admin. No local Grafana passwords.
   providers already are. Its `client_id`/`client_secret` are captured into the
   env/secret set; Grafana's HelmRelease consumes them plus the issuer to drive
   `generic_oauth`, with `role_attribute_path` mapping the Rauthy groups claim to
-  Admin/Editor/Viewer. Grafana MUST also set `auth.disable_login_form: true`
-  (and disable/secure the default `admin` local account) so OIDC is the *only*
-  auth path — `generic_oauth` alone leaves the local username/password form
-  exposed. 196 therefore touches **no** stagecraft code — and the seeder not at
-  all; its only identity relationship is the runtime `depends_on: 106`
+  Admin/Editor/Viewer. Grafana MUST be **OIDC-only** such that **no known or
+  default credential reaches the admin API**: `auth.disable_login_form: true`
+  hides the form but is insufficient alone — the built-in `admin` stays reachable
+  via Basic-auth to `/api/*`. Closing it requires *also* disabling or randomizing
+  the default admin (no known password) **and** `oauth_auto_login: true` (no
+  login surface). 196 therefore touches **no** stagecraft code — and the seeder
+  not at all; its only identity relationship is the runtime `depends_on: 106`
   (Relationships §).
 
 - **FR-005 (declarative deploy, Hetzner):** the stack MUST deploy as a Flux
@@ -323,30 +323,35 @@ group user lands as Admin. No local Grafana passwords.
   ingress-nginx is queryable post-deploy — the previously-unconsumed
   annotations are now consumed (scrape path works).
 - **SC-003:** a Rauthy "viewer"-group user lands in Grafana as Viewer and an
-  "admin"-group user as Admin (OIDC role mapping works); **and** the local
-  username/password login form is disabled (`auth.disable_login_form: true`)
-  so OIDC is the only auth path — not merely "no password set" (FR-004).
+  "admin"-group user as Admin (OIDC role mapping works); **and** Grafana's
+  built-in admin API is **unreachable with any known/default credential** (not
+  merely the HTML login form hidden) — proving OIDC is the only auth path (FR-004).
 - **SC-004:** `git diff` for the implementing branch shows **zero** changes
   under `platform/services/stagecraft/api/**` — the stagecraft-side change is
   confined to its `infra.config` metrics block (proves FR-011).
 - **SC-005:** an un-allowed egress from `stagecraft-system` is still dropped
   after deploy — the default-deny posture is intact, only the named flows are
   open (proves FR-006 did not globally weaken the policy).
-- **SC-006:** post-deploy, Alertmanager pods are **absent** and the set of
-  active `PrometheusRule`s is **empty** — the phase-1 allowed set is ∅ (alerting
-  is a separate later spec; FR-008) — proving the prune held and the ~100 bundled
-  defaults were not silently inherited.
+- **SC-006:** post-deploy, Alertmanager pods are **absent** and the
+  `PrometheusRule`s **installed by the kube-prometheus-stack release** are
+  absent/disabled (the phase-1 allowed set from this release is ∅; alerting is a
+  separate later spec; FR-008) — proving the prune held and the ~100 bundled
+  defaults were not silently inherited. (Pre-existing rules from other tooling
+  are out of scope.)
 - **SC-007:** the stack is reconciled by Flux (no imperative `helm install` in
   the deploy path), the Prometheus Operator CRDs are present at the
-  HelmRelease-pinned version, and Prometheus + Grafana retention is PVC-bounded
-  — proving FR-005, FR-007, FR-010.
-- **SC-008 (inbound receiver isolation):** a pod in a namespace other than
-  `stagecraft-system` **cannot** reach Prometheus's remote_write ingest port —
-  tested with **both** a generic/tenant namespace **and** a named scrape-target
-  namespace (`flux-system`), since scrape targets are the namespaces most likely
-  to be wrongly granted inbound access (FR-006 (b)). This is the test closure
-  for the spec's primary security risk (the unauthenticated receiver): FR-006
-  must isolate it *inbound*, not merely leave egress un-weakened (SC-005).
+  HelmRelease-pinned version, Prometheus + Grafana retention is PVC-bounded, and
+  the deployed `collection_interval` honours the FR-001 floor (≥`15s`) — proving
+  FR-005, FR-007, FR-010, and guarding FR-001's bound against later drift.
+- **SC-008 (inbound isolation, both ports):** Prometheus's remote_write ingest
+  port is reachable **only** from `stagecraft-system`, and Grafana's port
+  **only** from ingress-nginx (FR-006 (a)/(c)). The negative test covers a
+  generic namespace **and every namespace granted `monitoring`-egress under
+  FR-006 (b)** (`flux-system`, deployd-api, ingress-nginx) — those scrape-target
+  namespaces are the ones most likely to be wrongly granted the reverse inbound.
+  This is the test closure for the spec's primary security risk (the
+  unauthenticated receiver): FR-006 isolates *inbound*, not merely leaving egress
+  un-weakened (SC-005).
 
 ## Out of scope (MVP)
 
@@ -388,10 +393,11 @@ group user lands as Admin. No local Grafana passwords.
   196 and out of its scope.)
 - **→ spec 151 (GitOps).** The Hetzner deploy mechanism — a Flux HelmRelease
   reconciled like every other infra release (FR-005). `depends_on: ["151"]`.
-- **refines** the `metrics-export` aspect of the Hetzner infra config — the
-  first field to make the two configs diverge. The Azure config is **not**
-  refined here (196 makes no edit to it; FR-009 deferred-null = absence, not a
-  write); its edge lands at FR-009's trigger.
+- **refines** (deferred to implementation, like `establishes` — not declared in
+  this filing PR) the `metrics-export` aspect of the Hetzner infra config: 196
+  adds its `metrics` block (FR-001) at implementation, and the edge lands in that
+  PR, not this spec-only one (declaring it now would claim an untouched file).
+  The Azure config is never refined by 196 (FR-009 deferred-null).
 - **establishes** (at implementation, not in this draft's frontmatter) the
   gitops monitoring HelmRelease and **≥2 NetworkPolicy objects across two
   namespaces** (monitoring-ns ingress + stagecraft-system egress; see FR-006 and
@@ -432,13 +438,15 @@ so 196 owns no identity-subsystem code path and the question of seeder
 co-authorship does not arise.) Until this body locks, the gitops monitoring
 HelmRelease, the monitoring + stagecraft-system NetworkPolicy objects, and the
 `infra.config` `metrics` blocks **MUST NOT be created** — the spec's body drives
-the implementation, not the other way around (CONST-005). The `refines:` edges
-point at files that already exist (the two infra configs); the not-yet-existent
-gitops + NetworkPolicy paths are described in prose only, because the compiler
-existence-checks `kind: file` units (V-023) and CONST-005 forbids creating them
-before this body locks. Their `establishes:` edges land in the implementation
-PR that creates the files. The spec-only filing PR therefore changes no claimed
-code path except the featuregraph golden (claimed via `extends: 034`).
+the implementation, not the other way around (CONST-005). This filing PR
+declares **no** code-path edge except the mechanical featuregraph-golden
+`extends: 034`: both the `establishes` (gitops + NetworkPolicy) and the
+`refines` (infra.config.hetzner.json) edges are deferred to the implementation
+PR that touches those files — the consistent rule being that an edge lands in
+the PR that edits the code, not this spec-only filing. (V-023 independently
+forbids the not-yet-existent gitops/NetworkPolicy paths; the existing
+infra.config is deferred for consistency, not because it must be.) The filing
+PR therefore changes no claimed code path except the golden.
 
 ## Implementation scope — a plan-time decision
 

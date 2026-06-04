@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5672e2a9c664325970f5b46cd7ee93556124f4af22a95a96ba463aa466f8cff9",
+    "contentHash": "fb283274023af4a78a97a03a52c0e213d9d8712b6c719144718538d179f06d60",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -43665,10 +43665,6 @@
           {
             "path": "crates/featuregraph/tests/golden/features_graph.json",
             "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/infra.config.hetzner.json",
-            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
@@ -43684,20 +43680,6 @@
             "unit": {
               "kind": "file",
               "path": "crates/featuregraph/tests/golden/features_graph.json"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "platform/services/stagecraft/infra.config.hetzner.json"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "refines",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/infra.config.hetzner.json"
             }
           }
         ],
