@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "e47d615b37e4cae8924a48caa248612099f20bba8f9d1d811f0024cbc0c4d549",
+    "contentHash": "1c06aa2c8d31d1387a05a14179a4f448a34c89af00879a165b7e2de4e885b6c5",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -43654,6 +43654,73 @@
         ],
         "specId": "195-release-tools-dispatch-build-ref",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "078",
+          "106",
+          "151"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/infra.config.hetzner.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/infra.config.json",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/infra.config.hetzner.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/infra.config.hetzner.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/infra.config.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/infra.config.json"
+            }
+          }
+        ],
+        "specId": "196-platform-metrics-stack",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [
