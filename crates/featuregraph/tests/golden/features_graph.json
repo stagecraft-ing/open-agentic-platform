@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:1daea206c99ab44d1e17c3dc1e08445ef18e3b0ee1da9c4eb4cee5cf9a40b1d2",
+  "graph_fingerprint": "sha256:01ed8f7b35e8f53ceed001a112d0e7cbfab79bd6782e71aef6cf22faa9717b4d",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3704,6 +3704,24 @@
         "086",
         "117",
         "194"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "196-platform-metrics-stack",
+      "title": "Platform metrics stack — Prometheus + Grafana for the platform control plane",
+      "spec_path": "specs/196-platform-metrics-stack/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "medium",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "106",
+        "151",
+        "078"
       ],
       "impl_files": [],
       "test_files": [],

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "e47d615b37e4cae8924a48caa248612099f20bba8f9d1d811f0024cbc0c4d549",
+    "contentHash": "3b63c6d04be7ab5c4e7df0ae658517dd1eb469ab2504d91f0e6f3287bdc9d862",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -43654,6 +43654,37 @@
         ],
         "specId": "195-release-tools-dispatch-build-ref",
         "specStatus": "approved"
+      },
+      {
+        "dependsOn": [
+          "078",
+          "106",
+          "151"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          }
+        ],
+        "specId": "196-platform-metrics-stack",
+        "specStatus": "draft"
       }
     ],
     "orphanedSpecs": [
