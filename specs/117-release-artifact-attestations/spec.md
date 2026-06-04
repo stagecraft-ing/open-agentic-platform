@@ -139,19 +139,32 @@ installer SBOM includes the bundled sidecar's contents" was therefore **unmet**
 axiomregent (037, amended) removes that workflow, so without this binding the
 sidecar would have **zero** SBOM coverage.
 
-**Mechanism (chosen): generate + reference (CycloneDX BOM-Link).** Inside
-`release-desktop.yml`'s `release` job:
+**Mechanism (chosen): generate-once + reference (CycloneDX BOM-Link).**
 
-1. **Generate** `sbom-axiomregent.cdx.json` by lifting the *exact* proven SBOM
+1. **Generate ONCE** in a standalone `axiomregent-sbom` job (gated on
+   `version-guard`, `runs-on: ubuntu-latest`), lifting the *exact* proven SBOM
    generation from the retired `release-axiomregent.yml` (the steps §AC-6
    validated to a populated component count): `cargo generate-lockfile
    --manifest-path Cargo.toml`, then `anchore/sbom-action` (pinned ≥ v0.24.0)
-   scanning `crates`. No new SBOM-generation logic is invented — it is
-   relocated, not redesigned.
+   scanning `crates`. The result is uploaded as a workflow artifact. **Single
+   source of truth** — the per-target `release` legs do **not** regenerate it.
+   This is deliberate: regenerating the SBOM in each of the three matrix legs
+   (macOS/Linux/Windows) would (a) be non-deterministic — three syft runs on
+   different runner OSes can differ in field ordering/metadata, and the
+   `--clobber` upload winner would be a job-completion race — and (b) waste ~2×
+   the syft work on the already-expensive cross-compile matrix. One generation →
+   identical bytes and identical `serialNumber` (hence identical BOM-Link URN)
+   across every leg. No new SBOM-generation logic is invented — it is relocated,
+   not redesigned.
 2. **Reference** it from each `sbom-desktop-<target>.cdx.json` by adding a
-   CycloneDX `externalReferences` entry of type `bom` (a BOM-Link) pointing at
-   the sidecar SBOM. This is a first-class CycloneDX composition primitive — the
-   sanctioned way one BOM declares that it incorporates another.
+   CycloneDX `externalReferences` entry of type `bom` whose `url` is a
+   **conformant BOM-Link URN** — `urn:cdx:<serialNumber>/<version>` derived from
+   the sidecar SBOM's own `serialNumber` (the CycloneDX-sanctioned machine-
+   resolvable form, recognised by cyclonedx-cli / Dependency-Track), not a bare
+   filename. The co-attached filename is carried in the `comment` for human
+   resolution. (If the sidecar SBOM lacks a `serialNumber`, the bind falls back
+   to the relative filename — a still-valid `iri-reference` external reference,
+   just not a formal URN.)
 3. **Attach** `sbom-axiomregent.cdx.json` to the same release (inside the
    existing draft-guarded upload step, spec 194) so the BOM-Link resolves and an
    auditor has the sidecar's full component list co-located with the installer.
@@ -260,12 +273,15 @@ single-subject bundle whose `bundle-path` is copied to a sibling
 SBOM. The `*.sha256` updater sidecars remain untouched (regression guard
 for AC-2).
 
-**Amended 2026-06-04 — bundled-sidecar SBOM binding (§2.1).** After the
-installer SBOM is generated, the job generates the axiomregent SBOM (the lifted
-generation from §4.1) and binds it into the installer SBOM via an
-`externalReferences` BOM-Link, then attaches `sbom-axiomregent.cdx.json` to the
-release inside the existing draft-guarded upload step (spec 194). The bind is a
-`jq` edit — portable across the macOS/Linux/Windows matrix, no new binary tool.
+**Amended 2026-06-04 — bundled-sidecar SBOM binding (§2.1).** The axiomregent
+SBOM is generated **once** in the standalone `axiomregent-sbom` job (§2.1); each
+per-target `release` leg **downloads** that single artifact and BOM-Links it into
+its installer SBOM via an `externalReferences` entry whose `url` is a conformant
+`urn:cdx:<serialNumber>/<version>` URN derived from the sidecar SBOM. The sidecar
+SBOM is co-attached to the release inside the existing draft-guarded upload step
+(spec 194). The bind is a `jq` edit — portable across the macOS/Linux/Windows
+matrix, no new binary tool — and is deterministic because all legs consume the
+one generated artifact.
 
 ```yaml
 - name: Generate installer SBOM
@@ -275,24 +291,24 @@ release inside the existing draft-guarded upload step (spec 194). The bind is a
     format: cyclonedx-json
     output-file: product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
 
-# amended 2026-06-04 — bundled-sidecar SBOM (lifted from retired release-axiomregent.yml §4.1)
-- name: Generate workspace Cargo.lock for sidecar SBOM scan
-  run: cargo generate-lockfile --manifest-path Cargo.toml
-- name: Generate axiomregent sidecar SBOM (CycloneDX)
-  uses: anchore/sbom-action@<pinned-sha>  # v0.24.0+
+# amended 2026-06-04 — download the once-generated sidecar SBOM (axiomregent-sbom job)
+- name: Download bundled-sidecar SBOM
+  uses: actions/download-artifact@<pinned-sha>
   with:
-    path: crates
-    format: cyclonedx-json
-    output-file: product/apps/opc/src-tauri/target/sbom-axiomregent.cdx.json
-# Bind via CycloneDX externalReferences BOM-Link (jq — matrix-portable, no new binary)
-- name: Generate installer SBOM bundled-sidecar reference (CycloneDX BOM-Link)
+    name: sbom-axiomregent
+    path: product/apps/opc/src-tauri/target/
+# Bind via a conformant CycloneDX BOM-Link URN (jq — matrix-portable, no new binary)
+- name: Generate installer SBOM bundled-sidecar BOM-Link (CycloneDX)
   shell: bash
   run: |
     sbom="product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json"
-    jq '.externalReferences = ((.externalReferences // []) + [{
-          "type": "bom",
-          "url": "sbom-axiomregent.cdx.json",
-          "comment": "Bundled axiomregent sidecar SBOM (CycloneDX BOM-Link; spec 117 §2.1)"
+    side="product/apps/opc/src-tauri/target/sbom-axiomregent.cdx.json"
+    sn="$(jq -r '.serialNumber // empty' "$side" | sed 's#^urn:uuid:##')"
+    ver="$(jq -r '.version // 1' "$side")"
+    if [ -n "$sn" ]; then link="urn:cdx:$sn/$ver"; else link="sbom-axiomregent.cdx.json"; fi
+    jq --arg link "$link" '.externalReferences = ((.externalReferences // []) + [{
+          "type": "bom", "url": $link,
+          "comment": "Bundled axiomregent sidecar SBOM (CycloneDX BOM-Link; co-attached as sbom-axiomregent.cdx.json; spec 117 §2.1)"
         }])' "$sbom" > "$sbom.tmp" && mv "$sbom.tmp" "$sbom"
 
 - name: Attest installer provenance
@@ -353,10 +369,12 @@ release notes template, documents:
 gh attestation verify path/to/opc_<version>_aarch64.dmg \
   --repo stagecraft-ing/open-agentic-platform
 
-# Inspect the installer SBOM, then the bundled-sidecar SBOM it BOM-Links to
+# Inspect the installer SBOM, then the co-attached bundled-sidecar SBOM it BOM-Links to
 jq '.components | length' sbom-desktop-aarch64-apple-darwin.cdx.json
-jq -r '.externalReferences[] | select(.type=="bom") | .url' \
-  sbom-desktop-aarch64-apple-darwin.cdx.json   # -> sbom-axiomregent.cdx.json
+jq -r '.externalReferences[] | select(.type=="bom") | "\(.url)  (\(.comment))"' \
+  sbom-desktop-aarch64-apple-darwin.cdx.json
+  # -> urn:cdx:<serialNumber>/1  (co-attached as sbom-axiomregent.cdx.json)
+jq -r '.serialNumber' sbom-axiomregent.cdx.json   # the BOM-Link URN's serialNumber
 jq '.components | length' sbom-axiomregent.cdx.json
 ```
 

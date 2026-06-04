@@ -134,13 +134,18 @@ axiomregent-all:
 ## Fetch the pre-built axiomregent sidecar for the host triple from the latest
 ## successful build-axiomregent.yml CI run (a non-ceremonial per-commit artifact,
 ## 30-day retention) — NOT a release. axiomregent has no standalone release; it is
-## an internal sidecar bundled by OPC (specs 037/193, amended). Offline/no-CI
-## fallback: `make axiomregent` (build from source). Replaces the former
-## `gh release download` path (spec 105 Phase 2; re-pointed after the demotion).
+## an internal sidecar bundled by OPC (specs 037/193/105, amended). Replaces the
+## former `gh release download` path (spec 105 Phase 2; re-pointed after the demotion).
+##
+## TRUST NOTE: this pulls a per-commit CI artifact (produced on every push to main),
+## NOT an attested/human-gated release asset, and it is NOT attestation-verified.
+## For a zero-trust-delegation sidecar built from your own checkout — and the
+## offline / no-CI fallback — use `make axiomregent` (build from source).
 fetch-axiomregent:
 	@command -v gh >/dev/null 2>&1 || { echo "  MISSING: gh — brew install gh, then run: gh auth login. Or build from source: make axiomregent"; exit 1; }
 	@HOST=$$(rustc -vV | grep '^host:' | awk '{print $$2}'); \
 	 EXT=""; case "$$HOST" in *windows*) EXT=".exe";; esac; \
+	 ART="axiomregent-$$HOST$$EXT"; \
 	 mkdir -p $(AXIOMREGENT_BINDIR); \
 	 echo "==> fetch-axiomregent: $$HOST (latest build-axiomregent.yml artifact)"; \
 	 RUN_ID=$$(gh run list --repo $(AXIOMREGENT_REPO) --workflow build-axiomregent.yml \
@@ -149,10 +154,15 @@ fetch-axiomregent:
 	   echo "  no successful build-axiomregent.yml run found on main — build from source: make axiomregent"; \
 	   exit 1; \
 	 fi; \
-	 gh run download "$$RUN_ID" --repo $(AXIOMREGENT_REPO) \
-	    --name "axiomregent-$$HOST$$EXT" \
-	    --dir $(AXIOMREGENT_BINDIR); \
-	 case "$$HOST" in *windows*) ;; *) chmod +x "$(AXIOMREGENT_BINDIR)/axiomregent-$$HOST$$EXT" 2>/dev/null || true;; esac
+	 TMP=$$(mktemp -d); \
+	 gh run download "$$RUN_ID" --repo $(AXIOMREGENT_REPO) --name "$$ART" --dir "$$TMP" \
+	   || { rm -rf "$$TMP"; echo "  download failed — build from source: make axiomregent"; exit 1; }; \
+	 SRC=$$(find "$$TMP" -type f -name "$$ART" | head -1); \
+	 if [ -z "$$SRC" ]; then rm -rf "$$TMP"; echo "  artifact contained no $$ART — build from source: make axiomregent"; exit 1; fi; \
+	 mv "$$SRC" "$(AXIOMREGENT_BINDIR)/$$ART"; \
+	 rm -rf "$$TMP"; \
+	 case "$$HOST" in *windows*) ;; *) chmod +x "$(AXIOMREGENT_BINDIR)/$$ART" 2>/dev/null || true;; esac; \
+	 echo "    -> $(AXIOMREGENT_BINDIR)/$$ART"
 
 ## Idempotent variant: skip fetch if the sidecar is already present for the host triple.
 fetch-axiomregent-check:

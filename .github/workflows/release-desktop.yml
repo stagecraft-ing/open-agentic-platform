@@ -189,9 +189,47 @@ jobs:
           path: product/apps/opc/src-tauri/binaries/
           retention-days: 5
 
+  # ── Stage 1c: Bundled-sidecar SBOM (generated ONCE) ────────────────
+  # spec 117 §2.1 — axiomregent lives in the ROOT workspace (crates/axiomregent),
+  # whose deps (octocrab/hiqlite/fastembed) are absent from the product/apps/opc
+  # desktop scan. Generate its CycloneDX SBOM exactly ONCE here (lifted from the
+  # retired release-axiomregent.yml: generate-lockfile at root + scan crates/), so
+  # the sidecar SBOM — and its serialNumber / BOM-Link URN — are byte-identical
+  # across the three release matrix legs. Each leg downloads THIS artifact and
+  # BOM-Links it into its per-target installer SBOM (no per-leg regeneration →
+  # deterministic, and ~2× cross-compiles of syft work saved).
+  axiomregent-sbom:
+    needs: [version-guard]
+    runs-on: ubuntu-latest
+    name: axiomregent sidecar SBOM
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # pinned for rust-toolchain.toml lockstep
+        with:
+          toolchain: '1.95.0'
+
+      - name: Generate workspace Cargo.lock for sidecar SBOM scan
+        run: cargo generate-lockfile --manifest-path Cargo.toml
+
+      - name: Generate axiomregent sidecar SBOM (CycloneDX)
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0 (ships syft 1.30+; v0.17.8's syft 1.11 returned 0 rust components)
+        with:
+          path: crates
+          format: cyclonedx-json
+          output-file: sbom-axiomregent.cdx.json
+
+      - name: Upload sidecar SBOM artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sbom-axiomregent
+          path: sbom-axiomregent.cdx.json
+          retention-days: 5
+
   # ── Stage 2: Build & release desktop app ───────────────────────────
   release:
-    needs: [version-guard, sidecar, sidecar-linux-arm64]
+    needs: [version-guard, sidecar, sidecar-linux-arm64, axiomregent-sbom]
     strategy:
       fail-fast: false
       matrix:
@@ -419,31 +457,32 @@ jobs:
 
       # spec 117 §2.1 — bundled-sidecar SBOM. axiomregent lives in the ROOT
       # workspace (crates/axiomregent), whose deps (octocrab/hiqlite/fastembed)
-      # are absent from the product/apps/opc scan above. Lift the proven SBOM
-      # generation from the retired release-axiomregent.yml (cargo generate-lockfile
-      # at the root + scan crates/) so the bundled sidecar keeps CycloneDX coverage,
-      # then BOM-Link it into the installer SBOM. (Was the sole sidecar SBOM source.)
-      - name: Generate workspace Cargo.lock for sidecar SBOM scan
-        run: cargo generate-lockfile --manifest-path Cargo.toml
-      - name: Generate axiomregent sidecar SBOM (CycloneDX)
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0 (ships syft 1.30+; v0.17.8's syft 1.11 returned 0 rust components)
+      # are absent from the product/apps/opc scan above. The SBOM is generated
+      # ONCE in the axiomregent-sbom job; download that single artifact here and
+      # BOM-Link it into this target's installer SBOM. One source → identical
+      # bytes/serialNumber across all three legs (no per-leg syft regeneration,
+      # no non-deterministic --clobber race).
+      - name: Download bundled-sidecar SBOM
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          path: crates
-          format: cyclonedx-json
-          output-file: product/apps/opc/src-tauri/target/sbom-axiomregent.cdx.json
-      # spec 117 §2.1 — reference (not embed): a CycloneDX externalReferences
-      # BOM-Link is matrix-portable via jq (no per-OS cyclonedx-cli binary to
-      # install on macOS/Linux/Windows), keeps the sidecar BOM independently
-      # verifiable, and is co-attached to the same release below.
-      - name: Generate installer SBOM bundled-sidecar reference (CycloneDX BOM-Link)
+          name: sbom-axiomregent
+          path: product/apps/opc/src-tauri/target/
+      # url is a conformant CycloneDX BOM-Link URN (urn:cdx:<serialNumber>/<version>)
+      # derived from the sidecar SBOM; the file is co-attached to the release below
+      # so the link is human-resolvable too. jq-only → matrix-portable, no new binary.
+      - name: Generate installer SBOM bundled-sidecar BOM-Link (CycloneDX)
         shell: bash
         run: |
           set -euo pipefail
           sbom="product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json"
-          jq '.externalReferences = ((.externalReferences // []) + [{
+          side="product/apps/opc/src-tauri/target/sbom-axiomregent.cdx.json"
+          sn="$(jq -r '.serialNumber // empty' "$side" | sed 's#^urn:uuid:##')"
+          ver="$(jq -r '.version // 1' "$side")"
+          if [ -n "$sn" ]; then link="urn:cdx:$sn/$ver"; else link="sbom-axiomregent.cdx.json"; fi
+          jq --arg link "$link" '.externalReferences = ((.externalReferences // []) + [{
                 "type": "bom",
-                "url": "sbom-axiomregent.cdx.json",
-                "comment": "Bundled axiomregent sidecar SBOM (CycloneDX BOM-Link; spec 117 §2.1)"
+                "url": $link,
+                "comment": "Bundled axiomregent sidecar SBOM (CycloneDX BOM-Link; co-attached as sbom-axiomregent.cdx.json; spec 117 §2.1)"
               }])' "$sbom" > "$sbom.tmp" && mv "$sbom.tmp" "$sbom"
 
       # spec 193 — post-build SBOM assertion. tauri-action has created the

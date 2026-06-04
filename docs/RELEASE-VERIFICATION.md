@@ -63,10 +63,12 @@ rekor-cli get --uuid <uuid-from-search> --format json
 # How many components in the installer SBOM?
 jq '.components | length' sbom-desktop-aarch64-apple-darwin.cdx.json
 
-# Follow the BOM-Link to the bundled axiomregent sidecar SBOM (spec 117 §2.1)
-jq -r '.externalReferences[] | select(.type=="bom") | .url' \
-  sbom-desktop-aarch64-apple-darwin.cdx.json   # -> sbom-axiomregent.cdx.json
-jq '.components | length' sbom-axiomregent.cdx.json
+# Follow the BOM-Link to the bundled axiomregent sidecar SBOM (spec 117 §2.1).
+# url is a urn:cdx:<serialNumber>/<version> BOM-Link; .comment names the
+# co-attached release asset that resolves it.
+jq -r '.externalReferences[] | select(.type=="bom") | "\(.url)  (\(.comment))"' \
+  sbom-desktop-aarch64-apple-darwin.cdx.json
+jq '.components | length' sbom-axiomregent.cdx.json   # the co-attached sidecar SBOM
 
 # What licenses (sidecar)?
 jq -r '.components[] | "\(.name) \(.version) \(.licenses[0].license.id // "unknown")"' \

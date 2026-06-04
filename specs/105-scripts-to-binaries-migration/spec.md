@@ -15,6 +15,11 @@ amendment_record: |
   retention), with `make axiomregent` (build-from-source) as the offline fallback.
   The governed-binary vs Makefile-recipe split this spec establishes is unchanged;
   only the recipe's fetch source moved from a release channel to a CI artifact.
+  Trust posture (documented in the recipe): a CI artifact is produced on every push
+  to main and is NOT attestation-verified — a wider trust surface than the former
+  attested release asset. This is a dev-convenience path (not the production bundled
+  path); `make axiomregent` (build from your own checkout) is the zero-trust-delegation
+  option for contributors who want it.
 kind: migration
 domain: tooling
 risk: medium
