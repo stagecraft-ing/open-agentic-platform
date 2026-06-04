@@ -826,15 +826,23 @@ grounds, independent of the size decision:
   `provenance-validator`'s `validate()`/`audit()` (pulled in via
   `factory-engine`) — is a deliberate **fail-closed** safety net: a validator
   panic is converted to a `ProvenanceMode::Rejected` report (`panic_report`),
-  never silently allowed past a gate. It is **already exercised under `unwind`**
-  in the `factory-engine`/axiomregent path today (the root workspace is
-  `unwind`), so OPC→`unwind` makes OPC *consistent* with that established
-  behavior rather than introducing it. Under OPC's prior `abort` the catch was
-  inert (abort does not unwind, so a validator panic crashed OPC instead of
-  rejecting) — `unwind` is therefore strictly safer here, not riskier.
+  never silently allowed past a gate. **The caller enforces it**:
+  `factory-engine`'s quality gate treats a caught validator panic as an
+  *unconditional* `Fail` (`stages/quality_gates.rs` FR-005 — "Always Fail;
+  never depends on mode"; module doc: "any `Rejected` claim FAILs the gate").
+  It is **already exercised under `unwind`** in the `factory-engine`/axiomregent
+  path today (the root workspace is `unwind`), so OPC→`unwind` makes OPC
+  *consistent* with that established behavior rather than introducing it. Under
+  OPC's prior `abort` the catch was inert (abort does not unwind, so a validator
+  panic crashed OPC instead of rejecting) — `unwind` is therefore strictly safer
+  here, not riskier.
 - The `cdylib`/`staticlib` crate-types are Tauri's **mobile** FFI artifacts,
-  not exercised by the desktop dmg (and modern Rust auto-aborts at plain
-  `extern "C"` boundaries regardless).
+  not compiled into the desktop dmg. The only mobile FFI entry point is `run()`
+  decorated `#[cfg_attr(mobile, tauri::mobile_entry_point)]`
+  (`src-tauri/src/lib.rs:91`) — Tauri's macro emits it as `extern "C"`, which
+  auto-aborts on unwind (Rust ≥1.81), and it is `#[cfg(mobile)]`-gated. No naked
+  Rust panic crosses a non-`extern "C"` `cdylib` boundary, so `unwind` is not UB
+  even on a mobile build.
 - `unwind` is **more resilient**: a panicking Tauri command unwinds to a
   `JoinError` at the tokio task boundary instead of aborting the whole app.
 - **axiomregent stays `unwind` (the default) — do NOT flip it to `abort`.**
