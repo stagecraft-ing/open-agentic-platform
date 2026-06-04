@@ -35,8 +35,10 @@ run() { "$GUARD" "$@" >/dev/null 2>&1 && echo 0 || echo $?; }
 # 1. opc internal consistency (committed tree must be self-consistent).
 assert_rc "opc internal consistency" 0 "$(run opc)"
 
-# 2. axiomregent internal consistency.
-assert_rc "axiomregent internal consistency" 0 "$(run axiomregent)"
+# 2. axiomregent is no longer a product — the arm was dropped (spec 037/193,
+#    amended 2026-06-04: internal bundled sidecar, no product version). It is now
+#    an unknown product → usage error (exit 2).
+assert_rc "axiomregent dropped → unknown product" 2 "$(run axiomregent)"
 
 # 3. opc against the committed version (derived live, not hard-coded).
 opc_ver="$(jq -r .version product/apps/opc/src-tauri/tauri.conf.json)"

@@ -417,6 +417,35 @@ jobs:
           format: cyclonedx-json
           output-file: product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
 
+      # spec 117 §2.1 — bundled-sidecar SBOM. axiomregent lives in the ROOT
+      # workspace (crates/axiomregent), whose deps (octocrab/hiqlite/fastembed)
+      # are absent from the product/apps/opc scan above. Lift the proven SBOM
+      # generation from the retired release-axiomregent.yml (cargo generate-lockfile
+      # at the root + scan crates/) so the bundled sidecar keeps CycloneDX coverage,
+      # then BOM-Link it into the installer SBOM. (Was the sole sidecar SBOM source.)
+      - name: Generate workspace Cargo.lock for sidecar SBOM scan
+        run: cargo generate-lockfile --manifest-path Cargo.toml
+      - name: Generate axiomregent sidecar SBOM (CycloneDX)
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0 (ships syft 1.30+; v0.17.8's syft 1.11 returned 0 rust components)
+        with:
+          path: crates
+          format: cyclonedx-json
+          output-file: product/apps/opc/src-tauri/target/sbom-axiomregent.cdx.json
+      # spec 117 §2.1 — reference (not embed): a CycloneDX externalReferences
+      # BOM-Link is matrix-portable via jq (no per-OS cyclonedx-cli binary to
+      # install on macOS/Linux/Windows), keeps the sidecar BOM independently
+      # verifiable, and is co-attached to the same release below.
+      - name: Generate installer SBOM bundled-sidecar reference (CycloneDX BOM-Link)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sbom="product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json"
+          jq '.externalReferences = ((.externalReferences // []) + [{
+                "type": "bom",
+                "url": "sbom-axiomregent.cdx.json",
+                "comment": "Bundled axiomregent sidecar SBOM (CycloneDX BOM-Link; spec 117 §2.1)"
+              }])' "$sbom" > "$sbom.tmp" && mv "$sbom.tmp" "$sbom"
+
       # spec 193 — post-build SBOM assertion. tauri-action has created the
       # draft by now; verify the generated SBOM's `opc` component version
       # equals the tag. On mismatch, discard the draft AND its tag so no
@@ -508,6 +537,10 @@ jobs:
           target_root="product/apps/opc/src-tauri/target"
           gh release upload "$TAG" \
             "product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json" \
+            --clobber --repo "$GITHUB_REPOSITORY"
+          # spec 117 §2.1 — co-attach the bundled-sidecar SBOM the installer SBOM BOM-Links to.
+          gh release upload "$TAG" \
+            "product/apps/opc/src-tauri/target/sbom-axiomregent.cdx.json" \
             --clobber --repo "$GITHUB_REPOSITORY"
           while IFS= read -r att; do
             [ -z "$att" ] && continue

@@ -7,8 +7,17 @@ implementation: complete
 kind: platform
 domain: opc
 created: "2026-03-29"
-amended: "2026-06-01"
-amendment_record: "193-paired-release-cadence"
+amended: "2026-06-04"
+amendment_record: |
+  Re-amended 2026-06-04 — axiomregent demotion. axiomregent is demoted from a
+  standalone shipped product to an INTERNAL UPSTREAM COMPONENT of OPC: built
+  from OPC's own release commit and bundled as a Tauri sidecar by
+  release-desktop.yml, never independently published. The cross-platform build
+  matrix this spec establishes is unchanged; only its destination changed
+  (bundle, not publish). This revises the release framing the prior amendment
+  (193-paired-release-cadence) added: the standalone `axiomregent-v*` tag and
+  draft release are retired. release-axiomregent.yml is removed; the
+  build-axiomregent.yml producer/validator is kept.
 authors:
   - "open-agentic-platform"
 language: en
@@ -28,11 +37,32 @@ extends:
 
 # Feature Specification: cross-platform axiomregent binaries
 
-> **Amended by [193-paired-release-cadence](../193-paired-release-cadence/spec.md) (2026-06-01).**
-> `release-axiomregent.yml` now resolves the version from an `axiomregent-v*`
-> tag, runs the pre-publish version-consistency guard, and creates the release
-> as a **draft** (was: live/immutable publish). The cross-platform build matrix
-> this spec establishes is unchanged.
+> **Status: internal upstream component (amended 2026-06-04).**
+> axiomregent is **not** an independently released product. It is an internal
+> upstream component of OPC: built from OPC's own release commit and bundled as
+> a Tauri sidecar by `release-desktop.yml`. There is **one** release lever —
+> OPC — and axiomregent rides its commit. It has no independent product version
+> (commit-pinned), no standalone binary, crate, or container. Anyone wanting a
+> standalone axiomregent forks the repo and builds it. The cross-platform
+> **build** matrix this spec establishes (below) is unchanged; only its
+> destination changed — **bundle, not publish**. This retires the standalone
+> `axiomregent-v*` tag and draft release that the prior 193 amendment described
+> (see [193](../193-paired-release-cadence/spec.md) §3–§5, amended) and removes
+> `release-axiomregent.yml`. The per-commit producer/validator
+> `build-axiomregent.yml` (and the `ci-axiomregent.yml` check/clippy/test lane)
+> are kept — they validate and produce the sidecar; they do not publish a
+> product.
+>
+> _Consequence:_ the duplicate-release-object incident class — two release
+> objects colliding on one `axiomregent-v*` tag (e.g. an empty operator-decoy
+> draft sharing the tag of a real cut) — is **structurally eliminated**: there
+> is no longer a second product release object to collide.
+>
+> _Provenance & SBOM:_ because the sidecar is built at OPC's release commit and
+> bundled (build-ref == bundle-ref), single-commit provenance covers it — no
+> standalone attestation span is needed. Its CycloneDX SBOM is generated within
+> the desktop release flow and bound into the OPC installer SBOM
+> ([117](../117-release-artifact-attestations/spec.md), amended).
 
 ## Purpose
 

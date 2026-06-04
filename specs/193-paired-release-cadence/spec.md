@@ -7,6 +7,18 @@ implementation: complete
 owner: bart
 created: "2026-06-01"
 approved: "2026-06-01"
+amended: "2026-06-04"
+amendment_record: |
+  Self-amended 2026-06-04 — axiomregent demotion. axiomregent is no longer an
+  independently released product (see 037, amended): it is an internal upstream
+  component of OPC, built from OPC's release commit and bundled as a Tauri
+  sidecar. The paired train therefore collapses to a SINGLE product. This
+  amendment removes the `axiomregent-v*` tag grammar, the cross-product boundary
+  invariant (opc.minor == axiomregent.minor — there is no second product to
+  pair with), and the guard's axiomregent product arm; the version-consistency
+  guard becomes OPC-only. release-axiomregent.yml is retired. The OPC mechanics
+  (product-prefixed `opc-v*` tag, draft-first publish, fast-fail version-guard
+  job, SBOM assertion) are unchanged.
 kind: governance
 domain: tooling
 risk: medium
@@ -32,8 +44,6 @@ refines:
   - aspect: "release-version-alignment"
     unit: { kind: file, path: .github/workflows/release-desktop.yml }
   - aspect: "release-version-alignment"
-    unit: { kind: file, path: .github/workflows/release-axiomregent.yml }
-  - aspect: "release-version-alignment"
     unit: { kind: file, path: .github/workflows/release-tools.yml }
   - aspect: "release-version-alignment"
     unit: { kind: file, path: .github/workflows/ci-supply-chain.yml }
@@ -43,8 +53,6 @@ refines:
     unit: { kind: file, path: product/apps/opc/package.json }
   - aspect: "release-version"
     unit: { kind: file, path: product/apps/opc/src-tauri/Cargo.toml }
-  - aspect: "release-version"
-    unit: { kind: file, path: crates/axiomregent/Cargo.toml }
 compliance:
   - framework: "owasp-asi-2026"
     # ASI04 (supply-chain compromise). A release whose envelope version
@@ -53,26 +61,39 @@ compliance:
     # makes envelope == artifact == SBOM a merge- and publish-time contract.
     controls: ["ASI04"]
 summary: >
-  Establish a paired release cadence for OPC desktop and axiomregent, a
-  product-prefixed tag grammar (opc-v*, axiomregent-v*), and a pre-publish
-  version-consistency guard that refuses any release whose tag disagrees with
-  its committed version sources or its SBOM. Flips the axiomregent publish
-  path from live/immutable to draft-first so every publish is guard-gated AND
-  human-gated. Closes the class of bug where a release envelope (tag) carried
-  one version while the artifacts carried a stale committed version
-  (OPC drafts v0.3.5/6/7 shipped 0.3.4 assets; axiomregent v0.3.0/v0.3.1
-  published 0.2.0 binaries).
+  Establish OPC's release cadence, a product-prefixed tag grammar (opc-v*), and
+  a pre-publish version-consistency guard that refuses any release whose tag
+  disagrees with its committed version sources or its SBOM. OPC builds a draft
+  first so every publish is guard-gated AND human-gated. Closes the class of bug
+  where a release envelope (tag) carried one version while the artifacts carried
+  a stale committed version (OPC drafts v0.3.5/6/7 shipped 0.3.4 assets).
+  Amended 2026-06-04: OPC is the sole release lever — axiomregent is an internal
+  upstream component bundled by OPC (037, amended), so the paired cadence and
+  the axiomregent-v* tag grammar are retired and the guard is OPC-only.
 ---
 
-# 193 — Paired release cadence + version-consistency guard
+# 193 — OPC release cadence + version-consistency guard
 
-> **Amendment record.** This spec amends **037** (cross-platform axiomregent
-> release), **086** (open-source-launch release-tools), and **117** (release
-> artifact attestations). It does not supersede them: their release mechanics
-> stand. It adds (a) a version-consistency contract every release must satisfy,
-> (b) a product-prefixed tag grammar, and (c) draft-first publishing for
-> axiomregent. The companion investigation of every release-publish path is
-> recorded in `docs/analysis/release-publish-paths-2026-06-01.md`.
+> **Amendment record.** This spec amends **037** (cross-platform axiomregent),
+> **086** (open-source-launch release-tools), and **117** (release artifact
+> attestations). It does not supersede them: their release mechanics stand. It
+> adds (a) a version-consistency contract every release must satisfy and (b) a
+> product-prefixed tag grammar. The companion investigation of every
+> release-publish path is recorded in
+> `docs/analysis/release-publish-paths-2026-06-01.md`.
+>
+> **Amended 2026-06-04 — single release lever.** axiomregent has been demoted to
+> an internal upstream component of OPC (see [037](../037-cross-platform-axiomregent/spec.md),
+> amended): it is built from OPC's release commit and bundled as a Tauri
+> sidecar, never independently published. **OPC is therefore the sole release
+> lever.** The "paired" framing this spec introduced collapses to a single
+> product: the `axiomregent-v*` tag grammar, the cross-product boundary
+> invariant, draft-first publishing *for axiomregent*, and the guard's
+> axiomregent product arm are all **retired**. `release-axiomregent.yml` is
+> removed. Everything in this spec now reads as OPC-only; the OPC mechanics are
+> otherwise unchanged. _Consequence:_ the duplicate-release-object incident
+> class (two release objects on one `axiomregent-v*` tag) is structurally
+> eliminated — there is no second product release object to collide.
 
 ## 1. Problem Statement
 
@@ -82,31 +103,33 @@ Two version-source families feed a release and nothing asserted they agree:
   tag / `workflow_dispatch` input.
 - The **artifacts** are named and stamped from the *committed* version sources
   — `tauri.conf.json` / `package.json` / `Cargo.toml` for OPC (Tauri reads the
-  bundle version from `tauri.conf.json`), and `crates/axiomregent/Cargo.toml`
-  for axiomregent (`CARGO_PKG_VERSION`).
+  bundle version from `tauri.conf.json`).
 
 Cutting a release without first bumping the committed sources produced a split:
-the OPC drafts **v0.3.5 / v0.3.6 / v0.3.7** all carry **0.3.4** assets, and the
-live axiomregent releases **v0.3.0 / v0.3.1** ship **0.2.0** binaries. Worse,
-`release-axiomregent.yml` published a **live, immutable** release directly
-(`gh release create` with no `--draft`), so the mismatch was burned publicly
-the instant a `workflow_dispatch` ran.
+the OPC drafts **v0.3.5 / v0.3.6 / v0.3.7** all carry **0.3.4** assets. The same
+class of split previously affected the now-retired standalone axiomregent
+releases **v0.3.0 / v0.3.1**, which shipped **0.2.0** binaries from a **live,
+immutable** publish (no `--draft`) — burning the mismatch publicly the instant a
+`workflow_dispatch` ran. Both motivate the guard below; with axiomregent demoted
+to a bundled component (§2, amended) the axiomregent path is moot, so the guard
+applies to OPC.
 
 ## 2. Cadence policy
 
-The two products release on a **paired cadence** anchored at a shared
-`major.minor`:
+OPC is the **sole release lever**. axiomregent is an internal upstream component
+bundled into the OPC desktop installer at OPC's release commit
+([037](../037-cross-platform-axiomregent/spec.md), amended); it has no
+independent product version and no standalone release, so there is no second
+cadence to pair with and no cross-product boundary invariant to enforce.
 
-- **minor / major bumps are train-scoped.** Both products move together to the
-  same `major.minor.0`; patch resets to `.0`. The first train under this spec is
-  `0.4.0` for both `opc` and `axiomregent`.
-- **patch bumps are product-scoped.** Either product may ship `major.minor.PATCH`
-  independently to fix a defect without dragging the other.
-- **Boundary invariant.** At every minor/major boundary, both products share
-  `major.minor.0`. Formally: `opc.major == axiomregent.major &&
-  opc.minor == axiomregent.minor`, and on a minor/major release both patch
-  components are `0`. Patch divergence (`opc 0.4.1` while `axiomregent 0.4.0`)
-  is permitted within a train; major/minor divergence is not.
+- **OPC versions and cuts on its own cadence.** `opc` carries a single
+  `major.minor.patch` identical across `tauri.conf.json` / `package.json` /
+  `Cargo.toml` / `Cargo.lock`. The first cut under this spec is `0.4.0`.
+- **axiomregent is commit-pinned.** The bundled sidecar rides OPC's release
+  commit (build-ref == bundle-ref). Its crate version is not a product version
+  and is not load-bearing at runtime (the sidecar boot gate is liveness-only and
+  the MCP `serverInfo` version is a static literal), so the guard no longer
+  asserts it (§4, amended).
 
 This spec does not automate the bump; it defines the invariant the guard and
 reviewers enforce. The bump is an honest committed edit (§4), never a
@@ -115,19 +138,23 @@ version it will ship.
 
 ## 3. Tag grammar (naming unification)
 
-All release tags are **product-prefixed**: `<product>-v<semver>`.
+The release tag is **product-prefixed**: `<product>-v<semver>`.
 
 | Product | Tag | Trigger workflow |
 |---------|-----|------------------|
 | OPC desktop | `opc-v<semver>` (e.g. `opc-v0.4.0`) | `release-desktop.yml` |
-| axiomregent | `axiomregent-v<semver>` (e.g. `axiomregent-v0.4.0`) | `release-axiomregent.yml` |
 
-OPC's bare `v*` grammar is **retired**. Each workflow's resolver derives the
+OPC's bare `v*` grammar is **retired**. The workflow's resolver derives the
 product from the prefix (`${TAG%-v*}`) and the version from the suffix
-(`${TAG##*-v}`), and rejects a tag whose product does not match the workflow.
-The dependent `release-tools.yml` `workflow_run` gate moves from
-`startsWith(head_branch, 'v')` to `startsWith(head_branch, 'opc-v')` so the
-tool-archive chain keeps firing for renamed desktop releases.
+(`${TAG##*-v}`), and rejects a tag whose product is not `opc`. The dependent
+`release-tools.yml` `workflow_run` gate keys on
+`startsWith(head_branch, 'opc-v')` so the tool-archive chain keeps firing for
+desktop releases.
+
+> **Amended 2026-06-04.** The `axiomregent-v*` row is removed — axiomregent is no
+> longer independently released (§2; [037](../037-cross-platform-axiomregent/spec.md),
+> amended). The product-prefixed grammar is retained for OPC: it future-proofs
+> the tag namespace and keeps the `release-tools.yml` gate unambiguous.
 
 ## 4. Version-consistency guard (the contract)
 
@@ -151,19 +178,32 @@ control). The guard ships with a fixture test
 (`release-version-guard-test.sh`) that is its own spec, run in the same lane —
 the spec-158 precedent.
 
+> **Amended 2026-06-04 — OPC-only guard.** The `<product>` argument now accepts
+> **`opc` only**. The axiomregent arm — which asserted
+> `crates/axiomregent/Cargo.toml == Cargo.lock` against an *axiomregent product
+> version* — is **dropped**: axiomregent has no product version (§2). Its two
+> callers are removed with it (the retired `release-axiomregent.yml`, and the
+> `Guard axiomregent version sources` step in `ci-supply-chain.yml`).
+> `release-version-guard.sh axiomregent` now exits `2` (unknown product), and
+> the fixture test asserts that. The commit-pin the arm would have approximated
+> (build-ref == bundle-ref) is structurally guaranteed by `release-desktop.yml`
+> building the sidecar from the same checkout that produces the installer — a
+> version assertion adds nothing to a single-commit build.
+
 ## 5. Publish gating
 
-- **OPC desktop** already builds a **draft** (`tauri-action releaseDraft: true`);
+- **OPC desktop** builds a **draft** (`tauri-action releaseDraft: true`);
   publishing is human-gated. This spec adds a **pre-build** guard (fail-fast,
   before any artifact or draft exists — no version burned on mismatch) and a
   **post-build** SBOM assertion that discards the draft + tag on mismatch.
-- **axiomregent** flips from **live publish** to **draft-first**: the guard runs
-  **before** `gh release create --draft`, so a mismatch publishes nothing and
-  burns no tag. Promoting the draft to a published release is a separate,
-  human-gated action.
 
-The result: no release — desktop or axiomregent — can publish with a version
-the artifacts do not actually carry, and no release publishes without a human.
+The result: the OPC release cannot publish with a version the artifacts do not
+actually carry, and it does not publish without a human.
+
+> **Amended 2026-06-04.** The former **axiomregent draft-first** bullet is
+> removed: there is no standalone axiomregent release to gate
+> ([037](../037-cross-platform-axiomregent/spec.md), amended). The sidecar now
+> ships inside the OPC draft, under OPC's gating above.
 
 ### 5.1 Fast-fail front gate (refinement, 2026-06-01)
 
@@ -185,38 +225,49 @@ as a **standalone `version-guard` job that the entire build/sidecar matrix
 `needs:`** — the structural front gate. A mismatch now dies in ~30s with zero
 build minutes burned, no draft, no tag. The in-job guards are **retained as
 defense-in-depth**: the desktop `release` job re-checks its own checkout before
-tauri-action, and the axiomregent `publish` job keeps the **SBOM-component**
-assertion the front gate cannot see. The post-build SBOM guard (build-time
-drift) is unchanged. See `docs/analysis/release-prebuild-guard-fastfail-2026-06-01.md`.
+tauri-action, and (historically) the axiomregent `publish` job kept the
+**SBOM-component** assertion the front gate cannot see. The post-build SBOM guard
+(build-time drift) is unchanged. See `docs/analysis/release-prebuild-guard-fastfail-2026-06-01.md`.
+
+> _Amended 2026-06-04._ The axiomregent `publish`-job half of this narrative is
+> historical — `release-axiomregent.yml` is retired (§2). The standalone
+> `version-guard` front gate it motivated remains in `release-desktop.yml`
+> (OPC-only). The SBOM-component assertion the front gate cannot see now lives in
+> the desktop post-build SBOM guard, which additionally covers the bundled
+> sidecar via the merged installer SBOM ([117](../117-release-artifact-attestations/spec.md), amended).
 
 ## 6. Acceptance criteria
 
-- **AC-1.** `release-version-guard.sh opc` and `… axiomregent` exit `0` on the
-  committed tree (both at `0.4.0`); the fixture test passes. *(verified)*
-- **AC-2.** Both release workflows resolve `<product>` and `<version>` from a
-  prefixed tag and reject a mismatched-product tag.
+- **AC-1.** `release-version-guard.sh opc` exits `0` on the committed tree
+  (`0.4.0`); `release-version-guard.sh axiomregent` exits `2` (unknown product);
+  the fixture test passes.
+- **AC-2.** `release-desktop.yml` resolves `<product>` and `<version>` from a
+  prefixed tag and rejects a tag whose product is not `opc`.
 - **AC-3.** `release-desktop.yml` triggers on `opc-v*`; `release-tools.yml`'s
   `workflow_run` gate keys on `opc-v`.
-- **AC-4.** `release-axiomregent.yml` creates a **draft** and runs the guard
-  before creation.
-- **AC-5.** `ci-supply-chain.yml` runs the internal-consistency guard for both
-  products and the fixture test on every PR.
-- **AC-6.** Committed versions: `opc = 0.4.0` across tauri.conf.json /
-  package.json / Cargo.toml / Cargo.lock; `axiomregent = 0.4.0` across
-  Cargo.toml / Cargo.lock. *(verified under `cargo metadata --locked`)*
-- **AC-7.** Both release workflows gate the entire build/sidecar matrix on a
+- **AC-4.** No standalone axiomregent release exists: `release-axiomregent.yml`
+  is removed and no `axiomregent-v*` tag grammar remains in any workflow.
+- **AC-5.** `ci-supply-chain.yml` runs the internal-consistency guard for
+  **opc** and the fixture test on every PR (the axiomregent guard step is
+  removed).
+- **AC-6.** Committed OPC version: `opc = 0.4.0` across tauri.conf.json /
+  package.json / Cargo.toml / Cargo.lock.
+- **AC-7.** `release-desktop.yml` gates the entire build/sidecar matrix on a
   standalone `version-guard` job (committed-source check, no build output); a
   tag-vs-committed mismatch fails before any build/sidecar job starts (§5.1).
-  The in-job pre-build / pre-publish guards and the post-build SBOM guard are
-  retained as defense-in-depth.
+  The in-job pre-build guard and the post-build SBOM guard are retained as
+  defense-in-depth.
 
 ## 7. Out of scope (human-gated, deferred)
 
-- Cutting and **publishing** the `opc-v0.4.0` / `axiomregent-v0.4.0` releases.
-  This spec lands the mechanism; the first paired publish is an operator action,
-  additionally blocked until the release-publish-path investigation
+- Cutting and **publishing** the `opc-v0.4.0` release. This spec lands the
+  mechanism; the first publish is an operator action, additionally blocked until
+  the release-publish-path investigation
   (`docs/analysis/release-publish-paths-2026-06-01.md`) is resolved and the
   publish path is controlled.
-- Cleanup of the existing stale drafts (OPC `v0.3.5/6/7`) and reconciliation of
-  the already-live `axiomregent-v0.3.0/v0.3.1` — remediation, tracked
-  separately.
+- Cleanup of the existing stale OPC drafts (`v0.3.5/6/7`) — remediation, tracked
+  separately. The already-live `axiomregent-v0.3.0/v0.3.1` releases/tags remain
+  **burned names (off-limits)**; with the standalone axiomregent release retired
+  (§2; [037](../037-cross-platform-axiomregent/spec.md), amended) there is no
+  further axiomregent-release reconciliation to do — those objects are frozen as
+  historical.

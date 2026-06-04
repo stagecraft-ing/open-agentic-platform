@@ -5,6 +5,16 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-16"
+amended: "2026-06-04"
+amendment_record: |
+  Amended 2026-06-04 — axiomregent demotion fetch re-point. `make fetch-axiomregent`
+  (the Makefile recipe this spec moved off `scripts/fetch-axiomregent.js`) no longer
+  downloads from a GitHub *Release*: axiomregent has no standalone release (specs
+  037/193, amended). It now pulls the host-triple sidecar from the latest successful
+  `build-axiomregent.yml` CI run artifact (`gh run download`, non-ceremonial, 30-day
+  retention), with `make axiomregent` (build-from-source) as the offline fallback.
+  The governed-binary vs Makefile-recipe split this spec establishes is unchanged;
+  only the recipe's fetch source moved from a release channel to a CI artifact.
 kind: migration
 domain: tooling
 risk: medium

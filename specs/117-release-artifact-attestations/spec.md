@@ -9,51 +9,77 @@ created: "2026-04-28"
 kind: governance
 domain: tooling
 risk: medium
-amended: "2026-06-01"
-amendment_record: "193-paired-release-cadence"
+amended: "2026-06-04"
+amendment_record: |
+  Re-amended 2026-06-04 — axiomregent demotion. axiomregent is no longer an
+  independently released product (037, amended); release-axiomregent.yml is
+  removed. The standalone axiomregent SBOM/attestation surface this spec
+  established on that workflow is retired, and the §2 goal "the desktop installer
+  SBOM includes the bundled sidecar's contents" — previously unmet — is now BOUND
+  to the desktop flow: axiomregent's CycloneDX SBOM is generated within
+  release-desktop.yml and linked into the per-target installer SBOM via a
+  CycloneDX externalReferences BOM-Link, with the sidecar SBOM attached to the
+  same release. Because the sidecar is built at OPC's release commit
+  (build-ref == bundle-ref), single-commit provenance covers it — no build-ref→
+  bundle-ref span clause is needed. The prior amendment (193) added the
+  version-alignment gate; that is unchanged for OPC.
 depends_on:
   - "000"  # bootstrap-spec-system
-  - "037"  # cross-platform-axiomregent (release matrix precedent)
+  - "037"  # cross-platform-axiomregent (sidecar build + bundle; SBOM source)
   - "086"  # open-source-launch (release-fitness baseline)
   - "104"  # makefile-ci-parity-contract
 code_aliases: ["RELEASE_ATTESTATIONS"]
-extends:
-  - spec: "037-cross-platform-axiomregent"
-    nature: additive
-    unit: { kind: file, path: .github/workflows/release-axiomregent.yml }
 refines:
-  - aspect: "artifact-attestation"
-    unit: { kind: file, path: .github/workflows/release-axiomregent.yml }
   - aspect: "artifact-attestation"
     unit: { kind: file, path: .github/workflows/release-desktop.yml }
   - aspect: "artifact-attestation"
     unit: { kind: file, path: .github/workflows/release-tools.yml }
 summary: >
-  Every binary shipped via release-{axiomregent,desktop,tools}.yml is paired
-  with a CycloneDX SBOM and a GitHub-signed build provenance attestation.
-  SBOMs and attestations are uploaded as release assets. The desktop installer
-  SHA-256 sidecars (already present) are kept; the new attestations cover
-  the binaries themselves and document the toolchain, dependencies, and
-  build environment that produced them.
+  Every binary shipped via release-{desktop,tools}.yml is paired with a
+  CycloneDX SBOM and a GitHub-signed build provenance attestation. SBOMs and
+  attestations are uploaded as release assets. The desktop installer SHA-256
+  sidecars (already present) are kept; the attestations cover the binaries
+  themselves and document the toolchain, dependencies, and build environment
+  that produced them. The OPC installer SBOM includes the bundled axiomregent
+  sidecar's contents — generated in the desktop flow and bound via a CycloneDX
+  externalReferences BOM-Link (amended 2026-06-04, after axiomregent was demoted
+  to an internal bundled component and release-axiomregent.yml retired).
 ---
 
 # 117 — Release Artifact Attestations
 
 > **Amended by [193-paired-release-cadence](../193-paired-release-cadence/spec.md) (2026-06-01).**
-> The release-{desktop,axiomregent,tools} workflows this spec refines now run a
-> pre-publish version-consistency guard (tag == committed sources == SBOM), and
-> axiomregent publishes draft-first instead of live. The attestation contract
-> here is unchanged; spec 193 adds the version-alignment gate around it.
+> The release-{desktop,tools} workflows this spec refines now run a pre-publish
+> version-consistency guard (tag == committed sources == SBOM). The attestation
+> contract here is unchanged; spec 193 adds the version-alignment gate around it.
+>
+> **Amended 2026-06-04 — axiomregent demotion + sidecar-SBOM binding.**
+> axiomregent is demoted to an internal upstream component bundled by OPC
+> ([037](../037-cross-platform-axiomregent/spec.md), amended) and
+> `release-axiomregent.yml` is **removed**, so this spec no longer attests a
+> standalone axiomregent release. The standalone `sbom-axiomregent.cdx.json` was
+> the *only* CycloneDX coverage of the sidecar; retiring it would drop that
+> coverage. To prevent that, the §2 goal — "the desktop installer SBOM includes
+> the bundled sidecar's contents" (previously unmet) — is now **bound to the
+> desktop flow**: axiomregent's SBOM is generated inside `release-desktop.yml`
+> (the same proven generation lifted from the retired workflow) and **linked**
+> into each per-target installer SBOM via a CycloneDX `externalReferences`
+> BOM-Link, with `sbom-axiomregent.cdx.json` attached to the same release. See
+> §2 and §4.2 (amended) for the mechanism and the merge-vs-reference rationale.
+> Because the sidecar is built at OPC's release commit (build-ref == bundle-ref),
+> single-commit provenance already covers it — **build-once makes this spec
+> simpler, not harder**: no build-ref→bundle-ref span clause is required (§7,
+> amended).
 
 ## 1. Problem Statement
 
-The three release workflows ship binaries that downstream users will install
-on their own machines:
+The release workflows ship binaries that downstream users will install on their
+own machines:
 
-- `release-axiomregent.yml` — standalone MCP server binaries for four target
-  triples.
 - `release-desktop.yml` — Tauri desktop installers (DMG, AppImage, NSIS) for
-  three platforms, with sidecar binaries embedded.
+  three platforms, with the axiomregent sidecar embedded. _(Amended 2026-06-04:
+  axiomregent is bundled here only — there is no standalone axiomregent release;
+  `release-axiomregent.yml` is retired. See 037, amended.)_
 - `release-tools.yml` — five Rust CLI tools per target triple, packaged as
   archives.
 
@@ -88,7 +114,8 @@ release surface in one pass.
   attached to the same GitHub Release.
 - **Every release asset has an SBOM.** A `*.cdx.json` (CycloneDX) sibling
   per artifact lists every crate and version. For the desktop installer,
-  the SBOM includes the bundled sidecar binaries' contents.
+  the SBOM includes the bundled sidecar's contents — see **§2.1** for the
+  mechanism that binds this to the desktop flow (amended 2026-06-04).
 - **Verification is documentable.** A `docs/RELEASE-VERIFICATION.md` doc at repo
   root explains the verification flow:
   `gh attestation verify <file> --repo <repo>`.
@@ -99,20 +126,68 @@ release surface in one pass.
 - **Failure is loud.** A failed attestation step fails the release job. A
   silent skip is a regression.
 
+### 2.1 Sidecar-SBOM binding (amended 2026-06-04)
+
+**Problem.** The desktop installer SBOM (`sbom-desktop-<target>.cdx.json`) is
+generated by scanning `product/apps/opc`, whose Cargo.lock is the OPC src-tauri
+workspace lock. axiomregent lives in the **root** workspace
+(`crates/axiomregent`, root `Cargo.lock`), so its dependencies (octocrab,
+hiqlite, fastembed, …) are absent from the desktop scan. The §2 goal "the
+installer SBOM includes the bundled sidecar's contents" was therefore **unmet**
+— and was only ever *partially* compensated by the standalone
+`sbom-axiomregent.cdx.json` that `release-axiomregent.yml` produced. Demoting
+axiomregent (037, amended) removes that workflow, so without this binding the
+sidecar would have **zero** SBOM coverage.
+
+**Mechanism (chosen): generate + reference (CycloneDX BOM-Link).** Inside
+`release-desktop.yml`'s `release` job:
+
+1. **Generate** `sbom-axiomregent.cdx.json` by lifting the *exact* proven SBOM
+   generation from the retired `release-axiomregent.yml` (the steps §AC-6
+   validated to a populated component count): `cargo generate-lockfile
+   --manifest-path Cargo.toml`, then `anchore/sbom-action` (pinned ≥ v0.24.0)
+   scanning `crates`. No new SBOM-generation logic is invented — it is
+   relocated, not redesigned.
+2. **Reference** it from each `sbom-desktop-<target>.cdx.json` by adding a
+   CycloneDX `externalReferences` entry of type `bom` (a BOM-Link) pointing at
+   the sidecar SBOM. This is a first-class CycloneDX composition primitive — the
+   sanctioned way one BOM declares that it incorporates another.
+3. **Attach** `sbom-axiomregent.cdx.json` to the same release (inside the
+   existing draft-guarded upload step, spec 194) so the BOM-Link resolves and an
+   auditor has the sidecar's full component list co-located with the installer.
+
+**Why reference, not merge.** The two CycloneDX-native options are a
+`cyclonedx-cli merge` (embed the sidecar's components into the installer BOM) or
+an `externalReferences` BOM-Link (declare + co-attach). Reference is chosen
+because: (a) it is implemented with `jq`, already used across these workflows,
+so it is portable across the macOS/Linux/Windows `release` matrix with **zero
+new binary supply-chain surface** — a `cyclonedx-cli` binary download per matrix
+OS would add exactly the kind of unpinned, un-attested dependency this spec
+exists to eliminate; (b) it keeps the sidecar BOM independently verifiable
+rather than dissolving it into a flat union; (c) it restores the coverage the
+retired workflow provided (a complete, attached sidecar BOM) **and** binds it to
+the installer, closing the §2 gap. The richer embed-merge is recorded here as
+the future option if inline component enumeration in the single installer file
+becomes a hard requirement.
+
 ## 3. Scope
 
 ### In scope
 
-- `release-axiomregent.yml`: SBOM + provenance per binary in the `publish`
-  job, after artifact download, before `gh release create`.
 - `release-desktop.yml`: SBOM + provenance per installer artifact, after
   Tauri Action completes, before SHA-256 sidecar generation. Provenance is
-  per-installer file (DMG, AppImage, NSIS).
+  per-installer file (DMG, AppImage, NSIS). **Plus (amended 2026-06-04):** the
+  bundled-sidecar SBOM generation and the `externalReferences` BOM-Link binding
+  it into each installer SBOM (§2.1).
 - `release-tools.yml`: SBOM + provenance per archive (`oap-tools-*.tar.gz`,
   `oap-tools-*.zip`).
 - `docs/RELEASE-VERIFICATION.md` documenting the verification commands.
 - `ci-parity-check` allowlist update for the attestation step names so the
   parity gate doesn't flag them as missing-from-Makefile.
+
+_Removed 2026-06-04:_ `release-axiomregent.yml` SBOM + provenance — the
+standalone axiomregent release is retired (037, amended); its SBOM generation is
+relocated into `release-desktop.yml` per §2.1.
 
 ### Out of scope
 
@@ -138,13 +213,21 @@ release assets and conflicts with `gh attestation download`'s default
 `sha256:<digest>.jsonl` output naming. Per-step attestation is the
 canonical shape.
 
-### 4.1 release-axiomregent.yml (publish job)
+### 4.1 release-axiomregent.yml — RETIRED (amended 2026-06-04)
 
-After `actions/download-artifact` and before `gh release create`, insert
-SBOM generation, four per-target attestation steps, and a stage step
-that copies each step's `bundle-path` output to a per-target file in
-`dist/`. The existing `gh release create "$TAG" dist/*` then attaches
-binaries, SBOM, and per-target `*.intoto.jsonl` together.
+> **Retired.** `release-axiomregent.yml` is removed (037, amended): there is no
+> standalone axiomregent release to attest. The SBOM generation below is **not
+> deleted but relocated** — it is lifted verbatim into `release-desktop.yml` and
+> bound into the installer SBOM per **§2.1 / §4.2**. The per-target binary
+> attestations it carried are subsumed by the desktop installer attestation
+> (the sidecar binary is built and bundled in the same single-commit desktop
+> run; build-ref == bundle-ref, §7). The block below is retained as the
+> canonical record of the lifted generation step.
+
+The (former) publish job inserted, after `actions/download-artifact` and before
+`gh release create`, SBOM generation, four per-target attestation steps, and a
+stage step copying each step's `bundle-path` output to a per-target file in
+`dist/`:
 
 ```yaml
 - name: Generate SBOM (CycloneDX)
@@ -177,6 +260,13 @@ single-subject bundle whose `bundle-path` is copied to a sibling
 SBOM. The `*.sha256` updater sidecars remain untouched (regression guard
 for AC-2).
 
+**Amended 2026-06-04 — bundled-sidecar SBOM binding (§2.1).** After the
+installer SBOM is generated, the job generates the axiomregent SBOM (the lifted
+generation from §4.1) and binds it into the installer SBOM via an
+`externalReferences` BOM-Link, then attaches `sbom-axiomregent.cdx.json` to the
+release inside the existing draft-guarded upload step (spec 194). The bind is a
+`jq` edit — portable across the macOS/Linux/Windows matrix, no new binary tool.
+
 ```yaml
 - name: Generate installer SBOM
   uses: anchore/sbom-action@<pinned-sha>
@@ -184,6 +274,26 @@ for AC-2).
     path: product/apps/opc
     format: cyclonedx-json
     output-file: product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
+
+# amended 2026-06-04 — bundled-sidecar SBOM (lifted from retired release-axiomregent.yml §4.1)
+- name: Generate workspace Cargo.lock for sidecar SBOM scan
+  run: cargo generate-lockfile --manifest-path Cargo.toml
+- name: Generate axiomregent sidecar SBOM (CycloneDX)
+  uses: anchore/sbom-action@<pinned-sha>  # v0.24.0+
+  with:
+    path: crates
+    format: cyclonedx-json
+    output-file: product/apps/opc/src-tauri/target/sbom-axiomregent.cdx.json
+# Bind via CycloneDX externalReferences BOM-Link (jq — matrix-portable, no new binary)
+- name: Generate installer SBOM bundled-sidecar reference (CycloneDX BOM-Link)
+  shell: bash
+  run: |
+    sbom="product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json"
+    jq '.externalReferences = ((.externalReferences // []) + [{
+          "type": "bom",
+          "url": "sbom-axiomregent.cdx.json",
+          "comment": "Bundled axiomregent sidecar SBOM (CycloneDX BOM-Link; spec 117 §2.1)"
+        }])' "$sbom" > "$sbom.tmp" && mv "$sbom.tmp" "$sbom"
 
 - name: Attest installer provenance
   id: attest-installer
@@ -239,11 +349,14 @@ A standalone markdown doc at repo root, linked from README.md and from the
 release notes template, documents:
 
 ```bash
-# Verify provenance
-gh attestation verify path/to/axiomregent-aarch64-apple-darwin \
+# Verify provenance (desktop installer — the single attested release subject)
+gh attestation verify path/to/opc_<version>_aarch64.dmg \
   --repo stagecraft-ing/open-agentic-platform
 
-# Inspect SBOM
+# Inspect the installer SBOM, then the bundled-sidecar SBOM it BOM-Links to
+jq '.components | length' sbom-desktop-aarch64-apple-darwin.cdx.json
+jq -r '.externalReferences[] | select(.type=="bom") | .url' \
+  sbom-desktop-aarch64-apple-darwin.cdx.json   # -> sbom-axiomregent.cdx.json
 jq '.components | length' sbom-axiomregent.cdx.json
 ```
 
@@ -252,13 +365,17 @@ the Sigstore Rekor log).
 
 ## 6. Acceptance Criteria
 
-- **AC-1:** A push of `axiomregent-v0.0.1` (or `workflow_dispatch`)
-  produces a GitHub Release with: per-target binaries, per-target
-  `*.intoto.jsonl` attestations, and a `sbom-axiomregent.cdx.json`.
-- **AC-2:** A push of `v0.0.1` produces a GitHub Release with: three
-  desktop installers, three matching `*.intoto.jsonl` files, three
-  per-target SBOMs, AND the existing `*.sha256` sidecars (regression
-  guard — the new flow does not displace the updater integrity hashes).
+- **AC-1 (amended 2026-06-04):** There is no standalone axiomregent release.
+  `release-axiomregent.yml` is removed and no `axiomregent-v*` tag produces a
+  release. The sidecar's SBOM coverage is preserved via the desktop binding
+  (AC-2, §2.1) and its provenance via the single-commit desktop attestation
+  (build-ref == bundle-ref, §7).
+- **AC-2 (amended 2026-06-04):** A push of `opc-v<semver>` produces a GitHub
+  Release with: the desktop installers, matching `*.intoto.jsonl` files,
+  per-target installer SBOMs, the existing `*.sha256` sidecars (regression
+  guard — the new flow does not displace the updater integrity hashes), AND a
+  `sbom-axiomregent.cdx.json` that each installer SBOM references via a CycloneDX
+  `externalReferences` BOM-Link (§2.1).
 - **AC-3:** `release-tools.yml` follow-up run produces a `sbom-tools.cdx.json`
   and per-archive attestations, attached to the same release as `release-desktop`
   (sequencing is handled in spec H Phase 3.2 / M8 of the parent plan).
@@ -323,6 +440,17 @@ the Sigstore Rekor log).
   verify` cannot validate.
   **Mitigation:** docs/RELEASE-VERIFICATION.md documents both `gh` and direct
   `cosign verify-blob` paths. The `gh` requirement is `>= 2.50`.
+
+- **Non-risk (amended 2026-06-04) — single-commit provenance for the bundled
+  sidecar.** Because axiomregent is built from OPC's own release commit inside
+  `release-desktop.yml` and bundled in the same run, **build-ref == bundle-ref**:
+  the commit that produced the sidecar binary is the commit that produced the
+  installer. The desktop installer attestation therefore already binds the
+  sidecar's provenance to a single commit — no build-ref→bundle-ref *span* clause
+  (which a separately-released-then-bundled component would require) is needed.
+  Build-once makes this spec **simpler, not harder**: one provenance subject
+  (the installer), one commit, one attestation per installer; the retired
+  standalone per-binary axiomregent attestations are subsumed, not lost.
 
 ## 8. Sequencing With M8 (release-tools workflow_run trigger)
 

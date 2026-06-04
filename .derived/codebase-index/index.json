@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "2f00d3626d090e9bb6170e22f75d6ab26ba656bc00b0993210df5b5dcaaba443",
+    "contentHash": "bcde1b2b3b8a831167e3e51e46e8cc2de21c6586cc2fa64d4964b4a2f5d93c29",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -9130,7 +9130,6 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "193-paired-release-cadence",
         "implementingPaths": [
           {
             "path": "crates/axiomregent",
@@ -19001,8 +19000,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 436,
-                  "startLine": 161
+                  "endLine": 446,
+                  "startLine": 171
                 }
               }
             ],
@@ -19250,8 +19249,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 672,
-                  "startLine": 668
+                  "endLine": 682,
+                  "startLine": 678
                 }
               }
             ],
@@ -19362,7 +19361,7 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 160,
+                  "endLine": 170,
                   "startLine": 94
                 }
               }
@@ -21388,8 +21387,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 667,
-                  "startLine": 621
+                  "endLine": 677,
+                  "startLine": 631
                 }
               }
             ],
@@ -21434,7 +21433,6 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "193-paired-release-cadence",
         "dependsOn": [
           "000",
           "037",
@@ -21442,10 +21440,6 @@
           "104"
         ],
         "implementingPaths": [
-          {
-            "path": ".github/workflows/release-axiomregent.yml",
-            "source": "spec-implements"
-          },
           {
             "path": ".github/workflows/release-desktop.yml",
             "source": "spec-implements"
@@ -21456,34 +21450,6 @@
           }
         ],
         "resolvedUnits": [
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": ".github/workflows/release-axiomregent.yml"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
-              "path": ".github/workflows/release-axiomregent.yml"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": ".github/workflows/release-axiomregent.yml"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "refines",
-            "unit": {
-              "kind": "file",
-              "path": ".github/workflows/release-axiomregent.yml"
-            }
-          },
           {
             "kind": "file",
             "locations": [
@@ -21734,9 +21700,6 @@
               },
               {
                 "file": ".github/workflows/opc-e2e-nightly.yml"
-              },
-              {
-                "file": ".github/workflows/release-axiomregent.yml"
               },
               {
                 "file": ".github/workflows/release-desktop.yml"
@@ -25008,8 +24971,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 620,
-                  "startLine": 598
+                  "endLine": 630,
+                  "startLine": 608
                 }
               }
             ],
@@ -25102,8 +25065,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 597,
-                  "startLine": 498
+                  "endLine": 607,
+                  "startLine": 508
                 }
               }
             ],
@@ -25668,8 +25631,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 713,
-                  "startLine": 673
+                  "endLine": 723,
+                  "startLine": 683
                 }
               }
             ],
@@ -25751,8 +25714,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 942,
-                  "startLine": 714
+                  "endLine": 952,
+                  "startLine": 724
                 }
               }
             ],
@@ -31285,8 +31248,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 436,
-                  "startLine": 161
+                  "endLine": 446,
+                  "startLine": 171
                 }
               }
             ],
@@ -42671,8 +42634,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 497,
-                  "startLine": 437
+                  "endLine": 507,
+                  "startLine": 447
                 }
               }
             ],
@@ -43339,19 +43302,11 @@
             "source": "spec-implements"
           },
           {
-            "path": ".github/workflows/release-axiomregent.yml",
-            "source": "spec-implements"
-          },
-          {
             "path": ".github/workflows/release-desktop.yml",
             "source": "spec-implements"
           },
           {
             "path": ".github/workflows/release-tools.yml",
-            "source": "spec-implements"
-          },
-          {
-            "path": "crates/axiomregent/Cargo.toml",
             "source": "spec-implements"
           },
           {
@@ -43440,20 +43395,6 @@
             "kind": "file",
             "locations": [
               {
-                "file": ".github/workflows/release-axiomregent.yml"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "refines",
-            "unit": {
-              "kind": "file",
-              "path": ".github/workflows/release-axiomregent.yml"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
                 "file": ".github/workflows/release-desktop.yml"
               }
             ],
@@ -43476,20 +43417,6 @@
             "unit": {
               "kind": "file",
               "path": ".github/workflows/release-tools.yml"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "crates/axiomregent/Cargo.toml"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "refines",
-            "unit": {
-              "kind": "file",
-              "path": "crates/axiomregent/Cargo.toml"
             }
           },
           {
