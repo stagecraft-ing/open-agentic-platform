@@ -144,17 +144,15 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      # spec 193 — assert each product's committed version sources agree with
-      # one another (tauri.conf.json / package.json / Cargo.toml / Cargo.lock
-      # for opc; Cargo.toml / Cargo.lock for axiomregent). Catches a half-done
-      # bump on a PR before it can reach a release tag. The release workflows
-      # run this same guard with the resolved tag as the expected version — the
+      # spec 193 — assert OPC's committed version sources agree with one another
+      # (tauri.conf.json / package.json / Cargo.toml / Cargo.lock). Catches a
+      # half-done bump on a PR before it can reach a release tag. release-desktop.yml
+      # runs this same guard with the resolved tag as the expected version — the
       # "gh release verify" gate wired into the supply-chain lane.
+      # (Amended 2026-06-04: the axiomregent guard step is removed — axiomregent is
+      # a bundled sidecar with no product version; spec 037/193, amended.)
       - name: Guard opc version sources
         run: tools/lint/release-version-guard.sh opc
-
-      - name: Guard axiomregent version sources
-        run: tools/lint/release-version-guard.sh axiomregent
 
       - name: Run release-version-guard regression tests (fixtures)
         run: tools/lint/release-version-guard-test.sh

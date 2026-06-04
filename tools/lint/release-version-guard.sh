@@ -22,7 +22,9 @@
 #   release-version-guard.sh <product> <expected-version> <sbom.cdx.json>
 #                                                            ... and the SBOM too
 #
-#   <product> ∈ { opc, axiomregent }
+#   <product> ∈ { opc }   (axiomregent's arm was dropped 2026-06-04 — it is an
+#                          internal bundled sidecar with no product version;
+#                          spec 037/193, amended)
 #
 # Exit codes:
 #   0  all sources agree (and equal <expected-version> when given)
@@ -40,7 +42,7 @@ EXPECTED="${2:-}"
 SBOM="${3:-}"
 
 if [ -z "$PRODUCT" ]; then
-  echo "usage: release-version-guard.sh <opc|axiomregent> [expected-version] [sbom.cdx.json]" >&2
+  echo "usage: release-version-guard.sh <opc> [expected-version] [sbom.cdx.json]" >&2
   exit 2
 fi
 
@@ -65,13 +67,13 @@ case "$PRODUCT" in
     add "Cargo.lock"      "$(cargo_lock_version "$base/src-tauri/Cargo.lock" opc)"
     COMPONENT="opc"
     ;;
-  axiomregent)
-    add "Cargo.toml"      "$(cargo_toml_version crates/axiomregent/Cargo.toml)"
-    add "Cargo.lock"      "$(cargo_lock_version Cargo.lock axiomregent)"
-    COMPONENT="axiomregent"
-    ;;
+  # spec 037/193 (amended 2026-06-04): the axiomregent arm is dropped. axiomregent
+  # is an internal sidecar bundled by OPC, not an independently released product —
+  # it has no product version to assert. Its commit-pin (build-ref == bundle-ref)
+  # is structurally guaranteed by release-desktop.yml building it from the same
+  # checkout. 'axiomregent' is now an unknown product → exit 2.
   *)
-    echo "::error::unknown product '$PRODUCT' (expected opc|axiomregent)" >&2
+    echo "::error::unknown product '$PRODUCT' (expected: opc). axiomregent is a bundled sidecar with no standalone version (spec 037/193, amended)." >&2
     exit 2
     ;;
 esac

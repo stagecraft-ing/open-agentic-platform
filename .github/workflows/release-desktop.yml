@@ -189,9 +189,47 @@ jobs:
           path: product/apps/opc/src-tauri/binaries/
           retention-days: 5
 
+  # ── Stage 1c: Bundled-sidecar SBOM (generated ONCE) ────────────────
+  # spec 117 §2.1 — axiomregent lives in the ROOT workspace (crates/axiomregent),
+  # whose deps (octocrab/hiqlite/fastembed) are absent from the product/apps/opc
+  # desktop scan. Generate its CycloneDX SBOM exactly ONCE here (lifted from the
+  # retired release-axiomregent.yml: generate-lockfile at root + scan crates/), so
+  # the sidecar SBOM — and its serialNumber / BOM-Link URN — are byte-identical
+  # across the three release matrix legs. Each leg downloads THIS artifact and
+  # BOM-Links it into its per-target installer SBOM (no per-leg regeneration →
+  # deterministic, and ~2× cross-compiles of syft work saved).
+  axiomregent-sbom:
+    needs: [version-guard]
+    runs-on: ubuntu-latest
+    name: axiomregent sidecar SBOM
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # pinned for rust-toolchain.toml lockstep
+        with:
+          toolchain: '1.95.0'
+
+      - name: Generate workspace Cargo.lock for sidecar SBOM scan
+        run: cargo generate-lockfile --manifest-path Cargo.toml
+
+      - name: Generate axiomregent sidecar SBOM (CycloneDX)
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0 (ships syft 1.30+; v0.17.8's syft 1.11 returned 0 rust components)
+        with:
+          path: crates
+          format: cyclonedx-json
+          output-file: sbom-axiomregent.cdx.json
+
+      - name: Upload sidecar SBOM artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sbom-axiomregent
+          path: sbom-axiomregent.cdx.json
+          retention-days: 5
+
   # ── Stage 2: Build & release desktop app ───────────────────────────
   release:
-    needs: [version-guard, sidecar, sidecar-linux-arm64]
+    needs: [version-guard, sidecar, sidecar-linux-arm64, axiomregent-sbom]
     strategy:
       fail-fast: false
       matrix:
@@ -417,6 +455,36 @@ jobs:
           format: cyclonedx-json
           output-file: product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
 
+      # spec 117 §2.1 — bundled-sidecar SBOM. axiomregent lives in the ROOT
+      # workspace (crates/axiomregent), whose deps (octocrab/hiqlite/fastembed)
+      # are absent from the product/apps/opc scan above. The SBOM is generated
+      # ONCE in the axiomregent-sbom job; download that single artifact here and
+      # BOM-Link it into this target's installer SBOM. One source → identical
+      # bytes/serialNumber across all three legs (no per-leg syft regeneration,
+      # no non-deterministic --clobber race).
+      - name: Download bundled-sidecar SBOM
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: sbom-axiomregent
+          path: product/apps/opc/src-tauri/target/
+      # url is a conformant CycloneDX BOM-Link URN (urn:cdx:<serialNumber>/<version>)
+      # derived from the sidecar SBOM; the file is co-attached to the release below
+      # so the link is human-resolvable too. jq-only → matrix-portable, no new binary.
+      - name: Generate installer SBOM bundled-sidecar BOM-Link (CycloneDX)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sbom="product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json"
+          side="product/apps/opc/src-tauri/target/sbom-axiomregent.cdx.json"
+          sn="$(jq -r '.serialNumber // empty' "$side" | sed 's#^urn:uuid:##')"
+          ver="$(jq -r '.version // 1' "$side")"
+          if [ -n "$sn" ]; then link="urn:cdx:$sn/$ver"; else link="sbom-axiomregent.cdx.json"; fi
+          jq --arg link "$link" '.externalReferences = ((.externalReferences // []) + [{
+                "type": "bom",
+                "url": $link,
+                "comment": "Bundled axiomregent sidecar SBOM (CycloneDX BOM-Link; co-attached as sbom-axiomregent.cdx.json; spec 117 §2.1)"
+              }])' "$sbom" > "$sbom.tmp" && mv "$sbom.tmp" "$sbom"
+
       # spec 193 — post-build SBOM assertion. tauri-action has created the
       # draft by now; verify the generated SBOM's `opc` component version
       # equals the tag. On mismatch, discard the draft AND its tag so no
@@ -509,6 +577,10 @@ jobs:
           gh release upload "$TAG" \
             "product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json" \
             --clobber --repo "$GITHUB_REPOSITORY"
+          # spec 117 §2.1 — the bundled-sidecar SBOM itself is attached ONCE by the
+          # post-matrix attach-sidecar-sbom job (not here): uploading it per-leg would
+          # be either redundant (all legs) or fragile (one leg). Each installer SBOM
+          # above already references it via the urn:cdx: BOM-Link regardless.
           while IFS= read -r att; do
             [ -z "$att" ] && continue
             gh release upload "$TAG" "$att" --clobber --repo "$GITHUB_REPOSITORY"
@@ -567,3 +639,66 @@ jobs:
             echo "::error::No installer artifact found under $target_root — updater sidecars cannot be generated."
             exit 1
           fi
+
+  # ── Stage 3: Attach the bundled-sidecar SBOM ONCE (post-matrix) ─────
+  # spec 117 §2.1 — the byte-identical sbom-axiomregent.cdx.json (generated once in
+  # the axiomregent-sbom job, and BOM-Linked into every per-target installer SBOM)
+  # is attached to the draft release exactly once here, after the matrix. This
+  # avoids both the redundant per-leg --clobber re-upload and the fragility of
+  # gating the upload to a single matrix leg (a leg failure would silently drop the
+  # asset). `needs: [release]` ⇒ runs only when the full matrix succeeded — i.e.
+  # exactly when the draft is complete and publishable.
+  attach-sidecar-sbom:
+    needs: [release]
+    runs-on: ubuntu-latest
+    name: attach bundled-sidecar SBOM
+    permissions:
+      contents: write
+    steps:
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          PRODUCT="${TAG%-v*}"
+          if [ "$PRODUCT" != "opc" ]; then
+            echo "::error::Release Desktop expects an 'opc-v<semver>' tag; got '$TAG'."
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Download bundled-sidecar SBOM
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: sbom-axiomregent
+          path: dist/
+
+      - name: Upload bundled-sidecar SBOM to release (draft-guarded)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # spec 194 — publish-boundary guard. Three states, three messages:
+          # gh-lookup-failed / published / draft. Check gh's exit code FIRST so a
+          # gone/auth failure is not mislabeled "published"; gh's stderr surfaces
+          # in the log (no 2>/dev/null). --repo is REQUIRED here: this job has no
+          # checkout, so gh cannot infer the repo from a cwd git remote (the exact
+          # omission spec 194's 2026-06-02 amendment fixed in release-tools.yml).
+          if state="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft -q .isDraft)"; then :; else
+            rc=$?
+            echo "::error::publish-boundary (spec 194): 'gh release view $TAG' failed (exit $rc; see gh error above) — failing closed, not uploading the sidecar SBOM. Release may be gone or gh failed to authenticate; resolve manually."
+            exit 1
+          fi
+          if [ "$state" != "true" ]; then
+            echo "::error::publish-boundary (spec 194): release '$TAG' is published (isDraft='$state') — refusing to upload the sidecar SBOM. Automation mutates drafts only; attach to a published release manually."
+            exit 1
+          fi
+          gh release upload "$TAG" dist/sbom-axiomregent.cdx.json \
+            --clobber --repo "$GITHUB_REPOSITORY"

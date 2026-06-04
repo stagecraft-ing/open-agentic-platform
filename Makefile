@@ -93,9 +93,9 @@ register-merge-driver:
 # ============================================================
 ## tag: axiomregent-build
 
-# Default repo for `gh release download`. Auto-detected from the local
-# git remote when possible; otherwise falls back to the canonical path so
-# fresh clones from a fork still resolve to the upstream releases.
+# Default repo for `gh run download`. Auto-detected from the local git remote
+# when possible; otherwise falls back to the canonical path so fresh clones from
+# a fork still resolve to the upstream CI build artifacts.
 AXIOMREGENT_REPO   ?= $(shell git config --get remote.origin.url 2>/dev/null | sed -E 's,.*github.com[:/](.+)\.git,\1,' | sed -E 's,.*github.com[:/](.+)$$,\1,' | head -1)
 ifeq ($(AXIOMREGENT_REPO),)
 AXIOMREGENT_REPO   := stagecraft-ing/open-agentic-platform
@@ -131,18 +131,40 @@ axiomregent-all:
 	   echo "    -> $$DST"; \
 	 done
 
-## Fetch pre-built axiomregent sidecar for the host triple from a GitHub Release.
-## Replaces scripts/fetch-axiomregent.js (spec 105 Phase 2).
+## Fetch the pre-built axiomregent sidecar for the host triple from the latest
+## successful build-axiomregent.yml CI run (a non-ceremonial per-commit artifact,
+## 30-day retention) — NOT a release. axiomregent has no standalone release; it is
+## an internal sidecar bundled by OPC (specs 037/193/105, amended). Replaces the
+## former `gh release download` path (spec 105 Phase 2; re-pointed after the demotion).
+##
+## TRUST NOTE: this pulls a per-commit CI artifact (produced on every push to main),
+## NOT an attested/human-gated release asset, and it is NOT attestation-verified.
+## For a zero-trust-delegation sidecar built from your own checkout — and the
+## offline / no-CI fallback — use `make axiomregent` (build from source).
 fetch-axiomregent:
-	@command -v gh >/dev/null 2>&1 || { echo "  MISSING: gh — brew install gh, then run: gh auth login"; exit 1; }
+	@command -v gh >/dev/null 2>&1 || { echo "  MISSING: gh — brew install gh, then run: gh auth login. Or build from source: make axiomregent"; exit 1; }
 	@HOST=$$(rustc -vV | grep '^host:' | awk '{print $$2}'); \
 	 EXT=""; case "$$HOST" in *windows*) EXT=".exe";; esac; \
+	 ART="axiomregent-$$HOST$$EXT"; \
 	 mkdir -p $(AXIOMREGENT_BINDIR); \
-	 echo "==> fetch-axiomregent: $$HOST"; \
-	 gh release download --repo $(AXIOMREGENT_REPO) \
-	    --pattern "axiomregent-$$HOST$$EXT" \
-	    --dir $(AXIOMREGENT_BINDIR) \
-	    --skip-existing
+	 echo "==> fetch-axiomregent: $$HOST (latest build-axiomregent.yml artifact)"; \
+	 RUN_ID=$$(gh run list --repo $(AXIOMREGENT_REPO) --workflow build-axiomregent.yml \
+	    --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId'); \
+	 if [ -z "$$RUN_ID" ] || [ "$$RUN_ID" = "null" ]; then \
+	   echo "  no successful build-axiomregent.yml run found on main — build from source: make axiomregent"; \
+	   exit 1; \
+	 fi; \
+	 echo "  WARNING: fetching an UNATTESTED per-commit CI artifact (run $$RUN_ID), not a verified release."; \
+	 echo "           For a verified, build-from-your-checkout sidecar: make axiomregent"; \
+	 TMP=$$(mktemp -d); \
+	 gh run download "$$RUN_ID" --repo $(AXIOMREGENT_REPO) --name "$$ART" --dir "$$TMP" \
+	   || { rm -rf "$$TMP"; echo "  download failed — build from source: make axiomregent"; exit 1; }; \
+	 SRC=$$(find "$$TMP" -type f -name "$$ART" | head -1); \
+	 if [ -z "$$SRC" ]; then rm -rf "$$TMP"; echo "  artifact contained no $$ART — build from source: make axiomregent"; exit 1; fi; \
+	 mv "$$SRC" "$(AXIOMREGENT_BINDIR)/$$ART"; \
+	 rm -rf "$$TMP"; \
+	 case "$$HOST" in *windows*) ;; *) chmod +x "$(AXIOMREGENT_BINDIR)/$$ART" 2>/dev/null || true;; esac; \
+	 echo "    -> $(AXIOMREGENT_BINDIR)/$$ART"
 
 ## Idempotent variant: skip fetch if the sidecar is already present for the host triple.
 fetch-axiomregent-check:
@@ -934,7 +956,7 @@ help:
 	@echo "Sidecar:"
 	@echo "  make axiomregent             Build axiomregent sidecar for host triple"
 	@echo "  make axiomregent-all         Build for every target and install into sidecar dir"
-	@echo "  make fetch-axiomregent       Download pre-built sidecar from GitHub Release (gh CLI)"
+	@echo "  make fetch-axiomregent       Download pre-built sidecar from latest CI build artifact (gh CLI)"
 	@echo "  make fetch-axiomregent-check Fetch only if sidecar is missing"
 	@echo ""
 	@echo "Other:"
