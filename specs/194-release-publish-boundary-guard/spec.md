@@ -27,8 +27,15 @@ extends:
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
-amended: "2026-06-02"
+amended: "2026-06-04"
 amendment_record: |
+  Amended 2026-06-04 — new guarded mutation site. The axiomregent demotion
+  (spec 117 §2.1, amended) adds a post-matrix `attach-sidecar-sbom` job to
+  release-desktop.yml that `gh release upload`s the bundled-sidecar SBOM once.
+  Per this spec's invariant, that new upload carries the same fail-closed
+  three-state draft assertion before the mutation; §4's table gains the row.
+  The invariant and mechanism are unchanged — only the set of guarded sites grew.
+
   self-amends (2026-06-02) — §3 mechanism correction. The
   `release-tools.yml` precondition `gh release view "$TAG" --json isDraft`
   was missing the `--repo "$GITHUB_REPOSITORY"` pin that the sibling
@@ -166,6 +173,7 @@ the step errors and leaves the published release intact for manual handling.
 | `release-desktop.yml` → post-build SBOM guard (`gh release delete --cleanup-tag`) | delete release + tag | delete only if draft; else error, leave published release |
 | `release-desktop.yml` → Upload SBOM and attestations (`gh release upload`) | upload assets | assert draft before upload |
 | `release-desktop.yml` → Generate SHA-256 sidecars (`gh release upload`) | upload assets | assert draft before upload |
+| `release-desktop.yml` → attach-sidecar-sbom job (`gh release upload`) | upload asset (sidecar SBOM) | assert draft before upload |
 | `release-tools.yml` → Upload tool archives + SBOM + attestations (`gh release upload`) | upload assets | assert draft before upload |
 
 `release-axiomregent.yml` and `ai-changelog.yml`: **unchanged** (§1).

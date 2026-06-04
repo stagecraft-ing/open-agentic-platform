@@ -165,11 +165,14 @@ sidecar would have **zero** SBOM coverage.
    resolution. (If the sidecar SBOM lacks a `serialNumber`, the bind falls back
    to the relative filename — a still-valid `iri-reference` external reference,
    just not a formal URN.)
-3. **Attach** `sbom-axiomregent.cdx.json` to the same release **once** — from a
-   single matrix leg, inside the existing draft-guarded upload step (spec 194) —
-   so the BOM-Link resolves and an auditor has the sidecar's full component list
-   co-located with the installer. Uploading from one leg (the file is byte-
-   identical across all legs) avoids a redundant per-leg `--clobber` re-upload.
+3. **Attach** `sbom-axiomregent.cdx.json` to the same release **once**, in a
+   dedicated post-matrix `attach-sidecar-sbom` job (`needs: [release]`) under the
+   spec-194 draft guard, so the BOM-Link resolves and an auditor has the sidecar's
+   full component list co-located with the installer. A post-matrix job attaches
+   it exactly once **and** robustly — not redundantly from every leg (3× identical
+   `--clobber`), and not fragilely from a single leg whose failure would silently
+   drop the asset. It runs only when the full matrix succeeded (i.e. the draft is
+   complete and publishable).
 
 **Why reference, not merge.** The two CycloneDX-native options are a
 `cyclonedx-cli merge` (embed the sidecar's components into the installer BOM) or

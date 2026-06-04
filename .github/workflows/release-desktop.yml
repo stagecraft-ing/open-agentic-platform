@@ -577,16 +577,10 @@ jobs:
           gh release upload "$TAG" \
             "product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json" \
             --clobber --repo "$GITHUB_REPOSITORY"
-          # spec 117 §2.1 — co-attach the bundled-sidecar SBOM the installer SBOM
-          # BOM-Links to. Upload ONCE (from a single leg): the file is byte-identical
-          # across all three legs (generated once in axiomregent-sbom), so a per-leg
-          # --clobber re-upload would be redundant. Every leg's installer SBOM still
-          # references it via the urn:cdx: BOM-Link regardless of which leg attaches it.
-          if [ "${{ matrix.target }}" = "x86_64-unknown-linux-gnu" ]; then
-            gh release upload "$TAG" \
-              "product/apps/opc/src-tauri/target/sbom-axiomregent.cdx.json" \
-              --clobber --repo "$GITHUB_REPOSITORY"
-          fi
+          # spec 117 §2.1 — the bundled-sidecar SBOM itself is attached ONCE by the
+          # post-matrix attach-sidecar-sbom job (not here): uploading it per-leg would
+          # be either redundant (all legs) or fragile (one leg). Each installer SBOM
+          # above already references it via the urn:cdx: BOM-Link regardless.
           while IFS= read -r att; do
             [ -z "$att" ] && continue
             gh release upload "$TAG" "$att" --clobber --repo "$GITHUB_REPOSITORY"
@@ -645,3 +639,64 @@ jobs:
             echo "::error::No installer artifact found under $target_root — updater sidecars cannot be generated."
             exit 1
           fi
+
+  # ── Stage 3: Attach the bundled-sidecar SBOM ONCE (post-matrix) ─────
+  # spec 117 §2.1 — the byte-identical sbom-axiomregent.cdx.json (generated once in
+  # the axiomregent-sbom job, and BOM-Linked into every per-target installer SBOM)
+  # is attached to the draft release exactly once here, after the matrix. This
+  # avoids both the redundant per-leg --clobber re-upload and the fragility of
+  # gating the upload to a single matrix leg (a leg failure would silently drop the
+  # asset). `needs: [release]` ⇒ runs only when the full matrix succeeded — i.e.
+  # exactly when the draft is complete and publishable.
+  attach-sidecar-sbom:
+    needs: [release]
+    runs-on: ubuntu-latest
+    name: attach bundled-sidecar SBOM
+    permissions:
+      contents: write
+    steps:
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          PRODUCT="${TAG%-v*}"
+          if [ "$PRODUCT" != "opc" ]; then
+            echo "::error::Release Desktop expects an 'opc-v<semver>' tag; got '$TAG'."
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Download bundled-sidecar SBOM
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: sbom-axiomregent
+          path: dist/
+
+      - name: Upload bundled-sidecar SBOM to release (draft-guarded)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # spec 194 — publish-boundary guard. Three states, three messages:
+          # gh-lookup-failed / published / draft. Check gh's exit code FIRST so a
+          # gone/auth failure is not mislabeled "published"; gh's stderr surfaces
+          # in the log (no 2>/dev/null).
+          if state="$(gh release view "$TAG" --json isDraft -q .isDraft)"; then :; else
+            rc=$?
+            echo "::error::publish-boundary (spec 194): 'gh release view $TAG' failed (exit $rc; see gh error above) — failing closed, not uploading the sidecar SBOM. Release may be gone or gh failed to authenticate; resolve manually."
+            exit 1
+          fi
+          if [ "$state" != "true" ]; then
+            echo "::error::publish-boundary (spec 194): release '$TAG' is published (isDraft='$state') — refusing to upload the sidecar SBOM. Automation mutates drafts only; attach to a published release manually."
+            exit 1
+          fi
+          gh release upload "$TAG" dist/sbom-axiomregent.cdx.json \
+            --clobber --repo "$GITHUB_REPOSITORY"
