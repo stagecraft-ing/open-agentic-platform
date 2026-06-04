@@ -217,9 +217,11 @@ group user lands as Admin. No local Grafana passwords.
   Admin/Editor/Viewer. Grafana MUST be **OIDC-only** such that **no known or
   default credential reaches the admin API**: `auth.disable_login_form: true`
   hides the form but is insufficient alone — the built-in `admin` stays reachable
-  via Basic-auth to `/api/*`. Closing it requires *also* disabling or randomizing
-  the default admin (no known password) **and** `oauth_auto_login: true` (no
-  login surface). 196 therefore touches **no** stagecraft code — and the seeder
+  via Basic-auth to `/api/*`. The definitive closure is **`auth.basic_enabled:
+  false`** (disables the `Authorization: Basic` API path entirely); with that
+  plus `disable_login_form`, a disabled/randomized default admin, and
+  `oauth_auto_login: true`, these four knobs leave **no** non-OIDC auth path.
+  196 therefore touches **no** stagecraft code — and the seeder
   not at all; its only identity relationship is the runtime `depends_on: 106`
   (Relationships §).
 
@@ -323,9 +325,9 @@ group user lands as Admin. No local Grafana passwords.
   ingress-nginx is queryable post-deploy — the previously-unconsumed
   annotations are now consumed (scrape path works).
 - **SC-003:** a Rauthy "viewer"-group user lands in Grafana as Viewer and an
-  "admin"-group user as Admin (OIDC role mapping works); **and** Grafana's
-  built-in admin API is **unreachable with any known/default credential** (not
-  merely the HTML login form hidden) — proving OIDC is the only auth path (FR-004).
+  "admin"-group user as Admin (OIDC role mapping works); **and** Basic Auth is
+  disabled (`auth.basic_enabled: false`) so **no credential authenticates outside
+  OIDC** — not merely the form hidden or the default password rotated (FR-004).
 - **SC-004:** `git diff` for the implementing branch shows **zero** changes
   under `platform/services/stagecraft/api/**` — the stagecraft-side change is
   confined to its `infra.config` metrics block (proves FR-011).
