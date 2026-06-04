@@ -147,26 +147,22 @@ criterion = "0.8"
 name = "usage_scan"
 harness = false
 
+# Aligned to cargo release defaults (opt-level=3, lto=false, codegen-units=16,
+# panic="unwind") so OPC's shared-crate fingerprints match the ROOT workspace's
+# default profile — this unlocks shared-target reuse of the ~555 crates OPC and
+# axiomregent both build (spec 180 §"Profile alignment for build reuse"). The
+# size knobs (opt-level="z", lto=true, codegen-units=1) were removed:
+# reuse/CI-speed > size, since Tauri v2's lean baseline makes them not worth
+# their build cost. panic="unwind" is a BEHAVIORAL choice, not size — OPC has no
+# abort dependence and unwind is more resilient (a panicking command unwinds to
+# a JoinError at the tokio boundary instead of aborting the app). Do NOT re-add
+# the size knobs or panic="abort": each diverges the fingerprint and kills reuse.
+# `strip` is link-only (final binary only) — it does NOT key dependency-rlib
+# reuse, so it stays for a tidy binary.
 [profile.release]
 strip = true
-opt-level = "z"
-lto = true
-codegen-units = 1
-panic = "abort"
 
-# Spec 180 FR-T8 — decouple the bench profile from release's `panic = "abort"`
-# + whole-program LTO. The cross-workspace path deps (orchestrator,
-# factory-engine, …) otherwise hit panic-strategy rlib mismatches
-# ("can't find crate for `orchestrator`"): Cargo forces the bench *binary* to
-# unwind but, without an explicit `panic` here, compiles the dep graph with the
-# inherited `abort`. `panic = "unwind"` IS load-bearing (verified: removing it
-# reintroduces the failure) even though Cargo prints "`panic` setting is
-# ignored for `bench` profile" — that note is about the bench target itself, not
-# its deps. `lto = false` + `opt-level = 3` keep the build representative but
-# buildable. The Tier 2 gate is relative-regression only (FR-T10), so full
-# release codegen is unnecessary.
-[profile.bench]
-panic = "unwind"
-opt-level = 3
-lto = false
-codegen-units = 16
+# [profile.bench] removed (spec 180 completion): its sole purpose was decoupling
+# benches from release's `panic = "abort"` + whole-program LTO. With release now
+# at unwind + defaults, bench inherits the correct strategy and the carve-out is
+# redundant. FR-T8 (bench-presence for fs-scanning handlers) is UNCHANGED.
