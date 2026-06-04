@@ -69,7 +69,7 @@ SC-003 forbids a local Grafana password, so Grafana cannot come up before its
 OIDC client exists.
 - **Manual step (operator):** create the `grafana` OIDC client in the Rauthy admin UI (redirect `https://grafana.<DOMAIN>/login/generic_oauth`, `authorization_code`), capture `GRAFANA_OIDC_CLIENT_ID`/`_SECRET` into the env/secret set (the implementation PR adds these as `[manual]` stub entries in `platform/infra/hetzner/.env.example`, alongside the existing `OIDC_*`/`RAUTHY_CLIENT_*` placeholders), re-run `setup.sh` — exactly the documented `[manual]` OIDC-client flow.
 - **HelmRelease values (196-owned):** Grafana `generic_oauth` with `client_id`/`client_secret`/issuer + `role_attribute_path` mapping the Rauthy groups claim → Admin/Editor/Viewer; the OIDC-only four-knob lockdown **`auth.disable_login_form: true` + `auth.basic_enabled: false` + `oauth_auto_login: true`** + default-admin disabled/randomized (FR-004/SC-003); Grafana ingress at `grafana.<DOMAIN>`; the Grafana ingress NetworkPolicy.
-- **Exit:** SC-003 (group→role mapping verified + OIDC-only auth), SC-004 (`git diff` shows zero `platform/services/stagecraft/api/**` change), **SC-009 Grafana-port isolation** (Grafana + its ingress land here).
+- **Exit:** SC-003 (group→role mapping verified + OIDC-only auth), SC-004 (`git diff` shows zero `platform/services/stagecraft/api/**` change), **SC-009 Grafana-port isolation**, **SC-010 end-to-end visibility** (a stagecraft series renders in a Grafana panel) — Grafana + its ingress land here.
 
 Phase 1 is independent and can land alone; Phase 2 depends only on Phase 1 (the
 stack must exist) plus the manual client.

@@ -328,16 +328,17 @@ group user lands as Admin. No local Grafana passwords.
 ## Success Criteria *(mandatory)*
 
 - **SC-001 (Phase 1):** stagecraft series are queryable in **Prometheus** within
-  ~one `collection_interval` of a request (remote_write path works). End-to-end
-  rendering in **Grafana** is a Phase-2 consequence — Grafana lands then and
-  queries Prometheus; SC-003 verifies it is up and OIDC-gated — so Phase 1 gates
-  the Prometheus half only (Grafana doesn't exist yet).
+  ~one `collection_interval` of a request (remote_write path works). This gates
+  the Prometheus (push) half only; end-to-end visibility in **Grafana** is a
+  separate Phase-2 criterion (**SC-010**), since Grafana doesn't exist yet — note
+  SC-003 covers Grafana *auth*, not data visibility.
 - **SC-002:** at least one known series from each of deployd-api, Flux, and
   ingress-nginx is queryable post-deploy — the previously-unconsumed
   annotations are now consumed (scrape path works).
 - **SC-003 (Phase 2):** a Rauthy "viewer"-group user lands in Grafana as Viewer
   and an "admin"-group user as Admin (OIDC role mapping works); **and** every
-  non-OIDC auth path is disabled (Basic Auth, anonymous, …) so **no credential
+  non-OIDC auth path is disabled (Basic Auth, anonymous, proxy, JWT, API-key,
+  service-account — per FR-004's set) so **no credential
   authenticates outside OIDC** — not merely the form hidden or the default
   password rotated (FR-004). The concrete Rauthy group→role map is a hard
   Phase-2 precondition pinned in `plan.md` (owner's decision); the "viewer"/
@@ -372,6 +373,10 @@ group user lands as Admin. No local Grafana passwords.
 - **SC-009 (Grafana inbound isolation — Phase 2):** Grafana's port is reachable
   **only** from ingress-nginx (FR-006 (c)); a pod in any other namespace cannot
   initiate a connection to it. Verifiable in **Phase 2** (Grafana lands there).
+- **SC-010 (end-to-end visibility — Phase 2):** a known stagecraft series (the
+  one confirmed queryable in SC-001) **renders in a Grafana dashboard panel** —
+  confirming the Prometheus datasource is wired and the full push → store →
+  visualize pipeline works, not merely that Grafana is up and OIDC-gated (SC-003).
 
 ## Out of scope (MVP)
 
