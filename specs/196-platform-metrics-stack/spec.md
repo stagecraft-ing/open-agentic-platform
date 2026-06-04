@@ -30,14 +30,16 @@ code_aliases: ["METRICS_STACK", "PROMETHEUS_REMOTE_WRITE", "GRAFANA_OIDC"]
 #   that creates them — exactly when the coupling gate (spec 127) wants the
 #   spec↔code link. (refines: below points only at files that already exist.)
 refines:
-  # The metrics-export aspect of the two now-diverging stagecraft infra configs.
-  # This spec is the first to make infra.config.json and infra.config.hetzner.json
-  # differ: the Hetzner config gains a real `metrics` block (FR-001); the Azure
-  # config's metrics block stays null (FR-009, deferred-null).
+  # The metrics-export aspect of the HETZNER stagecraft infra config — 196 adds
+  # its `metrics` block at implementation (FR-001); this is the first field to
+  # make the two infra configs diverge.
+  # infra.config.json (Azure) is deliberately NOT refined here: 196 makes no
+  # edit to it (FR-009 deferred-null = ABSENCE of a metrics block, not an
+  # explicit write — an explicit `"metrics": null` would be meaningless noise).
+  # Its refine/edit edge lands when FR-009's trigger fires, exactly like the
+  # deferred establishes edges — avoiding a phantom claim on an untouched file.
   - aspect: "metrics-export"
     unit: { kind: file, path: platform/services/stagecraft/infra.config.hetzner.json }
-  - aspect: "metrics-export"
-    unit: { kind: file, path: platform/services/stagecraft/infra.config.json }
 extends:
   # Mechanical featuregraph-golden refresh: appending spec 196 to the corpus
   # shifts the golden fingerprint. No semantic change to spec 034's claims.
@@ -183,8 +185,9 @@ group user lands as Admin. No local Grafana passwords.
 ### Functional Requirements
 
 - **FR-001 (stagecraft export, Hetzner):** `infra.config.hetzner.json` MUST
-  gain a `metrics` block: `type: prometheus`, a bounded `collection_interval`,
-  and a `remote_write_url` set to the **literal** in-cluster Prometheus
+  gain a `metrics` block: `type: prometheus`, a bounded `collection_interval`
+  (target ~`60s`; MUST NOT be sub-`15s`, which fans out abusive high-frequency
+  remote_write), and a `remote_write_url` set to the **literal** in-cluster Prometheus
   remote_write endpoint (e.g. `http://<release>-prometheus.monitoring.svc.cluster.local:9090/api/v1/write`).
   A literal is correct here — the endpoint is stable cluster-internal DNS, not a
   secret, so no `$env` indirection and no new secret is introduced.
@@ -273,7 +276,9 @@ group user lands as Admin. No local Grafana passwords.
 - **FR-010 (retention & persistence):** Prometheus and Grafana MUST have
   bounded retention backed by PVCs. The retention window and PVC sizes are a
   plan-time value, not frozen here; the *requirement* for bounded, persisted
-  storage is.
+  storage is. **Retention sizing MUST be revisited at the same long-lived /
+  validated promotion trigger as FR-009**, so the pre-alpha defaults cannot
+  silently persist into a production-grade deployment.
 
 - **FR-011 (zero stagecraft application-code change — invariant):** this spec
   MUST NOT add or modify stagecraft application code. Instrumentation is
@@ -313,12 +318,18 @@ group user lands as Admin. No local Grafana passwords.
   after deploy — the default-deny posture is intact, only the named flows are
   open (proves FR-006 did not globally weaken the policy).
 - **SC-006:** post-deploy, Alertmanager pods are **absent** and the set of
-  active `PrometheusRule`s equals **only** the explicitly-allowed set — proving
-  FR-008's prune held and the ~100 bundled defaults were not silently inherited.
+  active `PrometheusRule`s is **empty** — the phase-1 allowed set is ∅ (alerting
+  is a separate later spec; FR-008) — proving the prune held and the ~100 bundled
+  defaults were not silently inherited.
 - **SC-007:** the stack is reconciled by Flux (no imperative `helm install` in
   the deploy path), the Prometheus Operator CRDs are present at the
   HelmRelease-pinned version, and Prometheus + Grafana retention is PVC-bounded
   — proving FR-005, FR-007, FR-010.
+- **SC-008 (inbound receiver isolation):** a pod in an arbitrary namespace
+  *other than* `stagecraft-system` (e.g. a tenant workload) **cannot** reach
+  Prometheus's remote_write ingest port — the test closure for the spec's
+  primary security risk (the unauthenticated receiver). FR-006 must isolate it
+  *inbound*, not merely leave egress un-weakened (SC-005).
 
 ## Out of scope (MVP)
 
@@ -360,8 +371,10 @@ group user lands as Admin. No local Grafana passwords.
   196 and out of its scope.)
 - **→ spec 151 (GitOps).** The Hetzner deploy mechanism — a Flux HelmRelease
   reconciled like every other infra release (FR-005). `depends_on: ["151"]`.
-- **refines** the `metrics-export` aspect of both stagecraft infra configs —
-  the first field to make them diverge.
+- **refines** the `metrics-export` aspect of the Hetzner infra config — the
+  first field to make the two configs diverge. The Azure config is **not**
+  refined here (196 makes no edit to it; FR-009 deferred-null = absence, not a
+  write); its edge lands at FR-009's trigger.
 - **establishes** (at implementation, not in this draft's frontmatter) the
   gitops monitoring HelmRelease and **≥2 NetworkPolicy objects across two
   namespaces** (monitoring-ns ingress + stagecraft-system egress; see FR-006 and

@@ -79,16 +79,19 @@ stack must exist) plus the manual client.
 - **Grafana host**: `grafana.<DOMAIN>` (follows the `auth.`/`stagecraft.` convention; `<DOMAIN>` from `.env.example`)
 - **OIDC client_id**: `grafana`
 - **redirect_uri**: `https://grafana.<DOMAIN>/login/generic_oauth`
-- **Prometheus retention**: `15d`, TSDB PVC `20Gi` *(tunable; pre-alpha single-cluster default)*
+- **Prometheus retention**: `15d`, TSDB PVC `20Gi` *(tunable; pre-alpha single-cluster default; revisit at the FR-009 promotion trigger per FR-010)*
 - **Grafana PVC**: `2Gi` *(dashboards provisioned as code; state only)*
+- **Encore `collection_interval`**: `60s` — bounds remote_write volume; never sub-`15s` (FR-001)
 
 ## Open decision — yours, not a default
 
 - **Rauthy-group → Grafana-role map (access policy).** Proposed starting point,
   to confirm or override: group `platform-admin` → **Admin**; `platform-operator`
   → **Editor**; any other authenticated Rauthy user → **Viewer** (or no access).
-  This decides who holds Admin on the observability plane — an access-policy
-  call, recorded here for your sign-off before Phase 2 implementation.
+  This decides who holds Admin on the observability plane.
+  **Hard Phase-2 precondition:** this map MUST be resolved (group names pinned)
+  **before** the Phase-2 implementation PR opens — SC-003 is unverifiable until
+  then, and it does not ride inside the implementation PR.
 
 ## Complexity Tracking
 
