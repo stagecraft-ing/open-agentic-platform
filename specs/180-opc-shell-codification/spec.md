@@ -819,11 +819,22 @@ The `panic="abort"` → `panic="unwind"` change is decided on **behavioral**
 grounds, independent of the size decision:
 
 - OPC has **no dependence on abort semantics**. The only `abort` calls in
-  `src-tauri` are `tokio::JoinHandle::abort()` (async task cancellation); there
-  is no `catch_unwind`, no `std::panic` hook, no `extern "C"`/`#[no_mangle]`
-  FFI relying on abort. The `cdylib`/`staticlib` crate-types are Tauri's
-  **mobile** FFI artifacts, not exercised by the desktop dmg (and modern Rust
-  auto-aborts at plain `extern "C"` boundaries regardless).
+  `src-tauri` are `tokio::JoinHandle::abort()` (async task cancellation);
+  `src-tauri/src` itself has no `catch_unwind`, no `std::panic` hook, and no
+  `extern "C"`/`#[no_mangle]` FFI.
+- The one `catch_unwind` reachable in OPC's *dependency graph* —
+  `provenance-validator`'s `validate()`/`audit()` (pulled in via
+  `factory-engine`) — is a deliberate **fail-closed** safety net: a validator
+  panic is converted to a `ProvenanceMode::Rejected` report (`panic_report`),
+  never silently allowed past a gate. It is **already exercised under `unwind`**
+  in the `factory-engine`/axiomregent path today (the root workspace is
+  `unwind`), so OPC→`unwind` makes OPC *consistent* with that established
+  behavior rather than introducing it. Under OPC's prior `abort` the catch was
+  inert (abort does not unwind, so a validator panic crashed OPC instead of
+  rejecting) — `unwind` is therefore strictly safer here, not riskier.
+- The `cdylib`/`staticlib` crate-types are Tauri's **mobile** FFI artifacts,
+  not exercised by the desktop dmg (and modern Rust auto-aborts at plain
+  `extern "C"` boundaries regardless).
 - `unwind` is **more resilient**: a panicking Tauri command unwinds to a
   `JoinError` at the tokio task boundary instead of aborting the whole app.
 - **axiomregent stays `unwind` (the default) — do NOT flip it to `abort`.**
