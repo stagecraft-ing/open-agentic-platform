@@ -1,7 +1,16 @@
-import React, { useState } from 'react';
+// OPC custom window titlebar — desktop shell surface.
+//
+// Spec 180 (opc-shell-codification) owns this file via its broad
+// `src/components` shell authority; the centre version banner is pure shell
+// identity. Spec 183 (opc-boot-precondition-gate) FR-T3 owns the invariant
+// that the right-side cockpit-nav cluster MUST NOT be presented during boot,
+// implemented here via the `navEnabled` prop (App passes `bootGateOpen`).
+// See spec 180 §2.2 and spec 183 §3.3.
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Settings, Minus, Square, X, Bot, BarChart3, Network, Factory, FolderKanban } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getVersion } from '@tauri-apps/api/app';
 import { TooltipProvider, TooltipSimple } from '@opc/ui/tooltip-modern';
 
 interface CustomTitlebarProps {
@@ -11,6 +20,14 @@ interface CustomTitlebarProps {
   onMCPClick?: () => void;
   onFactoryClick?: () => void;
   onWorkspaceProjectsClick?: () => void;
+  /**
+   * Spec 183 FR-T3 — the right-side navigation cluster targets cockpit
+   * surfaces (tabs, settings, factory, usage). Those are NOT boot-state
+   * affordances, so the cluster MUST stay absent until the boot gate
+   * green-lights the cockpit. App passes `bootGateOpen` here; defaults to
+   * `false` so any caller that omits it fails safe toward "hidden".
+   */
+  navEnabled?: boolean;
 }
 
 export const CustomTitlebar: React.FC<CustomTitlebarProps> = ({
@@ -20,8 +37,19 @@ export const CustomTitlebar: React.FC<CustomTitlebarProps> = ({
   onMCPClick,
   onFactoryClick,
   onWorkspaceProjectsClick,
+  navEnabled = false,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+
+  // Spec 180 — shell identity. Resolve the OPC version from tauri.conf.json
+  // (the single source of truth, currently 0.4.0) via the Tauri app API.
+  // Web-mode (no Tauri runtime) leaves it blank — the banner degrades to
+  // "OPC" rather than throwing.
+  const [version, setVersion] = useState<string>('');
+  useEffect(() => {
+    if (!window.__TAURI_INTERNALS__ && !window.__TAURI__) return;
+    void getVersion().then(setVersion).catch(() => setVersion(''));
+  }, []);
 
   const handleMinimize = async () => {
     try {
@@ -114,15 +142,22 @@ export const CustomTitlebar: React.FC<CustomTitlebarProps> = ({
         </div>
       </div>
 
-      {/* Center - Title (hidden) */}
-      {/* <div 
-        className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+      {/* Center - OPC version banner (spec 180 shell identity). Absolutely
+          centred and pointer-events-none so it never blocks window drag. */}
+      <div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
         data-tauri-drag-region
       >
-        <span className="text-sm font-medium text-foreground/80">{title}</span>
-      </div> */}
+        <span className="text-xs font-medium text-muted-foreground/80 tabular-nums">
+          {version ? `OPC v${version}` : 'OPC'}
+        </span>
+      </div>
 
-      {/* Right side - Navigation icons */}
+      {/* Right side - Navigation icons. Spec 183 FR-T3: these target cockpit
+          surfaces (tabs/settings/factory/usage), which are NOT boot-state
+          affordances — so the whole cluster is hidden until App reports the
+          boot gate has green-lit the cockpit (navEnabled = bootGateOpen). */}
+      {navEnabled && (
       <div className="flex items-center pr-5 gap-1 tauri-no-drag">
         {onAgentsClick && (
           <TooltipSimple content="Agents" side="bottom">
@@ -205,6 +240,7 @@ export const CustomTitlebar: React.FC<CustomTitlebarProps> = ({
           </TooltipSimple>
         )}
       </div>
+      )}
     </div>
     </TooltipProvider>
   );

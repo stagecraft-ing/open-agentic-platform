@@ -416,8 +416,9 @@ are restricted to:
 
 - precondition status (sidecar status row; sign-in / org-session
   status row);
-- retry controls bound to those preconditions (Retry sidecar; Sign
-  in to stagecraft);
+- retry controls bound to those preconditions (Retry sidecar; and the
+  contextual auth controls Sign in to stagecraft / Sign out — see the
+  2026-06-04 sub-clause below);
 - a logs entrypoint (Open logs);
 - a Quit action.
 
@@ -427,6 +428,58 @@ degraded-mode entry. State change in the boot surface MUST be
 confined to the `<BootGate>` component subtree; the rest of the tab
 system, store layer, and route tree MUST NOT mount or read state
 from within boot.
+
+**FR-T3 contextual auth controls + titlebar nav suppression (binding,
+added 2026-06-04).** Two refinements of the affordance set land
+together:
+
+1. *Contextual sign-in / sign-out.* The org-session status row exposes
+   **Sign in** when the session is `unauthenticated` and **Sign out**
+   whenever a session exists — including the authenticated-but-no-org
+   state where `org_session_ready` never flips because the gate's
+   `has_org` term stays false (the keychain-restored JWT carried no
+   `oap_org_id` claim, so `StagecraftClient::apply_token` left `org_id`
+   empty). Sign out routes through `auth_logout` →
+   `StagecraftClient::clear_auth()`, which clears the in-memory token
+   AND the OS-keychain `session` entry, so the next sign-in re-runs the
+   interactive org-resolution path (`auth_handle_callback` /
+   `auth_select_org` write `org_id` *directly*) rather than depending on
+   the claim. Before this, a user stranded in that state had no
+   boot-surface affordance to recover: the row showed only the
+   "Waiting for … sync.hello" line and a sign-in CTA gated on
+   `unauthenticated`, neither of which fires while
+   `status === 'authenticated'`. The status line is also now keyed on
+   `BootGateStatus.org_id` so it stops misattributing the stall: since
+   `org_session_ready == has_org && sync_hello`, an absent `org_id`
+   means `has_org` is the unmet term, so the line names that blocker
+   ("no organisation attached to this session — sign out and back in to
+   re-resolve") instead of blaming a `sync.hello` handshake that may
+   already have completed; the handshake wording shows only when
+   `org_id` is present (so `sync.hello` is genuinely the term in
+   flight).
+
+2. *Titlebar nav suppression.* The "render ONLY a boot-state UI surface"
+   invariant binds the window titlebar too. The `CustomTitlebar`
+   right-side cluster targets cockpit surfaces (Workspace Projects,
+   Factory, Usage, Settings, MCP, Agents); those are not boot-state
+   affordances. Presenting them clickable during boot was a latent
+   erosion of the invariant — a cockpit-navigation escape hatch
+   reachable before preconditions pass. The cluster is therefore hidden
+   entirely until App reports the boot→cockpit flip (`navEnabled =
+   bootGateOpen`). The titlebar file itself (`CustomTitlebar.tsx`) is
+   under spec 180's broad `src/components` shell authority; this spec
+   owns only the *invariant* that drives its visibility, threaded from
+   `App.tsx`. See spec 180 §2.2 for the surface-side record.
+
+**Files this sub-clause additionally touches:**
+- `product/apps/opc/src/components/boot/BootGate.tsx` — the contextual
+  Sign in / Sign out controls (already FR-T3-bound above).
+- `product/apps/opc/src/App.tsx` — passes `navEnabled={bootGateOpen}`
+  (already FR-T3-bound above).
+- `product/apps/opc/src/components/CustomTitlebar.tsx` — the suppressed
+  nav cluster; authority remains spec 180's (surface), this spec's
+  binding is the FR-T3 invariant only (documented in prose, not a
+  frontmatter authority edge).
 
 **Implementation shape (binding):** boot vs. cockpit MUST be an
 App-level component-state branch in `src/App.tsx` (i.e.,
