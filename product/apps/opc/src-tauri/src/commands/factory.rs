@@ -1015,13 +1015,24 @@ pub async fn start_factory_pipeline(
         concurrency_limit: 4,
         max_total_tokens: None,
     };
-    let engine = FactoryEngine::new(config).map_err(|e| e.to_string())?;
+    let engine = FactoryEngine::new(config).map_err(|e| {
+        // Spec 124 (2026-06-05): log factory engine failures so they land in
+        // opc.log instead of being UI-only. Adapter discovery / manifest parse
+        // failures surface here; the desktop cache writer now validates the
+        // manifest shape earlier (factory-platform-client::write_adapter), but
+        // engine-side faults still funnel through this map_err.
+        log::error!("factory: engine init failed (adapter='{adapter_name}'): {e}");
+        e.to_string()
+    })?;
 
     let org_id: Option<String> = Some(ctx_pf.org_id.clone());
 
     let start = engine
         .start_pipeline(&adapter_name, &doc_paths, org_id.clone())
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            log::error!("factory: start_pipeline failed (adapter='{adapter_name}'): {e}");
+            e.to_string()
+        })?;
 
     let run_id = start.run_id;
     let run_id_str = run_id.to_string();

@@ -346,6 +346,26 @@ fn write_adapter(
 ) -> Result<(), FactoryClientError> {
     let dir = root.join("adapters").join(adapter_name);
     fs::create_dir_all(&dir)?;
+    // Spec 124 (2026-06-05): validate the platform-served manifest is a
+    // spec-074 `AdapterManifest` BEFORE writing it to the cache. The wire type
+    // (`AdapterBody.manifest: serde_json::Value`) is intentionally untyped, so
+    // a server that projects a non-adapter document — e.g. a knowledge/
+    // orchestration bundle for an org whose substrate lacks a real
+    // adapter-manifest row — would otherwise be written verbatim and fail much
+    // later, deep in engine startup, with a cryptic `missing field
+    // 'schema_version'`. Validating here makes the failure early, attributable,
+    // and actionable.
+    if let Err(e) = serde_json::from_value::<
+        factory_contracts::adapter_manifest::AdapterManifest,
+    >(adapter.manifest.clone())
+    {
+        return Err(FactoryClientError::CacheIo(format!(
+            "stagecraft served a non-spec-074 adapter manifest for '{adapter_name}': {e}. \
+             The org's factory substrate is missing a valid AdapterManifest for this adapter \
+             (the projection fell back to a non-manifest document); trigger an upstream sync or \
+             seed the adapter manifest on the platform."
+        )));
+    }
     let manifest_yaml = serde_yaml::to_string(&adapter.manifest)
         .map_err(|e| FactoryClientError::CacheIo(e.to_string()))?;
     fs::write(dir.join("manifest.yaml"), manifest_yaml)?;

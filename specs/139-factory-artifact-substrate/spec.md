@@ -887,3 +887,33 @@ template side); the wire shape is preserved byte-stable.
 > realignment that the smaller scopes prevent. The phased migration
 > (§9) keeps spec 108's external API surface stable while the substrate
 > takes over underneath.
+
+---
+
+## 14. Post-approval hardening: adapter-manifest projection guard (2026-06-05)
+
+`getAdapter` (`api/factory/browse.ts`) returned `found.manifest` verbatim.
+For an org whose substrate has no `adapter-manifest` row,
+`projectSubstrateToLegacy` falls back to `buildAdapter`'s knowledge/
+orchestration bundle (keys: `entry` / `orchestrator` /
+`orchestration_source_id`, no `schema_version`). Serving that as an adapter
+manifest made the OPC factory engine fail deep in startup with a cryptic
+`missing field 'schema_version'`.
+
+Hardening: `getAdapter` validates that the projected manifest carries a
+string `schema_version` and otherwise throws `APIError.internal` with a
+clear operator message (plus a `log.error`), instead of silently shipping a
+non-manifest document. This is a guard only — it does not change the
+projection or the substrate.
+
+Known follow-up (NOT in this change): for an org to actually *resolve* a
+real `aim-vue-node` manifest, the substrate must hold its spec-074
+`manifest.yaml` as an `oap-self` row. That requires (a) un-skipping
+`aim-vue-node` in `loadOapNativeAdapterSubstrateRows` (`oapNativeIngest.ts`,
+the `// already in upstream sync` continue), scoped so upstream-mirrored
+orchestration/skills are not duplicated; (b) `sanitiseManifest`
+(`oapNativeSanitise.ts`) to stop deleting the `validation` block, which the
+desktop's `AdapterManifest` requires (so the row, once seeded, actually
+parses); and (c) a verified `OAP_NATIVE_ADAPTERS_DIR` mount carrying that
+`manifest.yaml`. Deferred because (b)/(c) are contract- and
+deployment-level and need the mount confirmed first.
