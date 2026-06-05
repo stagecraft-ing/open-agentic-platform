@@ -607,6 +607,45 @@ stale lockfile.
 - `product/apps/opc/src-tauri/src/lib.rs` — the Quit handler /
   app-exit hook that calls the teardown helper.
 
+### 3.7 Post-approval hardening: consumer-spawn ordering (2026-06-05)
+
+FR-T2(b) makes a received `sync.hello` envelope the proof that the org
+session is live. That proof can only arrive if the duplex reconnect
+loop (`sync_client.rs::run_forever`) actually starts. A runtime
+investigation on 2026-06-05 found a startup ordering race that could
+prevent it from starting at all:
+
+- `lib.rs` spawned the duplex consumer task *before* calling
+  `app.manage(SyncClientState)`. The spawned task resolved that state
+  with the **panicking** `Manager::state()` accessor. On Tauri's
+  multi-threaded async runtime a worker could poll the task before the
+  manage ran, panicking it; `tauri::async_runtime::spawn` drops the
+  `JoinHandle`, so the panic was swallowed — `run_forever` never
+  executed, no connect was attempted, and the only evidence was a lone
+  `sync_client: duplex consumer starting` log with no `connecting` /
+  `idle` follow-up. The boot gate then waited on `sync.hello` forever;
+  because nothing re-spawns a dead consumer, a sign-out / sign-in could
+  not recover it — only a full relaunch (which re-rolled the race)
+  would.
+
+This is an intermittent failure of the FR-T2(b) precondition's
+*liveness*, not its logic. The hardening, confined to the files this
+spec already `refines:`:
+
+1. **`lib.rs` — manage before spawn.** `app.manage(SyncClientState)`
+   is moved above the consumer spawn, and the spawned task resolves the
+   state with the non-panicking `try_state()` plus a bounded retry and
+   an error log. A narrow ordering window can no longer silently kill
+   the consumer.
+2. **`sync_client.rs` — loop-entry log.** `run_forever` logs once on
+   entry, so "task died before the loop" is always distinguishable from
+   "loop running but token resolution stalled". The boot gate's
+   `sync.hello` source is never again silent.
+
+No FR-T2 invariant changes — this restores the assumed liveness of the
+loop the invariant already depends on. The duplex give-up /
+precondition-loss semantics (FR-T5) are unchanged.
+
 ## 4. Non-goals (binding)
 
 These are written down to constrain future drift. A change that

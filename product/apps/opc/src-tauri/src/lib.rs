@@ -259,6 +259,17 @@ pub fn run() {
                 // recovers on its own instead of wedging the boot gate (spec
                 // 183). Reconnects and token refresh are handled internally.
                 let sync_state = SyncClientState::new();
+                // Spec 183 (post-approval hardening, 2026-06-05): manage
+                // SyncClientState BEFORE spawning the duplex consumer below.
+                // The consumer task resolves it from managed state; if the
+                // manage ran *after* the spawn (as it originally did), a
+                // runtime worker could poll the task first and the panicking
+                // `.state()` accessor would silently kill the consumer before
+                // `run_forever` logged a single connect attempt — observed as
+                // "duplex consumer starting" with no "connecting"/"idle" line,
+                // recoverable only by relaunch. See spec 183 §"Post-approval
+                // hardening: consumer-spawn ordering".
+                app.manage(sync_state);
                 // Stable OPC instance identity used in factory.run.ack frames
                 // (spec 110 §2.2): reuse the sync client id so logs in the
                 // desktop and envelopes stagecraft receives are correlatable.
@@ -286,7 +297,25 @@ pub fn run() {
                     let auth = client.clone();
                     let handle = app.handle().clone();
                     tauri::async_runtime::spawn(async move {
-                        let state = handle.state::<SyncClientState>();
+                        // Spec 183: resolve SyncClientState defensively. It is
+                        // managed before this spawn (above), so the first
+                        // attempt succeeds; the bounded retry + error log is a
+                        // guard so a future reordering can never again silently
+                        // kill the consumer via a panicking `.state()`.
+                        let mut resolved = None;
+                        for _ in 0..40 {
+                            if let Some(found) = handle.try_state::<SyncClientState>() {
+                                resolved = Some(found);
+                                break;
+                            }
+                            tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+                        }
+                        let Some(state) = resolved else {
+                            log::error!(
+                                "sync_client: SyncClientState unavailable after retry — duplex consumer NOT started; boot gate will hang on sync.hello"
+                            );
+                            return;
+                        };
                         // Spec 183 FR-T5(b) — AppHandle threaded into the
                         // reconnect loop so it can emit the precondition-
                         // loss event when the give-up threshold is crossed.
@@ -298,7 +327,6 @@ pub fn run() {
                         "sync_client: duplex consumer disabled (no Stagecraft base URL configured)"
                     );
                 }
-                app.manage(sync_state);
                 app.manage(StagecraftState(std::sync::RwLock::new(sc)));
 
                 // Spec 110 Phase 4: register the desktop handler for
