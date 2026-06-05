@@ -217,6 +217,85 @@ describe("buildOpcBundle", () => {
   });
 });
 
+describe("opc deep-link projection (spec 112 §6.3)", () => {
+  // The lightweight `/opc-deep-link` endpoint (getProjectOpcDeepLink) reuses
+  // buildOpcBundle with empty collections + a null cloneToken, then projects
+  // only { deepLink, adapterName } for the project-layout header. These tests
+  // pin the invariant B depends on: switching the header off the full bundle
+  // must not change the deep link or the adapter name, and the lightweight
+  // path must never carry a clone token (no GitHub installation token minted
+  // on a per-navigation loader).
+  test("deepLink + adapter name match the full bundle for identical inputs", () => {
+    const full = buildOpcBundle({
+      project: baseProject,
+      repo: baseRepo,
+      adapter: baseAdapter,
+      contracts: [
+        {
+          name: "build-spec",
+          version: "1.0.0",
+          sourceSha: "c1",
+          syncedAt: SYNCED,
+          schema: {},
+        },
+      ],
+      processes: [
+        {
+          name: "7-stage-build",
+          version: "1.0.0",
+          sourceSha: "p1",
+          syncedAt: SYNCED,
+          definition: {},
+        },
+      ],
+      agents: [
+        {
+          id: "a1",
+          name: "explorer",
+          version: 2,
+          contentHash: "h1",
+          frontmatter: {},
+          bodyMarkdown: "",
+        },
+      ],
+      cloneToken: {
+        value: "ghs_FAKE_INSTALL_TOKEN",
+        source: "github_installation",
+        expiresAt: "2026-04-22T11:00:00.000Z",
+      },
+    });
+
+    const lightweight = buildOpcBundle({
+      project: baseProject,
+      repo: baseRepo,
+      adapter: baseAdapter,
+      contracts: [],
+      processes: [],
+      agents: [],
+      cloneToken: null,
+    });
+
+    expect(lightweight.deepLink).toBe(full.deepLink);
+    expect(lightweight.adapter?.name ?? null).toBe(full.adapter?.name ?? null);
+    expect(lightweight.cloneToken).toBeNull();
+  });
+
+  test("nulls the deep link when no primary repo, adapter name still resolves", () => {
+    const lightweight = buildOpcBundle({
+      project: baseProject,
+      repo: null,
+      adapter: baseAdapter,
+      contracts: [],
+      processes: [],
+      agents: [],
+      cloneToken: null,
+    });
+
+    expect(lightweight.deepLink).toBeNull();
+    expect(lightweight.adapter?.name ?? null).toBe("aim-vue-node");
+  });
+});
+
 describe("cloneUrlFor", () => {
   test("returns canonical https github clone URL with .git suffix", () => {
     expect(cloneUrlFor("acme", "foo")).toBe("https://github.com/acme/foo.git");

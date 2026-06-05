@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useLoaderData, Link } from "react-router";
+import type { ShouldRevalidateFunctionArgs } from "react-router";
 import { requireUser } from "../lib/auth.server";
-import { getProject, getProjectOpcBundle } from "../lib/projects-api.server";
+import { getProject, getProjectOpcDeepLink } from "../lib/projects-api.server";
 import { OpenInOpcButton } from "../components/OpenInOpcButton";
 
 export async function loader({
@@ -13,20 +14,44 @@ export async function loader({
   await requireUser(request);
   const { project } = await getProject(request, params.projectId);
 
-  // Spec 112 §6.3 — best-effort bundle fetch so the layout can surface
-  // the "Open in OPC" deep link. A failure here (e.g. legacy projects
-  // pre-spec-112 with no factory binding) must not break the project
-  // page; we render the layout without the button instead.
+  // Spec 112 §6.3 — best-effort deep-link fetch so the layout can surface
+  // the "Open in OPC" button. Uses the lightweight deep-link endpoint, not
+  // the full OPC bundle: the header needs only these two fields, and the
+  // full bundle mints a GitHub installation token + loads the org substrate
+  // — wasteful here given this loader revalidates across child navigations.
+  // A failure (e.g. legacy projects pre-spec-112 with no factory binding)
+  // must not break the project page; we render without the button instead.
   let opcDeepLink: string | null = null;
   let opcAdapterName: string | null = null;
   try {
-    const bundle = await getProjectOpcBundle(request, params.projectId);
-    opcDeepLink = bundle.deepLink;
-    opcAdapterName = bundle.adapter?.name ?? null;
+    const dl = await getProjectOpcDeepLink(request, params.projectId);
+    opcDeepLink = dl.deepLink;
+    opcAdapterName = dl.adapterName;
   } catch {
     // swallow; the rest of the page still loads.
   }
   return { project, opcDeepLink, opcAdapterName };
+}
+
+// Spec 112 §6.3 — the data this layout loader fetches (project header +
+// Open-in-OPC deep link) is invariant while the user stays within one
+// project. Under React Router v7 single-fetch the layout loader would
+// otherwise revalidate on every child navigation (Overview ↔ Knowledge ↔
+// Requirements ↔ a spec ↔ back), re-hitting the deep-link endpoint each
+// hop. Suppress those re-runs; still revalidate when the project changes,
+// after a mutation (e.g. a settings rename), or on a same-URL revalidation.
+export function shouldRevalidate({
+  currentParams,
+  nextParams,
+  currentUrl,
+  nextUrl,
+  formMethod,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs): boolean {
+  if (formMethod && formMethod !== "GET") return true;
+  if (currentParams.projectId !== nextParams.projectId) return true;
+  if (currentUrl.pathname !== nextUrl.pathname) return false;
+  return defaultShouldRevalidate;
 }
 
 export default function ProjectLayout() {

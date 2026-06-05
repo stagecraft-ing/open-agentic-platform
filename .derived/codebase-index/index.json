@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "506940562774e30fefb8dea6503643011f6ed846e9b5675df50c80d2f7bf40e0",
+    "contentHash": "4cd4b4600693cb06ec3d4e3e96e2779b719d8d9aa467acf8bb8258d556aefed8",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -20221,7 +20221,6 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "138-stagecraft-create-realised-scaffold",
         "dependsOn": [
           "074",
           "075",
@@ -20250,6 +20249,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/projects/opcBundle.test.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/projects/opcBundle.ts",
             "source": "spec-implements"
           },
@@ -20259,6 +20262,14 @@
           },
           {
             "path": "platform/services/stagecraft/api/projects/scaffold",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx",
             "source": "spec-implements"
           },
           {
@@ -20542,6 +20553,48 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/factory/translator.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/projects/opcBundle.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projects/opcBundle.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx"
             }
           }
         ],

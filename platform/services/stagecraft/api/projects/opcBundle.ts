@@ -105,6 +105,83 @@ export const getProjectOpcBundle = api(
 );
 
 // ---------------------------------------------------------------------------
+// Spec 112 §6.3 — lightweight deep-link sibling of getProjectOpcBundle
+// ---------------------------------------------------------------------------
+//
+// The project-layout header's "Open in OPC" button consumes only two
+// fields of the full bundle: the precomputed deep link and the adapter's
+// display name. This endpoint returns exactly those.
+//
+// It deliberately does NOT mint a GitHub installation token
+// (resolveCloneTokenForBundle) and does NOT load the org's contracts /
+// processes / published agents. Under React Router v7 single-fetch the
+// project layout loader revalidates on every navigation within a project,
+// so wiring that header to the full bundle minted one installation token
+// per hop (≈0.9–1.7s each) and loaded the org substrate three times for
+// data the header never reads — avoidable GitHub-token churn and memory
+// pressure. The full bundle remains the OPC-handoff payload; the header
+// uses this.
+interface OpcDeepLinkResponse {
+  deepLink: string | null;
+  adapterName: string | null;
+}
+
+export const getProjectOpcDeepLink = api(
+  {
+    expose: true,
+    auth: true,
+    method: "GET",
+    path: "/api/projects/:projectId/opc-deep-link",
+  },
+  async (req: OpcBundleRequest): Promise<OpcDeepLinkResponse> => {
+    const auth = getAuthData()!;
+
+    const [project] = await db
+      .select()
+      .from(projects)
+      .where(
+        and(eq(projects.id, req.projectId), eq(projects.orgId, auth.orgId))
+      )
+      .limit(1);
+
+    if (!project) {
+      throw APIError.notFound("project not found");
+    }
+
+    const [primaryRepo, adapterRow] = await Promise.all([
+      loadPrimaryRepo(project.id),
+      project.factoryAdapterId
+        ? loadAdapter(project.orgId, project.factoryAdapterId)
+        : Promise.resolve(null),
+    ]);
+
+    // Reuse the canonical bundle builder so the deep-link derivation stays
+    // byte-identical to the full endpoint; empty collections + a null
+    // cloneToken are the only difference.
+    const bundle = buildOpcBundle({
+      project: {
+        id: project.id,
+        name: project.name,
+        slug: project.slug,
+        orgId: project.orgId,
+        factoryAdapterId: project.factoryAdapterId,
+      },
+      repo: primaryRepo,
+      adapter: adapterRow,
+      contracts: [],
+      processes: [],
+      agents: [],
+      cloneToken: null,
+    });
+
+    return {
+      deepLink: bundle.deepLink,
+      adapterName: bundle.adapter?.name ?? null,
+    };
+  }
+);
+
+// ---------------------------------------------------------------------------
 // Spec 112 §6.4 — clone-token refresh endpoint
 // ---------------------------------------------------------------------------
 //

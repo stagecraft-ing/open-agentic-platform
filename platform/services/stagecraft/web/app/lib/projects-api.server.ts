@@ -453,6 +453,22 @@ export async function getProjectOpcBundle(request: Request, projectId: string) {
   ) as Promise<OpcBundle>;
 }
 
+// Spec 112 §6.3 — lightweight deep-link sibling of the full bundle. The
+// project-layout header uses only these two fields, so it calls this
+// instead of getProjectOpcBundle to avoid minting a GitHub installation
+// token on every project navigation (RR v7 single-fetch revalidation).
+export interface OpcDeepLink {
+  deepLink: string | null;
+  adapterName: string | null;
+}
+
+export async function getProjectOpcDeepLink(request: Request, projectId: string) {
+  return apiFetch(
+    request,
+    `/api/projects/${projectId}/opc-deep-link`
+  ) as Promise<OpcDeepLink>;
+}
+
 // Spec 087 Phase 2 + spec 112 §6 — per-project knowledge object views.
 export interface ProjectKnowledgeObject {
   id: string;
