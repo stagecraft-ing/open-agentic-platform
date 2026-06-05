@@ -1,3 +1,11 @@
+// OPC custom window titlebar — desktop shell surface.
+//
+// Spec 180 (opc-shell-codification) owns this file via its broad
+// `src/components` shell authority; the centre version banner is pure shell
+// identity. Spec 183 (opc-boot-precondition-gate) FR-T3 owns the invariant
+// that the right-side cockpit-nav cluster MUST NOT be presented during boot,
+// implemented here via the `navEnabled` prop (App passes `bootGateOpen`).
+// See spec 180 §2.2 and spec 183 §3.3.
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Settings, Minus, Square, X, Bot, BarChart3, Network, Factory, FolderKanban } from 'lucide-react';

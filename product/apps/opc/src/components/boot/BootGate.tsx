@@ -280,11 +280,13 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
               </span>
             </div>
           </div>
-          {auth.status === 'authenticated' && !status?.org_session_ready && (
-            status?.org_id ? (
+          {auth.status === 'authenticated' && status != null && !status.org_session_ready && (
+            status.org_id ? (
               // org_id present → the gate's `has_org` term is satisfied, so the
               // only unmet term is `sync.hello`. The handshake message is
-              // accurate in this branch.
+              // accurate in this branch. (Guarded on `status != null` so the
+              // org-absent copy below never flashes before the first poll
+              // returns — `!undefined` would otherwise render it on every boot.)
               <p className="text-[11px] text-muted-foreground/80">
                 Waiting for stagecraft duplex handshake (sync.hello)…
               </p>
@@ -310,11 +312,13 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
               Sign in to stagecraft
             </Button>
           )}
-          {/* FR-T3 — whenever a session exists (incl. the authenticated-but-
-              no-org state where the gate stays closed), expose Sign out as the
+          {/* FR-T3 — while a session exists but the gate is still closed (incl.
+              the authenticated-but-no-org stuck state), expose Sign out as the
               explicit recovery: it clears the keychain token so the next
-              sign-in re-runs interactive org resolution. */}
-          {auth.status === 'authenticated' && (
+              sign-in re-runs interactive org resolution. Guarded on
+              `!org_session_ready` so it can't flash for one frame in the ready
+              state between onReady() and the parent unmounting BootGate. */}
+          {auth.status === 'authenticated' && !status?.org_session_ready && (
             <Button
               size="sm"
               variant="outline"
