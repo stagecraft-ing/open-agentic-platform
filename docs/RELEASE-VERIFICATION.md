@@ -1,13 +1,20 @@
 # Release Artifact Verification
 
-Every binary published from this repository ships with two governed
-attestations:
+**Every shipped installer carries a SLSA build-provenance attestation, and every
+release target carries a CycloneDX SBOM** covering its build:
 
-1. **CycloneDX SBOM** (`*.cdx.json`) — a complete inventory of every
-   crate, npm package, and grammar that went into the artifact.
-2. **SLSA build-provenance attestation** — a Sigstore-signed claim
-   asserting "this binary was built by `<repo>`, by workflow `<name>`,
-   from commit `<sha>`, on a GitHub-hosted runner."
+1. **SLSA build-provenance attestation** (`<installer>.intoto.jsonl`) — a
+   Sigstore-signed claim asserting "this installer was built by `<repo>`, by
+   workflow `<name>`, from commit `<sha>`, on a GitHub-hosted runner." One is
+   attached for **each** shipped installer: `.dmg`, `.AppImage`, NSIS `.exe`,
+   **`.deb`, `.rpm`, and `.msi`**.
+2. **CycloneDX SBOM** (`sbom-desktop-<target>.cdx.json`) — an inventory of the
+   crates and npm packages that went into the target's build: the full Rust
+   closure from `src-tauri/Cargo.lock` plus the frontend npm closure from
+   `product/pnpm-lock.yaml` (the pnpm *workspace* closure — a superset of OPC's
+   production runtime deps), with non-reproducible `target/` build-tree artifacts
+   pruned out (spec 117 §2.2). Each installer SBOM also BOM-Links the bundled
+   `sbom-axiomregent.cdx.json` sidecar SBOM (§2.1).
 
 These are produced by `release-desktop.yml` and `release-tools.yml`.
 Specification: [`117-release-artifact-attestations`](../specs/117-release-artifact-attestations/spec.md).
@@ -83,3 +90,12 @@ These are consumed by the in-app updater
 (`product/apps/opc/src-tauri/src/commands/updater.rs`) — they are an
 integrity check, not a provenance check, and exist for offline
 update validation. They coexist with the SLSA attestations.
+
+**Scope (intentional).** The `.sha256` sidecars cover **only the updater's three
+formats** — DMG, NSIS `setup.exe`, and AppImage (the artifacts `updater.rs`
+downloads). This is deliberately narrower than the provenance + SBOM coverage
+above: `.deb`, `.rpm`, and `.msi` are **not** updater targets, so they ship with
+a SLSA attestation and are inventoried in the SBOM, but get no `.sha256` sidecar.
+The narrower set is a design choice (the updater consumes nothing else), not a
+coverage gap — verify those three via `gh attestation verify` like any other
+installer.

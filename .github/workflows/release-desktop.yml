@@ -441,7 +441,15 @@ jobs:
           args: ${{ matrix.args }}
           configPath: ${{ matrix.config }}
 
-      # Spec 117 — collect installer paths for SBOM/attestation steps.
+      # Spec 117 — collect installer paths for the provenance attestation step.
+      # The subject set is EVERY shipped installer, per matrix target:
+      #   macOS  -> dmg ; Linux -> appimage + deb + rpm ; Windows -> nsis + msi.
+      # The prior set (dmg/appimage/nsis only) left .deb/.rpm/.msi UNATTESTED —
+      # `gh attestation verify` returned "no attestation found" for them, which
+      # contradicted RELEASE-VERIFICATION.md's "every binary ships with two
+      # governed attestations" (spec 117 AC-2/AC-4; bundle dir names are the
+      # Tauri v2 convention deb/ rpm/ msi/ — globs are additive, so a target
+      # that produces none is simply a no-match, never an error).
       - name: Locate installer artifacts
         id: installers
         shell: bash
@@ -454,21 +462,83 @@ jobs:
             find "$target_root" -type f \( \
               -path '*/release/bundle/dmg/*.dmg' -o \
               -path '*/release/bundle/appimage/*.AppImage' -o \
-              -path '*/release/bundle/nsis/*.exe' \
+              -path '*/release/bundle/nsis/*.exe' -o \
+              -path '*/release/bundle/deb/*.deb' -o \
+              -path '*/release/bundle/rpm/*.rpm' -o \
+              -path '*/release/bundle/msi/*.msi' \
             \) 2>/dev/null
             echo "INSTALLERS_EOF"
           } >> "$GITHUB_OUTPUT"
 
-      # Spec 117 — CycloneDX SBOM scoped to the desktop source tree so syft
-      # can read Cargo.toml/Cargo.lock and the npm workspace root for full
-      # component coverage. Stripped release binaries (the prior `target/`
-      # scope) yielded an empty SBOM in the axiomregent smoke run.
+      # Spec 117 §2.1 — CycloneDX SBOM scoped to `product/` (the pnpm workspace
+      # root) so syft reads BOTH ecosystems that ship in the installer:
+      #   - the OPC frontend closure from product/pnpm-lock.yaml (~784 npm), and
+      #   - the src-tauri Rust closure from product/apps/opc/src-tauri/Cargo.lock
+      #     (961 cargo — unchanged; that lock is in scope under either path).
+      # The prior `product/apps/opc` scope sat one level BELOW pnpm-lock.yaml, so
+      # it captured only product/apps/opc/tests-e2e (2 npm TEST deps) and silently
+      # UNDER-reported the frontend that actually ships — the dangerous direction.
+      # The npm set is the whole-workspace closure (a superset of OPC's production
+      # runtime closure incl. dev + sibling packages — same caveat recorded for the
+      # bundled-sidecar SBOM in §2.1). node_modules does not inflate the count:
+      # syft sources every npm component from the lockfiles, so the result is
+      # stable post-`pnpm install`.
       - name: Generate desktop SBOM (CycloneDX)
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0 (ships syft 1.30+; v0.17.8's syft 1.11 returned 0 rust components)
         with:
-          path: product/apps/opc
+          path: product
           format: cyclonedx-json
           output-file: product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json
+
+      # Spec 117 §2.1 — prune build-tree artifacts from the desktop SBOM.
+      # Scanning `product/` post-build also reaches product/apps/opc/src-tauri/
+      # target/. On the MSVC build syft catalogs compiled proc-macro DLLs under
+      # target/release/deps/ as ~230 purl-less `application` components named by
+      # their per-build-hashed path (e.g. serde_derive-<hash>.dll). They are
+      # non-reproducible, duplicate crates already present as pkg:cargo purls, and
+      # do not ship in the installer (macOS/Linux catalog 0 such entries — the
+      # over-report is MSVC-specific). syft's own `--exclude` does NOT drop them:
+      # valid `**/target/**` globs are a silent no-op in syft 1.43.0 and
+      # directory-form patterns error the scan ("must start with one of './',
+      # '*/', or '**/'"). Prune deterministically with jq (already used below for
+      # the BOM-Link — no new binary, byte-stable output). A component is dropped
+      # iff its name or EVERY syft location lies under a `target/` build tree.
+      - name: Prune build-tree artifacts from desktop SBOM (CycloneDX)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sbom="product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json"
+          jq '
+            def ut($s): ($s|type=="string") and (($s|test("/target/")) or ($s|test("\\\\target\\\\")));
+            .components |= map(
+              [ (.properties // [])[] | select(.name|test("syft:location.*:path")) | .value ] as $paths
+              | select( (ut(.name)|not) and all($paths[]; ut(.)|not) )
+            )
+          ' "$sbom" > "$sbom.tmp" && mv "$sbom.tmp" "$sbom"
+
+      # Spec 117 AC-6 — fail-closed desktop SBOM scope gates (operationalized,
+      # not asserted in prose). Two regressions die here, before upload:
+      #   (1) npm UNDER-report — the frontend closure must be present; a scope
+      #       that slips back below product/pnpm-lock.yaml collapses npm to ~2.
+      #   (2) target/ OVER-report — no component may be sourced from a build tree;
+      #       the prune above must have removed them all (checks name AND every
+      #       syft location, forward- and back-slash).
+      - name: Assert desktop SBOM scope (spec 117 AC-6 — fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sbom="product/apps/opc/src-tauri/target/sbom-desktop-${{ matrix.target }}.cdx.json"
+          n_total="$(jq '.components | length' "$sbom")"
+          n_cargo="$(jq '[.components[] | select(.purl // "" | startswith("pkg:cargo"))] | length' "$sbom")"
+          n_npm="$(jq '[.components[] | select(.purl // "" | startswith("pkg:npm"))] | length' "$sbom")"
+          n_target="$(jq '[.components[]
+              | (.name) as $n
+              | [ (.properties // [])[] | select(.name|test("syft:location.*:path")) | .value ] as $p
+              | select( ($n|test("/target/|\\\\target\\\\")) or (any($p[]; test("/target/|\\\\target\\\\"))) )
+            ] | length' "$sbom")"
+          echo "desktop SBOM: total=$n_total cargo=$n_cargo npm=$n_npm build-tree=$n_target"
+          [ "$n_npm" -gt 0 ]    || { echo "::error::desktop SBOM has 0 npm components — frontend closure under-reported; scan scope regressed below product/pnpm-lock.yaml (spec 117 AC-6)"; exit 1; }
+          [ "$n_target" -eq 0 ] || { echo "::error::desktop SBOM has $n_target build-tree (target/) component(s) — non-reproducible artifact over-report; scope/prune regressed (spec 117 AC-6)"; exit 1; }
 
       # spec 117 §2.1 — bundled-sidecar SBOM. axiomregent lives in the ROOT
       # workspace (crates/axiomregent), whose deps (octocrab/hiqlite/fastembed)
@@ -534,11 +604,13 @@ jobs:
             exit 1
           fi
 
-      # Spec 117 — provenance attestation per installer file produced this run.
-      # Single attest call covers DMG/AppImage/NSIS in this matrix-target's
-      # bundle dir; the resulting bundle (action's `bundle-path` output) is
-      # staged once per installer so each release asset has a sibling
-      # `<installer>.intoto.jsonl` per AC-2.
+      # Spec 117 — provenance attestation over every shipped installer produced
+      # this run (macOS: dmg ; Linux: appimage+deb+rpm ; Windows: nsis+msi). One
+      # attest call takes all of this matrix-target's installers as subjects and
+      # emits a single multi-subject bundle (`bundle-path`); the stage step below
+      # copies that bundle to each installer's sibling `<installer>.intoto.jsonl`.
+      # A multi-subject bundle verifies for ANY of its subjects, so
+      # `gh attestation verify <deb|rpm|msi>` now succeeds too (AC-2/AC-4).
       - name: Attest installer provenance
         id: attest-installer
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
@@ -563,7 +635,10 @@ jobs:
           done < <(find "$target_root" -type f \( \
             -path '*/release/bundle/dmg/*.dmg' -o \
             -path '*/release/bundle/appimage/*.AppImage' -o \
-            -path '*/release/bundle/nsis/*.exe' \
+            -path '*/release/bundle/nsis/*.exe' -o \
+            -path '*/release/bundle/deb/*.deb' -o \
+            -path '*/release/bundle/rpm/*.rpm' -o \
+            -path '*/release/bundle/msi/*.msi' \
           \) 2>/dev/null)
 
       # Spec 117 — attach the SBOM and per-installer attestation bundles to
@@ -603,7 +678,12 @@ jobs:
 
       # Consumed by the in-app updater (product/apps/opc/src-tauri/src/commands/updater.rs).
       # Emits a `<installer>.sha256` sidecar for the platform installer the updater
-      # downloads (DMG / NSIS setup.exe / AppImage) and attaches it to the release.
+      # downloads (DMG / NSIS setup.exe / AppImage — see updater.rs:35-39) and
+      # attaches it to the release. This set is DELIBERATELY narrower than the
+      # attestation/SBOM coverage above: .deb/.rpm/.msi are NOT updater targets, so
+      # they get SLSA provenance + SBOM but no .sha256 sidecar. The scoping is
+      # documented in docs/RELEASE-VERIFICATION.md (§Updater integrity) so the
+      # narrower set reads as intentional, not a gap (spec 117).
       - name: Generate SHA-256 sidecars for installer assets
         shell: bash
         env:
