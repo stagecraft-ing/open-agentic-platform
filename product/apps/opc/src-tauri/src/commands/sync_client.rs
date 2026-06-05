@@ -965,6 +965,15 @@ async fn run_forever(
     inner: Arc<SyncClientInner>,
     app: tauri::AppHandle,
 ) {
+    // Spec 183 (post-approval hardening): a loop-entry log so a wedged
+    // consumer is never silent. If this line appears but no subsequent
+    // "connecting"/"idle" line does, the hang is in token resolution; if
+    // it never appears at all, the task died before the loop ever ran —
+    // the spawn/managed-state ordering race this hardening closed.
+    log::info!(
+        "sync_client: reconnect loop entered (client_id={})",
+        config.client_id
+    );
     let mut backoff = MIN_BACKOFF;
     let mut consecutive_failures: u32 = 0;
     let mut refreshes_this_outage: u32 = 0;
