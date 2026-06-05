@@ -289,6 +289,28 @@ from the seam, not from the appetite).
   link is by path-citation, not by reverse-edge declaration.
 - **Specs 143, 161, 162 (drafts).** Phase 0 verified zero OPC overlap.
   No composition required.
+- **Spec 183 (`opc-boot-precondition-gate`, approved).** Two changes
+  land on this spec's titlebar surface (`CustomTitlebar.tsx`, under the
+  `src/components` directory authority established above) on 2026-06-04:
+  - *(a) Version banner.* The previously-empty titlebar centre now
+    renders the OPC version as `OPC v<version>`, resolved at runtime
+    from `tauri.conf.json` via `@tauri-apps/api/app`'s `getVersion()`
+    (the single version source — `tauri.conf.json`, `package.json`, and
+    `src-tauri/Cargo.toml` are all `0.4.0`). This is pure shell-identity
+    surface, squarely inside this spec's broad un-bound-shell authority;
+    no Tier 1 invariant attaches.
+  - *(b) Nav-cluster suppression.* The titlebar's right-side
+    cockpit-navigation cluster (Workspace Projects, Factory, Usage,
+    Settings, …) is hidden until the boot gate green-lights the cockpit
+    (`navEnabled = bootGateOpen`). That visibility rule is **spec 183's
+    FR-T3 invariant** ("boot renders ONLY a boot-state surface"), not a
+    180 invariant: 183 owns the *when*, this spec owns the *surface*. The
+    split mirrors the 165/172 pattern above — edits to
+    `CustomTitlebar.tsx` are satisfied by editing this spec's authority,
+    and the cross-spec invariant is recorded in both specs in prose
+    rather than via a frontmatter authority edge (183 holds no
+    `establishes:`/`refines:` claim on this file, by design). See spec
+    183 §3.3 FR-T3 (2026-06-04 sub-clause) for the invariant side.
 
 ## 3. Tier 1 — Structural invariants
 

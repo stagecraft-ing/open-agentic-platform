@@ -436,8 +436,11 @@ function AppContent() {
   return (
     <div className="h-screen flex flex-col">
       {/* Custom Titlebar — Agents + MCP icons removed; both surfaces
-          now live as tabs inside Settings. */}
+          now live as tabs inside Settings. Spec 183 FR-T3: the nav cluster
+          stays hidden until the boot gate green-lights the cockpit, so the
+          titlebar exposes no cockpit-navigation affordance during boot. */}
       <CustomTitlebar
+        navEnabled={bootGateOpen}
         onFactoryClick={() => createFactoryTab()}
         onWorkspaceProjectsClick={() => createWorkspaceProjectsTab()}
         onUsageClick={() => createUsageTab()}

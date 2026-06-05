@@ -19,7 +19,7 @@
 // rendering this component.
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Loader2, LogIn, ServerCog, ShieldCheck, AlertCircle, RefreshCw, FileText, XCircle } from 'lucide-react';
+import { Loader2, LogIn, LogOut, ServerCog, ShieldCheck, AlertCircle, RefreshCw, FileText, XCircle } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { Card } from '@opc/ui/card';
 import { api, type BootGateStatus } from '@/lib/api';
@@ -157,6 +157,17 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
     void auth.login();
   }, [auth]);
 
+  // FR-T3 sign-out affordance. `auth.logout()` calls `auth_logout`, which
+  // runs `StagecraftClient::clear_auth()` — clearing the in-memory token AND
+  // the OS-keychain session entry. This is the load-bearing recovery for a
+  // session that authenticated but never materialised an org_id (the gate's
+  // `has_org` term never flips): signing out clears the stale keychain token
+  // so the next sign-in re-runs the interactive org-resolution path, which
+  // writes org_id directly rather than relying on the JWT claim.
+  const handleSignOut = useCallback(() => {
+    void auth.logout();
+  }, [auth]);
+
   const handleQuit = useCallback(async () => {
     // FR-T6 — `quit_opc` kills the retained axiomregent CommandChild
     // (SharedChild::kill: SIGKILL on Unix, TerminateProcess on Windows)
@@ -270,9 +281,23 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
             </div>
           </div>
           {auth.status === 'authenticated' && !status?.org_session_ready && (
-            <p className="text-[11px] text-muted-foreground/80">
-              Waiting for stagecraft duplex handshake (sync.hello)…
-            </p>
+            status?.org_id ? (
+              // org_id present → the gate's `has_org` term is satisfied, so the
+              // only unmet term is `sync.hello`. The handshake message is
+              // accurate in this branch.
+              <p className="text-[11px] text-muted-foreground/80">
+                Waiting for stagecraft duplex handshake (sync.hello)…
+              </p>
+            ) : (
+              // org_id absent → `has_org` is the unmet term (the diagnosed
+              // stuck state: a keychain-restored JWT with no org claim). This is
+              // NOT a handshake problem, so don't blame sync.hello — name the
+              // real blocker and point at the Sign out recovery below.
+              <p className="text-[11px] text-muted-foreground/80">
+                Signed in, but no organisation is attached to this session yet.
+                Use Sign out, then sign in again to re-resolve your org.
+              </p>
+            )
           )}
           {auth.status === 'unauthenticated' && (
             <Button
@@ -283,6 +308,21 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
             >
               <LogIn className="h-3 w-3" />
               Sign in to stagecraft
+            </Button>
+          )}
+          {/* FR-T3 — whenever a session exists (incl. the authenticated-but-
+              no-org state where the gate stays closed), expose Sign out as the
+              explicit recovery: it clears the keychain token so the next
+              sign-in re-runs interactive org resolution. */}
+          {auth.status === 'authenticated' && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs w-full gap-1.5"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-3 w-3" />
+              Sign out
             </Button>
           )}
           {auth.status === 'loading' && (
