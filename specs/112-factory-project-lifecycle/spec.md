@@ -4,8 +4,18 @@ slug: factory-project-lifecycle
 title: Factory Project Lifecycle — Create, Import, Open
 status: approved
 implementation: complete
-amended: "2026-05-04"
-amendment_record: "138-stagecraft-create-realised-scaffold"
+amended: "2026-06-05"
+amendment_record: |
+  138-stagecraft-create-realised-scaffold (2026-05-04).
+  self-amended (2026-06-05) — §6.3 Open-in-OPC handoff refined: the
+  stagecraft web-UI "Open in OPC" button now resolves its deep link via a
+  lightweight GET /api/projects/:id/opc-deep-link endpoint instead of the
+  full /opc-bundle, and the project layout route gained a shouldRevalidate
+  guard. Motivated by a stagecraft-api OOMKill — the full bundle minted a
+  GitHub installation token on every project navigation (React Router v7
+  single-fetch revalidation), which stacked with bulk-knowledge-upload
+  extraction fan-out at the pod's 1Gi limit. Adds a refines: edge over the
+  OPC-handoff consumer paths.
 owner: bart
 created: "2026-04-22"
 kind: platform
@@ -49,6 +59,19 @@ extends:
   - spec: "108-factory-as-platform-feature"
     nature: additive
     unit: { kind: directory, path: standards/schemas/factory }
+refines:
+  # §6.3 amendment (2026-06-05) — the stagecraft web-UI consumer of the
+  # Open-in-OPC handoff needs only the deep link, not the full bundle. This
+  # edge tightens the fetch/revalidation behavior of that handoff aspect
+  # across the bundle's own test, the web API-client helper, and the project
+  # layout route that renders the "Open in OPC" button. opcBundle.ts itself
+  # is already established above.
+  - aspect: "open-in-opc-handoff"
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundle.test.ts }
+  - aspect: "open-in-opc-handoff"
+    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
+  - aspect: "open-in-opc-handoff"
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.tsx }
 ---
 
 # 112 — Factory Project Lifecycle — Create, Import, Open
@@ -690,6 +713,40 @@ is the source-of-truth handoff for project content; stagecraft is the
 source-of-truth handoff for governance state, including the
 authoritative long-lived PAT; OPC composes the two, holds only
 short-lived derived credentials, and runs.
+
+> **Amendment (2026-06-05) — web-UI deep-link split (`/opc-deep-link`).**
+> Steps 2–6 above describe **OPC-the-desktop-client's** consumption of the
+> handoff: it legitimately needs the full bundle (adapter + contracts +
+> processes + agents + a short-lived clone token, §6.4) to clone and run.
+> The **stagecraft web UI** is a *second, lighter* consumer of the same
+> handoff: the project layout header renders the `opc://` deep link as an
+> "Open in OPC" button and needs only the deep-link string and the adapter's
+> display name — never the catalog payload, never a clone token.
+>
+> Wiring that header to `GET /api/projects/:projectId/opc-bundle` was a
+> defect. Under React Router v7 single-fetch the project layout loader
+> (`web/app/routes/app.project.$projectId.tsx`) revalidates on every
+> navigation within a project, so each tab hop re-ran the full bundle —
+> minting a fresh GitHub **installation token** (§6.4.1) per navigation and
+> loading the org substrate three times for data the header never reads.
+> During a bulk knowledge-directory upload this per-navigation churn stacked
+> with the extraction fan-out (spec 115) and OOMKilled the `stagecraft-api`
+> pod at its 1Gi limit.
+>
+> Resolution (two parts, both reflected in the `refines:` edge in
+> frontmatter):
+>
+> 1. **`GET /api/projects/:projectId/opc-deep-link`** (`getProjectOpcDeepLink`
+>    in `api/projects/opcBundle.ts`) — a lightweight sibling returning only
+>    `{ deepLink, adapterName }`. It reuses `buildOpcBundle` so the deep-link
+>    derivation stays byte-identical to the full endpoint, but mints **no**
+>    clone token and loads **no** contracts/processes/agents. The web header
+>    consumes this; OPC-the-client keeps using the full `/opc-bundle`
+>    unchanged — its contract in steps 2–6 is not altered.
+> 2. **`shouldRevalidate`** on the project layout route — the deep link is
+>    invariant while the user stays within one project, so the loader is not
+>    re-run on plain navigation between child tabs (it still revalidates on
+>    project change, on mutations, and on same-URL revalidations).
 
 ### 6.4 Bundle authentication and pipeline token threading
 
