@@ -494,3 +494,36 @@ Shipped 2026-05-01 across nine commits. Per-phase summary:
   Encore + Postgres + desktop stack is non-trivial to spin up inside
   a closure session; manual steps are documented in the Phase 7
   checkpoint and should be exercised before merging the branch.
+
+## 12. Post-approval hardening: adapter manifest validation (2026-06-05)
+
+`factory-platform-client::write_adapter` (the cache writer this spec's run
+path depends on) previously serialised the platform-served `manifest`
+(`AdapterBody.manifest: serde_json::Value`, intentionally untyped) to the
+local cache without validating its shape. When stagecraft's projection has
+no spec-074 `AdapterManifest` for an org's adapter, it falls back to a
+knowledge/orchestration bundle; that document was written verbatim and the
+factory engine then failed deep in startup with a cryptic `missing field
+'schema_version'`, surfaced to the OPC UI only and never logged.
+
+Hardening (no run-contract change):
+
+- `crates/factory-platform-client/src/materialise.rs` — `write_adapter`
+  validates the manifest carries a string `schema_version` before writing
+  the cache, returning a clear, attributable `CacheIo` error ("stagecraft
+  served a non-spec-074 adapter manifest for '<name>'…") otherwise. This is
+  a cheap top-level guard symmetric with the stagecraft `getAdapter` guard;
+  the factory engine still does full `AdapterManifest` validation when it
+  reads the cache, so a manifest that has `schema_version` but is otherwise
+  malformed is still caught (and now logged via `factory.rs`).
+- `product/apps/opc/src-tauri/src/commands/factory.rs` — the
+  `FactoryEngine::new` / `start_pipeline` error paths now `log::error!`
+  before stringifying, so engine/discovery faults land in `opc.log`
+  instead of being UI-only.
+
+The server-side counterpart (refusing to serve a non-manifest document as
+an adapter manifest) lands under spec 139. The substrate-seeding that makes
+a previously-empty org resolve a real manifest is tracked separately — it
+additionally requires stagecraft's `sanitiseManifest` to stop dropping the
+spec-074-required `validation` block, and a verified `OAP_NATIVE_ADAPTERS_DIR`
+mount.

@@ -98,6 +98,30 @@ export const getAdapter = api(
     if (!found) {
       throw APIError.notFound(`adapter "${req.name}" not found`);
     }
+    // Spec 139 (2026-06-05): refuse to serve a non-spec-074 document as an
+    // adapter manifest. For an org whose substrate has no real adapter-manifest
+    // row, `projectSubstrateToLegacy` falls back to a knowledge/orchestration
+    // bundle (keys: entry/orchestrator/orchestration_source_id) with no
+    // `schema_version`. Serving it makes the OPC factory engine fail deep in
+    // startup with a cryptic `missing field 'schema_version'`. Surface a clear,
+    // attributable error here instead.
+    const manifest = found.manifest as Record<string, unknown> | null | undefined;
+    if (!manifest || typeof manifest.schema_version !== "string") {
+      log.error(
+        "getAdapter: projected manifest is not a spec-074 AdapterManifest",
+        {
+          orgId: auth.orgId,
+          name: req.name,
+          keys: manifest ? Object.keys(manifest).join(",") : "(none)",
+        },
+      );
+      // Short client-facing message; the diagnostic detail stays in the
+      // log.error above so internal substrate/projection mechanics are not
+      // disclosed in the HTTP response body.
+      throw APIError.internal(
+        `adapter "${req.name}" is not configured correctly for this org`,
+      );
+    }
     return {
       id: synthesiseId(auth.orgId, "adapter", found.name),
       name: found.name,
