@@ -19,7 +19,7 @@
 // rendering this component.
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Loader2, LogIn, LogOut, ServerCog, ShieldCheck, AlertCircle, RefreshCw, FileText, XCircle } from 'lucide-react';
+import { Loader2, LogIn, LogOut, ServerCog, ShieldCheck, AlertCircle, RefreshCw, RotateCw, FileText, XCircle } from 'lucide-react';
 import { Button } from '@opc/ui/button';
 import { Card } from '@opc/ui/card';
 import { api, type BootGateStatus } from '@/lib/api';
@@ -157,6 +157,25 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
     void auth.login();
   }, [auth]);
 
+  // Spec 183 — explicit duplex reconnect. Re-spawns the Rust sync consumer
+  // (`reconnect_stagecraft_duplex`), which resets the per-outage refresh
+  // budget + consecutive-failure counter to zero and forces an immediate
+  // connect with the current bearer instead of waiting out the backoff. This
+  // is the load-bearing recovery for the wedged-handshake / burned-refresh-
+  // budget state: the org claim is present (`has_org` satisfied) but
+  // `sync.hello` never arrived. Web-mode has no consumer to re-spawn, so it
+  // falls back to a status re-poll (the same shape as Retry sidecar).
+  const handleReconnect = useCallback(async () => {
+    if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+      try {
+        await api.reconnectStagecraftDuplex();
+      } catch (e) {
+        console.warn('Reconnect duplex failed:', e);
+      }
+    }
+    void pollOnce();
+  }, [pollOnce]);
+
   // FR-T3 sign-out affordance. `auth.logout()` calls `auth_logout`, which
   // runs `StagecraftClient::clear_auth()` — clearing the in-memory token AND
   // the OS-keychain session entry. This is the load-bearing recovery for a
@@ -287,9 +306,23 @@ export const BootGate: React.FC<BootGateProps> = ({ onReady }) => {
               // accurate in this branch. (Guarded on `status != null` so the
               // org-absent copy below never flashes before the first poll
               // returns — `!undefined` would otherwise render it on every boot.)
-              <p className="text-[11px] text-muted-foreground/80">
-                Waiting for stagecraft duplex handshake (sync.hello)…
-              </p>
+              // Offer an explicit Reconnect: this is exactly the duplex-stuck
+              // state (burned refresh budget after a re-login, long backoff, or
+              // a wedged consumer) where re-spawning the loop is the recovery.
+              <div className="space-y-2">
+                <p className="text-[11px] text-muted-foreground/80">
+                  Waiting for stagecraft duplex handshake (sync.hello)…
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs w-full gap-1.5"
+                  onClick={() => { void handleReconnect(); }}
+                >
+                  <RotateCw className="h-3 w-3" />
+                  Reconnect
+                </Button>
+              </div>
             ) : (
               // org_id absent → `has_org` is the unmet term (the diagnosed
               // stuck state: a keychain-restored JWT with no org claim). This is

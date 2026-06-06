@@ -87,6 +87,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         // App settings (runtime-configurable Stagecraft URL)
         crate::commands::settings::get_stagecraft_base_url,
         crate::commands::settings::set_stagecraft_base_url,
+        crate::commands::settings::reconnect_stagecraft_duplex,
     ])
 }
 

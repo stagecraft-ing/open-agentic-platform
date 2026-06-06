@@ -57,6 +57,15 @@ refines:
   - aspect: "boot-gate-frontend-tauri-bindings"
     unit: { kind: file, path: product/apps/opc/src/lib/api.ts }
     refines_specs: ["180-opc-shell-codification"]
+  - aspect: "boot-recovery-duplex-reconnect-command"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/settings.rs }
+    refines_specs: ["180-opc-shell-codification"]
+  - aspect: "boot-gate-command-registration-bindings"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/bindings.rs }
+    refines_specs: ["180-opc-shell-codification"]
+  - aspect: "sidecar-hiqlite-port0-membership-self-heal"
+    unit: { kind: file, path: crates/axiomregent/src/db/mod.rs }
+    refines_specs: ["073-axiomregent-unification"]
 references:
   - role: parent-authority
     unit: { kind: file, path: specs/180-opc-shell-codification/spec.md }
@@ -123,7 +132,7 @@ separately so 180 can land as drafted without bloating its surface.
 ## 2. Authority enumeration
 
 This spec does not establish new directories. It refines existing
-authority on eight files that the boot gate touches:
+authority on eleven files that the boot gate touches:
 
 - `product/apps/opc/src/App.tsx` — shell entry point; gains an
   App-level component-state branch between `<BootGate>` and
@@ -164,6 +173,21 @@ authority on eight files that the boot gate touches:
 - `product/apps/opc/src/lib/api.ts` — frontend Tauri bindings for
   the boot-gate command surface (refines spec 180's OPC shell
   authority).
+- `product/apps/opc/src-tauri/src/commands/settings.rs` — gains the
+  `reconnect_stagecraft_duplex` recovery command, the manual
+  counterpart to the existing FR-T2(a) URL-change re-spawn; it
+  re-spawns the duplex consumer to reset the per-outage refresh budget
+  and force an immediate reconnect (§3.8) (refines spec 180's OPC shell
+  authority).
+- `product/apps/opc/src-tauri/src/bindings.rs` — registers
+  `reconnect_stagecraft_duplex` in the tauri-specta `collect_commands!`
+  set alongside its `generate_handler!` registration in `lib.rs`
+  (refines spec 180's OPC shell authority).
+- `crates/axiomregent/src/db/mod.rs` — the sidecar's hiqlite
+  initialiser; gains a startup self-heal that moves a port-0-poisoned
+  data dir aside so the in-process raft client cannot flood stderr and
+  evict the boot/auth diagnostics this gate depends on (§3.8) (refines
+  spec 073's axiomregent unification authority).
 
 The directory `product/apps/opc/src/components/boot/` itself remains
 under spec 180's `src/components` `establishes:` claim; spec 183 adds
@@ -645,6 +669,65 @@ spec already `refines:`:
 No FR-T2 invariant changes — this restores the assumed liveness of the
 loop the invariant already depends on. The duplex give-up /
 precondition-loss semantics (FR-T5) are unchanged.
+
+### 3.8 Post-approval hardening: explicit reconnect, sign-in budget reset, and port-0 self-heal (2026-06-05)
+
+The 2026-06-05 runtime investigation surfaced three further liveness
+gaps around the same FR-T2(b) `sync.hello` precondition. Like §3.7, each
+is confined to files this spec `refines:` and changes no FR-T invariant —
+they restore liveness the invariants already assume.
+
+**(a) Explicit duplex reconnect (recovery, not silent retry).** §3.2's
+recovery diagnosis (2026-06-01) bounded the duplex 401→refresh loop with
+a per-outage refresh budget (`MAX_REFRESHES_PER_OUTAGE`), and §3.7 fixed
+the spawn race. But three states could still strand a signed-in user on
+the boot gate with `has_org` satisfied and `sync.hello` never arriving:
+a refresh budget burned during a session expiry (the budget resets only
+on a *clean* connect, so a subsequently re-minted valid bearer's upgrade
+401s would skip the refresh path and march to give-up); a consumer
+sitting out a long backoff after a transient outage; or — belt-and-braces
+over §3.7 — a wedged consumer. The recovery is a re-spawn: `run_forever`
+holds the budget and failure counters as loop-locals, so a fresh spawn
+starts them at zero and connects immediately with the current bearer.
+
+A new `reconnect_stagecraft_duplex` Tauri command
+(`commands/settings.rs`, registered in `bindings.rs` + `lib.rs`) exposes
+exactly the FR-T2(a) URL-change re-spawn as a user/-caller action.
+`BootGate.tsx` surfaces it as a **Reconnect** affordance in precisely the
+`has_org`-satisfied-but-no-`sync.hello` branch — the diagnosed
+duplex-stuck state — so it sits beside the existing Sign-out recovery for
+the org-absent branch. This stays within FR-T4's "retry is
+user-initiated, not a silent reconnect loop": Reconnect is an explicit
+button, and the underlying loop's backoff cadence is unchanged.
+
+**(b) Refresh-budget reset on sign-in.** A fresh sign-in (or an org
+selection / switch) establishes a new valid bearer, so `AuthContext.tsx`
+fires the same `reconnect_stagecraft_duplex` on its authenticated
+transition. This guarantees the per-outage refresh budget resets when a
+new session is established, closing the "re-login is unrecoverable after
+a burned budget" seam without waiting for the loop's own clean-connect
+reset. Best-effort and desktop-only — a failed reconnect never blocks the
+sign-in transition.
+
+**(c) Sidecar hiqlite port-0 membership self-heal.** FR-T1 depends on a
+*diagnosable* sidecar, and FR-T2(b)'s `sync.hello` failures are diagnosed
+from `opc.log`. A pre-fix axiomregent binary (before the
+`free_loopback_pair` concrete-port fix) advertised `127.0.0.1:0` as its
+single-node raft address; hiqlite/openraft persists node membership in
+committed raft state, so such a data dir reloads the port-0 address on
+every restart and the in-process API client floods stderr with
+`os error 49` ~once per second — evicting the very duplex/auth lines a
+stuck-handshake diagnosis needs. The concrete-port fix only helped a
+fresh init. `crates/axiomregent/src/db/mod.rs::init_hiqlite` now self-heals
+at startup: it scans the raft control-plane files (logs + snapshots, never
+the SQLite state-machine db whose user data could false-positive) for the
+exact port-0 address signature, and if found moves the poisoned data dir
+**aside** (a numbered sibling, preserved not deleted — the store is a
+regenerable checkpoint/cache per spec 041) so the next init starts fresh
+with concrete ports. A healthy dir with concrete ports is never touched.
+
+These restore the liveness and observability the FR-T1/FR-T2 invariants
+assume; the precondition-loss semantics (FR-T5) are unchanged.
 
 ## 4. Non-goals (binding)
 

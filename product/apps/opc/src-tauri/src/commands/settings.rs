@@ -198,6 +198,47 @@ pub async fn set_stagecraft_base_url(
     Ok(())
 }
 
+/// Force an immediate duplex reconnect by re-spawning the sync consumer
+/// against the live client.
+///
+/// Spec 183 — explicit recovery affordance. Re-spawning `run_forever` resets
+/// its per-outage refresh budget (`MAX_REFRESHES_PER_OUTAGE`) and the
+/// consecutive-failure counter to zero — they are loop-locals, so a fresh
+/// spawn always starts clean — and triggers an immediate connect attempt with
+/// the freshly-resolved bearer instead of waiting out the current backoff.
+/// This is the manual counterpart to the FR-T2(a) settings URL-change
+/// re-spawn, and the load-bearing recovery for:
+///   * a burned refresh budget after a session-expiry + re-login (the new
+///     valid bearer would otherwise march toward the give-up threshold
+///     without a refresh, because the budget only resets on a clean connect),
+///   * a duplex stuck in a long backoff after a transient outage, and
+///   * a wedged consumer (belt-and-braces over the FR-T2(a) spawn-ordering
+///     fix — `spawn` aborts any prior task first, so the result is always a
+///     single live loop).
+///
+/// Errors (rather than silently no-ops) when the integration is disabled — no
+/// base URL means there is no client to reconnect, and the caller should know.
+#[tauri::command]
+#[specta::specta]
+pub async fn reconnect_stagecraft_duplex(
+    stagecraft: State<'_, StagecraftState>,
+    sync_state: State<'_, SyncClientState>,
+    instance: State<'_, OpcInstanceId>,
+    app: AppHandle,
+) -> Result<(), String> {
+    let client = stagecraft
+        .current()
+        .ok_or("Stagecraft integration is disabled (no base URL configured)")?;
+    let config = SyncClientConfig {
+        base_url: client.base_url().to_string(),
+        client_id: instance.0.clone(),
+        client_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+    };
+    sync_state.spawn(config, client, app).await;
+    info!("Stagecraft duplex sync loop re-spawned (manual reconnect)");
+    Ok(())
+}
+
 /// Validate a trimmed Stagecraft base URL. Empty is allowed — it means
 /// "disable the integration". Non-empty must parse as a well-formed `http` or
 /// `https` URL. A prefix check (`starts_with("http://")`) would wave through
