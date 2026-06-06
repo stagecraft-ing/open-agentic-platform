@@ -455,18 +455,38 @@ handler delegates to) over a representative input set.
 
 **FR-T9 (CI gating).** The bench MUST be wired into CI as a job that:
 
-- Saves a baseline measurement on `main` after each merge to `main`.
-- On `pull_request`, gates merge on relative regression **>25%**
-  against that baseline.
+- On `pull_request` / `merge_group`, measures the **base (`main`) commit
+  and the head commit on the same runner** and gates merge on relative
+  regression **>25%** of head vs that same-runner base.
 - Runs at **N=200** input size for the per-PR job (runtime budget
   constraint).
-- Runs at **N=2000** input size as a nightly job and surfaces
-  regressions to the maintainer.
+- Runs at **N=2000** input size as a nightly job (compared to the prior
+  nightly on a consistent schedule) and surfaces regressions to the
+  maintainer.
 
 The 25% threshold is **amendable via spec amendment** if observed
 false-positive rate from runner noise becomes operationally
 significant. It is not a constitutional invariant. The N=200 / N=2000
 split is similarly amendable.
+
+> *Amended 2026-06-06 (same-runner baseline).* The original wiring
+> restored a `main` baseline saved by an earlier **push-to-main** run and
+> compared the PR/merge_group head against it. Because
+> `usage_scan_cold_n200` is a ~6–11 ms cold filesystem-scan microbench
+> whose wall-time is dominated by syscall latency, the `macos-latest`
+> fleet's ±~80% **inter-runner** I/O variance dwarfed the +25% threshold:
+> PR #305 — which changes no code on the benched path (`commands/usage.rs`
+> was byte-identical to `main`) — was flagged at +44.8%, +75.7%, and
+> +84.4% across three runs, every one spurious. Per this FR's own
+> amendability clause (runner-noise false positives), the PR/merge_group
+> gate now measures the **base and head commits on the same runner** in
+> one job and compares same-runner, so the +25% threshold reflects a real
+> code delta rather than which shared runner the job landed on. The
+> threshold (+25%) and the relative-only discipline (**FR-T10**) are
+> unchanged — only the baseline's *provenance* moved (cross-runner Actions
+> cache → same-runner, in-job). `push` still records the informational
+> cached `main` baseline (now feeding only the `workflow_dispatch` manual
+> diagnostic); the nightly N=2000 trend is unchanged.
 
 **FR-T10 (no Tier 3 leak).** The Tier 2 gate MUST NOT assert any
 absolute latency value. It is strictly a relative-delta comparison
