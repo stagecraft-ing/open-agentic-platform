@@ -724,6 +724,7 @@ pub fn run() {
             // App settings
             commands::settings::get_stagecraft_base_url,
             commands::settings::set_stagecraft_base_url,
+            commands::settings::reconnect_stagecraft_duplex,
             // OPC decomposition pipeline (spec 165)
             commands::decomposition::decomposition_run,
             commands::decomposition::decomposition_list_runs,

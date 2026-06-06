@@ -171,6 +171,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setPendingId(null);
       setStatus('authenticated');
       scheduleRefresh(result.expires_at);
+      // Spec 183 — a fresh sign-in (or an org selection / switch routed
+      // through here) establishes a new valid bearer. Re-spawn the duplex
+      // consumer so its per-outage refresh budget + consecutive-failure
+      // counter reset to zero. Without this, a session that expired and
+      // burned its refresh budget before this re-login stays unrecoverable:
+      // the loop only resets the budget on a clean connect, so the new
+      // bearer's upgrade 401s would skip the refresh path and march straight
+      // to the give-up threshold. Best-effort and desktop-only — a failed
+      // reconnect must never block the sign-in transition.
+      if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+        void api.reconnectStagecraftDuplex().catch(() => {});
+      }
     } else if (result.type === 'org_selection') {
       setUser(result.user);
       setPendingOrgs(result.orgs);

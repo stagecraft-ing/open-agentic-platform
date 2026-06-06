@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "4b18809ee5416ff2c0d58d4eaf4e00d54ed6e4caf7e3cac491642f700e840edf",
+    "contentHash": "f2c9eaf547d8ecc26cd48792da71f5c9ffc9e5f7cc5e85ce1a951bec6dd8039d",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -41776,7 +41776,19 @@
         ],
         "implementingPaths": [
           {
+            "path": "crates/axiomregent/src/db/mod.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/bindings.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/commands/settings.rs",
             "source": "spec-implements"
           },
           {
@@ -41839,6 +41851,48 @@
             "unit": {
               "kind": "file",
               "path": "specs/180-opc-shell-codification/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/axiomregent/src/db/mod.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/axiomregent/src/db/mod.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/bindings.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/bindings.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/settings.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/settings.rs"
             }
           },
           {

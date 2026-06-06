@@ -2392,6 +2392,19 @@ export const api = {
   },
 
   /**
+   * Spec 183 — force an immediate duplex reconnect. Re-spawns the Rust sync
+   * consumer against the live client, which resets the per-outage refresh
+   * budget + consecutive-failure counter to zero and triggers an immediate
+   * connect with the freshly-resolved bearer (rather than waiting out the
+   * current backoff). Used by the BootGate "Reconnect" affordance and fired
+   * on sign-in so a session that burned its refresh budget while expired is
+   * recoverable by re-logging-in. Errors if the integration is disabled.
+   */
+  async reconnectStagecraftDuplex(): Promise<void> {
+    await apiCall<null>("reconnect_stagecraft_duplex");
+  },
+
+  /**
    * Spec 183 FR-T6 — clean OPC exit. Kills the retained axiomregent
    * `CommandChild` handle (the shell plugin's SharedChild::kill is
    * SIGKILL-equivalent on Unix, TerminateProcess on Windows) before
