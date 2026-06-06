@@ -6,11 +6,16 @@
 # if: always() aggregator pattern), plus an independent nightly schedule.
 #
 # Modes (selected by github.event_name):
-#   pull_request / merge_group → GATE: N=200, compare to the saved `main`
-#       baseline, FAIL on >25% relative-mean regression (FR-T9). No baseline
-#       yet (inaugural) → measure-only pass.
-#   push (to main, via ci.yml) → BASELINE: N=200, --save-baseline main, cache
-#       it for PRs to compare against ("baseline after each merge to main").
+#   pull_request / merge_group → GATE: N=200, SAME-RUNNER base-vs-head. Measures
+#       the base (main) commit AND the head commit on this one runner, then FAILs
+#       on >25% relative-mean regression of head vs that same-runner base
+#       (FR-T9, amended 2026-06-06). Same-runner cancels the macos-latest fleet's
+#       ±~80% inter-runner I/O variance, which dwarfed the +25% threshold under
+#       the old cross-runner cached baseline and produced spurious regressions.
+#   push (to main, via ci.yml) → BASELINE: N=200, --save-baseline main, cache it
+#       (informational / feeds the workflow_dispatch diagnostic). Non-gating.
+#   workflow_dispatch          → manual diagnostic: compare to the cached `main`
+#       baseline (lenient), non-gating.
 #   schedule                   → NIGHTLY REPORT: N=2000, non-gating; compares
 #       to the previous nightly and surfaces the delta to the maintainer.
 #
@@ -52,6 +57,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          # Full history so the same-runner baseline (PR/merge_group) can check
+          # out the base (main) commit alongside the head in the bench step.
+          fetch-depth: 0
 
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # pinned for rust-toolchain.toml lockstep
@@ -75,9 +84,11 @@ jobs:
           touch product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin
           chmod +x product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin
 
-      # PR gate compares against the most recent `main` baseline.
-      - name: Restore main bench baseline (PR/merge_group)
-        if: github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+      # workflow_dispatch (manual diagnostic) still compares against the most
+      # recent cached `main` baseline. PR/merge_group no longer use a cached
+      # baseline — they measure base-vs-head on the same runner (bench step).
+      - name: Restore main bench baseline (workflow_dispatch diagnostic)
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ${{ env.BENCH_DIR }}
@@ -99,28 +110,71 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          case "${{ github.event_name }}" in
-            push)                      N=200;  BL=main;    SAVE=1; GATE=0 ;;
-            schedule)                  N=2000; BL=nightly; SAVE=1; GATE=0 ;;
-            pull_request|merge_group)  N=200;  BL=main;    SAVE=0; GATE=1 ;;
-            *)                         N=200;  BL=main;    SAVE=0; GATE=0 ;;
+          EVENT="${{ github.event_name }}"
+          case "$EVENT" in
+            push)                      N=200;  MODE=cached;     BL=main;    GATE=0; SAVE=1 ;;
+            schedule)                  N=2000; MODE=cached;     BL=nightly; GATE=0; SAVE=1 ;;
+            pull_request|merge_group)  N=200;  MODE=samerunner; BL=main;    GATE=1; SAVE=0 ;;
+            *)                         N=200;  MODE=cached;     BL=main;    GATE=0; SAVE=0 ;;
           esac
           BENCH_ID="usage_scan_cold_n${N}"
-          echo "event=${{ github.event_name }} N=$N baseline=$BL gate=$GATE save=$SAVE bench_id=$BENCH_ID"
+          echo "event=$EVENT N=$N mode=$MODE baseline=$BL gate=$GATE save=$SAVE bench_id=$BENCH_ID"
 
-          # --save-baseline reports the change vs the existing same-named
-          # baseline (if any) and then overwrites it; --baseline-lenient
-          # compares without erroring when the baseline is absent (inaugural).
-          if [ "$SAVE" = "1" ]; then
-            OPC_BENCH_N=$N cargo bench --manifest-path "$MANIFEST" --bench usage_scan -- --save-baseline "$BL"
+          # Tauri build.rs + web_server's include_str! need these stubs on every
+          # checked-out tree; re-assert after each git checkout in same-runner mode.
+          ensure_stubs() {
+            mkdir -p product/apps/opc/dist
+            echo '<!doctype html><html><body>stub</body></html>' > product/apps/opc/dist/index.html
+            mkdir -p product/apps/opc/src-tauri/binaries
+            touch product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin
+            chmod +x product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin
+          }
+
+          if [ "$MODE" = "samerunner" ]; then
+            # Same-runner base-vs-head (spec 180 §5.1 FR-T9, amended 2026-06-06):
+            # measure the base (main) commit AND the head commit on THIS runner so
+            # the macos-latest fleet's ±~80% inter-runner I/O variance cancels and
+            # the +25% gate reflects a real code delta — not which shared runner the
+            # job happened to land on. (This replaces a cross-runner cached `main`
+            # baseline whose variance dwarfed the threshold; still relative-only per
+            # FR-T10, still +25%.)
+            PR_BASE="${{ github.event.pull_request.base.sha }}"
+            MG_BASE="${{ github.event.merge_group.base_sha }}"
+            BASE_SHA="${PR_BASE:-$MG_BASE}"
+            HEAD_SHA="$(git rev-parse HEAD)"
+            git fetch --no-tags origin "$BASE_SHA" 2>/dev/null || true
+            if [ -z "$BASE_SHA" ] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+              echo "::error::same-runner baseline: could not resolve base commit (base='$BASE_SHA')"
+              exit 1
+            fi
+            echo "same-runner: base=$BASE_SHA head=$HEAD_SHA"
+
+            # 1) Base measurement on this runner → criterion baseline.
+            git checkout --quiet --detach "$BASE_SHA"
+            ensure_stubs
+            OPC_BENCH_N=$N cargo bench --manifest-path "$MANIFEST" --bench usage_scan -- --save-baseline samerunner_base
+
+            # 2) Head measurement on this runner, compared to the base baseline.
+            git checkout --quiet --detach "$HEAD_SHA"
+            ensure_stubs
+            OPC_BENCH_N=$N cargo bench --manifest-path "$MANIFEST" --bench usage_scan -- --baseline samerunner_base
+            BL="same-runner main (${BASE_SHA:0:12})"
           else
-            OPC_BENCH_N=$N cargo bench --manifest-path "$MANIFEST" --bench usage_scan -- --baseline-lenient "$BL"
+            ensure_stubs
+            # --save-baseline reports the change vs the existing same-named
+            # baseline (if any) and then overwrites it; --baseline-lenient
+            # compares without erroring when the baseline is absent (inaugural).
+            if [ "$SAVE" = "1" ]; then
+              OPC_BENCH_N=$N cargo bench --manifest-path "$MANIFEST" --bench usage_scan -- --save-baseline "$BL"
+            else
+              OPC_BENCH_N=$N cargo bench --manifest-path "$MANIFEST" --bench usage_scan -- --baseline-lenient "$BL"
+            fi
           fi
 
           CHANGE="$BENCH_DIR/$BENCH_ID/change/estimates.json"
           if [ ! -f "$CHANGE" ]; then
-            echo "::notice::No '$BL' baseline to compare against yet (inaugural run) — regression gate not applied."
-            { echo "### OPC usage bench — $BENCH_ID"; echo "No \`$BL\` baseline yet → no regression evaluated (inaugural)."; } >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::No baseline to compare against yet (inaugural run) — regression gate not applied."
+            { echo "### OPC usage bench — $BENCH_ID"; echo "No baseline yet → no regression evaluated (inaugural)."; } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
@@ -128,14 +182,14 @@ jobs:
           MEAN=$(jq -r '.mean.point_estimate' "$CHANGE")
           PCT=$(awk -v m="$MEAN" 'BEGIN { printf "%+.1f", m * 100 }')
           OVER=$(awk -v m="$MEAN" 'BEGIN { print (m > 0.25) ? 1 : 0 }')
-          { echo "### OPC usage bench — $BENCH_ID"; echo "Relative mean change vs \`$BL\` baseline: ${PCT}% (threshold: +25.0%)"; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "### OPC usage bench — $BENCH_ID"; echo "Relative mean change vs ${BL} baseline: ${PCT}% (threshold: +25.0%)"; } >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$OVER" = "1" ]; then
             if [ "$GATE" = "1" ]; then
-              echo "::error::usage_scan regressed ${PCT}% (> +25%) vs the '$BL' baseline"
+              echo "::error::usage_scan regressed ${PCT}% (> +25%) vs ${BL}"
               exit 1
             fi
-            echo "::warning::usage_scan regressed ${PCT}% vs the '$BL' baseline (non-gating — maintainer review per spec 180 §5.4)"
+            echo "::warning::usage_scan regressed ${PCT}% vs ${BL} (non-gating — maintainer review per spec 180 §5.4)"
           fi
 
       # Persist the fresh baseline (immutable per-key cache; restore-keys picks
