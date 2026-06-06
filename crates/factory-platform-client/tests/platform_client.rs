@@ -354,7 +354,7 @@ async fn mount_minimal_factory_endpoints(server: &MockServer) {
             "version": "v1",
             "sourceSha": "ada-sha-1",
             "syncedAt": "2026-05-01T12:00:00Z",
-            "manifest": { "kind": "adapter" }
+            "manifest": { "kind": "adapter", "schema_version": "1.0.0" }
         })))
         .mount(server)
         .await;

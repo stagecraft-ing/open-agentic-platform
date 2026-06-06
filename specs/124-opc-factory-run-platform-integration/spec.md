@@ -509,10 +509,13 @@ factory engine then failed deep in startup with a cryptic `missing field
 Hardening (no run-contract change):
 
 - `crates/factory-platform-client/src/materialise.rs` — `write_adapter`
-  deserialises the manifest into `factory_contracts::AdapterManifest`
-  before writing the cache, returning a clear, attributable `CacheIo`
-  error ("stagecraft served a non-spec-074 adapter manifest for '<name>'…")
-  when the shape is wrong.
+  validates the manifest carries a string `schema_version` before writing
+  the cache, returning a clear, attributable `CacheIo` error ("stagecraft
+  served a non-spec-074 adapter manifest for '<name>'…") otherwise. This is
+  a cheap top-level guard symmetric with the stagecraft `getAdapter` guard;
+  the factory engine still does full `AdapterManifest` validation when it
+  reads the cache, so a manifest that has `schema_version` but is otherwise
+  malformed is still caught (and now logged via `factory.rs`).
 - `product/apps/opc/src-tauri/src/commands/factory.rs` — the
   `FactoryEngine::new` / `start_pipeline` error paths now `log::error!`
   before stringifying, so engine/discovery faults land in `opc.log`

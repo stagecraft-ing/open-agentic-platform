@@ -115,11 +115,11 @@ export const getAdapter = api(
           keys: manifest ? Object.keys(manifest).join(",") : "(none)",
         },
       );
+      // Short client-facing message; the diagnostic detail stays in the
+      // log.error above so internal substrate/projection mechanics are not
+      // disclosed in the HTTP response body.
       throw APIError.internal(
-        `adapter "${req.name}" has no valid spec-074 manifest for this org ` +
-          `(substrate is missing an adapter-manifest row; the projection fell ` +
-          `back to a non-manifest document). Trigger an upstream sync or seed ` +
-          `the adapter manifest.`,
+        `adapter "${req.name}" is not configured correctly for this org`,
       );
     }
     return {
