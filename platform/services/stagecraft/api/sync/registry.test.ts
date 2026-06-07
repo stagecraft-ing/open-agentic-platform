@@ -90,6 +90,32 @@ describe("sync registry", () => {
     expect(registry.sessionCount("org1")).toBe(1);
   });
 
+  test("reconnect race: a stale connection's unregister does not evict the live replacement", () => {
+    const first = makeStream();
+    const second = makeStream();
+    // Conn A registers; Conn B reconnects under the SAME clientId (register
+    // closes A's stream and installs B as the live session).
+    registry.register(makeSession("org1", "c1", first.stream));
+    registry.register(makeSession("org1", "c1", second.stream));
+    expect(first.stream.close).toHaveBeenCalled();
+
+    // Conn A's `finally` now runs, unregistering with ITS OWN (now-stale)
+    // stream. The stream-identity guard must keep B registered — without it,
+    // B is orphaned and its next heartbeat tears the live stream down (the
+    // spec-183 duplex reconnect wedge: every reconnect dies before sync.hello).
+    registry.unregister("org1", "c1", first.stream);
+
+    expect(registry.sessionCount("org1")).toBe(1);
+    expect(registry.get("org1", "c1")?.stream).toBe(second.stream);
+  });
+
+  test("unregister with the matching stream removes the session", () => {
+    const a = makeStream();
+    registry.register(makeSession("org1", "c1", a.stream));
+    registry.unregister("org1", "c1", a.stream);
+    expect(registry.sessionCount("org1")).toBe(0);
+  });
+
   test("unregister removes the session and cleans the org", () => {
     const a = makeStream();
     registry.register(makeSession("org1", "c1", a.stream));

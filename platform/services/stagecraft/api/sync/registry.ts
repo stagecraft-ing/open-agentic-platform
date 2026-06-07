@@ -61,16 +61,35 @@ export function register(session: Session): void {
   });
 }
 
-export function unregister(orgId: string, clientId: string): void {
+export function unregister(
+  orgId: string,
+  clientId: string,
+  stream?: SyncStream,
+): void {
   const clients = orgs.get(orgId);
   if (!clients) return;
-  if (clients.delete(clientId)) {
-    log.info("sync: session unregistered", {
+  const existing = clients.get(clientId);
+  if (!existing) return;
+  // Stream-identity guard (spec 183 — duplex reconnect race). A reconnecting
+  // client reuses its `clientId`, so a newer session can already occupy this
+  // (orgId, clientId) slot by the time the OLD connection tears down. The old
+  // connection's `finally` MUST NOT evict the live replacement. Only delete
+  // when the registered session is the caller's own (or when no stream is
+  // supplied — server-originated prunes in sendTo/broadcastOrg act on the
+  // session they just fetched, which is by definition the current one).
+  if (stream && existing.stream !== stream) {
+    log.info("sync: unregister skipped — newer session holds the slot", {
       orgId,
       clientId,
-      remaining: clients.size,
     });
+    return;
   }
+  clients.delete(clientId);
+  log.info("sync: session unregistered", {
+    orgId,
+    clientId,
+    remaining: clients.size,
+  });
   if (clients.size === 0) orgs.delete(orgId);
 }
 

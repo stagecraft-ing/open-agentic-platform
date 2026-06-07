@@ -6,16 +6,19 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-09"
-amended: "2026-05-08"
-amendment_record: "143-presigned-upload-public-endpoint"
+amended: "2026-06-07"
+amendment_record: "183-opc-boot-precondition-gate"
 summary: >
   Unified architecture connecting web and desktop planes into one system with
   a first-class knowledge intake domain and project-scoped entity hierarchy.
   §5.3 adds the duplex sync substrate contract (FR-SYNC-001..010). Originally
   authored as "Unified Workspace Architecture" (2026-04-09); amended by spec
-  119 (2026-04-29) when the workspace layer was collapsed into project, and
+  119 (2026-04-29) when the workspace layer was collapsed into project,
   by spec 143 (2026-05-08) to add the browser-reachability requirement to
-  NF-002 for the object-store endpoint backing presigned uploads.
+  NF-002 for the object-store endpoint backing presigned uploads, and by
+  spec 183 (2026-06-07) adding FR-SYNC-011 — the stream-identity-scoped
+  reconnect teardown that closes the server-side duplex reconnect race
+  wedging the boot gate.
 code_aliases: ["UNIFIED_PROJECT"]
 depends_on:
   - "074"  # factory-ingestion
@@ -305,6 +308,7 @@ The envelope union encodes the §5.1 authority split in TypeScript:
 | **FR-SYNC-008** | Metrics MUST be exposed: `sync_connections_total`, `sync_events_inbound_total{kind,status}`, `sync_events_outbound_total{kind}`, `sync_ack_latency_seconds`. | observability | not shipped |
 | **FR-SYNC-009** | Inbound MUST be rate-limited per `clientId` (token-bucket, default 100/s, burst 200). Excess events are NACKed with `reason: "invalid"` and `detail: "rate_limited"`. | abuse resistance | not shipped |
 | **FR-SYNC-010** | The legacy `projectEventStream` streamOut + `ingestOpcEvent` HTTP POST path in `api/sync/sync.ts` MUST be decommissioned once `web/`, `product/apps/opc`, and `product/packages/project-sdk` are migrated to the duplex. Coexistence is additive, not permanent. | hygiene | migration tracked |
+| **FR-SYNC-011** | Session teardown MUST be **stream-identity-scoped**. The desktop reuses a stable `clientId` across reconnects, so a new connection can occupy the `(orgId, clientId)` registry slot while the prior connection is still tearing down. `registry.unregister` MUST NOT evict the slot when a *newer* session's stream already holds it — the dying connection's `finally` passes its own `stream` and the registry deletes only on a stream-identity match. Without this guard the old connection orphans the live reconnect, whose next heartbeat then collapses it before `sync.hello`, wedging the spec-183 boot gate in a connect→close→reconnect loop. | correctness — blocker | shipped |
 
 #### Retention Calculus (In-Memory Stores)
 
@@ -313,6 +317,17 @@ The in-memory outbox cap is `MAX_OUTBOX_PER_PROJECT = 500` (`store.ts`). At a ta
 A client that reconnects after a gap greater than the retained window receives `sync.resync_required(reason: "cursor_gap")` and must refetch state via existing REST endpoints. This is acceptable while stagecraft deploys take single-digit seconds; it is NOT acceptable for deploys exceeding the retention window or for any scenario where in-flight state cannot be refetched. FR-SYNC-005 removes this constraint.
 
 The in-memory inbox cap is `MAX_INBOX_HISTORY = 1000` and is used only for debug/inspection; audit candidates are durably written regardless.
+
+#### Reconnect Session-Identity Teardown (FR-SYNC-011)
+
+The registry is keyed `(orgId, clientId)` and the desktop reuses one `clientId` across reconnects (spec 183 — the `client_id` survives a settings-driven re-spawn). Every reconnect therefore collides on the same slot:
+
+1. Conn **A** is registered and awaiting its inbound loop.
+2. The desktop reconnects (e.g. spec 183's sign-in `reconnect_stagecraft_duplex`) → Conn **B**, same `clientId`. `register` closes A's stream and installs B.
+3. A's inbound loop ends (its stream was just closed) → A's `finally` runs `registry.unregister(orgId, clientId)`.
+4. A *clientId-only* delete here removes **B's** entry — B is orphaned; its next heartbeat finds no session, flips `heartbeatAlive = false`, and B's loop breaks and closes. The client sees connect → close with **no `sync.hello`**, reconnects, and the cycle repeats.
+
+The fix: `unregister(orgId, clientId, stream?)` deletes only when the registered session's `stream` matches the caller's (`registry.ts`); the duplex handler's `finally` passes its own `stream` (`duplex.ts`). `register`'s replace-and-close of a superseded session is retained — only the teardown is identity-scoped. Server-originated prunes (`sendTo`/`broadcastOrg`) pass no `stream` and act on the session they just fetched, so their behaviour is unchanged. This corrects the residual *server-side* race left after spec 183's #303/#305 *client-side* reconnect fixes.
 
 #### Membership Gate Design (FR-SYNC-002)
 
