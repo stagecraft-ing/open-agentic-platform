@@ -347,6 +347,20 @@ gate's connect loop cannot stall a worker thread on keychain I/O. Sites:
 `sync_client.rs::run_forever` / `resolve_token` / `reload_session_token`,
 `stagecraft_client.rs::{read_session_token_from_keychain, adopt_token}`.
 
+*Amended 2026-06-07 (server-side reconnect race — residual wedge).* The
+#303/#305 fixes above are all **client-side**. A residual **server-side**
+race remained: the stagecraft duplex `registry` is keyed `(orgId, clientId)`
+and the desktop reuses one `clientId` across reconnects, so a reconnect's
+`register` installs the new session while the prior connection's `finally`
+then ran a `clientId`-only `unregister` that evicted the *live* replacement —
+orphaning it so its next heartbeat collapsed the stream **before `sync.hello`**,
+reproducing the exact connect→close→reconnect loop this gate guards against
+(every reconnect died; only a fresh first-connect ever delivered `sync.hello`).
+Closed by **spec 087 FR-SYNC-011** (stream-identity-scoped teardown:
+`registry.unregister(orgId, clientId, stream)` deletes only on a stream match;
+`duplex.ts`'s `finally` passes its own stream). Sites:
+`platform/services/stagecraft/api/sync/{registry.ts, duplex.ts}`.
+
 **FR-T2(a) in-memory propagation (binding, amended 2026-06-02).** Receipt
 of a non-empty `org_id` (a) presupposes the value *propagates* to the
 boot-gate reader. `boot_gate_status` reads `org_id` from the live

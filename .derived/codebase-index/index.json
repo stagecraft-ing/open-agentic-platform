@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "f3d66f8ff10a288b5a3aac0d709fcf07c4295e2b0d9ec5268e6696b8fc3052c8",
+    "contentHash": "cc45e35c31a2c3cdddecfe981fcecadc76e33f0487b5e38f870deb66fd7f6938",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -17580,7 +17580,7 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "143-presigned-upload-public-endpoint",
+        "amendmentRecord": "183-opc-boot-precondition-gate",
         "dependsOn": [
           "074",
           "075",

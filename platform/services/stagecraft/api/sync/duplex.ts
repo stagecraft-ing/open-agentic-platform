@@ -265,7 +265,10 @@ export const duplex = api.streamInOut<
       });
     } finally {
       clearInterval(heartbeatTimer);
-      registry.unregister(orgId, handshake.clientId);
+      // Pass our own `stream` so a reconnect that already replaced us under the
+      // same clientId is not torn down by this (now-stale) connection's
+      // teardown (spec 183 — duplex reconnect race).
+      registry.unregister(orgId, handshake.clientId, stream);
     }
   },
 );
