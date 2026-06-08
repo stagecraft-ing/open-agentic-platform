@@ -10,7 +10,7 @@
 //! Deep-link scheme: `opc://auth/callback?code=...&state=...`
 
 use super::result::AppResult;
-use super::stagecraft_client::{decode_jwt_claims, StagecraftState};
+use super::stagecraft_client::{claim_str, decode_jwt_claims, StagecraftState};
 use base64::Engine as _;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -625,68 +625,27 @@ pub async fn auth_get_status(stagecraft: State<'_, StagecraftState>) -> AppResul
         }
     }
 
+    // Rauthy nests the OAP attributes under `custom`; `claim_str` unwraps it
+    // (with a top-level fallback). Without this, a keychain-restored session
+    // would report authenticated but with empty org/identity fields.
     let user = AuthUser {
-        id: claims
-            .get("oap_user_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
-        email: claims
-            .get("email")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
-        name: claims
-            .get("name")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
-        github_login: claims
-            .get("github_login")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
-        idp_provider: claims
-            .get("idp_provider")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
-        idp_login: claims
-            .get("idp_login")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
-        avatar_url: claims
-            .get("avatar_url")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
+        id: claim_str(&claims, "oap_user_id").unwrap_or("").to_string(),
+        email: claim_str(&claims, "email").unwrap_or("").to_string(),
+        name: claim_str(&claims, "name").unwrap_or("").to_string(),
+        github_login: claim_str(&claims, "github_login").unwrap_or("").to_string(),
+        idp_provider: claim_str(&claims, "idp_provider").unwrap_or("").to_string(),
+        idp_login: claim_str(&claims, "idp_login").unwrap_or("").to_string(),
+        avatar_url: claim_str(&claims, "avatar_url").unwrap_or("").to_string(),
     };
 
-    let org_slug = claims
-        .get("oap_org_slug")
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
+    let org_slug = claim_str(&claims, "oap_org_slug").unwrap_or("").to_string();
 
     let org = AuthOrg {
-        org_id: claims
-            .get("oap_org_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
+        org_id: claim_str(&claims, "oap_org_id").unwrap_or("").to_string(),
         org_slug: org_slug.clone(),
-        github_org_login: claims
-            .get("github_org_login")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
+        github_org_login: claim_str(&claims, "github_org_login").unwrap_or("").to_string(),
         org_display_name: org_slug,
-        platform_role: claims
-            .get("platform_role")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
+        platform_role: claim_str(&claims, "platform_role").unwrap_or("").to_string(),
     };
 
     // Restore the in-memory client from the (valid) keychain token so the boot
@@ -778,23 +737,23 @@ pub async fn auth_switch_org(
         .unwrap_or_else(|| expires_at_from_in(data.expires_in));
 
     let user = claims.as_ref().map(|c| AuthUser {
-        id: c.get("oap_user_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        email: c.get("email").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        name: c.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        github_login: c.get("github_login").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        idp_provider: c.get("idp_provider").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        idp_login: c.get("idp_login").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-        avatar_url: c.get("avatar_url").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        id: claim_str(c, "oap_user_id").unwrap_or("").to_string(),
+        email: claim_str(c, "email").unwrap_or("").to_string(),
+        name: claim_str(c, "name").unwrap_or("").to_string(),
+        github_login: claim_str(c, "github_login").unwrap_or("").to_string(),
+        idp_provider: claim_str(c, "idp_provider").unwrap_or("").to_string(),
+        idp_login: claim_str(c, "idp_login").unwrap_or("").to_string(),
+        avatar_url: claim_str(c, "avatar_url").unwrap_or("").to_string(),
     });
 
     let org = claims.as_ref().map(|c| {
-        let slug = c.get("oap_org_slug").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let slug = claim_str(c, "oap_org_slug").unwrap_or("").to_string();
         AuthOrg {
-            org_id: c.get("oap_org_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            org_id: claim_str(c, "oap_org_id").unwrap_or("").to_string(),
             org_slug: slug.clone(),
-            github_org_login: c.get("github_org_login").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            github_org_login: claim_str(c, "github_org_login").unwrap_or("").to_string(),
             org_display_name: slug,
-            platform_role: c.get("platform_role").and_then(|v| v.as_str()).unwrap_or("member").to_string(),
+            platform_role: claim_str(c, "platform_role").unwrap_or("member").to_string(),
         }
     });
 
