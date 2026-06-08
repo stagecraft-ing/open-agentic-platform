@@ -10,7 +10,7 @@
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use hiqlite::{Client, Node, NodeConfig};
 
 // ---------------------------------------------------------------------------
@@ -149,7 +149,11 @@ pub async fn init_hiqlite(data_dir: &Path) -> Result<Client> {
             Some(pair) => pair,
             None => {
                 let pair = free_loopback_pair()?;
-                persist_ports(data_dir, pair.0, pair.1);
+                // Persist BEFORE start_node and abort on failure — see
+                // `persist_ports`: an initialised store with no sidecar is moved
+                // aside on the next boot, so we must not commit membership we
+                // cannot pair with a durable sidecar.
+                persist_ports(data_dir, pair.0, pair.1)?;
                 pair
             }
         };
@@ -197,7 +201,11 @@ pub async fn init_hiqlite(data_dir: &Path) -> Result<Client> {
                              bind failure on its persisted port: {heal_err}"
                         );
                     }
-                    let _ = std::fs::create_dir_all(data_dir);
+                    if let Err(mk_err) = std::fs::create_dir_all(data_dir) {
+                        log::warn!(
+                            "init_hiqlite: could not recreate data dir after move-aside: {mk_err}"
+                        );
+                    }
                 }
                 last_err = Some(e.into());
             }
@@ -255,21 +263,22 @@ fn read_persisted_ports(data_dir: &Path) -> Option<(u16, u16)> {
 }
 
 /// Persist the resolved port pair so the next restart reuses the same address.
-/// Best-effort: a write failure degrades to the pre-fix behaviour (a fresh pair
-/// next start) rather than blocking startup, so it is logged, not propagated.
-fn persist_ports(data_dir: &Path, raft: u16, api: u16) {
+///
+/// **Propagated, not best-effort.** The caller writes the sidecar *before*
+/// `start_node` and aborts on failure, because the invariant "an initialised
+/// store always has a ports sidecar" is load-bearing: a store with committed
+/// raft membership but no sidecar is indistinguishable from a pre-stability
+/// store, so the next boot's `heal_unstable_membership` would move it aside —
+/// silently losing a live checkpoint cache. Failing the init loudly (the boot
+/// gate surfaces it) is strictly safer than bringing up a node that is one
+/// restart away from discarding its store.
+fn persist_ports(data_dir: &Path, raft: u16, api: u16) -> Result<()> {
     let path = ports_sidecar_path(data_dir);
-    match serde_json::to_vec(&PersistedPorts { raft, api }) {
-        Ok(bytes) => {
-            if let Err(e) = std::fs::write(&path, bytes) {
-                log::warn!(
-                    "init_hiqlite: could not persist ports sidecar {}: {e}",
-                    path.display()
-                );
-            }
-        }
-        Err(e) => log::warn!("init_hiqlite: could not serialise ports sidecar: {e}"),
-    }
+    let bytes =
+        serde_json::to_vec(&PersistedPorts { raft, api }).context("serialise hiqlite ports sidecar")?;
+    std::fs::write(&path, bytes)
+        .with_context(|| format!("write hiqlite ports sidecar {}", path.display()))?;
+    Ok(())
 }
 
 /// Move aside a data dir whose committed membership cannot be safely reused, so
@@ -419,7 +428,7 @@ mod tests {
             None,
             "absent sidecar reads as None",
         );
-        persist_ports(dir.path(), 54808, 54809);
+        persist_ports(dir.path(), 54808, 54809).unwrap();
         assert_eq!(read_persisted_ports(dir.path()), Some((54808, 54809)));
     }
 
@@ -483,7 +492,7 @@ mod tests {
             b"membership 127.0.0.1:54809 node 1",
         )
         .unwrap();
-        persist_ports(&data, 54808, 54809);
+        persist_ports(&data, 54808, 54809).unwrap();
 
         heal_unstable_membership(&data).unwrap();
 
