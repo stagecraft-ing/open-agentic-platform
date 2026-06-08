@@ -46,7 +46,32 @@ export const duplex = api.streamInOut<
 >(
   { expose: true, auth: true, path: "/api/sync/duplex" },
   async (handshake, stream) => {
-    const auth = getAuthData()!;
+    // Diagnostic (spec 183 duplex churn, 2026-06-08): post-interactive-sign-in
+    // reconnects reach this endpoint (Encore logs the `duplex` request) yet
+    // never emit `sync: session registered` AND never hit the `!orgId`
+    // rejection below — the body exits before `registry.register` with no app
+    // log. Prime suspect: `getAuthData()` returns null inside the streamInOut
+    // handler (the `!` then makes `auth.orgId` throw, and Encore swallows the
+    // stream-handler throw). This entry log proves whether the body runs at all
+    // and prints the resolved auth; reading it null-safely converts the silent
+    // throw into an explicit, logged close.
+    const auth = getAuthData();
+    log.info("sync: duplex handler entered", {
+      clientId: handshake?.clientId ?? null,
+      clientKind: handshake?.clientKind ?? null,
+      lastServerCursor: handshake?.lastServerCursor ?? null,
+      hasAuth: auth != null,
+      orgId: auth?.orgId ?? null,
+      userId: auth?.userID ?? null,
+    });
+    if (!auth) {
+      log.warn(
+        "sync: duplex aborted — getAuthData() returned null in the stream handler despite the auth handler completing",
+        { clientId: handshake?.clientId ?? null },
+      );
+      await stream.close().catch(() => undefined);
+      return;
+    }
     const orgId = auth.orgId;
 
     if (!orgId) {
@@ -130,9 +155,42 @@ export const duplex = api.streamInOut<
       serverStartedAt: SERVER_STARTED_AT,
       cursorGap,
     };
-    await stream.send(hello).catch(() => undefined);
+    // Diagnostic (spec 183 duplex churn): this send was previously
+    // `.catch(() => undefined)` — silent on BOTH success and failure, so a
+    // reconnect that connected at the WS layer but never received `sync.hello`
+    // left the server logs empty exactly where it mattered (the desktop's
+    // `duplex hello received` never fired, the session died ~30s later on the
+    // heartbeat half-open check, and we had no way to tell whether the hello
+    // was sent). Log the happy path AND surface the swallowed send error
+    // without changing the fail-soft posture (a dead socket must not throw out
+    // of the handler).
+    await stream
+      .send(hello)
+      .then(() =>
+        log.info("sync: hello sent", {
+          orgId,
+          clientId: handshake.clientId,
+          sessionId: hello.sessionId,
+          orgCursor: hello.meta.orgCursor,
+          cursorGap,
+          lastServerCursor: handshake.lastServerCursor ?? null,
+        }),
+      )
+      .catch((err) =>
+        log.warn("sync: hello send failed", {
+          orgId,
+          clientId: handshake.clientId,
+          err: err instanceof Error ? err.message : String(err),
+        }),
+      );
 
     if (cursorGap) {
+      log.info("sync: cursor gap — sending resync_required", {
+        orgId,
+        clientId: handshake.clientId,
+        clientCursor: handshake.lastServerCursor ?? null,
+        serverCursor: lastCursor ?? null,
+      });
       await stream
         .send({
           kind: "sync.resync_required",
@@ -145,7 +203,13 @@ export const duplex = api.streamInOut<
           },
           reason: "cursor_gap",
         })
-        .catch(() => undefined);
+        .catch((err) =>
+          log.warn("sync: resync_required send failed", {
+            orgId,
+            clientId: handshake.clientId,
+            err: err instanceof Error ? err.message : String(err),
+          }),
+        );
     }
 
     // Spec 111 §2.3 Phase 3 (amended by spec 119) — post-handshake catalog
