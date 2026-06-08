@@ -645,7 +645,11 @@ pub async fn auth_get_status(stagecraft: State<'_, StagecraftState>) -> AppResul
         org_slug: org_slug.clone(),
         github_org_login: claim_str(&claims, "github_org_login").unwrap_or("").to_string(),
         org_display_name: org_slug,
-        platform_role: claim_str(&claims, "platform_role").unwrap_or("").to_string(),
+        // Default to the least-privilege role ("member") when the claim is
+        // absent, matching `auth_switch_org` — a missing `platform_role`
+        // (misconfigured Rauthy scope) must not yield a different role
+        // depending on which path last populated AuthContext.org.
+        platform_role: claim_str(&claims, "platform_role").unwrap_or("member").to_string(),
     };
 
     // Restore the in-memory client from the (valid) keychain token so the boot
