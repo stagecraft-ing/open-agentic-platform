@@ -1619,6 +1619,13 @@ mod tests {
     /// claim. Regression here recreates the "no active organization
     /// (sign-in incomplete)" bug where restore/refresh paths would set the
     /// token but leave `org_id` empty.
+    ///
+    /// NOTE: this fixture is FLAT (no `custom` wrapper), so post the
+    /// custom-claim fix it pins `claim_str`'s **top-level fallback** branch,
+    /// not the production Rauthy wire shape. The real nested shape
+    /// (`custom.oap_org_id`) is pinned by
+    /// `apply_token_derives_org_id_from_nested_custom_claim` — do not "fix"
+    /// this test to nest its claims, or the fallback path loses coverage.
     #[test]
     fn set_auth_token_populates_org_id_from_jwt_claim() {
         let client = StagecraftClient::new("http://example.test", "actor-1")
