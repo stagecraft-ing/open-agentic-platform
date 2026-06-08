@@ -594,6 +594,10 @@ pub async fn auth_get_status(stagecraft: State<'_, StagecraftState>) -> AppResul
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0);
 
+    // `exp` is a standard top-level OIDC claim, NOT an OAP `custom.*`
+    // attribute, so it is read directly rather than via `claim_str` (which is
+    // for the `custom`-nested OAP fields). The asymmetry with the identity
+    // reads above is intentional.
     let mut exp = claims.get("exp").and_then(|v| v.as_i64()).unwrap_or(0);
 
     if exp <= now {

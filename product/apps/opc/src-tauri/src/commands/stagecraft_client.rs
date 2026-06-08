@@ -124,11 +124,16 @@ pub(super) fn decode_jwt_claims(token: &str) -> Option<serde_json::Value> {
 /// session is valid. Fresh sign-in masks this because it sets `org_id` from
 /// the HTTP response body, not the JWT.
 pub(super) fn claim_str<'a>(claims: &'a serde_json::Value, key: &str) -> Option<&'a str> {
+    // `.as_str()` is applied per-level so the fallback fires when `custom[key]`
+    // is absent OR present-but-non-string. A `.or_else` after a single trailing
+    // `.as_str()` would be skipped when `custom[key]` holds a non-string value
+    // (e.g. a future numeric Rauthy attribute), silently returning None instead
+    // of trying the top level.
     claims
         .get("custom")
         .and_then(|c| c.get(key))
-        .or_else(|| claims.get(key))
         .and_then(|v| v.as_str())
+        .or_else(|| claims.get(key).and_then(|v| v.as_str()))
 }
 
 // ---------------------------------------------------------------------------
@@ -1689,6 +1694,21 @@ mod tests {
         // Forward-compat: a flat token (no `custom`) still resolves top-level.
         let flat = serde_json::json!({ "oap_org_id": "from-top" });
         assert_eq!(claim_str(&flat, "oap_org_id"), Some("from-top"));
+
+        // A present-but-non-string `custom` value must NOT swallow the
+        // fallback: per-level `.as_str()` lets the top-level claim win.
+        let mixed = serde_json::json!({
+            "oap_org_id": "from-top",
+            "custom": { "oap_org_id": 12345 },
+        });
+        assert_eq!(claim_str(&mixed, "oap_org_id"), Some("from-top"));
+
+        // Non-string at both levels → None (no panic, no coercion).
+        let both_numeric = serde_json::json!({
+            "oap_org_id": 1,
+            "custom": { "oap_org_id": 2 },
+        });
+        assert_eq!(claim_str(&both_numeric, "oap_org_id"), None);
     }
 
     /// A malformed token must not panic and must leave `org_id` untouched.
