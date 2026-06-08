@@ -46,30 +46,39 @@ export const duplex = api.streamInOut<
 >(
   { expose: true, auth: true, path: "/api/sync/duplex" },
   async (handshake, stream) => {
-    // Diagnostic (spec 183 duplex churn, 2026-06-08): post-interactive-sign-in
-    // reconnects reach this endpoint (Encore logs the `duplex` request) yet
-    // never emit `sync: session registered` AND never hit the `!orgId`
-    // rejection below — the body exits before `registry.register` with no app
-    // log. Prime suspect: `getAuthData()` returns null inside the streamInOut
-    // handler (the `!` then makes `auth.orgId` throw, and Encore swallows the
-    // stream-handler throw). This entry log proves whether the body runs at all
-    // and prints the resolved auth; reading it null-safely converts the silent
-    // throw into an explicit, logged close.
+    // Diagnostic (spec 183): log handler entry + resolved auth so a post-sign-in
+    // reconnect that reaches the endpoint but never registers is not invisible;
+    // read auth null-safely so a null context nacks+closes (like the guards
+    // below) instead of throwing past the logs.
     const auth = getAuthData();
     log.info("sync: duplex handler entered", {
-      clientId: handshake?.clientId ?? null,
-      clientKind: handshake?.clientKind ?? null,
-      lastServerCursor: handshake?.lastServerCursor ?? null,
+      clientId: handshake.clientId,
+      clientKind: handshake.clientKind,
+      lastServerCursor: handshake.lastServerCursor ?? null,
       hasAuth: auth != null,
       orgId: auth?.orgId ?? null,
-      userId: auth?.userID ?? null,
     });
     if (!auth) {
       log.warn(
         "sync: duplex aborted — getAuthData() returned null in the stream handler despite the auth handler completing",
-        { clientId: handshake?.clientId ?? null },
+        { clientId: handshake.clientId },
       );
-      await stream.close().catch(() => undefined);
+      await stream
+        .send({
+          kind: "sync.nack",
+          meta: {
+            v: ENVELOPE_SCHEMA_VERSION,
+            eventId: randomUUID(),
+            sentAt: new Date().toISOString(),
+            orgId: "",
+            orgCursor: "",
+          },
+          clientEventId: "",
+          reason: "unauthorized",
+          detail: "no auth context in stream handler",
+        })
+        .catch(() => undefined);
+      await stream.close();
       return;
     }
     const orgId = auth.orgId;
@@ -155,15 +164,9 @@ export const duplex = api.streamInOut<
       serverStartedAt: SERVER_STARTED_AT,
       cursorGap,
     };
-    // Diagnostic (spec 183 duplex churn): this send was previously
-    // `.catch(() => undefined)` — silent on BOTH success and failure, so a
-    // reconnect that connected at the WS layer but never received `sync.hello`
-    // left the server logs empty exactly where it mattered (the desktop's
-    // `duplex hello received` never fired, the session died ~30s later on the
-    // heartbeat half-open check, and we had no way to tell whether the hello
-    // was sent). Log the happy path AND surface the swallowed send error
-    // without changing the fail-soft posture (a dead socket must not throw out
-    // of the handler).
+    // Diagnostic (spec 183): the hello send was `.catch(() => undefined)` —
+    // silent on success AND failure. Log both, keeping the fail-soft posture
+    // (a dead socket must not throw out of the handler).
     await stream
       .send(hello)
       .then(() =>
