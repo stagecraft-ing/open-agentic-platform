@@ -46,7 +46,41 @@ export const duplex = api.streamInOut<
 >(
   { expose: true, auth: true, path: "/api/sync/duplex" },
   async (handshake, stream) => {
-    const auth = getAuthData()!;
+    // Diagnostic (spec 183): log handler entry + resolved auth so a post-sign-in
+    // reconnect that reaches the endpoint but never registers is not invisible;
+    // read auth null-safely so a null context nacks+closes (like the guards
+    // below) instead of throwing past the logs.
+    const auth = getAuthData();
+    log.info("sync: duplex handler entered", {
+      clientId: handshake.clientId,
+      clientKind: handshake.clientKind,
+      lastServerCursor: handshake.lastServerCursor ?? null,
+      hasAuth: auth != null,
+      orgId: auth?.orgId ?? null,
+    });
+    if (!auth) {
+      log.warn(
+        "sync: duplex aborted — getAuthData() returned null in the stream handler despite the auth handler completing",
+        { clientId: handshake.clientId },
+      );
+      await stream
+        .send({
+          kind: "sync.nack",
+          meta: {
+            v: ENVELOPE_SCHEMA_VERSION,
+            eventId: randomUUID(),
+            sentAt: new Date().toISOString(),
+            orgId: "",
+            orgCursor: "",
+          },
+          clientEventId: "",
+          reason: "unauthorized",
+          detail: "no auth context in stream handler",
+        })
+        .catch(() => undefined);
+      await stream.close();
+      return;
+    }
     const orgId = auth.orgId;
 
     if (!orgId) {
@@ -130,9 +164,36 @@ export const duplex = api.streamInOut<
       serverStartedAt: SERVER_STARTED_AT,
       cursorGap,
     };
-    await stream.send(hello).catch(() => undefined);
+    // Diagnostic (spec 183): the hello send was `.catch(() => undefined)` —
+    // silent on success AND failure. Log both, keeping the fail-soft posture
+    // (a dead socket must not throw out of the handler).
+    await stream
+      .send(hello)
+      .then(() =>
+        log.info("sync: hello sent", {
+          orgId,
+          clientId: handshake.clientId,
+          sessionId: hello.sessionId,
+          orgCursor: hello.meta.orgCursor,
+          cursorGap,
+          lastServerCursor: handshake.lastServerCursor ?? null,
+        }),
+      )
+      .catch((err) =>
+        log.warn("sync: hello send failed", {
+          orgId,
+          clientId: handshake.clientId,
+          err: err instanceof Error ? err.message : String(err),
+        }),
+      );
 
     if (cursorGap) {
+      log.info("sync: cursor gap — sending resync_required", {
+        orgId,
+        clientId: handshake.clientId,
+        clientCursor: handshake.lastServerCursor ?? null,
+        serverCursor: lastCursor ?? null,
+      });
       await stream
         .send({
           kind: "sync.resync_required",
@@ -145,7 +206,13 @@ export const duplex = api.streamInOut<
           },
           reason: "cursor_gap",
         })
-        .catch(() => undefined);
+        .catch((err) =>
+          log.warn("sync: resync_required send failed", {
+            orgId,
+            clientId: handshake.clientId,
+            err: err instanceof Error ? err.message : String(err),
+          }),
+        );
     }
 
     // Spec 111 §2.3 Phase 3 (amended by spec 119) — post-handshake catalog
