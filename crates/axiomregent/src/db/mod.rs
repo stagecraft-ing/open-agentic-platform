@@ -111,32 +111,48 @@ const HIQLITE_BIND_ATTEMPTS: u32 = 3;
 /// The database file is `axiomregent.db` inside `data_dir`. All schema tables
 /// are created (idempotently) before the client is returned.
 pub async fn init_hiqlite(data_dir: &Path) -> Result<Client> {
-    // Self-heal a port-0-poisoned data dir left by a pre-fix binary BEFORE we
-    // try to start the node. Otherwise hiqlite reloads the committed
-    // 127.0.0.1:0 membership ("node 1 raft is already initialized") and the
-    // in-process API client floods stderr forever, regardless of this binary's
-    // concrete-port fix. Best-effort: a failure of the heal *check* itself
-    // (e.g. a permission error scanning the dir) must not block startup.
-    if let Err(e) = heal_port_zero_membership(data_dir) {
-        log::warn!("init_hiqlite: port-0 membership self-heal check failed (continuing): {e}");
+    // Stabilise the node's loopback address across restarts BEFORE starting.
+    // hiqlite/openraft freezes the node's raft+api ports in committed
+    // membership at first init and reloads them on every restart; the
+    // in-process API client dials the committed `addr_api` for its background
+    // WS stream. So the ports MUST stay the same across restarts. Resolving a
+    // FRESH ephemeral pair each start (the original concrete-port fix) leaves
+    // the committed port and the bound port diverged after the first run — the
+    // client then floods stderr dialing the stale committed port
+    // (`Connection refused`, os error 61), the same reconnect flood the `:0`
+    // fix targeted, one layer in. We persist the resolved pair in a sidecar and
+    // REUSE it every start (so NodeConfig.addr_api always equals committed
+    // membership); a pre-stability store with no sidecar — including a pre-fix
+    // `:0` store — is moved aside for a clean fresh init. Best-effort: a heal
+    // *check* failure (e.g. a permission error) must not block startup.
+    if let Err(e) = heal_unstable_membership(data_dir) {
+        log::warn!("init_hiqlite: unstable-membership self-heal check failed (continuing): {e}");
     }
+    // Created up front so the ports sidecar can be written before `start_node`,
+    // closing the crash window between a fresh init and its first persist.
+    std::fs::create_dir_all(data_dir)?;
 
     let data_dir_str = data_dir.to_string_lossy().to_string();
 
-    // Resolve concrete loopback ports for the single-node Raft + API
-    // listeners. hiqlite records these addresses in its Raft membership and
-    // the in-process client dials `addr_api` for its background WS stream.
-    // Advertising `:0` directly leaves port 0 in the membership — never a
-    // connectable target — so the client floods stderr with EADDRNOTAVAIL
-    // (os error 49) once per second. We grab two free loopback ports the same
-    // way `main.rs` resolves the probe port (bind `:0` → read `local_addr` →
-    // release), then hand the concrete ports to hiqlite, which rebinds them.
-    // The single-node data path runs in-process regardless of the WS stream;
-    // this purely quiets that background task. A lost bind race re-resolves
-    // a fresh pair (see HIQLITE_BIND_ATTEMPTS) rather than failing startup.
+    // hiqlite records the node address in its Raft membership and the
+    // in-process client dials `addr_api` for its background WS stream. Reuse
+    // the persisted pair for an existing store (it matches committed
+    // membership); for a pristine store resolve a fresh pair the same way
+    // `main.rs` resolves the probe port (bind `:0` → read `local_addr` →
+    // release) and persist it so the NEXT restart reuses the same address. A
+    // lost bind race re-resolves rather than failing startup (see
+    // HIQLITE_BIND_ATTEMPTS).
     let mut last_err: Option<anyhow::Error> = None;
     for attempt in 1..=HIQLITE_BIND_ATTEMPTS {
-        let (raft_port, api_port) = free_loopback_pair()?;
+        let reused = read_persisted_ports(data_dir);
+        let (raft_port, api_port) = match reused {
+            Some(pair) => pair,
+            None => {
+                let pair = free_loopback_pair()?;
+                persist_ports(data_dir, pair.0, pair.1);
+                pair
+            }
+        };
 
         let config = NodeConfig {
             node_id: 1,
@@ -164,6 +180,16 @@ pub async fn init_hiqlite(data_dir: &Path) -> Result<Client> {
                 log::warn!(
                     "init_hiqlite: start_node bind attempt {attempt}/{HIQLITE_BIND_ATTEMPTS} failed: {e}"
                 );
+                // The chosen port pair would not bind. Drop the (now-suspect)
+                // sidecar so the next attempt re-resolves a fresh pair. If we
+                // were REUSING a committed store's port, that port is taken —
+                // move the store aside so its frozen membership can't re-flood,
+                // then recreate the dir for a clean fresh init next attempt.
+                let _ = std::fs::remove_file(ports_sidecar_path(data_dir));
+                if reused.is_some() {
+                    let _ = heal_unstable_membership(data_dir);
+                    let _ = std::fs::create_dir_all(data_dir);
+                }
                 last_err = Some(e.into());
             }
         }
@@ -183,39 +209,90 @@ fn free_loopback_pair() -> Result<(u16, u16)> {
 }
 
 // ---------------------------------------------------------------------------
-// Port-0 membership self-heal (spec 183 — follow-up to the #274/#275 fix)
+// Stable loopback ports + membership self-heal (spec 183 §3.8)
 // ---------------------------------------------------------------------------
 
-/// Detect and neutralise a data dir whose committed Raft membership advertises
-/// `127.0.0.1:0`.
-///
-/// Pre-fix axiomregent binaries (before `free_loopback_pair`) handed hiqlite a
-/// `:0` node address. hiqlite/openraft persists node membership in committed
-/// Raft state, so such a dir reloads the port-0 address on *every* restart
-/// ("node 1 raft is already initialized") and the in-process API client floods
-/// stderr dialing 127.0.0.1:0 (`os error 49`) ~once per second — the
-/// concrete-port fix only ever helped a fresh init. The address is woven
-/// through the committed log + snapshot, so there is no in-place edit; the only
-/// clean removal is to start a fresh store.
-///
-/// This moves the poisoned dir **aside** (a numbered sibling) rather than
-/// deleting it, so the migration is recoverable — the local hiqlite store is a
-/// regenerable checkpoint/cache (spec 041), but we still never destroy it
-/// unilaterally. The next `init_hiqlite` then creates a fresh dir with concrete
-/// loopback ports. Only the raft control-plane files (logs + snapshots) are
-/// scanned for the signature — never the SQLite state-machine db, whose user
-/// data could hold a false-positive string — so a healthy dir with concrete
-/// ports is never touched.
-fn heal_port_zero_membership(data_dir: &Path) -> Result<()> {
-    if !data_dir.exists() || !membership_has_port_zero(data_dir) {
-        return Ok(());
+/// Sidecar file (inside the data dir) recording the concrete loopback ports a
+/// store was initialised with. It is the mechanism that keeps the node address
+/// STABLE across restarts: hiqlite/openraft freezes the node's address in
+/// committed membership at first init, and the in-process API client dials that
+/// frozen `addr_api` forever. Persisting the pair and reusing it every start is
+/// what guarantees `NodeConfig.addr_api == committed addr_api`, so the client
+/// never floods dialing a stale port. hiqlite ignores unknown entries in its
+/// data dir, so co-locating the sidecar there is safe.
+const PORTS_SIDECAR: &str = ".opc-hiqlite-ports.json";
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct PersistedPorts {
+    raft: u16,
+    api: u16,
+}
+
+fn ports_sidecar_path(data_dir: &Path) -> PathBuf {
+    data_dir.join(PORTS_SIDECAR)
+}
+
+/// Read the persisted `(raft, api)` pair, if a well-formed sidecar exists. A
+/// degenerate pair (a zero port or both ports collapsed onto one) reads as
+/// absent, so init resolves a fresh connectable pair rather than re-advertising
+/// an unconnectable address.
+fn read_persisted_ports(data_dir: &Path) -> Option<(u16, u16)> {
+    let bytes = std::fs::read(ports_sidecar_path(data_dir)).ok()?;
+    let p: PersistedPorts = serde_json::from_slice(&bytes).ok()?;
+    if p.raft == 0 || p.api == 0 || p.raft == p.api {
+        return None;
     }
-    let aside = next_available_sibling(data_dir, "port0-corrupt");
+    Some((p.raft, p.api))
+}
+
+/// Persist the resolved port pair so the next restart reuses the same address.
+/// Best-effort: a write failure degrades to the pre-fix behaviour (a fresh pair
+/// next start) rather than blocking startup, so it is logged, not propagated.
+fn persist_ports(data_dir: &Path, raft: u16, api: u16) {
+    let path = ports_sidecar_path(data_dir);
+    match serde_json::to_vec(&PersistedPorts { raft, api }) {
+        Ok(bytes) => {
+            if let Err(e) = std::fs::write(&path, bytes) {
+                log::warn!(
+                    "init_hiqlite: could not persist ports sidecar {}: {e}",
+                    path.display()
+                );
+            }
+        }
+        Err(e) => log::warn!("init_hiqlite: could not serialise ports sidecar: {e}"),
+    }
+}
+
+/// Move aside a data dir whose committed membership cannot be safely reused, so
+/// the next init starts fresh with a stable, persisted port pair.
+///
+/// One remedy covers every pre-stability store:
+///   * Pre-fix `:0` stores — committed `127.0.0.1:0`, never connectable.
+///   * Pre-stability stores — initialised by a binary that resolved a fresh
+///     ephemeral port each start and never persisted it, so the committed
+///     concrete port is stale on the next restart and the in-process client
+///     floods dialing it (`os error 61`).
+/// Both are exactly the stores that are *initialised but carry no ports
+/// sidecar*. A store written by the current binary carries a sidecar (stable
+/// ports) and is left untouched; a pristine/absent dir is left untouched (a
+/// fresh init follows). The dir is renamed to a numbered sibling — preserved,
+/// not deleted, since the local store is a regenerable checkpoint/cache (spec
+/// 041) — but never destroyed unilaterally.
+fn heal_unstable_membership(data_dir: &Path) -> Result<()> {
+    if !data_dir.exists() || !dir_is_initialized(data_dir) {
+        return Ok(()); // pristine or absent — nothing committed to diverge yet
+    }
+    if read_persisted_ports(data_dir).is_some() {
+        return Ok(()); // current-binary store with stable persisted ports
+    }
+    let aside = next_available_sibling(data_dir, "prestable-corrupt");
     log::warn!(
-        "init_hiqlite: detected port-0 Raft membership in {} (pre-fix data dir — \
-         the cause of the 127.0.0.1:0 reconnect flood). Moving it aside to {} and \
-         starting a fresh store with concrete loopback ports. The old store is \
-         preserved (renamed, not deleted) and can be recovered manually.",
+        "init_hiqlite: data dir {} is initialised but has no ports sidecar (a \
+         pre-stability store whose committed loopback port is stale on restart — \
+         the cause of the 127.0.0.1:<port> reconnect flood). Moving it aside to \
+         {} and starting a fresh store with a stable, persisted port pair. The \
+         old store is preserved (renamed, not deleted) and can be recovered \
+         manually.",
         data_dir.display(),
         aside.display(),
     );
@@ -223,55 +300,15 @@ fn heal_port_zero_membership(data_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-/// True if any raft control-plane file under `data_dir` contains the port-0
-/// node-address signature. Scans logs + snapshots only; the SQLite
-/// state-machine db is deliberately excluded (it holds user data that could
-/// contain a literal `127.0.0.1:0`, and the committed membership we care about
-/// is always present in the log/snapshot anyway).
-fn membership_has_port_zero(data_dir: &Path) -> bool {
-    const CONTROL_PLANE: &[&str] = &[
-        "logs",
-        "logs_cache",
-        "state_machine/snapshots",
-        "state_machine_cache/snapshots",
-    ];
-    CONTROL_PLANE
-        .iter()
-        .any(|sub| dir_contains_port_zero(&data_dir.join(sub)))
-}
-
-/// Recursively scan `dir` for the port-0 node-address signature. A missing or
-/// unreadable directory reads as "no signature" — a dir that isn't there can't
-/// be poisoned.
-fn dir_contains_port_zero(dir: &Path) -> bool {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return false;
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        let matched = if path.is_dir() {
-            dir_contains_port_zero(&path)
-        } else {
-            file_contains_port_zero(&path)
-        };
-        if matched {
-            return true;
-        }
-    }
-    false
-}
-
-/// True if `path`'s bytes contain `127.0.0.1:0` as a *complete* address — the
-/// byte after the match must not be an ASCII digit, so a concrete port like
-/// `127.0.0.1:52535` cannot false-positive (and `format!("127.0.0.1:{port}")`
-/// never zero-pads, so `:0` is only ever produced by an actual port 0).
-fn file_contains_port_zero(path: &Path) -> bool {
-    const NEEDLE: &[u8] = b"127.0.0.1:0";
-    let Ok(bytes) = std::fs::read(path) else {
-        return false;
-    };
-    bytes.windows(NEEDLE.len()).enumerate().any(|(i, w)| {
-        w == NEEDLE && bytes.get(i + NEEDLE.len()).is_none_or(|b| !b.is_ascii_digit())
+/// True if the raft control-plane has been initialised — i.e. committed
+/// membership exists. Scans the log dirs only (never the SQLite state-machine
+/// db); a created-but-empty data dir is not "initialised".
+fn dir_is_initialized(data_dir: &Path) -> bool {
+    const CONTROL_PLANE: &[&str] = &["logs", "logs_cache"];
+    CONTROL_PLANE.iter().any(|sub| {
+        std::fs::read_dir(data_dir.join(sub))
+            .map(|mut entries| entries.next().is_some())
+            .unwrap_or(false)
     })
 }
 
@@ -331,51 +368,63 @@ mod tests {
         assert_ne!(raft, api, "raft and api ports must be distinct");
     }
 
-    // ── Port-0 membership self-heal ──────────────────────────────────────
+    // ── Stable persisted ports ───────────────────────────────────────────
 
-    /// The signature must match an *exact* port 0 and reject a concrete
-    /// resolved port — the precise distinction between a poisoned and a
-    /// healthy committed membership.
+    /// Persisting then reading back the pair is the round-trip that keeps the
+    /// node address stable across restarts. An absent sidecar reads as None so
+    /// a pristine store resolves a fresh pair.
     #[test]
-    fn file_contains_port_zero_matches_only_an_exact_port_0() {
+    fn persisted_ports_round_trip() {
         let dir = tempfile::tempdir().unwrap();
-
-        let poisoned = dir.path().join("poisoned.wal");
-        // Binary log content with the node address as a UTF-8 string, the way
-        // hiqlite serialises `Node { addr_api: String, .. }`.
-        std::fs::write(&poisoned, b"\x00\x01node\x011\x01addr_api=127.0.0.1:0\x00").unwrap();
-        assert!(
-            file_contains_port_zero(&poisoned),
-            "an exact 127.0.0.1:0 address must be detected",
+        assert_eq!(
+            read_persisted_ports(dir.path()),
+            None,
+            "absent sidecar reads as None",
         );
+        persist_ports(dir.path(), 54808, 54809);
+        assert_eq!(read_persisted_ports(dir.path()), Some((54808, 54809)));
+    }
 
-        let healthy = dir.path().join("healthy.wal");
-        std::fs::write(&healthy, b"\x00\x01node\x011\x01addr_api=127.0.0.1:52535\x00").unwrap();
-        assert!(
-            !file_contains_port_zero(&healthy),
-            "a concrete resolved port must NOT be flagged as poisoned",
+    /// A degenerate pair (a zero port or both ports collapsed onto one) must
+    /// read as absent, so init resolves a fresh connectable pair rather than
+    /// re-advertising an unconnectable address.
+    #[test]
+    fn read_persisted_ports_rejects_degenerate() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(ports_sidecar_path(dir.path()), br#"{"raft":0,"api":1}"#).unwrap();
+        assert_eq!(read_persisted_ports(dir.path()), None, "a zero port is rejected");
+        std::fs::write(ports_sidecar_path(dir.path()), br#"{"raft":5,"api":5}"#).unwrap();
+        assert_eq!(
+            read_persisted_ports(dir.path()),
+            None,
+            "collapsed raft==api is rejected",
         );
     }
 
+    // ── Membership self-heal ─────────────────────────────────────────────
+
+    /// An initialised store with NO ports sidecar (a pre-stability store, or a
+    /// pre-fix `:0` store) is moved aside so a fresh init can claim a stable
+    /// pair — preserved under a numbered sibling, never deleted.
     #[test]
-    fn heal_moves_a_poisoned_dir_aside_and_preserves_it() {
+    fn heal_moves_aside_initialised_dir_without_sidecar() {
         let root = tempfile::tempdir().unwrap();
         let data = root.path().join("data");
-        // A pre-fix layout: port-0 membership in the raft log, plus a
-        // state-machine db that we must neither scan nor delete.
+        // A pre-stability layout: committed membership in the raft log, plus a
+        // state-machine db that must be preserved, not deleted.
         std::fs::create_dir_all(data.join("logs")).unwrap();
         std::fs::create_dir_all(data.join("state_machine/db")).unwrap();
         std::fs::write(
             data.join("logs/0000000000000001.wal"),
-            b"membership 127.0.0.1:0 node 1",
+            b"membership 127.0.0.1:52535 node 1",
         )
         .unwrap();
         std::fs::write(data.join("state_machine/db/axiomregent.db"), b"checkpoint rows").unwrap();
 
-        heal_port_zero_membership(&data).unwrap();
+        heal_unstable_membership(&data).unwrap();
 
-        assert!(!data.exists(), "the poisoned data dir is moved aside");
-        let aside = root.path().join("data.port0-corrupt");
+        assert!(!data.exists(), "the pre-stability store is moved aside");
+        let aside = root.path().join("data.prestable-corrupt");
         assert!(aside.exists(), "the old store is preserved under a sibling");
         assert!(
             aside.join("state_machine/db/axiomregent.db").exists(),
@@ -383,28 +432,44 @@ mod tests {
         );
     }
 
+    /// A store written by the current binary carries a ports sidecar and must
+    /// be left exactly where it is — moving it would wipe the live checkpoint
+    /// cache on every launch.
     #[test]
-    fn heal_leaves_a_healthy_concrete_port_dir_untouched() {
+    fn heal_leaves_dir_with_sidecar_untouched() {
         let root = tempfile::tempdir().unwrap();
         let data = root.path().join("data");
         std::fs::create_dir_all(data.join("logs")).unwrap();
         std::fs::write(
             data.join("logs/0000000000000001.wal"),
-            b"membership 127.0.0.1:52535 node 1",
+            b"membership 127.0.0.1:54809 node 1",
         )
         .unwrap();
+        persist_ports(&data, 54808, 54809);
 
-        heal_port_zero_membership(&data).unwrap();
+        heal_unstable_membership(&data).unwrap();
 
-        assert!(data.exists(), "a healthy concrete-port dir is left in place");
-        assert!(!root.path().join("data.port0-corrupt").exists());
+        assert!(data.exists(), "a store with a stable ports sidecar is never moved");
+        assert_eq!(read_persisted_ports(&data), Some((54808, 54809)));
     }
 
+    /// A created-but-uninitialised data dir (no committed membership) is left
+    /// for a fresh init — heal must not move a dir with nothing committed.
+    #[test]
+    fn heal_leaves_pristine_dir_untouched() {
+        let root = tempfile::tempdir().unwrap();
+        let data = root.path().join("data");
+        std::fs::create_dir_all(data.join("logs")).unwrap(); // created but empty
+        heal_unstable_membership(&data).unwrap();
+        assert!(data.exists(), "an empty/uninitialised dir is not moved aside");
+    }
+
+    /// A missing data dir is not an error and is not created by the heal.
     #[test]
     fn heal_is_a_noop_on_a_fresh_install() {
         let root = tempfile::tempdir().unwrap();
         let data = root.path().join("data"); // never created
-        heal_port_zero_membership(&data).expect("a missing dir is not an error");
+        heal_unstable_membership(&data).expect("a missing dir is not an error");
         assert!(!data.exists(), "the heal does not create the dir");
     }
 }
