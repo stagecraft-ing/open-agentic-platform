@@ -63,7 +63,7 @@ refines:
   - aspect: "boot-gate-command-registration-bindings"
     unit: { kind: file, path: product/apps/opc/src-tauri/src/bindings.rs }
     refines_specs: ["180-opc-shell-codification"]
-  - aspect: "sidecar-hiqlite-port0-membership-self-heal"
+  - aspect: "sidecar-hiqlite-stable-ports-and-membership-self-heal"
     unit: { kind: file, path: crates/axiomregent/src/db/mod.rs }
     refines_specs: ["073-axiomregent-unification"]
 references:
@@ -184,9 +184,10 @@ authority on eleven files that the boot gate touches:
   set alongside its `generate_handler!` registration in `lib.rs`
   (refines spec 180's OPC shell authority).
 - `crates/axiomregent/src/db/mod.rs` — the sidecar's hiqlite
-  initialiser; gains a startup self-heal that moves a port-0-poisoned
-  data dir aside so the in-process raft client cannot flood stderr and
-  evict the boot/auth diagnostics this gate depends on (§3.8) (refines
+  initialiser; resolves a **stable** loopback port pair (persisted in a
+  data-dir sidecar and reused every start) and self-heals any
+  pre-stability store so the in-process raft client cannot flood stderr
+  and evict the boot/auth diagnostics this gate depends on (§3.8) (refines
   spec 073's axiomregent unification authority).
 
 The directory `product/apps/opc/src/components/boot/` itself remains
@@ -723,22 +724,37 @@ a burned budget" seam without waiting for the loop's own clean-connect
 reset. Best-effort and desktop-only — a failed reconnect never blocks the
 sign-in transition.
 
-**(c) Sidecar hiqlite port-0 membership self-heal.** FR-T1 depends on a
-*diagnosable* sidecar, and FR-T2(b)'s `sync.hello` failures are diagnosed
-from `opc.log`. A pre-fix axiomregent binary (before the
-`free_loopback_pair` concrete-port fix) advertised `127.0.0.1:0` as its
-single-node raft address; hiqlite/openraft persists node membership in
-committed raft state, so such a data dir reloads the port-0 address on
-every restart and the in-process API client floods stderr with
-`os error 49` ~once per second — evicting the very duplex/auth lines a
-stuck-handshake diagnosis needs. The concrete-port fix only helped a
-fresh init. `crates/axiomregent/src/db/mod.rs::init_hiqlite` now self-heals
-at startup: it scans the raft control-plane files (logs + snapshots, never
-the SQLite state-machine db whose user data could false-positive) for the
-exact port-0 address signature, and if found moves the poisoned data dir
-**aside** (a numbered sibling, preserved not deleted — the store is a
-regenerable checkpoint/cache per spec 041) so the next init starts fresh
-with concrete ports. A healthy dir with concrete ports is never touched.
+**(c) Sidecar hiqlite stable loopback ports + membership self-heal.**
+FR-T1 depends on a *diagnosable* sidecar, and FR-T2(b)'s `sync.hello`
+failures are diagnosed from `opc.log`. hiqlite/openraft freezes the
+single-node raft+api addresses in committed membership at first init and
+reloads them on every restart, while the in-process API client dials the
+committed `addr_api` for its background WS stream. **The node address must
+therefore be stable across restarts.** Two iterations of this fix:
+
+- *First iteration (the `:0` self-heal, #274/#275 + #305).* A pre-fix
+  binary advertised `127.0.0.1:0`; the committed `:0` reloaded forever and
+  the client flooded stderr with `os error 49` ~once per second, evicting
+  the very duplex/auth lines a stuck-handshake diagnosis needs. A startup
+  heal moved a `:0`-poisoned dir aside. But this only neutralised the
+  *literal* `:0` signature.
+
+- *Second iteration (this change).* The deeper defect: `init_hiqlite`
+  resolved a **fresh ephemeral port every start** via `free_loopback_pair`,
+  so after the first run the committed port and the bound port diverged and
+  the client flooded the *same* way — `Connection refused`, `os error 61` —
+  dialing a stale *concrete* port the `:0` heal deemed "healthy". A
+  data-dir reset was only a one-shot (the next launch re-diverged).
+  `init_hiqlite` now persists the resolved `(raft, api)` pair in a
+  data-dir sidecar (`.opc-hiqlite-ports.json`) and **reuses it every
+  start**, so `NodeConfig.addr_api` always equals committed membership and
+  the client never dials a stale port. The self-heal is generalised: any
+  store that is *initialised but carries no ports sidecar* (every
+  pre-stability store, the `:0` case included) is moved **aside** (a
+  numbered sibling, preserved not deleted — the store is a regenerable
+  checkpoint/cache per spec 041) so the next init claims a stable pair. A
+  current-binary store (sidecar present) and a pristine dir are never
+  touched.
 
 These restore the liveness and observability the FR-T1/FR-T2 invariants
 assume; the precondition-loss semantics (FR-T5) are unchanged.
