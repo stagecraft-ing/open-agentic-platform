@@ -75,7 +75,9 @@ export const duplex = api.streamInOut<
           },
           clientEventId: "",
           reason: "unauthorized",
-          detail: "no auth context in stream handler",
+          // Client-facing detail stays generic; the precise cause (null auth
+          // context in the stream handler) is in the server log.warn above.
+          detail: "authentication unavailable",
         })
         .catch(() => undefined);
       await stream.close();
@@ -165,27 +167,27 @@ export const duplex = api.streamInOut<
       cursorGap,
     };
     // Diagnostic (spec 183): the hello send was `.catch(() => undefined)` —
-    // silent on success AND failure. Log both, keeping the fail-soft posture
-    // (a dead socket must not throw out of the handler).
-    await stream
-      .send(hello)
-      .then(() =>
-        log.info("sync: hello sent", {
-          orgId,
-          clientId: handshake.clientId,
-          sessionId: hello.sessionId,
-          orgCursor: hello.meta.orgCursor,
-          cursorGap,
-          lastServerCursor: handshake.lastServerCursor ?? null,
-        }),
-      )
-      .catch((err) =>
-        log.warn("sync: hello send failed", {
-          orgId,
-          clientId: handshake.clientId,
-          err: err instanceof Error ? err.message : String(err),
-        }),
-      );
+    // silent on success AND failure. Log both via try/catch so only a send
+    // failure logs the warning (a `.then`/`.catch` chain would misattribute a
+    // throw from the success-path log as a send failure). Fail-soft: a dead
+    // socket must not throw out of the handler.
+    try {
+      await stream.send(hello);
+      log.info("sync: hello sent", {
+        orgId,
+        clientId: handshake.clientId,
+        sessionId: hello.sessionId,
+        orgCursor: hello.meta.orgCursor,
+        cursorGap,
+        lastServerCursor: handshake.lastServerCursor ?? null,
+      });
+    } catch (err) {
+      log.warn("sync: hello send failed", {
+        orgId,
+        clientId: handshake.clientId,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
 
     if (cursorGap) {
       log.info("sync: cursor gap — sending resync_required", {
