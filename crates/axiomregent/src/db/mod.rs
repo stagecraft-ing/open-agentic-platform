@@ -272,6 +272,7 @@ fn persist_ports(data_dir: &Path, raft: u16, api: u16) {
 ///     ephemeral port each start and never persisted it, so the committed
 ///     concrete port is stale on the next restart and the in-process client
 ///     floods dialing it (`os error 61`).
+///
 /// Both are exactly the stores that are *initialised but carry no ports
 /// sidecar*. A store written by the current binary carries a sidecar (stable
 /// ports) and is left untouched; a pristine/absent dir is left untouched (a
