@@ -167,12 +167,22 @@ export const duplex = api.streamInOut<
       cursorGap,
     };
     // Diagnostic (spec 183): the hello send was `.catch(() => undefined)` —
-    // silent on success AND failure. Log both via try/catch so only a send
-    // failure logs the warning (a `.then`/`.catch` chain would misattribute a
-    // throw from the success-path log as a send failure). Fail-soft: a dead
-    // socket must not throw out of the handler.
+    // silent on success AND failure. Log both, with the success log OUTSIDE the
+    // try so a throw from it is NOT caught and misattributed as a send failure.
+    // Fail-soft: a failed send is logged and the handler continues (the dead
+    // socket self-cleans via the heartbeat path) — it must not throw out.
+    let helloSent = false;
     try {
       await stream.send(hello);
+      helloSent = true;
+    } catch (err) {
+      log.warn("sync: hello send failed", {
+        orgId,
+        clientId: handshake.clientId,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
+    if (helloSent) {
       log.info("sync: hello sent", {
         orgId,
         clientId: handshake.clientId,
@@ -180,12 +190,6 @@ export const duplex = api.streamInOut<
         orgCursor: hello.meta.orgCursor,
         cursorGap,
         lastServerCursor: handshake.lastServerCursor ?? null,
-      });
-    } catch (err) {
-      log.warn("sync: hello send failed", {
-        orgId,
-        clientId: handshake.clientId,
-        err: err instanceof Error ? err.message : String(err),
       });
     }
 
