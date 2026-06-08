@@ -187,7 +187,16 @@ pub async fn init_hiqlite(data_dir: &Path) -> Result<Client> {
                 // then recreate the dir for a clean fresh init next attempt.
                 let _ = std::fs::remove_file(ports_sidecar_path(data_dir));
                 if reused.is_some() {
-                    let _ = heal_unstable_membership(data_dir);
+                    // Surface a rename failure (read-only / cross-device dir):
+                    // without this the loop retries the same unmovable store and
+                    // the propagated error would be the bind error, hiding the
+                    // real cause.
+                    if let Err(heal_err) = heal_unstable_membership(data_dir) {
+                        log::warn!(
+                            "init_hiqlite: could not move aside the committed store after a \
+                             bind failure on its persisted port: {heal_err}"
+                        );
+                    }
                     let _ = std::fs::create_dir_all(data_dir);
                 }
                 last_err = Some(e.into());
@@ -301,16 +310,44 @@ fn heal_unstable_membership(data_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-/// True if the raft control-plane has been initialised — i.e. committed
-/// membership exists. Scans the log dirs only (never the SQLite state-machine
-/// db); a created-but-empty data dir is not "initialised".
+/// True if the raft control-plane holds committed state — i.e. any log *or
+/// snapshot* file exists. Scans the log + snapshot dirs (never the SQLite
+/// state-machine db, whose user data is irrelevant to "is there committed
+/// membership"). The snapshot dirs are included so a log-compacted store
+/// (logs purged, membership now in the snapshot) is still recognised — missing
+/// it would let a fresh init resolve a port that diverges from the snapshot's
+/// committed address and reintroduce the flood. A real *file* is required, not
+/// merely a directory entry, so a half-created empty subdir from an interrupted
+/// init does not read as "initialised".
 fn dir_is_initialized(data_dir: &Path) -> bool {
-    const CONTROL_PLANE: &[&str] = &["logs", "logs_cache"];
-    CONTROL_PLANE.iter().any(|sub| {
-        std::fs::read_dir(data_dir.join(sub))
-            .map(|mut entries| entries.next().is_some())
-            .unwrap_or(false)
-    })
+    const CONTROL_PLANE: &[&str] = &[
+        "logs",
+        "logs_cache",
+        "state_machine/snapshots",
+        "state_machine_cache/snapshots",
+    ];
+    CONTROL_PLANE
+        .iter()
+        .any(|sub| dir_contains_file(&data_dir.join(sub)))
+}
+
+/// True if `dir` contains at least one regular file (recursively). A missing or
+/// unreadable directory reads as "no file" — it cannot hold committed state.
+fn dir_contains_file(dir: &Path) -> bool {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return false;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            if dir_contains_file(&path) {
+                return true;
+            }
+        } else {
+            return true;
+        }
+    }
+    false
 }
 
 /// First non-existing `<data_dir>.<suffix>[.N]` sibling, so repeated heals on
@@ -454,15 +491,41 @@ mod tests {
         assert_eq!(read_persisted_ports(&data), Some((54808, 54809)));
     }
 
-    /// A created-but-uninitialised data dir (no committed membership) is left
-    /// for a fresh init — heal must not move a dir with nothing committed.
+    /// A created-but-uninitialised data dir (control-plane dirs present but
+    /// holding no committed-state file) is left for a fresh init — heal must
+    /// not move a dir with nothing committed, even if an empty subdir exists.
     #[test]
     fn heal_leaves_pristine_dir_untouched() {
         let root = tempfile::tempdir().unwrap();
         let data = root.path().join("data");
-        std::fs::create_dir_all(data.join("logs")).unwrap(); // created but empty
+        std::fs::create_dir_all(data.join("logs/tmp")).unwrap(); // dirs only, no file
         heal_unstable_membership(&data).unwrap();
         assert!(data.exists(), "an empty/uninitialised dir is not moved aside");
+    }
+
+    /// A log-compacted store keeps committed membership in the *snapshot* with
+    /// the log dir emptied. It must still be recognised as initialised, else a
+    /// fresh init would resolve a port that diverges from the snapshot's
+    /// committed address and the flood would return.
+    #[test]
+    fn heal_recognises_a_snapshot_only_store() {
+        let root = tempfile::tempdir().unwrap();
+        let data = root.path().join("data");
+        std::fs::create_dir_all(data.join("logs")).unwrap(); // present but emptied (compacted)
+        std::fs::create_dir_all(data.join("state_machine/snapshots")).unwrap();
+        std::fs::write(
+            data.join("state_machine/snapshots/snapshot-1-1-1.snap"),
+            b"committed membership 127.0.0.1:54809",
+        )
+        .unwrap();
+
+        heal_unstable_membership(&data).unwrap();
+
+        assert!(
+            !data.exists(),
+            "a snapshot-only (log-compacted) store is recognised and moved aside",
+        );
+        assert!(root.path().join("data.prestable-corrupt").exists());
     }
 
     /// A missing data dir is not an error and is not created by the heal.
