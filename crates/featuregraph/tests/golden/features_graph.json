@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:3e5c4c8a818390675cff2239dfa014b9fb26941c2ebbbf6ec6801a7034d80389",
+  "graph_fingerprint": "sha256:b99fae27ce9e4d8acbf6bf68452b0ec2bf2516a00ef7b3bd07f4d654cfc92663",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3731,8 +3731,8 @@
       "feature_id": "197-factory-contract-open-standard-extensions",
       "title": "Open-Standard Factory Contract Extensions (Build Spec 1.1.0)",
       "spec_path": "specs/197-factory-contract-open-standard-extensions/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "in-progress",
       "governance": "",
       "owner": "",
       "group": "",
