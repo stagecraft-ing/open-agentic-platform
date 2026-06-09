@@ -10,10 +10,16 @@
 #
 # The factory produces this. The adapter consumes it.
 #
-# Schema version: 1.0.0
+# Schema version: 1.1.0
+#
+# 1.1.0 (spec 197 — open-standard extensions, additive/backward-compatible):
+#   - auth.audiences.<name>.provisioning_model  (admin-only | open-authenticated)
+#   - integrations[].implementation_status      (live | stub | deferred)
+# Only org-/stack-generalizable concepts may enter this contract; GoA-specific
+# concepts (classification labels, service catalogue) live in the adapter layer.
 # ============================================================================
 
-schema_version: "1.0.0"
+schema_version: "1.1.0"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PROJECT
@@ -53,6 +59,10 @@ auth:
       method:
         enum: [saml, oidc, api-key, basic, mock]
       provider: string            # Identity provider name (e.g., "alberta-ca-account", "entra-id")
+      # How users of THIS audience gain access (spec 197). Optional; absent ⇒ open-authenticated.
+      # Per-audience by design: a dual app may set citizen=open-authenticated + staff=admin-only.
+      provisioning_model:
+        enum: [admin-only, open-authenticated]   # admin-only: pre-provisioned by admin + user-management page; open-authenticated: auto-create on first login, no user-management page
       roles:
         - role_code: string       # Machine-safe (e.g., "cfs-analyst")
           display_name: string    # Human-readable (e.g., "CFS Funding Analyst")
@@ -384,6 +394,12 @@ integrations:
 
     # Related business rules
     business_rules: [string]
+
+    # Implementation lifecycle (spec 197). Optional; absent ⇒ unspecified (adapter decides).
+    # NOTE: deliberately NO "catalog-auto" / service-catalogue value — a catalogue is org
+    # infrastructure, not a contract concept (open-standard principle, spec 197 FR-005).
+    implementation_status:
+      enum: [live, stub, deferred]    # live: wired to a real service; stub: "service pending" indicator; deferred: declared, not yet implemented
 
 
 # ─────────────────────────────────────────────────────────────────────────────

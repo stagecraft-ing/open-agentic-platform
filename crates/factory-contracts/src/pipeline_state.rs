@@ -14,6 +14,11 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Current Pipeline State contract version. Unchanged by spec 197; named here
+/// per the `PROVENANCE_SCHEMA_VERSION` pattern so the version has one canonical
+/// home rather than living only in fixtures.
+pub const PIPELINE_STATE_SCHEMA_VERSION: &str = "1.0.0";
+
 // ── Top-level Pipeline State ──────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
