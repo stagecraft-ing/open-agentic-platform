@@ -7,5 +7,10 @@
  * - `Tier1` → `ReadOnly`
  * - `Tier2` → `ReadWrite`
  * - `Tier3` → `Full`
+ *
+ * Variant order is the authority lattice (spec 198 FR-003):
+ * `read-only < scoped-write < read-write < full`. `PartialOrd`/`Ord`
+ * derive from it, so the admission gate can compare a declared mutation
+ * against an envelope ceiling directly.
  */
-export type MutationCapability = "read-only" | "read-write" | "full";
+export type MutationCapability = "read-only" | "scoped-write" | "read-write" | "full";

@@ -107,8 +107,12 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
       orgId: req.orgId,
       factorySource,
       factoryRef,
+      // Spec 199 FR-003 — origin-from-source: the substrate origin is the
+      // upstream row's stable per-org source_id, never a static constant.
+      factorySourceId: factoryRow.sourceId,
       templateSource,
       templateRef,
+      templateSourceId: templateRow.sourceId,
       token: resolved?.token,
     });
 

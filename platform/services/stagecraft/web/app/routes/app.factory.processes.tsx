@@ -1,8 +1,10 @@
 /**
- * Factory Processes browser (spec 108 Phase 4).
+ * Factory Processes browser (spec 199 thin-consumer cutover).
  *
- * List of the org's process definitions with a detail drawer showing the
- * full definition JSON, source sha, and synced_at timestamp.
+ * The org's process — the identity its governance envelope declares
+ * (spec 198) — with a detail drawer showing the opaque-by-kind definition
+ * JSON, source sha, and synced_at timestamp. When the factory is not
+ * admitted, the empty state says WHY (spec 199 FR-006).
  */
 
 import { useLoaderData } from "react-router";
@@ -10,6 +12,7 @@ import { requireUser } from "../lib/auth.server";
 import {
   getFactoryProcess,
   listFactoryProcesses,
+  type FactoryAdmissionWire,
   type FactoryProcessDetail,
   type FactoryResourceSummary,
 } from "../lib/factory-api.server";
@@ -20,6 +23,7 @@ import {
 
 type LoaderData = {
   processes: FactoryResourceSummary[];
+  admission: FactoryAdmissionWire;
   selectedName: string | null;
   selected: FactoryBrowserDetail | null;
   loadError: string | null;
@@ -34,7 +38,7 @@ export async function loader({
   const url = new URL(request.url);
   const selectedName = url.searchParams.get("name");
 
-  const { processes } = await listFactoryProcesses(request);
+  const { processes, admission } = await listFactoryProcesses(request);
 
   let selected: FactoryBrowserDetail | null = null;
   let loadError: string | null = null;
@@ -56,11 +60,11 @@ export async function loader({
     }
   }
 
-  return { processes, selectedName, selected, loadError };
+  return { processes, admission, selectedName, selected, loadError };
 }
 
 export default function FactoryProcesses() {
-  const { processes, selected, selectedName, loadError } =
+  const { processes, admission, selected, selectedName, loadError } =
     useLoaderData<typeof loader>();
 
   return (
@@ -74,7 +78,9 @@ export default function FactoryProcesses() {
       emptyCopy={{
         title: "No processes yet",
         description:
-          "Processes appear here after the first successful sync of the factory upstreams.",
+          admission.status === "admitted"
+            ? "Processes appear here after the first successful sync of the factory upstreams."
+            : `Factory not admitted — content is not served (spec 198): ${admission.reason ?? "no conformant governance envelope filed"}`,
       }}
     />
   );

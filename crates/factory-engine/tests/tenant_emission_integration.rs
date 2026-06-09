@@ -473,6 +473,7 @@ fn minimal_aim_vue_node_manifest() -> AdapterManifest {
             invariants_file: None,
         },
         dual_stack: None,
+        governance: None,
     }
 }
 

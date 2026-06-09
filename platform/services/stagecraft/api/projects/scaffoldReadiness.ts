@@ -15,12 +15,10 @@
 
 import { api } from "encore.dev/api";
 import { getAuthData } from "~encore/auth";
-import { and, eq, inArray } from "drizzle-orm";
-import { db } from "../db/drizzle";
-import { factoryUpstreams } from "../db/schema";
 import { loadFactoryUpstreamPatToken } from "../factory/upstreamPat";
 import { loadSubstrateForOrg } from "../factory/substrateBrowser";
-import { projectSubstrateToLegacy } from "../factory/projection";
+import { listAdapterViews } from "../factory/adapterView";
+import { loadLatestAdmission } from "../factory/admission";
 import { getInitStatus } from "./scaffold/templateCache";
 import {
   resolveBlocker,
@@ -38,9 +36,10 @@ export type AdapterReadinessVerdict = {
   id: string;
   /** Adapter name (e.g. `aim-vue-node`, `next-prisma`). */
   name: string;
-  /** True iff the manifest declares `scaffold_source_id`. */
+  /** True iff the manifest declares a `scaffold.source` (spec 199 FR-009). */
   declaresScaffoldSource: boolean;
-  /** True iff `scaffold_source_id` resolves to a `factory_upstreams` row. */
+  /** True iff the admission record resolved the scaffold source against a
+   *  `factory_upstreams` row (resolution-at-admission, spec 198/199 D-5). */
   scaffoldSourceResolved: boolean;
   /** True iff this adapter alone is Create-eligible. */
   createEligible: boolean;
@@ -75,20 +74,9 @@ export interface ScaffoldReadinessResponse {
   blocker?: ScaffoldReadinessBlocker;
 }
 
-type AdapterManifest = {
-  scaffold_source_id?: unknown;
-} & Record<string, unknown>;
-
 /** Spec 139 Phase 4 — must match `browse.ts::synthesiseId`. */
 function synthesiseAdapterId(orgId: string, name: string): string {
   return `synthetic-adapter-${orgId.slice(0, 8)}-${name}`;
-}
-
-function readScaffoldSourceId(
-  manifest: AdapterManifest | null,
-): string | null {
-  const v = manifest?.scaffold_source_id;
-  return typeof v === "string" && v.length > 0 ? v : null;
 }
 
 export const scaffoldReadiness = api(
@@ -102,52 +90,43 @@ export const scaffoldReadiness = api(
     const auth = getAuthData()!;
     const status = getInitStatus();
 
-    // Spec 139 Phase 4 (T091): adapter manifests project from substrate.
+    // Spec 199 FR-002 — adapters resolve by manifest-declared identity.
+    // Spec 199 FR-009 / spec 198 D-5 — the scaffold source is resolved at
+    // ADMISSION time; readiness reads the admission record, not a
+    // manifest-injected scaffold_source_id.
     const substrate = await loadSubstrateForOrg(auth.orgId);
-    const projection = projectSubstrateToLegacy(substrate);
-    const adapterRows = projection.adapters.map((a) => ({
-      id: synthesiseAdapterId(auth.orgId, a.name),
-      name: a.name,
-      manifest: a.manifest as AdapterManifest | null,
-    }));
-    const hasFactoryAdapter = adapterRows.length > 0;
+    const views = listAdapterViews(substrate);
+    const hasFactoryAdapter = views.length > 0;
 
-    // Collect all distinct scaffold_source_ids declared across the org's
-    // adapters, then resolve them in one round-trip against
-    // `factory_upstreams` (composite-PK on (org_id, source_id) post-spec 139).
-    const declaredSourceIds = new Set<string>();
-    for (const row of adapterRows) {
-      const sid = readScaffoldSourceId(row.manifest);
-      if (sid) declaredSourceIds.add(sid);
-    }
-    const resolvedSourceIds = new Set<string>();
-    if (declaredSourceIds.size > 0) {
-      const resolvedRows = await db
-        .select({ sourceId: factoryUpstreams.sourceId })
-        .from(factoryUpstreams)
-        .where(
-          and(
-            eq(factoryUpstreams.orgId, auth.orgId),
-            inArray(factoryUpstreams.sourceId, [...declaredSourceIds]),
-          ),
+    const admissionByOrigin = new Map<
+      string,
+      Awaited<ReturnType<typeof loadLatestAdmission>>
+    >();
+    for (const view of views) {
+      if (!admissionByOrigin.has(view.origin)) {
+        admissionByOrigin.set(
+          view.origin,
+          await loadLatestAdmission(auth.orgId, view.origin),
         );
-      for (const r of resolvedRows) {
-        resolvedSourceIds.add(r.sourceId);
       }
     }
 
-    const adapters: AdapterReadinessVerdict[] = adapterRows.map((row) => {
-      const scaffoldSourceId = readScaffoldSourceId(row.manifest);
-      const declaresScaffoldSource = scaffoldSourceId !== null;
-      const scaffoldSourceResolved =
-        scaffoldSourceId !== null && resolvedSourceIds.has(scaffoldSourceId);
-      // Spec 140 §2.3 — Create-eligibility is purely
-      // `scaffoldSourceResolved`. The legacy `template_remote` fallback
-      // is gone.
-      const createEligible = scaffoldSourceResolved;
+    const adapters: AdapterReadinessVerdict[] = views.map((view) => {
+      const admission = admissionByOrigin.get(view.origin)!;
+      const resolution = admission.scaffoldResolutions[view.name];
+      const declaresScaffoldSource = Boolean(
+        (view.manifest.scaffold as Record<string, unknown> | undefined)
+          ?.source,
+      );
+      // Spec 199 FR-009 — Create-eligibility is "the admission record
+      // resolved this adapter's scaffold source" AND the factory is
+      // admitted (spec 198 FR-001: no bind without admission).
+      const scaffoldSourceResolved = Boolean(resolution);
+      const createEligible =
+        scaffoldSourceResolved && admission.status === "admitted";
       return {
-        id: row.id,
-        name: row.name,
+        id: synthesiseAdapterId(auth.orgId, view.name),
+        name: view.name,
         declaresScaffoldSource,
         scaffoldSourceResolved,
         createEligible,

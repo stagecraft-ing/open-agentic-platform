@@ -77,6 +77,8 @@ fn canonical_frontmatter_round_trips_through_jsonb() {
         allowed_tools: AllowedTools::list(vec!["read".to_string(), "edit".to_string()]),
         safety_tier: Some(SafetyTier::Tier2),
         mutation: Some(MutationCapability::ReadWrite),
+        mutation_scope: vec!["apps/api/**".to_string()],
+        optional: false,
         hooks: {
             let mut h = std::collections::HashMap::new();
             h.insert(
@@ -147,6 +149,8 @@ fn v2_catalog_updated_frontmatter_round_trips() {
         allowed_tools: AllowedTools::all(),
         safety_tier: Some(SafetyTier::Tier2),
         mutation: None,
+        mutation_scope: vec![],
+        optional: false,
         hooks: std::collections::HashMap::new(),
         governance: Some(GovernanceRequirement::Enforced),
         max_spec_risk: None,
@@ -229,6 +233,8 @@ fn allowed_tools_wildcard_round_trips() {
         allowed_tools: AllowedTools::all(),
         safety_tier: None,
         mutation: None,
+        mutation_scope: vec![],
+        optional: false,
         hooks: std::collections::HashMap::new(),
         governance: None,
         max_spec_risk: None,

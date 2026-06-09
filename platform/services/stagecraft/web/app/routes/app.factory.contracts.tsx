@@ -10,6 +10,7 @@ import { requireUser } from "../lib/auth.server";
 import {
   getFactoryContract,
   listFactoryContracts,
+  type FactoryAdmissionWire,
   type FactoryContractDetail,
   type FactoryResourceSummary,
 } from "../lib/factory-api.server";
@@ -20,6 +21,7 @@ import {
 
 type LoaderData = {
   contracts: FactoryResourceSummary[];
+  admission: FactoryAdmissionWire;
   selectedName: string | null;
   selected: FactoryBrowserDetail | null;
   loadError: string | null;
@@ -34,7 +36,7 @@ export async function loader({
   const url = new URL(request.url);
   const selectedName = url.searchParams.get("name");
 
-  const { contracts } = await listFactoryContracts(request);
+  const { contracts, admission } = await listFactoryContracts(request);
 
   let selected: FactoryBrowserDetail | null = null;
   let loadError: string | null = null;
@@ -56,11 +58,11 @@ export async function loader({
     }
   }
 
-  return { contracts, selectedName, selected, loadError };
+  return { contracts, admission, selectedName, selected, loadError };
 }
 
 export default function FactoryContracts() {
-  const { contracts, selected, selectedName, loadError } =
+  const { contracts, admission, selected, selectedName, loadError } =
     useLoaderData<typeof loader>();
 
   return (
@@ -74,7 +76,9 @@ export default function FactoryContracts() {
       emptyCopy={{
         title: "No contracts yet",
         description:
-          "Contracts appear here after the first successful sync of the factory upstreams.",
+          admission.status === "admitted"
+            ? "Contracts appear here after the first successful sync of the factory upstreams."
+            : `Factory not admitted — upstream contract schemas are not served (spec 198): ${admission.reason ?? "no conformant governance envelope filed"}`,
       }}
     />
   );

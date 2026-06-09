@@ -9,14 +9,21 @@
 
 use std::collections::HashMap;
 
+use agent_frontmatter::SafetyTier;
 use serde::{Deserialize, Serialize};
 
-/// Current Adapter Manifest contract version. Unchanged by spec 197 (the
-/// `seed` command became typed but no field was added or removed from the
-/// manifest's wire shape). Named here per the `PROVENANCE_SCHEMA_VERSION`
-/// pattern so the version has one canonical home rather than living only in
-/// fixtures.
-pub const ADAPTER_MANIFEST_SCHEMA_VERSION: &str = "1.0.0";
+/// Current Adapter Manifest contract version. Bumped 1.0.0 → 1.1.0 by
+/// spec 198 FR-012: the manifest gains a `governance:` section (the adapter
+/// sub-envelope of the governance envelope). Named here per the
+/// `PROVENANCE_SCHEMA_VERSION` pattern so the version has one canonical home
+/// rather than living only in fixtures.
+pub const ADAPTER_MANIFEST_SCHEMA_VERSION: &str = "1.1.0";
+
+/// Schema versions this crate accepts at parse time. A 1.0.0 manifest (no
+/// `governance:` section) still parses and serves — it is *servable but not
+/// admissible* under the spec 198 admission gate, which requires the
+/// sub-envelope. Anything outside this set fails validation closed.
+pub const ADAPTER_MANIFEST_ACCEPTED_SCHEMA_VERSIONS: [&str; 2] = ["1.0.0", "1.1.0"];
 
 // ── Top-level Adapter Manifest ────────────────────────────────────────
 
@@ -37,6 +44,52 @@ pub struct AdapterManifest {
     pub validation: Validation,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dual_stack: Option<DualStack>,
+    /// Adapter sub-envelope of the governance envelope (spec 198 FR-012).
+    /// Required at schema 1.1.0; absent on 1.0.0 manifests (which are then
+    /// servable but not admissible).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub governance: Option<AdapterGovernance>,
+}
+
+// ── Governance sub-envelope (spec 198 FR-012) ─────────────────────────
+
+/// The adapter sub-envelope: the scaffold-boundary half of the governance
+/// envelope, filed inside the manifest so the declaration and its reconcile
+/// evidence (`commands:`, `directory_conventions:`, `scaffold.emits:`) share
+/// one content-addressed unit and one revocation key (spec 198 FR-010/FR-012).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdapterGovernance {
+    /// Tier ceiling for the adapter's agents (ASI02 m1 / ASI03).
+    pub max_tier: SafetyTier,
+    /// Where adapter agents may create/modify/delete (ASI02 m1 / ASI05 m4).
+    pub file_write_scope: Vec<String>,
+    /// Real secret material and infra paths agents may never write.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub file_write_denied: Vec<String>,
+    /// Key reference naming the manifest map that IS the command allowlist
+    /// (one home per fact, P-4). The only defined value is `commands`.
+    pub allowed_commands_from: String,
+    /// Declared executable surface at scaffold time (ASI05).
+    pub scaffold_execution: ScaffoldExecution,
+    /// Key reference naming the manifest map whose entries are the
+    /// behavioral-manifest constituents. The only defined value is `agents`.
+    pub agents_from: String,
+}
+
+/// What may execute at scaffold time, and under what isolation (ASI05).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScaffoldExecution {
+    /// Key references into the manifest's `scaffold:` block naming the entry
+    /// points (e.g. `scaffold.entry_point`, `scaffold.entry_point_dual`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub entry_points_from: Vec<String>,
+    /// Key reference naming the setup-command list
+    /// (e.g. `scaffold.setup_commands`).
+    pub setup_commands_from: String,
+    /// Isolation obligation. The only defined value is `sandbox-required`
+    /// (specs 162/185/186 at run time); unknown values fail validation
+    /// closed.
+    pub isolation: String,
 }
 
 // ── Adapter Identity ──────────────────────────────────────────────────

@@ -21,7 +21,6 @@ establishes:
   - unit: { kind: file, path: tools/lint/workflow-pins-test.sh }
   - unit: { kind: file, path: tools/lint/tests/fixtures/passing/action.yml }
   - unit: { kind: file, path: tools/lint/tests/fixtures/failing/action.yml }
-  - unit: { kind: file, path: docs/launch-notes/spec-158-workflow-ref-pinning.md }
 refines:
   - aspect: "workflow-ref-pin-enforcement"
     unit: { kind: file, path: .github/workflows/ci-supply-chain.yml }
@@ -216,10 +215,12 @@ diagnostic. Same exit-code discipline as the CI gate.
 
 ## 5. Falsifiers
 
-The launch-notes file (`docs/launch-notes/spec-158-workflow-ref-pinning.md`)
-captures four reproducible terminal blocks. Each block is a
-specific way the spec's claims could be wrong and the output
-that proves they are not:
+Verification was by falsification — four reproducible terminal
+blocks, each a specific way the spec's claims could be wrong and
+the output that proved they are not. The living proof of each is
+the lint's own test fixtures (`tools/lint/tests/fixtures/`) plus
+the CI (`ci-supply-chain.yml`) and pre-commit gates; the
+point-in-time launch evidence bundle has been retired.
 
 1. **Tree-wide scan** (FR-001 holds today) — 126 refs across
    22 workflows, exit 0, silent.
@@ -230,9 +231,8 @@ that proves they are not:
 4. **Full pre-commit hook** (FR-002 — both consumers wired) —
    both stages exit 0 silently.
 
-A fifth implicit falsifier is the "zero-scan regression"
-described in the launch-notes methodology note: a lint that
-returns 0 across zero scanned lines is the precise failure
+A fifth implicit falsifier is the "zero-scan regression": a lint
+that returns 0 across zero scanned lines is the precise failure
 mode this spec exists to prevent. The first draft of
 `workflow-pins.sh` shipped that bug; an independent
 count-the-lines check caught it before the spec was written.

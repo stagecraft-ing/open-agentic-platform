@@ -30,7 +30,8 @@ import {
 } from "../../db/schema";
 import { loadFactoryUpstreamPatToken } from "../../factory/upstreamPat";
 import { loadSubstrateForOrg } from "../../factory/substrateBrowser";
-import { projectSubstrateToLegacy } from "../../factory/projection";
+import { listAdapterViews } from "../../factory/adapterView";
+import { loadLatestAdmission } from "../../factory/admission";
 import {
   defaultWorkspaceDir,
   runWarmup,
@@ -85,10 +86,10 @@ export async function resolveScaffoldUpstream(
 }
 
 async function resolveWarmupContext(): Promise<WarmupResolution> {
-  // Spec 139 Phase 4 (T091): adapter manifests project from
-  // `factory_artifact_substrate`. The warmup iterates all orgs that
-  // have any substrate row (i.e. completed at least one sync) and for
-  // each projects the latest adapter manifest set.
+  // Spec 199 FR-009 / spec 198 D-5 — the warmup reads each org's
+  // ADMISSION record: the scaffold source was resolved at admission time
+  // from the manifest's org-agnostic `scaffold.source.remote`. The
+  // manifest-injected `scaffold_source_id` (spec 140 §2.2) is retired.
   const orgRows = await db
     .selectDistinctOn([factoryArtifactSubstrate.orgId], {
       orgId: factoryArtifactSubstrate.orgId,
@@ -98,25 +99,32 @@ async function resolveWarmupContext(): Promise<WarmupResolution> {
 
   if (orgRows.length === 0) return { kind: "no-adapters" };
 
-  let sawScaffoldSourceId = false;
+  let sawScaffoldSource = false;
   let sawResolvedSource = false;
   for (const { orgId } of orgRows) {
     const substrate = await loadSubstrateForOrg(orgId);
-    const projection = projectSubstrateToLegacy(substrate);
-    if (projection.adapters.length === 0) continue;
-    for (const adapter of projection.adapters) {
-      const manifest = (adapter.manifest ?? {}) as {
-        scaffold_source_id?: unknown;
-      };
-      const scaffoldSourceId =
-        typeof manifest.scaffold_source_id === "string"
-          ? manifest.scaffold_source_id
-          : null;
-      if (!scaffoldSourceId) continue;
-      sawScaffoldSourceId = true;
-
-      const upstream = await resolveScaffoldUpstream(orgId, scaffoldSourceId);
-      if (!upstream) continue;
+    const views = listAdapterViews(substrate);
+    if (views.length === 0) continue;
+    const admissionByOrigin = new Map<
+      string,
+      Awaited<ReturnType<typeof loadLatestAdmission>>
+    >();
+    for (const view of views) {
+      if (
+        (view.manifest.scaffold as Record<string, unknown> | undefined)
+          ?.source
+      ) {
+        sawScaffoldSource = true;
+      }
+      if (!admissionByOrigin.has(view.origin)) {
+        admissionByOrigin.set(
+          view.origin,
+          await loadLatestAdmission(orgId, view.origin),
+        );
+      }
+      const admission = admissionByOrigin.get(view.origin)!;
+      const resolution = admission.scaffoldResolutions[view.name];
+      if (!resolution) continue;
       sawResolvedSource = true;
 
       const pat = await loadFactoryUpstreamPatToken(orgId).catch(() => null);
@@ -127,14 +135,14 @@ async function resolveWarmupContext(): Promise<WarmupResolution> {
         ctx: {
           orgId,
           workspaceDir: defaultWorkspaceDir(),
-          scaffoldRepoUrl: upstream.repoUrl,
-          scaffoldRef: refToBranch(upstream.ref),
+          scaffoldRepoUrl: resolution.repo_url,
+          scaffoldRef: refToBranch(resolution.ref),
           patResolver: () => loadFactoryUpstreamPatToken(orgId),
         },
       };
     }
   }
-  if (!sawScaffoldSourceId) return { kind: "no-scaffold-source-id" };
+  if (!sawScaffoldSource) return { kind: "no-scaffold-source-id" };
   if (!sawResolvedSource) return { kind: "no-scaffold-source-resolved" };
   return { kind: "no-pat" };
 }
@@ -145,9 +153,9 @@ function reportUnresolvable(resolution: WarmupResolution): void {
     "no-adapters":
       "scaffold warmup: no factory adapter rows for any org — run /factory-sync to populate (spec 139 §7.2)",
     "no-scaffold-source-id":
-      "scaffold warmup: factory adapters are present but none declare scaffold_source_id — re-run /factory-sync (spec 139 §7.2 / spec 140 §2.1)",
+      "scaffold warmup: factory adapters are present but none declare a scaffold.source in their manifest (spec 199 FR-009)",
     "no-scaffold-source-resolved":
-      "scaffold warmup: an adapter declares scaffold_source_id but no factory_upstreams row matches it — register the upstream at /app/factory/upstreams (spec 139 §7.2)",
+      "scaffold warmup: no admission record resolves an adapter's scaffold source — register the upstream at /app/factory/upstreams and re-run /factory-sync (spec 198/199)",
     "no-pat":
       "scaffold warmup: an adapter and matching upstream are configured but no factory_upstream_pats row exists — configure a PAT at /app/admin/factory/pat",
   };

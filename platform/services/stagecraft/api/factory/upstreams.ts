@@ -9,7 +9,7 @@ import {
 } from "../db/schema";
 import { hasOrgPermission } from "../auth/membership";
 import { loadSubstrateForOrg } from "./substrateBrowser";
-import { projectSubstrateToLegacy } from "./projection";
+import { findEnvelopeProcess, listAdapterViews } from "./adapterView";
 
 // ---------------------------------------------------------------------------
 // Spec 108 + spec 139 — Factory upstream configuration.
@@ -186,11 +186,13 @@ async function loadCounts(orgId: string): Promise<FactoryUpstreamCounts> {
         ),
       ),
   ]);
-  const projection = projectSubstrateToLegacy(substrateForOrg);
+  // Spec 199 FR-005 — counts come from the substrate by kind + manifest
+  // identity (the categorical projection is retired).
   return {
-    adapters: projection.adapters.length,
-    contracts: projection.contracts.length,
-    processes: projection.processes.length,
+    adapters: listAdapterViews(substrateForOrg).length,
+    contracts: substrateForOrg.rows.filter((r) => r.kind === "contract-schema")
+      .length,
+    processes: findEnvelopeProcess(substrateForOrg) ? 1 : 0,
     artifacts: artifactsRow[0]?.count ?? 0,
   };
 }

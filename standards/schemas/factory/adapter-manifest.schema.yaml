@@ -14,10 +14,16 @@
 #
 # Each adapter ships exactly one manifest.yaml at its root.
 #
-# Schema version: 1.0.0
+# Schema version: 1.1.0
+#   1.1.0 — spec 198 FR-012: adds the `governance:` section (the adapter
+#           sub-envelope of the governance envelope). 1.0.0 manifests (no
+#           governance section) still parse and serve, but are NOT admissible
+#           under the spec 198 admission gate. Accepted versions are pinned
+#           in crates/factory-contracts/src/adapter_manifest.rs
+#           (ADAPTER_MANIFEST_ACCEPTED_SCHEMA_VERSIONS).
 # ============================================================================
 
-schema_version: "1.0.0"
+schema_version: "1.1.0"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # IDENTITY
@@ -270,6 +276,44 @@ scaffold:
   emits:                            # What scaffold produces, relative to project root
     - path: string                  # e.g., "template.json", "apps/", ".factory/pipeline-state.json"
       description: string           # Optional
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GOVERNANCE — adapter sub-envelope (spec 198 FR-012; REQUIRED at 1.1.0)
+# ─────────────────────────────────────────────────────────────────────────────
+# The scaffold-boundary half of the governance envelope. Filed INSIDE the
+# manifest so the declaration and its reconcile evidence (`commands:`,
+# `directory_conventions:`, `scaffold.emits:`) share one content-addressed
+# unit and one revocation key (spec 198 FR-010/FR-012). Every field carries
+# the ASI control id(s) it satisfies (FR-002). OAP reconciles these
+# declarations against the adapter agents' frontmatter (spec 054 unified
+# schema + spec 198 FR-003 mutation grammar) and refuses admission on any
+# mismatch — the brief cannot lie about its parts.
+#
+governance:
+  max_tier: string                  # Tier ceiling for adapter agents:
+                                    # "tier1" | "tier2" | "tier3"          [ASI02 m1, ASI03]
+  file_write_scope:                 # Where adapter agents may create/
+    - string                        # modify/delete (glob per line)        [ASI02 m1, ASI05 m4]
+  file_write_denied:                # Real secret material + infra paths
+    - string                        # agents may never write (e.g., ".env",
+                                    # "**/keys/**", "**/.git/**")          [ASI05, CONST-002 class]
+  allowed_commands_from: string     # Key reference; the manifest map that
+                                    # IS the command allowlist. Only defined
+                                    # value: "commands" (one home per fact) [ASI02 m1/m7]
+  scaffold_execution:               # Declared executable surface at
+                                    # scaffold time                        [ASI05]
+    entry_points_from: [string]     # Key refs into scaffold:, e.g.
+                                    # "scaffold.entry_point",
+                                    # "scaffold.entry_point_dual"
+    setup_commands_from: string     # Key ref, e.g. "scaffold.setup_commands"
+    isolation: string               # Only defined value: "sandbox-required"
+                                    # (specs 162/185/186); unknown values
+                                    # fail validation closed               [ASI05; principle 9]
+  agents_from: string               # Key reference; the manifest map whose
+                                    # entries are the behavioral-manifest
+                                    # constituents. Only defined value:
+                                    # "agents"                             [ASI10 m5]
 
 
 # ─────────────────────────────────────────────────────────────────────────────

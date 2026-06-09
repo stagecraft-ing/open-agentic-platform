@@ -227,7 +227,7 @@ safety tier is the structurally complete posture.
   error, removing the field entirely. The follow-up
   spec lands only after all in-tree tools have migrated
   to strict schemas (a project-scoped milestone
-  tracked in the launch-notes).
+  tracked as the SC-005 migration count).
 
 ## 4. Success Criteria
 
@@ -247,8 +247,8 @@ safety tier is the structurally complete posture.
   inherits the validator; permissive tool schemas in
   the tenant's code fail the tenant's CI.
 - **SC-005** The migration count of permissive `ToolDef`s
-  in the in-tree corpus decreases monotonically — a
-  contract recorded in the launch-notes.
+  in the in-tree corpus decreases monotonically — the
+  contract this criterion records.
 
 ## 5. Scope
 

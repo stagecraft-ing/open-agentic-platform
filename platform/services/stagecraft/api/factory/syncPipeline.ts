@@ -30,8 +30,8 @@ import {
   type SubstrateTranslation,
 } from "./translator";
 import { loadOapOwnedSubstrateRows, OAP_SELF_ORIGIN } from "./oapContracts";
-import { loadOapNativeAdapterSubstrateRows } from "./oapNativeIngest";
 import { sha256Hex, type SubstrateRow } from "./substrate";
+import { evaluateAndPersistFromSync } from "./admission";
 
 // ---------------------------------------------------------------------------
 // Public entry — full upstream sync.
@@ -41,8 +41,12 @@ export type SyncPipelineInputs = {
   orgId: string;
   factorySource: string;
   factoryRef: string;
+  /** Spec 199 FR-003 — the `factory_upstreams.source_id` this sync mirrors;
+   * becomes the substrate origin (origin-from-source, not a constant). */
+  factorySourceId: string;
   templateSource: string;
   templateRef: string;
+  templateSourceId: string;
   token: string | undefined;
 };
 
@@ -58,17 +62,13 @@ export async function runSyncPipeline(
   const translation = await cloneAndTranslate(inputs);
   const syncedAt = new Date();
 
-  // Spec 139 Constitution Check (Principle II) + SC-004:
-  //   - OAP-owned contract schemas (`standards/schemas/factory/`)
-  //     ride into the substrate as `(oap-self, contract-schema)`.
-  //   - OAP-native adapters (`next-prisma`, `rust-axum`, `encore-react`)
-  //     ride into the substrate as `(oap-self, adapter-manifest|pattern|…)`.
-  // Both groups share the `oap-self` origin so the prune/retire step
-  // applies to the union; an empty source dir for either group simply
-  // contributes zero rows.
-  const oapContractRows = await loadOapOwnedSubstrateRows();
-  const oapAdapterRows = await loadOapNativeAdapterSubstrateRows();
-  const oapSelfRows = [...oapContractRows, ...oapAdapterRows];
+  // Spec 139 Constitution Check (Principle II) + SC-004: OAP-owned
+  // contract schemas (`standards/schemas/factory/`) ride into the
+  // substrate as `(oap-self, contract-schema)`. The retired example-
+  // adapter ingest (next-prisma / rust-axum / encore-react — spec 199
+  // FR-007) no longer contributes rows; those adapters were removed
+  // upstream and their `_tmp/` source dir never existed here.
+  const oapSelfRows = await loadOapOwnedSubstrateRows();
   translation.substrate.rows.push(...oapSelfRows);
 
   await applyDualWrite({
@@ -79,6 +79,25 @@ export async function runSyncPipeline(
     syncedAt,
     extraOrigins: oapSelfRows.length > 0 ? [OAP_SELF_ORIGIN] : [],
   });
+
+  // Spec 198 FR-001/FR-003 — evaluate and record the governance-envelope
+  // admission verdict over the freshly-mirrored bytes. The mirror itself is
+  // unconditional (verbatim substrate, spec 139); ADMISSION gates serving
+  // and binding, not mirroring. A refusal is recorded with attributable
+  // violations and the serve/bind paths consult it fail-closed.
+  const admission = await evaluateAndPersistFromSync({
+    orgId: inputs.orgId,
+    factoryOrigin: translation.substrate.factoryOriginId,
+    factorySha: translation.factorySha,
+    rows: translation.substrate.rows,
+  });
+  if (admission.status === "refused") {
+    log.warn("factory admission REFUSED — content will not serve or bind", {
+      orgId: inputs.orgId,
+      origin: translation.substrate.factoryOriginId,
+      violations: admission.violations,
+    });
+  }
 
   // Per-kind counts come from the substrate now that the legacy projection
   // tables are retired. The wire shape of `SyncPipelineResult.counts` stays
@@ -125,17 +144,19 @@ async function cloneAndTranslate(
         async (templateRepo) => {
           // Single walk → substrate. Substrate is the only authoritative
           // store from Phase 4 onward; consumers project at read time.
-          // Spec 140 §2.1 — `templateRemote` / `templateDefaultBranch` no
-          // longer flow through the substrate. The projection's
-          // `buildAdapter` emits `scaffold_source_id` from
-          // `OAP_NATIVE_ADAPTERS["aim-vue-node"]` directly; URLs live in
-          // `factory_upstreams` and are resolved at clone time by the
-          // scaffold layer (see `api/projects/scaffold/scheduler.ts`).
+          // Spec 199 FR-003 — origins derive from the configured
+          // `factory_upstreams.source_id` (origin-from-source); the static
+          // AIM_VUE_NODE_CONFIG constants no longer reach the write path.
+          // Scaffold URLs live in `factory_upstreams` and are resolved at
+          // ADMISSION time (spec 198 / 199 FR-009); the admission record is
+          // what the create path and scaffold scheduler read.
           const substrate = await translateUpstreamsToSubstrate({
             factorySourcePath: factoryRepo.path,
             factorySourceSha: factoryRepo.sha,
             templatePath: templateRepo.path,
             templateSha: templateRepo.sha,
+            factoryOriginId: inputs.factorySourceId,
+            templateOriginId: inputs.templateSourceId,
           });
 
           return {

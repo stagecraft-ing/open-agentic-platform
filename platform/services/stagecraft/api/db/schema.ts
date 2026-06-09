@@ -889,7 +889,10 @@ export type ArtifactKind =
   | "sample-html"
   | "reference-data"
   | "invariant"
-  | "pipeline-orchestrator";
+  | "pipeline-orchestrator"
+  // Spec 198 FR-012 — the process-layer governance envelope
+  // (`process/governance-envelope.yaml`); CHECK widened in migration 43.
+  | "governance-envelope";
 
 export type ArtifactStatus = "active" | "retired";
 
@@ -949,6 +952,50 @@ export const factoryArtifactSubstrate = pgTable(
   },
   (t) => [unique().on(t.orgId, t.origin, t.path, t.version)],
 );
+
+// Spec 198 FR-001/FR-003 — governance-envelope admission records. One row
+// per evaluation; the latest row per (org_id, origin) is the standing
+// admission state. Refusals are kept as attributable evidence.
+export const factoryAdmissions = pgTable("factory_admissions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull(),
+  origin: text("origin").notNull(),
+  status: text("status").$type<"admitted" | "refused">().notNull(),
+  envelopeHash: text("envelope_hash"),
+  // The composed admitted envelope: process ⊕ adapter sub-envelope(s) ⊕
+  // constituent digests ⊕ resolved scaffold sources (FR-004: composition
+  // preserved, never flattened).
+  composed: jsonb("composed"),
+  violations: jsonb("violations").notNull().default([]),
+  // Spec 199 FR-009 / D-5: adapter name → { source_id, repo_url, ref }
+  // resolved at admission time.
+  scaffoldResolutions: jsonb("scaffold_resolutions").notNull().default({}),
+  factorySha: text("factory_sha"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// Spec 198 FR-010 — revocations keyed on the admission graph. org_id NULL
+// is a global (OAP-published) advisory row. Checked fail-closed at serve,
+// bind, and run-grant issuance/renewal; `lifted_at` set only after fresh
+// validation + human approval (ASI10 m7).
+export const factoryRevocations = pgTable("factory_revocations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id"),
+  scopeKind: text("scope_kind")
+    .$type<"factory" | "adapter" | "agent" | "content-hash">()
+    .notNull(),
+  key: text("key").notNull(),
+  mode: text("mode").$type<"revoked" | "quarantined">().notNull(),
+  reason: text("reason").notNull(),
+  actor: uuid("actor"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  liftedAt: timestamp("lifted_at", { withTimezone: true }),
+  liftedBy: uuid("lifted_by"),
+});
 
 export const factoryArtifactSubstrateAudit = pgTable(
   "factory_artifact_substrate_audit",

@@ -36,7 +36,7 @@ import { publishProjectCatalogUpsert } from "../sync/projectCatalogRelay";
 import { buildProjectOpenDeepLink } from "./scaffold/deepLink";
 import { encryptPat } from "../auth/patCrypto";
 import { loadSubstrateForOrg } from "../factory/substrateBrowser";
-import { projectSubstrateToLegacy } from "../factory/projection";
+import { findAdapterView, listAdapterViews } from "../factory/adapterView";
 import { classifyFormat, probeGitHub, tokenPrefix } from "../auth/patProbe";
 import { errorForLog } from "../auth/errorLog";
 import {
@@ -880,15 +880,15 @@ async function loadOrgAdapters(
     manifest: Record<string, unknown>;
   }>
 > {
-  // Spec 139 Phase 4 (T091): adapter manifests project from substrate.
+  // Spec 199 FR-002 — adapters resolve by manifest-declared identity from
+  // the substrate (thin consumer).
   const substrate = await loadSubstrateForOrg(orgId);
-  const projection = projectSubstrateToLegacy(substrate);
-  return projection.adapters.map((a) => ({
+  return listAdapterViews(substrate).map((a) => ({
     id: synthesiseAdapterId(orgId, a.name),
     name: a.name,
     version: a.version,
     sourceSha: a.sourceSha,
-    manifest: (a.manifest ?? {}) as Record<string, unknown>,
+    manifest: a.manifest,
   }));
 }
 
@@ -896,11 +896,8 @@ async function loadAdapterByName(
   orgId: string,
   name: string
 ): Promise<{ id: string } | null> {
-  // Spec 139 Phase 4 (T091): adapter lookup goes through the substrate
-  // projection. Returns the synthesised id consistent with browse.ts.
   const substrate = await loadSubstrateForOrg(orgId);
-  const projection = projectSubstrateToLegacy(substrate);
-  const found = projection.adapters.find((a) => a.name === name);
+  const found = findAdapterView(substrate, name);
   if (!found) return null;
   return { id: synthesiseAdapterId(orgId, found.name) };
 }

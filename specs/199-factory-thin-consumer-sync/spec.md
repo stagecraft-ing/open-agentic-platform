@@ -1,0 +1,328 @@
+---
+id: "199-factory-thin-consumer-sync"
+title: "Thin-Consumer Factory Sync for Owned Sources"
+feature_branch: "feat/199-factory-thin-consumer-sync"
+status: draft
+implementation: in-progress
+kind: platform
+domain: platform
+created: "2026-06-09"
+authors: ["open-agentic-platform"]
+language: en
+summary: >
+  Move the stagecraft factory sync off the retired goa-software-factory layout
+  and make it a thin CONSUMER of the owned factory-encore/template-encore
+  sources. Stagecraft stores upstream content verbatim in the substrate and
+  serves it by kind and by the adapter's own (schema-validated) manifest — it
+  stops TRANSLATING content OAP authors and controls. Adapter identity comes
+  from the manifest (aim-vue-encore self-declares), substrate origin derives
+  from the configured source, and the categorical "7-stage-build" projection —
+  a stagecraft invention with no contract backing, coupled to the dead
+  `Factory Agent/` directory shape — is retired. Process content is served
+  opaque by kind; the run's governance lives in the admission envelope
+  (spec 198), which this spec consumes. No backward compatibility is preserved;
+  factory-encore/template-encore are the baseline.
+code_aliases: ["FACTORY_THIN_CONSUMER_SYNC"]
+amends: ["139", "140", "141"]
+depends_on:
+  - "198-factory-governance-envelope"
+  - "139-factory-artifact-substrate"
+  - "197-factory-contract-open-standard-extensions"
+establishes:
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/adapterView.ts }
+extends:
+  - spec: "074-factory-ingestion"
+    nature: additive
+    unit: { kind: crate, id: factory-contracts }
+refines:
+  - aspect: "thin-consumer-substrate-reads"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/browse.ts }
+  - aspect: "thin-consumer-substrate-reads"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/substrateBrowser.ts }
+  - aspect: "owned-source-classification"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }
+supersedes:
+  - spec: "108-factory-as-platform-feature"
+    scope: partial
+    note: >
+      Retires the categorical factory_{adapters,contracts,processes} projection
+      wire shape and its translation layer (projection.ts buildProcess /
+      buildAdapter). Storage was already retired by spec 139; this retires the
+      read-time translation that 139 kept for compat.
+  - spec: "140-aim-vue-node-scaffold-source-id-cutover"
+    scope: partial
+    note: >
+      Retires §2.2's manifest-carried flat scaffold_source_id (injected at
+      ingest by the sanitise layer this spec removes). Replaced by
+      resolution-at-admission from the manifest's org-agnostic
+      scaffold.source.remote (FR-009).
+  - spec: "141-aim-vue-node-source-id-template-name-alignment"
+    scope: partial
+    note: >
+      Retires §2.1's scaffold_source_id ↔ template.json::templateName
+      alignment doctrine. templateName reverts to the template's own name
+      (template-encore); the org-scoped source id is resolved at admission,
+      never carried by upstream content.
+references:
+  - role: consumer
+    unit: { kind: crate, id: factory-engine }
+  - role: context
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundle.ts }
+  - role: context
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/scheduler.ts }
+  - role: historical
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/projection.ts }
+---
+
+# Feature Specification: Thin-Consumer Factory Sync for Owned Sources
+
+**Feature Branch**: `199-factory-thin-consumer-sync`
+**Created**: 2026-06-09
+**Status**: Draft
+**Input**: After repointing the factory upstreams to the owned
+`GovAlta-Pronghorn/factory-encore` + `template-encore` repos, the stagecraft
+Factory UI shows: Processes count `0` with an empty `7-stage-build` body; the
+Adapters tab fails to load `aim-vue-node` with an internal (500) error; the
+Create New Project adapter dropdown shows a stale `aim-vue-node`. A full
+current-state investigation (`docs/analysis/factory-encore-sync-current-state.md`,
+2026-06-09) established a single structural cause: stagecraft still **translates**
+content OAP now **owns**, against the retired `goa-software-factory` directory
+layout, while the verbatim-mirror substrate that makes that translation
+unnecessary already exists underneath it.
+
+This spec is the **consumer half**. Its prior — what makes a factory admissible
+at all — is [spec 198, the governance envelope](../198-factory-governance-envelope/spec.md),
+on which this spec depends. 199 stops translating and serves verbatim; 198 says
+what may be served at all.
+
+## Purpose and charter
+
+Make stagecraft a **thin consumer** of the owned factory standard: mirror
+upstream bytes verbatim into the substrate, serve them by `kind` and by the
+adapter's own schema-validated manifest, and stop inventing categorical shapes
+the open standard never defined.
+
+Non-negotiables fixed before drafting (operator decisions, 2026-06-09):
+
+- **No backward compatibility.** factory-encore/template-encore are the
+  baseline. Current shapes are baseline, not sacred — streamline freely.
+- **Thin consumer, full cutover.** Retire the legacy projection translation
+  rather than repointing its predicates.
+- **Identity from the manifest + source.** Adapter name / version /
+  `schema_version` come from the manifest; substrate origin derives from the
+  configured `factory_upstreams` source, not a static constant.
+- **Process content opaque; governance via the envelope.** The process body is
+  served by kind, uninterpreted; the run's governance obligations are the
+  admission envelope (spec 198), never a stagecraft-assembled "process" object.
+- **The factory↔template split is permanent and domain-correct** (always ≥2).
+  Multiple templates are already expressible at the adapter layer (each adapter
+  declares its own scaffold source) — this spec adds **no** new mechanism.
+
+## P-1 (refined): conform-by-standard; enforce, don't compensate
+
+"Thin consumer" does not mean "never transform." It means: transform only to
+*enforce* the standard (content-address, validate, reconcile — see spec 198),
+never to *compensate* for a missing standard. The defect being removed
+(`buildProcess` re-bucketing the dead goa layout) is compensation-processing —
+it exists only because nothing constrained the input. Define the standard
+(spec 197 contract + spec 198 envelope) and it evaporates.
+
+## Problem statement (current state)
+
+Authoritative detail: `docs/analysis/factory-encore-sync-current-state.md`.
+Condensed:
+
+1. **Static origin ids.** `DEFAULT_FACTORY_ORIGIN = "goa-software-factory"`,
+   `DEFAULT_TEMPLATE_ORIGIN = "aim-vue-node"`
+   (`translator.ts:703-705` ← `oapNativeAdapters.ts:49,53`) do not track the
+   configured source. Repointing the GitHub URL leaves a factually-wrong origin
+   label on every substrate row.
+2. **Process is a stagecraft invention with no contract schema.**
+   `projection.ts::buildProcess` (lines 225-325) re-buckets factory rows using
+   old `Factory Agent/…` path predicates (reads `row.path`, not stored `kind`).
+   factory-encore's `process/stages/*.md` match none → empty
+   `{orchestrator:null, stages:[], agents:{…empty}, references:[]}`. The
+   `"7-stage-build"` name + shape exist only at `translator.ts:249` and
+   `projection.ts:305`.
+3. **Real adapter dropped; broken synthetic served.**
+   `projection.ts::buildAdapter` hardcodes `name:"aim-vue-node"` and emits a
+   manifest with **no `schema_version`** → `getAdapter` rejects with
+   `APIError.internal` (`browse.ts:109-124`). The real `aim-vue-encore` manifest
+   (which carries `schema_version`) lands under the factory origin, which no
+   adapter builder reads. `opcBundle.ts:329-365` ships the broken manifest +
+   empty process to the OPC desktop with **no** `schema_version` guard.
+4. **Ingest mutates owned content.** `oapNativeSanitise` rewrites manifests on
+   ingest; the example-adapter ingest (`oapNativeIngest`) reads a non-existent
+   `_tmp/factory/adapters/` (silent no-op; those adapters were retired upstream).
+5. **A thin path already exists.** `api/factory/artifacts.ts` already serves
+   substrate rows verbatim; only `/adapters`, `/processes`, `/contracts` +
+   `opcBundle` still route through the projection.
+
+## Requirements
+
+### FR-001 — Stagecraft is a thin consumer of owned factory content (normative)
+
+For any source registered as an OAP-owned factory/template upstream, the sync
+pipeline MUST store upstream bytes verbatim and MUST NOT mutate, re-bucket, or
+synthesize content. Permitted derivations: content-addressed identity, `kind`
+classification, per-org `user_body` overrides, and the admission validation
+defined by spec 198 (enforcement, not compensation — see P-1).
+
+### FR-002 — Adapter identity from the manifest (retire the synthetic `aim-vue-node`)
+
+Adapters served by `/api/factory/adapters` (list + detail) MUST derive from
+`adapter-manifest`-kinded substrate rows regardless of origin; `name`,
+`version`, and manifest come from the parsed manifest YAML (factory-encore
+self-declares `aim-vue-encore` + `schema_version: "1.0.0"`). The synthetic
+`aim-vue-node` (`projection.ts::buildAdapter`) and the `name:"aim-vue-node"`
+literal (`translator.ts:340`) MUST be removed. `getAdapter`'s `schema_version`
+guard stays (it now passes).
+
+### FR-003 — Substrate origin derives from the configured source
+
+`DEFAULT_FACTORY_ORIGIN` / `DEFAULT_TEMPLATE_ORIGIN` MUST stop being static
+constants from `AIM_VUE_NODE_CONFIG`. The origin written to substrate rows MUST
+derive from the configured `factory_upstreams` source; the read path
+(`loadSubstrateForOrg`) MUST resolve origins from configuration. The prune key
+`(orgId, origin, path)` is already origin-parameterized; this removes the
+constants that make a repointed source carry a lying label and would silently
+filter a third-party source using a different origin id.
+
+### FR-004 — Retire `buildProcess`; serve process content opaque by kind
+
+The categorical `buildProcess` projection, the `"7-stage-build"` name, and the
+`Factory Agent/…` path predicates MUST be removed. Process content
+(`process/stages|agents|skills/**`) is served by `kind` from the substrate,
+uninterpreted by stagecraft. **No process-shape schema is defined here** — the
+run's governance is the admission envelope (spec 198), and "what is a process"
+is answered by "whatever files a valid envelope," not by a stagecraft-assembled
+categorical object. (This resolves the design's OQ-1: content opaque here,
+contract-defined governance in 198.)
+
+### FR-005 — Serve substrate verbatim by kind (retire the projection translation)
+
+`/api/factory/{adapters,contracts,processes}` MUST be served from the substrate
+by `kind` and by the adapter's own manifest, not via
+`projection.ts::projectSubstrateToLegacy`. `projection.ts` MUST be removed once
+its consumers are migrated. Contracts are served as their schema bodies. The
+wire shape MAY change (no backward-compat constraint); web tabs update in
+lockstep.
+
+### FR-006 — Migrate every projection consumer; honour the admission gate
+
+`opcBundle.ts` (loadAdapter / loadLatestProcesses / loadLatestContracts) and
+`runs.ts` MUST be rewired onto the substrate-direct path. The OPC bundle path
+MUST gain the same `schema_version` guard `getAdapter` has, so a malformed
+adapter never reaches the desktop engine. The serve/bind path MUST honour the
+**spec-198 admission gate**: content from a factory that has not filed a
+conformant, reconciled envelope MUST NOT be served or bound (fail-closed). Web
+routes (`app.factory.{adapters,processes,contracts}.tsx`, `app.projects.new.tsx`)
+render the new shapes.
+
+### FR-007 — Remove ingest mutation and dead code
+
+- `oapNativeSanitise` (manifest mutation on ingest) removed for owned sources
+  (P-1 / spec 198 P-1: a manifest field is authored upstream).
+- Retired example-adapter ingest (`oapNativeIngest` reading
+  `_tmp/factory/adapters/`; `next-prisma`/`rust-axum`/`encore-react` in
+  `OAP_NATIVE_ADAPTERS`) removed.
+- `moduleCatalog.ts` reconciled against template-encore's actual `modules/`
+  (or its staleness documented if kept as a validator).
+- `adapter-scopes.json` regenerated as a **derived projection** of the
+  admitted `aim-vue-encore` sub-envelope (spec 198 FR-012): identity + Encore
+  output layout flow from the manifest's `governance:` section, never from
+  hand-editing. (Until the first admission runs, an interim hand-regeneration
+  to the `aim-vue-encore` identity is acceptable, marked as such.)
+- CLAUDE.md's `api/factory/process-stages/*` reference (never created) removed.
+
+### FR-008 — Classification works for the owned layout without legacy coupling
+
+`classifyArtifactKind` MUST classify factory-encore's 3-layer layout correctly
+without `Factory Agent/…` dependence; the orchestrator
+(`process/agents/pipeline-orchestrator.md`) MUST be recognizable as the pipeline
+orchestrator. `FACTORY_SOURCE_EXCLUDES` / `TEMPLATE_EXCLUDES` MUST be reviewed
+against the owned repos and stripped of dead goa-only entries.
+
+### FR-009 — Preserve the factory↔template split; scaffold source resolved at admission
+
+The two-source model is preserved. No new multi-template abstraction:
+additional templates are expressed by an adapter declaring its own scaffold
+source **in its manifest** — `scaffold.source.{kind, remote, default_ref}`,
+which is org-agnostic and open-standard. At admission (spec 198), stagecraft
+resolves `scaffold.source.remote` against the org's `factory_upstreams` rows
+by normalized repo URL and records the resolved `source_id` + pinned ref on
+the admission record; the create path and the scaffold scheduler read the
+admission record. The flat `scaffold_source_id` manifest field (spec 140
+§2.2 — injected at ingest by the sanitise layer FR-007 removes) is
+**retired**; an unresolvable remote is an admission failure with the existing
+actionable error UX ("register the upstream at /app/factory/upstreams").
+Resolution-at-admission is enforcement, not compensation (P-1): the
+org-scoped id is org configuration and never enters the open contract (spec
+197 principle). This is the partial supersession of specs 140 §2.2 and 141
+§2.1 declared in frontmatter.
+
+## Acceptance criteria
+
+- **AC-1 (empty process).** Process content served reflects factory-encore's
+  actual `process/**` by kind; no empty `7-stage-build`, no `Factory Agent/`
+  dependence. (FR-004, FR-008)
+- **AC-2 (adapter 500).** `GET /api/factory/adapters/aim-vue-encore` returns the
+  parsed manifest (with `schema_version`), 200; no `aim-vue-node` served.
+  (FR-002, FR-005)
+- **AC-3 (stale dropdown).** The Create dropdown lists `aim-vue-encore`
+  (manifest-sourced). (FR-002, FR-006)
+- **AC-4 (origin honesty).** Substrate rows carry an origin derived from the
+  configured source; a repoint updates it; a third-party origin id is not
+  silently filtered. (FR-003)
+- **AC-5 (desktop integrity + admission).** The OPC bundle never ships a
+  manifest lacking `schema_version`; content from a non-admitted factory (per
+  spec 198) is not served/bound. (FR-006)
+- **AC-6 (no translation remains).** `git grep` for `aim-vue-node`,
+  `7-stage-build`, `Factory Agent/` in stagecraft source returns only history;
+  `projection.ts` translation, the synthetic adapter, `oapNativeSanitise`, and
+  the dead example-adapter ingest are gone. (FR-001/004/005/007)
+- **AC-7 (split preserved).** factory and template remain two sources; no new
+  multi-template abstraction; scaffold resolves its template via the
+  manifest's declared `scaffold.source`, resolved at admission against
+  `factory_upstreams` by repo URL; no code path injects or requires a flat
+  manifest `scaffold_source_id`. (FR-009)
+- **AC-8 (parity gates).** `make ci` / schema-parity / coupling gate pass; index
+  + featuregraph golden regenerated.
+
+## Out of scope
+
+- The **governance envelope, admission validation, and ASI mapping** — spec 198
+  (this spec consumes it).
+- The OPC desktop factory **engine's** stage execution (spec 075).
+- Scaffold prebuild/variant mechanics beyond manifest-sourced identity (FR-009).
+- GoA-specific contract concepts (rejected by spec 197 FR-005).
+- The factory↔template **merge** (declined; the split is permanent).
+
+## Phasing (proposed; refine in plan.md)
+
+0. **Spec 198 lands first** (envelope schema + admission gate). This spec
+   consumes it.
+1. **Ingest cleanup.** Origin-from-source (FR-003); strip `oapNativeSanitise`
+   + dead example-adapter ingest (FR-007); generalize classification (FR-008).
+2. **Read cutover.** Serve adapters/contracts/process from substrate by kind +
+   manifest (FR-002, FR-005); delete `projection.ts`.
+3. **Consumer migration.** Rewire `opcBundle` (+ guard + admission gate) and
+   `runs`; update web tabs + Create form (FR-006).
+4. **Hygiene.** `adapter-scopes.json`, `moduleCatalog`, CLAUDE.md
+   `process-stages`, Rust test fixtures (FR-007); regenerate index.
+
+## Cross-repo coordination
+
+- **factory-encore** ships the `aim-vue-encore` manifest with `schema_version`
+  AND files a conformant governance envelope (spec 198) — the latter is the
+  admission precondition this spec's serve/bind path enforces. Closes spec
+  197's deferred adapter rename (`aim-vue-node` → `aim-vue-encore`) on the
+  stagecraft side.
+- **template-encore**: the adapter's manifest-declared scaffold source points
+  at it (FR-009), and its `template.json::templateName` reverts to its own
+  true name `template-encore` (plus the matching zod default in
+  `scripts/lib/template-json.ts`) — the spec-141 alignment doctrine is retired
+  by this spec. Authoring dispatched 2026-06-09; merge-safe anytime (nothing
+  in stagecraft runtime-reads `templateName`).
+- Sequencing (migration memory `project-template-lineage-research`): lands after
+  the factory-encore POC finalize + Windows handoff settle the owned-repo shape.

@@ -14,6 +14,7 @@ pub mod agent_loader;
 pub mod agent_reference;
 pub mod budget;
 pub mod build_spec;
+pub mod governance_envelope;
 pub mod knowledge;
 pub mod namespace;
 pub mod pattern_resolver;
@@ -25,8 +26,15 @@ pub mod stakeholder_docs;
 pub mod validation;
 pub mod verification;
 
-pub use adapter_manifest::{AdapterManifest, ADAPTER_MANIFEST_SCHEMA_VERSION};
+pub use adapter_manifest::{
+    AdapterGovernance, AdapterManifest, ScaffoldExecution,
+    ADAPTER_MANIFEST_ACCEPTED_SCHEMA_VERSIONS, ADAPTER_MANIFEST_SCHEMA_VERSION,
+};
 pub use adapter_registry::AdapterRegistry;
+pub use governance_envelope::{
+    covered_by, reconcile_adapter, reconcile_process, GovernanceEnvelope, ReconcileViolation,
+    GOVERNANCE_ENVELOPE_SCHEMA_VERSION,
+};
 pub use agent_loader::AgentPrompt;
 pub use agent_reference::AgentReference;
 pub use budget::AssumptionBudget;

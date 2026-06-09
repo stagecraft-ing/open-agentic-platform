@@ -232,6 +232,14 @@ export type FactoryResourceSummary = {
   syncedAt: string;
 };
 
+/** Spec 198 FR-001 / spec 199 FR-006 — the serve path's admission verdict
+ * for the org's factory origin; list endpoints carry it so the UI can say
+ * WHY content is absent instead of rendering a bare empty state. */
+export type FactoryAdmissionWire = {
+  status: string;
+  reason: string | null;
+};
+
 export type FactoryAdapterDetail = FactoryResourceSummary & {
   manifest: unknown;
 };
@@ -247,6 +255,7 @@ export type FactoryProcessDetail = FactoryResourceSummary & {
 export async function listFactoryAdapters(request: Request) {
   return apiFetch(request, "/api/factory/adapters") as Promise<{
     adapters: FactoryResourceSummary[];
+    admission: FactoryAdmissionWire;
   }>;
 }
 
@@ -260,6 +269,7 @@ export async function getFactoryAdapter(request: Request, name: string) {
 export async function listFactoryContracts(request: Request) {
   return apiFetch(request, "/api/factory/contracts") as Promise<{
     contracts: FactoryResourceSummary[];
+    admission: FactoryAdmissionWire;
   }>;
 }
 
@@ -273,6 +283,7 @@ export async function getFactoryContract(request: Request, name: string) {
 export async function listFactoryProcesses(request: Request) {
   return apiFetch(request, "/api/factory/processes") as Promise<{
     processes: FactoryResourceSummary[];
+    admission: FactoryAdmissionWire;
   }>;
 }
 

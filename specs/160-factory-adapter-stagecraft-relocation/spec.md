@@ -164,7 +164,7 @@ follow this spec, not by spec 160 itself.
 - **SC-003** Running `grep -rln 'factory/adapters' README.md
   CLAUDE.md docs/ .github/workflows/` returns zero matches that are
   authoritative claims (annotated historical references in
-  launch-notes or research docs are exempt).
+  research or migration docs are exempt).
 - **SC-004** The README's *Adapters* section either lists the four
   adapters with valid stagecraft-resident paths, or is rewritten to
   reflect honest current state.
@@ -177,8 +177,8 @@ follow this spec, not by spec 160 itself.
   and process stage templates.
 - Updating the codebase-indexer input list, README, CLAUDE.md,
   Makefile, and CI workflow references.
-- A migration note in launch-notes capturing the move and its
-  rationale (intent doc §8.1).
+- A migration note capturing the move and its rationale
+  (intent doc §8.1).
 
 ### Out of scope (and intentionally so)
 

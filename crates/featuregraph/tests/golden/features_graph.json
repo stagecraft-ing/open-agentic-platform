@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:b99fae27ce9e4d8acbf6bf68452b0ec2bf2516a00ef7b3bd07f4d654cfc92663",
+  "graph_fingerprint": "sha256:979546ce0ec98cca7951d9a4badbc4a81717634c23a86937fd96c23878dc67f6",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3737,6 +3737,42 @@
       "owner": "",
       "group": "",
       "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "198-factory-governance-envelope",
+      "title": "Factory Governance Envelope (ASI Admission Contract)",
+      "spec_path": "specs/198-factory-governance-envelope/spec.md",
+      "status": "draft",
+      "implementation": "in-progress",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "102-governed-excellence",
+        "139-factory-artifact-substrate",
+        "074-factory-ingestion"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "199-factory-thin-consumer-sync",
+      "title": "Thin-Consumer Factory Sync for Owned Sources",
+      "spec_path": "specs/199-factory-thin-consumer-sync/spec.md",
+      "status": "draft",
+      "implementation": "in-progress",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "198-factory-governance-envelope",
+        "139-factory-artifact-substrate",
+        "197-factory-contract-open-standard-extensions"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []
