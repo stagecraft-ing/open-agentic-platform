@@ -80,6 +80,18 @@ safety_tier?: SafetyTier | null,
  */
 mutation?: MutationCapability | null, 
 /**
+ * Write-scope globs, required iff `mutation: scoped-write` (spec 198
+ * FR-003). The governance-envelope admission gate reconciles these
+ * against the owning envelope's `file_write_scope`.
+ */
+mutation_scope?: Array<string>, 
+/**
+ * Admitted-but-optional agent (spec 198 FR-003/FR-006). Allowlist
+ * membership still applies — a run may skip the agent, but only listed
+ * agents may ever run.
+ */
+optional?: boolean, 
+/**
  * Hook declarations keyed by event name.
  */
 hooks?: { [key in string]: Array<HookDeclaration> }, 

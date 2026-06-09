@@ -298,6 +298,7 @@ mod tests {
                 invariants_file: None,
             },
             dual_stack: None,
+            governance: None,
         }
     }
 

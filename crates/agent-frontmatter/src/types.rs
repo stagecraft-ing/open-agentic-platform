@@ -141,12 +141,21 @@ impl<'de> Deserialize<'de> for SafetyTier {
 /// - `Tier1` → `ReadOnly`
 /// - `Tier2` → `ReadWrite`
 /// - `Tier3` → `Full`
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+/// Variant order is the authority lattice (spec 198 FR-003):
+/// `read-only < scoped-write < read-write < full`. `PartialOrd`/`Ord` derive
+/// from it, so the admission gate can compare a declared mutation against an
+/// envelope ceiling directly.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub enum MutationCapability {
     #[serde(rename = "read-only")]
     #[ts(rename = "read-only")]
     ReadOnly,
+    /// Write bounded to the agent's declared `mutation_scope` globs
+    /// (spec 198 FR-003). Covers create, modify, and delete within scope.
+    #[serde(rename = "scoped-write")]
+    #[ts(rename = "scoped-write")]
+    ScopedWrite,
     #[serde(rename = "read-write")]
     #[ts(rename = "read-write")]
     ReadWrite,
@@ -352,6 +361,18 @@ pub struct UnifiedFrontmatter {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional = nullable)]
     pub mutation: Option<MutationCapability>,
+
+    /// Write-scope globs, required iff `mutation: scoped-write` (spec 198
+    /// FR-003). The governance-envelope admission gate reconciles these
+    /// against the owning envelope's `file_write_scope`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mutation_scope: Vec<String>,
+
+    /// Admitted-but-optional agent (spec 198 FR-003/FR-006). Allowlist
+    /// membership still applies — a run may skip the agent, but only listed
+    /// agents may ever run.
+    #[serde(default, skip_serializing_if = "core::ops::Not::not")]
+    pub optional: bool,
 
     /// Hook declarations keyed by event name.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]

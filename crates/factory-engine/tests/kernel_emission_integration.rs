@@ -145,6 +145,7 @@ fn minimal_manifest() -> AdapterManifest {
             invariants_file: None,
         },
         dual_stack: None,
+        governance: None,
     }
 }
 

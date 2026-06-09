@@ -264,6 +264,134 @@ fn validate_adapter_manifest_semantics(
             });
         }
     }
+
+    // ── Spec 198 FR-012: schema_version ↔ governance coherence ──────
+    if !crate::adapter_manifest::ADAPTER_MANIFEST_ACCEPTED_SCHEMA_VERSIONS
+        .contains(&manifest.schema_version.as_str())
+    {
+        errors.push(ValidationError::Semantic {
+            path: path.to_string(),
+            message: format!(
+                "Unsupported adapter-manifest schema_version '{}' (accepted: {})",
+                manifest.schema_version,
+                crate::adapter_manifest::ADAPTER_MANIFEST_ACCEPTED_SCHEMA_VERSIONS.join(", ")
+            ),
+        });
+    }
+    match (&manifest.schema_version[..], &manifest.governance) {
+        ("1.1.0", None) => errors.push(ValidationError::Semantic {
+            path: path.to_string(),
+            message: "schema_version 1.1.0 requires a governance: section (spec 198 FR-012)"
+                .to_string(),
+        }),
+        ("1.0.0", Some(_)) => errors.push(ValidationError::Semantic {
+            path: path.to_string(),
+            message: "governance: section requires schema_version 1.1.0".to_string(),
+        }),
+        _ => {}
+    }
+    if let Some(gov) = &manifest.governance {
+        if gov.file_write_scope.is_empty() {
+            errors.push(ValidationError::Semantic {
+                path: path.to_string(),
+                message: "governance.file_write_scope is empty (an adapter that writes nowhere scaffolds nothing)".to_string(),
+            });
+        }
+        if gov.allowed_commands_from != "commands" {
+            errors.push(ValidationError::Semantic {
+                path: path.to_string(),
+                message: format!(
+                    "governance.allowed_commands_from '{}' — the only defined value is 'commands'",
+                    gov.allowed_commands_from
+                ),
+            });
+        }
+        if gov.agents_from != "agents" {
+            errors.push(ValidationError::Semantic {
+                path: path.to_string(),
+                message: format!(
+                    "governance.agents_from '{}' — the only defined value is 'agents'",
+                    gov.agents_from
+                ),
+            });
+        }
+        if gov.scaffold_execution.isolation != "sandbox-required" {
+            errors.push(ValidationError::Semantic {
+                path: path.to_string(),
+                message: format!(
+                    "governance.scaffold_execution.isolation '{}' — the only defined value is 'sandbox-required' (fail-closed on unknown isolation)",
+                    gov.scaffold_execution.isolation
+                ),
+            });
+        }
+    }
+}
+
+/// Validate and parse a Governance Envelope (the process-layer half of the
+/// spec 198 admission contract) from a YAML or JSON file.
+pub fn validate_governance_envelope(
+    path: &Path,
+) -> Result<crate::governance_envelope::GovernanceEnvelope, Vec<ValidationError>> {
+    let path_str = path.display().to_string();
+    let contents = std::fs::read_to_string(path).map_err(|e| {
+        vec![ValidationError::Io {
+            path: path_str.clone(),
+            source: e,
+        }]
+    })?;
+
+    let envelope: crate::governance_envelope::GovernanceEnvelope =
+        parse_yaml_or_json(&path_str, &contents)?;
+
+    let mut errors = Vec::new();
+    validate_governance_envelope_semantics(&path_str, &envelope, &mut errors);
+
+    if errors.is_empty() {
+        Ok(envelope)
+    } else {
+        Err(errors)
+    }
+}
+
+fn validate_governance_envelope_semantics(
+    path: &str,
+    envelope: &crate::governance_envelope::GovernanceEnvelope,
+    errors: &mut Vec<ValidationError>,
+) {
+    if envelope.schema_version != crate::governance_envelope::GOVERNANCE_ENVELOPE_SCHEMA_VERSION {
+        errors.push(ValidationError::Semantic {
+            path: path.to_string(),
+            message: format!(
+                "Unsupported governance-envelope schema_version '{}' (expected {})",
+                envelope.schema_version,
+                crate::governance_envelope::GOVERNANCE_ENVELOPE_SCHEMA_VERSION
+            ),
+        });
+    }
+    if envelope.process.id.trim().is_empty() {
+        errors.push(ValidationError::Semantic {
+            path: path.to_string(),
+            message: "process.id is empty".to_string(),
+        });
+    }
+    if envelope.process.objective_class.trim().is_empty() {
+        errors.push(ValidationError::Semantic {
+            path: path.to_string(),
+            message: "process.objective_class is empty (the intent-capsule template must declare an objective class — ASI01 m5)".to_string(),
+        });
+    }
+    if envelope.emits.is_empty() {
+        errors.push(ValidationError::Semantic {
+            path: path.to_string(),
+            message: "emits is empty (a run that emits nothing is not governable)".to_string(),
+        });
+    }
+    if envelope.constituents.agents.trim().is_empty() {
+        errors.push(ValidationError::Semantic {
+            path: path.to_string(),
+            message: "constituents.agents is empty (the envelope must point at the agent frontmatter it composes)".to_string(),
+        });
+    }
 }
 
 #[cfg(test)]
