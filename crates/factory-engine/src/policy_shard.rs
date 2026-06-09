@@ -241,6 +241,7 @@ mod tests {
                 dev: "npm run dev".into(),
                 format_check: None,
                 type_check: Some("npx tsc --noEmit".into()),
+                seed: None,
                 feature_verify: vec![],
                 extra: HashMap::new(),
             },

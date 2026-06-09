@@ -94,6 +94,7 @@ fn minimal_manifest() -> AdapterManifest {
             dev: "npm run dev".into(),
             format_check: None,
             type_check: None,
+            seed: None,
             feature_verify: vec![],
             extra: Default::default(),
         },

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "54c42101edbd237b41673c911166fbbe0c6117a63b944531f850e09c8d40389e",
+    "contentHash": "8a097c6cb5996d0c09e191505a60819273b19b76a98868178b2344e6385946c2",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -43719,6 +43719,420 @@
         ],
         "specId": "196-platform-metrics-stack",
         "specStatus": "draft"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": "crates/factory-contracts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "standards/schemas/factory/build-spec.schema.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "standards/schemas/factory/stage-outputs/audiences.schema.json",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "crate",
+            "locations": [
+              {
+                "file": "crates/factory-contracts/Cargo.toml"
+              },
+              {
+                "file": "crates/factory-contracts/src/adapter_manifest.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/adapter_registry.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/agent_loader.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/agent_reference.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/budget.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/build_spec.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/knowledge.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/lib.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/namespace.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/pattern_resolver.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/pipeline_state.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/provenance.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/provenance_config.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/sandbox.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/stakeholder_docs.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/validation.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/verification.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "id": "factory-contracts",
+              "kind": "crate"
+            }
+          },
+          {
+            "kind": "crate",
+            "locations": [
+              {
+                "file": "crates/factory-engine/Cargo.toml"
+              },
+              {
+                "file": "crates/factory-engine/src/agent_bridge.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/agent_resolver.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/artifact_store.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/build_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/factory_run.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/harness.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/migrate_stakeholder_docs.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/verify_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/checks.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/engine.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/factory_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/gate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/harness_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/inter_stage_manifest.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/kernel_emission/emit.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/kernel_emission/gather.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/kernel_emission/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/kernel_emission/templates.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/kernel_emission/version.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/lib.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/manifest_gen.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/migration/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/migration/stakeholder_docs.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/pipeline_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/policy_shard.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/preflight.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/project_config.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/sandbox/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stagecraft_client.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/cascade_check.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/quality_gates.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/s_minus_1_extract.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_actions.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_comparator.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_gate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/standards_resolver.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/substrate_version.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/topo_sort.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/verify_harness.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/virtual_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
+              },
+              {
+                "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
+              },
+              {
+                "file": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+              },
+              {
+                "file": "crates/factory-engine/tests/agent_resolver_test.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/requirements/stakeholder/charter.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/requirements/stakeholder/client-document.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/runs/run-001/stage-cd/charter.candidate.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/runs/run-001/stage-cd/client-document.candidate.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/integration_078_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/kernel_emission_integration.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/run_replay.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec-122-coverage.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_122_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_170_certificate_chain.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_170_handoff_chain.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/tenant_emission_integration.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/virtual_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/virtual_root_offline.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "id": "factory-engine",
+              "kind": "crate"
+            }
+          },
+          {
+            "kind": "crate",
+            "locations": [
+              {
+                "file": "crates/orchestrator/Cargo.toml"
+              },
+              {
+                "file": "crates/orchestrator/src/agent_identity.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/artifact.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/circuit_breaker.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/claude_executor.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/cli_gate.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/effort.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/gates.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/hiqlite_store.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/http.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/lib.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/manifest.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/output_filter.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/promotion.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/provider_executor.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/scheduler/engine.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/scheduler/mod.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/scheduler/sqlite_store.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/scheduler/store.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/sqlite_state.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/sse.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/state.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/store.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/store_config.rs"
+              },
+              {
+                "file": "crates/orchestrator/src/verify.rs"
+              },
+              {
+                "file": "crates/orchestrator/tests/integration_052.rs"
+              },
+              {
+                "file": "crates/orchestrator/tests/store_conformance.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "id": "orchestrator",
+              "kind": "crate"
+            }
+          },
+          {
+            "kind": "directory",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "factory"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "standards/schemas/factory/build-spec.schema.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "standards/schemas/factory/build-spec.schema.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "standards/schemas/factory/stage-outputs/audiences.schema.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "standards/schemas/factory/stage-outputs/audiences.schema.json"
+            }
+          }
+        ],
+        "specId": "197-factory-contract-open-standard-extensions",
+        "specStatus": "approved"
       }
     ],
     "orphanedSpecs": [
