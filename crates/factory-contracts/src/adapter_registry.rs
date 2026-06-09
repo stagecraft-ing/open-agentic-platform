@@ -290,6 +290,7 @@ mod tests {
                 dev: "npm run dev".into(),
                 format_check: None,
                 type_check: None,
+                seed: None,
                 feature_verify: vec![],
                 extra: Default::default(),
             },
@@ -353,6 +354,7 @@ mod tests {
                 method,
                 provider: None,
                 roles: vec![],
+                provisioning_model: ProvisioningModel::OpenAuthenticated,
             },
         );
         BuildSpec {

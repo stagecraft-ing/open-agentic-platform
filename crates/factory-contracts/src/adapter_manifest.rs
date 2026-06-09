@@ -11,6 +11,13 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+/// Current Adapter Manifest contract version. Unchanged by spec 197 (the
+/// `seed` command became typed but no field was added or removed from the
+/// manifest's wire shape). Named here per the `PROVENANCE_SCHEMA_VERSION`
+/// pattern so the version has one canonical home rather than living only in
+/// fixtures.
+pub const ADAPTER_MANIFEST_SCHEMA_VERSION: &str = "1.0.0";
+
 // ── Top-level Adapter Manifest ────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -170,6 +177,11 @@ pub struct Commands {
     pub format_check: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub type_check: Option<String>,
+    /// Seed / fixture runner (spec 197). Declared in the manifest schema but
+    /// previously absorbed by `extra`, so the engine could not see it; now a
+    /// typed field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seed: Option<String>,
     /// Per-feature verification (fast checks only, not full build)
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub feature_verify: Vec<String>,

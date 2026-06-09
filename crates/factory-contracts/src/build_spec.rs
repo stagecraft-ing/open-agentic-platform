@@ -11,6 +11,12 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 
+/// Current Build Spec contract version. Bumped 1.0.0 → 1.1.0 by spec 197
+/// (open-standard extensions: per-audience `provisioning_model`,
+/// per-integration `implementation_status`). The additions are optional, so
+/// every 1.0.0 Build Spec still deserializes unchanged.
+pub const BUILD_SPEC_SCHEMA_VERSION: &str = "1.1.0";
+
 // ── Top-level Build Spec ──────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,6 +91,12 @@ pub struct Audience {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider: Option<String>,
     pub roles: Vec<Role>,
+    /// How users of this audience gain access (spec 197). **Required** per
+    /// audience — an explicit, auditable access-control decision with no silent
+    /// default (a missing value is a hard parse error, not a permissive
+    /// fallback). Per-audience by design: a dual-variant project may set e.g.
+    /// `citizen: open-authenticated` and `staff: admin-only`.
+    pub provisioning_model: ProvisioningModel,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -96,6 +108,21 @@ pub enum AudienceMethod {
     ApiKey,
     Basic,
     Mock,
+}
+
+/// How a principal of an audience obtains an application account (spec 197).
+/// Generalizes the GoA-observed app-level `provisioningModel` to a per-audience
+/// concept without coupling the contract to any org.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProvisioningModel {
+    /// User records are pre-created by an administrator; an unknown
+    /// authenticated principal is denied. Selects admin user-CRUD endpoints
+    /// and a user-management page for the audience.
+    AdminOnly,
+    /// Any IdP-authenticated principal gains access; the user record is
+    /// auto-created on first login. No user-management page is generated.
+    OpenAuthenticated,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -644,6 +671,11 @@ pub struct Integration {
     pub sync_schedule: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub business_rules: Option<Vec<String>>,
+    /// Implementation lifecycle of this integration (spec 197). Absent ⇒
+    /// unspecified (the adapter decides). `stub` ⇒ the adapter surfaces a
+    /// "service pending" indicator rather than failing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub implementation_status: Option<ImplementationStatus>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -655,6 +687,20 @@ pub enum IntegrationType {
     IdentityProvider,
     ExternalApi,
     MessageQueue,
+}
+
+/// Implementation lifecycle status of an integration (spec 197). GoA's
+/// catalogue-specific `catalog-auto` is deliberately not modelled — a catalogue
+/// presumes org infrastructure, which is not a contract concept (FR-005).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum ImplementationStatus {
+    /// Implemented and wired to a real backing service.
+    Live,
+    /// Stubbed; the adapter surfaces a "service pending" indicator.
+    Stub,
+    /// Declared but intentionally not yet implemented.
+    Deferred,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1053,4 +1099,82 @@ pub enum TestCaseType {
     E2e,
     Smoke,
     Manual,
+}
+
+// ── Tests (spec 197 — open-standard 1.1.0 extensions) ──────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // provisioning_model is REQUIRED (spec 197) — a missing value is a HARD
+    // parse error, never a permissive default. This is the AI-review A01
+    // hardening: every audience makes an explicit, auditable access decision.
+    #[test]
+    fn audience_requires_provisioning_model() {
+        let yaml = "method: oidc\nprovider: entra-id\nroles:\n  - role_code: staff\n    display_name: Staff\n    description: Internal staff\n    permissions: [\"case.read\"]\n";
+        assert!(serde_yaml::from_str::<Audience>(yaml).is_err());
+    }
+
+    // AC-2: both provisioning_model values parse; an unknown value is an error.
+    #[test]
+    fn provisioning_model_values_parse() {
+        let admin: Audience =
+            serde_yaml::from_str("method: oidc\nroles: []\nprovisioning_model: admin-only\n")
+                .unwrap();
+        assert_eq!(admin.provisioning_model, ProvisioningModel::AdminOnly);
+
+        let open: Audience = serde_yaml::from_str(
+            "method: saml\nroles: []\nprovisioning_model: open-authenticated\n",
+        )
+        .unwrap();
+        assert_eq!(
+            open.provisioning_model,
+            ProvisioningModel::OpenAuthenticated
+        );
+    }
+
+    #[test]
+    fn provisioning_model_invalid_is_error() {
+        assert!(serde_yaml::from_str::<Audience>(
+            "method: saml\nroles: []\nprovisioning_model: self-service\n"
+        )
+        .is_err());
+    }
+
+    // AC-3: implementation_status parses; the rejected `catalog-auto` errors.
+    #[test]
+    fn integration_implementation_status_parses() {
+        let i: Integration = serde_yaml::from_str(
+            "id: INT-001\nname: Blob Storage\ntype: file-storage\nimplementation_status: stub\n",
+        )
+        .unwrap();
+        assert_eq!(i.implementation_status, Some(ImplementationStatus::Stub));
+
+        let none: Integration =
+            serde_yaml::from_str("id: INT-002\nname: Email\ntype: email\n").unwrap();
+        assert!(none.implementation_status.is_none());
+    }
+
+    #[test]
+    fn integration_catalog_auto_rejected() {
+        assert!(serde_yaml::from_str::<Integration>(
+            "id: INT-003\nname: SAP\ntype: external-api\nimplementation_status: catalog-auto\n"
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn build_spec_schema_version_is_1_1_0() {
+        assert_eq!(BUILD_SPEC_SCHEMA_VERSION, "1.1.0");
+    }
+
+    // The sibling contract version consts are also pinned, so a typo in either
+    // adapter_manifest.rs or pipeline_state.rs fails CI (they bumped to named
+    // consts in spec 197 but were otherwise untested).
+    #[test]
+    fn sibling_contract_schema_versions_are_pinned() {
+        assert_eq!(crate::ADAPTER_MANIFEST_SCHEMA_VERSION, "1.0.0");
+        assert_eq!(crate::PIPELINE_STATE_SCHEMA_VERSION, "1.0.0");
+    }
 }

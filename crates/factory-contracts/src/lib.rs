@@ -25,14 +25,14 @@ pub mod stakeholder_docs;
 pub mod validation;
 pub mod verification;
 
-pub use adapter_manifest::AdapterManifest;
+pub use adapter_manifest::{AdapterManifest, ADAPTER_MANIFEST_SCHEMA_VERSION};
 pub use adapter_registry::AdapterRegistry;
 pub use agent_loader::AgentPrompt;
 pub use agent_reference::AgentReference;
 pub use budget::AssumptionBudget;
-pub use build_spec::BuildSpec;
+pub use build_spec::{BuildSpec, BUILD_SPEC_SCHEMA_VERSION};
 pub use pattern_resolver::PatternResolver;
-pub use pipeline_state::PipelineState;
+pub use pipeline_state::{PipelineState, PIPELINE_STATE_SCHEMA_VERSION};
 pub use provenance::{
     anchor_canonical_tokens, anchor_hash, quote_hash,
     PROVENANCE_SCHEMA_VERSION,
