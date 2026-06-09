@@ -42,6 +42,9 @@ refines:
   - aspect: "org-session-materialisation-observation"
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/stagecraft_client.rs }
     refines_specs: ["087-unified-workspace-architecture"]
+  - aspect: "boot-gate-org-claim-decoding-on-restore"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/auth.rs }
+    refines_specs: ["106-rauthy-native-oidc-and-membership"]
   - aspect: "boot-gate-auth-callback-coupling"
     unit: { kind: file, path: product/apps/opc/src/contexts/AuthContext.tsx }
     refines_specs: ["106-rauthy-native-oidc-and-membership"]
@@ -758,6 +761,39 @@ therefore be stable across restarts.** Two iterations of this fix:
 
 These restore the liveness and observability the FR-T1/FR-T2 invariants
 assume; the precondition-loss semantics (FR-T5) are unchanged.
+
+### 3.9 Post-approval hardening: org-claim decoding on keychain restore (2026-06-08)
+
+The §3.7/§3.8 persistence work made the Stagecraft session survive a
+restart — the JWT is restored from the OS keychain on launch. That
+exposed a long-latent decoding defect on the same FR-T2(b)
+`org_id`-materialisation path. Rauthy emits the OAP attributes
+(`oap_org_id`, `oap_user_id`, `oap_org_slug`, …) nested under a top-level
+`custom` object in the minted JWT (see stagecraft
+`api/auth/sessionMint.ts` and the `oap` scope's `attr_include_access`
+mapping in `scripts/seed-rauthy.mjs`), but the OPC Rust read them at the
+**top level**. So `apply_token` (`commands/stagecraft_client.rs`) derived
+an empty `org_id` from every keychain-restored / refreshed token, the
+gate's `has_org` term never flipped, and the cockpit never opened on cold
+start — the user had to sign out and sign in again on every launch. A
+fresh sign-in masked the defect because `auth_handle_callback` /
+`auth_select_org` set `org_id` from the HTTP **response body**, never the
+JWT; only the restore path reads the claim.
+
+The fix is a `custom`-aware claim accessor (`claim_str`: reads
+`custom.<key>` first, falls back to top-level for forward-compat), routed
+through `apply_token` and through `auth_get_status` / `auth_switch_org`
+(`commands/auth.rs`) so a restored session reports its org and identity,
+not just an authenticated-but-empty shell. `auth.rs` joins this spec's
+`refines:` set under the same org-session-materialisation concern the boot
+gate already observes on `stagecraft_client.rs` — it is the auth-command
+half of that one discipline. The duplex still connected on restart
+throughout (the server resolves org from the JWT server-side), so this was
+purely a client-side derivation defect, distinct from the §3.7/§3.8
+liveness gaps. No FR-T invariant changes; this restores the `org_id`
+materialisation FR-T2(b) already assumes. The prior unit test used a
+flat-claim fixture — exactly what let the defect ship; the regression now
+pins the real nested wire shape.
 
 ## 4. Non-goals (binding)
 

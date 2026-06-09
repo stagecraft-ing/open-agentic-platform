@@ -106,6 +106,36 @@ pub(super) fn decode_jwt_claims(token: &str) -> Option<serde_json::Value> {
     serde_json::from_slice(&payload).ok()
 }
 
+/// Read a string claim from a Rauthy-minted JWT payload.
+///
+/// Rauthy nests the OAP custom user attributes (`oap_org_id`, `oap_user_id`,
+/// `oap_org_slug`, `github_login`, …) under a top-level `custom` object — see
+/// stagecraft `api/auth/sessionMint.ts` ("carries the attributes under
+/// `custom.oap_*`") and the `oap` scope's `attr_include_access` mapping in
+/// `scripts/seed-rauthy.mjs`. Standard OIDC claims (`email`, `sub`, …) stay at
+/// the top level. This accessor checks `custom` first, then falls back to the
+/// top level, so both placements resolve and a future Rauthy mapping change
+/// cannot silently re-break org/identity derivation.
+///
+/// Without this, the keychain-restore / refresh / `adopt_token` paths (which
+/// derive `org_id` from the JWT) read a top-level `oap_org_id` that never
+/// exists, leaving `org_id` empty on every cold start — the boot gate's
+/// `has_org` term stays false and the cockpit cannot open even though the
+/// session is valid. Fresh sign-in masks this because it sets `org_id` from
+/// the HTTP response body, not the JWT.
+pub(super) fn claim_str<'a>(claims: &'a serde_json::Value, key: &str) -> Option<&'a str> {
+    // `.as_str()` is applied per-level so the fallback fires when `custom[key]`
+    // is absent OR present-but-non-string. A `.or_else` after a single trailing
+    // `.as_str()` would be skipped when `custom[key]` holds a non-string value
+    // (e.g. a future numeric Rauthy attribute), silently returning None instead
+    // of trying the top level.
+    claims
+        .get("custom")
+        .and_then(|c| c.get(key))
+        .and_then(|v| v.as_str())
+        .or_else(|| claims.get(key).and_then(|v| v.as_str()))
+}
+
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
@@ -193,7 +223,7 @@ impl StagecraftClient {
     fn apply_token(&self, token: &str) {
         *self.auth_token.write().unwrap() = Some(token.to_string());
         if let Some(claims) = decode_jwt_claims(token)
-            && let Some(org) = claims.get("oap_org_id").and_then(|v| v.as_str())
+            && let Some(org) = claim_str(&claims, "oap_org_id")
         {
             *self.org_id.write().unwrap() = org.to_string();
         }
@@ -1594,6 +1624,13 @@ mod tests {
     /// claim. Regression here recreates the "no active organization
     /// (sign-in incomplete)" bug where restore/refresh paths would set the
     /// token but leave `org_id` empty.
+    ///
+    /// NOTE: this fixture is FLAT (no `custom` wrapper), so post the
+    /// custom-claim fix it pins `claim_str`'s **top-level fallback** branch,
+    /// not the production Rauthy wire shape. The real nested shape
+    /// (`custom.oap_org_id`) is pinned by
+    /// `apply_token_derives_org_id_from_nested_custom_claim` — do not "fix"
+    /// this test to nest its claims, or the fallback path loses coverage.
     #[test]
     fn set_auth_token_populates_org_id_from_jwt_claim() {
         let client = StagecraftClient::new("http://example.test", "actor-1")
@@ -1608,6 +1645,70 @@ mod tests {
         client.apply_token(&token);
 
         assert_eq!(client.org_id(), "org-abc-123");
+    }
+
+    /// Regression for the cold-start "Sign out, then sign in again" bug:
+    /// Rauthy emits the OAP attributes nested under a top-level `custom`
+    /// object (`custom.oap_org_id`), NOT as flat top-level claims. The
+    /// keychain-restore path derives `org_id` from the JWT, so reading the
+    /// wrong level left `org_id` empty on every restart — the boot gate's
+    /// `has_org` term never flipped and the cockpit never opened. The flat
+    /// fixture in `set_auth_token_populates_org_id_from_jwt_claim` masked
+    /// this; this test pins the REAL Rauthy wire shape.
+    #[test]
+    fn apply_token_derives_org_id_from_nested_custom_claim() {
+        let client = StagecraftClient::new("http://example.test", "actor-1")
+            .expect("client builds");
+
+        let token = fake_jwt(&serde_json::json!({
+            "email": "user@example.test",
+            "exp": 9_999_999_999i64,
+            "custom": {
+                "oap_org_id": "org-nested-123",
+                "oap_user_id": "user-1",
+                "oap_org_slug": "acme",
+            },
+        }));
+        client.apply_token(&token);
+
+        assert_eq!(
+            client.org_id(),
+            "org-nested-123",
+            "org_id must be derived from custom.oap_org_id, not top-level"
+        );
+    }
+
+    /// `claim_str` reads `custom` first, then falls back to the top level —
+    /// so both the real Rauthy shape and a (hypothetical) flattened mapping
+    /// resolve, and standard top-level OIDC claims like `email` still work.
+    #[test]
+    fn claim_str_prefers_custom_then_falls_back_to_top_level() {
+        let nested = serde_json::json!({
+            "email": "top@example.test",
+            "custom": { "oap_org_id": "from-custom" },
+        });
+        assert_eq!(claim_str(&nested, "oap_org_id"), Some("from-custom"));
+        assert_eq!(claim_str(&nested, "email"), Some("top@example.test"));
+        assert_eq!(claim_str(&nested, "missing"), None);
+
+        // Forward-compat: a flat token (no `custom`) still resolves top-level.
+        let flat = serde_json::json!({ "oap_org_id": "from-top" });
+        assert_eq!(claim_str(&flat, "oap_org_id"), Some("from-top"));
+
+        // A present-but-non-string `custom` value must NOT swallow the
+        // fallback: per-level `.as_str()` lets the top-level claim win.
+        let mixed = serde_json::json!({
+            "oap_org_id": "from-top",
+            "custom": { "oap_org_id": 12345 },
+        });
+        assert_eq!(claim_str(&mixed, "oap_org_id"), Some("from-top"));
+
+        // Non-string at both levels → None (no panic, no coercion).
+        let both_numeric = serde_json::json!({
+            "oap_org_id": 1,
+            "custom": { "oap_org_id": 2 },
+        });
+        assert_eq!(claim_str(&both_numeric, "oap_org_id"), None);
     }
 
     /// A malformed token must not panic and must leave `org_id` untouched.
