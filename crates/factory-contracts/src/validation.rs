@@ -286,6 +286,7 @@ auth:
   audiences:
     staff:
       method: oidc
+      provisioning_model: admin-only
       roles:
         - role_code: admin
           display_name: Administrator
@@ -350,6 +351,7 @@ auth:
   audiences:
     staff:
       method: oidc
+      provisioning_model: admin-only
       roles: []
 data_model:
   entities: []
@@ -397,6 +399,7 @@ auth:
   audiences:
     staff:
       method: mock
+      provisioning_model: admin-only
       roles: []
 data_model:
   entities:
@@ -438,6 +441,7 @@ auth:
     citizen:
       method: saml
       provider: gov-citizen-account
+      provisioning_model: open-authenticated
       roles:
         - role_code: applicant
           display_name: Applicant

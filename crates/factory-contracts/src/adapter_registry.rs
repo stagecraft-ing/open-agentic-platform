@@ -354,7 +354,7 @@ mod tests {
                 method,
                 provider: None,
                 roles: vec![],
-                provisioning_model: None,
+                provisioning_model: ProvisioningModel::OpenAuthenticated,
             },
         );
         BuildSpec {

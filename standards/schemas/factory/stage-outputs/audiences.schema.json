@@ -16,7 +16,7 @@
   "$defs": {
     "audience": {
       "type": "object",
-      "required": ["name", "description", "auth_method", "roles"],
+      "required": ["name", "description", "auth_method", "provisioning_model", "roles"],
       "additionalProperties": false,
       "properties": {
         "name": {
@@ -40,7 +40,7 @@
         "provisioning_model": {
           "type": "string",
           "enum": ["admin-only", "open-authenticated"],
-          "description": "OPTIONAL. How a principal of this audience gains access — the orthogonal how-users-gain-access axis, independent of roles[].permissions. Absent ⇒ open-authenticated. 'admin-only' = a user record must be pre-created by an administrator (an unknown authenticated principal is denied, never auto-provisioned); 'open-authenticated' = any authenticated principal gains access, auto-created on first login. Carries the Stage 2 decision into the Build Spec."
+          "description": "REQUIRED. How a principal of this audience gains access — the orthogonal how-users-gain-access axis, independent of roles[].permissions. An explicit, auditable decision with no silent default (a missing value is a hard error). 'admin-only' = a user record must be pre-created by an administrator (an unknown authenticated principal is denied, never auto-provisioned); 'open-authenticated' = any authenticated principal gains access, auto-created on first login. Carries the Stage 2 decision into the Build Spec."
         },
         "roles": {
           "type": "array",

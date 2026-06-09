@@ -12,9 +12,10 @@
 #
 # Schema version: 1.1.0
 #
-# 1.1.0 (spec 197 — open-standard extensions, additive/backward-compatible):
-#   - auth.audiences.<name>.provisioning_model  (admin-only | open-authenticated)
-#   - integrations[].implementation_status      (live | stub | deferred)
+# 1.1.0 (spec 197 — open-standard extensions):
+#   - auth.audiences.<name>.provisioning_model  (admin-only | open-authenticated) — REQUIRED
+#       per audience (explicit, auditable access decision; no silent default)
+#   - integrations[].implementation_status      (live | stub | deferred) — optional/additive
 # Only org-/stack-generalizable concepts may enter this contract; GoA-specific
 # concepts (classification labels, service catalogue) live in the adapter layer.
 # ============================================================================
@@ -59,9 +60,11 @@ auth:
       method:
         enum: [saml, oidc, api-key, basic, mock]
       provider: string            # Identity provider name (e.g., "alberta-ca-account", "entra-id")
-      # How users of THIS audience gain access (spec 197). Optional; absent ⇒ open-authenticated.
-      # Per-audience by design: a dual app may set citizen=open-authenticated + staff=admin-only.
-      provisioning_model:
+      # How users of THIS audience gain access (spec 197). REQUIRED per audience —
+      # an explicit, auditable access decision with NO silent default (a missing
+      # value is a hard error, not a permissive fallback). Per-audience by design:
+      # a dual app may set citizen=open-authenticated + staff=admin-only.
+      provisioning_model:                        # REQUIRED
         enum: [admin-only, open-authenticated]   # admin-only: pre-provisioned by admin + user-management page; open-authenticated: auto-create on first login, no user-management page
       roles:
         - role_code: string       # Machine-safe (e.g., "cfs-analyst")

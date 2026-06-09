@@ -91,11 +91,12 @@ pub struct Audience {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider: Option<String>,
     pub roles: Vec<Role>,
-    /// How users of this audience gain access (spec 197). Absent ⇒
-    /// `open-authenticated`. Per-audience by design: a dual-variant project
-    /// may set e.g. `citizen: open-authenticated` and `staff: admin-only`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub provisioning_model: Option<ProvisioningModel>,
+    /// How users of this audience gain access (spec 197). **Required** per
+    /// audience — an explicit, auditable access-control decision with no silent
+    /// default (a missing value is a hard parse error, not a permissive
+    /// fallback). Per-audience by design: a dual-variant project may set e.g.
+    /// `citizen: open-authenticated` and `staff: admin-only`.
+    pub provisioning_model: ProvisioningModel,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -1106,15 +1107,13 @@ pub enum TestCaseType {
 mod tests {
     use super::*;
 
-    // AC-1: a 1.0.0-shaped audience (no provisioning_model) still parses;
-    // absent ⇒ None (interpreted as open-authenticated by consumers).
+    // provisioning_model is REQUIRED (spec 197) — a missing value is a HARD
+    // parse error, never a permissive default. This is the AI-review A01
+    // hardening: every audience makes an explicit, auditable access decision.
     #[test]
-    fn audience_without_provisioning_model_parses() {
+    fn audience_requires_provisioning_model() {
         let yaml = "method: oidc\nprovider: entra-id\nroles:\n  - role_code: staff\n    display_name: Staff\n    description: Internal staff\n    permissions: [\"case.read\"]\n";
-        let a: Audience = serde_yaml::from_str(yaml).unwrap();
-        assert!(a.provisioning_model.is_none());
-        // round-trip: the optional field stays absent on re-serialize
-        assert!(!serde_yaml::to_string(&a).unwrap().contains("provisioning_model"));
+        assert!(serde_yaml::from_str::<Audience>(yaml).is_err());
     }
 
     // AC-2: both provisioning_model values parse; an unknown value is an error.
@@ -1123,7 +1122,7 @@ mod tests {
         let admin: Audience =
             serde_yaml::from_str("method: oidc\nroles: []\nprovisioning_model: admin-only\n")
                 .unwrap();
-        assert_eq!(admin.provisioning_model, Some(ProvisioningModel::AdminOnly));
+        assert_eq!(admin.provisioning_model, ProvisioningModel::AdminOnly);
 
         let open: Audience = serde_yaml::from_str(
             "method: saml\nroles: []\nprovisioning_model: open-authenticated\n",
@@ -1131,7 +1130,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             open.provisioning_model,
-            Some(ProvisioningModel::OpenAuthenticated)
+            ProvisioningModel::OpenAuthenticated
         );
     }
 

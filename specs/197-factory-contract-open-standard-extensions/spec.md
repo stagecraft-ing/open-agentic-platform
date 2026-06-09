@@ -11,8 +11,8 @@ authors: ["open-agentic-platform"]
 language: en
 summary: >
   Evolve the factory Build Spec contract from 1.0.0 to 1.1.0 with two
-  generalizable, optional fields — per-audience provisioning_model and
-  per-integration implementation_status — under a governing principle:
+  generalizable fields — a REQUIRED per-audience provisioning_model and an
+  optional per-integration implementation_status — under a governing principle:
   the factory contract is an open, reusable standard, so only org-agnostic
   concepts may enter it. GoA-specific concepts (classification labels, the
   external service catalog) are explicitly kept OUT of the contract, in the
@@ -60,9 +60,9 @@ contract that:
 
 - Establishes the **open-standard principle** governing what may enter the
   contract layer (FR-001).
-- Adds two **generalizable, optional** Build Spec fields under that principle:
-  `provisioning_model` (per-audience) and `implementation_status`
-  (per-integration) (FR-002, FR-003).
+- Adds two **generalizable** Build Spec fields under that principle: a
+  **required** `provisioning_model` (per-audience) and an **optional**
+  `implementation_status` (per-integration) (FR-002, FR-003).
 - **Defers** one generalizable-but-inert field (`security.assurance_level`)
   until its consuming machinery exists (FR-004).
 - **Rejects** two GoA-specific concepts from the contract, recording where they
@@ -102,10 +102,15 @@ The principle above governs contract evolution. A new Build Spec / Adapter
 Manifest field is admissible only if it generalizes across orgs and stacks.
 Reviewers apply this test; the spec text is the citation.
 
-### FR-002 — Per-audience `provisioning_model`
+### FR-002 — Per-audience `provisioning_model` (required)
 
-`auth.audiences.<name>.provisioning_model` — optional enum
-`{ admin-only, open-authenticated }`. Absent ⇒ `open-authenticated`.
+`auth.audiences.<name>.provisioning_model` — **required** enum
+`{ admin-only, open-authenticated }`. There is **no default**: a missing value
+is a hard parse error, never a permissive fallback. This is a deliberate
+secure-by-design choice for an access-control selector — every audience makes an
+explicit, auditable decision, closing the A01 permissive-default risk that an
+optional+defaulted field would carry (an admin-only-intended audience whose
+field was omitted would otherwise silently auto-provision).
 
 - `admin-only`: a user record must be pre-created by an administrator before
   access; an unknown authenticated principal is denied. Selects generation of
@@ -159,11 +164,20 @@ their correct home recorded:
 ### FR-006 — Version bump + dual-surface lockstep
 
 - Build Spec `schema_version` 1.0.0 → 1.1.0 in `standards/schemas/factory/build-spec.schema.yaml`.
-- `crates/factory-contracts/src/build_spec.rs` adds the two optional fields as
-  `Option<…>` enums (serde `kebab-case`, `skip_serializing_if = "Option::is_none"`),
-  preserving deserialization of every existing 1.0.0 Build Spec unchanged.
+- `crates/factory-contracts/src/build_spec.rs`: `Audience.provisioning_model` is a
+  **required** `ProvisioningModel` (no serde default); `Integration.implementation_status`
+  is an optional `Option<…>` enum (serde `kebab-case`, `skip_serializing_if = "Option::is_none"`).
+  Both enums serialize kebab-case.
+- **Version note:** `implementation_status` is additive; `provisioning_model` is a
+  *required* addition to the audience shape, which is technically a breaking change
+  to that shape. Because no production 1.0.0 Build Spec exists (the contract is
+  pre-adoption) and the field codifies a decision the pipeline already makes at
+  Stage 2, this is not a compatibility break in practice; `schema_version`
+  increments to 1.1.0 and lets future consumers gate. A strict-semver reading
+  (required-field addition ⇒ 2.0.0) is deferred pending real external adoption.
 - The owned factory source (`factory-encore`) and its POC mirror this exact
-  delta; this spec text is the canonical definition both consume.
+  delta; this spec text is the canonical definition both consume. The stage-output
+  `audiences.schema.json` lists `provisioning_model` in its `required` set.
 
 ### FR-007 — Manifest commands drift + version consts (hygiene)
 
@@ -187,15 +201,18 @@ the other two remain `"1.0.0"` (untouched).
 
 ## Acceptance criteria
 
-- **AC-1**: A 1.0.0 Build Spec with no `provisioning_model` and no
-  `implementation_status` deserializes unchanged and round-trips byte-stable
-  (minus the version string).
+- **AC-1**: An audience with no `provisioning_model` is a **hard parse error**
+  (required field, no default). `implementation_status` remains optional — an
+  integration without it deserializes unchanged and round-trips byte-stable.
 - **AC-2**: `auth.audiences.staff.provisioning_model: admin-only` parses; an
   invalid value is a hard parse error with a clear message.
 - **AC-3**: `integrations[].implementation_status: stub` parses; `catalog-auto`
   is rejected as an unknown variant.
-- **AC-4**: The canonical YAML schema and the Rust types agree on the 1.1.0
-  field set (covered by the schema-parity walker, [spec 125](../125-schema-parity-walker-rebuild/spec.md)).
+- **AC-4**: The Rust types (`build_spec.rs`) and the YAML reference schema carry
+  the same 1.1.0 field set, maintained together in this PR. (The build-spec
+  contract is not yet under the automated schema-parity walker — that walker
+  ([spec 125](../125-schema-parity-walker-rebuild/spec.md)) currently mirrors only
+  knowledge/provenance/stakeholder-doc; bringing build-spec under it is future work.)
 - **AC-5**: `security.assurance_level` is **absent** from both surfaces (the
   defer is enforced, not merely intended).
 - **AC-6**: No GoA-specific token (classification label, service-catalogue
