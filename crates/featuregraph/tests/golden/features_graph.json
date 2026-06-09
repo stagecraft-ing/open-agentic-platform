@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:c66eb24bb1bc1578d1cc637a440e7c0dd68802a99415b54ccdc991a42c97e1b0",
+  "graph_fingerprint": "sha256:979546ce0ec98cca7951d9a4badbc4a81717634c23a86937fd96c23878dc67f6",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3746,7 +3746,7 @@
       "title": "Factory Governance Envelope (ASI Admission Contract)",
       "spec_path": "specs/198-factory-governance-envelope/spec.md",
       "status": "draft",
-      "implementation": "pending",
+      "implementation": "in-progress",
       "governance": "",
       "owner": "",
       "group": "",
@@ -3764,7 +3764,7 @@
       "title": "Thin-Consumer Factory Sync for Owned Sources",
       "spec_path": "specs/199-factory-thin-consumer-sync/spec.md",
       "status": "draft",
-      "implementation": "pending",
+      "implementation": "in-progress",
       "governance": "",
       "owner": "",
       "group": "",

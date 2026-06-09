@@ -141,10 +141,11 @@ impl<'de> Deserialize<'de> for SafetyTier {
 /// - `Tier1` → `ReadOnly`
 /// - `Tier2` → `ReadWrite`
 /// - `Tier3` → `Full`
+///
 /// Variant order is the authority lattice (spec 198 FR-003):
-/// `read-only < scoped-write < read-write < full`. `PartialOrd`/`Ord` derive
-/// from it, so the admission gate can compare a declared mutation against an
-/// envelope ceiling directly.
+/// `read-only < scoped-write < read-write < full`. `PartialOrd`/`Ord`
+/// derive from it, so the admission gate can compare a declared mutation
+/// against an envelope ceiling directly.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub enum MutationCapability {

@@ -3,7 +3,7 @@ id: "198-factory-governance-envelope"
 title: "Factory Governance Envelope (ASI Admission Contract)"
 feature_branch: "feat/198-factory-governance-envelope"
 status: draft
-implementation: pending
+implementation: in-progress
 kind: platform
 domain: platform
 created: "2026-06-09"
