@@ -42,7 +42,7 @@ references:
 
 **Feature Branch**: `197-factory-contract-open-standard-extensions`
 **Created**: 2026-06-08
-**Status**: Draft
+**Status**: Approved
 **Input**: OAP is replacing its factory dependency. The upstream
 `goa-software-factory` fold-in is retired; the owned factory source
 (`factory-encore`, scaffolding `template-encore`) is authored directly from

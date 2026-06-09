@@ -1169,4 +1169,13 @@ mod tests {
     fn build_spec_schema_version_is_1_1_0() {
         assert_eq!(BUILD_SPEC_SCHEMA_VERSION, "1.1.0");
     }
+
+    // The sibling contract version consts are also pinned, so a typo in either
+    // adapter_manifest.rs or pipeline_state.rs fails CI (they bumped to named
+    // consts in spec 197 but were otherwise untested).
+    #[test]
+    fn sibling_contract_schema_versions_are_pinned() {
+        assert_eq!(crate::ADAPTER_MANIFEST_SCHEMA_VERSION, "1.0.0");
+        assert_eq!(crate::PIPELINE_STATE_SCHEMA_VERSION, "1.0.0");
+    }
 }
