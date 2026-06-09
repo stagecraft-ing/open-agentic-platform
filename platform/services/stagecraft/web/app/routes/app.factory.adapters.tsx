@@ -1,9 +1,11 @@
 /**
- * Factory Adapters browser (spec 108 Phase 4).
+ * Factory Adapters browser (spec 199 thin-consumer cutover).
  *
- * List of the org's adapters with a detail drawer showing the manifest JSON,
- * source sha, and synced_at timestamp. Read-only — edits happen upstream and
- * land via the sync worker.
+ * Adapters self-declare via their manifest (`adapter.name` /
+ * `adapter.version` — spec 199 FR-002); the drawer shows the manifest
+ * JSON, source sha, and synced_at timestamp. Read-only — edits happen
+ * upstream and land via the sync worker. When the factory is not
+ * admitted, the empty state says WHY (spec 198 FR-001 / 199 FR-006).
  */
 
 import { useLoaderData } from "react-router";
@@ -11,6 +13,7 @@ import { requireUser } from "../lib/auth.server";
 import {
   getFactoryAdapter,
   listFactoryAdapters,
+  type FactoryAdmissionWire,
   type FactoryAdapterDetail,
   type FactoryResourceSummary,
 } from "../lib/factory-api.server";
@@ -21,6 +24,7 @@ import {
 
 type LoaderData = {
   adapters: FactoryResourceSummary[];
+  admission: FactoryAdmissionWire;
   selectedName: string | null;
   selected: FactoryBrowserDetail | null;
   loadError: string | null;
@@ -35,7 +39,7 @@ export async function loader({
   const url = new URL(request.url);
   const selectedName = url.searchParams.get("name");
 
-  const { adapters } = await listFactoryAdapters(request);
+  const { adapters, admission } = await listFactoryAdapters(request);
 
   let selected: FactoryBrowserDetail | null = null;
   let loadError: string | null = null;
@@ -57,11 +61,11 @@ export async function loader({
     }
   }
 
-  return { adapters, selectedName, selected, loadError };
+  return { adapters, admission, selectedName, selected, loadError };
 }
 
 export default function FactoryAdapters() {
-  const { adapters, selected, selectedName, loadError } =
+  const { adapters, admission, selected, selectedName, loadError } =
     useLoaderData<typeof loader>();
 
   return (
@@ -75,7 +79,9 @@ export default function FactoryAdapters() {
       emptyCopy={{
         title: "No adapters yet",
         description:
-          "Adapters appear here after the first successful sync of the factory upstreams.",
+          admission.status === "admitted"
+            ? "Adapters appear here after the first successful sync of the factory upstreams."
+            : `Factory not admitted — content is not served (spec 198): ${admission.reason ?? "no conformant governance envelope filed"}`,
       }}
     />
   );

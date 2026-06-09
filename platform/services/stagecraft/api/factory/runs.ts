@@ -31,7 +31,8 @@ import {
   AgentReferenceNotFoundError,
 } from "./runAgentRefs";
 import { loadSubstrateForOrg } from "./substrateBrowser";
-import { projectSubstrateToLegacy } from "./projection";
+import { findAdapterView, findEnvelopeProcess } from "./adapterView";
+import { isFactoryAdmitted } from "./admission";
 
 /** Spec 139 Phase 4 — must match `browse.ts::synthesiseId`. */
 function synthesiseAdapterId(orgId: string, name: string): string {
@@ -241,25 +242,47 @@ export async function reserveRunCore(
       };
     }
 
-    // Spec 139 Phase 4 (T091): adapters + processes project from
-    // substrate. The wire shape (name + version + sourceSha + manifest |
-    // definition) stays identical to spec 108's resolved values.
+    // Spec 199 FR-002/FR-004 — adapters resolve by manifest-declared
+    // identity; the process is the envelope-declared process.id. Both are
+    // admission-gated (spec 198 FR-001: an inadmissible factory's content
+    // is never reserved into a run).
     const substrate = await loadSubstrateForOrg(auth.orgId);
-    const projection = projectSubstrateToLegacy(substrate);
-    const adapter = projection.adapters.find(
-      (a) => a.name === req.adapterName,
-    );
+    const adapter = findAdapterView(substrate, req.adapterName);
     if (!adapter) {
       throw APIError.notFound(`adapter "${req.adapterName}" not found`);
     }
-    const processCandidates = projection.processes.filter(
-      (p) => p.name === req.processName,
-    );
-    if (processCandidates.length === 0) {
+    const adapterAdmission = await isFactoryAdmitted(auth.orgId, adapter.origin);
+    if (!adapterAdmission.admitted) {
+      throw APIError.failedPrecondition(
+        `adapter "${req.adapterName}" cannot start a run: ${adapterAdmission.reason}`,
+      );
+    }
+    const envelopeProcess = findEnvelopeProcess(substrate);
+    if (!envelopeProcess || envelopeProcess.name !== req.processName) {
       throw APIError.notFound(`process "${req.processName}" not found`);
     }
-    processCandidates.sort((a, b) => b.version.localeCompare(a.version));
-    const process = processCandidates[0];
+    // Spec 199 FR-004 — the definition is opaque-by-kind. It carries no
+    // embedded AgentReference tokens (those were a categorical-projection
+    // shape); the engine materialises agents from the substrate-aware
+    // VirtualRoot, and `resolveProcessAgentRefs` walking this shape simply
+    // resolves zero legacy refs.
+    const processByKind: Record<
+      string,
+      Array<{ path: string; contentHash: string }>
+    > = {};
+    for (const row of substrate.rows) {
+      if (row.origin !== substrate.factoryOriginId) continue;
+      (processByKind[row.kind] ??= []).push({
+        path: row.path,
+        contentHash: row.contentHash,
+      });
+    }
+    const process = {
+      name: envelopeProcess.name,
+      version: substrate.factorySourceSha.slice(0, 12),
+      sourceSha: substrate.factorySourceSha,
+      definition: { byKind: processByKind } as Record<string, unknown>,
+    };
 
     // Validate the project (when provided) belongs to this org.
     if (req.projectId) {
@@ -416,10 +439,7 @@ export async function listRunsCore(
       // projection's adapter list is small per org (≤ a handful) so an
       // exact-match scan is cheap.
       const substrateForFilter = await loadSubstrateForOrg(auth.orgId);
-      const projectionForFilter = projectSubstrateToLegacy(substrateForFilter);
-      const adapter = projectionForFilter.adapters.find(
-        (a) => a.name === req.adapter,
-      );
+      const adapter = findAdapterView(substrateForFilter, req.adapter);
       if (!adapter) {
         return { runs: [] };
       }

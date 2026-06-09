@@ -477,7 +477,9 @@ type CreateProjectWithRepoRequest = {
   name: string;
   slug: string;
   description?: string;
-  adapter: "aim-vue-node" | "encore-react" | "next-prisma" | "rust-axum";
+  // Spec 199 FR-002 — adapter identity is manifest-declared, not a static
+  // union; validated against the org's substrate at the call site.
+  adapter: string;
   repoName: string;
   isPrivate?: boolean;
 };

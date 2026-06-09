@@ -1,13 +1,79 @@
 {
   "build": {
-    "contentHash": "54875f9fa975bff49efc39d42e648d21e121268938b225d0b3da73d85890d698",
+    "contentHash": "d4123dfc036b4b1752f007b6557c935298c4244bbd7d32900ee8c35bc99b6208",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
   },
   "diagnostics": {
-    "errors": [],
-    "warnings": []
+    "errors": [
+      {
+        "code": "I-008",
+        "message": "139-factory-artifact-substrate: file: path \"platform/services/stagecraft/api/factory/oapNativeIngest.ts\" does not exist on disk"
+      },
+      {
+        "code": "I-008",
+        "message": "139-factory-artifact-substrate: file: path \"platform/services/stagecraft/api/factory/oapNativeSanitise.ts\" does not exist on disk"
+      },
+      {
+        "code": "I-008",
+        "message": "139-factory-artifact-substrate: file: path \"platform/services/stagecraft/api/factory/projection.ts\" does not exist on disk"
+      },
+      {
+        "code": "I-008",
+        "message": "140-aim-vue-node-scaffold-source-id-cutover: file: path \"platform/services/stagecraft/api/factory/oapNativeAdapters.ts\" does not exist on disk"
+      },
+      {
+        "code": "I-008",
+        "message": "140-aim-vue-node-scaffold-source-id-cutover: file: path \"platform/services/stagecraft/api/factory/projection.ts\" does not exist on disk"
+      },
+      {
+        "code": "I-008",
+        "message": "141-aim-vue-node-source-id-template-name-alignment: file: path \"platform/services/stagecraft/api/factory/oapNativeAdapters.ts\" does not exist on disk"
+      },
+      {
+        "code": "I-008",
+        "message": "141-aim-vue-node-source-id-template-name-alignment: file: path \"platform/services/stagecraft/api/factory/projection.test.ts\" does not exist on disk"
+      },
+      {
+        "code": "I-008",
+        "message": "199-factory-thin-consumer-sync: file: path \"platform/services/stagecraft/api/factory/oapNativeAdapters.ts\" does not exist on disk"
+      }
+    ],
+    "warnings": [
+      {
+        "code": "I-101",
+        "message": "spec \"139-factory-artifact-substrate\" declares implements path \"platform/services/stagecraft/api/factory/oapNativeIngest.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"139-factory-artifact-substrate\" declares implements path \"platform/services/stagecraft/api/factory/oapNativeSanitise.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"139-factory-artifact-substrate\" declares implements path \"platform/services/stagecraft/api/factory/projection.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"140-aim-vue-node-scaffold-source-id-cutover\" declares implements path \"platform/services/stagecraft/api/factory/oapNativeAdapters.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"140-aim-vue-node-scaffold-source-id-cutover\" declares implements path \"platform/services/stagecraft/api/factory/projection.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"141-aim-vue-node-source-id-template-name-alignment\" declares implements path \"platform/services/stagecraft/api/factory/oapNativeAdapters.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"141-aim-vue-node-source-id-template-name-alignment\" declares implements path \"platform/services/stagecraft/api/factory/projection.test.ts\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"199-factory-thin-consumer-sync\" declares implements path \"platform/services/stagecraft/api/factory/oapNativeAdapters.ts\" which is not a known package, adapter, or existing file/directory"
+      }
+    ]
   },
   "inventory": [
     {
@@ -15606,6 +15672,12 @@
                 "file": "platform/services/stagecraft/api/factory/adapter-scopes.json"
               },
               {
+                "file": "platform/services/stagecraft/api/factory/adapterView.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/admission.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/api/factory/agentCatalogMigration.dryrun.test.ts"
               },
               {
@@ -15654,22 +15726,7 @@
                 "file": "platform/services/stagecraft/api/factory/oapContracts.ts"
               },
               {
-                "file": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/api/factory/oapNativeIngest.test.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/api/factory/oapNativeIngest.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/api/factory/oapNativeSanitise.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/api/factory/projection.test.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/api/factory/projection.ts"
+                "file": "platform/services/stagecraft/api/factory/revocations.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/factory/runAgentRefs.test.ts"
@@ -22037,6 +22094,12 @@
                 "file": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.up.sql"
               },
               {
+                "file": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.up.sql"
+              },
+              {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
               },
               {
@@ -27256,11 +27319,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "platform/services/stagecraft/api/factory/oapNativeIngest.ts"
-              }
-            ],
             "ownership": true,
             "sourceField": "establishes",
             "unit": {
@@ -27270,11 +27328,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "platform/services/stagecraft/api/factory/oapNativeSanitise.ts"
-              }
-            ],
             "ownership": true,
             "sourceField": "establishes",
             "unit": {
@@ -27424,11 +27477,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "platform/services/stagecraft/api/factory/projection.ts"
-              }
-            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -27725,11 +27773,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
-              }
-            ],
             "ownership": true,
             "sourceField": "establishes",
             "unit": {
@@ -27781,11 +27824,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "platform/services/stagecraft/api/factory/projection.ts"
-              }
-            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -28039,11 +28077,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
-              }
-            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -28053,11 +28086,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "platform/services/stagecraft/api/factory/projection.test.ts"
-              }
-            ],
             "ownership": true,
             "sourceField": "extends",
             "unit": {
@@ -31655,6 +31683,12 @@
                 "file": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.up.sql"
               },
               {
+                "file": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.up.sql"
+              },
+              {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
               },
               {
@@ -31724,6 +31758,12 @@
                 "file": "platform/services/stagecraft/api/factory/adapter-scopes.json"
               },
               {
+                "file": "platform/services/stagecraft/api/factory/adapterView.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/admission.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/api/factory/agentCatalogMigration.dryrun.test.ts"
               },
               {
@@ -31772,22 +31812,7 @@
                 "file": "platform/services/stagecraft/api/factory/oapContracts.ts"
               },
               {
-                "file": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/api/factory/oapNativeIngest.test.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/api/factory/oapNativeIngest.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/api/factory/oapNativeSanitise.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/api/factory/projection.test.ts"
-              },
-              {
-                "file": "platform/services/stagecraft/api/factory/projection.ts"
+                "file": "platform/services/stagecraft/api/factory/revocations.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/factory/runAgentRefs.test.ts"
@@ -44735,11 +44760,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "platform/services/stagecraft/api/factory/projection.ts"
-              }
-            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -44791,11 +44811,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
-              }
-            ],
             "ownership": true,
             "sourceField": "refines",
             "unit": {

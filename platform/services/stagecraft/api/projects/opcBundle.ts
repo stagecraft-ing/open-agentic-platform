@@ -31,8 +31,14 @@ import {
   projectRepos,
   projects,
 } from "../db/schema";
+import { parse as parseYaml } from "yaml";
 import { loadSubstrateForOrg } from "../factory/substrateBrowser";
-import { projectSubstrateToLegacy } from "../factory/projection";
+import {
+  findEnvelopeProcess,
+  listAdapterViews,
+  manifestHasSchemaVersion,
+} from "../factory/adapterView";
+import { isFactoryAdmitted } from "../factory/admission";
 import {
   buildOpcBundle,
   type BundleContractInput,
@@ -321,17 +327,35 @@ async function loadPrimaryRepo(projectId: string) {
   };
 }
 
-// Spec 139 Phase 4 (T091) — adapter / contract / process bundle inputs are
-// now projected from `factory_artifact_substrate` via `loadSubstrateForOrg`.
-// The synthesised id matches `browse.ts::synthesiseId` so consumers that
-// previously keyed on `factory_adapters.id` keep their lookups stable.
+// Spec 199 FR-006 — adapter / contract / process bundle inputs serve from
+// the substrate BY KIND and by manifest-declared identity (thin consumer;
+// the categorical projection is retired). The bundle path carries the same
+// `schema_version` guard `getAdapter` has, and honours the spec 198
+// admission gate: a non-admitted factory's content never reaches the
+// desktop engine.
 async function loadAdapter(orgId: string, adapterId: string) {
   const substrate = await loadSubstrateForOrg(orgId);
-  const projection = projectSubstrateToLegacy(substrate);
-  const found = projection.adapters.find(
+  const found = listAdapterViews(substrate).find(
     (a) => synthesiseAdapterId(orgId, a.name) === adapterId,
   );
   if (!found) return null;
+  const admission = await isFactoryAdmitted(orgId, found.origin);
+  if (!admission.admitted) {
+    log.warn("opcBundle: adapter excluded — factory not admitted", {
+      orgId,
+      adapter: found.name,
+      reason: admission.reason,
+    });
+    return null;
+  }
+  if (!manifestHasSchemaVersion(found)) {
+    log.error("opcBundle: adapter manifest lacks schema_version — excluded", {
+      orgId,
+      adapter: found.name,
+      path: found.path,
+    });
+    return null;
+  }
   return {
     id: adapterId,
     name: found.name,
@@ -344,26 +368,76 @@ async function loadAdapter(orgId: string, adapterId: string) {
 
 async function loadLatestContracts(orgId: string): Promise<BundleContractInput[]> {
   const substrate = await loadSubstrateForOrg(orgId);
-  const projection = projectSubstrateToLegacy(substrate);
-  return dedupeByName(projection.contracts).map((r) => ({
-    name: r.name,
-    version: r.version,
-    sourceSha: r.sourceSha,
-    syncedAt: new Date(),
-    schema: r.schema,
-  }));
+  const admission = substrate.factoryOriginId
+    ? await isFactoryAdmitted(orgId, substrate.factoryOriginId)
+    : { admitted: false, reason: null };
+  const out: BundleContractInput[] = [];
+  const seen = new Set<string>();
+  for (const row of substrate.rows) {
+    if (row.kind !== "contract-schema") continue;
+    if (row.origin !== "oap-self" && !admission.admitted) continue;
+    const name = (row.path.split("/").pop() ?? row.path).replace(
+      /\.schema\.(json|ya?ml)$/i,
+      "",
+    );
+    if (seen.has(name)) continue;
+    seen.add(name);
+    let schema: unknown = null;
+    try {
+      schema = row.path.endsWith(".json")
+        ? JSON.parse(row.upstreamBody)
+        : parseYaml(row.upstreamBody);
+    } catch {
+      schema = null;
+    }
+    out.push({
+      name,
+      version: row.upstreamSha.slice(0, 12),
+      sourceSha: row.upstreamSha,
+      syncedAt: new Date(),
+      schema,
+    });
+  }
+  return out;
 }
 
 async function loadLatestProcesses(orgId: string): Promise<BundleProcessInput[]> {
   const substrate = await loadSubstrateForOrg(orgId);
-  const projection = projectSubstrateToLegacy(substrate);
-  return dedupeByName(projection.processes).map((r) => ({
-    name: r.name,
-    version: r.version,
-    sourceSha: r.sourceSha,
-    syncedAt: new Date(),
-    definition: r.definition,
-  }));
+  if (!substrate.factoryOriginId) return [];
+  const admission = await isFactoryAdmitted(orgId, substrate.factoryOriginId);
+  if (!admission.admitted) return [];
+  const envelope = findEnvelopeProcess(substrate);
+  if (!envelope) return [];
+  // Spec 199 FR-004 — opaque-by-kind definition; no categorical assembly.
+  const byKind: Record<string, Array<{ path: string; contentHash: string }>> =
+    {};
+  for (const row of substrate.rows) {
+    if (row.origin !== substrate.factoryOriginId) continue;
+    if (
+      ![
+        "governance-envelope",
+        "pipeline-orchestrator",
+        "process-stage",
+        "agent",
+        "skill",
+      ].includes(row.kind)
+    ) {
+      continue;
+    }
+    (byKind[row.kind] ??= []).push({
+      path: row.path,
+      contentHash: row.contentHash,
+    });
+  }
+  return [
+    {
+      name: envelope.name,
+      version: substrate.factorySourceSha.slice(0, 12),
+      sourceSha: substrate.factorySourceSha,
+      syncedAt: new Date(),
+      definition: { byKind },
+    },
+  ];
 }
 
 // Spec 139 Phase 4 (T091): project-scoped agents resolve via the
@@ -440,13 +514,3 @@ function synthesiseAdapterId(orgId: string, name: string): string {
  * row per name (browse.ts §getContract / §getProcess). We mirror that
  * here so the bundle is consistent with what the UI shows.
  */
-function dedupeByName<T extends { name: string }>(rows: T[]): T[] {
-  const seen = new Set<string>();
-  const out: T[] = [];
-  for (const row of rows) {
-    if (seen.has(row.name)) continue;
-    seen.add(row.name);
-    out.push(row);
-  }
-  return out;
-}

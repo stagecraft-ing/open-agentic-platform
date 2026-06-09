@@ -43,7 +43,11 @@ import { hasOrgPermission } from "../auth/membership";
 import { brokerInstallationToken } from "../github/repoInit";
 import { loadFactoryUpstreamPatToken } from "../factory/upstreamPat";
 import { loadSubstrateForOrg } from "../factory/substrateBrowser";
-import { projectSubstrateToLegacy } from "../factory/projection";
+import { listAdapterViews } from "../factory/adapterView";
+import {
+  isFactoryAdmitted,
+  loadLatestAdmission,
+} from "../factory/admission";
 import { publishProjectCatalogUpsert } from "../sync/projectCatalogRelay";
 import { createRepoWithBranchProtection } from "./scaffold/githubRepoCreate";
 import { gitInitAndPush } from "./scaffold/gitInitAndPush";
@@ -170,23 +174,27 @@ export const createFactoryProject = api(
       );
     }
 
-    const scaffoldSourceId =
-      typeof (manifest as { scaffold_source_id?: unknown }).scaffold_source_id ===
-      "string"
-        ? ((manifest as { scaffold_source_id: string }).scaffold_source_id)
-        : "";
-    if (!scaffoldSourceId) {
+    // Spec 199 FR-009 / spec 198 D-5 — the scaffold source was resolved at
+    // ADMISSION time from the manifest's org-agnostic
+    // `scaffold.source.remote`; the create path reads the admission
+    // record. The flat manifest `scaffold_source_id` (spec 140 §2.2,
+    // injected at ingest) is retired.
+    const admissionState = await loadLatestAdmission(auth.orgId, adapter.origin);
+    const resolution = admissionState.scaffoldResolutions[adapter.name];
+    if (!resolution) {
       throw APIError.failedPrecondition(
-        `Factory adapter ${adapter.name}@${adapter.version} has no scaffold_source_id in its manifest. ` +
-          `Re-run /factory-sync to repopulate the adapter row (spec 139 §7.2 / spec 140 §2.1).`
+        `Factory adapter ${adapter.name}@${adapter.version} has no scaffold-source resolution on its admission record. ` +
+          `Register the scaffold upstream at /app/factory/upstreams and re-run /factory-sync (spec 199 FR-009).`
       );
     }
-
-    const upstream = await resolveScaffoldUpstream(auth.orgId, scaffoldSourceId);
+    const upstream = await resolveScaffoldUpstream(
+      auth.orgId,
+      resolution.source_id,
+    );
     if (!upstream) {
       throw APIError.failedPrecondition(
-        `Factory adapter ${adapter.name}@${adapter.version} declares scaffold_source_id "${scaffoldSourceId}" but no factory_upstreams row matches it. ` +
-          `Register the upstream at /app/factory/upstreams before creating projects (spec 139 §7.2).`
+        `Factory adapter ${adapter.name}@${adapter.version} resolved scaffold source "${resolution.source_id}" at admission, but no factory_upstreams row matches it now. ` +
+          `Register the upstream at /app/factory/upstreams and re-run /factory-sync (spec 199 FR-009).`
       );
     }
 
@@ -521,27 +529,36 @@ async function loadFactoryAdapter(
   name: string;
   version: string;
   sourceSha: string;
+  /** Substrate origin (= configured source_id) — the admission-record key. */
+  origin: string;
   manifest: Record<string, unknown>;
 }> {
-  // Spec 139 Phase 4 (T091): adapter manifests live in
-  // `factory_artifact_substrate`. The synthesised id matches
+  // Spec 199 FR-002 — adapters resolve by manifest-declared identity from
+  // the substrate (thin consumer); the synthesised id matches
   // `browse.ts::synthesiseId` so consumers that received the id from
-  // listAdapters can use it here unchanged. Adapters resolve by name
-  // when the synthesised id matches a projection-emitted adapter.
+  // listAdapters can use it here unchanged.
+  // Spec 198 FR-001 — binding is admission-gated: an inadmissible factory
+  // MUST NOT be bound to a project.
   const substrate = await loadSubstrateForOrg(orgId);
-  const projection = projectSubstrateToLegacy(substrate);
-  const found = projection.adapters.find(
+  const found = listAdapterViews(substrate).find(
     (a) => synthesiseAdapterId(orgId, a.name) === adapterId,
   );
   if (!found) {
     throw APIError.notFound(`Factory adapter ${adapterId} not found in org`);
+  }
+  const admission = await isFactoryAdmitted(orgId, found.origin);
+  if (!admission.admitted) {
+    throw APIError.failedPrecondition(
+      `Factory adapter ${found.name} cannot be bound: ${admission.reason}`,
+    );
   }
   return {
     id: adapterId,
     name: found.name,
     version: found.version,
     sourceSha: found.sourceSha,
-    manifest: found.manifest as Record<string, unknown>,
+    origin: found.origin,
+    manifest: found.manifest,
   };
 }
 

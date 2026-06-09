@@ -1,30 +1,36 @@
-// Spec 108 Phase 4 — read-only browsers for adapters / contracts / processes.
-// Spec 139 Phase 4 (T091) — handlers project from
-// `factory_artifact_substrate` instead of the legacy
-// `factory_adapters` / `factory_contracts` / `factory_processes` tables.
-// The wire shape stays identical so spec 108's external API contract is
-// preserved post-cutover.
+// Spec 199 (thin-consumer cutover) — read-only browsers for adapters /
+// contracts / processes, served from `factory_artifact_substrate` BY KIND
+// and by each adapter's own schema-validated manifest (FR-002/FR-004/FR-005).
+// The categorical `projectSubstrateToLegacy` translation is retired; nothing
+// here re-buckets content into shapes the open standard never defined.
 //
-// Read-shadow logging (T090) lives at the entry point of each list/get
-// handler — if a handler ever ends up reading a legacy table after this
-// cutover, the WARN line surfaces the call site. Zero hits in non-test
-// code is the gate before T093 drops the tables.
+// Spec 198 FR-001 / spec 199 FR-006 — the serve path honours the admission
+// gate: content from a factory origin that has not filed a conformant,
+// reconciled governance envelope is NOT served (fail-closed), with an
+// attributable reason on the wire for the Factory UI.
 
 import { api, APIError } from "encore.dev/api";
 import log from "encore.dev/log";
 import { getAuthData } from "~encore/auth";
-import { projectSubstrateToLegacy } from "./projection";
+import { parse as parseYaml } from "yaml";
 import { loadSubstrateForOrg } from "./substrateBrowser";
+import { isFactoryAdmitted } from "./admission";
+import type { SubstrateRowDraft, SubstrateTranslation } from "./translator";
 
 // ---------------------------------------------------------------------------
-// Wire types — preserved from spec 108 §4 for byte-stable responses.
+// Wire types. `id`/`name`/`version`/`sourceSha`/`syncedAt` survive from the
+// spec 108 surface; detail payloads are now manifest-sourced (adapters),
+// schema bodies (contracts), and kind-grouped rows (processes). Spec 199
+// fixes no backward-compat constraint — web tabs update in lockstep.
 // ---------------------------------------------------------------------------
+
+export type FactoryAdmissionWire = {
+  /** "admitted" | "refused" | "unevaluated" for the org's factory origin. */
+  status: string;
+  reason: string | null;
+};
 
 export type FactoryResourceSummary = {
-  /** Row UUID — spec 112 uses this to bind factory_adapters → projects.
-   *  Post-cutover the id is synthesised from the substrate's adapter
-   *  identity since the legacy `factory_adapters.id` UUID column is
-   *  dropped in T093. The synthesis is `(orgId, name)`-stable. */
   id?: string;
   name: string;
   version: string;
@@ -40,47 +46,104 @@ export type FactoryContractDetail = FactoryResourceSummary & {
   schema: unknown;
 };
 
+/** Spec 199 FR-004 — process content is served by kind, uninterpreted:
+ * kind → [{ path, contentHash }]. No orchestrator/stage/agent re-bucketing;
+ * the run's governance lives in the admission envelope (spec 198). */
 export type FactoryProcessDetail = FactoryResourceSummary & {
-  definition: unknown;
+  definition: { byKind: Record<string, Array<{ path: string; contentHash: string }>> };
 };
 
 // ---------------------------------------------------------------------------
-// Helpers — load substrate for the caller's org, project to legacy shape.
-// `syncedAt` is sourced from the substrate row's updatedAt — captured at
-// the projection layer rather than at row level so the legacy contract's
-// "one timestamp per resource" expectation holds.
+// Substrate loading + admission verdict (one round trip per request)
 // ---------------------------------------------------------------------------
 
-async function projectForOrg(orgId: string) {
+type OrgView = {
+  substrate: SubstrateTranslation;
+  admission: { admitted: boolean; reason: string | null };
+  syncedAt: string;
+};
+
+async function loadOrgView(orgId: string): Promise<OrgView> {
   const substrate = await loadSubstrateForOrg(orgId);
-  const projection = projectSubstrateToLegacy(substrate);
-  // syncedAt isn't preserved on the in-memory projection (the projector's
-  // contract is content-only); use "now" as a non-load-bearing wire-shape
-  // filler. The wire shape carries this field but no consumer pins on it
-  // for correctness — sourceSha + version are the load-bearing fields.
-  const syncedAt = new Date().toISOString();
-  return { projection, syncedAt };
+  const admission = substrate.factoryOriginId
+    ? await isFactoryAdmitted(orgId, substrate.factoryOriginId)
+    : { admitted: false, reason: "no factory upstream configured" };
+  return { substrate, admission, syncedAt: new Date().toISOString() };
+}
+
+/** Factory-origin rows serve only under an admitted envelope; `oap-self`
+ * rows (OAP's own contract schemas) are not synced factory content and are
+ * never admission-gated. */
+function servableRows(view: OrgView): SubstrateRowDraft[] {
+  return view.substrate.rows.filter(
+    (r) =>
+      r.origin === "oap-self" ||
+      (r.origin === view.substrate.factoryOriginId && view.admission.admitted),
+  );
+}
+
+function parsedManifest(row: SubstrateRowDraft): Record<string, unknown> | null {
+  try {
+    const parsed = parseYaml(row.upstreamBody);
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function manifestIdentity(
+  manifest: Record<string, unknown>,
+): { name: string; version: string } | null {
+  const adapter = manifest.adapter as Record<string, unknown> | undefined;
+  const name = typeof adapter?.name === "string" ? adapter.name : null;
+  const version =
+    typeof adapter?.version === "string" ? adapter.version : null;
+  return name ? { name, version: version ?? "0.0.0" } : null;
 }
 
 // ---------------------------------------------------------------------------
-// Adapters
+// Adapters — manifest-sourced identity (FR-002). The synthetic
+// `aim-vue-node` is gone; whatever adapter-manifest rows the substrate
+// carries (any origin) self-declare their identity.
 // ---------------------------------------------------------------------------
 
 export const listAdapters = api(
   { expose: true, auth: true, method: "GET", path: "/api/factory/adapters" },
-  async (): Promise<{ adapters: FactoryResourceSummary[] }> => {
+  async (): Promise<{
+    adapters: FactoryResourceSummary[];
+    admission: FactoryAdmissionWire;
+  }> => {
     const auth = getAuthData()!;
-    const { projection, syncedAt } = await projectForOrg(auth.orgId);
-    const adapters = projection.adapters
-      .map<FactoryResourceSummary>((a) => ({
-        id: synthesiseId(auth.orgId, "adapter", a.name),
-        name: a.name,
-        version: a.version,
-        sourceSha: a.sourceSha,
-        syncedAt,
-      }))
+    const view = await loadOrgView(auth.orgId);
+    const adapters = servableRows(view)
+      .filter((r) => r.kind === "adapter-manifest")
+      .flatMap<FactoryResourceSummary>((row) => {
+        const manifest = parsedManifest(row);
+        const identity = manifest ? manifestIdentity(manifest) : null;
+        if (!identity) {
+          log.warn("listAdapters: unparseable adapter manifest skipped", {
+            orgId: auth.orgId,
+            path: row.path,
+          });
+          return [];
+        }
+        return [
+          {
+            id: synthesiseId(auth.orgId, "adapter", identity.name),
+            name: identity.name,
+            version: identity.version,
+            sourceSha: row.upstreamSha,
+            syncedAt: view.syncedAt,
+          },
+        ];
+      })
       .sort((a, b) => a.name.localeCompare(b.name));
-    return { adapters };
+    return {
+      adapters,
+      admission: admissionWire(view),
+    };
   },
 );
 
@@ -93,64 +156,82 @@ export const getAdapter = api(
   },
   async (req: { name: string }): Promise<FactoryAdapterDetail> => {
     const auth = getAuthData()!;
-    const { projection, syncedAt } = await projectForOrg(auth.orgId);
-    const found = projection.adapters.find((a) => a.name === req.name);
-    if (!found) {
-      throw APIError.notFound(`adapter "${req.name}" not found`);
-    }
-    // Spec 139 (2026-06-05): refuse to serve a non-spec-074 document as an
-    // adapter manifest. For an org whose substrate has no real adapter-manifest
-    // row, `projectSubstrateToLegacy` falls back to a knowledge/orchestration
-    // bundle (keys: entry/orchestrator/orchestration_source_id) with no
-    // `schema_version`. Serving it makes the OPC factory engine fail deep in
-    // startup with a cryptic `missing field 'schema_version'`. Surface a clear,
-    // attributable error here instead.
-    const manifest = found.manifest as Record<string, unknown> | null | undefined;
-    if (!manifest || typeof manifest.schema_version !== "string") {
-      log.error(
-        "getAdapter: projected manifest is not a spec-074 AdapterManifest",
-        {
+    const view = await loadOrgView(auth.orgId);
+    requireFactoryAdmitted(view, `adapter "${req.name}"`);
+    for (const row of servableRows(view)) {
+      if (row.kind !== "adapter-manifest") continue;
+      const manifest = parsedManifest(row);
+      const identity = manifest ? manifestIdentity(manifest) : null;
+      if (!identity || identity.name !== req.name) continue;
+      // Spec 139 (2026-06-05) guard, kept verbatim in spirit: refuse to
+      // serve a manifest without `schema_version` — the OPC factory engine
+      // would fail deep in startup with a cryptic parse error otherwise.
+      if (typeof manifest!.schema_version !== "string") {
+        log.error("getAdapter: manifest lacks schema_version", {
           orgId: auth.orgId,
           name: req.name,
-          keys: manifest ? Object.keys(manifest).join(",") : "(none)",
-        },
-      );
-      // Short client-facing message; the diagnostic detail stays in the
-      // log.error above so internal substrate/projection mechanics are not
-      // disclosed in the HTTP response body.
-      throw APIError.internal(
-        `adapter "${req.name}" is not configured correctly for this org`,
-      );
+          path: row.path,
+        });
+        throw APIError.internal(
+          `adapter "${req.name}" is not configured correctly for this org`,
+        );
+      }
+      return {
+        id: synthesiseId(auth.orgId, "adapter", identity.name),
+        name: identity.name,
+        version: identity.version,
+        sourceSha: row.upstreamSha,
+        syncedAt: view.syncedAt,
+        manifest,
+      };
     }
-    return {
-      id: synthesiseId(auth.orgId, "adapter", found.name),
-      name: found.name,
-      version: found.version,
-      sourceSha: found.sourceSha,
-      syncedAt,
-      manifest: found.manifest,
-    };
+    throw APIError.notFound(`adapter "${req.name}" not found`);
   },
 );
 
 // ---------------------------------------------------------------------------
-// Contracts
+// Contracts — schema bodies served as-is (FR-005).
 // ---------------------------------------------------------------------------
+
+function contractName(path: string): string {
+  const base = path.split("/").pop() ?? path;
+  return base.replace(/\.schema\.(json|ya?ml)$/i, "");
+}
+
+function parsedSchemaBody(row: SubstrateRowDraft): unknown {
+  try {
+    return row.path.endsWith(".json")
+      ? JSON.parse(row.upstreamBody)
+      : parseYaml(row.upstreamBody);
+  } catch {
+    return null;
+  }
+}
 
 export const listContracts = api(
   { expose: true, auth: true, method: "GET", path: "/api/factory/contracts" },
-  async (): Promise<{ contracts: FactoryResourceSummary[] }> => {
+  async (): Promise<{
+    contracts: FactoryResourceSummary[];
+    admission: FactoryAdmissionWire;
+  }> => {
     const auth = getAuthData()!;
-    const { projection, syncedAt } = await projectForOrg(auth.orgId);
-    const contracts = projection.contracts
-      .map<FactoryResourceSummary>((c) => ({
-        name: c.name,
-        version: c.version,
-        sourceSha: c.sourceSha,
-        syncedAt,
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-    return { contracts };
+    const view = await loadOrgView(auth.orgId);
+    const seen = new Set<string>();
+    const contracts: FactoryResourceSummary[] = [];
+    for (const row of servableRows(view)) {
+      if (row.kind !== "contract-schema") continue;
+      const name = contractName(row.path);
+      if (seen.has(name)) continue;
+      seen.add(name);
+      contracts.push({
+        name,
+        version: row.upstreamSha.slice(0, 12),
+        sourceSha: row.upstreamSha,
+        syncedAt: view.syncedAt,
+      });
+    }
+    contracts.sort((a, b) => a.name.localeCompare(b.name));
+    return { contracts, admission: admissionWire(view) };
   },
 );
 
@@ -163,39 +244,74 @@ export const getContract = api(
   },
   async (req: { name: string }): Promise<FactoryContractDetail> => {
     const auth = getAuthData()!;
-    const { projection, syncedAt } = await projectForOrg(auth.orgId);
-    const found = projection.contracts.find((c) => c.name === req.name);
+    const view = await loadOrgView(auth.orgId);
+    const found = servableRows(view).find(
+      (r) => r.kind === "contract-schema" && contractName(r.path) === req.name,
+    );
     if (!found) {
       throw APIError.notFound(`contract "${req.name}" not found`);
     }
     return {
-      name: found.name,
-      version: found.version,
-      sourceSha: found.sourceSha,
-      syncedAt,
-      schema: found.schema,
+      name: req.name,
+      version: found.upstreamSha.slice(0, 12),
+      sourceSha: found.upstreamSha,
+      syncedAt: view.syncedAt,
+      schema: parsedSchemaBody(found),
     };
   },
 );
 
 // ---------------------------------------------------------------------------
-// Processes
+// Processes — opaque by kind (FR-004). One process per admitted factory
+// origin; its name is the envelope's declared process.id. "What is a
+// process" is answered by "whatever files a valid envelope" — never by a
+// stagecraft-assembled categorical object.
 // ---------------------------------------------------------------------------
+
+const PROCESS_KINDS = [
+  "governance-envelope",
+  "pipeline-orchestrator",
+  "process-stage",
+  "agent",
+  "skill",
+] as const;
+
+function processName(view: OrgView): string | null {
+  const envelopeRow = view.substrate.rows.find(
+    (r) =>
+      r.origin === view.substrate.factoryOriginId &&
+      r.kind === "governance-envelope",
+  );
+  if (!envelopeRow) return null;
+  try {
+    const parsed = parseYaml(envelopeRow.upstreamBody) as {
+      process?: { id?: string };
+    };
+    return parsed?.process?.id ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export const listProcesses = api(
   { expose: true, auth: true, method: "GET", path: "/api/factory/processes" },
-  async (): Promise<{ processes: FactoryResourceSummary[] }> => {
+  async (): Promise<{
+    processes: FactoryResourceSummary[];
+    admission: FactoryAdmissionWire;
+  }> => {
     const auth = getAuthData()!;
-    const { projection, syncedAt } = await projectForOrg(auth.orgId);
-    const processes = projection.processes
-      .map<FactoryResourceSummary>((p) => ({
-        name: p.name,
-        version: p.version,
-        sourceSha: p.sourceSha,
-        syncedAt,
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-    return { processes };
+    const view = await loadOrgView(auth.orgId);
+    const processes: FactoryResourceSummary[] = [];
+    const name = processName(view);
+    if (view.admission.admitted && name) {
+      processes.push({
+        name,
+        version: view.substrate.factorySourceSha.slice(0, 12),
+        sourceSha: view.substrate.factorySourceSha,
+        syncedAt: view.syncedAt,
+      });
+    }
+    return { processes, admission: admissionWire(view) };
   },
 );
 
@@ -208,17 +324,28 @@ export const getProcess = api(
   },
   async (req: { name: string }): Promise<FactoryProcessDetail> => {
     const auth = getAuthData()!;
-    const { projection, syncedAt } = await projectForOrg(auth.orgId);
-    const found = projection.processes.find((p) => p.name === req.name);
-    if (!found) {
+    const view = await loadOrgView(auth.orgId);
+    requireFactoryAdmitted(view, `process "${req.name}"`);
+    const name = processName(view);
+    if (!name || name !== req.name) {
       throw APIError.notFound(`process "${req.name}" not found`);
     }
+    const byKind: Record<string, Array<{ path: string; contentHash: string }>> =
+      {};
+    for (const row of view.substrate.rows) {
+      if (row.origin !== view.substrate.factoryOriginId) continue;
+      if (!(PROCESS_KINDS as readonly string[]).includes(row.kind)) continue;
+      (byKind[row.kind] ??= []).push({
+        path: row.path,
+        contentHash: row.contentHash,
+      });
+    }
     return {
-      name: found.name,
-      version: found.version,
-      sourceSha: found.sourceSha,
-      syncedAt,
-      definition: found.definition,
+      name,
+      version: view.substrate.factorySourceSha.slice(0, 12),
+      sourceSha: view.substrate.factorySourceSha,
+      syncedAt: view.syncedAt,
+      definition: { byKind },
     };
   },
 );
@@ -227,33 +354,32 @@ export const getProcess = api(
 // Helpers
 // ---------------------------------------------------------------------------
 
+function admissionWire(view: OrgView): FactoryAdmissionWire {
+  return {
+    status: view.admission.admitted ? "admitted" : "not-admitted",
+    reason: view.admission.reason,
+  };
+}
+
+function requireFactoryAdmitted(view: OrgView, what: string): void {
+  if (!view.admission.admitted) {
+    throw APIError.failedPrecondition(
+      `${what} is not served: ${view.admission.reason ?? "factory not admitted (spec 198 FR-001)"}`,
+    );
+  }
+}
+
 /**
- * Spec 139 Phase 4 — the legacy `factory_adapters.id` UUID column is
- * dropped in migration 34. Adapters are now identified by `(orgId,
- * name)`. To preserve the API surface that includes `id` (spec 112
- * uses it to bind projects), synthesise a deterministic id from the
- * pair. Any consumer that relied on the prior random UUID needs to
- * re-bind by name; spec 112's binding logic already keys on the
- * (orgId, name) tuple anyway.
+ * Spec 139 Phase 4 — adapters are identified by `(orgId, name)`; the
+ * deterministic synthetic id preserves the spec 112 binding surface.
  */
-function synthesiseId(orgId: string, kind: string, name: string): string {
+export function synthesiseId(orgId: string, kind: string, name: string): string {
   return `synthetic-${kind}-${orgId.slice(0, 8)}-${name}`;
 }
 
-// ---------------------------------------------------------------------------
-// Read-shadow logger (T090)
-// ---------------------------------------------------------------------------
-
 /**
- * Spec 139 Phase 4 (T090) — defensive WARN on any read against a legacy
- * table after the T091 cutover. Call this from any code path that
- * touches `factory_adapters`, `factory_contracts`, `factory_processes`,
- * `agent_catalog`, `agent_catalog_audit`, or `project_agent_bindings`.
- *
- * Zero WARN lines during the verification run is the gate before
- * migration 34 drops the tables (T093). This module's handlers do NOT
- * read those tables; the logger sits as a tripwire on the import path
- * for code that might add a regression.
+ * Spec 139 Phase 4 (T090) tripwire — WARN on any read against a legacy
+ * table. Kept post-cutover as a regression alarm.
  */
 export function warnLegacyTableRead(table: string, callsite: string): void {
   log.warn(
