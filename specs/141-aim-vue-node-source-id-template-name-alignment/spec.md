@@ -7,6 +7,8 @@ implementation: complete  # Single-commit amendment landed (0494c36b feat(spec-1
 owner: bart
 created: "2026-05-06"
 approved: "2026-05-06"
+amended: "2026-06-09"
+amendment_record: "199"
 kind: amendment
 domain: platform
 risk: low
@@ -18,10 +20,16 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.up.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.down.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.test.ts }
-extends:
-  - spec: "140-aim-vue-node-scaffold-source-id-cutover"
-    nature: additive
+references:
+  # Spec 199 amendment (2026-06-09): the thin-consumer cutover deleted the
+  # adapter-config constants and the projection round-trip test; §2.1's
+  # templateName alignment doctrine is partially superseded by 199 FR-009.
+  # Historical pointers, non-owning.
+  - role: historical
     unit: { kind: file, path: platform/services/stagecraft/api/factory/oapNativeAdapters.ts }
+  - role: historical
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/projection.test.ts }
+extends:
   - spec: "140-aim-vue-node-scaffold-source-id-cutover"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }
@@ -31,9 +39,6 @@ extends:
   - spec: "140-aim-vue-node-scaffold-source-id-cutover"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.test.ts }
-  - spec: "140-aim-vue-node-scaffold-source-id-cutover"
-    nature: additive
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/projection.test.ts }
   - spec: "140-aim-vue-node-scaffold-source-id-cutover"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/factory/artifacts.test.ts }
@@ -58,6 +63,15 @@ summary: >
 ---
 
 # 141 — aim-vue-node source-id alignment with `template.json::templateName`
+
+> **Amended 2026-06-09 by spec [199](../199-factory-thin-consumer-sync/spec.md)**
+> (which also partially supersedes §2.1): the `scaffold_source_id ↔
+> template.json::templateName` alignment doctrine is retired —
+> the scaffold source resolves at admission from the manifest's
+> org-agnostic `scaffold.source.remote`, and `templateName` reverts to
+> the template's own name. The cutover deleted `oapNativeAdapters.ts`
+> and `projection.test.ts`; their claims here move to non-owning
+> `references: role: historical`.
 
 > **Amendment** of [`140-aim-vue-node-scaffold-source-id-cutover`](../140-aim-vue-node-scaffold-source-id-cutover/spec.md).
 > Spec 140's design (one canonical scaffold_source_id; source-id-keyed

@@ -23,10 +23,13 @@ summary: >
   (spec 198), which this spec consumes. No backward compatibility is preserved;
   factory-encore/template-encore are the baseline.
 code_aliases: ["FACTORY_THIN_CONSUMER_SYNC"]
+amends: ["139", "140", "141"]
 depends_on:
   - "198-factory-governance-envelope"
   - "139-factory-artifact-substrate"
   - "197-factory-contract-open-standard-extensions"
+establishes:
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/adapterView.ts }
 extends:
   - spec: "074-factory-ingestion"
     nature: additive
@@ -38,8 +41,6 @@ refines:
     unit: { kind: file, path: platform/services/stagecraft/api/factory/substrateBrowser.ts }
   - aspect: "owned-source-classification"
     unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }
-  - aspect: "manifest-sourced-adapter-identity"
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/oapNativeAdapters.ts }
 supersedes:
   - spec: "108-factory-as-platform-feature"
     scope: partial

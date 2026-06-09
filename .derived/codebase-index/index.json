@@ -1,79 +1,13 @@
 {
   "build": {
-    "contentHash": "1dbf264d2853dc30233f1b3fbd6930730f866451ad8bd041001f08f1303cbb61",
+    "contentHash": "918b8301c6d052db61637bb22aa68bf8c90950eb4032bc88448983165fa53c80",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
   },
   "diagnostics": {
-    "errors": [
-      {
-        "code": "I-008",
-        "message": "139-factory-artifact-substrate: file: path \"platform/services/stagecraft/api/factory/oapNativeIngest.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-008",
-        "message": "139-factory-artifact-substrate: file: path \"platform/services/stagecraft/api/factory/oapNativeSanitise.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-008",
-        "message": "139-factory-artifact-substrate: file: path \"platform/services/stagecraft/api/factory/projection.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-008",
-        "message": "140-aim-vue-node-scaffold-source-id-cutover: file: path \"platform/services/stagecraft/api/factory/oapNativeAdapters.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-008",
-        "message": "140-aim-vue-node-scaffold-source-id-cutover: file: path \"platform/services/stagecraft/api/factory/projection.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-008",
-        "message": "141-aim-vue-node-source-id-template-name-alignment: file: path \"platform/services/stagecraft/api/factory/oapNativeAdapters.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-008",
-        "message": "141-aim-vue-node-source-id-template-name-alignment: file: path \"platform/services/stagecraft/api/factory/projection.test.ts\" does not exist on disk"
-      },
-      {
-        "code": "I-008",
-        "message": "199-factory-thin-consumer-sync: file: path \"platform/services/stagecraft/api/factory/oapNativeAdapters.ts\" does not exist on disk"
-      }
-    ],
-    "warnings": [
-      {
-        "code": "I-101",
-        "message": "spec \"139-factory-artifact-substrate\" declares implements path \"platform/services/stagecraft/api/factory/oapNativeIngest.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"139-factory-artifact-substrate\" declares implements path \"platform/services/stagecraft/api/factory/oapNativeSanitise.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"139-factory-artifact-substrate\" declares implements path \"platform/services/stagecraft/api/factory/projection.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"140-aim-vue-node-scaffold-source-id-cutover\" declares implements path \"platform/services/stagecraft/api/factory/oapNativeAdapters.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"140-aim-vue-node-scaffold-source-id-cutover\" declares implements path \"platform/services/stagecraft/api/factory/projection.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"141-aim-vue-node-source-id-template-name-alignment\" declares implements path \"platform/services/stagecraft/api/factory/oapNativeAdapters.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"141-aim-vue-node-source-id-template-name-alignment\" declares implements path \"platform/services/stagecraft/api/factory/projection.test.ts\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"199-factory-thin-consumer-sync\" declares implements path \"platform/services/stagecraft/api/factory/oapNativeAdapters.ts\" which is not a known package, adapter, or existing file/directory"
-      }
-    ]
+    "errors": [],
+    "warnings": []
   },
   "inventory": [
     {
@@ -27029,7 +26963,7 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "140-aim-vue-node-scaffold-source-id-cutover",
+        "amendmentRecord": "199-factory-thin-consumer-sync",
         "amends": [
           "108-factory-as-platform-feature",
           "111-org-agent-catalog-sync",
@@ -27115,18 +27049,6 @@
           },
           {
             "path": "platform/services/stagecraft/api/factory/oapContracts.ts",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/api/factory/oapNativeIngest.ts",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/api/factory/oapNativeSanitise.ts",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/api/factory/projection.ts",
             "source": "spec-implements"
           },
           {
@@ -27319,24 +27241,6 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/factory/oapNativeIngest.ts"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/factory/oapNativeSanitise.ts"
-            }
-          },
-          {
-            "kind": "file",
             "locations": [
               {
                 "file": "platform/services/stagecraft/api/factory/runAgentRefs.ts"
@@ -27477,15 +27381,6 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/factory/projection.ts"
-            }
-          },
-          {
-            "kind": "file",
             "locations": [
               {
                 "file": "platform/services/stagecraft/api/factory/syncPipeline.ts"
@@ -27580,6 +27475,33 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/oapNativeIngest.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/oapNativeSanitise.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/projection.ts"
             }
           },
           {
@@ -27685,7 +27607,7 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "141-aim-vue-node-source-id-template-name-alignment",
+        "amendmentRecord": "199-factory-thin-consumer-sync",
         "amends": [
           "139-factory-artifact-substrate"
         ],
@@ -27701,14 +27623,6 @@
           },
           {
             "path": "platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/api/factory/projection.ts",
             "source": "spec-implements"
           },
           {
@@ -27773,15 +27687,6 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
-            }
-          },
-          {
-            "kind": "file",
             "locations": [
               {
                 "file": "platform/services/stagecraft/api/projects/scaffold/types.ts"
@@ -27820,15 +27725,6 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/CLAUDE.md"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/factory/projection.ts"
             }
           },
           {
@@ -27956,12 +27852,31 @@
               "kind": "file",
               "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
             }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/projection.ts"
+            }
           }
         ],
         "specId": "140-aim-vue-node-scaffold-source-id-cutover",
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "199-factory-thin-consumer-sync",
         "amends": [
           "140-aim-vue-node-scaffold-source-id-cutover"
         ],
@@ -27983,14 +27898,6 @@
           },
           {
             "path": "platform/services/stagecraft/api/factory/artifacts.test.ts",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts",
-            "source": "spec-implements"
-          },
-          {
-            "path": "platform/services/stagecraft/api/factory/projection.test.ts",
             "source": "spec-implements"
           },
           {
@@ -28077,24 +27984,6 @@
           },
           {
             "kind": "file",
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/factory/projection.test.ts"
-            }
-          },
-          {
-            "kind": "file",
             "locations": [
               {
                 "file": "platform/services/stagecraft/api/factory/substrateBrowser.ts"
@@ -28175,6 +28064,24 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/vite.config.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/projection.test.ts"
             }
           }
         ],
@@ -44049,6 +43956,22 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/admission.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/revocations.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/syncPipeline.ts",
             "source": "spec-implements"
           },
@@ -44074,6 +43997,62 @@
             "unit": {
               "kind": "file",
               "path": "crates/factory-contracts/src/governance_envelope.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.down.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.down.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.up.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.up.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/admission.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/admission.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/revocations.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/revocations.ts"
             }
           },
           {
@@ -44462,6 +44441,11 @@
         "specStatus": "draft"
       },
       {
+        "amends": [
+          "139-factory-artifact-substrate",
+          "140-aim-vue-node-scaffold-source-id-cutover",
+          "141-aim-vue-node-source-id-template-name-alignment"
+        ],
         "dependsOn": [
           "139-factory-artifact-substrate",
           "197-factory-contract-open-standard-extensions",
@@ -44473,11 +44457,11 @@
             "source": "spec-implements"
           },
           {
-            "path": "platform/services/stagecraft/api/factory/browse.ts",
+            "path": "platform/services/stagecraft/api/factory/adapterView.ts",
             "source": "spec-implements"
           },
           {
-            "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts",
+            "path": "platform/services/stagecraft/api/factory/browse.ts",
             "source": "spec-implements"
           },
           {
@@ -44490,6 +44474,20 @@
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/adapterView.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/adapterView.ts"
+            }
+          },
           {
             "kind": "crate",
             "locations": [
@@ -44807,15 +44805,6 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/factory/browse.ts"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "refines",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/factory/oapNativeAdapters.ts"
             }
           },
           {

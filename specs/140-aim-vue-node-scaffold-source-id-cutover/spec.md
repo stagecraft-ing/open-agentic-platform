@@ -8,8 +8,8 @@ owner: bart
 created: "2026-05-06"
 approved: "2026-05-06"
 closed: "2026-05-06"
-amended: "2026-05-06"
-amendment_record: "141"
+amended: "2026-06-09"
+amendment_record: "199"
 kind: amendment
 domain: platform
 risk: low
@@ -20,14 +20,19 @@ depends_on:
   - "139"  # factory-artifact-substrate (§7.2 declared scaffold_source_id replaces template_remote)
 code_aliases: ["AIM_VUE_NODE_SCAFFOLD_SOURCE_ID_CUTOVER"]
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/oapNativeAdapters.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/types.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts }
-extends:
-  - spec: "139-factory-artifact-substrate"
-    nature: additive
+references:
+  # Spec 199 amendment (2026-06-09): the thin-consumer cutover deleted the
+  # adapter-config constants and the categorical projection; §2.2's
+  # manifest-carried scaffold_source_id is partially superseded by 199
+  # FR-009 (resolution-at-admission). Historical pointers, non-owning.
+  - role: historical
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/oapNativeAdapters.ts }
+  - role: historical
     unit: { kind: file, path: platform/services/stagecraft/api/factory/projection.ts }
+extends:
   - spec: "139-factory-artifact-substrate"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }
@@ -73,6 +78,14 @@ summary: >
 ---
 
 # 140 — aim-vue-node Manifest Cutover to `scaffold_source_id`
+
+> **Amended 2026-06-09 by spec [199](../199-factory-thin-consumer-sync/spec.md)**
+> (which also partially supersedes §2.2): the thin-consumer cutover
+> deleted `oapNativeAdapters.ts` and `projection.ts`, and the
+> manifest-carried flat `scaffold_source_id` is replaced by
+> resolution-at-admission from the manifest's org-agnostic
+> `scaffold.source.remote` (199 FR-009). The dead-path claims here move
+> to non-owning `references: role: historical`.
 
 > **Amendment** of [`139-factory-artifact-substrate`](../139-factory-artifact-substrate/spec.md).
 > Spec 139 remains the authoritative substrate design. This spec

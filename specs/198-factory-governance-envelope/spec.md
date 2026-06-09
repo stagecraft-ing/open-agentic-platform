@@ -34,6 +34,10 @@ depends_on:
 establishes:
   - unit: { kind: file, path: standards/schemas/factory/governance-envelope.schema.yaml }
   - unit: { kind: file, path: crates/factory-contracts/src/governance_envelope.rs }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/admission.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/revocations.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.down.sql }
 extends:
   - spec: "074-factory-ingestion"
     nature: additive

@@ -7,8 +7,8 @@ implementation: complete
 owner: bart
 created: "2026-05-05"
 closed: "2026-05-05"
-amended: "2026-05-06"
-amendment_record: "140"
+amended: "2026-06-09"
+amendment_record: "199"
 kind: architecture
 domain: platform
 risk: high
@@ -30,8 +30,6 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/substrate.ts }
   - unit: { kind: file, path: crates/factory-engine/src/substrate_version.rs }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/agentCatalogMigration.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/oapNativeIngest.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/factory/oapNativeSanitise.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/oapContracts.ts }
   - unit: { kind: file, path: crates/factory-engine/src/factory_root.rs }
   - unit: { kind: file, path: crates/factory-engine/src/virtual_root.rs }
@@ -47,9 +45,6 @@ extends:
   - spec: "108-factory-as-platform-feature"
     nature: wrapping
     unit: { kind: file, path: platform/services/stagecraft/api/factory/syncWorker.ts }
-  - spec: "108-factory-as-platform-feature"
-    nature: wrapping
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/projection.ts }
   - spec: "108-factory-as-platform-feature"
     nature: wrapping
     unit: { kind: file, path: platform/services/stagecraft/api/factory/artifacts.ts }
@@ -98,6 +93,16 @@ refines:
     unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffoldReadiness.ts }
   - aspect: "factory-engine-substrate"
     unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+references:
+  # Spec 199 amendment (2026-06-09): the thin-consumer cutover deleted the
+  # ingest sanitiser and the categorical projection these claims owned.
+  # Historical pointers retained, non-owning.
+  - role: historical
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/oapNativeIngest.ts }
+  - role: historical
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/oapNativeSanitise.ts }
+  - role: historical
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/projection.ts }
 summary: >
   Replace the spec 108 bucket-blob translator with a content-addressed
   substrate (`factory_artifact_substrate`) that mirrors upstream Factory and
@@ -112,6 +117,13 @@ summary: >
 ---
 
 # 139 — Factory Artifact Substrate
+
+> **Amended 2026-06-09 by spec [199](../199-factory-thin-consumer-sync/spec.md).**
+> The thin-consumer cutover deleted `oapNativeIngest.ts`,
+> `oapNativeSanitise.ts`, and `projection.ts` (the read-time categorical
+> translation this spec kept for compat after Phase 4). Their owning
+> claims here move to non-owning `references: role: historical`; the
+> substrate mirror itself — this spec's core — is unchanged.
 
 > **Amended 2026-05-06 by spec [140](../140-aim-vue-node-scaffold-source-id-cutover/spec.md).**
 > §7.2's `template_remote` → `scaffold_source_id` rename landed for the
