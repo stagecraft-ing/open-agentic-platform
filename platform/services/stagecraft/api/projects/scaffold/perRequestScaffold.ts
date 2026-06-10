@@ -16,7 +16,7 @@
 
 import { spawn } from "node:child_process";
 import { cp as cpAsync, mkdir, writeFile } from "node:fs/promises";
-import { join, sep } from "node:path";
+import { basename, join, sep } from "node:path";
 import log from "encore.dev/log";
 import { extrasFor, type Profile } from "./moduleCatalog";
 import { prebuiltDir } from "./templateCache";
@@ -67,11 +67,20 @@ export async function scaffoldFromPrebuilt(
 
   await mkdir(dest, { recursive: true });
 
-  // ── 1. Copy prebuilt tree, excluding node_modules ────────────────────
+  // ── 1. Copy prebuilt tree, excluding node_modules and VCS state ──────
+  // Scaffold-output invariant (spec 112 §5.3): the tree handed to
+  // gitInitAndPush is VCS-free — repo initialization belongs to commit #1.
+  // Template generators run `git init` in their output for developer use
+  // (template-encore's dual profile does so PER VARIANT), and an embedded
+  // commit-less repo makes `git add -A` fail with "does not have a commit
+  // checked out". Strip `.git` at any depth, regardless of generator.
   sink(`copy: ${sourceDir} → ${dest}`);
   await cpAsync(sourceDir, dest, {
     recursive: true,
-    filter: (src: string) => !src.includes(`${sep}node_modules${sep}`),
+    filter: (src: string) =>
+      !src.includes(`${sep}node_modules${sep}`) &&
+      basename(src) !== ".git" &&
+      !src.includes(`${sep}.git${sep}`),
   });
 
   // ── 2. Run add-module.ts for each user-selected extra ────────────────

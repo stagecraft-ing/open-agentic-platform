@@ -521,6 +521,21 @@ the code.
   `.artifacts/extracted/` (§5.2 step 5).
 - `scaffold_jobs` table replacing the Express app's in-memory map
   (concurrency-safe, multi-tenant, audit-traceable).
+
+**Scaffold-output invariant (amended 2026-06-09, template-encore
+cutover):** the tree operation 3 hands to operation 5 is **VCS-free** —
+repository initialization belongs exclusively to operation 5
+(`gitInitAndPush` owns commit #1 on a tree with no prior git state).
+Template generators MAY run `git init` in their own output for
+manual/developer use (the legacy template did so at the destination root;
+template-encore's `setup-dual-app.ts` does so per variant directory), so
+the per-request copy strips `.git` entries at **any depth**, alongside
+`node_modules`. Failure mode this guards: a per-variant `git init` plants
+an embedded commit-less repository inside the project tree, and operation
+5's `git add -A` hard-fails with `'<dir>/' does not have a commit checked
+out` — the 2026-06-09 production create failure under the dual profile.
+The legacy single-profile case only worked by coincidence (the carried
+`.git` sat at the root, where operation 5's own `git init` reused it).
 - `opc://` deep-link on the success response (§5.4).
 
 **Net drops:**
