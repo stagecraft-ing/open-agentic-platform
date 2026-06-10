@@ -5,31 +5,59 @@
 no dependency). Phases A–C = PR-A (`feat/198-seal-grants`); D–F = PR-B
 (`feat/198-override-gate`).
 
+> **PR-A status (2026-06-09): phases A–C COMPLETE** (T001–T016). Recorded
+> deviations from the original task sketches:
+> - **T006**: one `factory.run.grant` server variant with `granted: bool` +
+>   `refusedReason`, instead of a separate `grant_refused` kind (smaller
+>   wire union, same attributability).
+> - **T010 (PD-8 verification outcome)**: a separate engine-side
+>   per-invocation agent-allowlist check was NOT added. Verified posture:
+>   factory content reaches the engine only through the admission-gated
+>   bundle (non-admitted content never ships), agent-key revocations
+>   propagate at every grant renewal (FR-010 sweep), and the runtime PEP
+>   remains specs 067/068/036 per FR-007's declared posture. OPC is keyless
+>   (AC-5's custody leg holds mechanically).
+> - **T013/T014**: the countersign's `run_id` claim is the PLATFORM run
+>   identity (factory_runs.id), distinct from the engine-minted
+>   `pipeline_run_id`. The certificate hash is the authoritative binding;
+>   the engine enforces run-id equality when patching (it knows both), the
+>   offline verifier surfaces it informationally.
+> - **Scope addition**: the desktop run path previously emitted NO
+>   governance certificate (only the headless `factory-run` binary did);
+>   it now emits + seals one per run (`generate_certificate_bound`).
+> - **Tooling fix**: stagecraft `vite.config.ts` DB-bound test exclusions
+>   were unconditional, making those suites unrunnable even under
+>   `encore test`; now conditional on `ENCORE_RUNTIME_LIB` (CI unchanged).
+> - **Renewal Build-Spec presentation**: the gate reads the live
+>   `pipeline_state.build_spec_hash` (primary path); resume seeds from the
+>   fresh engine state — the platform chain holds any earlier one-way
+>   binding regardless.
+
 ## Phase A — Signing authority (FR-014, platform side)
 
-- [ ] T001 `signing.ts`: load Ed25519 key from Encore secrets
+- [x] T001 `signing.ts`: load Ed25519 key from Encore secrets
       (`FACTORY_SIGNING_PRIVATE_KEY` PKCS#8 PEM, `FACTORY_SIGNING_KID`);
       `signCompactJws()`, `verifyCompactJws()`, `exportPublicJwk()`; unit
       tests with throwaway keypairs (never fixture-committed private keys).
-- [ ] T002 [P] `jwks.ts`: `GET /api/factory/.well-known/jwks.json` — public,
+- [x] T002 [P] `jwks.ts`: `GET /api/factory/.well-known/jwks.json` — public,
       unauthenticated, current (+ optional previous) key, cache headers; test.
-- [ ] T003 Admission seal: in `admission.ts`, sign the canonical composed
+- [x] T003 Admission seal: in `admission.ts`, sign the canonical composed
       record at admission write; persist `{kid, signature, sealed_at}` on
       `factory_admissions` (extend migration 44); serve the seal in the
       admission block of `opcBundle.ts`; tests (sealed row round-trips,
       tampered record fails verify).
-- [ ] T004 [P] Secret provisioning: generation command documented
+- [x] T004 [P] Secret provisioning: generation command documented
       (`openssl genpkey -algorithm ed25519`), local-dev secret wiring per
       `.claude/rules/platform-services.md` conventions; surface setup.sh
       canonical path + side effects if touched.
 
 ## Phase B — Run-grants over duplex (FR-005)
 
-- [ ] T005 Migration 44 `factory_run_grants` (`id, org_id, project_id,
+- [x] T005 Migration 44 `factory_run_grants` (`id, org_id, project_id,
       run_id, goal_id, capsule_hash, envelope_hash, build_spec_hash, seq,
       kid, issued_at, expires_at, refused_reason NULL`) + drizzle table +
       admission-seal columns from T003.
-- [ ] T006 Wire types: `ClientEnvelope` += `factory.run.grant_request` /
+- [x] T006 Wire types: `ClientEnvelope` += `factory.run.grant_request` /
       `factory.run.grant_renew`; `ServerEnvelope` +=
       `factory.run.grant` (grant JWT, exp, kid, seq) /
       `factory.run.grant_refused` (reason: goal-shift | revoked |
@@ -37,52 +65,52 @@ no dependency). Phases A–C = PR-A (`feat/198-seal-grants`); D–F = PR-B
       `ClientEnvelopeWire`/`ServerEnvelopeWire`; honour spec 189 envelope
       version parity (bump/extend the constant + parity fixtures); schema-
       parity walker (125/191) green.
-- [ ] T007 `grantDuplexHandlers.ts` — issuance: resolve latest admission for
+- [x] T007 `grantDuplexHandlers.ts` — issuance: resolve latest admission for
       (org, origin), require status=admitted + envelope_hash match; check
       `hasActiveRevocation` across all four keys (factory, adapter, agent,
       content-hash) fail-closed; validate capsule against the admitted
       envelope (the PDP decision); sign grant (PD-3), persist row, reply
       targeted via `sendTargetedServerEvent`.
-- [ ] T008 Renewal: re-present `goal_id` + `capsule_hash`; goal shift ⇒
+- [x] T008 Renewal: re-present `goal_id` + `capsule_hash`; goal shift ⇒
       refuse `goal-shift` + record (ASI01 m4/m7); revocation since issuance
       ⇒ refuse `revoked` (AC-8 final leg); `seq` must increment
       monotonically; refusals persisted with `refused_reason`; handler tests
       (`runDuplexHandlers.test.ts` pattern) covering all refusal reasons.
-- [ ] T009 OPC/engine side: `sync_client.rs` outbound frames + `SERVER_KINDS`
+- [x] T009 OPC/engine side: `sync_client.rs` outbound frames + `SERVER_KINDS`
       + send helpers; `stagecraft_client.rs` grant request/renew methods;
       engine run loop acquires a grant before s0 and renews at every stage
       boundary; refusal or unrenewable grant ⇒ pause run + surface reason
       (fail-closed, never proceed unsigned).
-- [ ] T010 PD-8 verification: confirm whether engine-side off-list-agent
+- [x] T010 PD-8 verification: confirm whether engine-side off-list-agent
       refusal (AC-5) exists post-#313; if not, enforce during grant-gated
       stage entry (stage agents ⊆ admitted constituent set); engine tests.
 
 ## Phase C — Emission countersign (FR-014) + verify-certificate (AC-4)
 
-- [ ] T011 Rust certificate types: `platform_countersign: Option<…>` +
+- [x] T011 Rust certificate types: `platform_countersign: Option<…>` +
       `admitted_envelope_hash: Option<String>`, excluded from self-hash;
       `CERTIFICATE_VERSION` 1.3.0 → 1.4.0; regenerate any ts-rs bindings
       (regen after doc-comment edits too — known trap).
-- [ ] T012 Sync-back: `factory.run.completed` wire gains
+- [x] T012 Sync-back: `factory.run.completed` wire gains
       `certificate_sha256` + final `seq`; `handleRunCompleted` verifies the
       issued grant chain (rows match count + hashes), countersigns, persists
       `{certificate_hash, countersigned_at}` on `factory_runs`, sends
       `factory.run.certificate_countersign`; tests incl. chain-mismatch
       refusal (no countersign on a chain stagecraft didn't issue).
-- [ ] T013 OPC receipt: dispatch countersign to the engine; patch the
+- [x] T013 OPC receipt: dispatch countersign to the engine; patch the
       persisted `governance-certificate.json` in place (seal write must not
       alter the self-hash inputs); Rust test: emit → seal → verify.
-- [ ] T014 `verify_certificate`: new verification step for the countersign;
+- [x] T014 `verify_certificate`: new verification step for the countersign;
       `--platform-jwks <file>` (offline) / `--jwks-url` (online) /
       `--require-sealed`; unsealed cert ⇒ "verifiable-but-unsealed", exit 0
       unless `--require-sealed`; Makefile target passthrough; tests for
       sealed-valid, sealed-tampered, unsealed, require-sealed.
-- [ ] T015 [P] Add `ed25519-dalek` to factory-engine; `cargo deny check`
+- [x] T015 [P] Add `ed25519-dalek` to factory-engine; `cargo deny check`
       green (spec 116).
 
 ### PR-A gate tasks
 
-- [ ] T016 `npm run gen` (client regen for JWKS endpoint), codebase index
+- [x] T016 `npm run gen` (client regen for JWKS endpoint), codebase index
       regen, featuregraph golden if needed, spec 198 `establishes:` gains
       the new files (signing.ts, jwks.ts, grantDuplexHandlers.ts, migration
       44) in the same PR; `make ci` (Rust legs need clippy); `make pr-prep`

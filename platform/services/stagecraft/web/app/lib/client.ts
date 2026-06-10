@@ -1790,6 +1790,15 @@ export namespace factory {
         missingRecords: string[]
     }
 
+    export interface PublicJwk {
+        kty: "OKP"
+        crv: "Ed25519"
+        x: string
+        kid: string
+        alg: "EdDSA"
+        use: "sig"
+    }
+
     export interface RecordArtifactsRequest {
         "pipeline_id": string
         "stage_id": string
@@ -2007,6 +2016,7 @@ export namespace factory {
             this.getArtifactByPath = this.getArtifactByPath.bind(this)
             this.getAudit = this.getAudit.bind(this)
             this.getContract = this.getContract.bind(this)
+            this.getFactoryJwks = this.getFactoryJwks.bind(this)
             this.getFactorySyncRun = this.getFactorySyncRun.bind(this)
             this.getFactoryUpstreamPat = this.getFactoryUpstreamPat.bind(this)
             this.getProcess = this.getProcess.bind(this)
@@ -2165,6 +2175,16 @@ export namespace factory {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/contracts/${encodeURIComponent(name)}`)
             return await resp.json() as FactoryContractDetail
+        }
+
+        public async getFactoryJwks(): Promise<{
+    keys: PublicJwk[]
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/.well-known/jwks.json`)
+            return await resp.json() as {
+    keys: PublicJwk[]
+}
         }
 
         public async getFactorySyncRun(id: string): Promise<FactorySyncRunView> {
@@ -3620,6 +3640,20 @@ export namespace projects {
         manifest: any
     }
 
+    /**
+     * Spec 198 FR-014 — the standing admission for the org's factory origin,
+     * with the platform's admission seal (compact JWS, Ed25519, kid resolved
+     * against `/api/factory/.well-known/jwks.json`). The OPC engine verifies
+     * the seal before trusting any factory content in this bundle (ASI04 m1);
+     * a null `sealJws` is an unsealed admission and is refused fail-closed.
+     * Null `admission` means the bundle carries no admitted factory content.
+     */
+    export interface OpcBundleAdmission {
+        origin: string
+        envelopeHash: string | null
+        sealJws: string | null
+    }
+
     export interface OpcBundleAgent {
         id: string
         name: string
@@ -3689,6 +3723,7 @@ export namespace projects {
         processes: OpcBundleProcess[]
         agents: OpcBundleAgent[]
         cloneToken: OpcBundleCloneToken | null
+        admission: OpcBundleAdmission | null
     }
 
     /**
@@ -4531,7 +4566,7 @@ export namespace sync {
          * Kinds are inlined rather than referencing `ClientEnvelopeKind`; Encore's
          * schema parser cannot evaluate indexed-access types over a union alias.
          */
-        kind: "execution.status" | "checkpoint.created" | "artifact.emitted" | "runtime.observed" | "agent.invocation" | "audit.candidate" | "factory.run.ack" | "factory.run.stage_started" | "factory.run.stage_completed" | "factory.run.completed" | "factory.run.failed" | "factory.run.cancelled" | "agent.catalog.fetch_request" | "sync.ack" | "sync.resync_request" | "sync.heartbeat"
+        kind: "execution.status" | "checkpoint.created" | "artifact.emitted" | "runtime.observed" | "agent.invocation" | "audit.candidate" | "factory.run.ack" | "factory.run.stage_started" | "factory.run.stage_completed" | "factory.run.completed" | "factory.run.failed" | "factory.run.cancelled" | "factory.run.grant_request" | "factory.run.grant_renew" | "agent.catalog.fetch_request" | "sync.ack" | "sync.resync_request" | "sync.heartbeat"
 
         meta: EnvelopeMeta
         projectId?: string
@@ -4591,6 +4626,20 @@ export namespace sync {
             output: number
             total: number
         }
+        /**
+         * spec 198 FR-005/FR-014 — factory.run.grant_request / .grant_renew /
+         * .completed countersign fields. `seq` is shared by renew (next sequence)
+         * and completed (final sequence held).
+         */
+        goalId?: string
+
+        goal?: string
+        constraints?: string[]
+        capsuleHash?: string
+        envelopeHash?: string
+        buildSpecHash?: string
+        seq?: number
+        certificateSha256?: string
     }
 
     /**
@@ -4727,10 +4776,18 @@ export namespace sync {
     }
 
     /**
+     * Spec 198 FR-005 — attributable refusal reasons for run-grant issuance and
+     * renewal. Every refusal is persisted (`factory_run_grants.status='refused'`)
+     * — goal-shift and revocation refusals are governance evidence (ASI01 m4/m7),
+     * not transient errors.
+     */
+    export type RunGrantRefusalReason = "unknown-run" | "not-admitted" | "envelope-mismatch" | "revoked" | "goal-shift" | "capsule-mismatch" | "seq-conflict" | "signing-unconfigured" | "malformed"
+
+    /**
      * Flat counterpart of {@link ServerEnvelope} for the Encore stream boundary.
      */
     export interface ServerEnvelopeWire {
-        kind: "policy.updated" | "grant.updated" | "deploy.status" | "project.updated" | "factory.event" | "factory.run.request" | "agent.catalog.updated" | "agent.catalog.snapshot" | "project.agent_binding.updated" | "project.agent_binding.snapshot" | "project.catalog.upsert" | "project.catalog.snapshot.complete" | "sync.ack" | "sync.nack" | "sync.resync_required" | "sync.heartbeat" | "sync.hello"
+        kind: "policy.updated" | "grant.updated" | "deploy.status" | "project.updated" | "factory.event" | "factory.run.request" | "factory.run.grant" | "factory.run.certificate_countersign" | "agent.catalog.updated" | "agent.catalog.snapshot" | "project.agent_binding.updated" | "project.agent_binding.snapshot" | "project.catalog.upsert" | "project.catalog.snapshot.complete" | "sync.ack" | "sync.nack" | "sync.resync_required" | "sync.heartbeat" | "sync.hello"
         meta: ServerMeta
         policyBundleId?: string
         summary?: string
@@ -4814,6 +4871,21 @@ export namespace sync {
          * `generatedAt` above is the timestamp.
          */
         entryCount?: number
+
+        /**
+         * spec 198 FR-005/FR-014 — factory.run.grant / .certificate_countersign
+         * fields (targeted replies to the grant family).
+         */
+        runId?: string
+
+        granted?: boolean
+        seq?: number
+        grantJws?: string
+        kid?: string
+        expiresAt?: string
+        refusedReason?: RunGrantRefusalReason | string
+        countersigned?: boolean
+        countersignJws?: string
     }
 
     export interface ServerMeta {

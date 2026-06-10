@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "918b8301c6d052db61637bb22aa68bf8c90950eb4032bc88448983165fa53c80",
+    "contentHash": "c931d62c6515c0babf4c35f4082d9cfec1aa5f8ffedf1f6a5a1827a47b44f33b",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -11305,6 +11305,9 @@
                 "file": "product/apps/opc/src-tauri/src/commands/result.rs"
               },
               {
+                "file": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
+              },
+              {
                 "file": "product/apps/opc/src-tauri/src/commands/sandbox.rs"
               },
               {
@@ -12496,6 +12499,9 @@
               },
               {
                 "file": "product/apps/opc/src-tauri/src/commands/result.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
               },
               {
                 "file": "product/apps/opc/src-tauri/src/commands/sandbox.rs"
@@ -14734,6 +14740,9 @@
                 "file": "product/apps/opc/src-tauri/src/commands/result.rs"
               },
               {
+                "file": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
+              },
+              {
                 "file": "product/apps/opc/src-tauri/src/commands/sandbox.rs"
               },
               {
@@ -15657,6 +15666,15 @@
                 "file": "platform/services/stagecraft/api/factory/factory.ts"
               },
               {
+                "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/jwks.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/api/factory/oapContracts.ts"
               },
               {
@@ -15688,6 +15706,15 @@
               },
               {
                 "file": "platform/services/stagecraft/api/factory/runsScheduler.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/signing-pure.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/signing.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/signing.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/factory/stream.test.ts"
@@ -16534,6 +16561,9 @@
               },
               {
                 "file": "product/apps/opc/src-tauri/src/commands/result.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
               },
               {
                 "file": "product/apps/opc/src-tauri/src/commands/sandbox.rs"
@@ -18997,7 +19027,7 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 458,
+                  "endLine": 461,
                   "startLine": 183
                 }
               }
@@ -19246,8 +19276,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 694,
-                  "startLine": 690
+                  "endLine": 697,
+                  "startLine": 693
                 }
               }
             ],
@@ -21440,8 +21470,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 689,
-                  "startLine": 643
+                  "endLine": 692,
+                  "startLine": 646
                 }
               }
             ],
@@ -22032,6 +22062,12 @@
               },
               {
                 "file": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.up.sql"
               },
               {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
@@ -23013,6 +23049,9 @@
               },
               {
                 "file": "product/apps/opc/src-tauri/src/commands/result.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
               },
               {
                 "file": "product/apps/opc/src-tauri/src/commands/sandbox.rs"
@@ -25033,8 +25072,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 642,
-                  "startLine": 620
+                  "endLine": 645,
+                  "startLine": 623
                 }
               }
             ],
@@ -25127,8 +25166,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 619,
-                  "startLine": 520
+                  "endLine": 622,
+                  "startLine": 523
                 }
               }
             ],
@@ -25693,8 +25732,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 735,
-                  "startLine": 695
+                  "endLine": 738,
+                  "startLine": 698
                 }
               }
             ],
@@ -25776,8 +25815,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 964,
-                  "startLine": 736
+                  "endLine": 967,
+                  "startLine": 739
                 }
               }
             ],
@@ -31225,7 +31264,7 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 458,
+                  "endLine": 461,
                   "startLine": 183
                 }
               }
@@ -31596,6 +31635,12 @@
                 "file": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.up.sql"
               },
               {
+                "file": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.up.sql"
+              },
+              {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
               },
               {
@@ -31716,6 +31761,15 @@
                 "file": "platform/services/stagecraft/api/factory/factory.ts"
               },
               {
+                "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/jwks.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/api/factory/oapContracts.ts"
               },
               {
@@ -31747,6 +31801,15 @@
               },
               {
                 "file": "platform/services/stagecraft/api/factory/runsScheduler.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/signing-pure.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/signing.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/signing.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/factory/stream.test.ts"
@@ -32968,6 +33031,9 @@
                 "file": "crates/factory-engine/src/harness_state.rs"
               },
               {
+                "file": "crates/factory-engine/src/intent_capsule.rs"
+              },
+              {
                 "file": "crates/factory-engine/src/inter_stage_manifest.rs"
               },
               {
@@ -33002,6 +33068,9 @@
               },
               {
                 "file": "crates/factory-engine/src/pipeline_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/platform_jws.rs"
               },
               {
                 "file": "crates/factory-engine/src/policy_shard.rs"
@@ -35051,6 +35120,9 @@
                 "file": "crates/factory-engine/src/harness_state.rs"
               },
               {
+                "file": "crates/factory-engine/src/intent_capsule.rs"
+              },
+              {
                 "file": "crates/factory-engine/src/inter_stage_manifest.rs"
               },
               {
@@ -35085,6 +35157,9 @@
               },
               {
                 "file": "crates/factory-engine/src/pipeline_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/platform_jws.rs"
               },
               {
                 "file": "crates/factory-engine/src/policy_shard.rs"
@@ -36009,6 +36084,9 @@
                 "file": "crates/factory-engine/src/harness_state.rs"
               },
               {
+                "file": "crates/factory-engine/src/intent_capsule.rs"
+              },
+              {
                 "file": "crates/factory-engine/src/inter_stage_manifest.rs"
               },
               {
@@ -36043,6 +36121,9 @@
               },
               {
                 "file": "crates/factory-engine/src/pipeline_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/platform_jws.rs"
               },
               {
                 "file": "crates/factory-engine/src/policy_shard.rs"
@@ -38494,6 +38575,9 @@
                 "file": "product/apps/opc/src-tauri/src/commands/result.rs"
               },
               {
+                "file": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
+              },
+              {
                 "file": "product/apps/opc/src-tauri/src/commands/sandbox.rs"
               },
               {
@@ -39791,6 +39875,9 @@
                 "file": "product/apps/opc/src-tauri/src/commands/result.rs"
               },
               {
+                "file": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
+              },
+              {
                 "file": "product/apps/opc/src-tauri/src/commands/sandbox.rs"
               },
               {
@@ -39938,6 +40025,9 @@
               },
               {
                 "file": "product/apps/opc/src-tauri/src/commands/result.rs"
+              },
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
               },
               {
                 "file": "product/apps/opc/src-tauri/src/commands/sandbox.rs"
@@ -42540,8 +42630,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 519,
-                  "startLine": 459
+                  "endLine": 522,
+                  "startLine": 462
                 }
               }
             ],
@@ -43652,6 +43742,9 @@
                 "file": "crates/factory-engine/src/harness_state.rs"
               },
               {
+                "file": "crates/factory-engine/src/intent_capsule.rs"
+              },
+              {
                 "file": "crates/factory-engine/src/inter_stage_manifest.rs"
               },
               {
@@ -43686,6 +43779,9 @@
               },
               {
                 "file": "crates/factory-engine/src/pipeline_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/platform_jws.rs"
               },
               {
                 "file": "crates/factory-engine/src/policy_shard.rs"
@@ -43956,6 +44052,26 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/factory-engine/src/bin/verify_certificate.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/governance_certificate.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/intent_capsule.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/platform_jws.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.down.sql",
             "source": "spec-implements"
           },
@@ -43964,7 +44080,23 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.up.sql",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/admission.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/jwks.ts",
             "source": "spec-implements"
           },
           {
@@ -43972,7 +44104,55 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/factory/runDuplexHandlers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/signing-pure.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/signing.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/syncPipeline.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/opcBundle.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/opcBundleHelpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/commands/factory.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/commands/factory_platform.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/commands/run_governance.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/commands/sync_client.rs",
             "source": "spec-implements"
           },
           {
@@ -43997,6 +44177,34 @@
             "unit": {
               "kind": "file",
               "path": "crates/factory-contracts/src/governance_envelope.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/intent_capsule.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/intent_capsule.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/platform_jws.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/platform_jws.rs"
             }
           },
           {
@@ -44031,6 +44239,34 @@
             "kind": "file",
             "locations": [
               {
+                "file": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.down.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.down.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.up.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.up.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "platform/services/stagecraft/api/factory/admission.ts"
               }
             ],
@@ -44045,6 +44281,34 @@
             "kind": "file",
             "locations": [
               {
+                "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/jwks.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/jwks.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "platform/services/stagecraft/api/factory/revocations.ts"
               }
             ],
@@ -44053,6 +44317,48 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/factory/revocations.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/signing-pure.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/signing-pure.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/signing.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/signing.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
             }
           },
           {
@@ -44215,6 +44521,9 @@
                 "file": "crates/factory-engine/src/harness_state.rs"
               },
               {
+                "file": "crates/factory-engine/src/intent_capsule.rs"
+              },
+              {
                 "file": "crates/factory-engine/src/inter_stage_manifest.rs"
               },
               {
@@ -44249,6 +44558,9 @@
               },
               {
                 "file": "crates/factory-engine/src/pipeline_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/platform_jws.rs"
               },
               {
                 "file": "crates/factory-engine/src/policy_shard.rs"
@@ -44412,6 +44724,62 @@
             "kind": "file",
             "locations": [
               {
+                "file": "crates/factory-engine/src/bin/verify_certificate.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/bin/verify_certificate.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/governance_certificate.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/orchestrator/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/orchestrator/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/runDuplexHandlers.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/runDuplexHandlers.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "platform/services/stagecraft/api/factory/syncPipeline.ts"
               }
             ],
@@ -44420,6 +44788,118 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/factory/syncPipeline.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/projects/opcBundle.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projects/opcBundle.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/projects/opcBundleHelpers.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projects/opcBundleHelpers.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/sync/service.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/sync/service.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/sync/types.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/sync/types.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/factory.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/factory.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/factory_platform.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/factory_platform.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/sync_client.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/sync_client.rs"
             }
           },
           {
@@ -44605,6 +45085,9 @@
                 "file": "crates/factory-engine/src/harness_state.rs"
               },
               {
+                "file": "crates/factory-engine/src/intent_capsule.rs"
+              },
+              {
                 "file": "crates/factory-engine/src/inter_stage_manifest.rs"
               },
               {
@@ -44639,6 +45122,9 @@
               },
               {
                 "file": "crates/factory-engine/src/pipeline_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/platform_jws.rs"
               },
               {
                 "file": "crates/factory-engine/src/policy_shard.rs"
