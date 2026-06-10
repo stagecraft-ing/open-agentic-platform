@@ -37,8 +37,6 @@ establishes:
   - unit: { kind: file, path: .claude/skills/commit/SKILL.md }
   - unit: { kind: directory, path: .claude/skills/code-review }
   - unit: { kind: file, path: .claude/skills/code-review/SKILL.md }
-  - unit: { kind: directory, path: .claude/skills/review-branch }
-  - unit: { kind: file, path: .claude/skills/review-branch/SKILL.md }
   - unit: { kind: directory, path: .claude/skills/implement-plan }
   - unit: { kind: file, path: .claude/skills/implement-plan/SKILL.md }
   - unit: { kind: directory, path: .claude/skills/research }
@@ -567,9 +565,11 @@ refuters, declared-trade-offs ledger) after PR #317 demonstrated both
 failure modes the split design had: author-rationale anchoring in
 context-rich review, and hallucination in context-free review. The
 skill count goes ten → nine plus the post-182 additions (`/ship`,
-`/shepherd-prs`). The `establishes:` entries for the deleted paths
-remain as the historical record of who created them; this section is
-the authority record for their removal.
+`/shepherd-prs`). The `establishes:` entries for the deleted paths are
+removed from the frontmatter — the indexer flags dangling
+`establishes:` as I-007/I-008 errors, so git history plus this section
+are the record of their creation and removal, matching how prior
+retirements kept the index diagnostics clean.
 
 ## References
 

@@ -94,7 +94,6 @@ establishes:
   - unit: { kind: file, path: .githooks/enable-merge-driver.sh }
   # Phase 3 — the narrow PR gate and the post-merge staleness-report job
   # (the latter replaced the retired cd-index-heal.yml; see FR-007).
-  - unit: { kind: file, path: .github/workflows/ci-config-hash.yml }
   - unit: { kind: file, path: .github/workflows/cd-index-staleness-report.yml }
   # Phase 3 — ci-parity-check fixture stubs for the new enforcing workflow
   # (renamed from the retired ci-codebase-index.yml stubs). Mirrors spec
@@ -631,4 +630,6 @@ already builds the indexer. `ENFORCING_WORKFLOWS` in
 remains the unchanged local mirror. The fixture copies of
 ci-config-hash.yml under `tools/oap/ci-parity-check/tests/fixtures/`
 remain as test fixtures — they model a generic enforcing workflow, not
-the live file.
+the live file. The frontmatter `establishes:` entry for the deleted
+live file is removed (a dangling `establishes:` is an indexer I-008
+error); the fixture entries stay because those files exist.

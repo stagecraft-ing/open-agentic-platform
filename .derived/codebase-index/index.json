@@ -1,39 +1,13 @@
 {
   "build": {
-    "contentHash": "8b01160482673e6f828e68fb6eed445f94edcc070921543847f1fd956cf52bbe",
+    "contentHash": "49af4c647e8ff6e2b244a601ce0b27d164a750cbc92f81bd179fc055d965ec3a",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
   },
   "diagnostics": {
-    "errors": [
-      {
-        "code": "I-007",
-        "message": "182-claude-skills-migration: directory: path \".claude/skills/review-branch\" does not exist or is not a directory"
-      },
-      {
-        "code": "I-008",
-        "message": "182-claude-skills-migration: file: path \".claude/skills/review-branch/SKILL.md\" does not exist on disk"
-      },
-      {
-        "code": "I-008",
-        "message": "188-derived-index-merge-serialization: file: path \".github/workflows/ci-config-hash.yml\" does not exist on disk"
-      }
-    ],
-    "warnings": [
-      {
-        "code": "I-101",
-        "message": "spec \"182-claude-skills-migration\" declares implements path \".claude/skills/review-branch\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"182-claude-skills-migration\" declares implements path \".claude/skills/review-branch/SKILL.md\" which is not a known package, adapter, or existing file/directory"
-      },
-      {
-        "code": "I-101",
-        "message": "spec \"188-derived-index-merge-serialization\" declares implements path \".github/workflows/ci-config-hash.yml\" which is not a known package, adapter, or existing file/directory"
-      }
-    ]
+    "errors": [],
+    "warnings": []
   },
   "inventory": [
     {
@@ -19302,8 +19276,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 697,
-                  "startLine": 693
+                  "endLine": 699,
+                  "startLine": 695
                 }
               }
             ],
@@ -21499,8 +21473,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 692,
-                  "startLine": 646
+                  "endLine": 694,
+                  "startLine": 648
                 }
               }
             ],
@@ -25101,8 +25075,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 645,
-                  "startLine": 623
+                  "endLine": 647,
+                  "startLine": 625
                 }
               }
             ],
@@ -25195,8 +25169,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 622,
-                  "startLine": 523
+                  "endLine": 624,
+                  "startLine": 525
                 }
               }
             ],
@@ -25761,8 +25735,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 738,
-                  "startLine": 698
+                  "endLine": 740,
+                  "startLine": 700
                 }
               }
             ],
@@ -25844,8 +25818,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 967,
-                  "startLine": 739
+                  "endLine": 969,
+                  "startLine": 741
                 }
               }
             ],
@@ -41298,14 +41272,6 @@
             "source": "spec-implements"
           },
           {
-            "path": ".claude/skills/review-branch",
-            "source": "spec-implements"
-          },
-          {
-            "path": ".claude/skills/review-branch/SKILL.md",
-            "source": "spec-implements"
-          },
-          {
             "path": ".claude/skills/setup",
             "source": "spec-implements"
           },
@@ -41427,15 +41393,6 @@
             "unit": {
               "kind": "directory",
               "path": ".claude/skills/research"
-            }
-          },
-          {
-            "kind": "directory",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "directory",
-              "path": ".claude/skills/review-branch"
             }
           },
           {
@@ -41562,15 +41519,6 @@
             "unit": {
               "kind": "file",
               "path": ".claude/skills/research/SKILL.md"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": ".claude/skills/review-branch/SKILL.md"
             }
           },
           {
@@ -42576,10 +42524,6 @@
             "source": "spec-implements"
           },
           {
-            "path": ".github/workflows/ci-config-hash.yml",
-            "source": "spec-implements"
-          },
-          {
             "path": "Makefile",
             "source": "spec-implements"
           },
@@ -42647,7 +42591,7 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 522,
+                  "endLine": 524,
                   "startLine": 462
                 }
               }
@@ -42719,15 +42663,6 @@
             "unit": {
               "kind": "file",
               "path": ".github/workflows/cd-index-staleness-report.yml"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": ".github/workflows/ci-config-hash.yml"
             }
           },
           {

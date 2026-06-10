@@ -62,6 +62,10 @@ jobs:
       # to this exact head SHA + diff hash in place of regeneration. The
       # short wait covers the race where /ship posts the evidence comment
       # moments after PR creation while this job is already checking out.
+      # Evidence is accepted only from OWNER/MEMBER/COLLABORATOR comments —
+      # the head SHA and diff hash are publicly derivable, so without the
+      # author_association filter any drive-by commenter could suppress the
+      # scan on a fork PR.
       - name: Check local review evidence
         id: evidence
         env:
@@ -72,7 +76,7 @@ jobs:
           verified=false
           line=""
           for attempt in 1 2; do
-            line=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" --paginate --jq '.[].body' 2>/dev/null | grep -oE 'Local-Review-Evidence: head=[0-9a-f]{40} diff_sha256=[0-9a-f]{64}' | tail -1 || true)
+            line=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" --paginate --jq '.[] | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR") | .body' 2>/dev/null | grep -oE 'Local-Review-Evidence: head=[0-9a-f]{40} diff_sha256=[0-9a-f]{64}' | tail -1 || true)
             [ -n "$line" ] && break
             [ "$attempt" = "1" ] && sleep 15
           done
