@@ -67,6 +67,7 @@ describe("buildOpcBundle", () => {
         },
       ],
       cloneToken: null,
+      admission: null,
     });
 
     expect(bundle.project).toEqual({
@@ -111,6 +112,7 @@ describe("buildOpcBundle", () => {
       processes: [],
       agents: [],
       cloneToken: null,
+      admission: null,
     });
 
     expect(bundle.repo).toBeNull();
@@ -136,6 +138,7 @@ describe("buildOpcBundle", () => {
       processes: [],
       agents: [],
       cloneToken: null,
+      admission: null,
     });
 
     expect(bundle.adapter).toBeNull();
@@ -168,6 +171,7 @@ describe("buildOpcBundle", () => {
       ],
       agents: [],
       cloneToken: null,
+      admission: null,
     });
 
     expect(bundle.adapter!.syncedAt).toBe(SYNCED.toISOString());
@@ -188,6 +192,7 @@ describe("buildOpcBundle", () => {
         source: "github_installation",
         expiresAt: "2026-04-22T11:00:00.000Z",
       },
+      admission: null,
     });
 
     expect(bundle.cloneToken).toEqual({
@@ -210,10 +215,34 @@ describe("buildOpcBundle", () => {
         source: "project_github_pat",
         expiresAt: null,
       },
+      admission: null,
     });
 
     expect(bundle.cloneToken?.source).toBe("project_github_pat");
     expect(bundle.cloneToken?.expiresAt).toBeNull();
+  });
+
+  test("propagates the admission seal block verbatim (spec 198 FR-014)", () => {
+    const bundle = buildOpcBundle({
+      project: baseProject,
+      repo: baseRepo,
+      adapter: baseAdapter,
+      contracts: [],
+      processes: [],
+      agents: [],
+      cloneToken: null,
+      admission: {
+        origin: "factory-encore",
+        envelopeHash: "e3b0c44298fc1c149afbf4c8996fb924",
+        sealJws: "eyJhbGciOiJFZERTQSJ9.eyJvcmlnaW4iOiJmIn0.c2ln",
+      },
+    });
+
+    expect(bundle.admission).toEqual({
+      origin: "factory-encore",
+      envelopeHash: "e3b0c44298fc1c149afbf4c8996fb924",
+      sealJws: "eyJhbGciOiJFZERTQSJ9.eyJvcmlnaW4iOiJmIn0.c2ln",
+    });
   });
 });
 
@@ -263,6 +292,7 @@ describe("opc deep-link projection (spec 112 §6.3)", () => {
         source: "github_installation",
         expiresAt: "2026-04-22T11:00:00.000Z",
       },
+      admission: null,
     });
 
     const lightweight = buildOpcBundle({
@@ -273,6 +303,7 @@ describe("opc deep-link projection (spec 112 §6.3)", () => {
       processes: [],
       agents: [],
       cloneToken: null,
+      admission: null,
     });
 
     expect(lightweight.deepLink).toBe(full.deepLink);
@@ -289,6 +320,7 @@ describe("opc deep-link projection (spec 112 §6.3)", () => {
       processes: [],
       agents: [],
       cloneToken: null,
+      admission: null,
     });
 
     expect(lightweight.deepLink).toBeNull();

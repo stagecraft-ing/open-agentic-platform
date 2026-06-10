@@ -38,6 +38,18 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/revocations.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.up.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.down.sql }
+  # Phase 4 (FR-005/FR-014) — signing authority, run-grants, countersign:
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/signing-pure.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/jwks.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/grantDuplexHandlers.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.down.sql }
+  - unit: { kind: file, path: crates/factory-engine/src/platform_jws.rs }
+  - unit: { kind: file, path: crates/factory-engine/src/intent_capsule.rs }
+  - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/run_governance.rs }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/grantDuplexHandlers.test.ts }
 extends:
   - spec: "074-factory-ingestion"
     nature: additive
@@ -50,6 +62,35 @@ refines:
     unit: { kind: file, path: platform/services/stagecraft/api/factory/syncPipeline.ts }
   - aspect: "governance-sub-envelope-section"
     unit: { kind: file, path: standards/schemas/factory/adapter-manifest.schema.yaml }
+  # Phase 4 — the run-grant trust fabric tightens these existing surfaces:
+  - aspect: "run-grant-envelope-family"
+    unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }
+  - aspect: "run-grant-envelope-family"
+    unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
+  - aspect: "certificate-countersign-on-completion"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/runDuplexHandlers.ts }
+  - aspect: "admission-seal-in-bundle"
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundle.ts }
+  - aspect: "admission-seal-in-bundle"
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundleHelpers.ts }
+  - aspect: "platform-countersign-binding"
+    unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
+  - aspect: "platform-countersign-binding"
+    unit: { kind: file, path: crates/factory-engine/src/bin/verify_certificate.rs }
+  - aspect: "stage-boundary-grant-renewal"
+    unit: { kind: file, path: crates/orchestrator/src/lib.rs }
+  - aspect: "stage-boundary-grant-renewal"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/factory.rs }
+  - aspect: "run-grant-envelope-family"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/sync_client.rs }
+  - aspect: "run-grant-envelope-family"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/factory_platform.rs }
+  - aspect: "admission-seal-in-bundle"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/stagecraft_client.rs }
+  - aspect: "run-grant-records"
+    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+  - aspect: "run-grant-records"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
 references:
   - role: enforcer
     unit: { kind: crate, id: factory-engine }

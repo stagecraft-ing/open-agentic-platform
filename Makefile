@@ -317,7 +317,10 @@ verify-certificate:
 	fi
 	@cargo build --release --manifest-path $(FACTORY_ENGINE_MANIFEST) --bin verify-certificate --target-dir crates/target
 	@./$(FACTORY_ENGINE_TARGET)/verify-certificate "$(FILE)" \
-	    $(if $(ARTIFACT_DIR),--artifact-dir $(ARTIFACT_DIR))
+	    $(if $(ARTIFACT_DIR),--artifact-dir $(ARTIFACT_DIR)) \
+	    $(if $(PLATFORM_JWKS),--platform-jwks $(PLATFORM_JWKS)) \
+	    $(if $(JWKS_URL),--jwks-url $(JWKS_URL)) \
+	    $(if $(REQUIRE_SEALED),--require-sealed)
 
 # ============================================================
 # Codebase Index

@@ -214,6 +214,14 @@ pub trait GovernedExecutor: Send + Sync {
     async fn dispatch_step(&self, request: DispatchRequest) -> Result<DispatchResult, String>;
 }
 
+/// Spec 198 FR-005 — awaited before each step executes. Used by the OPC
+/// run path to renew the run-grant at every stage boundary; `Err(reason)`
+/// fails the step fail-closed (the run pauses, the reason is surfaced).
+#[async_trait]
+pub trait PreStepGate: Send + Sync {
+    async fn before_step(&self, step_id: &str) -> Result<(), String>;
+}
+
 /// Optional dispatch configuration for gates and verification (052/075).
 #[derive(Default)]
 pub struct DispatchOptions {
@@ -247,6 +255,10 @@ pub struct DispatchOptions {
     /// Consumed by spec 172's Live Sessions panel; not an identity key.
     /// `None` when the workflow is initiated outside OPC.
     pub originating_session: Option<String>,
+    /// Spec 198 FR-005 — awaited before each step executes. Used by the OPC
+    /// run path to renew the run-grant at every stage boundary; `Err(reason)`
+    /// fails the step fail-closed (the run pauses, the reason is surfaced).
+    pub pre_step: Option<Arc<dyn PreStepGate>>,
 }
 
 /// Outcome of gate evaluation in the non-persisted dispatch path.
@@ -1207,6 +1219,39 @@ pub async fn dispatch_manifest(
             }
         }
 
+        // Spec 198 FR-005 — pre-step gate (run-grant renewal at every stage
+        // boundary). Fail closed on Err: the step is marked failed and the
+        // run halts; the reason is surfaced to the caller.
+        if let Some(ref gate) = options.pre_step
+            && let Err(reason) = gate.before_step(&step.id).await
+        {
+            statuses[idx] = StepStatus::Failure;
+            if let Some(dep_idxs) = dependents.get(step.id.as_str()) {
+                for &d in dep_idxs {
+                    if matches!(statuses[d], StepStatus::Pending | StepStatus::Running) {
+                        statuses[d] = StepStatus::Skipped;
+                    }
+                }
+            }
+            let summary = build_summary(
+                artifact_base,
+                run_id,
+                steps,
+                &statuses,
+                &tokens_used,
+                &costs_usd,
+                &durations_ms,
+                &num_turns,
+                &retry_counts,
+                &step_output_hashes,
+            );
+            summary.write_to_disk(artifact_base)?;
+            return Err(OrchestratorError::StepFailed {
+                step_id: step.id.clone(),
+                reason,
+            });
+        }
+
         statuses[idx] = StepStatus::Running;
         eprintln!(
             "  [{}/{}] {} (agent: {}) — running...",
@@ -1971,6 +2016,55 @@ pub async fn dispatch_manifest_persisted(
                     });
                 }
             }
+        }
+
+        // Spec 198 FR-005 — pre-step gate (run-grant renewal at every stage
+        // boundary). Fail closed on Err: the step is marked failed and the
+        // run halts; the reason is surfaced to the caller.
+        if let Some(ref gate) = options.pre_step
+            && let Err(reason) = gate.before_step(&step.id).await
+        {
+            statuses[idx] = StepStatus::Failure;
+            if let Some(dep_idxs) = dependents.get(step.id.as_str()) {
+                for &d in dep_idxs {
+                    if matches!(statuses[d], StepStatus::Pending | StepStatus::Running) {
+                        statuses[d] = StepStatus::Skipped;
+                    }
+                }
+            }
+            wf_state.mark_step_finished(
+                &step.id,
+                StepExecutionStatus::Failed,
+                now_ts(),
+                None,
+                Some(serde_json::json!({ "error": &reason })),
+            );
+            wf_state.status = WorkflowStatus::Failed;
+            persist_and_emit(
+                persistence,
+                &wf_state,
+                run_id,
+                "step_failed",
+                &serde_json::json!({ "step_id": step.id, "reason": &reason }),
+            )
+            .await?;
+            let summary = build_summary(
+                artifact_base,
+                run_id,
+                steps,
+                &statuses,
+                &tokens_used,
+                &costs_usd,
+                &durations_ms,
+                &num_turns,
+                &retry_counts,
+                &step_output_hashes,
+            );
+            summary.write_to_disk(artifact_base)?;
+            return Err(OrchestratorError::StepFailed {
+                step_id: step.id.clone(),
+                reason,
+            });
         }
 
         // --- Step started ---
@@ -3089,5 +3183,144 @@ steps:
             "expected CompletedLocal, got {:?}",
             state.status
         );
+    }
+
+    // --- Spec 198 FR-005: PreStepGate halts run on Err ---
+
+    struct AlwaysFailGate;
+
+    #[async_trait]
+    impl PreStepGate for AlwaysFailGate {
+        async fn before_step(&self, step_id: &str) -> Result<(), String> {
+            Err(format!("grant refused for step {step_id}"))
+        }
+    }
+
+    struct AlwaysPassGate;
+
+    #[async_trait]
+    impl PreStepGate for AlwaysPassGate {
+        async fn before_step(&self, _step_id: &str) -> Result<(), String> {
+            Ok(())
+        }
+    }
+
+    struct AlwaysPresentRegistryForGate;
+
+    #[async_trait]
+    impl AgentRegistry for AlwaysPresentRegistryForGate {
+        async fn has_agent(&self, _id: &str) -> bool {
+            true
+        }
+    }
+
+    struct WritingExecutorForGate;
+
+    #[async_trait]
+    impl GovernedExecutor for WritingExecutorForGate {
+        async fn dispatch_step(&self, request: DispatchRequest) -> Result<DispatchResult, String> {
+            for path in &request.output_artifacts {
+                if let Some(parent) = path.parent() {
+                    std::fs::create_dir_all(parent).unwrap();
+                }
+                std::fs::write(path, "ok").unwrap();
+            }
+            Ok(DispatchResult {
+                tokens_used: Some(10),
+                output_hashes: HashMap::new(),
+                session_id: None,
+                cost_usd: None,
+                duration_ms: None,
+                num_turns: None,
+                governance_mode: None,
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn pre_step_gate_err_fails_step_and_halts_run() {
+        // A single-step manifest with a gate that always refuses: the run must
+        // return StepFailed and the step status must be Failure.
+        let tmp = tempfile::tempdir().unwrap();
+        let am = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+        let manifest = WorkflowManifest {
+            steps: vec![WorkflowStep {
+                id: "s1".into(),
+                agent: "agent-a".into(),
+                effort: EffortLevel::Quick,
+                inputs: vec![],
+                outputs: vec!["out.md".into()],
+                instruction: "work".into(),
+                gate: None,
+                pre_verify: None,
+                post_verify: None,
+                max_retries: None,
+            }],
+            project_id: None,
+        };
+        materialize_run_directory(&am, run_id, &manifest).unwrap();
+        let options = DispatchOptions {
+            pre_step: Some(Arc::new(AlwaysFailGate)),
+            ..DispatchOptions::default()
+        };
+        let result = dispatch_manifest(
+            &am,
+            run_id,
+            &manifest,
+            Arc::new(AlwaysPresentRegistryForGate),
+            Arc::new(WritingExecutorForGate),
+            &options,
+        )
+        .await;
+        match result {
+            Err(OrchestratorError::StepFailed { step_id, reason }) => {
+                assert_eq!(step_id, "s1");
+                assert!(
+                    reason.contains("grant refused"),
+                    "unexpected reason: {reason}"
+                );
+            }
+            other => panic!("expected StepFailed, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn pre_step_gate_ok_does_not_block_run() {
+        // A passing gate must not interfere with normal execution.
+        let tmp = tempfile::tempdir().unwrap();
+        let am = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+        let manifest = WorkflowManifest {
+            steps: vec![WorkflowStep {
+                id: "s1".into(),
+                agent: "agent-a".into(),
+                effort: EffortLevel::Quick,
+                inputs: vec![],
+                outputs: vec!["out.md".into()],
+                instruction: "work".into(),
+                gate: None,
+                pre_verify: None,
+                post_verify: None,
+                max_retries: None,
+            }],
+            project_id: None,
+        };
+        materialize_run_directory(&am, run_id, &manifest).unwrap();
+        let options = DispatchOptions {
+            pre_step: Some(Arc::new(AlwaysPassGate)),
+            ..DispatchOptions::default()
+        };
+        let summary = dispatch_manifest(
+            &am,
+            run_id,
+            &manifest,
+            Arc::new(AlwaysPresentRegistryForGate),
+            Arc::new(WritingExecutorForGate),
+            &options,
+        )
+        .await
+        .unwrap();
+        assert!(matches!(summary.steps[0].status, StepStatus::Success));
     }
 }

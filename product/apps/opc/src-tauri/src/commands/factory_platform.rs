@@ -556,6 +556,15 @@ pub enum QueuedFrame {
     Completed {
         run_id: String,
         token_spend: FactoryRunTokenSpend,
+        /// Spec 198 FR-014 — SHA-256 hex of the governance certificate. When
+        /// present, the platform performs a countersign. Grants are NOT spooled
+        /// (fail-closed); the certificate hash is spooled so it is presented on
+        /// reconnect-replay even if the countersign reply is unavailable.
+        #[serde(default)]
+        certificate_sha256: Option<String>,
+        /// Final grant sequence number at run close (spec 198 FR-014).
+        #[serde(default)]
+        final_seq: Option<i64>,
     },
     Failed {
         run_id: String,
@@ -671,7 +680,22 @@ async fn dispatch_queued(sync: &SyncClientInner, frame: &QueuedFrame) -> bool {
         QueuedFrame::Completed {
             run_id,
             token_spend,
-        } => sync.send_factory_run_completed(run_id, token_spend.clone()).await,
+            certificate_sha256,
+            final_seq,
+        } => {
+            // Replay path: emit completed with the cert hash if present so
+            // the platform records it even without a live countersign reply.
+            use super::sync_client::{OutboundFrame, new_meta};
+            let frame = OutboundFrame::FactoryRunCompleted {
+                meta: new_meta(),
+                run_id: run_id.clone(),
+                token_spend: token_spend.clone(),
+                completed_at: now_iso(),
+                certificate_sha256: certificate_sha256.clone(),
+                seq: *final_seq,
+            };
+            sync.send(frame).await
+        }
         QueuedFrame::Failed { run_id, error } => {
             sync.send_factory_run_failed(run_id, error.clone()).await
         }
@@ -679,6 +703,81 @@ async fn dispatch_queued(sync: &SyncClientInner, frame: &QueuedFrame) -> bool {
             sync.send_factory_run_cancelled(run_id, reason.clone()).await
         }
     }
+}
+
+/// Convert a `factory.run.grant` server reply into a typed [`GrantOutcome`].
+fn map_grant_reply(
+    reply: super::sync_client::ServerEnvelopeWire,
+) -> Result<GrantOutcome, FactoryError> {
+    match reply.granted {
+        Some(true) => Ok(GrantOutcome::Granted {
+            seq: reply.seq.unwrap_or(0),
+            grant_jws: reply.grant_jws.unwrap_or_default(),
+            kid: reply.kid.unwrap_or_default(),
+            expires_at: reply.expires_at,
+        }),
+        _ => Ok(GrantOutcome::Refused {
+            reason: reply
+                .refused_reason
+                .unwrap_or_else(|| "no reason provided".to_string()),
+            detail: reply.detail,
+        }),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Spec 198 FR-005 / FR-014 — grant / countersign outcome types
+// ---------------------------------------------------------------------------
+
+/// Outcome of a `factory.run.grant_request` or `factory.run.grant_renew`.
+/// Returned by [`RunEmitter::request_grant`] and [`RunEmitter::renew_grant`].
+#[derive(Debug, Clone)]
+pub enum GrantOutcome {
+    /// Grant issued. `seq` is the monotonically-increasing sequence number
+    /// the server assigned; present on every successful grant.
+    Granted {
+        seq: i64,
+        grant_jws: String,
+        kid: String,
+        expires_at: Option<String>,
+    },
+    /// Server refused the grant request. The run must halt fail-closed.
+    Refused {
+        reason: String,
+        /// Optional additional detail from the server.
+        detail: Option<String>,
+    },
+}
+
+/// Outcome of the certificate countersign embedded in
+/// [`RunEmitter::completed`]. `None` is returned when the emitter was
+/// disconnected and could not perform a live countersign exchange.
+#[derive(Debug, Clone)]
+pub struct CountersignOutcome {
+    pub countersigned: bool,
+    pub countersign_jws: Option<String>,
+    pub kid: Option<String>,
+    pub refused_reason: Option<String>,
+}
+
+/// Arguments for [`RunEmitter::request_grant`] (spec 198 FR-005).
+pub struct GrantRequestArgs<'a> {
+    pub goal_id: &'a str,
+    pub goal: &'a str,
+    pub capsule_hash: &'a str,
+    pub envelope_hash: &'a str,
+    pub build_spec_hash: Option<&'a str>,
+    pub project_id: Option<&'a str>,
+    pub constraints: Option<Vec<String>>,
+}
+
+/// Arguments for [`RunEmitter::renew_grant`] (spec 198 FR-005).
+pub struct GrantRenewArgs<'a> {
+    pub goal_id: &'a str,
+    pub capsule_hash: &'a str,
+    pub seq: i64,
+    pub stage_id: Option<&'a str>,
+    pub build_spec_hash: Option<&'a str>,
 }
 
 // ---------------------------------------------------------------------------
@@ -783,12 +882,145 @@ impl RunEmitter {
         .await
     }
 
-    pub async fn completed(&self, token_spend: FactoryRunTokenSpend) -> Result<(), FactoryError> {
+    /// Spec 198 FR-005 — request the initial run-grant from the platform.
+    /// Fail-closed: a disconnected duplex or a 30-second timeout returns `Err`.
+    /// Grants are NOT spooled to the replay queue.
+    pub async fn request_grant(
+        &self,
+        args: GrantRequestArgs<'_>,
+    ) -> Result<GrantOutcome, FactoryError> {
+        use super::sync_client::{EnvelopeMeta, OutboundFrame};
+        let event_id = uuid::Uuid::new_v4().to_string();
+        let frame = OutboundFrame::FactoryRunGrantRequest {
+            meta: EnvelopeMeta {
+                v: super::sync_client::ENVELOPE_SCHEMA_VERSION,
+                event_id: event_id.clone(),
+                sent_at: now_iso(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            run_id: self.run_id.clone(),
+            goal_id: args.goal_id.to_string(),
+            goal: args.goal.to_string(),
+            capsule_hash: args.capsule_hash.to_string(),
+            envelope_hash: args.envelope_hash.to_string(),
+            build_spec_hash: args.build_spec_hash.map(str::to_string),
+            project_id: args.project_id.map(str::to_string),
+            constraints: args.constraints,
+        };
+        let reply = self
+            .sync
+            .send_and_await_reply(frame, event_id)
+            .await
+            .map_err(FactoryError::Other)?;
+        map_grant_reply(reply)
+    }
+
+    /// Spec 198 FR-005 — renew the run-grant at a stage boundary.
+    /// Fail-closed: same semantics as `request_grant`.
+    /// Grants are NOT spooled to the replay queue.
+    pub async fn renew_grant(
+        &self,
+        args: GrantRenewArgs<'_>,
+    ) -> Result<GrantOutcome, FactoryError> {
+        use super::sync_client::{EnvelopeMeta, OutboundFrame};
+        let event_id = uuid::Uuid::new_v4().to_string();
+        let frame = OutboundFrame::FactoryRunGrantRenew {
+            meta: EnvelopeMeta {
+                v: super::sync_client::ENVELOPE_SCHEMA_VERSION,
+                event_id: event_id.clone(),
+                sent_at: now_iso(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            run_id: self.run_id.clone(),
+            goal_id: args.goal_id.to_string(),
+            capsule_hash: args.capsule_hash.to_string(),
+            seq: args.seq,
+            stage_id: args.stage_id.map(str::to_string),
+            build_spec_hash: args.build_spec_hash.map(str::to_string),
+        };
+        let reply = self
+            .sync
+            .send_and_await_reply(frame, event_id)
+            .await
+            .map_err(FactoryError::Other)?;
+        map_grant_reply(reply)
+    }
+
+    /// Spec 124 §6.1 / Spec 198 FR-014 — terminal success.
+    ///
+    /// When `certificate_sha256` and `final_seq` are supplied, sends a
+    /// `factory.run.completed` that requests a certificate countersign from
+    /// the platform and awaits the reply. The countersign is fire-and-forget
+    /// on failure (log, do not fail the run).
+    ///
+    /// Returns `Ok(Some(CountersignOutcome))` when a live reply was received,
+    /// `Ok(None)` when the stream was disconnected (frame was spooled without
+    /// a countersign attempt).
+    pub async fn completed(
+        &self,
+        token_spend: FactoryRunTokenSpend,
+        certificate_sha256: Option<String>,
+        final_seq: Option<i64>,
+    ) -> Result<Option<CountersignOutcome>, FactoryError> {
+        // If we have cert fields, use send_and_await_reply so the platform
+        // can countersign. If the stream is disconnected, fall back to the
+        // normal spool path (no countersign on replay).
+        if certificate_sha256.is_some() || final_seq.is_some() {
+            use super::sync_client::{EnvelopeMeta, OutboundFrame};
+            let event_id = uuid::Uuid::new_v4().to_string();
+            let frame = OutboundFrame::FactoryRunCompleted {
+                meta: EnvelopeMeta {
+                    v: super::sync_client::ENVELOPE_SCHEMA_VERSION,
+                    event_id: event_id.clone(),
+                    sent_at: now_iso(),
+                    correlation_id: None,
+                    causation_id: None,
+                },
+                run_id: self.run_id.clone(),
+                token_spend: token_spend.clone(),
+                completed_at: now_iso(),
+                certificate_sha256: certificate_sha256.clone(),
+                seq: final_seq,
+            };
+            match self.sync.send_and_await_reply(frame, event_id).await {
+                Ok(reply) => {
+                    let outcome = CountersignOutcome {
+                        countersigned: reply.countersigned.unwrap_or(false),
+                        countersign_jws: reply.countersign_jws,
+                        kid: reply.kid,
+                        refused_reason: reply.refused_reason,
+                    };
+                    return Ok(Some(outcome));
+                }
+                Err(e) => {
+                    // Disconnected or timed out — spool the frame (without a
+                    // live countersign) and log. The cert hash is preserved in
+                    // the queued frame so the platform records it on replay.
+                    log::warn!(
+                        "factory_platform: countersign send_and_await_reply failed ({e}); \
+                         spooling completed frame without live countersign"
+                    );
+                    self.try_send_or_queue(QueuedFrame::Completed {
+                        run_id: self.run_id.clone(),
+                        token_spend,
+                        certificate_sha256,
+                        final_seq,
+                    })
+                    .await?;
+                    return Ok(None);
+                }
+            }
+        }
         self.try_send_or_queue(QueuedFrame::Completed {
             run_id: self.run_id.clone(),
             token_spend,
+            certificate_sha256: None,
+            final_seq: None,
         })
-        .await
+        .await?;
+        Ok(None)
     }
 
     pub async fn failed(&self, error: String) -> Result<(), FactoryError> {
@@ -986,5 +1218,73 @@ mod tests {
         }
         assert_eq!(queue_len(run_id).await, 3);
         unsafe { std::env::remove_var("XDG_DATA_HOME") };
+    }
+
+    // ── Spec 198 FR-005 — wire-field-name contract tests ─────────────────────
+    //
+    // The platform handler parses outbound grant frames by the exact camelCase
+    // field names defined in `platform/services/stagecraft/api/sync/types.ts`.
+    // These tests lock those names at compile time on the Rust side so a rename
+    // or typo surfaces here rather than as a silent wire mismatch.
+
+    #[test]
+    fn grant_request_frame_serializes_with_exact_wire_field_names() {
+        use crate::commands::sync_client::{EnvelopeMeta, OutboundFrame, ENVELOPE_SCHEMA_VERSION};
+        let frame = OutboundFrame::FactoryRunGrantRequest {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e-1".into(),
+                sent_at: "2026-06-09T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            run_id: "run-1".into(),
+            goal_id: "goal-abcd1234abcd1234".into(),
+            goal: "build the portal".into(),
+            capsule_hash: "cap-hash".into(),
+            envelope_hash: "env-hash".into(),
+            build_spec_hash: Some("bs-hash".into()),
+            project_id: Some("proj-1".into()),
+            constraints: Some(vec!["no-deploy-without-gate".into()]),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        // Exact wire field names (camelCase as defined in types.ts).
+        assert_eq!(json["kind"], "factory.run.grant_request");
+        assert_eq!(json["runId"], "run-1");
+        assert_eq!(json["goalId"], "goal-abcd1234abcd1234");
+        assert_eq!(json["goal"], "build the portal");
+        assert_eq!(json["capsuleHash"], "cap-hash");
+        assert_eq!(json["envelopeHash"], "env-hash");
+        assert_eq!(json["buildSpecHash"], "bs-hash");
+        assert_eq!(json["projectId"], "proj-1");
+        assert_eq!(json["constraints"][0], "no-deploy-without-gate");
+    }
+
+    #[test]
+    fn grant_renew_frame_serializes_with_exact_wire_field_names() {
+        use crate::commands::sync_client::{EnvelopeMeta, OutboundFrame, ENVELOPE_SCHEMA_VERSION};
+        let frame = OutboundFrame::FactoryRunGrantRenew {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e-2".into(),
+                sent_at: "2026-06-09T00:00:01Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            run_id: "run-1".into(),
+            goal_id: "goal-abcd1234abcd1234".into(),
+            capsule_hash: "cap-hash".into(),
+            seq: 2,
+            stage_id: Some("phase-2".into()),
+            build_spec_hash: Some("bs-hash".into()),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["kind"], "factory.run.grant_renew");
+        assert_eq!(json["runId"], "run-1");
+        assert_eq!(json["goalId"], "goal-abcd1234abcd1234");
+        assert_eq!(json["capsuleHash"], "cap-hash");
+        assert_eq!(json["seq"], 2);
+        assert_eq!(json["stageId"], "phase-2");
+        assert_eq!(json["buildSpecHash"], "bs-hash");
     }
 }

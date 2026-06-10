@@ -17,10 +17,19 @@ export const FACTORY_RUN_COMPLETED = "factory.run.completed" as const;
 export const FACTORY_RUN_FAILED = "factory.run.failed" as const;
 export const FACTORY_RUN_CANCELLED = "factory.run.cancelled" as const;
 export const FACTORY_RUN_SWEPT = "factory.run.swept" as const;
+// Spec 198 FR-005/FR-014 — run-grant + countersign lifecycle. Grant
+// refusals are governance evidence (goal-shift / revocation propagation,
+// ASI01 m4/m7), recorded with the refusal reason in metadata.
+export const FACTORY_RUN_GRANT_ISSUED = "factory.run.grant_issued" as const;
+export const FACTORY_RUN_GRANT_REFUSED = "factory.run.grant_refused" as const;
+export const FACTORY_RUN_COUNTERSIGNED = "factory.run.countersigned" as const;
 
 export type FactoryRunAuditAction =
   | typeof FACTORY_RUN_RESERVED
   | typeof FACTORY_RUN_COMPLETED
   | typeof FACTORY_RUN_FAILED
   | typeof FACTORY_RUN_CANCELLED
-  | typeof FACTORY_RUN_SWEPT;
+  | typeof FACTORY_RUN_SWEPT
+  | typeof FACTORY_RUN_GRANT_ISSUED
+  | typeof FACTORY_RUN_GRANT_REFUSED
+  | typeof FACTORY_RUN_COUNTERSIGNED;

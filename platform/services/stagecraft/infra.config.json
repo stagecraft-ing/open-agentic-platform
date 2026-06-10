@@ -20,7 +20,10 @@
     "S3_REGION": { "$env": "S3_REGION" },
     "S3_ACCESS_KEY": { "$env": "S3_ACCESS_KEY" },
     "S3_SECRET_KEY": { "$env": "S3_SECRET_KEY" },
-    "ANTHROPIC_API_KEY": { "$env": "ANTHROPIC_API_KEY" }
+    "ANTHROPIC_API_KEY": { "$env": "ANTHROPIC_API_KEY" },
+    "FACTORY_SIGNING_PRIVATE_KEY": { "$env": "FACTORY_SIGNING_PRIVATE_KEY" },
+    "FACTORY_SIGNING_KID": { "$env": "FACTORY_SIGNING_KID" },
+    "FACTORY_SIGNING_PREVIOUS_PUBLIC_JWK": { "$env": "FACTORY_SIGNING_PREVIOUS_PUBLIC_JWK" }
   },
   "pubsub": [
     {

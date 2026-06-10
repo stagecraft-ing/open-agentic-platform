@@ -20,6 +20,7 @@ pub mod proxy;
 pub mod quick_pane;
 pub mod recovery;
 pub mod result;
+pub mod run_governance;
 pub mod sandbox;
 pub mod settings;
 pub mod slash_commands;

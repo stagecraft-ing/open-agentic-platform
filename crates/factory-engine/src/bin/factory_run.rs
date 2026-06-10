@@ -527,6 +527,8 @@ async fn main() -> ExitCode {
         // factory-run is a non-OPC origin per spec 173 FR-001.
         project_path: None,
         originating_session: None,
+        // Spec 198 FR-005: factory-run CLI does not use grant-backed renewal.
+        pre_step: None,
     };
 
     eprintln!("\nDispatching Phase 1...\n");
@@ -644,6 +646,8 @@ async fn main() -> ExitCode {
         // factory-run is a non-OPC origin per spec 173 FR-001.
         project_path: None,
         originating_session: None,
+        // Spec 198 FR-005: factory-run CLI does not use grant-backed renewal.
+        pre_step: None,
     };
 
     let summary2 = match dispatch_manifest(

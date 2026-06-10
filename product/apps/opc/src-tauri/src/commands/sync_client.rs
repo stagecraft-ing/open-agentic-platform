@@ -26,7 +26,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::net::TcpStream;
-use tokio::sync::{Mutex, mpsc};
+use tokio::sync::{Mutex, mpsc, oneshot};
 use tokio::task::JoinHandle;
 use tokio::time::interval;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
@@ -62,6 +62,13 @@ pub const PROJECT_AGENT_BINDING_ENVELOPE_VERSION: u8 = 1;
 /// skew on this constant surfaces as a Rust build error before any wire
 /// drift is possible.
 pub const FACTORY_RUN_ENVELOPE_VERSION: u8 = 1;
+
+/// Spec 198 FR-005 / FR-014 — per-event-kind contract version for the
+/// `factory.run.grant` and `factory.run.certificate_countersign` envelope
+/// family. Mirrors `FACTORY_RUN_GRANT_ENVELOPE_VERSION` in
+/// `platform/services/stagecraft/api/sync/types.ts`. A desktop / platform
+/// skew on this constant surfaces as a Rust build error.
+pub const FACTORY_RUN_GRANT_ENVELOPE_VERSION: u8 = 1;
 
 // ---------------------------------------------------------------------------
 // Wire-level envelope types (mirror the typescript wire shapes)
@@ -224,6 +231,27 @@ pub struct ServerEnvelopeWire {
     // (informational count of upsert frames in the just-finished pass).
     #[serde(default)]
     pub entry_count: Option<u32>,
+    // Spec 198 FR-005 / FR-014 — factory.run.grant and
+    // factory.run.certificate_countersign reply fields.
+    #[serde(default)]
+    pub run_id: Option<String>,
+    #[serde(default)]
+    pub granted: Option<bool>,
+    /// Monotonically-increasing grant sequence number. TS `number` → Rust `i64`.
+    #[serde(default)]
+    pub seq: Option<i64>,
+    #[serde(default)]
+    pub grant_jws: Option<String>,
+    #[serde(default)]
+    pub kid: Option<String>,
+    #[serde(default)]
+    pub expires_at: Option<String>,
+    #[serde(default)]
+    pub refused_reason: Option<String>,
+    #[serde(default)]
+    pub countersigned: Option<bool>,
+    #[serde(default)]
+    pub countersign_jws: Option<String>,
 }
 
 /// Mirror of {@link ProjectAgentBindingSnapshotEntry} from stagecraft's
@@ -345,6 +373,11 @@ const SERVER_KINDS: &[&str] = &[
     "sync.resync_required",
     "sync.heartbeat",
     "sync.hello",
+    // Spec 198 FR-005 / FR-014 — grant issuance/renewal reply and certificate
+    // countersign reply. These are reply-correlated frames routed via
+    // reply_waiters before the normal dispatch path.
+    "factory.run.grant",
+    "factory.run.certificate_countersign",
 ];
 
 /// Mirrors `isClientEnvelope` on the stagecraft side — enforces schema
@@ -445,8 +478,11 @@ pub enum OutboundFrame {
         #[serde(rename = "completedAt")]
         completed_at: String,
     },
-    /// Spec 124 §6.1 — terminal success. Sets row's status = `ok`,
-    /// `completed_at`, and the rolled-up `token_spend`.
+    /// Spec 124 §6.1 / Spec 198 FR-014 — terminal success. Sets row's status
+    /// = `ok`, `completed_at`, and the rolled-up `token_spend`. When
+    /// `certificate_sha256` is set the server performs a countersign and
+    /// replies with `factory.run.certificate_countersign` on the same
+    /// correlationId.
     #[serde(rename = "factory.run.completed")]
     FactoryRunCompleted {
         meta: EnvelopeMeta,
@@ -456,6 +492,15 @@ pub enum OutboundFrame {
         token_spend: FactoryRunTokenSpend,
         #[serde(rename = "completedAt")]
         completed_at: String,
+        /// SHA-256 hex of the governance certificate (spec 198 FR-014). When
+        /// present the server performs a countersign on the certificate.
+        #[serde(rename = "certificateSha256", skip_serializing_if = "Option::is_none")]
+        certificate_sha256: Option<String>,
+        /// Final grant sequence number at run close (spec 198 FR-014). Must
+        /// match the most-recently issued grant's `seq` so the server can
+        /// close the grant chain.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        seq: Option<i64>,
     },
     /// Spec 124 §6.1 — terminal failure. Sets row's status = `failed`,
     /// `completed_at`, and `error`. Partial `stage_progress` is preserved.
@@ -479,6 +524,54 @@ pub enum OutboundFrame {
         reason: Option<String>,
         #[serde(rename = "completedAt")]
         completed_at: String,
+    },
+    /// Spec 198 FR-005 — desktop requests an initial run-grant at the start
+    /// of a factory run. The intent capsule hash is presented so the server
+    /// can verify goal stability. The server replies with
+    /// `factory.run.grant` correlated via `meta.correlationId`.
+    ///
+    /// Grants MUST NOT be spooled to the replay queue: a disconnected
+    /// session is fail-closed (no grant = no execution).
+    #[serde(rename = "factory.run.grant_request")]
+    FactoryRunGrantRequest {
+        meta: EnvelopeMeta,
+        #[serde(rename = "runId")]
+        run_id: String,
+        #[serde(rename = "goalId")]
+        goal_id: String,
+        /// Plain-language goal text (for audit surfaces).
+        goal: String,
+        #[serde(rename = "capsuleHash")]
+        capsule_hash: String,
+        #[serde(rename = "envelopeHash")]
+        envelope_hash: String,
+        #[serde(rename = "buildSpecHash", skip_serializing_if = "Option::is_none")]
+        build_spec_hash: Option<String>,
+        #[serde(rename = "projectId", skip_serializing_if = "Option::is_none")]
+        project_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        constraints: Option<Vec<String>>,
+    },
+    /// Spec 198 FR-005 — desktop renews a run-grant at each stage boundary.
+    /// `seq` must be exactly `last_seq + 1`; `stage_id` identifies which
+    /// stage is about to begin. The server replies with `factory.run.grant`
+    /// correlated via `meta.correlationId`.
+    ///
+    /// Grants MUST NOT be spooled to the replay queue.
+    #[serde(rename = "factory.run.grant_renew")]
+    FactoryRunGrantRenew {
+        meta: EnvelopeMeta,
+        #[serde(rename = "runId")]
+        run_id: String,
+        #[serde(rename = "goalId")]
+        goal_id: String,
+        #[serde(rename = "capsuleHash")]
+        capsule_hash: String,
+        seq: i64,
+        #[serde(rename = "stageId", skip_serializing_if = "Option::is_none")]
+        stage_id: Option<String>,
+        #[serde(rename = "buildSpecHash", skip_serializing_if = "Option::is_none")]
+        build_spec_hash: Option<String>,
     },
 }
 
@@ -595,6 +688,15 @@ pub struct SyncClientInner {
     /// signalling is a separate concern (the give-up signal lands in a later
     /// stage of the spec 183 implementation).
     sync_hello_received: std::sync::atomic::AtomicBool,
+    /// Spec 198 FR-005 / FR-014 — reply-correlation map for request/reply
+    /// frames (`factory.run.grant`, `factory.run.certificate_countersign`).
+    /// Keyed by the outbound frame's `meta.eventId`; the value is a oneshot
+    /// sender that `resolve_reply_waiter` calls when the correlated inbound
+    /// frame arrives (matched by `meta.correlationId`).
+    ///
+    /// Uses `std::sync::Mutex` (not tokio) so it can be locked from both
+    /// sync (`resolve_reply_waiter`) and async (`send_and_await_reply`) contexts.
+    reply_waiters: std::sync::Mutex<HashMap<String, oneshot::Sender<ServerEnvelopeWire>>>,
 }
 
 impl SyncClientInner {
@@ -719,7 +821,10 @@ impl SyncClientInner {
         self.send(frame).await
     }
 
-    /// Spec 124 §6.1 — emit terminal `factory.run.completed`.
+    /// Spec 124 §6.1 — emit terminal `factory.run.completed` (no certificate
+    /// binding). For certificate-bound completion use `send_and_await_reply`
+    /// directly with a `FactoryRunCompleted` frame carrying `certificate_sha256`
+    /// and `seq` (spec 198 FR-014).
     pub async fn send_factory_run_completed(
         &self,
         run_id: &str,
@@ -730,6 +835,8 @@ impl SyncClientInner {
             run_id: run_id.to_string(),
             token_spend,
             completed_at: chrono::Utc::now().to_rfc3339(),
+            certificate_sha256: None,
+            seq: None,
         };
         self.send(frame).await
     }
@@ -745,7 +852,70 @@ impl SyncClientInner {
         self.send(frame).await
     }
 
-    /// Spec 124 §6.1 — emit terminal `factory.run.cancelled`.
+    /// Spec 198 FR-005 / FR-014 — if `correlation_id` matches a pending waiter,
+    /// deliver the reply envelope and remove the waiter. Returns `true` when a
+    /// waiter was resolved; returns `false` (and the caller logs a warning) when
+    /// no waiter is registered for this correlation id.
+    pub(crate) fn resolve_reply_waiter(&self, envelope: ServerEnvelopeWire) -> bool {
+        let Some(ref cid) = envelope.meta.correlation_id.clone() else {
+            return false;
+        };
+        let tx = {
+            let Ok(mut map) = self.reply_waiters.lock() else {
+                return false;
+            };
+            map.remove(cid.as_str())
+        };
+        match tx {
+            Some(sender) => {
+                // Ignore the send error: the waiter may have timed out and
+                // dropped the receiver already. The frame is simply discarded.
+                let _ = sender.send(envelope);
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// Spec 198 FR-005 / FR-014 — send an outbound frame that expects a
+    /// correlated reply, then await the reply with a 30-second timeout.
+    ///
+    /// The frame's `meta.eventId` is used as the waiter key. If the duplex
+    /// stream is not connected, or if the timeout fires, an error is returned
+    /// so callers can fail closed (no grant = no execution).
+    pub(crate) async fn send_and_await_reply(
+        &self,
+        frame: OutboundFrame,
+        event_id: String,
+    ) -> Result<ServerEnvelopeWire, String> {
+        let (tx, rx) = oneshot::channel::<ServerEnvelopeWire>();
+        {
+            let Ok(mut map) = self.reply_waiters.lock() else {
+                return Err("reply_waiters lock poisoned".into());
+            };
+            map.insert(event_id.clone(), tx);
+        }
+        let sent = self.send(frame).await;
+        if !sent {
+            // Remove the waiter we just registered so it doesn't leak.
+            if let Ok(mut map) = self.reply_waiters.lock() {
+                map.remove(&event_id);
+            }
+            return Err("duplex stream disconnected; cannot send grant request".into());
+        }
+        match tokio::time::timeout(std::time::Duration::from_secs(30), rx).await {
+            Ok(Ok(reply)) => Ok(reply),
+            Ok(Err(_)) => Err("reply channel dropped before response arrived".into()),
+            Err(_) => {
+                if let Ok(mut map) = self.reply_waiters.lock() {
+                    map.remove(&event_id);
+                }
+                Err("grant request timed out after 30 s".into())
+            }
+        }
+    }
+
+    /// Spec 198 FR-005 / FR-014 — emit terminal `factory.run.cancelled`.
     pub async fn send_factory_run_cancelled(
         &self,
         run_id: &str,
@@ -1322,6 +1492,22 @@ async fn handle_text_frame(
         *g = Some(envelope.meta.org_cursor.clone());
     }
 
+    // Spec 198 FR-005 / FR-014 — reply-correlated frames are routed to the
+    // registered waiter FIRST, before the normal dispatch path. If no waiter
+    // is registered (unexpected unsolicited delivery), log a warning and drop.
+    if matches!(
+        envelope.kind.as_str(),
+        "factory.run.grant" | "factory.run.certificate_countersign"
+    ) {
+        let kind = envelope.kind.clone();
+        if !inner.resolve_reply_waiter(envelope) {
+            log::warn!(
+                "sync_client: received {kind} with no registered waiter (correlationId missing or stale) — dropped",
+            );
+        }
+        return;
+    }
+
     match envelope.kind.as_str() {
         "sync.heartbeat" => {
             // Server-side heartbeat. Our own heartbeat task handles the
@@ -1378,7 +1564,7 @@ async fn handle_text_frame(
     }
 }
 
-fn new_meta() -> EnvelopeMeta {
+pub(crate) fn new_meta() -> EnvelopeMeta {
     EnvelopeMeta {
         v: ENVELOPE_SCHEMA_VERSION,
         event_id: uuid::Uuid::new_v4().to_string(),
@@ -1462,6 +1648,15 @@ mod tests {
             bound_at: None,
             action: None,
             entry_count: None,
+            run_id: None,
+            granted: None,
+            seq: None,
+            grant_jws: None,
+            kid: None,
+            expires_at: None,
+            refused_reason: None,
+            countersigned: None,
+            countersign_jws: None,
         }
     }
 
@@ -2057,12 +2252,18 @@ mod tests {
                 total: 350,
             },
             completed_at: "2026-05-01T00:05:00Z".into(),
+            certificate_sha256: None,
+            seq: None,
         };
         let json = serde_json::to_value(&frame).unwrap();
         assert_eq!(json["kind"], "factory.run.completed");
         assert_eq!(json["tokenSpend"]["input"], 100);
         assert_eq!(json["tokenSpend"]["output"], 250);
         assert_eq!(json["tokenSpend"]["total"], 350);
+        // Spec 198 FR-014 — optional cert fields must be absent from the wire
+        // when None to keep backward compat with stagecraft pre-198 handlers.
+        assert!(json.get("certificateSha256").is_none());
+        assert!(json.get("seq").is_none());
     }
 
     #[test]
@@ -2234,5 +2435,117 @@ mod tests {
             last_cursor.read().unwrap().as_deref(),
             Some("cur-hello-1"),
         );
+    }
+
+    // ── Spec 198 FR-005 / FR-014 — grant envelope constants + reply-correlation
+
+    #[test]
+    fn factory_run_grant_envelope_version_matches_documented_constant() {
+        // Phase 0 lock — bumping FACTORY_RUN_GRANT_ENVELOPE_VERSION must happen
+        // here AND in `platform/services/stagecraft/api/sync/types.ts` in
+        // lock-step.
+        assert_eq!(FACTORY_RUN_GRANT_ENVELOPE_VERSION, 1);
+    }
+
+    #[test]
+    fn factory_run_grant_request_serializes_with_correct_wire_field_names() {
+        let frame = OutboundFrame::FactoryRunGrantRequest {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e-gr1".into(),
+                sent_at: "2026-06-09T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            run_id: "run-1".into(),
+            goal_id: "goal-abcd1234abcd1234".into(),
+            goal: "scaffold the portal".into(),
+            capsule_hash: "cafebabe".into(),
+            envelope_hash: "deadbeef".into(),
+            build_spec_hash: Some("bsbsbsbs".into()),
+            project_id: Some("proj-1".into()),
+            constraints: Some(vec!["no-deploy-without-gate".into()]),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["kind"], "factory.run.grant_request");
+        assert_eq!(json["runId"], "run-1");
+        assert_eq!(json["goalId"], "goal-abcd1234abcd1234");
+        assert_eq!(json["goal"], "scaffold the portal");
+        assert_eq!(json["capsuleHash"], "cafebabe");
+        assert_eq!(json["envelopeHash"], "deadbeef");
+        assert_eq!(json["buildSpecHash"], "bsbsbsbs");
+        assert_eq!(json["projectId"], "proj-1");
+    }
+
+    #[test]
+    fn factory_run_grant_renew_serializes_with_correct_wire_field_names() {
+        let frame = OutboundFrame::FactoryRunGrantRenew {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e-grr1".into(),
+                sent_at: "2026-06-09T00:00:01Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            run_id: "run-1".into(),
+            goal_id: "goal-abcd1234abcd1234".into(),
+            capsule_hash: "cafebabe".into(),
+            seq: 2,
+            stage_id: Some("phase-1".into()),
+            build_spec_hash: Some("bsbsbsbs".into()),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["kind"], "factory.run.grant_renew");
+        assert_eq!(json["runId"], "run-1");
+        assert_eq!(json["goalId"], "goal-abcd1234abcd1234");
+        assert_eq!(json["capsuleHash"], "cafebabe");
+        assert_eq!(json["seq"], 2);
+        assert_eq!(json["stageId"], "phase-1");
+        assert_eq!(json["buildSpecHash"], "bsbsbsbs");
+    }
+
+    #[test]
+    fn resolve_reply_waiter_delivers_to_registered_waiter() {
+        let inner = SyncClientInner::default();
+        let (tx, mut rx) = oneshot::channel::<ServerEnvelopeWire>();
+        {
+            inner
+                .reply_waiters
+                .lock()
+                .unwrap()
+                .insert("evt-1".into(), tx);
+        }
+        // Build an inbound envelope whose correlationId matches the waiter key.
+        let mut env = empty_envelope("factory.run.grant", ENVELOPE_SCHEMA_VERSION);
+        env.meta.correlation_id = Some("evt-1".into());
+        env.granted = Some(true);
+        let resolved = inner.resolve_reply_waiter(env);
+        assert!(resolved, "waiter must be resolved");
+        let delivered = rx.try_recv().expect("reply was delivered");
+        assert_eq!(delivered.granted, Some(true));
+    }
+
+    #[test]
+    fn resolve_reply_waiter_returns_false_when_no_waiter() {
+        let inner = SyncClientInner::default();
+        let mut env = empty_envelope("factory.run.grant", ENVELOPE_SCHEMA_VERSION);
+        env.meta.correlation_id = Some("unknown-id".into());
+        let resolved = inner.resolve_reply_waiter(env);
+        assert!(!resolved, "no waiter registered — must return false");
+    }
+
+    #[test]
+    fn resolve_reply_waiter_returns_false_when_no_correlation_id() {
+        let inner = SyncClientInner::default();
+        let (tx, _rx) = oneshot::channel::<ServerEnvelopeWire>();
+        inner
+            .reply_waiters
+            .lock()
+            .unwrap()
+            .insert("evt-x".into(), tx);
+        // Envelope with no correlationId cannot match any waiter.
+        let env = empty_envelope("factory.run.grant", ENVELOPE_SCHEMA_VERSION);
+        let resolved = inner.resolve_reply_waiter(env);
+        assert!(!resolved);
     }
 }

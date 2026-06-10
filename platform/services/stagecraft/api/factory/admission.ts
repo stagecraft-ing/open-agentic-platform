@@ -23,6 +23,7 @@ import {
   factoryRevocations,
   factoryUpstreams,
 } from "../db/schema";
+import { signFactoryJws, signingConfigured } from "./signing";
 
 // ---------------------------------------------------------------------------
 // Contract shapes (mirrors of the canonical YAML schema / Rust twin)
@@ -104,6 +105,10 @@ export type AdmissionEvaluation = {
       { governance: AdapterGovernance; manifestHash: string }
     >;
     agentDigests: Record<string, string>;
+    /** path → declared agent id (frontmatter). FR-010 agent-key revocations
+     * are checked against these at grant issuance/renewal. Absent on
+     * admission rows persisted before phase 4 (a re-sync backfills). */
+    agentIds?: Record<string, string>;
   } | null;
   scaffoldResolutions: Record<string, ScaffoldResolution>;
 };
@@ -160,10 +165,13 @@ export function evaluateFactoryAdmission(input: {
     );
   }
   const agentDigests: Record<string, string> = {};
+  const agentIds: Record<string, string> = {};
   for (const row of processAgentRows) {
+    const facts = agentFacts(row);
     agentDigests[row.path] = row.contentHash;
+    agentIds[row.path] = facts.id;
     reconcileAgainstCeilings(
-      agentFacts(row),
+      facts,
       envelope.ceilings.max_tier,
       envelope.ceilings.max_mutation,
       violations,
@@ -233,8 +241,10 @@ export function evaluateFactoryAdmission(input: {
         );
         continue;
       }
+      const facts = agentFacts(row);
       agentDigests[row.path] = row.contentHash;
-      reconcileAdapterAgent(agentFacts(row), governance, violations);
+      agentIds[row.path] = facts.id;
+      reconcileAdapterAgent(facts, governance, violations);
     }
 
     // Spec 199 FR-009 / D-5 — scaffold source resolved at admission.
@@ -281,7 +291,7 @@ export function evaluateFactoryAdmission(input: {
     return refusal(
       violations,
       envelopeRow.contentHash,
-      { process: envelope, adapters, agentDigests },
+      { process: envelope, adapters, agentDigests, agentIds },
       scaffoldResolutions,
     );
   }
@@ -289,7 +299,7 @@ export function evaluateFactoryAdmission(input: {
     status: "admitted",
     violations: [],
     envelopeHash: envelopeRow.contentHash,
-    composed: { process: envelope, adapters, agentDigests },
+    composed: { process: envelope, adapters, agentDigests, agentIds },
     scaffoldResolutions,
   };
 }
@@ -579,12 +589,57 @@ function str(v: unknown): string | undefined {
 // Persistence + standing-state checks (serve / bind / grant consult these)
 // ---------------------------------------------------------------------------
 
+/**
+ * FR-014 admission seal claims. The composition is already content-addressed
+ * (substrate hashes), so the seal binds those hashes directly — a verifier
+ * recomputes the hash of any served body and checks membership; no
+ * cross-language canonical-JSON is involved (the JWS payload bytes are the
+ * truth).
+ */
+export function buildSealClaims(
+  orgId: string,
+  origin: string,
+  factorySha: string | null,
+  evaluation: AdmissionEvaluation,
+): Record<string, unknown> {
+  const adapterManifestHashes: Record<string, string> = {};
+  for (const [name, a] of Object.entries(evaluation.composed?.adapters ?? {})) {
+    adapterManifestHashes[name] = a.manifestHash;
+  }
+  return {
+    org_id: orgId,
+    origin,
+    envelope_hash: evaluation.envelopeHash,
+    adapter_manifest_hashes: adapterManifestHashes,
+    agent_digests: evaluation.composed?.agentDigests ?? {},
+    scaffold_resolutions: evaluation.scaffoldResolutions,
+    factory_sha: factorySha,
+    iat: Math.floor(Date.now() / 1000),
+  };
+}
+
 export async function persistAdmission(
   orgId: string,
   origin: string,
   factorySha: string | null,
   evaluation: AdmissionEvaluation,
 ): Promise<void> {
+  let sealJws: string | null = null;
+  let sealedAt: Date | null = null;
+  if (evaluation.status === "admitted") {
+    if (signingConfigured()) {
+      const claims = buildSealClaims(orgId, origin, factorySha, evaluation);
+      sealJws = signFactoryJws("oap-admission-seal+jws", claims).jws;
+      sealedAt = new Date();
+    } else {
+      log.warn(
+        "factory admission admitted but UNSEALED — signing authority not " +
+          "configured (FR-014); the OPC engine refuses unsealed admissions " +
+          "fail-closed",
+        { orgId, origin },
+      );
+    }
+  }
   await db.insert(factoryAdmissions).values({
     orgId,
     origin,
@@ -594,11 +649,14 @@ export async function persistAdmission(
     violations: evaluation.violations,
     scaffoldResolutions: evaluation.scaffoldResolutions,
     factorySha,
+    sealJws,
+    sealedAt,
   });
   log.info("factory admission evaluated", {
     orgId,
     origin,
     status: evaluation.status,
+    sealed: sealJws !== null,
     violations: evaluation.violations.length,
   });
 }
@@ -608,6 +666,11 @@ export type AdmissionState = {
   violations: string[];
   scaffoldResolutions: Record<string, ScaffoldResolution>;
   envelopeHash: string | null;
+  /** FR-014 admission seal (compact JWS); null = unsealed. */
+  sealJws: string | null;
+  /** The composed admitted envelope (FR-004); the grant path sweeps its
+   * nodes against FR-010 revocations. */
+  composed: AdmissionEvaluation["composed"];
 };
 
 export async function loadLatestAdmission(
@@ -631,6 +694,8 @@ export async function loadLatestAdmission(
       violations: [],
       scaffoldResolutions: {},
       envelopeHash: null,
+      sealJws: null,
+      composed: null,
     };
   }
   const row = rows[0];
@@ -640,6 +705,8 @@ export async function loadLatestAdmission(
     scaffoldResolutions:
       (row.scaffoldResolutions as Record<string, ScaffoldResolution>) ?? {},
     envelopeHash: row.envelopeHash,
+    sealJws: row.sealJws,
+    composed: (row.composed as AdmissionEvaluation["composed"]) ?? null,
   };
 }
 
