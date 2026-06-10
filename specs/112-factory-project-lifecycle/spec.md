@@ -521,6 +521,7 @@ the code.
   `.artifacts/extracted/` (§5.2 step 5).
 - `scaffold_jobs` table replacing the Express app's in-memory map
   (concurrency-safe, multi-tenant, audit-traceable).
+- `opc://` deep-link on the success response (§5.4).
 
 **Scaffold-output invariant (amended 2026-06-09, template-encore
 cutover):** the tree operation 3 hands to operation 5 is **VCS-free** —
@@ -536,7 +537,6 @@ an embedded commit-less repository inside the project tree, and operation
 out` — the 2026-06-09 production create failure under the dual profile.
 The legacy single-profile case only worked by coincidence (the carried
 `.git` sat at the root, where operation 5's own `git init` reused it).
-- `opc://` deep-link on the success response (§5.4).
 
 **Net drops:**
 
