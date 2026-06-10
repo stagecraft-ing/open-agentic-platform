@@ -123,6 +123,20 @@ export interface OpcBundleCloneToken {
   expiresAt: string | null;
 }
 
+/**
+ * Spec 198 FR-014 — the standing admission for the org's factory origin,
+ * with the platform's admission seal (compact JWS, Ed25519, kid resolved
+ * against `/api/factory/.well-known/jwks.json`). The OPC engine verifies
+ * the seal before trusting any factory content in this bundle (ASI04 m1);
+ * a null `sealJws` is an unsealed admission and is refused fail-closed.
+ * Null `admission` means the bundle carries no admitted factory content.
+ */
+export interface OpcBundleAdmission {
+  origin: string;
+  envelopeHash: string | null;
+  sealJws: string | null;
+}
+
 export interface OpcBundleResponse {
   project: OpcBundleProject;
   repo: OpcBundleRepo | null;
@@ -132,6 +146,7 @@ export interface OpcBundleResponse {
   processes: OpcBundleProcess[];
   agents: OpcBundleAgent[];
   cloneToken: OpcBundleCloneToken | null;
+  admission: OpcBundleAdmission | null;
 }
 
 /**
@@ -151,6 +166,7 @@ export function buildOpcBundle(input: {
   processes: BundleProcessInput[];
   agents: BundleAgentInput[];
   cloneToken: OpcBundleCloneToken | null;
+  admission: OpcBundleAdmission | null;
 }): OpcBundleResponse {
   const repo = input.repo ? toBundleRepo(input.repo) : null;
   return {
@@ -172,6 +188,7 @@ export function buildOpcBundle(input: {
     processes: input.processes.map(toBundleProcess),
     agents: input.agents.map(toBundleAgent),
     cloneToken: input.cloneToken,
+    admission: input.admission,
   };
 }
 

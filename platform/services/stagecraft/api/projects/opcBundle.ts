@@ -38,11 +38,12 @@ import {
   listAdapterViews,
   manifestHasSchemaVersion,
 } from "../factory/adapterView";
-import { isFactoryAdmitted } from "../factory/admission";
+import { isFactoryAdmitted, loadLatestAdmission } from "../factory/admission";
 import {
   buildOpcBundle,
   type BundleContractInput,
   type BundleProcessInput,
+  type OpcBundleAdmission,
   type OpcBundleCloneToken,
   type OpcBundleResponse,
 } from "./opcBundleHelpers";
@@ -74,16 +75,23 @@ export const getProjectOpcBundle = api(
       throw APIError.notFound("project not found");
     }
 
-    const [primaryRepo, adapterRow, contractRows, processRows, agentRows] =
-      await Promise.all([
-        loadPrimaryRepo(project.id),
-        project.factoryAdapterId
-          ? loadAdapter(project.orgId, project.factoryAdapterId)
-          : Promise.resolve(null),
-        loadLatestContracts(project.orgId),
-        loadLatestProcesses(project.orgId),
-        loadPublishedAgents(project.id),
-      ]);
+    const [
+      primaryRepo,
+      adapterRow,
+      contractRows,
+      processRows,
+      agentRows,
+      admissionBlock,
+    ] = await Promise.all([
+      loadPrimaryRepo(project.id),
+      project.factoryAdapterId
+        ? loadAdapter(project.orgId, project.factoryAdapterId)
+        : Promise.resolve(null),
+      loadLatestContracts(project.orgId),
+      loadLatestProcesses(project.orgId),
+      loadPublishedAgents(project.id),
+      loadAdmissionBlock(project.orgId),
+    ]);
 
     const cloneToken = await resolveCloneTokenForBundle({
       orgId: project.orgId,
@@ -106,9 +114,31 @@ export const getProjectOpcBundle = api(
       processes: processRows,
       agents: agentRows,
       cloneToken,
+      admission: admissionBlock,
     });
   }
 );
+
+// Spec 198 FR-014 — the standing admission + platform seal for the org's
+// factory origin. The OPC engine verifies the seal against the published
+// JWKS before trusting any factory content in this bundle; an unsealed
+// admission (sealJws null) is refused engine-side, fail-closed. Returns
+// null when no factory origin is configured or the factory is not
+// admitted (its content is already excluded above).
+async function loadAdmissionBlock(
+  orgId: string,
+): Promise<OpcBundleAdmission | null> {
+  const substrate = await loadSubstrateForOrg(orgId);
+  if (!substrate.factoryOriginId) return null;
+  const verdict = await isFactoryAdmitted(orgId, substrate.factoryOriginId);
+  if (!verdict.admitted) return null;
+  const state = await loadLatestAdmission(orgId, substrate.factoryOriginId);
+  return {
+    origin: substrate.factoryOriginId,
+    envelopeHash: state.envelopeHash,
+    sealJws: state.sealJws,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Spec 112 §6.3 — lightweight deep-link sibling of getProjectOpcBundle
@@ -178,6 +208,7 @@ export const getProjectOpcDeepLink = api(
       processes: [],
       agents: [],
       cloneToken: null,
+      admission: null,
     });
 
     return {

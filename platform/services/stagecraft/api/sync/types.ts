@@ -86,6 +86,36 @@ export const FACTORY_RUN_ENVELOPE_VERSION = 1 as const;
 export type FactoryRunEnvelopeVersion = typeof FACTORY_RUN_ENVELOPE_VERSION;
 
 /**
+ * Spec 198 FR-005/FR-014 — per-event-kind contract version for the
+ * run-grant envelope family (`factory.run.grant_request`, `.grant_renew`,
+ * `.grant`, `.certificate_countersign`). Independent of
+ * `FACTORY_RUN_ENVELOPE_VERSION` (the run lifecycle family is locked at 1;
+ * grants are a new family, not a lifecycle payload change). The desktop
+ * mirror constant in `apps/opc/src-tauri/src/commands/sync_client.rs` MUST
+ * equal this value.
+ */
+export const FACTORY_RUN_GRANT_ENVELOPE_VERSION = 1 as const;
+export type FactoryRunGrantEnvelopeVersion =
+  typeof FACTORY_RUN_GRANT_ENVELOPE_VERSION;
+
+/**
+ * Spec 198 FR-005 — attributable refusal reasons for run-grant issuance and
+ * renewal. Every refusal is persisted (`factory_run_grants.status='refused'`)
+ * — goal-shift and revocation refusals are governance evidence (ASI01 m4/m7),
+ * not transient errors.
+ */
+export type RunGrantRefusalReason =
+  | "unknown-run"
+  | "not-admitted"
+  | "envelope-mismatch"
+  | "revoked"
+  | "goal-shift"
+  | "capsule-mismatch"
+  | "seq-conflict"
+  | "signing-unconfigured"
+  | "malformed";
+
+/**
  * Spec 124 §3 — projection of spec-123 `ResolvedAgent` (carried inline in
  * `factory.run.stage_started` envelopes and persisted under
  * `factory_runs.source_shas.agents[]`). Field names MUST stay aligned with
@@ -171,6 +201,8 @@ export type ClientEnvelope =
   | ClientFactoryRunCompleted
   | ClientFactoryRunFailed
   | ClientFactoryRunCancelled
+  | ClientFactoryRunGrantRequest
+  | ClientFactoryRunGrantRenew
   | ClientAgentCatalogFetchRequest
   | ClientAck
   | ClientResyncRequest
@@ -355,6 +387,16 @@ export interface ClientFactoryRunCompleted {
     total: number;
   };
   completedAt: string;
+  /**
+   * Spec 198 FR-014 — self-hash of the locally-emitted governance
+   * certificate. When present (and a grant chain exists for the run),
+   * stagecraft verifies the chain it issued and replies with a targeted
+   * `factory.run.certificate_countersign`. Absent on ungoverned/legacy
+   * runs — the certificate then stays visibly unsealed.
+   */
+  certificateSha256?: string;
+  /** Final grant sequence the engine holds (the chain length - 1). */
+  seq?: number;
 }
 
 /**
@@ -382,6 +424,53 @@ export interface ClientFactoryRunCancelled {
   /** Optional reason recorded in audit; not required by spec. */
   reason?: string;
   completedAt: string;
+}
+
+/**
+ * Spec 198 FR-005 — run-grant issuance request (the intent capsule, filed).
+ * The engine submits the capsule content before stage s0; stagecraft
+ * validates it against the standing admission + revocations and replies
+ * with a targeted `factory.run.grant`. A run that cannot obtain a grant
+ * does not start governed execution (fail-closed engine-side).
+ */
+export interface ClientFactoryRunGrantRequest {
+  kind: "factory.run.grant_request";
+  meta: EnvelopeMeta;
+  runId: string;
+  projectId?: string;
+  /** Stable goal identifier (ASI01 m7) — re-presented verbatim at renewal. */
+  goalId: string;
+  /** Declared goal, plain language; recorded for audit. */
+  goal: string;
+  constraints?: string[];
+  /** sha-256 over the engine's canonical capsule serialization. */
+  capsuleHash: string;
+  /** The admitted envelope hash from the bundle's admission block. */
+  envelopeHash: string;
+  /** sha-256 of the frozen Build Spec; optional pre-freeze (s0/s1). */
+  buildSpecHash?: string;
+}
+
+/**
+ * Spec 198 FR-005 — grant renewal at a stage boundary ("signed per
+ * execution cycle", ASI01 m5). Re-presents the goal id + capsule hash; a
+ * goal shift or an intervening revocation refuses renewal and pauses the
+ * run. `seq` increments monotonically from the issuance grant (seq 0).
+ */
+export interface ClientFactoryRunGrantRenew {
+  kind: "factory.run.grant_renew";
+  meta: EnvelopeMeta;
+  runId: string;
+  goalId: string;
+  capsuleHash: string;
+  seq: number;
+  /** Stage boundary being entered (audit context only — OAP does not
+   *  model run topology, P-2). */
+  stageId?: string;
+  /** Frozen Build-Spec hash, presented from the freeze boundary onward.
+   *  First presentation records it on the chain; a later change refuses
+   *  with `capsule-mismatch` (the freeze is one-way). */
+  buildSpecHash?: string;
 }
 
 /**
@@ -444,6 +533,8 @@ export type ServerEnvelope =
   | ServerProjectUpdated
   | ServerFactoryEvent
   | ServerFactoryRunRequest
+  | ServerFactoryRunGrant
+  | ServerFactoryRunCertificateCountersign
   | ServerAgentCatalogUpdated
   | ServerAgentCatalogSnapshot
   | ServerProjectAgentBindingUpdated
@@ -455,6 +546,45 @@ export type ServerEnvelope =
   | ServerResyncRequired
   | ServerHeartbeat
   | ServerHello;
+
+/**
+ * Spec 198 FR-005 — targeted reply to `factory.run.grant_request` /
+ * `.grant_renew`. `granted: false` carries the attributable refusal; the
+ * engine pauses the run and surfaces it (never proceeds unsigned).
+ */
+export interface ServerFactoryRunGrant {
+  kind: "factory.run.grant";
+  meta: ServerMeta;
+  runId: string;
+  granted: boolean;
+  seq?: number;
+  /** Compact JWS (`typ: oap-run-grant+jwt`), kid resolved via JWKS. */
+  grantJws?: string;
+  kid?: string;
+  expiresAt?: string;
+  refusedReason?: RunGrantRefusalReason;
+  detail?: string;
+}
+
+/**
+ * Spec 198 FR-014 — targeted reply after `factory.run.completed` carries a
+ * `certificateSha256`: stagecraft verified the engine's chain against the
+ * grant sequence it issued and countersigned the certificate. The engine
+ * patches `platform_countersign` into the persisted
+ * `governance-certificate.json`. `countersigned: false` is attributable
+ * (chain mismatch / no grant chain / signing unconfigured) — the
+ * certificate then stays visibly unsealed.
+ */
+export interface ServerFactoryRunCertificateCountersign {
+  kind: "factory.run.certificate_countersign";
+  meta: ServerMeta;
+  runId: string;
+  countersigned: boolean;
+  /** Compact JWS (`typ: oap-cert-countersign+jws`). */
+  countersignJws?: string;
+  kid?: string;
+  refusedReason?: string;
+}
 
 export interface ServerMeta extends EnvelopeMeta {
   /**
@@ -834,6 +964,8 @@ export interface ClientEnvelopeWire {
     | "factory.run.completed"
     | "factory.run.failed"
     | "factory.run.cancelled"
+    | "factory.run.grant_request"
+    | "factory.run.grant_renew"
     | "agent.catalog.fetch_request"
     | "sync.ack"
     | "sync.resync_request"
@@ -895,6 +1027,17 @@ export interface ClientEnvelopeWire {
     output: number;
     total: number;
   };
+  // spec 198 FR-005/FR-014 — factory.run.grant_request / .grant_renew /
+  // .completed countersign fields. `seq` is shared by renew (next sequence)
+  // and completed (final sequence held).
+  goalId?: string;
+  goal?: string;
+  constraints?: string[];
+  capsuleHash?: string;
+  envelopeHash?: string;
+  buildSpecHash?: string;
+  seq?: number;
+  certificateSha256?: string;
 }
 
 /** Flat counterpart of {@link ServerEnvelope} for the Encore stream boundary. */
@@ -906,6 +1049,8 @@ export interface ServerEnvelopeWire {
     | "project.updated"
     | "factory.event"
     | "factory.run.request"
+    | "factory.run.grant"
+    | "factory.run.certificate_countersign"
     | "agent.catalog.updated"
     | "agent.catalog.snapshot"
     | "project.agent_binding.updated"
@@ -1012,6 +1157,17 @@ export interface ServerEnvelopeWire {
   // Count of catalog upserts in the just-finished handshake snapshot pass;
   // `generatedAt` above is the timestamp.
   entryCount?: number;
+  // spec 198 FR-005/FR-014 — factory.run.grant / .certificate_countersign
+  // fields (targeted replies to the grant family).
+  runId?: string;
+  granted?: boolean;
+  seq?: number;
+  grantJws?: string;
+  kid?: string;
+  expiresAt?: string;
+  refusedReason?: RunGrantRefusalReason | string;
+  countersigned?: boolean;
+  countersignJws?: string;
 }
 
 // Compile-time assignability gates: every variant must fit the wire shape.
@@ -1033,6 +1189,8 @@ const CLIENT_KINDS: ReadonlySet<ClientEnvelopeKind> = new Set<ClientEnvelopeKind
   "factory.run.completed",
   "factory.run.failed",
   "factory.run.cancelled",
+  "factory.run.grant_request",
+  "factory.run.grant_renew",
   "agent.catalog.fetch_request",
   "sync.ack",
   "sync.resync_request",

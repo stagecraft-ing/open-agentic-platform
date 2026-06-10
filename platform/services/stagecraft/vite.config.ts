@@ -51,7 +51,14 @@ export default defineConfig({
   test: {
     // Integration tests that require Encore service infrastructure
     // (databases, service-to-service calls) must run via `encore test`.
-    exclude: [
+    // The DB-bound list below is excluded only under bare vitest
+    // (npm test / CI); `encore test` sets ENCORE_RUNTIME_LIB and provides
+    // the live infra these suites document as their posture. Before this
+    // became conditional the list applied unconditionally, which made the
+    // DB-bound suites unrunnable even under `encore test`.
+    exclude: hasEncoreRuntime
+      ? ["**/node_modules/**", "**/dist/**", "**/check.test.ts"]
+      : [
       "**/node_modules/**",
       "**/dist/**",
       "**/check.test.ts",
@@ -109,6 +116,10 @@ export default defineConfig({
       // Spec 140 Phase 2 — scaffold scheduler resolver test queries the
       // live `factory_upstreams` table.
       "**/projects/scaffold/scheduler.test.ts",
+      // Spec 198 phase 4 — run-grant + countersign handler tests mutate
+      // `factory_run_grants` / `factory_admissions` / `factory_runs`;
+      // live DB, signing via throwaway env-injected keypair.
+      "**/factory/grantDuplexHandlers.test.ts",
     ],
   },
 });

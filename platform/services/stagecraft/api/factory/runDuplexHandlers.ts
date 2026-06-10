@@ -72,7 +72,7 @@ interface HandlerCtx {
  * exists in another org" from "row does not exist". Returning a uniform
  * `org_mismatch` for any non-owned row is simpler and tighter.
  */
-async function loadOwnedRun(
+export async function loadOwnedRun(
   runId: string,
   orgId: string,
 ): Promise<
@@ -348,6 +348,10 @@ export async function handleRunCompleted(
         completedAt: new Date(evt.completedAt),
         tokenSpend,
         lastEventAt: new Date(),
+        // Spec 198 FR-014 — the engine-reported certificate self-hash. The
+        // countersign flow (grantDuplexHandlers.countersignRunCertificate)
+        // verifies the grant chain and stamps `countersigned_at`.
+        certificateSha256: evt.certificateSha256 ?? null,
         // Clear any prior `error` if a previous failed→retry sequence had
         // populated it. (Out of scope for v1 but cheap to be defensive.)
         error: null,

@@ -971,9 +971,40 @@ export const factoryAdmissions = pgTable("factory_admissions", {
   // resolved at admission time.
   scaffoldResolutions: jsonb("scaffold_resolutions").notNull().default({}),
   factorySha: text("factory_sha"),
+  // Spec 198 FR-014 — admission seal: platform compact-JWS over the admitted
+  // composition's content-addressed constituents. NULL = unsealed (pre-seal
+  // row or unconfigured signing authority); the OPC engine refuses unsealed
+  // admissions fail-closed (PD-5; a re-sync re-admits with a seal).
+  sealJws: text("seal_jws"),
+  sealedAt: timestamp("sealed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+});
+
+// Spec 198 FR-005 — run-grants: the signed intent capsule, issued at run
+// start (seq 0) and renewed at every stage boundary. Refusals are recorded
+// with a reason (goal-shift / revocation refusals are attributable
+// evidence, ASI01 m4/m7). The issued sequence is what the emission
+// countersign reconciles against (FR-014).
+export const factoryRunGrants = pgTable("factory_run_grants", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull(),
+  runId: uuid("run_id").notNull(),
+  projectId: uuid("project_id"),
+  goalId: text("goal_id").notNull(),
+  capsuleHash: text("capsule_hash").notNull(),
+  envelopeHash: text("envelope_hash").notNull(),
+  buildSpecHash: text("build_spec_hash"),
+  seq: integer("seq").notNull(),
+  status: text("status").$type<"issued" | "refused">().notNull(),
+  refusedReason: text("refused_reason"),
+  grantJws: text("grant_jws"),
+  kid: text("kid"),
+  issuedAt: timestamp("issued_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
 });
 
 // Spec 198 FR-010 — revocations keyed on the admission graph. org_id NULL
@@ -1124,6 +1155,11 @@ export const factoryRuns = pgTable(
       .notNull()
       .defaultNow(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
+    // Spec 198 FR-014 — emission countersign evidence: the certificate hash
+    // the engine reported at completion and when the platform countersigned
+    // it (NULL until the run completes and the chain reconciles).
+    certificateSha256: text("certificate_sha256"),
+    countersignedAt: timestamp("countersigned_at", { withTimezone: true }),
     /** Refreshed on every duplex event for the row; drives the staleness
      *  sweeper (T061). */
     lastEventAt: timestamp("last_event_at", { withTimezone: true })

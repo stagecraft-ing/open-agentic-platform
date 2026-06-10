@@ -52,6 +52,11 @@ import {
   handleRunCancelled,
   type RunHandlerResult,
 } from "../factory/runDuplexHandlers";
+import {
+  countersignRunCertificate,
+  handleGrantRenew,
+  handleGrantRequest,
+} from "../factory/grantDuplexHandlers";
 
 // ---------------------------------------------------------------------------
 // Inbound path
@@ -120,6 +125,16 @@ export async function handleInbound(
     evt.kind === "factory.run.cancelled"
   ) {
     return runDispatch(ctx, evt);
+  }
+
+  // Spec 198 FR-005 — run-grant issuance/renewal. The handler validates the
+  // capsule against the standing admission + FR-010 revocations and returns
+  // a targeted `factory.run.grant` reply (granted or attributably refused).
+  if (
+    evt.kind === "factory.run.grant_request" ||
+    evt.kind === "factory.run.grant_renew"
+  ) {
+    return grantDispatch(ctx, evt);
   }
 
   // For all other kinds, persist + log + audit where appropriate.
@@ -281,6 +296,51 @@ export async function sendTargetedServerEvent(
 }
 
 // ---------------------------------------------------------------------------
+// Spec 198 FR-005 — factory.run.grant_request / grant_renew dispatch
+// ---------------------------------------------------------------------------
+
+async function grantDispatch(
+  ctx: InboundContext,
+  evt: ClientEnvelope,
+): Promise<InboundResult> {
+  try {
+    const handlerCtx = { orgId: ctx.orgId, userId: ctx.userId };
+    const outcome =
+      evt.kind === "factory.run.grant_request"
+        ? await handleGrantRequest(evt, handlerCtx)
+        : evt.kind === "factory.run.grant_renew"
+          ? await handleGrantRenew(evt, handlerCtx)
+          : null;
+    if (!outcome) {
+      return { ok: false, reason: "invalid", detail: "unknown grant event" };
+    }
+    if (outcome.reply) {
+      await sendTargetedServerEvent(ctx.orgId, ctx.clientId, outcome.reply, {
+        correlationId: evt.meta.eventId,
+      });
+    }
+    if (!outcome.result.ok) {
+      log.warn("sync: factory.run grant handler rejected", {
+        orgId: ctx.orgId,
+        clientId: ctx.clientId,
+        kind: evt.kind,
+        reason: outcome.result.reason,
+        detail: outcome.result.detail,
+      });
+    }
+    return outcome.result;
+  } catch (err) {
+    log.error("sync: factory.run grant handler failed", {
+      orgId: ctx.orgId,
+      clientId: ctx.clientId,
+      kind: evt.kind,
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return { ok: false, reason: "internal_error" };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Agent catalog fetch request (spec 111 §2.3, amended by spec 119)
 // ---------------------------------------------------------------------------
 
@@ -383,6 +443,22 @@ async function runDispatch(
           orgId: ctx.orgId,
           userId: ctx.userId,
         });
+        // Spec 198 FR-014 — when the completion reports a certificate hash,
+        // verify the issued grant chain and countersign. The reply is
+        // targeted (the engine patches the persisted certificate); a
+        // refusal reply is still sent so an unsealed certificate is
+        // attributable, never silent.
+        if (result.ok) {
+          const countersign = await countersignRunCertificate(evt, {
+            orgId: ctx.orgId,
+            userId: ctx.userId,
+          });
+          if (countersign) {
+            await sendTargetedServerEvent(ctx.orgId, ctx.clientId, countersign, {
+              correlationId: evt.meta.eventId,
+            });
+          }
+        }
         break;
       case "factory.run.failed":
         result = await handleRunFailed(evt, {
