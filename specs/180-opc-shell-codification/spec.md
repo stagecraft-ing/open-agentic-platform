@@ -488,6 +488,34 @@ split is similarly amendable.
 > cached `main` baseline (now feeding only the `workflow_dispatch` manual
 > diagnostic); the nightly N=2000 trend is unchanged.
 
+> *Amended 2026-06-10 (merge_group path guard + stub idempotence).* The
+> same-runner baseline cancelled **inter-runner** variance but not
+> **intra-runner temporal drift**: merge-queue run 27305255507 (PR #317)
+> flagged +28.2% (CI [+21.2%, +35.9%], p = 0.00) on a diff with **zero
+> files under the benched path** — base and head opc sources were
+> byte-identical, so the delta could not be a code regression. Two
+> amplifiers made this class of false positive structural. (1) Under
+> spec 188 Phase 2, `merge_group` forces every route output in `ci.yml`
+> to `true` (a merge group has no PR base to diff at the route layer),
+> so the gate runs on every queue entry — including diffs the §5.3
+> pull_request path filter would have skipped. (2) The job's stub
+> re-assertion rewrote the dist stub and `touch`ed the sidecar stub
+> after each checkout, bumping their mtimes and invalidating cargo's
+> fingerprint (`include_str!` dep-info + tauri-build's externalBin
+> tracking) — forcing an unnecessary multi-minute opc recompile between
+> the base and head measurements, which widened the time gap and changed
+> machine state right before the head run. Per this FR's amendability
+> clause, the job now (a) **recomputes the §5.3 path filter in-job**
+> against the merge-group base (`git diff --quiet base..head --
+> product/apps/opc/src-tauri .github/workflows/ci-opc-bench.yml`) and
+> skips the measurement entirely when the diff cannot affect the benched
+> code — restoring on `merge_group` exactly the filter `ci.yml` applies
+> on `pull_request`; and (b) asserts the stubs **idempotently** (write
+> only if missing) so an unchanged opc tree reuses the build cache. The
+> threshold (+25%), the relative-only discipline (**FR-T10**), and the
+> gate's semantics for opc-touching diffs are unchanged — a diff that
+> touches the benched path is still measured and gated same-runner.
+
 **FR-T10 (no Tier 3 leak).** The Tier 2 gate MUST NOT assert any
 absolute latency value. It is strictly a relative-delta comparison
 against the saved baseline. Inserting an absolute threshold into the
@@ -524,7 +552,11 @@ MUST be wired as a `workflow_call:` reusable workflow dispatched from
 new top-level workflow that registers separately with branch
 protection. The gate's failure composes into `ci-gate` via the
 standard `needs:` + `if: always()` aggregator pattern spec 177 §2.4
-specifies.
+specifies. On `merge_group`, where the route layer cannot compute that
+filter (spec 188 Phase 2 forces all route outputs `true`), the bench
+job recomputes the same filter in-job against the merge-group base and
+skips the measurement when nothing benched changed (FR-T9 amendment,
+2026-06-10).
 
 ### 5.4 Section 6 — Operational ownership
 

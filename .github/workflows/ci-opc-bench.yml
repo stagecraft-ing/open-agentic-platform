@@ -12,6 +12,10 @@
 #       (FR-T9, amended 2026-06-06). Same-runner cancels the macos-latest fleet's
 #       ±~80% inter-runner I/O variance, which dwarfed the +25% threshold under
 #       the old cross-runner cached baseline and produced spurious regressions.
+#       An in-job path guard (FR-T9, amended 2026-06-10) skips the measurement
+#       when base..head touches neither product/apps/opc/src-tauri/** nor this
+#       workflow — merge_group forces all route outputs true (spec 188 Phase 2),
+#       so this re-applies the pull_request route filter inside the queue.
 #   push (to main, via ci.yml) → BASELINE: N=200, --save-baseline main, cache it
 #       (informational / feeds the workflow_dispatch diagnostic). Non-gating.
 #   workflow_dispatch          → manual diagnostic: compare to the cached `main`
@@ -122,12 +126,22 @@ jobs:
 
           # Tauri build.rs + web_server's include_str! need these stubs on every
           # checked-out tree; re-assert after each git checkout in same-runner mode.
+          # Idempotent on purpose (FR-T9 amendment 2026-06-10): the stubs are
+          # untracked, so checkouts never touch them — but rewriting/touching
+          # them here bumps their mtimes and invalidates cargo's fingerprint
+          # (include_str! dep-info + tauri-build's externalBin tracking),
+          # forcing a multi-minute opc recompile between the base and head
+          # measurements even when no opc source changed.
           ensure_stubs() {
-            mkdir -p product/apps/opc/dist
-            echo '<!doctype html><html><body>stub</body></html>' > product/apps/opc/dist/index.html
-            mkdir -p product/apps/opc/src-tauri/binaries
-            touch product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin
-            chmod +x product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin
+            if [ ! -f product/apps/opc/dist/index.html ]; then
+              mkdir -p product/apps/opc/dist
+              echo '<!doctype html><html><body>stub</body></html>' > product/apps/opc/dist/index.html
+            fi
+            if [ ! -f product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin ]; then
+              mkdir -p product/apps/opc/src-tauri/binaries
+              touch product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin
+              chmod +x product/apps/opc/src-tauri/binaries/axiomregent-aarch64-apple-darwin
+            fi
           }
 
           if [ "$MODE" = "samerunner" ]; then
@@ -148,6 +162,24 @@ jobs:
               exit 1
             fi
             echo "same-runner: base=$BASE_SHA head=$HEAD_SHA"
+
+            # In-job path guard (FR-T9 amendment 2026-06-10). On merge_group
+            # the route paths-filter in ci.yml cannot diff (no PR base at the
+            # route layer — spec 188 Phase 2 forces every route output true),
+            # so every queue entry reaches this job, including diffs that touch
+            # nothing the bench can measure. A ~7 ms I/O-bound microbench
+            # retains intra-runner temporal variance (proven: +28.2% on a
+            # zero-opc diff, run 27305255507), so gating unrelated diffs is a
+            # pure false-positive vector. Recompute the same filter ci.yml
+            # applies on pull_request; skip the measurement when the diff
+            # cannot affect the benched code.
+            if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+                 product/apps/opc/src-tauri .github/workflows/ci-opc-bench.yml; then
+              echo "::notice::same-runner gate skipped: base..head touches neither product/apps/opc/src-tauri/** nor ci-opc-bench.yml (mirrors the pull_request route filter, which merge_group cannot compute at the route layer)."
+              { echo "### OPC usage bench — $BENCH_ID"
+                echo "Skipped: diff touches no benched path (same filter ci.yml applies on pull_request)."; } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
 
             # 1) Base measurement on this runner → criterion baseline.
             git checkout --quiet --detach "$BASE_SHA"
