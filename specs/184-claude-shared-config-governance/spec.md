@@ -410,6 +410,69 @@ narrowing pass (Bash patterns got the attention; file-tool
 patterns were left for a follow-up). Spec 184 records the
 posture; future specs revisit it.
 
+## Baseline evolution record
+
+First and subsequent content evolutions of the governed files
+under spec 184's authority are recorded here, dated. Each entry
+is the reviewer-facing intent declaration AC-7 calls for: the
+hash gate proves the edit happened; this record declares its
+direction.
+
+### 2026-06-10 — hooks rework: guard-glob broadened, automation layers added
+
+First content edit to `.claude/settings.json` since the
+baseline was taken at the spec-184 landing PR (#247; the
+baseline content itself dated from #234, which pre-dated
+this spec's authority). `.mcp.json` is untouched. Direction
+judgment per AC-7: **broadened**, on two axes.
+
+1. **Guard glob broadened.** The PostToolUse staleness-check
+   glob now includes `.claude/settings.json` and `.mcp.json`
+   themselves — the in-file guard previously enumerated every
+   hashed input *except* the two files this spec governs. The
+   prompt-time guard now matches the PR-time `ci-config-hash`
+   surface instead of lagging it.
+2. **Automation layers added** (no existing guard removed or
+   narrowed):
+   - **SessionStart** — recompiles the spec registry on every
+     session start, resume, and clear, and reports index
+     freshness into session context. The registry is a
+     gitignored cache; spec 103 FR-06 already mandates this
+     recompile at `/init` — the hook extends the same
+     guarantee to sessions where `/init` is not run.
+   - **PreToolUse pr-gate** — on `gh pr create`, runs
+     `make pr-prep`; blocks on a coupling failure unless a
+     `Spec-Drift-Waiver` is inline in the PR body at creation,
+     and blocks when pr-prep regenerates
+     `.derived/codebase-index/` uncommitted (a broader local
+     mirror: uncommitted drift anywhere in that directory's
+     tracked files, which includes the `config-hash.json`
+     slice that `ci-config-hash` gates).
+   - **PreToolUse golden-prep** — commands containing
+     `UPDATE_GOLDEN` get a registry recompile first (a stale
+     registry yields silently-wrong goldens).
+   - **PostToolUse** — edits to `specs/*/spec.md` trigger an
+     immediate registry recompile, followed by the
+     pre-existing index staleness check; the staleness check
+     alone fires for every other hashed input (manifests,
+     workflows, `.claude/**`, schemas).
+   - **Stop** — upgraded from staleness *warning* to
+     auto-heal via `make index` (write path goes through
+     make so a stale indexer binary cannot write a poisoned
+     hash; skipped during any active rebase, merge, or
+     cherry-pick — the hook stays out of in-progress git
+     operations entirely, and `index.json` conflicts
+     specifically are owned by the spec-188 merge driver).
+
+   Companion judgment layer: the `/ship` skill
+   (`.claude/skills/ship/SKILL.md`, currently unclaimed by
+   any spec) sequences gate → review → commit → PR so the
+   hooks act as the deterministic net, not the workflow.
+
+The known-gaps list above (file-tool wildcards, `mcp__*`,
+`Agent(*)`) is unchanged by this edit and remains the
+accepted posture pending follow-up specs.
+
 ## Follow-up tooling (not in this spec)
 
 Two pieces of tooling are out of scope but worth naming so

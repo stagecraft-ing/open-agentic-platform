@@ -135,13 +135,39 @@
     "defaultMode": "acceptEdits"
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; sc=./tools/spec-spine/spec-compiler/target/release/spec-compiler; ci=./tools/spec-spine/codebase-indexer/target/release/codebase-indexer; if [ -x \"$sc\" ]; then \"$sc\" compile >/dev/null 2>&1 && reg='recompiled fresh' || reg='compile FAILED — run make spec-compile'; else reg='compiler unbuilt — run make setup'; fi; if [ -x \"$ci\" ]; then \"$ci\" check >/dev/null 2>&1 && idx='fresh' || idx='STALE — run make index'; else idx='indexer unbuilt — run make setup'; fi; echo \"[session-freshness] spec registry: $reg; codebase index: $idx\"; true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v jq >/dev/null 2>&1 || exit 0; cmd=$(jq -r '.tool_input.command // empty' 2>/dev/null); case \"$cmd\" in \"gh pr create\"*|*\"&& gh pr create\"*|*\"; gh pr create\"*) ;; *) exit 0 ;; esac; cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; out=$(make pr-prep 2>&1); ec=$?; if [ $ec -ne 0 ]; then case \"$cmd\" in *Spec-Drift-Waiver*) echo '[pr-gate] coupling gate failed; Spec-Drift-Waiver present in the PR body — allowing (CI honours the body-at-creation waiver).' ;; *) { echo '[pr-gate] BLOCKED — make pr-prep failed and no Spec-Drift-Waiver in the PR body:'; echo \"$out\" | tail -25; echo '[pr-gate] Either fix the coupling (edit the owning spec.md so the relationship graph covers the changed paths), or — with explicit user approval — include the Spec-Drift-Waiver block inline in --body (not --body-file; it must be present at creation) and retry.'; } >&2; exit 2 ;; esac; fi; if ! git diff --quiet -- .derived/codebase-index/ 2>/dev/null; then { echo '[pr-gate] BLOCKED — pr-prep regenerated .derived/codebase-index/ and the result is uncommitted.'; echo '[pr-gate] Run: git add .derived/codebase-index/ then amend or commit, push, and retry.'; } >&2; exit 2; fi; true"
+          },
+          {
+            "type": "command",
+            "command": "command -v jq >/dev/null 2>&1 || exit 0; cmd=$(jq -r '.tool_input.command // empty' 2>/dev/null); case \"$cmd\" in *UPDATE_GOLDEN*) cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; sc=./tools/spec-spine/spec-compiler/target/release/spec-compiler; [ -x \"$sc\" ] && \"$sc\" compile >/dev/null 2>&1 && echo '[golden-prep] spec registry recompiled before golden update — a stale registry yields silently-wrong goldens that pass locally but fail CI' ;; esac; true"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "command -v jq >/dev/null 2>&1 || { echo '[hook] jq missing — staleness check skipped'; exit 0; }; fp=$(jq -r '.tool_input.file_path // empty' 2>/dev/null); case \"$fp\" in */Cargo.toml|*/package.json|*/pnpm-workspace.yaml|*/specs/*/spec.md|*/.claude/agents/*.md|*/.claude/commands/*.md|*/.claude/rules/*.md|*/.claude/skills/*/*.md|*/.claude/skills/*/*/*.md|*/.github/workflows/*.yml|*/.github/workflows/*.yaml|*/standards/schemas/*) [ -x ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer ] && ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check 2>&1 | tail -5 ;; esac; true"
+            "command": "command -v jq >/dev/null 2>&1 || { echo '[hook] jq missing — staleness check skipped'; exit 0; }; fp=$(jq -r '.tool_input.file_path // empty' 2>/dev/null); cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; case \"$fp\" in */specs/*/spec.md) sc=./tools/spec-spine/spec-compiler/target/release/spec-compiler; [ -x \"$sc\" ] && \"$sc\" compile >/dev/null 2>&1 && echo '[spec-registry] recompiled after spec edit' ;; esac; case \"$fp\" in */Cargo.toml|*/package.json|*/pnpm-workspace.yaml|*/specs/*/spec.md|*/.claude/settings.json|*/.mcp.json|*/.claude/agents/*.md|*/.claude/commands/*.md|*/.claude/rules/*.md|*/.claude/skills/*/*.md|*/.claude/skills/*/*/*.md|*/.github/workflows/*.yml|*/.github/workflows/*.yaml|*/standards/schemas/*) [ -x ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer ] && ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check 2>&1 | tail -5 ;; esac; true"
           }
         ]
       }
@@ -152,7 +178,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -x ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer ]; then out=$(./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check 2>&1); ec=$?; if [ $ec -ne 0 ]; then echo \"[codebase-index] stale - run: make index\"; echo \"$out\" | tail -10; fi; fi; true"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; ci=./tools/spec-spine/codebase-indexer/target/release/codebase-indexer; [ -x \"$ci\" ] || exit 0; \"$ci\" check >/dev/null 2>&1 && exit 0; if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ] || [ -f .git/MERGE_HEAD ] || [ -f .git/CHERRY_PICK_HEAD ]; then echo '[codebase-index] stale, but rebase/merge in progress — left untouched (the oap-index-regen merge driver owns conflicts); run make index afterwards'; exit 0; fi; out=$(make index 2>&1); if [ $? -eq 0 ]; then echo '[codebase-index] was stale — auto-regenerated via make index; review git diff .derived/codebase-index/ and include it in your commit (amend if you just committed)'; else echo '[codebase-index] stale and make index FAILED:'; echo \"$out\" | tail -10; fi; true"
           }
         ]
       }
