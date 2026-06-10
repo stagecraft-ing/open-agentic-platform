@@ -37,7 +37,14 @@ use std::path::Path;
 /// the hash check is no longer the authoritative provenance check after
 /// that point, but it remains as a content fingerprint inside the signed
 /// payload.
-pub const CERTIFICATE_VERSION: &str = "1.3.0";
+///
+/// 1.4.0 (spec 198 FR-005/FR-009/FR-014) added the admission-binding
+/// fields — `admittedEnvelopeHash`, `goalId`, `intentCapsuleHash`, all
+/// inside the hash + signature (bound at emission) — and the
+/// post-emission `platformCountersign`, which is EXCLUDED from both the
+/// self-hash and the engine signature (zeroed before canonicalisation)
+/// so platform sealing on sync-back never invalidates the offline chain.
+pub const CERTIFICATE_VERSION: &str = "1.4.0";
 
 /// Environment-variable name carrying a base64-encoded 32-byte Ed25519 seed
 /// (FR-008.1). Operator-supplied keys outside the agent's write scope.
@@ -84,6 +91,22 @@ pub struct GovernanceCertificate {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inter_stage_chain: Option<InterStageChainRecord>,
 
+    /// Spec 198 FR-009 — hash of the admitted governance envelope this run
+    /// executed under. Inside the hash + signature (bound at emission), so
+    /// the certificate is reconcilable to its admission contract.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub admitted_envelope_hash: Option<String>,
+
+    /// Spec 198 FR-005 — stable goal identifier from the run's intent
+    /// capsule (ASI01 m7).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub goal_id: Option<String>,
+
+    /// Spec 198 FR-005/FR-009 — SHA-256 of the run's canonical intent
+    /// capsule, as presented at grant issuance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub intent_capsule_hash: Option<String>,
+
     /// SHA-256 of the canonical JSON of this certificate with `certificate_hash`
     /// AND `cert_signature` set to empty string. Content-binding fingerprint
     /// inside the signed payload — not the authoritative provenance check
@@ -106,6 +129,27 @@ pub struct GovernanceCertificate {
     /// Trust-posture descriptor for `signing_public_key`. Spec 102 FR-008.3.
     #[serde(default)]
     pub signing_attestation: SigningAttestation,
+
+    /// Spec 198 FR-014 — the platform countersign applied on sync-back,
+    /// after stagecraft verified the engine's chain against the run-grant
+    /// sequence it issued. EXCLUDED from `certificate_hash` and
+    /// `cert_signature` (zeroed before canonicalisation) so sealing never
+    /// invalidates the offline chain. `None` = verifiable-but-unsealed —
+    /// visibly so, never silently equivalent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub platform_countersign: Option<PlatformCountersign>,
+}
+
+/// Spec 198 FR-014 — the platform seal on an emitted certificate. The
+/// compact JWS (`typ: oap-cert-countersign+jws`) carries the claims
+/// (`certificate_sha256`, `run_id`, `grant_count`, `grant_chain_sha256`,
+/// `envelope_hash`, …); `kid` resolves against the platform JWKS.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PlatformCountersign {
+    pub countersign_jws: String,
+    pub kid: String,
+    pub countersigned_at: DateTime<Utc>,
 }
 
 /// Trust posture for the signing public key (spec 102 FR-008.3).
@@ -456,6 +500,9 @@ pub struct CertificateBuilder {
     compliance: Option<ComplianceRecord>,
     signer: Option<Signer>,
     inter_stage_chain: Option<InterStageChainRecord>,
+    admitted_envelope_hash: Option<String>,
+    goal_id: Option<String>,
+    intent_capsule_hash: Option<String>,
 }
 
 impl CertificateBuilder {
@@ -483,6 +530,9 @@ impl CertificateBuilder {
             compliance: None,
             signer: None,
             inter_stage_chain: None,
+            admitted_envelope_hash: None,
+            goal_id: None,
+            intent_capsule_hash: None,
         }
     }
 
@@ -535,6 +585,25 @@ impl CertificateBuilder {
         self
     }
 
+    /// Spec 198 FR-009 — bind the admitted envelope hash the run executed
+    /// under into the certificate (inside hash + signature).
+    pub fn admitted_envelope_hash(mut self, hash: impl Into<String>) -> Self {
+        self.admitted_envelope_hash = Some(hash.into());
+        self
+    }
+
+    /// Spec 198 FR-005 — bind the run's intent capsule (stable goal id +
+    /// canonical capsule hash) into the certificate.
+    pub fn intent_capsule(
+        mut self,
+        goal_id: impl Into<String>,
+        capsule_hash: impl Into<String>,
+    ) -> Self {
+        self.goal_id = Some(goal_id.into());
+        self.intent_capsule_hash = Some(capsule_hash.into());
+        self
+    }
+
     /// Fallible build path for tenant emission (spec 168 §FR-007).
     ///
     /// Returns [`CertificateBuildError::MissingSigner`] when no
@@ -581,10 +650,14 @@ impl CertificateBuilder {
             compliance: self.compliance,
             signer: self.signer,
             inter_stage_chain: self.inter_stage_chain,
+            admitted_envelope_hash: self.admitted_envelope_hash,
+            goal_id: self.goal_id,
+            intent_capsule_hash: self.intent_capsule_hash,
             certificate_hash: String::new(),
             signing_public_key: public_key_b64,
             cert_signature: String::new(),
             signing_attestation: attestation,
+            platform_countersign: None,
         };
 
         // FR-008 (revised): content-binding hash. Zeros cert_hash AND
@@ -671,6 +744,10 @@ pub fn compute_certificate_hash(cert: &GovernanceCertificate) -> String {
     let mut cert_for_hash = cert.clone();
     cert_for_hash.certificate_hash = String::new();
     cert_for_hash.cert_signature = String::new();
+    // Spec 198 FR-014 — the platform countersign is applied AFTER emission
+    // (sync-back patch); excluding it keeps the offline chain valid across
+    // sealing.
+    cert_for_hash.platform_countersign = None;
 
     // Canonical JSON: serde_json produces deterministic output for BTreeMap.
     // For Vec fields, order is preserved as inserted.
@@ -690,6 +767,9 @@ pub fn compute_certificate_hash(cert: &GovernanceCertificate) -> String {
 pub fn compute_certificate_signature(cert: &GovernanceCertificate, key: &SigningKey) -> String {
     let mut cert_for_sig = cert.clone();
     cert_for_sig.cert_signature = String::new();
+    // Spec 198 FR-014 — see compute_certificate_hash: the post-emission
+    // countersign is outside the engine signature too.
+    cert_for_sig.platform_countersign = None;
     let canonical =
         serde_json::to_string(&cert_for_sig).expect("certificate serialises to JSON for signing");
     let sig: Signature = key.sign(canonical.as_bytes());
@@ -725,6 +805,9 @@ fn verify_certificate_signature(cert: &GovernanceCertificate) -> Result<(), Stri
 
     let mut cert_for_sig = cert.clone();
     cert_for_sig.cert_signature = String::new();
+    // Spec 198 FR-014 — the countersign is patched in after signing;
+    // strip it so a sealed certificate's engine signature still verifies.
+    cert_for_sig.platform_countersign = None;
     let canonical = serde_json::to_string(&cert_for_sig)
         .map_err(|e| format!("certificate re-serialises to JSON for verification: {e}"))?;
 
@@ -924,6 +1007,58 @@ pub fn persist_certificate(cert: &GovernanceCertificate, output_dir: &Path) -> s
     std::fs::write(path, json)
 }
 
+/// Spec 198 FR-014 — patch the platform countersign into a persisted
+/// certificate on sync-back.
+///
+/// Verifies the countersign JWS against the platform JWKS (typ
+/// `oap-cert-countersign+jws`) and requires its claims to bind THIS
+/// certificate (`certificate_sha256` == the cert's self-hash, `run_id` ==
+/// the cert's pipeline run id) before writing. The patch does not touch
+/// `certificate_hash` / `cert_signature` — both exclude the countersign
+/// by construction, so the offline chain stays valid.
+pub fn apply_countersign(
+    certificate_path: &Path,
+    countersign_jws: &str,
+    jwks: &crate::platform_jws::PlatformJwks,
+) -> Result<(), String> {
+    let json = std::fs::read_to_string(certificate_path)
+        .map_err(|e| format!("cannot read {}: {e}", certificate_path.display()))?;
+    let mut cert: GovernanceCertificate =
+        serde_json::from_str(&json).map_err(|e| format!("invalid certificate JSON: {e}"))?;
+
+    let verified = crate::platform_jws::verify_compact_jws(
+        countersign_jws,
+        jwks,
+        crate::platform_jws::TYP_CERT_COUNTERSIGN,
+    )
+    .map_err(|e| format!("countersign rejected: {e}"))?;
+
+    let claimed_hash = verified.payload["certificate_sha256"].as_str().unwrap_or("");
+    if claimed_hash != cert.certificate_hash {
+        return Err(format!(
+            "countersign binds certificate hash {claimed_hash} but this certificate's hash is {}",
+            cert.certificate_hash
+        ));
+    }
+    let claimed_run = verified.payload["run_id"].as_str().unwrap_or("");
+    if claimed_run != cert.pipeline_run_id {
+        return Err(format!(
+            "countersign binds run {claimed_run} but this certificate is for run {}",
+            cert.pipeline_run_id
+        ));
+    }
+
+    cert.platform_countersign = Some(PlatformCountersign {
+        countersign_jws: countersign_jws.to_string(),
+        kid: verified.header.kid,
+        countersigned_at: Utc::now(),
+    });
+    let out =
+        serde_json::to_string_pretty(&cert).map_err(|e| format!("re-serialise failed: {e}"))?;
+    std::fs::write(certificate_path, out)
+        .map_err(|e| format!("cannot write {}: {e}", certificate_path.display()))
+}
+
 // ── Verification (FR-007) ────────────────────────────────────────────
 
 /// Result of certificate verification.
@@ -931,6 +1066,10 @@ pub fn persist_certificate(cert: &GovernanceCertificate, output_dir: &Path) -> s
 pub struct VerificationResult {
     pub valid: bool,
     pub errors: Vec<String>,
+    /// Non-fatal observations (spec 198 FR-014): e.g. the
+    /// "verifiable-but-unsealed" notice for a certificate with no platform
+    /// countersign — visible, never silently equivalent to sealed.
+    pub notices: Vec<String>,
 }
 
 /// Verify a governance certificate by re-deriving hashes and checking integrity.
@@ -1023,7 +1162,103 @@ pub fn verify_certificate(
     VerificationResult {
         valid: errors.is_empty(),
         errors,
+        notices: Vec::new(),
     }
+}
+
+/// Spec 198 FR-014/AC-4 — full verification including the platform seal.
+///
+/// Runs [`verify_certificate`] (the producer-untrusted offline chain,
+/// unchanged), then adjudicates the countersign:
+///
+/// - **Unsealed** (`platform_countersign: None`): a notice is emitted —
+///   "verifiable-but-unsealed". Fails only under `require_sealed`.
+/// - **Sealed + JWKS provided**: the countersign JWS must verify against
+///   the keyset and its claims must bind this certificate's hash and run
+///   id; any failure is an error.
+/// - **Sealed + no JWKS**: the seal cannot be adjudicated — a notice under
+///   the default posture, an error under `require_sealed` (fail closed).
+pub fn verify_certificate_with_platform(
+    cert: &GovernanceCertificate,
+    artifact_dir: Option<&Path>,
+    platform_jwks: Option<&crate::platform_jws::PlatformJwks>,
+    require_sealed: bool,
+) -> VerificationResult {
+    let mut result = verify_certificate(cert, artifact_dir);
+
+    match (&cert.platform_countersign, platform_jwks) {
+        (None, _) => {
+            if require_sealed {
+                result.errors.push(
+                    "certificate is verifiable-but-UNSEALED (no platform countersign) — \
+                     rejected under --require-sealed (spec 198 FR-014)"
+                        .into(),
+                );
+            } else {
+                result.notices.push(
+                    "certificate is verifiable-but-UNSEALED: the offline chain holds, but no \
+                     platform countersign binds this run to its admission contract (spec 198 FR-014)"
+                        .into(),
+                );
+            }
+        }
+        (Some(seal), Some(jwks)) => {
+            match crate::platform_jws::verify_compact_jws(
+                &seal.countersign_jws,
+                jwks,
+                crate::platform_jws::TYP_CERT_COUNTERSIGN,
+            ) {
+                Ok(verified) => {
+                    let claimed_hash =
+                        verified.payload["certificate_sha256"].as_str().unwrap_or("");
+                    if claimed_hash != cert.certificate_hash {
+                        result.errors.push(format!(
+                            "platform countersign binds certificate hash {claimed_hash} but this \
+                             certificate's hash is {}",
+                            cert.certificate_hash
+                        ));
+                    }
+                    let claimed_run = verified.payload["run_id"].as_str().unwrap_or("");
+                    if claimed_run != cert.pipeline_run_id {
+                        result.errors.push(format!(
+                            "platform countersign binds run {claimed_run} but this certificate is \
+                             for run {}",
+                            cert.pipeline_run_id
+                        ));
+                    }
+                    if result.errors.is_empty() {
+                        result.notices.push(format!(
+                            "platform countersign VERIFIED (kid {}, {} grant(s) in chain)",
+                            verified.header.kid,
+                            verified.payload["grant_count"].as_u64().unwrap_or(0)
+                        ));
+                    }
+                }
+                Err(e) => {
+                    result.errors.push(format!("platform countersign invalid: {e}"));
+                }
+            }
+        }
+        (Some(_), None) => {
+            if require_sealed {
+                result.errors.push(
+                    "certificate carries a platform countersign but no JWKS was provided to \
+                     verify it — supply --platform-jwks <file> or --jwks-url (fail-closed under \
+                     --require-sealed)"
+                        .into(),
+                );
+            } else {
+                result.notices.push(
+                    "certificate carries a platform countersign, NOT verified (no JWKS provided \
+                     — supply --platform-jwks <file> or --jwks-url)"
+                        .into(),
+                );
+            }
+        }
+    }
+
+    result.valid = result.errors.is_empty();
+    result
 }
 
 // ── Cut D W-10: spec_id resolution validation (spec 102 G-2) ─────────
