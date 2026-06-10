@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d64fa12c19b0c66d26d6123d9ca56ba9e1739bef751b6a312d69357614a8e53d",
+    "contentHash": "7ae09aae8b699d968cad0e48568dd3c31a385cff35ce125fb924901a256b2e4e",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -20376,6 +20376,9 @@
                 "file": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts"
               },
               {
+                "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.test.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
               },
               {
@@ -22354,6 +22357,9 @@
               },
               {
                 "file": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.test.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
@@ -32149,6 +32155,9 @@
               },
               {
                 "file": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.test.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
