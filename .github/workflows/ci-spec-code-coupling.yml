@@ -41,6 +41,13 @@ jobs:
         with:
           toolchain: '1.95.0'
 
+      # 2026-06-10: this job previously cold-built the indexer + coupling
+      # checker on every run — the only tiny gate without a cargo cache.
+      - name: Rust cache
+        uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+        with:
+          shared-key: spec-code-coupling
+
       - name: Build codebase-indexer
         run: cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
 

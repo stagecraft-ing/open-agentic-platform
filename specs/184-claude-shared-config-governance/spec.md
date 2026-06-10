@@ -473,6 +473,39 @@ The known-gaps list above (file-tool wildcards, `mcp__*`,
 `Agent(*)`) is unchanged by this edit and remains the
 accepted posture pending follow-up specs.
 
+### 2026-06-10 (second edit) — permissions slimmed to project-specific surface
+
+Operator edit, same PR. Direction judgment per AC-7: the
+**project-level allow surface narrowed sharply**. The generic
+allows (cargo/npm/git/gh, shell utilities, `Read(**)` /
+`Edit(**)` / `Write(**)` / `MultiEdit(**)`, `mcp__*`,
+`Agent(*)`, `defaultMode: acceptEdits`) were removed from the
+project file and re-homed to user-global settings
+(`~/.claude/settings.json`), leaving only the repo-specific
+binary-path allows (`./tools/**`, `./crates/**`,
+`./target/**` release/debug binaries) and a publish/release
+deny set (`cargo/npm/pnpm publish`, `gh release *`,
+`gh repo delete/archive`).
+
+Two consequences recorded honestly:
+
+1. The "Known gaps in the baseline" list above is overtaken
+   at project scope — the file-tool wildcards, `mcp__*`, and
+   `Agent(*)` allows no longer exist in this file. Whether
+   equivalent allows (and the destructive-ops denies that
+   also left: `rm -rf`, force-push, hard-reset patterns) now
+   live in user-global settings is **outside this spec's
+   visibility** — the spec governs the project file only.
+   The project-level guard narrowed; the effective per-user
+   posture is no longer fully auditable from the repo. That
+   trade was made deliberately: generic permissions belong
+   to the operator, repo-specific surface to the repo.
+2. Empty hook-event arrays (`UserPromptSubmit`,
+   `PermissionRequest`, `ConfigChange`, `PreCompact`, etc.)
+   were added as explicit scaffolding. No behavioral effect;
+   they enumerate the available extension points so future
+   hook additions are diff-visible against a named slot.
+
 ## Follow-up tooling (not in this spec)
 
 Two pieces of tooling are out of scope but worth naming so

@@ -1,13 +1,39 @@
 {
   "build": {
-    "contentHash": "18c9e2754fbceb0ead05aef7447303f7356c19f8fdb61f59ef0b77b23643e608",
+    "contentHash": "8b01160482673e6f828e68fb6eed445f94edcc070921543847f1fd956cf52bbe",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
   },
   "diagnostics": {
-    "errors": [],
-    "warnings": []
+    "errors": [
+      {
+        "code": "I-007",
+        "message": "182-claude-skills-migration: directory: path \".claude/skills/review-branch\" does not exist or is not a directory"
+      },
+      {
+        "code": "I-008",
+        "message": "182-claude-skills-migration: file: path \".claude/skills/review-branch/SKILL.md\" does not exist on disk"
+      },
+      {
+        "code": "I-008",
+        "message": "188-derived-index-merge-serialization: file: path \".github/workflows/ci-config-hash.yml\" does not exist on disk"
+      }
+    ],
+    "warnings": [
+      {
+        "code": "I-101",
+        "message": "spec \"182-claude-skills-migration\" declares implements path \".claude/skills/review-branch\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"182-claude-skills-migration\" declares implements path \".claude/skills/review-branch/SKILL.md\" which is not a known package, adapter, or existing file/directory"
+      },
+      {
+        "code": "I-101",
+        "message": "spec \"188-derived-index-merge-serialization\" declares implements path \".github/workflows/ci-config-hash.yml\" which is not a known package, adapter, or existing file/directory"
+      }
+    ]
   },
   "inventory": [
     {
@@ -21740,9 +21766,6 @@
                 "file": ".github/workflows/ci-axiomregent.yml"
               },
               {
-                "file": ".github/workflows/ci-config-hash.yml"
-              },
-              {
                 "file": ".github/workflows/ci-crates.yml"
               },
               {
@@ -38047,11 +38070,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": ".github/workflows/ci-config-hash.yml"
-              }
-            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -41413,11 +41431,6 @@
           },
           {
             "kind": "directory",
-            "locations": [
-              {
-                "file": ".claude/skills/review-branch/SKILL.md"
-              }
-            ],
             "ownership": true,
             "sourceField": "establishes",
             "unit": {
@@ -41553,11 +41566,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": ".claude/skills/review-branch/SKILL.md"
-              }
-            ],
             "ownership": true,
             "sourceField": "establishes",
             "unit": {
@@ -42715,11 +42723,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": ".github/workflows/ci-config-hash.yml"
-              }
-            ],
             "ownership": true,
             "sourceField": "establishes",
             "unit": {

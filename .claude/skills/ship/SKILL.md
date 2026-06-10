@@ -49,13 +49,19 @@ against `origin/main`). Outcomes:
 
 ## Step 2 — Review before the round-trip
 
-Invoke the `code-review` skill on the branch diff (or `review-branch`
-for a whole-branch read-only pass). The CI AI-review gate blocks merge,
-so every legitimate finding fixed here saves a full PR round-trip.
+Invoke the `code-review` skill (v2: triage → decorrelated finders →
+adversarial refuters → synthesis). Honour its BIAS RULE — never feed
+finder agents the author's rationale; rationale belongs in the
+Declared Trade-offs Ledger the review emits.
 
-- Apply actionable fixes.
+- Apply confirmed actionable fixes.
 - If any hashed input changed (specs, manifests, workflows,
   `.claude/**`, schemas), re-run `make pr-prep` before continuing.
+- Keep the review's final `Local-Review-Evidence:` line and the
+  confirmed-findings + ledger summary — Step 4 posts them to the PR.
+- The evidence is bound to the head SHA and diff hash, so it must be
+  produced AFTER the final commit (re-emit the evidence line after
+  Step 3 if the commit changed anything).
 
 ## Step 3 — Commit
 
@@ -76,13 +82,38 @@ PR creation is outward-facing. Confirm with the user, then:
 - The pr-gate hook re-runs `make pr-prep` at this moment and blocks on
   an unwaivered failure. That is expected defense-in-depth, not an
   error; if it blocks, return to Step 1.
+- **Immediately after creation**, post the Step 2 review evidence as a
+  PR comment — the CI ai-review verifies it and skips regeneration when
+  the head SHA and diff hash match (it waits only briefly, so post
+  promptly):
+
+  ```
+  gh pr comment <number> --body "$(cat <<'EOF'
+  ## Local Review Evidence
+  <confirmed findings summary, severity-ordered>
+
+  ### Declared Trade-offs Ledger
+  <ledger entries>
+
+  Local-Review-Evidence: head=<head-sha> diff_sha256=<hash> confirmed=<n> refuted=<m> ledger=<k>
+  EOF
+  )"
+  ```
+
+  The evidence line must reflect the FINAL pushed head — recompute it
+  after Step 3's commit if anything changed since the review.
 
 ## Step 5 — Post-create discipline
 
 - Once the PR enters the merge queue, NEVER push further commits — the
   queue merges the locked candidate and orphans the new push. All fixes
   land before enqueueing.
-- Watch checks: `gh pr checks <number> --watch`. On failure, halt and
+- Hand the PR off to `/shepherd-prs` (typically running under
+  `/loop`) — it reruns infrastructure-class failures, triages new
+  review comments adversarially, and verifies the merge landed. No
+  authoring session should babysit checks.
+- If shepherding manually instead: watch via REST
+  (`gh api .../commits/<sha>/check-runs`); on real failure, halt and
   present the error (orchestrator rule 4).
 - After merge, verify on-disk `main` (`git pull` + `git log`), not just
   the MERGED status.

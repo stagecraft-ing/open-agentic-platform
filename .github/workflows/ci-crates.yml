@@ -29,7 +29,14 @@ env:
 
 jobs:
   workspace:
-    runs-on: ubuntu-latest
+    # Self-hosted runner enabler (2026-06-10, dormant until the repo var is
+    # set): on merge_group/push the queue's serialized latency is the
+    # bottleneck (~13 min/PR), so a registered self-hosted runner with warm
+    # caches can take those events; pull_request stays on hosted runners so
+    # fork PRs never execute on local hardware. Unset var → empty string →
+    # falls back to ubuntu-latest; behavior is unchanged until opted in via
+    # `gh variable set OAP_RUNNER_HEAVY --body self-hosted`.
+    runs-on: ${{ (github.event_name != 'pull_request' && vars.OAP_RUNNER_HEAVY) || 'ubuntu-latest' }}
     name: crates workspace
     timeout-minutes: 30
 

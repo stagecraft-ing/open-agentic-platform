@@ -610,3 +610,25 @@ remaining structural cleanup, scheduled separately.
 - `.gitattributes` and `CLAUDE.md` are edited by Phase 1 but are
   empty-authority-by-rule (spec 152 §3.2, lines 160 & 167), so no
   co-authority claim is required for them.
+
+## Amendment — 2026-06-10: check-config re-homed into spec-conformance
+
+The narrow config-hash gate this spec installed (Phase 3) and re-homed
+to `config-hash.json` (Phase 4a) moved CI residence a second time: the
+standalone `.github/workflows/ci-config-hash.yml` (established above) is
+**deleted**, and its `check-config` run-block now executes as a step
+inside `spec-conformance.yml` — placed *before* that workflow's
+`codebase-indexer compile` smoke step, so it still validates the
+COMMITTED `config-hash.json` rather than a freshly regenerated one. The
+guarantee is bit-for-bit unchanged: same binary, same subcommand, same
+constitutional always-on coverage (pull_request, merge_group, AND
+push-to-main via spec-conformance's unconditional dispatch), still
+blocking through `ci-gate`. Motivation: the standalone job paid ~3
+minutes of runner spin-up per run for a 50ms check; spec-conformance
+already builds the indexer. `ENFORCING_WORKFLOWS` in
+`tools/oap/ci-parity-check/src/lib.rs` drops the deleted file
+(spec-conformance.yml was already in the list); `make ci-config-hash`
+remains the unchanged local mirror. The fixture copies of
+ci-config-hash.yml under `tools/oap/ci-parity-check/tests/fixtures/`
+remain as test fixtures — they model a generic enforcing workflow, not
+the live file.

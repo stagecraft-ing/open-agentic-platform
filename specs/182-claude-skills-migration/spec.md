@@ -551,6 +551,26 @@ The `commands/` walk entry in the indexer stays in place — if
 a future contributor adds a single-file command for any
 reason, it should still be hashed.
 
+## Post-migration evolution
+
+### 2026-06-10 — `/review-branch` retired, absorbed into `/code-review` v2
+
+`.claude/skills/review-branch/` (established by this spec in the
+ten-skill migration) is deleted. Its unique content — the
+cross-platform portability checklist for the three-OS Tauri target —
+moved into `/code-review`'s Stage 0 triage; the remaining ~70% of its
+checklist overlapped `/code-review`'s finder dimensions and carried
+web-app-template categories (N+1 queries, re-renders) with no referent
+in this repo. `/code-review` was simultaneously restructured into a
+staged adversarial form (decorrelated warm + cold finders, per-finding
+refuters, declared-trade-offs ledger) after PR #317 demonstrated both
+failure modes the split design had: author-rationale anchoring in
+context-rich review, and hallucination in context-free review. The
+skill count goes ten → nine plus the post-182 additions (`/ship`,
+`/shepherd-prs`). The `establishes:` entries for the deleted paths
+remain as the historical record of who created them; this section is
+the authority record for their removal.
+
 ## References
 
 - Modern `.claude/` directory docs:
