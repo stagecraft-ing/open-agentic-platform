@@ -29,7 +29,19 @@ env:
 
 jobs:
   workspace:
-    runs-on: ubuntu-latest
+    # Self-hosted runner enabler (2026-06-10, dormant until the repo var is
+    # set): on merge_group/push the queue's serialized latency is the
+    # bottleneck (~13 min/PR), so a registered self-hosted runner with warm
+    # caches can take those events; pull_request stays on hosted runners.
+    # Trust note: merge_group runs the speculative merge of an ENQUEUED PR,
+    # so enqueueing — a maintainer-only action — is the trust decision that
+    # admits code to the self-hosted runner; unreviewed fork PRs never reach
+    # it at pull_request time. The var value is used verbatim as the runner
+    # label (a typo strands the job until the queue times out) — operator
+    # responsibility, set via `gh variable set OAP_RUNNER_HEAVY --body
+    # self-hosted`. Unset var → empty string → falls back to ubuntu-latest;
+    # behavior is unchanged until opted in.
+    runs-on: ${{ (github.event_name != 'pull_request' && vars.OAP_RUNNER_HEAVY) || 'ubuntu-latest' }}
     name: crates workspace
     timeout-minutes: 30
 

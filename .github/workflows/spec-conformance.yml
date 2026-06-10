@@ -86,10 +86,21 @@ jobs:
       # Broad codebase-index staleness is no longer a required PR gate
       # (spec 188 Phase 3): the broad index is a best-effort cache, drift
       # surfaced post-merge by cd-index-staleness-report.yml; the narrow
-      # PR-time gate is ci-config-hash.yml. Smoke + tests still run here
-      # because they belong to the spec-tooling conformance bundle.
+      # PR-time gate is the check-config step below (re-homed here from the
+      # standalone ci-config-hash.yml on 2026-06-10). Smoke + tests still
+      # run here because they belong to the spec-tooling conformance bundle.
       - name: Build codebase-indexer (Feature 101)
         run: cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
+
+      # Spec 184/188 narrow config-hash gate — same binary, same guarantee
+      # as the deleted ci-config-hash.yml job, one fewer runner spin-up.
+      # ORDER MATTERS: this validates the COMMITTED
+      # .derived/codebase-index/config-hash.json against the current
+      # .claude/settings.json + .mcp.json, so it MUST run before the
+      # `compile` smoke step below, which regenerates that file and would
+      # otherwise make this check vacuously green.
+      - name: Check config-hash slice (spec 184 gate)
+        run: ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check-config
 
       - name: Emit codebase index (smoke)
         run: ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile

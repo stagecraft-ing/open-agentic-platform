@@ -1,257 +1,171 @@
 ---
 name: code-review
-description: Multi-aspect code review using parallel sub-agents with adaptive agent selection
-allowed-tools: Task, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*)
-argument-hint: "[scope] - e.g., \"recent changes\", \"src/components\", \"crates/agent\", \"PR #42\""
+description: Staged adversarial review — triage, decorrelated finders (warm + cold), per-finding refuters, evidence-ready report
+allowed-tools: Task, Agent, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git rev-parse:*), Bash(git worktree:*), Bash(git fetch:*), Bash(shasum:*)
+argument-hint: "[scope] - e.g., \"branch\", \"recent changes\", \"crates/agent\""
 ---
-# Code Review
 
-## Gather Context
+# Code Review (v2 — adversarial)
 
-!`git status --short && echo "---DIFF-STAT---" && git diff --stat && echo "---LOG---" && git log --oneline -10`
+Three-stage review: decorrelated finding, adversarial verification,
+honest synthesis. Output ends with a machine-readable evidence block
+that `/ship` attaches to the PR so the CI ai-review can verify instead
+of regenerate. This skill absorbed `/review-branch` (retired): its
+cross-platform checklist lives in Stage 0.
 
-Determine the base branch:
+## THE BIAS RULE (load-bearing — read first)
+
+**Never pass the author's rationale, design justifications, or
+"this is a deliberate trade-off" framing to finder agents.** Finders
+receive the diff and neutral repository facts only. An anchored finder
+ratifies the author's trade-offs instead of testing them (proven on
+PR #317: a security finder told "this is a decision-forcing gate, not
+a security boundary" dismissed the exact finding the cold CI review
+correctly led with). Rationale enters the process exactly once — in
+the Declared Trade-offs Ledger, *after* verification, where a cold
+reader can weigh it against confirmed facts.
+
+## Stage 0 — Triage (orchestrator only, no agents)
+
+1. Gather state:
+
+```
+git status --short && git diff --stat && git log --oneline -10
+```
+
+2. Determine the base branch (worktree-aware):
+
 ```bash
 MAIN_WORKTREE=$(git worktree list | head -1 | awk '{print $1}'); CURRENT_DIR=$(git rev-parse --show-toplevel); if [ "$MAIN_WORKTREE" != "$CURRENT_DIR" ]; then BASE=$(git -C "$MAIN_WORKTREE" branch --show-current); else BASE="main"; fi; echo "Base: $BASE" && git diff $BASE...HEAD --stat && git diff HEAD --stat
 ```
 
-## Pre-Review Analysis
+3. Classify changed files (committed + uncommitted):
 
-Before launching agents, analyze the changes to determine scope and strategy.
-
-### 1. Classify Changed Files
-
-Examine all changed files (committed + uncommitted) and classify them:
-
-| Category | Patterns |
-|----------|----------|
-| Rust source | `crates/**/*.rs`, `Cargo.toml`, `Cargo.lock` |
-| TypeScript/JS source | `packages/**/*.ts`, `apps/**/*.{ts,tsx}`, `tools/**/*.ts` |
-| Config/Build | `*.json`, `*.yaml`, `*.toml`, `pnpm-*`, `build/**` |
+| Class | Patterns |
+|---|---|
+| Rust source | `crates/**/*.rs`, `tools/**/*.rs`, `Cargo.toml`, `Cargo.lock` |
+| TS/JS source | `product/**/*.{ts,tsx}`, `platform/**/*.ts`, `tools/**/*.ts` |
+| Config/CI | `*.json`, `*.toml`, `.github/**`, `.claude/**`, `Makefile` |
 | Specs/Docs | `specs/**`, `docs/**`, `*.md` |
-| Tests | `*test*`, `*spec*`, `tests/` |
-| CI/Scripts | `.github/**`, `scripts/**` |
+| Tests | `*test*`, `tests/` |
 
-### 2. Determine Agent Set
+4. Run the portability + hygiene checklist yourself (no agent —
+   it is pattern-matching, not judgment). Flag for Stage 1 context:
+   - **Cross-platform** (Tauri ships to macOS/Windows/Linux):
+     hardcoded path separators vs `path.join`; `Meta`/`Cmd` vs
+     `CmdOrCtrl`; `HOME` vs `USERPROFILE`/XDG; shell commands that
+     break on Windows; case-sensitivity assumptions; CRLF; native
+     deps needing per-platform builds; Unix permissions; MAX_PATH.
+   - **Dependencies**: manifest adds/bumps/removals.
+   - **Hygiene**: debug prints, commented-out code, stray TODOs.
 
-Based on file classification and **$ARGUMENTS**, select which agents to launch:
+5. Select warm finder dimensions by class (cold finder ALWAYS runs):
+   - Rust or TS source → correctness+architecture, security+deps,
+     and (if hot paths or async touched) performance+concurrency
+   - Tests touched → testing-quality folded into correctness finder
+   - Config/CI only → security+deps, correctness+architecture
+   - Specs/Docs only → docs-accuracy finder only (+ cold finder)
 
-- **Docs/specs only** --> Documentation Review agent only
-- **Tests only** --> Testing Quality + Code Quality agents
-- **Config/CI only** --> Security + Architecture agents
-- **Rust source** --> All agents (include Rust-specific focus)
-- **TypeScript source** --> All agents (include TS-specific focus)
-- **Mixed changes** --> All agents relevant to file types present
-- **Broad scope or explicit request** --> All 6 agents
+## Stage 1 — Finders (parallel, decorrelated)
 
-### 3. Shared Context Block
-
-Compose a CONTEXT block to pass to every agent:
-
-```
-CONTEXT:
-- Repository: open-agentic-platform (polyglot monorepo: Rust crates, TS packages, desktop app)
-- Review scope: [what $ARGUMENTS resolved to]
-- Changed areas: [list of crates/packages/apps affected]
-- Risk assessment: [low/medium/high based on scope and affected areas]
-- Key integration points: [any cross-crate or cross-package boundaries touched]
-```
-
-## Parallel Agent Dispatch
-
-Launch the selected agents concurrently using the Task tool. Each agent receives the diff content and shared context block.
-
-### Agent 1: Architecture and Design
+Dispatch ALL selected finders plus the cold finder in a single
+parallel batch. Every finder prompt gets the neutral facts block:
 
 ```
-Review architecture and design patterns in: $ARGUMENTS
-
-{CONTEXT block}
-
-Focus areas:
-- Module organization and separation of concerns
-- Dependency direction (do crates/packages depend on each other correctly?)
-- Abstraction levels and API surface design
-- Consistency with existing patterns in the monorepo
-- Workspace structure (Cargo workspace, pnpm workspace) coherence
-
-THINK END-TO-END:
-- Trace how this change affects dependent crates/packages
-- Map data and control flow across module boundaries
-- Identify what breaks if components fail or interfaces change
-- Consider whether public API changes cascade correctly
+FACTS:
+- Repository: open-agentic-platform (Rust crates + TS packages + Tauri desktop + Encore.ts platform)
+- Base: <base> | Head: <branch/worktree>
+- Changed files: <list>
+- Stage 0 checklist flags: <portability/deps/hygiene flags, stated neutrally>
 ```
 
-### Agent 2: Code Quality
+…and NOTHING about why the change was made the way it was.
+
+**Warm finders** (repo read access) — one Task per selected dimension.
+Prompt template:
 
 ```
-Review code quality and maintainability in: $ARGUMENTS
-
-{CONTEXT block}
-
-Focus areas:
-- Readability and naming conventions
-- Code complexity and cognitive load
-- DRY violations and missed abstractions
-- Idiomatic patterns (Rust idioms for .rs, TS idioms for .ts)
-- Error handling consistency (Result/Option in Rust, error types in TS)
-- Dead code, unused imports, leftover debug statements
-- Type safety (no unnecessary `any` in TS, no unnecessary `unwrap()` in Rust)
+Review the branch diff for <dimension>. Read any file you need.
+Return ONLY a findings list, one per line:
+FINDING|<severity CRITICAL/HIGH/MEDIUM/LOW>|<file:line>|<one-sentence claim>|<one-sentence evidence>
+Severity is your honest claim; it will be adversarially verified.
+Do not soften or pre-dismiss findings — verification is not your job.
+If nothing found for this dimension, return: NO-FINDINGS|<dimension>
 ```
 
-### Agent 3: Security and Dependencies
+**Cold finder** (ALWAYS, regardless of class) — reproduce the CI
+review's decorrelated vantage in-house. Its prompt contains the RAW
+DIFF TEXT inline and these instructions:
 
 ```
-Perform security and dependency analysis of: $ARGUMENTS
-
-{CONTEXT block}
-
-Focus areas:
-- Input validation and sanitization
-- Injection vulnerabilities (SQL, command, path traversal)
-- Secrets management (no hardcoded keys, tokens, or credentials)
-- Authentication and authorization gaps
-- Dependency changes: new packages, version bumps, removal
-- Supply chain considerations for new dependencies
-- Unsafe code blocks in Rust (are they justified and sound?)
-- File system and process spawning safety
-
-CONSIDER ALTERNATIVE ATTACK VECTORS:
-- Beyond obvious vulnerabilities, what other attack surfaces exist?
-- What assumptions about trust boundaries could be violated?
-- Could new dependencies introduce transitive risks?
+You are reviewing a unified diff with NO other context. Do NOT read
+any files; judge only what is in the diff. Review for:
+1. Bugs and logic errors
+2. Security vulnerabilities (OWASP top 10)
+3. Internal inconsistencies (the diff contradicting itself or its own comments/docs)
+4. Performance concerns
+Return findings in the same FINDING|… format. Flag anything you
+cannot verify from the diff alone as severity LOW with the prefix
+UNVERIFIABLE in the claim.
 ```
 
-### Agent 4: Performance and Scalability
+## Stage 2 — Adversarial verification (parallel)
+
+Every finding from every finder — **no orchestrator pre-filtering;
+filtering before refutation is author bias re-entering** — goes to a
+refuter agent with full repo access:
 
 ```
-Analyze performance and scalability in: $ARGUMENTS
-
-{CONTEXT block}
-
-Focus areas:
-- Algorithm complexity and hot paths
-- Memory allocation patterns (unnecessary clones in Rust, large objects in TS)
-- Async patterns and potential deadlocks or resource starvation
-- I/O efficiency (file operations, network calls, database queries)
-- Caching opportunities and cache invalidation
-- Resource cleanup (Drop in Rust, cleanup in TS)
-- Concurrency correctness (Send/Sync in Rust, race conditions)
+Attempt to REFUTE this finding with file:line evidence:
+  <finding line>
+Check the actual code, the harness/docs contracts it assumes, and the
+repo's real conventions. Verdict line:
+VERDICT|CONFIRMED or REFUTED or DOWNGRADED-TO-<severity>|<one-paragraph justification with file:line citations>
+Default to REFUTED if the claim cannot be positively evidenced.
 ```
 
-### Agent 5: Testing Quality
+If there are more than 12 findings, group refutation by file (one
+refuter per file's findings) to bound cost.
 
-```
-Review test quality and coverage for: $ARGUMENTS
+## Stage 3 — Synthesis (orchestrator)
 
-{CONTEXT block}
-
-Focus areas:
-- Are new code paths covered by tests?
-- Test isolation and determinism
-- Edge cases and error paths tested
-- Meaningful assertions (not just "it doesn't crash")
-- Mock vs real dependency balance
-- Test naming and readability
-- Integration test coverage for cross-boundary changes
-- Are there regression tests for bug fixes?
-```
-
-### Agent 6: Documentation and API Surface
-
-```
-Review documentation and API design for: $ARGUMENTS
-
-{CONTEXT block}
-
-Focus areas:
-- Public API documentation (doc comments in Rust, JSDoc/TSDoc in TS)
-- Breaking changes to existing APIs or interfaces
-- README and docs/ updates needed for new features
-- Spec file consistency (if specs/ are affected)
-- Code comments for non-obvious logic
-- Migration guidance if interfaces changed
-- Error messages are clear and actionable
-```
-
-## Post-Review Consolidation
-
-After all agents complete, synthesize findings with cross-cutting analysis:
-
-### Cross-Pattern Analysis
-- **Competing solutions**: Do findings from different agents conflict?
-- **Root causes**: Is the same underlying issue showing up across multiple agents?
-- **Intentional trade-offs**: Are apparent "problems" actually deliberate design decisions?
-- **Cascading effects**: Do fixes in one area create issues in another?
-
-### Deduplicate and Prioritize
-- Merge overlapping findings from different agents
-- Remove false positives and theoretical-only issues
-- Weight severity by actual impact in context of the change
-
-## Final Report Format
+Build the report:
 
 ```
 ## Code Review Report
 
 ### Scope
-- Target: [files/directories reviewed]
-- Base: [base branch] | Head: [current branch or working tree]
-- Files changed: [count] | Lines: +[added] / -[removed]
-- Agents used: [list which of the 6 were launched and why others were skipped]
+Base: <base> | Head: <head> | Files: <n> | +<a>/-<d>
+Finders: <warm list> + cold | Findings: <f> raised, <c> confirmed, <r> refuted
 
-### Executive Summary
-[2-3 sentences: overall assessment, key strengths, and most important issues]
+### Confirmed findings
+#### CRITICAL / HIGH / MEDIUM / LOW
+- [<dimension>] <claim> — `file:line`
+  Fix: <specific recommendation>
 
-### CRITICAL (must fix before merge)
-1. [SECURITY|ARCHITECTURE|BUG] **Issue title**
-   - File: `path/to/file:line`
-   - Impact: [what breaks or is at risk]
-   - Fix: [specific recommendation or code example]
+### Refuted (kept for the record)
+- <claim> — refuted: <one-line reason>
 
-### HIGH (strongly recommended)
-1. [Category] **Issue title**
-   - File: `path/to/file:line`
-   - Impact: [description]
-   - Recommendation: [what to do]
+### Declared Trade-offs Ledger
+(Author rationale enters HERE, not in finder prompts. One entry per
+accepted trade-off, written for a cold reader.)
+- <trade-off>: <why accepted> — <where documented (spec §/commit)>
 
-### MEDIUM (should address)
-1. [Category] **Issue title** - `file:line`
-   Suggestion: [brief recommendation]
-
-### LOW (nice to have)
-- [Category] Issue description - `file:line`
-
-### Quality Scorecard
-(Only include rows for aspects that were actually reviewed)
-
-| Aspect | Score | Notes |
-|--------|-------|-------|
-| Architecture | X/10 | [assessment] |
-| Code Quality | X/10 | [assessment] |
-| Security | X/10 | [assessment] |
-| Performance | X/10 | [assessment] |
-| Testing | X/10 | [assessment] |
-| Documentation | X/10 | [assessment] |
-
-### Strengths
-- [Positive patterns worth preserving, with evidence]
-
-### File-by-File Summary
-| File | Changes | Key Findings |
-|------|---------|--------------|
-| `path/to/file` | [what changed] | [issues or "clean"] |
-
-### Recommended Actions
-1. [Actionable item from findings]
-2. [Next actionable item]
-3. ...
-
-[If no actions needed: "No blocking issues found -- branch is ready for merge."]
+### Actions
+1. <actionable item>
+...
 ```
 
-**To proceed:** Reply with the numbers of actions you want taken (e.g., "1, 3, 5" or "all").
+End the report with the machine-readable evidence block (consumed by
+`/ship`, verified by the CI ai-review):
+
+```bash
+git fetch origin main --quiet; DIFF_SHA=$(git diff origin/main...HEAD | shasum -a 256 | cut -d' ' -f1); HEAD_SHA=$(git rev-parse HEAD); echo "Local-Review-Evidence: head=$HEAD_SHA diff_sha256=$DIFF_SHA confirmed=<c> refuted=<r> ledger=<k>"
+```
+
+**To proceed:** reply with the action numbers to apply (e.g. "1, 3").
 
 ---
 
-**This is a read-only review. No files will be modified unless you explicitly request it.**
+**Read-only.** No files are modified unless actions are explicitly
+requested afterwards.

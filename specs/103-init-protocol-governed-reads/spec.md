@@ -285,3 +285,12 @@ migration.
   freshness treatment for exactly this reason: one has a committed
   reference, the other does not. If a future change commits the registry,
   FR-06 should be revisited in favour of an FR-03-style check.
+
+## Amendment — 2026-06-10: AGENTS.md Available Commands refresh
+
+The `## Available Commands` listing in AGENTS.md (outside the
+`## New Sessions` protocol block this spec's AC-hash mechanisms cover,
+so `PROTOCOL_SOURCE_HASH` is unaffected) is updated for the spec-182
+post-migration evolution: `/review-branch` retired into `/code-review`
+Stage 0; `/ship` and `/shepherd-prs` added. The init protocol itself is
+unchanged.

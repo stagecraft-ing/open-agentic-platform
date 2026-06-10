@@ -3,6 +3,16 @@
 # AI-Powered PR Review. Uses Claude CLI to review diffs for bugs, security
 # issues, and spec compliance.
 #
+# Verifier mode (2026-06-10, generator-local/verifier-remote): when the PR
+# carries a `Local-Review-Evidence:` comment whose head SHA and diff sha256
+# match the current head, the adversarially-verified local review (produced
+# by /code-review v2, attached by /ship) stands in for generation and the
+# scan is skipped. Mirrors spec 102 FR-007's posture: the verifier does not
+# trust the producer — the evidence is bound to the exact head + diff, so a
+# review of any other state falls back to a full scan. Spec 177's claim
+# becomes "green ci-gate ⇒ locally-reviewed-with-verification, scanned by
+# CI, or visibly-skipped-as-oversized".
+#
 # Hardening notes (ci-hardening branch):
 #   - H3: diff payload is passed to Claude via stdin instead of `$(cat …)`
 #     interpolation, eliminating shell-evaluation of backticks/$( ) inside
@@ -10,6 +20,9 @@
 #   - H4: Claude CLI version pinned via env var (CLAUDE_CLI_VERSION) so
 #     dependabot bumps land in one place.
 #   - M6: draft PRs are skipped to avoid burning Anthropic tokens on WIP.
+#   - Comment posts retry 3x with backoff: the 2026-06-10 GitHub auth
+#     incident failed this job twice at the post step after successful
+#     scans (each rerun re-paying the full scan).
 
 name: AI PR Review
 
@@ -45,6 +58,43 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Verifier mode: accept an adversarially-verified local review bound
+      # to this exact head SHA + diff hash in place of regeneration. The
+      # short wait covers the race where /ship posts the evidence comment
+      # moments after PR creation while this job is already checking out.
+      # Evidence is accepted only from OWNER/MEMBER/COLLABORATOR comments —
+      # the head SHA and diff hash are publicly derivable, so without the
+      # author_association filter any drive-by commenter could suppress the
+      # scan on a fork PR.
+      - name: Check local review evidence
+        id: evidence
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          verified=false
+          line=""
+          for attempt in 1 2; do
+            line=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" --paginate --jq '.[] | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR") | .body' 2>/dev/null | grep -oE 'Local-Review-Evidence: head=[0-9a-f]{40} diff_sha256=[0-9a-f]{64}' | tail -1 || true)
+            [ -n "$line" ] && break
+            [ "$attempt" = "1" ] && sleep 15
+          done
+          if [ -n "$line" ]; then
+            ev_head=$(printf '%s' "$line" | sed -E 's/.*head=([0-9a-f]{40}).*/\1/')
+            ev_hash=$(printf '%s' "$line" | sed -E 's/.*diff_sha256=([0-9a-f]{64}).*/\1/')
+            cur_hash=$(git diff origin/main...HEAD | sha256sum | cut -d' ' -f1)
+            if [ "$ev_head" = "$HEAD_SHA" ] && [ "$ev_hash" = "$cur_hash" ]; then
+              verified=true
+              echo "::notice::Local review evidence verified for ${HEAD_SHA} — generation skipped (verifier mode)."
+            else
+              echo "::notice::Local review evidence found but stale (head or diff hash mismatch) — full scan."
+            fi
+          else
+            echo "::notice::No local review evidence — full scan."
+          fi
+          echo "verified=$verified" >> "$GITHUB_OUTPUT"
+
       - name: Compute diff size
         id: diff
         run: |
@@ -57,17 +107,17 @@ jobs:
           fi
 
       - name: Generate diff
-        if: steps.diff.outputs.skip != 'true'
+        if: steps.diff.outputs.skip != 'true' && steps.evidence.outputs.verified != 'true'
         run: git diff origin/main...HEAD > /tmp/pr-diff.txt
 
       - name: Install Claude CLI
-        if: steps.diff.outputs.skip != 'true'
+        if: steps.diff.outputs.skip != 'true' && steps.evidence.outputs.verified != 'true'
         run: npm install -g "@anthropic-ai/claude-code@${CLAUDE_CLI_VERSION}"
 
       # H3 fix: prompt prelude is fed via -p; the diff is piped to stdin.
       # No shell interpolation of contributor-controlled content occurs.
       - name: Run AI Review
-        if: steps.diff.outputs.skip != 'true'
+        if: steps.diff.outputs.skip != 'true' && steps.evidence.outputs.verified != 'true'
         env:
           # Subscription-backed auth via the Claude Code OAuth token, NOT an
           # API key. ANTHROPIC_API_KEY is deliberately NOT set here: an
@@ -105,7 +155,7 @@ jobs:
         # Explicit success() (raised by the AI review on #265): the post step
         # must run only when Run AI Review succeeded, so a future
         # `continue-on-error` can't let it post a partial/empty review.
-        if: success() && steps.diff.outputs.skip != 'true'
+        if: success() && steps.diff.outputs.skip != 'true' && steps.evidence.outputs.verified != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -119,7 +169,12 @@ jobs:
             echo "---"
             echo "_Automated review by Claude. Diff size: ${DIFF_LINES} lines._"
           } > /tmp/comment.md
-          gh pr comment "$PR_NUMBER" --body-file /tmp/comment.md
+          for attempt in 1 2 3; do
+            gh pr comment "$PR_NUMBER" --body-file /tmp/comment.md && break
+            if [ "$attempt" = "3" ]; then exit 1; fi
+            echo "::warning::comment post failed (attempt ${attempt}) — retrying"
+            sleep 20
+          done
 
       - name: Skip notice (oversized diff — make the skip VISIBLE, not silent)
         # When the diff exceeds DIFF_SIZE_CAP the review can't run, but the
@@ -128,7 +183,7 @@ jobs:
         # caught it on PR #267. Post a PR comment so the skip is visible and
         # a human knows manual review is required; spec 177's claim is scoped
         # to "reviewed OR visibly-skipped-as-oversized" accordingly.
-        if: steps.diff.outputs.skip == 'true'
+        if: steps.diff.outputs.skip == 'true' && steps.evidence.outputs.verified != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}

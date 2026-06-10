@@ -1,50 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(make *)",
-      "Bash(cargo build *)",
-      "Bash(cargo test *)",
-      "Bash(cargo run *)",
-      "Bash(cargo check *)",
-      "Bash(cargo clippy *)",
-      "Bash(cargo fmt *)",
-      "Bash(cargo metadata *)",
-      "Bash(cargo doc *)",
-      "Bash(cargo tree *)",
-      "Bash(npm install)",
-      "Bash(npm ci)",
-      "Bash(npm run *)",
-      "Bash(npm test*)",
-      "Bash(npm exec *)",
-      "Bash(pnpm install)",
-      "Bash(pnpm run *)",
-      "Bash(pnpm exec *)",
-      "Bash(git status*)",
-      "Bash(git diff*)",
-      "Bash(git log*)",
-      "Bash(git show*)",
-      "Bash(git branch*)",
-      "Bash(git ls-files*)",
-      "Bash(git ls-tree*)",
-      "Bash(git rev-parse*)",
-      "Bash(git remote*)",
-      "Bash(git config --get *)",
-      "Bash(git stash list*)",
-      "Bash(git stash show*)",
-      "Bash(git add *)",
-      "Bash(git commit *)",
-      "Bash(git mv *)",
-      "Bash(git checkout *)",
-      "Bash(git pull*)",
-      "Bash(git fetch*)",
-      "Bash(git worktree list*)",
-      "Bash(git worktree add *)",
-      "Bash(gh pr *)",
-      "Bash(gh issue *)",
-      "Bash(gh api *)",
-      "Bash(gh release *)",
-      "Bash(gh repo view*)",
-      "Bash(gh auth status)",
       "Bash(./tools/spec-spine/*/target/release/*)",
       "Bash(./tools/spec-spine/*/target/debug/*)",
       "Bash(./tools/oap/*/target/release/*)",
@@ -54,74 +10,9 @@
       "Bash(./crates/axiomregent/target/release/axiomregent*)",
       "Bash(./crates/*/target/release/*)",
       "Bash(./target/release/*)",
-      "Bash(./target/debug/*)",
-      "Bash(ls *)",
-      "Bash(ls)",
-      "Bash(find . *)",
-      "Bash(head *)",
-      "Bash(tail *)",
-      "Bash(cat *)",
-      "Bash(wc *)",
-      "Bash(sort *)",
-      "Bash(uniq *)",
-      "Bash(awk *)",
-      "Bash(sed *)",
-      "Bash(grep *)",
-      "Bash(rg *)",
-      "Bash(jq *)",
-      "Bash(xargs *)",
-      "Bash(tr *)",
-      "Bash(cut *)",
-      "Bash(diff *)",
-      "Bash(mkdir -p *)",
-      "Bash(cp *)",
-      "Bash(touch *)",
-      "Bash(ln -s *)",
-      "Bash(chmod +x *)",
-      "Bash(python3 *)",
-      "Bash(node *)",
-      "Bash(rustc *)",
-      "Bash(rustup *)",
-      "Bash(echo *)",
-      "Bash(printf *)",
-      "Bash(true)",
-      "Bash(false)",
-      "Read(**)",
-      "Edit(**)",
-      "Write(**)",
-      "MultiEdit(**)",
-      "WebFetch(*)",
-      "WebSearch",
-      "Glob",
-      "Grep",
-      "LS",
-      "Task",
-      "Agent(*)",
-      "mcp__*"
+      "Bash(./target/debug/*)"
     ],
     "deny": [
-      "Bash(rm -rf *)",
-      "Bash(rm -fr *)",
-      "Bash(rm -r *)",
-      "Bash(sudo *)",
-      "Bash(su *)",
-      "Bash(git push --force *)",
-      "Bash(git push -f *)",
-      "Bash(git push --force-with-lease *)",
-      "Bash(git push --mirror *)",
-      "Bash(git push --delete *)",
-      "Bash(git push origin :*)",
-      "Bash(git push upstream :*)",
-      "Bash(git push * :HEAD*)",
-      "Bash(git push * :refs/*)",
-      "Bash(git reset --hard *)",
-      "Bash(git clean -f*)",
-      "Bash(git clean -df*)",
-      "Bash(git clean -fd*)",
-      "Bash(git branch -D *)",
-      "Bash(git checkout -- *)",
-      "Bash(git worktree remove --force*)",
-      "Bash(chmod -R *)",
       "Bash(cargo publish*)",
       "Bash(npm publish*)",
       "Bash(pnpm publish*)",
@@ -131,31 +22,74 @@
       "Bash(gh release edit *)",
       "Bash(gh repo delete *)",
       "Bash(gh repo archive *)"
-    ],
-    "defaultMode": "acceptEdits"
+    ]
   },
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v jq >/dev/null 2>&1 || { echo '[hook] jq missing — staleness check skipped'; exit 0; }; fp=$(jq -r '.tool_input.file_path // empty' 2>/dev/null); case \"$fp\" in */Cargo.toml|*/package.json|*/pnpm-workspace.yaml|*/specs/*/spec.md|*/.claude/agents/*.md|*/.claude/commands/*.md|*/.claude/rules/*.md|*/.claude/skills/*/*.md|*/.claude/skills/*/*/*.md|*/.github/workflows/*.yml|*/.github/workflows/*.yaml|*/standards/schemas/*) [ -x ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer ] && ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check 2>&1 | tail -5 ;; esac; true"
-          }
-        ]
-      }
-    ],
+    "UserPromptSubmit": [],
+    "PermissionRequest": [],
+    "ConfigChange": [],
+    "PreCompact": [],
     "Stop": [
       {
         "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -x ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer ]; then out=$(./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check 2>&1); ec=$?; if [ $ec -ne 0 ]; then echo \"[codebase-index] stale - run: make index\"; echo \"$out\" | tail -10; fi; fi; true"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; ci=./tools/spec-spine/codebase-indexer/target/release/codebase-indexer; [ -x \"$ci\" ] || exit 0; \"$ci\" check >/dev/null 2>&1 && exit 0; gd=$(git rev-parse --git-dir 2>/dev/null) || gd=.git; if [ -d \"$gd/rebase-merge\" ] || [ -d \"$gd/rebase-apply\" ] || [ -f \"$gd/MERGE_HEAD\" ] || [ -f \"$gd/CHERRY_PICK_HEAD\" ]; then echo '[codebase-index] stale, but rebase/merge in progress — left untouched (the oap-index-regen merge driver owns conflicts); run make index afterwards'; exit 0; fi; out=$(make index 2>&1); if [ $? -eq 0 ]; then echo '[codebase-index] was stale — auto-regenerated via make index; review git diff .derived/codebase-index/ and include it in your commit (amend if you just committed)'; else echo '[codebase-index] stale and make index FAILED:'; echo \"$out\" | tail -10; fi; true"
           }
         ]
       }
-    ]
+    ],
+    "TaskCompleted": [],
+    "TeammateIdle": [],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v jq >/dev/null 2>&1 || exit 0; cmd=$(jq -r '.tool_input.command // empty' 2>/dev/null); case \"$cmd\" in \"gh pr create\"*|*\"&& gh pr create\"*|*\"; gh pr create\"*) ;; *) exit 0 ;; esac; cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; out=$(make pr-prep 2>&1); ec=$?; if [ $ec -ne 0 ]; then case \"$cmd\" in *--body*Spec-Drift-Waiver*) echo '[pr-gate] coupling gate failed; Spec-Drift-Waiver present after --body — allowing (CI honours the body-at-creation waiver).' ;; *) { echo '[pr-gate] BLOCKED — make pr-prep failed and no Spec-Drift-Waiver in the PR body:'; echo \"$out\" | tail -25; echo '[pr-gate] Either fix the coupling (edit the owning spec.md so the relationship graph covers the changed paths), or — with explicit user approval — include the Spec-Drift-Waiver block inline in --body (not --body-file; it must be present at creation) and retry.'; } >&2; exit 2 ;; esac; fi; if ! git diff --quiet -- .derived/codebase-index/ 2>/dev/null; then { echo '[pr-gate] BLOCKED — pr-prep regenerated .derived/codebase-index/ and the result is uncommitted.'; echo '[pr-gate] Run: git add .derived/codebase-index/ then amend or commit, push, and retry.'; } >&2; exit 2; fi; true"
+          },
+          {
+            "type": "command",
+            "command": "command -v jq >/dev/null 2>&1 || exit 0; cmd=$(jq -r '.tool_input.command // empty' 2>/dev/null); case \"$cmd\" in *UPDATE_GOLDEN*) cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; sc=./tools/spec-spine/spec-compiler/target/release/spec-compiler; if [ -x \"$sc\" ]; then if \"$sc\" compile >/dev/null 2>&1; then echo '[golden-prep] spec registry recompiled before golden update — a stale registry yields silently-wrong goldens that pass locally but fail CI'; else echo '[golden-prep] spec registry compile FAILED — goldens would be generated from a stale registry; run make spec-compile'; fi; fi ;; esac; true"
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [],
+    "Notification": [],
+    "PostToolUseFailure": [],
+    "SubagentStart": [],
+    "SubagentStop": [],
+    "WorktreeCreate": [],
+    "ElicitationResult": [],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v jq >/dev/null 2>&1 || { echo '[hook] jq missing — staleness check skipped'; exit 0; }; fp=$(jq -r '.tool_input.file_path // empty' 2>/dev/null); cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; case \"$fp\" in */specs/*/spec.md) sc=./tools/spec-spine/spec-compiler/target/release/spec-compiler; if [ -x \"$sc\" ]; then if \"$sc\" compile >/dev/null 2>&1; then echo '[spec-registry] recompiled after spec edit'; else echo '[spec-registry] compile FAILED after spec edit — run make spec-compile to see the error'; fi; fi ;; esac; case \"$fp\" in */Cargo.toml|*/package.json|*/pnpm-workspace.yaml|*/specs/*/spec.md|*/.claude/settings.json|*/.mcp.json|*/.claude/agents/*.md|*/.claude/commands/*.md|*/.claude/rules/*.md|*/.claude/skills/*/*.md|*/.claude/skills/*/*/*.md|*/.github/workflows/*.yml|*/.github/workflows/*.yaml|*/standards/schemas/*) [ -x ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer ] && ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check 2>&1 | tail -5 ;; esac; true"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null || exit 0; sc=./tools/spec-spine/spec-compiler/target/release/spec-compiler; ci=./tools/spec-spine/codebase-indexer/target/release/codebase-indexer; if [ -x \"$sc\" ]; then \"$sc\" compile >/dev/null 2>&1 && reg='recompiled fresh' || reg='compile FAILED — run make spec-compile'; else reg='compiler unbuilt — run make setup'; fi; if [ -x \"$ci\" ]; then \"$ci\" check >/dev/null 2>&1 && idx='fresh' || idx='STALE — run make index'; else idx='indexer unbuilt — run make setup'; fi; echo \"[session-freshness] spec registry: $reg; codebase index: $idx\"; true"
+          }
+        ]
+      }
+    ],
+    "Elicitation": [],
+    "SessionEnd": [],
+    "Setup": [],
+    "InstructionsLoaded": []
   }
 }

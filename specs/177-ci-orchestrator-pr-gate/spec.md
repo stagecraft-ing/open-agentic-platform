@@ -330,3 +330,36 @@ bypass text file. This spec is the same move applied to the merge
 contract itself: pull governance out of the GitHub UI and into a file
 that lives under the same review discipline as every other
 authority-bearing artifact in the tree.
+
+## Amendment — 2026-06-10: push-trim, config-hash fold, ai-review verifier mode
+
+Three changes to `ci.yml` and the gate suite; prose above describes the
+pre-amendment state where it conflicts.
+
+1. **Push-to-main trim.** §2's "the other always-on workflows run for
+   push-to-main too" no longer holds for the path-routed heavy jobs
+   (axiomregent, crates, deployd-api-rs, desktop, featuregraph-golden,
+   orchestrator, policy-kernel, schema-parity, stagecraft,
+   tenant-hello): they skip on `push`. Rationale: branch protection
+   requires the merge queue, so every push-to-main commit is
+   tree-identical to the merge_group candidate that just passed the
+   full suite — the post-merge re-validation was a third full payment
+   per PR (~13 min of runner time) for zero new information. Still
+   running on push: opc-bench (saves the main baseline that
+   workflow_dispatch diagnostics consume), parity, spec-conformance
+   (now carrying check-config), and supply-chain. `workflow_dispatch`
+   still runs everything; cd-*.yml and build-axiomregent.yml are
+   separate files and unaffected.
+2. **config-hash job folded.** The `config-hash` job and its
+   `needs:` entry in `ci-gate` are removed; the check-config gate
+   lives in spec-conformance.yml (see spec 188's 2026-06-10
+   amendment). The §2.2 constitutional set is unchanged in coverage,
+   smaller by one runner spin-up.
+3. **ai-review verifier mode.** The "green ci-gate ⇒ actually
+   reviewed" claim is re-scoped to "reviewed locally with adversarial
+   verification (a `Local-Review-Evidence:` comment bound to the head
+   SHA and diff sha256, posted by /ship from /code-review v2), OR
+   scanned by the CI review, OR visibly-skipped-as-oversized". The
+   verifier-mode binding means evidence for any other head or diff
+   falls back to a full scan — the verifier does not trust the
+   producer (spec 102 FR-007 posture).

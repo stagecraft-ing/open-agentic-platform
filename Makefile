@@ -461,8 +461,10 @@ ci-strict: ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-schema-pa
 # ============================================================
 ## tag: ci-config-hash
 
-# Mirrors .github/workflows/ci-config-hash.yml for `make ci-strict` parity
-# (spec 104). Verifies the committed config-hash.json slice
+# Mirrors the check-config step inside .github/workflows/spec-conformance.yml
+# for `make ci-strict` parity (spec 104; the standalone ci-config-hash.yml
+# was deleted 2026-06-10 — see spec 188's amendment). Verifies the committed
+# config-hash.json slice
 # (.claude/settings.json + .mcp.json) is fresh — the narrow PR-time gate
 # that preserves spec 184's guarantee after the broad index-freshness check
 # became best-effort/report-only (cd-index-staleness-report.yml, spec 188

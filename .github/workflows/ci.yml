@@ -131,24 +131,34 @@ jobs:
               - '.github/workflows/ci-tenant-hello.yml'
 
   # ─── routed by paths-filter ────────────────────────────────────────────
+  # Push-to-main trim (2026-06-10, spec 177 amendment): branch protection
+  # requires the merge queue, so every push-to-main commit IS the merge
+  # candidate the `merge_group` run just validated — tree-identical. The
+  # heavy validation jobs therefore skip on `push` (ci-gate treats skipped
+  # as success). Deliberately still running on push: opc-bench (saves the
+  # main baseline consumed by workflow_dispatch diagnostics), parity
+  # (cheap; guards Makefile↔workflow drift), and the constitutional set
+  # (spec-conformance incl. the re-homed check-config, supply-chain).
+  # cd-*.yml deploy workflows and build-axiomregent.yml are separate files
+  # and unaffected. workflow_dispatch still runs everything.
   axiomregent:
     needs: changes
-    if: needs.changes.outputs.axiomregent == 'true'
+    if: github.event_name != 'push' && needs.changes.outputs.axiomregent == 'true'
     uses: ./.github/workflows/ci-axiomregent.yml
 
   crates:
     needs: changes
-    if: needs.changes.outputs.crates == 'true'
+    if: github.event_name != 'push' && needs.changes.outputs.crates == 'true'
     uses: ./.github/workflows/ci-crates.yml
 
   deployd-api-rs:
     needs: changes
-    if: needs.changes.outputs.deployd_api_rs == 'true'
+    if: github.event_name != 'push' && needs.changes.outputs.deployd_api_rs == 'true'
     uses: ./.github/workflows/ci-deployd-api-rs.yml
 
   desktop:
     needs: changes
-    if: needs.changes.outputs.desktop == 'true'
+    if: github.event_name != 'push' && needs.changes.outputs.desktop == 'true'
     uses: ./.github/workflows/ci-desktop.yml
 
   # Spec 180 §5.3 — Tier 2 bench gate for the filesystem-scanning OPC usage
@@ -160,12 +170,12 @@ jobs:
 
   featuregraph-golden:
     needs: changes
-    if: needs.changes.outputs.featuregraph == 'true'
+    if: github.event_name != 'push' && needs.changes.outputs.featuregraph == 'true'
     uses: ./.github/workflows/ci-featuregraph-golden.yml
 
   orchestrator:
     needs: changes
-    if: needs.changes.outputs.orchestrator == 'true'
+    if: github.event_name != 'push' && needs.changes.outputs.orchestrator == 'true'
     uses: ./.github/workflows/ci-orchestrator.yml
 
   parity:
@@ -175,22 +185,22 @@ jobs:
 
   policy-kernel:
     needs: changes
-    if: needs.changes.outputs.policy_kernel == 'true'
+    if: github.event_name != 'push' && needs.changes.outputs.policy_kernel == 'true'
     uses: ./.github/workflows/ci-policy-kernel.yml
 
   schema-parity:
     needs: changes
-    if: needs.changes.outputs.schema_parity == 'true'
+    if: github.event_name != 'push' && needs.changes.outputs.schema_parity == 'true'
     uses: ./.github/workflows/ci-schema-parity.yml
 
   stagecraft:
     needs: changes
-    if: needs.changes.outputs.stagecraft == 'true'
+    if: github.event_name != 'push' && needs.changes.outputs.stagecraft == 'true'
     uses: ./.github/workflows/ci-stagecraft.yml
 
   tenant-hello:
     needs: changes
-    if: needs.changes.outputs.tenant_hello == 'true'
+    if: github.event_name != 'push' && needs.changes.outputs.tenant_hello == 'true'
     uses: ./.github/workflows/ci-tenant-hello.yml
 
   # ─── constitutional (always-run, spec 177 §2.2) ────────────────────────
@@ -205,14 +215,14 @@ jobs:
   supply-chain:
     uses: ./.github/workflows/ci-supply-chain.yml
 
-  # Spec 188 Phase 3: the NARROW config-hash gate replaces the broad
-  # ci-codebase-index staleness gate in the constitutional always-on set.
-  # It blocks a quiet `.claude/settings.json` / `.mcp.json` edit (spec 184)
-  # but depends only on those two files, so it survives a merge queue.
-  # The broad index is now a best-effort cache; drift is surfaced (not
-  # gated) post-merge by cd-index-staleness-report.yml (spec 188 FR-007).
-  config-hash:
-    uses: ./.github/workflows/ci-config-hash.yml
+  # Spec 188 Phase 3's NARROW config-hash gate (check-config over
+  # .claude/settings.json + .mcp.json, spec 184) is re-homed into the
+  # spec-conformance job (2026-06-10): conformance already builds the
+  # codebase-indexer, so the standalone ci-config-hash.yml job paid ~3 min
+  # of runner spin-up for a 50ms check. The guarantee is unchanged — same
+  # binary, same `check-config` subcommand, still constitutional/always-on
+  # (including push), and it runs BEFORE conformance's `compile` step so it
+  # validates the COMMITTED config-hash.json, not a freshly regenerated one.
 
   # Spec 177 + 085 — AI PR review folded into the gate. It was a standalone
   # workflow that was green-but-dead on every PR back to ~#220 (auth failure
@@ -255,7 +265,6 @@ jobs:
       - spec-conformance
       - spec-code-coupling
       - supply-chain
-      - config-hash
       - ai-review
     runs-on: ubuntu-latest
     timeout-minutes: 2

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "7ae09aae8b699d968cad0e48568dd3c31a385cff35ce125fb924901a256b2e4e",
+    "contentHash": "6731030a8b6febe6362d7d52d818e671e27fc541dea8a9defb1fb959485547f2",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -19276,8 +19276,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 697,
-                  "startLine": 693
+                  "endLine": 699,
+                  "startLine": 695
                 }
               }
             ],
@@ -21473,8 +21473,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 692,
-                  "startLine": 646
+                  "endLine": 694,
+                  "startLine": 648
                 }
               }
             ],
@@ -21738,9 +21738,6 @@
               },
               {
                 "file": ".github/workflows/ci-axiomregent.yml"
-              },
-              {
-                "file": ".github/workflows/ci-config-hash.yml"
               },
               {
                 "file": ".github/workflows/ci-crates.yml"
@@ -25078,8 +25075,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 645,
-                  "startLine": 623
+                  "endLine": 647,
+                  "startLine": 625
                 }
               }
             ],
@@ -25172,8 +25169,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 622,
-                  "startLine": 523
+                  "endLine": 624,
+                  "startLine": 525
                 }
               }
             ],
@@ -25738,8 +25735,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 738,
-                  "startLine": 698
+                  "endLine": 740,
+                  "startLine": 700
                 }
               }
             ],
@@ -25821,8 +25818,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 967,
-                  "startLine": 739
+                  "endLine": 969,
+                  "startLine": 741
                 }
               }
             ],
@@ -38047,11 +38044,6 @@
           },
           {
             "kind": "file",
-            "locations": [
-              {
-                "file": ".github/workflows/ci-config-hash.yml"
-              }
-            ],
             "ownership": false,
             "sourceField": "references",
             "unit": {
@@ -41280,14 +41272,6 @@
             "source": "spec-implements"
           },
           {
-            "path": ".claude/skills/review-branch",
-            "source": "spec-implements"
-          },
-          {
-            "path": ".claude/skills/review-branch/SKILL.md",
-            "source": "spec-implements"
-          },
-          {
             "path": ".claude/skills/setup",
             "source": "spec-implements"
           },
@@ -41415,20 +41399,6 @@
             "kind": "directory",
             "locations": [
               {
-                "file": ".claude/skills/review-branch/SKILL.md"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "directory",
-              "path": ".claude/skills/review-branch"
-            }
-          },
-          {
-            "kind": "directory",
-            "locations": [
-              {
                 "file": ".claude/skills/setup/SKILL.md"
               }
             ],
@@ -41549,20 +41519,6 @@
             "unit": {
               "kind": "file",
               "path": ".claude/skills/research/SKILL.md"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": ".claude/skills/review-branch/SKILL.md"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": ".claude/skills/review-branch/SKILL.md"
             }
           },
           {
@@ -42568,10 +42524,6 @@
             "source": "spec-implements"
           },
           {
-            "path": ".github/workflows/ci-config-hash.yml",
-            "source": "spec-implements"
-          },
-          {
             "path": "Makefile",
             "source": "spec-implements"
           },
@@ -42639,7 +42591,7 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 522,
+                  "endLine": 524,
                   "startLine": 462
                 }
               }
@@ -42711,20 +42663,6 @@
             "unit": {
               "kind": "file",
               "path": ".github/workflows/cd-index-staleness-report.yml"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": ".github/workflows/ci-config-hash.yml"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": ".github/workflows/ci-config-hash.yml"
             }
           },
           {
