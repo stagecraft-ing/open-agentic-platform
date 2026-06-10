@@ -876,6 +876,36 @@ pub fn generate_certificate_with_stage_ids(
     proof_chain_summary: Option<ProofChainSummary>,
     stage_ids: &[&str],
 ) -> GovernanceCertificate {
+    generate_certificate_bound(
+        pipeline_state,
+        requirements_hash,
+        artifact_dir,
+        proof_chain_summary,
+        stage_ids,
+        None,
+    )
+}
+
+/// Spec 198 FR-005/FR-009 — the admission + intent-capsule facts a
+/// grant-governed run binds into its certificate at emission.
+#[derive(Debug, Clone)]
+pub struct CapsuleBinding {
+    pub admitted_envelope_hash: String,
+    pub goal_id: String,
+    pub intent_capsule_hash: String,
+}
+
+/// [`generate_certificate_with_stage_ids`] plus the spec 198 capsule
+/// binding. `binding: None` produces a byte-identical certificate to the
+/// unbound path (the optional fields are skipped in serialization).
+pub fn generate_certificate_bound(
+    pipeline_state: &FactoryPipelineState,
+    requirements_hash: &str,
+    artifact_dir: &Path,
+    proof_chain_summary: Option<ProofChainSummary>,
+    stage_ids: &[&str],
+    binding: Option<&CapsuleBinding>,
+) -> GovernanceCertificate {
     let intent = IntentRecord {
         requirements_hash: requirements_hash.to_string(),
         spec_id: None,
@@ -905,12 +935,17 @@ pub fn generate_certificate_with_stage_ids(
         chain_integrity: ChainIntegrity::Empty,
     });
 
-    CertificateBuilder::new(&pipeline_state.pipeline_id, intent)
+    let mut builder = CertificateBuilder::new(&pipeline_state.pipeline_id, intent)
         .build_spec_hash(build_spec_hash)
         .stages(stages)
         .verification(verification)
-        .proof_chain(proof_chain)
-        .build()
+        .proof_chain(proof_chain);
+    if let Some(b) = binding {
+        builder = builder
+            .admitted_envelope_hash(b.admitted_envelope_hash.clone())
+            .intent_capsule(b.goal_id.clone(), b.intent_capsule_hash.clone());
+    }
+    builder.build()
 }
 
 /// Scan the artifact directory for stage output files using a
@@ -1020,6 +1055,7 @@ pub fn apply_countersign(
     certificate_path: &Path,
     countersign_jws: &str,
     jwks: &crate::platform_jws::PlatformJwks,
+    expected_platform_run_id: Option<&str>,
 ) -> Result<(), String> {
     let json = std::fs::read_to_string(certificate_path)
         .map_err(|e| format!("cannot read {}: {e}", certificate_path.display()))?;
@@ -1033,6 +1069,11 @@ pub fn apply_countersign(
     )
     .map_err(|e| format!("countersign rejected: {e}"))?;
 
+    // The certificate hash is the authoritative binding — it is unique to
+    // these exact bytes. The countersign's `run_id` claim carries the
+    // PLATFORM run identity (factory_runs.id), which is distinct from the
+    // engine-minted `pipeline_run_id`; the caller that knows the platform
+    // run id passes it for the equality check.
     let claimed_hash = verified.payload["certificate_sha256"].as_str().unwrap_or("");
     if claimed_hash != cert.certificate_hash {
         return Err(format!(
@@ -1040,12 +1081,13 @@ pub fn apply_countersign(
             cert.certificate_hash
         ));
     }
-    let claimed_run = verified.payload["run_id"].as_str().unwrap_or("");
-    if claimed_run != cert.pipeline_run_id {
-        return Err(format!(
-            "countersign binds run {claimed_run} but this certificate is for run {}",
-            cert.pipeline_run_id
-        ));
+    if let Some(expected) = expected_platform_run_id {
+        let claimed_run = verified.payload["run_id"].as_str().unwrap_or("");
+        if claimed_run != expected {
+            return Err(format!(
+                "countersign binds platform run {claimed_run} but this run is {expected}"
+            ));
+        }
     }
 
     cert.platform_countersign = Some(PlatformCountersign {
@@ -1209,6 +1251,11 @@ pub fn verify_certificate_with_platform(
                 crate::platform_jws::TYP_CERT_COUNTERSIGN,
             ) {
                 Ok(verified) => {
+                    // The certificate hash is the authoritative binding —
+                    // unique to these exact bytes. The countersign's
+                    // `run_id` claim is the PLATFORM run identity, distinct
+                    // from the engine-minted `pipeline_run_id`; it is
+                    // surfaced informationally, not compared.
                     let claimed_hash =
                         verified.payload["certificate_sha256"].as_str().unwrap_or("");
                     if claimed_hash != cert.certificate_hash {
@@ -1218,18 +1265,11 @@ pub fn verify_certificate_with_platform(
                             cert.certificate_hash
                         ));
                     }
-                    let claimed_run = verified.payload["run_id"].as_str().unwrap_or("");
-                    if claimed_run != cert.pipeline_run_id {
-                        result.errors.push(format!(
-                            "platform countersign binds run {claimed_run} but this certificate is \
-                             for run {}",
-                            cert.pipeline_run_id
-                        ));
-                    }
                     if result.errors.is_empty() {
                         result.notices.push(format!(
-                            "platform countersign VERIFIED (kid {}, {} grant(s) in chain)",
+                            "platform countersign VERIFIED (kid {}, platform run {}, {} grant(s) in chain)",
                             verified.header.kid,
+                            verified.payload["run_id"].as_str().unwrap_or("?"),
                             verified.payload["grant_count"].as_u64().unwrap_or(0)
                         ));
                     }

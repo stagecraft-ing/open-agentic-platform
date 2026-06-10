@@ -774,9 +774,18 @@ async fn emit_terminal_failed(ctx: &FactoryRunContext, error: &str) {
     }
 }
 
-/// Spec 124 §6 — emit a terminal `factory.run.completed` envelope with
-/// the final token-spend rollup.
-async fn emit_terminal_completed(ctx: &FactoryRunContext, total_tokens: u64) {
+/// Spec 124 §6 + spec 198 FR-009/FR-014 — emit the governance certificate
+/// (bound to the admission + intent capsule when the run was governed),
+/// report terminal completion carrying the certificate hash + final grant
+/// seq, and patch the platform countersign into the persisted certificate
+/// when the platform verifies the grant chain it issued. An unsealed
+/// certificate is logged — visible, never silently equivalent to sealed.
+async fn emit_terminal_completed(
+    ctx: &FactoryRunContext,
+    total_tokens: u64,
+    governance: Option<&Arc<super::run_governance::RunGovernance>>,
+    requirements_hash: &str,
+) {
     // Pre-rollup the per-stage observations into the wire shape. The
     // platform handler stores `{input, output, total}`; the desktop's
     // orchestrator currently exposes a single combined count, so we
@@ -788,11 +797,83 @@ async fn emit_terminal_completed(ctx: &FactoryRunContext, total_tokens: u64) {
         output: total_tokens - half,
         total: total_tokens,
     };
-    if let Err(e) = ctx.emitter.completed(token_spend, None, None).await {
+
+    let run_dir = ctx
+        .project_path
+        .join(".factory")
+        .join("runs")
+        .join(ctx.run_id.to_string());
+    let binding = governance.map(|g| g.capsule_binding());
+    // Clone out of the lock before any await (the guard is not Send).
+    let pipeline_state = ctx.pipeline_state.lock().ok().map(|guard| guard.clone());
+    let Some(pipeline_state) = pipeline_state else {
+        if let Err(e) = ctx.emitter.completed(token_spend, None, None).await {
+            log::warn!(
+                "factory.run.completed emit/spool failed for run {}: {e}",
+                ctx.platform_run_id
+            );
+        }
+        return;
+    };
+    // Spec 102 FR-003 + 198 FR-009: every desktop run termination emits the
+    // certificate under its run dir; empty stage-id list = filesystem
+    // discovery of the run's actual step outputs.
+    let cert = factory_engine::governance_certificate::generate_certificate_bound(
+        &pipeline_state,
+        requirements_hash,
+        &run_dir,
+        None,
+        &[],
+        binding.as_ref(),
+    );
+    let cert_hash = cert.certificate_hash.clone();
+    if let Err(e) = factory_engine::governance_certificate::persist_certificate(&cert, &run_dir) {
         log::warn!(
-            "factory.run.completed emit/spool failed for run {}: {e}",
+            "governance certificate persist failed for run {}: {e}",
             ctx.platform_run_id
         );
+    }
+    let final_seq = governance
+        .map(|g| g.last_seq.load(std::sync::atomic::Ordering::Acquire));
+
+    match ctx
+        .emitter
+        .completed(token_spend, Some(cert_hash), final_seq)
+        .await
+    {
+        Ok(Some(cs)) if cs.countersigned => {
+            if let (Some(jws), Some(gov)) = (cs.countersign_jws.as_deref(), governance) {
+                let cert_path = run_dir.join("governance-certificate.json");
+                match factory_engine::governance_certificate::apply_countersign(
+                    &cert_path,
+                    jws,
+                    &gov.jwks,
+                    Some(&ctx.platform_run_id),
+                ) {
+                    Ok(()) => log::info!(
+                        "governance certificate SEALED (platform countersign) for run {}",
+                        ctx.platform_run_id
+                    ),
+                    Err(e) => log::warn!(
+                        "countersign apply failed — certificate stays unsealed for run {}: {e}",
+                        ctx.platform_run_id
+                    ),
+                }
+            }
+        }
+        Ok(Some(cs)) => log::warn!(
+            "platform refused countersign for run {} — certificate stays visibly unsealed: {}",
+            ctx.platform_run_id,
+            cs.refused_reason.unwrap_or_default()
+        ),
+        Ok(None) => log::info!(
+            "run {} completed without a live countersign round-trip — certificate stays visibly unsealed (spec 198 FR-014)",
+            ctx.platform_run_id
+        ),
+        Err(e) => log::warn!(
+            "factory.run.completed emit/spool failed for run {}: {e}",
+            ctx.platform_run_id
+        ),
     }
 }
 
@@ -1186,6 +1267,23 @@ pub async fn start_factory_pipeline(
     );
     let emitter_for_spawn = ctx.emitter.clone();
 
+    // Spec 198 / spec 102 — requirements hash mirrors bin/factory_run.rs:
+    // SHA-256 over the business-doc bytes the agents actually receive.
+    // Persisted in the run dir so a resumed run binds the same intent.
+    let requirements_hash = {
+        let mut hasher = Sha256::new();
+        for p in &business_doc_paths {
+            if let Ok(bytes) = std::fs::read(p) {
+                hasher.update(&bytes);
+            }
+        }
+        format!("{:x}", hasher.finalize())
+    };
+    let _ = std::fs::write(
+        artifact_dir.join(run_id.to_string()).join("requirements-hash.txt"),
+        &requirements_hash,
+    );
+
     // Derive governance mode once for the entire pipeline (098 Slice 2).
     let grants_json = crate::governed_claude::grants_json_claude_default();
     let (gov_plan, bypass_reason) = crate::governed_claude::plan_governed_from_binary(&grants_json)
@@ -1216,6 +1314,88 @@ pub async fn start_factory_pipeline(
                 Some("process"),
             );
         }
+
+        // Spec 198 FR-005/FR-014 — establish run governance before any stage
+        // executes: verify the admission seal (ASI04 m1), file the intent
+        // capsule, obtain the issuance grant. Project-bound runs are governed
+        // fail-closed — a refusal halts the run before s0. An ad-hoc run (no
+        // project binding / platform client) proceeds ungoverned and is
+        // visibly logged; its factory content already passed the
+        // admission-gated bundle, and its certificate stays unsealed.
+        let governance = match (&sc_client, ctx_for_spawn.stagecraft_project_id.as_deref()) {
+            (Some(sc), Some(project_id)) => {
+                let run_dir =
+                    super::run_governance::run_dir_for(&project_path, &run_id.to_string());
+                let goal = format!(
+                    "factory run: adapter {adapter_for_spawn} for project {project_id}"
+                );
+                match super::run_governance::establish(
+                    sc,
+                    emitter_for_spawn.clone(),
+                    project_id,
+                    &ctx_for_spawn.platform_run_id,
+                    &goal,
+                    &run_dir,
+                )
+                .await
+                {
+                    Ok(g) => Some(g),
+                    Err(e) => {
+                        log::error!("run governance refused for run {run_id}: {e}");
+                        ctx_for_spawn.pipeline_state.lock().unwrap().mark_failed();
+                        emit_terminal_failed(&ctx_for_spawn, &e).await;
+                        if let Some((sc2, pid, plid)) =
+                            resolve_sc_context(&ctx_for_spawn, &sc_client)
+                        {
+                            sc_update_status(
+                                &sc2,
+                                &pid,
+                                &plid,
+                                "failed",
+                                None,
+                                Some(&e),
+                                Some("process"),
+                            );
+                        }
+                        app_handle
+                            .emit(
+                                "factory:workflow_failed",
+                                &serde_json::json!({
+                                    "runId": run_id.to_string(),
+                                    "error": e,
+                                    "phase": "process",
+                                }),
+                            )
+                            .ok();
+                        return;
+                    }
+                }
+            }
+            _ => {
+                log::warn!(
+                    "run {run_id} starts UNGOVERNED (no project binding / platform client) — \
+                     no run-grant chain will exist and the certificate stays unsealed (spec 198 FR-005)"
+                );
+                None
+            }
+        };
+        // Stage-boundary renewal gate (FR-005): every step re-presents the
+        // goal id + capsule hash; the frozen Build-Spec hash rides along
+        // once pipeline state records it (one-way bound platform-side).
+        let pre_step_gate: Option<Arc<dyn orchestrator::PreStepGate>> =
+            governance.as_ref().map(|gov| {
+                let ctx_bs = ctx_for_spawn.clone();
+                Arc::new(super::run_governance::GrantRenewalGate::new(
+                    gov.clone(),
+                    Box::new(move || {
+                        ctx_bs
+                            .pipeline_state
+                            .lock()
+                            .ok()
+                            .and_then(|ps| ps.build_spec_hash.clone())
+                    }),
+                )) as Arc<dyn orchestrator::PreStepGate>
+            });
 
         // Build executor with agent prompt lookup.
         // Spec 112 §6.4.5 — thread the project's clone token (if any) as
@@ -1256,9 +1436,8 @@ pub async fn start_factory_pipeline(
             // originating_session are NULL — the run is not session-initiated.
             project_path: None,
             originating_session: None,
-            // Spec 198 FR-005: wired in the full run path; placeholder None
-            // until the grant-backed PreStepGate is constructed above.
-            pre_step: None,
+            // Spec 198 FR-005 — grant renewal at every stage boundary.
+            pre_step: pre_step_gate.clone(),
         };
 
         // Dispatch Phase 1 (s0–s5).
@@ -1506,8 +1685,9 @@ pub async fn start_factory_pipeline(
             // Factory-engine origin per spec 173 FR-001.
             project_path: None,
             originating_session: None,
-            // Spec 198 FR-005: placeholder None until grant-backed gate is wired.
-            pre_step: None,
+            // Spec 198 FR-005 — the same renewal gate spans both phases
+            // (one capsule, one monotonic grant chain).
+            pre_step: pre_step_gate.clone(),
         };
 
         let summary2 = match dispatch_manifest(
@@ -1584,17 +1764,22 @@ pub async fn start_factory_pipeline(
         if let Ok(ps) = ctx_for_spawn.pipeline_state.lock() {
             let _ = ps.save_to_file(&state_path);
         }
-        let _ = adapter_for_spawn;
 
-        // Spec 124 §6 — terminal `factory.run.completed`. The platform
-        // handler stamps `status='ok'` and `completed_at`; the desktop is
-        // free of further bookkeeping for this run.
+        // Spec 124 §6 — terminal `factory.run.completed`, now carrying the
+        // spec 198 certificate hash + final grant seq; the platform
+        // handler stamps `status='ok'` and countersigns the certificate.
         let total_tokens = ctx_for_spawn
             .pipeline_state
             .lock()
             .map(|ps| ps.total_tokens)
             .unwrap_or(0);
-        emit_terminal_completed(&ctx_for_spawn, total_tokens).await;
+        emit_terminal_completed(
+            &ctx_for_spawn,
+            total_tokens,
+            governance.as_ref(),
+            &requirements_hash,
+        )
+        .await;
 
         // Dual-write: report Phase 2 (scaffolding) token spend and scaffold progress to Stagecraft.
         if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
@@ -2253,9 +2438,9 @@ pub async fn resume_factory_pipeline(
     // Fresh SyncTracker for the resumed run (099 Slice 2).
     let sync_tracker = SyncTracker::new();
 
-    let options = DispatchOptions {
+    let mut options = DispatchOptions {
         gate_handler: Some(gate_handler as Arc<dyn GateHandler>),
-        project_root: Some(project_path),
+        project_root: Some(project_path.clone()),
         skip_completed_steps: skip_steps,
         cas: None,
         artifact_metadata: None,
@@ -2265,14 +2450,84 @@ pub async fn resume_factory_pipeline(
         // Factory-engine resume origin per spec 173 FR-001.
         project_path: None,
         originating_session: None,
-        // Spec 198 FR-005: placeholder None until grant-backed gate is wired.
+        // Spec 198 FR-005 — set inside the spawn once governance is
+        // established (the grant request is async).
         pre_step: None,
     };
 
     let app_handle = app.clone();
     let resume_emitter_for_spawn = resume_emitter.clone();
+    // Spec 198 — resumed runs are governed like fresh ones. The grant
+    // handler treats a re-request after restart as chain extension; the
+    // capsule is deterministic (same goal text → same goal id), so a
+    // resume that quietly changed objective would refuse as goal-shift.
+    let sc_for_resume: Option<Arc<StagecraftClient>> = app
+        .try_state::<StagecraftState>()
+        .and_then(|s| s.current());
+    let resume_project_id = stagecraft_project_id.clone();
+    let adapter_for_resume = adapter_name.clone();
+    let project_path_for_resume = project_path.clone();
+    let platform_run_id_for_resume = platform_run_id.clone();
+    let manifest = start.manifest;
+    let resume_pipeline_state = start.pipeline_state;
     tokio::spawn(async move {
-        match dispatch_manifest(&am, run_uuid, &start.manifest, bridge, executor, &options).await {
+        let run_dir = super::run_governance::run_dir_for(
+            &project_path_for_resume,
+            &run_uuid.to_string(),
+        );
+        let governance = match (&sc_for_resume, resume_project_id.as_deref()) {
+            (Some(sc), Some(project_id)) => {
+                let goal = format!(
+                    "factory run: adapter {adapter_for_resume} for project {project_id}"
+                );
+                match super::run_governance::establish(
+                    sc,
+                    resume_emitter_for_spawn.clone(),
+                    project_id,
+                    &platform_run_id_for_resume,
+                    &goal,
+                    &run_dir,
+                )
+                .await
+                {
+                    Ok(g) => Some(g),
+                    Err(e) => {
+                        log::error!("run governance refused for resumed run {run_id}: {e}");
+                        if let Err(emit_err) = resume_emitter_for_spawn.failed(e.clone()).await {
+                            log::warn!(
+                                "factory.run.failed (resume) emit/spool failed for run {run_id}: {emit_err}"
+                            );
+                        }
+                        app_handle
+                            .emit(
+                                "factory:workflow_failed",
+                                &serde_json::json!({ "runId": run_id, "error": e }),
+                            )
+                            .ok();
+                        return;
+                    }
+                }
+            }
+            _ => {
+                log::warn!(
+                    "resumed run {run_id} starts UNGOVERNED (no project binding / platform \
+                     client) — certificate stays unsealed (spec 198 FR-005)"
+                );
+                None
+            }
+        };
+        options.pre_step = governance.as_ref().map(|gov| {
+            // The freshly-seeded resume state has no frozen Build-Spec hash;
+            // the platform chain already holds it one-way if it was ever
+            // presented before the restart.
+            let bs = resume_pipeline_state.build_spec_hash.clone();
+            Arc::new(super::run_governance::GrantRenewalGate::new(
+                gov.clone(),
+                Box::new(move || bs.clone()),
+            )) as Arc<dyn orchestrator::PreStepGate>
+        });
+
+        match dispatch_manifest(&am, run_uuid, &manifest, bridge, executor, &options).await {
             Ok(summary) => {
                 let total_tokens: u64 = summary.steps.iter().filter_map(|s| s.tokens_used).sum();
                 let half = total_tokens / 2;
@@ -2281,10 +2536,68 @@ pub async fn resume_factory_pipeline(
                     output: total_tokens - half,
                     total: total_tokens,
                 };
-                if let Err(emit_err) = resume_emitter_for_spawn.completed(token_spend, None, None).await {
-                    log::warn!(
+                // Spec 198 FR-009/FR-014 — emit + (when live) seal the
+                // certificate for the resumed run. The requirements hash
+                // persisted at run start keeps the intent binding stable
+                // across the restart.
+                let requirements_hash = std::fs::read_to_string(
+                    run_dir.join("requirements-hash.txt"),
+                )
+                .map(|s| s.trim().to_string())
+                .unwrap_or_else(|_| {
+                    format!("{:x}", Sha256::new().finalize())
+                });
+                let binding = governance.as_ref().map(|g| g.capsule_binding());
+                let cert = factory_engine::governance_certificate::generate_certificate_bound(
+                    &resume_pipeline_state,
+                    &requirements_hash,
+                    &run_dir,
+                    None,
+                    &[],
+                    binding.as_ref(),
+                );
+                let cert_hash = cert.certificate_hash.clone();
+                if let Err(e) = factory_engine::governance_certificate::persist_certificate(
+                    &cert, &run_dir,
+                ) {
+                    log::warn!("governance certificate persist failed for resumed run {run_id}: {e}");
+                }
+                let final_seq = governance
+                    .as_ref()
+                    .map(|g| g.last_seq.load(std::sync::atomic::Ordering::Acquire));
+                match resume_emitter_for_spawn
+                    .completed(token_spend, Some(cert_hash), final_seq)
+                    .await
+                {
+                    Ok(Some(cs)) if cs.countersigned => {
+                        if let (Some(jws), Some(gov)) =
+                            (cs.countersign_jws.as_deref(), governance.as_ref())
+                        {
+                            let cert_path = run_dir.join("governance-certificate.json");
+                            if let Err(e) =
+                                factory_engine::governance_certificate::apply_countersign(
+                                    &cert_path,
+                                    jws,
+                                    &gov.jwks,
+                                    Some(&platform_run_id_for_resume),
+                                )
+                            {
+                                log::warn!(
+                                    "countersign apply failed for resumed run {run_id}: {e}"
+                                );
+                            }
+                        }
+                    }
+                    Ok(Some(cs)) => log::warn!(
+                        "platform refused countersign for resumed run {run_id}: {}",
+                        cs.refused_reason.unwrap_or_default()
+                    ),
+                    Ok(None) => log::info!(
+                        "resumed run {run_id} completed without a live countersign round-trip — certificate stays visibly unsealed"
+                    ),
+                    Err(emit_err) => log::warn!(
                         "factory.run.completed (resume) emit/spool failed for run {run_id}: {emit_err}"
-                    );
+                    ),
                 }
                 app_handle
                     .emit(
