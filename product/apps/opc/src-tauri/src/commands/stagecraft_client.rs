@@ -877,6 +877,30 @@ impl StagecraftClient {
     /// request is replayed once with the new bearer; otherwise the original
     /// 401 surfaces to the caller. Both retries log just the status to
     /// avoid leaking response bodies to the structured logger.
+    /// Spec 198 FR-005 / ASI04 m1 — fetch the platform JWKS for admission-seal
+    /// verification. No auth header; the JWKS endpoint is public.
+    ///
+    /// Used by the desktop run path to verify `seal_jws` from the OPC bundle
+    /// before accepting any factory run. Fail-closed: `Err` prevents the run.
+    pub async fn fetch_factory_jwks(
+        &self,
+    ) -> Result<factory_engine::platform_jws::PlatformJwks, StagecraftError> {
+        let url = format!("{}/api/factory/.well-known/jwks.json", self.base_url);
+        let resp = self
+            .client
+            .get(&url)
+            .send()
+            .await
+            .map_err(StagecraftError::Network)?;
+        if !resp.status().is_success() {
+            return Err(StagecraftError::Api(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
+        }
+        resp.json().await.map_err(StagecraftError::Decode)
+    }
+
     async fn authed_json_get_with_refresh<T>(
         &self,
         url: &str,
@@ -1378,6 +1402,24 @@ pub struct OpcBundleCloneToken {
     pub expires_at: Option<String>,
 }
 
+/// Spec 198 FR-005 / ASI04 m1 — admission block embedded in the OPC bundle.
+/// The `sealJws` is a compact JWS signed by the platform over the
+/// `(origin, envelopeHash)` pair; the desktop verifies this before executing
+/// any factory run (fail-closed: no seal = no run).
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OpcBundleAdmission {
+    /// Factory origin identifier (e.g. `"factory-encore"`).
+    pub origin: String,
+    /// Content hash of the admitted factory envelope.
+    #[serde(default)]
+    pub envelope_hash: Option<String>,
+    /// Compact JWS sealing the admission (EdDSA, verified against the
+    /// platform JWKS at `GET /api/factory/.well-known/jwks.json`).
+    #[serde(default)]
+    pub seal_jws: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OpcBundleResponse {
@@ -1389,6 +1431,11 @@ pub struct OpcBundleResponse {
     pub processes: Vec<OpcBundleProcess>,
     pub agents: Vec<OpcBundleAgent>,
     pub clone_token: Option<OpcBundleCloneToken>,
+    /// Spec 198 FR-005 / ASI04 m1 — admission seal block. Absent on bundles
+    /// from pre-198 stagecraft builds; desktop treats absence as unverified
+    /// and fails closed before any factory run.
+    #[serde(default)]
+    pub admission: Option<OpcBundleAdmission>,
 }
 
 /// Spec 112 §6.4.2 — refresh-endpoint response shape.

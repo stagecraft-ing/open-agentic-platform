@@ -788,7 +788,7 @@ async fn emit_terminal_completed(ctx: &FactoryRunContext, total_tokens: u64) {
         output: total_tokens - half,
         total: total_tokens,
     };
-    if let Err(e) = ctx.emitter.completed(token_spend).await {
+    if let Err(e) = ctx.emitter.completed(token_spend, None, None).await {
         log::warn!(
             "factory.run.completed emit/spool failed for run {}: {e}",
             ctx.platform_run_id
@@ -1256,6 +1256,9 @@ pub async fn start_factory_pipeline(
             // originating_session are NULL — the run is not session-initiated.
             project_path: None,
             originating_session: None,
+            // Spec 198 FR-005: wired in the full run path; placeholder None
+            // until the grant-backed PreStepGate is constructed above.
+            pre_step: None,
         };
 
         // Dispatch Phase 1 (s0–s5).
@@ -1503,6 +1506,8 @@ pub async fn start_factory_pipeline(
             // Factory-engine origin per spec 173 FR-001.
             project_path: None,
             originating_session: None,
+            // Spec 198 FR-005: placeholder None until grant-backed gate is wired.
+            pre_step: None,
         };
 
         let summary2 = match dispatch_manifest(
@@ -2260,6 +2265,8 @@ pub async fn resume_factory_pipeline(
         // Factory-engine resume origin per spec 173 FR-001.
         project_path: None,
         originating_session: None,
+        // Spec 198 FR-005: placeholder None until grant-backed gate is wired.
+        pre_step: None,
     };
 
     let app_handle = app.clone();
@@ -2274,7 +2281,7 @@ pub async fn resume_factory_pipeline(
                     output: total_tokens - half,
                     total: total_tokens,
                 };
-                if let Err(emit_err) = resume_emitter_for_spawn.completed(token_spend).await {
+                if let Err(emit_err) = resume_emitter_for_spawn.completed(token_spend, None, None).await {
                     log::warn!(
                         "factory.run.completed (resume) emit/spool failed for run {run_id}: {emit_err}"
                     );
@@ -2987,6 +2994,15 @@ mod tests {
             bound_at: None,
             action: None,
             entry_count: None,
+            run_id: None,
+            granted: None,
+            seq: None,
+            grant_jws: None,
+            kid: None,
+            expires_at: None,
+            refused_reason: None,
+            countersigned: None,
+            countersign_jws: None,
         };
         assert!(extract_factory_run(&env).is_none());
     }
@@ -3059,6 +3075,15 @@ mod tests {
             bound_at: None,
             action: None,
             entry_count: None,
+            run_id: None,
+            granted: None,
+            seq: None,
+            grant_jws: None,
+            kid: None,
+            expires_at: None,
+            refused_reason: None,
+            countersigned: None,
+            countersign_jws: None,
         };
         let run = extract_factory_run(&env).unwrap();
         assert_eq!(run.pipeline_id, "pl-1");
@@ -3125,11 +3150,15 @@ mod tests {
 
         // Terminal — completed with token spend rollup.
         emitter
-            .completed(FactoryRunTokenSpend {
-                input: 50,
-                output: 50,
-                total: 100,
-            })
+            .completed(
+                FactoryRunTokenSpend {
+                    input: 50,
+                    output: 50,
+                    total: 100,
+                },
+                None,
+                None,
+            )
             .await
             .unwrap();
 
