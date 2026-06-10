@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "c931d62c6515c0babf4c35f4082d9cfec1aa5f8ffedf1f6a5a1827a47b44f33b",
+    "contentHash": "d64fa12c19b0c66d26d6123d9ca56ba9e1739bef751b6a312d69357614a8e53d",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -44088,7 +44088,19 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/admission.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/auditActions.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.test.ts",
             "source": "spec-implements"
           },
           {
@@ -44109,6 +44121,10 @@
           },
           {
             "path": "platform/services/stagecraft/api/factory/signing-pure.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/signing.test.ts",
             "source": "spec-implements"
           },
           {
@@ -44281,6 +44297,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
               }
             ],
@@ -44331,6 +44361,20 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/factory/signing-pure.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/signing.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/signing.test.ts"
             }
           },
           {
@@ -44760,6 +44804,34 @@
             "unit": {
               "kind": "file",
               "path": "crates/orchestrator/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/schema.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/schema.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/auditActions.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/auditActions.ts"
             }
           },
           {

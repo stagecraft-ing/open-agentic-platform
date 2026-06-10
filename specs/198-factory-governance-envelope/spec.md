@@ -48,6 +48,8 @@ establishes:
   - unit: { kind: file, path: crates/factory-engine/src/platform_jws.rs }
   - unit: { kind: file, path: crates/factory-engine/src/intent_capsule.rs }
   - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/run_governance.rs }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/grantDuplexHandlers.test.ts }
 extends:
   - spec: "074-factory-ingestion"
     nature: additive
@@ -85,6 +87,10 @@ refines:
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/factory_platform.rs }
   - aspect: "admission-seal-in-bundle"
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/stagecraft_client.rs }
+  - aspect: "run-grant-records"
+    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+  - aspect: "run-grant-records"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
 references:
   - role: enforcer
     unit: { kind: crate, id: factory-engine }
