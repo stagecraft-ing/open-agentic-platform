@@ -30,6 +30,10 @@ function makeWorkspaceWithDualPrebuilt(): string {
     writeFileSync(join(root, "package.json"), `{"name":"${variant}"}\n`);
     // .gitignore (a FILE starting with ".git") must survive the filter.
     writeFileSync(join(root, ".gitignore"), "node_modules\n");
+    // Nested node_modules — the exclusion must hold at any depth, and must
+    // drop the directory itself, not just its contents.
+    mkdirSync(join(root, "node_modules", "is-even"), { recursive: true });
+    writeFileSync(join(root, "node_modules", "is-even", "index.js"), "");
   }
   mkdirSync(join(prebuilt, ".git"), { recursive: true });
   writeFileSync(join(prebuilt, ".git", "HEAD"), "ref: refs/heads/main\n");
@@ -64,10 +68,12 @@ describe("scaffoldFromPrebuilt — VCS-free output (spec 112 §5.3)", () => {
       expect(existsSync(join(dest, "internal", "package.json"))).toBe(true);
       expect(existsSync(join(dest, "public", ".gitignore"))).toBe(true);
 
-      // Existing exclusion unchanged.
-      expect(existsSync(join(dest, "node_modules", "left-pad", "index.js"))).toBe(
-        false,
-      );
+      // node_modules is dropped entirely — no empty directory shell at
+      // dest (the old contents-only `${sep}node_modules${sep}` pattern
+      // left one), and the exclusion holds at depth.
+      expect(existsSync(join(dest, "node_modules"))).toBe(false);
+      expect(existsSync(join(dest, "public", "node_modules"))).toBe(false);
+      expect(existsSync(join(dest, "internal", "node_modules"))).toBe(false);
 
       // The L0 seed still lands (step 4).
       expect(existsSync(join(dest, ".factory", "pipeline-state.json"))).toBe(true);
