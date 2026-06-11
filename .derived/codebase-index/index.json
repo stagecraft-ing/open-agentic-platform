@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "43ee427a10185a7086ca608b7a2729a65446b2d3b259c4830b871797c2389c3e",
+    "contentHash": "dc01a8f33309fee2ce5adadb59e36fa1bb12e0d2dabd3ab5e636678f4b7f1f33",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -25828,6 +25828,10 @@
             "source": "spec-implements"
           },
           {
+            "path": ".github/actions/free-disk-space/action.yml",
+            "source": "spec-implements"
+          },
+          {
             "path": ".github/workflows/ci-crates.yml",
             "source": "spec-implements"
           },
@@ -25862,6 +25866,20 @@
               "anchor": "ci-default-rename",
               "file": "Makefile",
               "kind": "section"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/actions/free-disk-space/action.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/actions/free-disk-space/action.yml"
             }
           },
           {

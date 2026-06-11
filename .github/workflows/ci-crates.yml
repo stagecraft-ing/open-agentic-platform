@@ -48,6 +48,14 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
+      # FR-05a (spec 135, amendment 2026-06-11): the workspace debug build
+      # plus the two release fixture-producer builds exhausted the
+      # ubuntu-latest image's free disk margin (merge_group run 27355231139,
+      # ENOSPC mid-build). The local composite reclaims ~25 GB on hosted
+      # runners only (guard inside the action); see
+      # .github/actions/free-disk-space/action.yml.
+      - uses: ./.github/actions/free-disk-space
+
       # The spec-152 section-aware verification tests under
       # tools/spec-spine/spec-code-coupling-check/tests/ read the live
       # `.derived/spec-registry/registry.json` and

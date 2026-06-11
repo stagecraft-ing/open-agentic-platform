@@ -7,7 +7,7 @@ owner: bart
 created: "2026-05-03"
 approved: "2026-05-03"
 completed: "2026-05-03"
-amended: "2026-05-30"
+amended: "2026-06-11"
 amendment_record: |
   amended by spec 182 (2026-05-30) — the `validate-and-fix` file this
   spec extends (wrapping) moved verbatim to
@@ -15,6 +15,14 @@ amendment_record: |
   deprecation PR (legacy command file deleted); the `extends:` unit
   path is repointed from `.claude/commands/validate-and-fix.md`
   accordingly. No behavioral change.
+  self-amended (2026-06-11), FR-05a: hosted-runner disk headroom for
+  the disk-heavy Rust CI jobs. A local composite action
+  (.github/actions/free-disk-space, established by this spec) is wired
+  into ci-crates.yml and spec-conformance.yml after merge_group runs
+  27355231139 (ci-crates, ENOSPC mid-test) and 27371047814
+  (spec-conformance, rustc LLVM IO failure on output stream) both
+  exhausted hosted-runner disk. Guarded to GitHub-hosted runners
+  inside the action; no change to any validation surface.
 kind: governance
 domain: tooling
 risk: low
@@ -34,6 +42,8 @@ co_authority:
       - "128-spec-lint-default-fail-on-warn"
       - "134-fast-local-ci-mode"
     unit: { kind: section, file: Makefile, anchor: ci-default-rename }
+establishes:
+  - unit: { kind: file, path: .github/actions/free-disk-space/action.yml }
 extends:
   - spec: "104-makefile-ci-parity-contract"
     nature: wrapping
@@ -270,6 +280,43 @@ at the top of the file gain `# Spec: 135-fast-ci-as-default`. The
 `agent-frontmatter` TS-drift conditional step is preserved, gated on
 the workspace test step having run.
 
+### FR-05a: Hosted-runner disk headroom (amendment 2026-06-11)
+
+Disk-heavy Rust CI jobs on GitHub-hosted runners MUST reclaim
+preinstalled-toolchain disk space before their cargo invocations. Two
+same-day ENOSPC data points established that the hosted-runner free
+margin no longer fits a full root-workspace build profile:
+
+- merge_group run 27355231139: the ci-crates workspace job (workspace
+  debug build plus two release fixture-producer builds) failed with
+  "couldn't create a temp dir: No space left on device";
+- merge_group run 27371047814: the spec-conformance job (six per-tool
+  release target dirs plus, at the time, an accidental full-workspace
+  test build) failed with rustc LLVM "IO failure on output stream: No
+  space left on device" compiling sandbox-local-container. (The
+  accidental `--all` on the contract-subset invocations was dropped in
+  the same amendment PR; that step's semantics are owned by the
+  conformance gate's specs, not this one.)
+
+The mechanism is a local composite action,
+`.github/actions/free-disk-space/action.yml` (established by this
+spec), wired into `ci-crates.yml` and `spec-conformance.yml` after
+their checkout steps. It:
+
+- is guarded with `if: runner.environment == 'github-hosted'` INSIDE
+  the action, so no caller can route it onto an operator machine (the
+  ci-crates `runs-on` enabler, 2026-06-10, can send merge_group jobs
+  to self-hosted runners once `OAP_RUNNER_HEAVY` is set);
+- is plain shell, not a third-party action: keeps the supply-chain
+  surface flat (spec 116 posture) and adds no new SHA-pinned action
+  ref under the spec 158 lint;
+- deletes only preinstalled toolchains these jobs never use (.NET,
+  Android, Haskell, CodeQL toolcache, preloaded Docker images),
+  reclaiming roughly 25 GB (field-measured: 89 GB → 112 GB available
+  in 82 s on the first green run);
+- prints `df -h` before and after, so future margin erosion is
+  visible in job logs rather than surfacing as the next ENOSPC flake.
+
 ### FR-06: `validate-and-fix` calls `make ci` as the dev-loop default
 
 `.claude/commands/validate-and-fix.md` MUST recommend `make ci` (the
@@ -410,3 +457,12 @@ expectations and intended audience, mirroring spec 134 §SC-04.
 Spec 178 (opc-directory-rename, 2026-05-24): mechanical path rename
 `product/apps/desktop/*` → `product/apps/opc/*`. No semantic change
 to this spec's claims; owned paths inherit the new prefix.
+
+**Amendment 2026-06-11 (record: self, FR-05a).** Operational
+hardening for hosted-runner disk margin: the local composite action
+`.github/actions/free-disk-space/action.yml` (established here) is
+wired into `.github/workflows/ci-crates.yml` and
+`.github/workflows/spec-conformance.yml` after merge_group runs
+27355231139 and 27371047814 both died ENOSPC. Guarded to
+`runner.environment == 'github-hosted'` inside the action; no
+validation surface changes.
