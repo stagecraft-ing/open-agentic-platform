@@ -4,8 +4,11 @@ import { describe, expect, test } from "vitest";
 import { buildL0PipelineStateSeed } from "./seedPipelineState";
 import { buildProjectOpenDeepLink } from "./deepLink";
 import {
+  INSTALL_ORDER,
+  MODULE_CATALOG,
+  PRESETS,
   PROFILE_MODULES,
-  detectProfile,
+  PROFILES,
   extrasFor,
   pickProfileFromModules,
   isKnownModule,
@@ -68,29 +71,51 @@ describe("buildProjectOpenDeepLink", () => {
   });
 });
 
-describe("detectProfile", () => {
-  test("auth-saml → public", () => {
-    expect(detectProfile(["auth-saml", "data-redis"])).toBe("public");
+describe("moduleCatalog — template-encore cutover (spec 199 FR-007)", () => {
+  test("the catalog is exactly template-encore's modules/ directory", () => {
+    expect(MODULE_CATALOG.map((m) => m.id).sort()).toEqual([
+      "api-gateway",
+      "data-postgres",
+      "data-redis",
+      "security-core",
+      "user-management",
+    ]);
   });
 
-  test("auth-entra-id → internal", () => {
-    expect(detectProfile(["auth-entra-id", "data-postgres"])).toBe("internal");
+  test("retired express-session-era and auth-module ids are gone", () => {
+    for (const retired of [
+      "auth-saml",
+      "auth-entra-id",
+      "session-store-redis",
+      "session-store-postgres",
+      "service-auth",
+      "api-docs",
+    ]) {
+      expect(isKnownModule(retired)).toBe(false);
+    }
   });
 
-  test("no auth driver → minimal", () => {
-    expect(detectProfile([])).toBe("minimal");
-    expect(detectProfile(["data-redis"])).toBe("minimal");
+  test("no module ships by default: profile built-ins and presets are empty", () => {
+    for (const profile of PROFILES) {
+      expect(PROFILE_MODULES[profile]).toEqual([]);
+      expect(PRESETS[profile]).toEqual([]);
+    }
   });
 
-  test("auth-saml wins over auth-entra-id when both somehow selected", () => {
-    expect(detectProfile(["auth-saml", "auth-entra-id"])).toBe("public");
+  test("INSTALL_ORDER covers the catalog and puts security-core before api-gateway", () => {
+    expect([...INSTALL_ORDER].sort()).toEqual(
+      MODULE_CATALOG.map((m) => m.id).sort()
+    );
+    expect(INSTALL_ORDER.indexOf("security-core")).toBeLessThan(
+      INSTALL_ORDER.indexOf("api-gateway")
+    );
   });
 });
 
 describe("pickProfileFromModules", () => {
   test("variant=dual always picks dual regardless of modules", () => {
     expect(pickProfileFromModules("dual", [])).toBe("dual");
-    expect(pickProfileFromModules("dual", ["auth-saml"])).toBe("dual");
+    expect(pickProfileFromModules("dual", ["api-gateway"])).toBe("dual");
   });
 
   test("variant=single-public → public", () => {
@@ -101,41 +126,37 @@ describe("pickProfileFromModules", () => {
     expect(pickProfileFromModules("single-internal", [])).toBe("internal");
   });
 
-  test("unknown variant falls through to detectProfile", () => {
-    expect(pickProfileFromModules("unspecified", ["auth-saml"])).toBe("public");
+  test("unknown variant → minimal (auth is the AUTH_DRIVER axis, not a module)", () => {
+    expect(pickProfileFromModules("unspecified", ["api-gateway"])).toBe("minimal");
     expect(pickProfileFromModules("unspecified", [])).toBe("minimal");
   });
 });
 
 describe("extrasFor", () => {
-  test("dropping built-in modules: public profile already ships data-redis", () => {
+  test("every selected module is an extra (no profile built-ins exist)", () => {
     const result = extrasFor("public", ["data-redis", "user-management"]);
-    // data-redis is in PROFILE_MODULES.public → dropped; user-management is not → kept
-    expect(result).not.toContain("data-redis");
-    expect(result).toContain("user-management");
+    expect(result).toEqual(["data-redis", "user-management"]);
   });
 
-  test("sorting by INSTALL_ORDER: dependencies appear before dependents", () => {
+  test("sorting by INSTALL_ORDER: security-core installs before api-gateway", () => {
     const result = extrasFor("minimal", [
       "user-management",
-      "data-postgres",
-      "auth-entra-id",
+      "api-gateway",
+      "security-core",
     ]);
-    // INSTALL_ORDER places data-postgres → auth-entra-id → user-management
     expect(result).toEqual([
-      "data-postgres",
-      "auth-entra-id",
+      "security-core",
+      "api-gateway",
       "user-management",
     ]);
   });
 
-  test("returns empty when every selected module is in the profile", () => {
-    expect(extrasFor("public", PROFILE_MODULES.public)).toEqual([]);
+  test("returns empty when nothing is selected", () => {
+    expect(extrasFor("public", [])).toEqual([]);
   });
 
-  test("unknown modules are dropped (filtered upstream by isKnownModule)", () => {
-    const result = extrasFor("minimal", ["bogus-not-real"]);
-    expect(result).toEqual([]);
+  test("unknown (incl. retired) modules are dropped", () => {
+    expect(extrasFor("minimal", ["bogus-not-real", "session-store-redis"])).toEqual([]);
   });
 });
 
@@ -197,18 +218,15 @@ describe("spec 112 §10 runtime gate (shape)", () => {
 
 describe("isKnownModule", () => {
   test("recognises catalogued modules", () => {
-    expect(isKnownModule("auth-saml")).toBe(true);
+    // security-core is a regular opt-in module in template-encore's
+    // catalog (the old always-on framing was template-distributor-era).
+    expect(isKnownModule("security-core")).toBe(true);
     expect(isKnownModule("user-management")).toBe(true);
   });
 
   test("rejects unknown ids", () => {
     expect(isKnownModule("nope")).toBe(false);
     expect(isKnownModule("")).toBe(false);
-  });
-
-  test("rejects always-on modules that aren't user-selectable", () => {
-    // security-core / auth-core are always-on per template-distributor:108-194.
-    expect(isKnownModule("security-core")).toBe(false);
     expect(isKnownModule("auth-core")).toBe(false);
   });
 });

@@ -63,59 +63,11 @@ interface ModuleDescriptor {
 
 const MODULE_CATALOG: ModuleDescriptor[] = [
   {
-    id: "auth-saml",
-    displayName: "SAML 2.0",
-    category: "Authentication",
-    description: "Alberta.ca Account auth (public/citizen-facing apps)",
-    requires: [],
-    conflicts: ["auth-entra-id"],
-  },
-  {
-    id: "auth-entra-id",
-    displayName: "Entra ID",
-    category: "Authentication",
-    description: "Microsoft Entra ID / Azure AD (staff-facing apps)",
-    requires: [],
-    conflicts: ["auth-saml"],
-  },
-  {
-    id: "data-redis",
-    displayName: "Redis",
-    category: "Data Access",
-    description: "Redis client with access-key and Entra ID auth modes",
-    requires: [],
-    conflicts: [],
-  },
-  {
-    id: "data-postgres",
-    displayName: "PostgreSQL",
-    category: "Data Access",
-    description: "PostgreSQL pool with Azure compliance (SSL, retry, metrics)",
-    requires: [],
-    conflicts: [],
-  },
-  {
-    id: "session-store-redis",
-    displayName: "Redis Sessions",
-    category: "Session Store",
-    description: "Redis session store for express-session",
-    requires: ["data-redis"],
-    conflicts: ["session-store-postgres"],
-  },
-  {
-    id: "session-store-postgres",
-    displayName: "PostgreSQL Sessions",
-    category: "Session Store",
-    description: "PostgreSQL session store for express-session",
-    requires: ["data-postgres"],
-    conflicts: ["session-store-redis"],
-  },
-  {
-    id: "service-auth",
-    displayName: "Service Auth",
+    id: "security-core",
+    displayName: "Security Core",
     category: "Infrastructure",
     description:
-      "Azure AD service-to-service JWT validation (Client Credentials flow)",
+      "Cross-cutting security overlay — documents the CORS origin knob; Helmet/CSP, rate limiting, and logging ship in the base app",
     requires: [],
     conflicts: [],
   },
@@ -123,15 +75,26 @@ const MODULE_CATALOG: ModuleDescriptor[] = [
     id: "api-gateway",
     displayName: "API Gateway",
     category: "Infrastructure",
-    description: "BFF gateway/proxy layer for routing requests",
+    description:
+      "BFF gateway opt-in — private-backend config knobs + the /connectivity test page; the gateway service ships in the base app",
+    requires: ["security-core"],
+    conflicts: [],
+  },
+  {
+    id: "data-postgres",
+    displayName: "PostgreSQL",
+    category: "Data",
+    description:
+      'Declarative marker — persistence is the base app\'s SQLDatabase("app"); Encore owns pooling, health, and migrations',
     requires: [],
     conflicts: [],
   },
   {
-    id: "api-docs",
-    displayName: "API Docs",
-    category: "Infrastructure",
-    description: "OpenAPI/Swagger documentation UI served at /api-docs",
+    id: "data-redis",
+    displayName: "Redis",
+    category: "Data",
+    description:
+      "Optional rate-limit backend (REDIS_URL). Not a session store — auth is stateless RS256 JWT",
     requires: [],
     conflicts: [],
   },
@@ -140,25 +103,19 @@ const MODULE_CATALOG: ModuleDescriptor[] = [
     displayName: "User/Role Management",
     category: "Application",
     description:
-      "Admin UI for user and role management with IdP-to-DB sync on login",
-    requires: ["data-postgres"],
+      "User + role management as an Encore service — role catalog with admin CRUD behind auth + requireRole",
+    requires: [],
     conflicts: [],
   },
 ];
 
+// Empty by design: template-encore profiles select AUTH_DRIVER (auth is not
+// a module) and no module ships by default — selected modules are composed
+// server-side on top of the prebuilt tree (spec 199 FR-007 cutover,
+// 2026-06-11).
 const PRESETS: Record<Variant, string[]> = {
-  "single-public": [
-    "data-redis",
-    "auth-saml",
-    "session-store-redis",
-    "api-gateway",
-  ],
-  "single-internal": [
-    "data-postgres",
-    "auth-entra-id",
-    "session-store-postgres",
-    "service-auth",
-  ],
+  "single-public": [],
+  "single-internal": [],
   // Dual modules are managed by setup-dual-app.ts; the picker is hidden
   // for variant=dual, so the empty preset is informational only.
   dual: [],
@@ -514,8 +471,8 @@ export default function NewProject() {
                 Modules
               </label>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                Pre-checked entries match the variant's preset; uncheck to drop
-                them or add others. Conflicting modules are managed automatically.
+                Optional — none ship by default; selected modules are composed
+                into the scaffold. Dependencies are managed automatically.
               </p>
               <div className="space-y-4">
                 {Object.entries(MODULES_BY_CATEGORY).map(([category, mods]) => (
