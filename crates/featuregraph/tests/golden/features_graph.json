@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:426ae332598661fd78d0f82a23291981f006f67000551576dd4a75b1b6c03d96",
+  "graph_fingerprint": "sha256:8a986a3e723108ecf5fd32fbe8e209e0edbd508a537b6110ed7591045cd776c3",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3764,7 +3764,7 @@
       "title": "Thin-Consumer Factory Sync for Owned Sources",
       "spec_path": "specs/199-factory-thin-consumer-sync/spec.md",
       "status": "draft",
-      "implementation": "in-progress",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",

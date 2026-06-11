@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5fc9c403484bd2c011b081a2bae0109c5dd3943a7e4a4b80dcb588229169ac82",
+    "contentHash": "e142ccea311806347bd47b6c8f81110a5023e6b626a5370caabe0fffcd871fdb",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -44169,6 +44169,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/factory/factory.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.test.ts",
             "source": "spec-implements"
           },
@@ -45079,6 +45083,20 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/factory/conflicts.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/factory.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/factory.ts"
             }
           },
           {
