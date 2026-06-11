@@ -5,7 +5,10 @@
 // Pure — runs under bare vitest.
 
 import { describe, expect, it } from "vitest";
-import { approvalControlState } from "./approval-basis-helpers";
+import {
+  approvalControlState,
+  runGateControlState,
+} from "./approval-basis-helpers";
 import type {
   ApprovalSummaryWire,
   ArtifactApprovalSummaryResponse,
@@ -121,5 +124,93 @@ describe("spec 201 FR-002 — approvalControlState (AC-1)", () => {
     if (state.kind !== "verify-with-basis") return;
     expect(state.summary.summaryHash).toBe("c".repeat(64));
     expect(state.unverifiedPaths).toEqual(["process/agents/architect.md"]);
+  });
+});
+
+describe("spec 201 phase 3 — runGateControlState (AC-1, run surface)", () => {
+  const APPROVAL = {
+    stageId: "s1",
+    gatePredicate: "approval-before-build-spec-freeze",
+    summaryHash: "d".repeat(64),
+    approvedBy: "subject-2",
+    approvedAt: "2026-06-11T13:00:00.000Z",
+  };
+  const CLEAN_SUMMARY: ApprovalSummaryWire = {
+    ...SUMMARY,
+    consumedOverrides: SUMMARY.consumedOverrides.map((o) => ({
+      ...o,
+      requireVerifiedSatisfied: true,
+    })),
+  };
+  const OK_CONTEXT = {
+    requiredStageIds: ["s1", "s2", "s3"],
+    approvals: [APPROVAL],
+    ok: true,
+    gatePredicate: "approval-before-build-spec-freeze",
+    summary: CLEAN_SUMMARY,
+    blockingOverridePaths: [],
+  };
+
+  it("renders the recorded approval receipt for an approved stage", () => {
+    expect(runGateControlState(OK_CONTEXT, "s1")).toEqual({
+      kind: "approved",
+      approval: APPROVAL,
+    });
+  });
+
+  it("fails closed when the context fetch produced nothing", () => {
+    const state = runGateControlState(null, "s2");
+    expect(state.kind).toBe("blocked");
+  });
+
+  it("fails closed with the attributable reason when assembly refused", () => {
+    const state = runGateControlState(
+      {
+        requiredStageIds: ["s1", "s2", "s3"],
+        approvals: [],
+        ok: false,
+        reason: "no factory upstream configured for this org",
+      },
+      "s2",
+    );
+    expect(state).toEqual({
+      kind: "blocked",
+      reason: "no factory upstream configured for this org",
+    });
+  });
+
+  it("WITHHOLDS approve on envelope-unsatisfied overrides (FR-002)", () => {
+    const state = runGateControlState(
+      {
+        ...OK_CONTEXT,
+        blockingOverridePaths: ["process/agents/architect.md"],
+      },
+      "s2",
+    );
+    expect(state).toEqual({
+      kind: "withheld",
+      blockingPaths: ["process/agents/architect.md"],
+    });
+  });
+
+  it("renders the approvable basis for a clean unapproved stage", () => {
+    const state = runGateControlState(OK_CONTEXT, "s2");
+    expect(state.kind).toBe("approvable");
+    if (state.kind !== "approvable") return;
+    expect(state.gatePredicate).toBe("approval-before-build-spec-freeze");
+    expect(state.summary.summaryHash).toBe(SUMMARY.summaryHash);
+  });
+
+  it("recorded approval wins even when the context is otherwise blocked", () => {
+    const state = runGateControlState(
+      {
+        requiredStageIds: ["s1", "s2", "s3"],
+        approvals: [APPROVAL],
+        ok: false,
+        reason: "basis no longer assemblable",
+      },
+      "s1",
+    );
+    expect(state.kind).toBe("approved");
   });
 });

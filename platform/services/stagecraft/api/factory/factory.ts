@@ -60,12 +60,17 @@ const DEFAULT_SCOPE = {
   allowed_commands: ["npm", "npx", "node"],
 };
 
+// Spec 201 phase 3 reads this policy fact to render the run-detail HITL
+// gate surface; one home for the stage-approval list (the spec 201
+// approval-context endpoint maps N → `sN` stage ids).
+export const DEFAULT_REQUIRE_STAGE_APPROVAL = [1, 2, 3]; // s1, s2, s3
+
 function compileDefaultRules(adapter: string, overrides?: PolicyOverrides) {
   const scope = ADAPTER_SCOPES[adapter] ?? DEFAULT_SCOPE;
   return {
     allowed_adapters: [adapter],
     max_retry_per_feature: overrides?.max_retry_per_feature ?? 3,
-    require_stage_approval: [1, 2, 3],  // s1, s2, s3 need human sign-off
+    require_stage_approval: DEFAULT_REQUIRE_STAGE_APPROVAL, // human sign-off
     auto_approve_stages: [0, 4, 5, 6],  // s0, s4, s5, s6 auto-proceed
     token_budget: {
       per_stage_agent: overrides?.token_budget_total

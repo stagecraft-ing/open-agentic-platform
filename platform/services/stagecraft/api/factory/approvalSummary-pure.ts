@@ -233,6 +233,19 @@ export function computeApprovalSummaryHash(
   );
 }
 
+/**
+ * Spec 201 phase 3 — deterministic run-gate predicate selection. OAP never
+ * models predicate→stage binding (spec 198 P-2: that is run topology, the
+ * engine's domain), so the run surface records a deterministically-chosen
+ * declared predicate: the first declared `gates[].predicate` containing
+ * "approval", else the first declared. Returns null when the envelope
+ * declares no gates — the surface fails closed (nothing to ratify).
+ */
+export function pickRunGatePredicate(declared: string[]): string | null {
+  if (declared.length === 0) return null;
+  return declared.find((p) => p.includes("approval")) ?? declared[0];
+}
+
 /** Plain language from envelope facts only — no model inference (FR-001). */
 function buildBlastRadiusStatement(
   gatePredicate: string,

@@ -623,3 +623,50 @@ export async function getFactoryRun(
     `/api/factory/runs/${encodeURIComponent(id)}`
   ) as Promise<FactoryRunDetail>;
 }
+
+// Spec 201 phase 3 — run-level HITL gate (FR-002/FR-003/FR-004 run path).
+
+export type RunGateApprovalWire = {
+  stageId: string;
+  gatePredicate: string;
+  summaryHash: string;
+  approvedBy: string;
+  approvedAt: string;
+};
+
+export type RunApprovalContextWire = {
+  requiredStageIds: string[];
+  approvals: RunGateApprovalWire[];
+  ok: boolean;
+  reason?: string;
+  gatePredicate?: string;
+  summary?: ApprovalSummaryWire;
+  blockingOverridePaths?: string[];
+};
+
+export async function getFactoryRunApprovalContext(
+  request: Request,
+  runId: string,
+) {
+  return apiFetch(
+    request,
+    `/api/factory/runs/${encodeURIComponent(runId)}/approval-context`,
+  ) as Promise<RunApprovalContextWire>;
+}
+
+export async function approveFactoryRunGate(
+  request: Request,
+  runId: string,
+  stageId: string,
+  summaryHash: string,
+) {
+  return apiFetch(
+    request,
+    `/api/factory/runs/${encodeURIComponent(runId)}/gates/${encodeURIComponent(stageId)}/approve`,
+    {
+      method: "POST",
+      body: JSON.stringify({ summaryHash }),
+      headers: { "content-type": "application/json" },
+    },
+  ) as Promise<{ approval: RunGateApprovalWire; created: boolean }>;
+}

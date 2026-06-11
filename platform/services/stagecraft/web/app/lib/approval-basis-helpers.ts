@@ -9,6 +9,8 @@
 import type {
   ApprovalSummaryWire,
   ArtifactApprovalSummaryResponse,
+  RunApprovalContextWire,
+  RunGateApprovalWire,
 } from "./factory-api.server";
 
 export type ApprovalControlState =
@@ -66,5 +68,58 @@ export function approvalControlState(
     unverifiedPaths: approval.summary.consumedOverrides
       .filter((o) => !o.requireVerifiedSatisfied)
       .map((o) => o.path),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Run-level HITL gate (spec 201 phase 3) — per-stage control state.
+// ---------------------------------------------------------------------------
+
+export type RunGateControlState =
+  /** This stage's approval is already recorded — render the receipt. */
+  | { kind: "approved"; approval: RunGateApprovalWire }
+  /** No basis — attributable error, no approve control (FR-002). */
+  | { kind: "blocked"; reason: string }
+  /** Basis exists but the envelope's require_verified policy is
+   * unsatisfied — approve is WITHHELD, blocking paths listed (FR-002;
+   * unlike the verify surface, this surface blocks). */
+  | { kind: "withheld"; blockingPaths: string[] }
+  /** Basis assembled and clean — render fact sections + approve control
+   * carrying the summaryHash for the FR-003 (b) replay guard. */
+  | {
+      kind: "approvable";
+      gatePredicate: string;
+      summary: ApprovalSummaryWire;
+    };
+
+export function runGateControlState(
+  context: RunApprovalContextWire | null,
+  stageId: string,
+): RunGateControlState {
+  const recorded = context?.approvals.find((a) => a.stageId === stageId);
+  if (recorded) return { kind: "approved", approval: recorded };
+  if (context === null) {
+    return {
+      kind: "blocked",
+      reason:
+        "approval context could not be loaded — the approve control is " +
+        "withheld until the context endpoint responds (spec 201 FR-002)",
+    };
+  }
+  if (!context.ok || !context.summary || !context.gatePredicate) {
+    return {
+      kind: "blocked",
+      reason:
+        context.reason ??
+        "approval basis refused without a stated reason (spec 201 FR-002)",
+    };
+  }
+  if ((context.blockingOverridePaths ?? []).length > 0) {
+    return { kind: "withheld", blockingPaths: context.blockingOverridePaths! };
+  }
+  return {
+    kind: "approvable",
+    gatePredicate: context.gatePredicate,
+    summary: context.summary,
   };
 }
