@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d2426f14e109bb3b5ae2b864efbb1d6b5ba190e899c766540184cb3f26fe25d7",
+    "contentHash": "c498edcf4857732ded842ee26355acda005e19f1a5bf652582d237abd689bce8",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -45750,6 +45750,1234 @@
           }
         ],
         "specId": "201-anti-blind-approval-ui",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "075-factory-workflow-engine",
+          "166-opc-stop-hook-gate-chain",
+          "172-opc-live-agent-session-introspection",
+          "198-factory-governance-envelope"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "standards/schemas/factory/governance-envelope.schema.yaml",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "standards/schemas/factory/governance-envelope.schema.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "standards/schemas/factory/governance-envelope.schema.yaml"
+            }
+          },
+          {
+            "kind": "crate",
+            "locations": [
+              {
+                "file": "crates/factory-engine/Cargo.toml"
+              },
+              {
+                "file": "crates/factory-engine/src/agent_bridge.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/agent_resolver.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/artifact_store.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/build_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/factory_run.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/harness.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/migrate_stakeholder_docs.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/bin/verify_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/checks.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/engine.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/factory_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/gate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/harness_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/intent_capsule.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/inter_stage_manifest.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/kernel_emission/emit.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/kernel_emission/gather.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/kernel_emission/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/kernel_emission/templates.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/kernel_emission/version.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/lib.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/manifest_gen.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/migration/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/migration/stakeholder_docs.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/pipeline_state.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/platform_jws.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/policy_shard.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/preflight.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/project_config.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/sandbox/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stagecraft_client.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/cascade_check.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/mod.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/quality_gates.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/s_minus_1_extract.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_actions.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_comparator.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/stages/stage_cd_gate.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/standards_resolver.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/substrate_version.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/topo_sort.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/verify_harness.rs"
+              },
+              {
+                "file": "crates/factory-engine/src/virtual_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
+              },
+              {
+                "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
+              },
+              {
+                "file": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+              },
+              {
+                "file": "crates/factory-engine/tests/agent_resolver_test.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/requirements/stakeholder/charter.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/requirements/stakeholder/client-document.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/runs/run-001/stage-cd/charter.candidate.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/fixtures/cfs-stage-cd-1gx/runs/run-001/stage-cd/client-document.candidate.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/integration_078_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/kernel_emission_integration.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/run_replay.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec-122-coverage.md"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_122_e2e.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_170_certificate_chain.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/spec_170_handoff_chain.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/tenant_emission_integration.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/virtual_root.rs"
+              },
+              {
+                "file": "crates/factory-engine/tests/virtual_root_offline.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "id": "factory-engine",
+              "kind": "crate"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp-agentic-top-10-2026.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp-agentic-top-10-2026.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/runsScheduler.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/runsScheduler.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/orchestrator/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/orchestrator/src/lib.rs"
+            }
+          }
+        ],
+        "specId": "202-run-blast-radius-governor",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "112-factory-project-lifecycle",
+          "116-supply-chain-policy-gates",
+          "167-born-with-spec-spine-kernel",
+          "168-per-project-governance-certificate"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-engine/src/governance_certificate.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/kernel_emission/emit.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp-agentic-top-10-2026.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp-agentic-top-10-2026.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/translator.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/translator.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/governance_certificate.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/kernel_emission/emit.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/kernel_emission/emit.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
+            }
+          }
+        ],
+        "specId": "203-produced-app-sbom-attestation",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "056-session-memory",
+          "198-factory-governance-envelope"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/packages/session-memory/src/server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/packages/session-memory/src/storage/sqlite.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/packages/session-memory/src/types.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp-agentic-top-10-2026.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp-agentic-top-10-2026.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideGate.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/packages/session-memory/src/server.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/packages/session-memory/src/server.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/packages/session-memory/src/storage/sqlite.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/packages/session-memory/src/storage/sqlite.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/packages/session-memory/src/types.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/packages/session-memory/src/types.ts"
+            }
+          }
+        ],
+        "specId": "204-session-memory-write-contract",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "106-rauthy-native-oidc-and-membership",
+          "137-tenant-environment-access-gates",
+          "198-factory-governance-envelope"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/rauthy.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/auth/sessionMint.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp-agentic-top-10-2026.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp-agentic-top-10-2026.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/live_sessions.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/live_sessions.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/auth/rauthy.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/auth/rauthy.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/auth/sessionMint.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/auth/sessionMint.ts"
+            }
+          }
+        ],
+        "specId": "205-agent-nhi-identity",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "189-duplex-envelope-version-parity",
+          "191-schema-parity-ci-job",
+          "198-factory-governance-envelope"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/commands/sync_client.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/sync/types.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/sync/types.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp-agentic-top-10-2026.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp-agentic-top-10-2026.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/signing.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/signing.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/schema-parity-check/envelope-version.mjs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/schema-parity-check/envelope-version.mjs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/sync/service.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/sync/service.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/sync_client.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/sync_client.rs"
+            }
+          }
+        ],
+        "specId": "206-duplex-frame-integrity",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "047-governance-control-plane",
+          "068-permission-runtime",
+          "102-governed-excellence",
+          "198-factory-governance-envelope"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/policy-kernel/src/audit.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/policy-kernel/src/proof_chain.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp-agentic-top-10-2026.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp-agentic-top-10-2026.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/auditActions.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/signing.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/signing.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/policy-kernel/src/audit.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/policy-kernel/src/audit.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/policy-kernel/src/proof_chain.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/policy-kernel/src/proof_chain.rs"
+            }
+          }
+        ],
+        "specId": "207-tamper-evident-audit-chain",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "106-rauthy-native-oidc-and-membership",
+          "172-opc-live-agent-session-introspection",
+          "198-factory-governance-envelope"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/revocations.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/sync/service.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/apps/opc/src-tauri/src/commands/live_sessions.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/revocations.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/revocations.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp-agentic-top-10-2026.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp-agentic-top-10-2026.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/auditActions.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/sync/service.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/sync/service.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/live_sessions.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/live_sessions.rs"
+            }
+          }
+        ],
+        "specId": "208-org-agent-kill-switch",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "112-factory-project-lifecycle",
+          "167-born-with-spec-spine-kernel",
+          "168-per-project-governance-certificate"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-engine/src/governance_certificate.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/kernel_emission/emit.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/kernel_emission/version.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/governance_certificate.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/stages/quality_gates.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/stages/quality_gates.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp-agentic-top-10-2026.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp-agentic-top-10-2026.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/kernel_emission/emit.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/kernel_emission/emit.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/kernel_emission/version.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/kernel_emission/version.rs"
+            }
+          }
+        ],
+        "specId": "209-tenant-kernel-ci-enforcement",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "168-per-project-governance-certificate",
+          "197-factory-contract-open-standard-extensions",
+          "198-factory-governance-envelope",
+          "203-produced-app-sbom-attestation"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-engine/src/governance_certificate.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "standards/schemas/factory/build-spec.schema.yaml",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "standards/schemas/factory/build-spec.schema.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "standards/schemas/factory/build-spec.schema.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp-agentic-top-10-2026.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp-agentic-top-10-2026.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "standards/schemas/factory/governance-envelope.schema.yaml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "standards/schemas/factory/governance-envelope.schema.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/governance_certificate.rs"
+            }
+          }
+        ],
+        "specId": "210-build-spec-agentic-posture",
         "specStatus": "draft"
       }
     ],

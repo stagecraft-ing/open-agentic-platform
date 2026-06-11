@@ -1,0 +1,151 @@
+---
+id: "204-session-memory-write-contract"
+title: "Session-Memory Write Contract (ASI06 cockpit surface)"
+feature_branch: "feat/204-session-memory-write-contract"
+status: draft
+implementation: pending
+kind: platform
+domain: opc
+created: "2026-06-11"
+authors: ["open-agentic-platform"]
+language: en
+summary: >
+  Extend the substrate override-write discipline (spec 198 FR-013) to
+  OAP's second persistent-memory surface: the OPC session-memory MCP
+  (spec 056). Today memory writes are ungoverned — no validation-on-write,
+  no provenance stamp, no trust class, no decay of unverified entries, and
+  harvested agent output can be promoted toward permanent retention
+  without any human in the loop (ASI06 bootstrap-poisoning shape). This
+  spec mirrors the FR-013 architecture onto session memory: a
+  deterministic carrier-class gate on every write, provenance (actor,
+  origin session, content hash) on every revision, trust classes with
+  human-gated promotion, trust-weighted decay, and a no-self-ingestion
+  rule. The cross-cutting principle carries verbatim: a model may DETECT,
+  only rules may BLOCK.
+code_aliases: ["SESSION_MEMORY_WRITE_CONTRACT"]
+compliance:
+  - framework: "owasp-asi-2026"
+    controls: ["ASI06"]
+depends_on:
+  - "056-session-memory"
+  - "198-factory-governance-envelope"
+extends:
+  # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
+  # to the featuregraph golden.
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+refines:
+  - aspect: "memory-write-gate"
+    unit: { kind: file, path: product/packages/session-memory/src/server.ts }
+  - aspect: "provenance-trust-columns"
+    unit: { kind: file, path: product/packages/session-memory/src/storage/sqlite.ts }
+  - aspect: "trust-class-types"
+    unit: { kind: file, path: product/packages/session-memory/src/types.ts }
+references:
+  - role: analog
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.ts }
+  - role: context
+    unit: { kind: file, path: docs/owasp-agentic-top-10-2026.md }
+---
+
+# Feature Specification: Session-Memory Write Contract
+
+**Feature Branch**: `204-session-memory-write-contract`
+**Created**: 2026-06-11
+**Status**: Draft (follow-on filed by the ASI gap-closure pass)
+**Input**: Spec 198 FR-013 specified the `user_body` write path as ASI06's
+control point for the factory substrate, with the architectural rule "a
+model may detect, only rules may block." The ASI 2026 gap analysis
+(2026-06-10) identified the second persistent-memory surface — spec 056's
+session-memory MCP — as carrying none of that contract.
+
+## Purpose
+
+ASI06 is distinctly about *persistence*: corruption that propagates across
+sessions and alters reasoning long after the injection event. The factory
+substrate got its write contract in spec 198. Session memory is the
+remaining store that future sessions read as background truth, and it is
+currently open: any content an agent harvests in a session — including
+content originating from untrusted inputs the agent merely read — can be
+stored, promoted by access-count alone, and surfaced to later sessions as
+established context. That is the textbook bootstrap-poisoning loop (ASI06
+m6) plus unbounded poison persistence (m8).
+
+The contract mirrors FR-013's shape because the threat is the same and the
+architecture is proven there; divergence between the two write contracts
+would itself be a defect (one fact, one home — the gate logic's carrier
+classes have one canonical definition).
+
+## Functional requirements (sketch — refine before implementation)
+
+- **FR-001 — Deterministic write gate.** Every memory write (store and
+  revise; harvested or explicit) passes a rule-only gate refusing the
+  carrier classes the substrate gate names: zero-width/bidi characters,
+  hidden-comment carriers, data URIs and encoded blobs, ANSI escapes, and
+  secret shapes. Fail-closed with an attributable error. The carrier-class
+  definitions are shared with, not copied from, `overrideGate.ts`
+  (single canonical rule set; packaging decided in plan.md).
+- **FR-002 — Provenance stamp.** Every entry revision records actor kind
+  (human | agent | harvester), origin session id, source attribution when
+  harvested, timestamp, and content hash — the spec 198 FR-013(b) stamp
+  shape applied to memory rows.
+- **FR-003 — Trust classes with human-gated promotion.** Entries carry a
+  trust class: `machine-harvested` (default for anything an agent or the
+  harvesting engine wrote), `human-curated` (written or edited by the
+  human), `verified` (explicitly human-verified). Promotion to long-term
+  or permanent retention requires `human-curated` or `verified`;
+  access-count promotion (spec 056's 3+-access rule) may raise importance
+  within machine-harvested tiers but can never cross into permanent. This
+  is ASI06 m9's two-factor surfacing applied at the retention boundary.
+- **FR-004 — Trust-weighted decay.** Unverified entries decay: low-trust
+  entries that are not re-accessed are demoted and eventually expired on a
+  schedule the org can tighten (m8 — expire unverified memory to bound
+  poison persistence). Verified entries are exempt from decay but not from
+  deletion.
+- **FR-005 — No self-ingestion across trust boundaries.** Agent-generated
+  output is always written `machine-harvested`; no automated path may
+  re-classify it. An agent reading its own (or another agent's) harvested
+  memory and re-storing a paraphrase cannot launder it to a higher trust
+  class (m6).
+- **FR-006 — Segmentation as contract.** Project-scoping (already the
+  spec 056 posture) becomes normative: cross-project reads are refused at
+  the storage layer, and origin-session segmentation is recorded so a
+  poisoned session's writes are enumerable and bulk-revocable (quarantine
+  support, m7).
+
+## Acceptance criteria (sketch)
+
+- **AC-1.** A write containing a zero-width-character carrier is refused
+  with an attributable error; the same fixture is refused by the substrate
+  gate (shared rule set proven by a shared fixture).
+- **AC-2.** Every stored entry exposes provenance fields and trust class
+  via the MCP query surface.
+- **AC-3.** A machine-harvested entry cannot reach permanent retention by
+  any sequence of automated accesses; promotion past the boundary requires
+  a human actor id.
+- **AC-4.** An unaccessed machine-harvested entry is demoted/expired by
+  the decay sweep within the configured horizon; a verified entry is not.
+- **AC-5.** Entries from a named session can be enumerated and bulk
+  quarantined; quarantined entries are excluded from reads pending human
+  review.
+
+## Out of scope
+
+- Async model-assisted scanning of memory content — the spec 200 analog
+  for this surface is future work once the scanner exists for the
+  substrate; this spec is the deterministic leg only.
+- The factory substrate write path (spec 198 FR-013 owns it; spec 200 owns
+  its async scanner).
+- RAG/embedding stores beyond session memory (the decomposition embedding
+  cache is content-addressed and regenerable — spec 192; a poisoning
+  contract for retrieval stores, if OAP grows one, is its own spec).
+- Memory UI/presentation (consumes spec 201's presentation discipline
+  where memory drives approvals).
+
+## Sequencing
+
+Independent of spec 198's runtime closure except for the shared
+carrier-class rule set, which exists today in `overrideGate.ts`.
+Implementable now; the shared-rules packaging question (npm/crate home)
+is the first plan.md decision.

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:74a528953c6f130016ca456233783043bba9f14d3f09d9604fc97dee7c88c4c1",
+  "graph_fingerprint": "sha256:9e2529c1c729febbc6e9e7e70166e2a6e7979bc886621b5f8dbbed18f85642e3",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3806,6 +3806,171 @@
       "depends_on": [
         "198-factory-governance-envelope",
         "166-opc-stop-hook-gate-chain"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "202-run-blast-radius-governor",
+      "title": "Run Blast-Radius Governor (ASI08 cascading-failure caps)",
+      "spec_path": "specs/202-run-blast-radius-governor/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "198-factory-governance-envelope",
+        "166-opc-stop-hook-gate-chain",
+        "172-opc-live-agent-session-introspection",
+        "075-factory-workflow-engine"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "203-produced-app-sbom-attestation",
+      "title": "Produced-App SBOM and Dependency-Audit Attestation (ASI04 forward)",
+      "spec_path": "specs/203-produced-app-sbom-attestation/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "167-born-with-spec-spine-kernel",
+        "168-per-project-governance-certificate",
+        "112-factory-project-lifecycle",
+        "116-supply-chain-policy-gates"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "204-session-memory-write-contract",
+      "title": "Session-Memory Write Contract (ASI06 cockpit surface)",
+      "spec_path": "specs/204-session-memory-write-contract/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "056-session-memory",
+        "198-factory-governance-envelope"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "205-agent-nhi-identity",
+      "title": "Per-Agent Non-Human Identity and Task-Scoped Credentials (ASI03)",
+      "spec_path": "specs/205-agent-nhi-identity/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "106-rauthy-native-oidc-and-membership",
+        "137-tenant-environment-access-gates",
+        "198-factory-governance-envelope"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "206-duplex-frame-integrity",
+      "title": "Duplex Frame Integrity and Anti-Replay (ASI07)",
+      "spec_path": "specs/206-duplex-frame-integrity/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "189-duplex-envelope-version-parity",
+        "198-factory-governance-envelope",
+        "191-schema-parity-ci-job"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "207-tamper-evident-audit-chain",
+      "title": "Tamper-Evident Audit Log Chain (ASI observability principle)",
+      "spec_path": "specs/207-tamper-evident-audit-chain/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "047-governance-control-plane",
+        "068-permission-runtime",
+        "102-governed-excellence",
+        "198-factory-governance-envelope"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "208-org-agent-kill-switch",
+      "title": "Org-Wide Agent Kill Switch and Quarantine (ASI10 containment)",
+      "spec_path": "specs/208-org-agent-kill-switch/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "198-factory-governance-envelope",
+        "172-opc-live-agent-session-introspection",
+        "106-rauthy-native-oidc-and-membership"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "209-tenant-kernel-ci-enforcement",
+      "title": "Tenant Kernel CI Enforcement Activation (ASI04 continuous validation)",
+      "spec_path": "specs/209-tenant-kernel-ci-enforcement/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "167-born-with-spec-spine-kernel",
+        "168-per-project-governance-certificate",
+        "112-factory-project-lifecycle"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "210-build-spec-agentic-posture",
+      "title": "Build Spec Agentic-Posture Declaration (Least Agency for produced apps)",
+      "spec_path": "specs/210-build-spec-agentic-posture/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "197-factory-contract-open-standard-extensions",
+        "198-factory-governance-envelope",
+        "203-produced-app-sbom-attestation",
+        "168-per-project-governance-certificate"
       ],
       "impl_files": [],
       "test_files": [],
