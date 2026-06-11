@@ -907,7 +907,11 @@ export type ArtifactAuditAction =
   | "artifact.conflict_resolved"
   // Spec 139 §6.4 — added Phase 2 to absorb spec 111
   // `agent_catalog_audit.action='fork'` 1:1 (T051).
-  | "artifact.forked";
+  | "artifact.forked"
+  // Spec 198 FR-013 — deterministic override-gate refusal (a) and the
+  // privileged verified-flag transition (c).
+  | "artifact.override_gate_rejected"
+  | "artifact.override_verified";
 
 // SQL table is `factory_artifact_substrate` (NOT `factory_artifacts`) — the
 // shorter name was already taken by spec 082's per-run pipeline artifact
@@ -929,6 +933,13 @@ export const factoryArtifactSubstrate = pgTable(
     userBody: text("user_body"),
     userModifiedAt: timestamp("user_modified_at", { withTimezone: true }),
     userModifiedBy: uuid("user_modified_by"),
+    // Spec 198 FR-013(c) — override trust class (migration 45). Every new
+    // override revision resets to unverified; only the privileged
+    // verify-override endpoint flips it. Enforced at bundle assembly when
+    // the admitted envelope declares `overrides.require_verified: true`.
+    userBodyVerified: boolean("user_body_verified").notNull().default(false),
+    verifiedBy: uuid("verified_by"),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
     // Generated-stored at the SQL level: COALESCE(user_body, upstream_body)
     // (migration 32). Drizzle excludes `generatedAlwaysAs` columns from
     // $inferInsert so TS handlers cannot accidentally write to it.

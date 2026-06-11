@@ -15,7 +15,10 @@
 /// Substrate row format version. Bump on every breaking change to the
 /// `factory_artifacts` row shape (column add / remove / rename / type
 /// change).
-pub const SUBSTRATE_VERSION: u32 = 1;
+///
+/// v2 (spec 198 FR-013 c, migration 45): + `user_body_verified` /
+/// `verified_by` / `verified_at` — the override trust-class columns.
+pub const SUBSTRATE_VERSION: u32 = 2;
 
 /// The expected TS-side const, asserted at build time.
 ///
@@ -25,7 +28,7 @@ pub const SUBSTRATE_VERSION: u32 = 1;
 /// and asserts the two values agree; this Rust-side const is what
 /// downstream consumers (`VirtualRoot` in Phase 3) compare against the
 /// platform's runtime advertised version.
-pub const SUBSTRATE_VERSION_TS_EXPECTED: u32 = 1;
+pub const SUBSTRATE_VERSION_TS_EXPECTED: u32 = 2;
 
 const _: () = assert!(
     SUBSTRATE_VERSION == SUBSTRATE_VERSION_TS_EXPECTED,

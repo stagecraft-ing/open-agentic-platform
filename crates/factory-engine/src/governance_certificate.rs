@@ -44,7 +44,13 @@ use std::path::Path;
 /// post-emission `platformCountersign`, which is EXCLUDED from both the
 /// self-hash and the engine signature (zeroed before canonicalisation)
 /// so platform sealing on sync-back never invalidates the offline chain.
-pub const CERTIFICATE_VERSION: &str = "1.4.0";
+///
+/// 1.5.0 (spec 198 FR-013 c) added `consumedOverrides` — the overrides of
+/// admitted factory content the run consumed, with provenance + verified
+/// state, inside the hash + signature. Empty lists are skipped in
+/// serialization so override-free certificates stay byte-identical to
+/// 1.4.0 payloads (only the version string differs).
+pub const CERTIFICATE_VERSION: &str = "1.5.0";
 
 /// Environment-variable name carrying a base64-encoded 32-byte Ed25519 seed
 /// (FR-008.1). Operator-supplied keys outside the agent's write scope.
@@ -107,6 +113,16 @@ pub struct GovernanceCertificate {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub intent_capsule_hash: Option<String>,
 
+    /// Spec 198 FR-013(c) — overrides of admitted factory content this run
+    /// consumed, as presented by the platform's admission-gated bundle
+    /// (already predicate-checked against `overrides.require_verified`).
+    /// Inside the hash + signature (bound at emission) so every consumed
+    /// override is traceable and revocable via its content hash (FR-010).
+    /// Skipped when empty so override-free certificates serialise
+    /// byte-identically to pre-1.5.0 payloads.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub consumed_overrides: Vec<ConsumedOverride>,
+
     /// SHA-256 of the canonical JSON of this certificate with `certificate_hash`
     /// AND `cert_signature` set to empty string. Content-binding fingerprint
     /// inside the signed payload — not the authoritative provenance check
@@ -150,6 +166,24 @@ pub struct PlatformCountersign {
     pub countersign_jws: String,
     pub kid: String,
     pub countersigned_at: DateTime<Utc>,
+}
+
+/// Spec 198 FR-013(c) — one override of admitted factory content the run
+/// consumed: artifact identity, content hash, author provenance (FR-013 b)
+/// and the verified state at consumption time.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ConsumedOverride {
+    pub artifact_id: String,
+    pub path: String,
+    pub content_hash: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub author: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub modified_at: Option<String>,
+    pub verified: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verified_by: Option<String>,
 }
 
 /// Trust posture for the signing public key (spec 102 FR-008.3).
@@ -503,6 +537,7 @@ pub struct CertificateBuilder {
     admitted_envelope_hash: Option<String>,
     goal_id: Option<String>,
     intent_capsule_hash: Option<String>,
+    consumed_overrides: Vec<ConsumedOverride>,
 }
 
 impl CertificateBuilder {
@@ -533,6 +568,7 @@ impl CertificateBuilder {
             admitted_envelope_hash: None,
             goal_id: None,
             intent_capsule_hash: None,
+            consumed_overrides: Vec::new(),
         }
     }
 
@@ -604,6 +640,14 @@ impl CertificateBuilder {
         self
     }
 
+    /// Spec 198 FR-013(c) — bind the overrides the run consumed (as
+    /// presented by the platform's admission-gated bundle) into the
+    /// certificate.
+    pub fn consumed_overrides(mut self, overrides: Vec<ConsumedOverride>) -> Self {
+        self.consumed_overrides = overrides;
+        self
+    }
+
     /// Fallible build path for tenant emission (spec 168 §FR-007).
     ///
     /// Returns [`CertificateBuildError::MissingSigner`] when no
@@ -653,6 +697,7 @@ impl CertificateBuilder {
             admitted_envelope_hash: self.admitted_envelope_hash,
             goal_id: self.goal_id,
             intent_capsule_hash: self.intent_capsule_hash,
+            consumed_overrides: self.consumed_overrides,
             certificate_hash: String::new(),
             signing_public_key: public_key_b64,
             cert_signature: String::new(),
@@ -893,6 +938,9 @@ pub struct CapsuleBinding {
     pub admitted_envelope_hash: String,
     pub goal_id: String,
     pub intent_capsule_hash: String,
+    /// Spec 198 FR-013(c) — overrides the run consumed, from the bundle's
+    /// admission block (platform predicate-checked).
+    pub consumed_overrides: Vec<ConsumedOverride>,
 }
 
 /// [`generate_certificate_with_stage_ids`] plus the spec 198 capsule
@@ -943,7 +991,8 @@ pub fn generate_certificate_bound(
     if let Some(b) = binding {
         builder = builder
             .admitted_envelope_hash(b.admitted_envelope_hash.clone())
-            .intent_capsule(b.goal_id.clone(), b.intent_capsule_hash.clone());
+            .intent_capsule(b.goal_id.clone(), b.intent_capsule_hash.clone())
+            .consumed_overrides(b.consumed_overrides.clone());
     }
     builder.build()
 }
@@ -2320,5 +2369,51 @@ mod tests {
         // Verifier accepts a signed tenant cert.
         let result = verify_certificate(&restored, None);
         assert!(result.valid, "errors: {:?}", result.errors);
+    }
+
+    // Spec 198 FR-013(c) — consumed overrides are bound inside the hash +
+    // signature: round-trip, tamper detection, and the empty-list
+    // byte-compat guarantee.
+    #[test]
+    fn consumed_overrides_bound_and_tamper_evident() {
+        let overrides = vec![ConsumedOverride {
+            artifact_id: "art-1".into(),
+            path: "process/stages/01-analyse.md".into(),
+            content_hash: "ab".repeat(32),
+            author: Some("user-1".into()),
+            modified_at: Some("2026-06-10T00:00:00.000Z".into()),
+            verified: true,
+            verified_by: Some("admin-1".into()),
+        }];
+        let cert = CertificateBuilder::new("run-ov", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .consumed_overrides(overrides)
+            .build();
+
+        let json = serde_json::to_string(&cert).unwrap();
+        assert!(json.contains("\"consumedOverrides\""));
+        assert!(json.contains("\"artifactId\":\"art-1\""));
+        assert!(json.contains("\"verified\":true"));
+
+        let restored: GovernanceCertificate = serde_json::from_str(&json).unwrap();
+        let result = verify_certificate(&restored, None);
+        assert!(result.valid, "errors: {:?}", result.errors);
+
+        // Flipping the verified state after emission must break the chain.
+        let mut tampered = restored.clone();
+        tampered.consumed_overrides[0].verified = false;
+        let result = verify_certificate(&tampered, None);
+        assert!(!result.valid, "tampered override state must fail verify");
+    }
+
+    #[test]
+    fn empty_consumed_overrides_serialises_without_key() {
+        let cert = CertificateBuilder::new("run-no-ov", intent_for_signer_tests())
+            .build_spec_hash("bs")
+            .build();
+        let json = serde_json::to_string(&cert).unwrap();
+        assert!(!json.contains("consumedOverrides"));
+        let restored: GovernanceCertificate = serde_json::from_str(&json).unwrap();
+        assert!(restored.consumed_overrides.is_empty());
     }
 }

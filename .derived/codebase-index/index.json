@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "c2ae5eb16a3f38b0ee23a1d257c04e5c6973c8d72a9f3ab14dcc0dfcb73ef9a4",
+    "contentHash": "d2426f14e109bb3b5ae2b864efbb1d6b5ba190e899c766540184cb3f26fe25d7",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15678,6 +15678,15 @@
                 "file": "platform/services/stagecraft/api/factory/oapContracts.ts"
               },
               {
+                "file": "platform/services/stagecraft/api/factory/overrideGate.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideGate.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideTrustClass.test.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/api/factory/revocations.ts"
               },
               {
@@ -22068,6 +22077,12 @@
               },
               {
                 "file": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql"
               },
               {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
@@ -31644,6 +31659,12 @@
                 "file": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.up.sql"
               },
               {
+                "file": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql"
+              },
+              {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
               },
               {
@@ -31774,6 +31795,15 @@
               },
               {
                 "file": "platform/services/stagecraft/api/factory/oapContracts.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideGate.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideGate.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideTrustClass.test.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/factory/revocations.ts"
@@ -44015,7 +44045,15 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/factory-engine/src/substrate_version.rs",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/orchestrator/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/agents/catalog.ts",
             "source": "spec-implements"
           },
           {
@@ -44035,6 +44073,14 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/db/schema.ts",
             "source": "spec-implements"
           },
@@ -44043,7 +44089,15 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/factory/artifacts.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/auditActions.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/conflicts.ts",
             "source": "spec-implements"
           },
           {
@@ -44056,6 +44110,18 @@
           },
           {
             "path": "platform/services/stagecraft/api/factory/jwks.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/overrideGate.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/overrideGate.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/overrideTrustClass.test.ts",
             "source": "spec-implements"
           },
           {
@@ -44079,6 +44145,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/factory/substrate.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/syncPipeline.ts",
             "source": "spec-implements"
           },
@@ -44096,6 +44166,14 @@
           },
           {
             "path": "platform/services/stagecraft/api/sync/types.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/factory-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx",
             "source": "spec-implements"
           },
           {
@@ -44230,6 +44308,34 @@
             "kind": "file",
             "locations": [
               {
+                "file": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.down.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.down.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "platform/services/stagecraft/api/factory/admission.ts"
               }
             ],
@@ -44280,6 +44386,48 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/factory/jwks.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideGate.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideGate.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideGate.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideTrustClass.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideTrustClass.test.ts"
             }
           },
           {
@@ -44743,6 +44891,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "crates/factory-engine/src/substrate_version.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/substrate_version.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "crates/orchestrator/src/lib.rs"
               }
             ],
@@ -44751,6 +44913,20 @@
             "unit": {
               "kind": "file",
               "path": "crates/orchestrator/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/agents/catalog.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/agents/catalog.ts"
             }
           },
           {
@@ -44771,6 +44947,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "platform/services/stagecraft/api/factory/artifacts.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/artifacts.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "platform/services/stagecraft/api/factory/auditActions.ts"
               }
             ],
@@ -44785,6 +44975,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "platform/services/stagecraft/api/factory/conflicts.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/conflicts.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "platform/services/stagecraft/api/factory/runDuplexHandlers.ts"
               }
             ],
@@ -44793,6 +44997,20 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/factory/runDuplexHandlers.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/substrate.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/substrate.ts"
             }
           },
           {
@@ -44863,6 +45081,34 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/sync/types.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/factory-api.server.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/factory-api.server.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx"
             }
           },
           {
@@ -45342,6 +45588,168 @@
           }
         ],
         "specId": "199-factory-thin-consumer-sync",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "139-factory-artifact-substrate",
+          "198-factory-governance-envelope"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/api/factory/artifacts.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp-agentic-top-10-2026.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp-agentic-top-10-2026.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideGate.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/revocations.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/revocations.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/knowledge/extractionCore.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/knowledge/extractionCore.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/artifacts.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/artifacts.ts"
+            }
+          }
+        ],
+        "specId": "200-substrate-override-async-scanner",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "166-opc-stop-hook-gate-chain",
+          "198-factory-governance-envelope"
+        ],
+        "implementingPaths": [
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.factory.runs.$runId.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp-agentic-top-10-2026.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp-agentic-top-10-2026.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "standards/schemas/factory/governance-envelope.schema.yaml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "standards/schemas/factory/governance-envelope.schema.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.factory.runs.$runId.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.factory.runs.$runId.tsx"
+            }
+          }
+        ],
+        "specId": "201-anti-blind-approval-ui",
         "specStatus": "draft"
       }
     ],

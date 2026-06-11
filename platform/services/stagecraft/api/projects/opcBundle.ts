@@ -38,7 +38,11 @@ import {
   listAdapterViews,
   manifestHasSchemaVersion,
 } from "../factory/adapterView";
-import { isFactoryAdmitted, loadLatestAdmission } from "../factory/admission";
+import {
+  collectConsumedOverrides,
+  isFactoryAdmitted,
+  loadLatestAdmission,
+} from "../factory/admission";
 import {
   buildOpcBundle,
   type BundleContractInput,
@@ -125,6 +129,12 @@ export const getProjectOpcBundle = api(
 // admission (sealJws null) is refused engine-side, fail-closed. Returns
 // null when no factory origin is configured or the factory is not
 // admitted (its content is already excluded above).
+//
+// Spec 198 FR-013(c) — the block also carries the overrides the run will
+// consume, predicate-checked first: when the admitted envelope declares
+// `overrides.require_verified: true`, an unverified override fails this
+// load (and therefore the whole bundle request) with an error naming the
+// artifact and the predicate, fail-closed.
 async function loadAdmissionBlock(
   orgId: string,
 ): Promise<OpcBundleAdmission | null> {
@@ -133,10 +143,16 @@ async function loadAdmissionBlock(
   const verdict = await isFactoryAdmitted(orgId, substrate.factoryOriginId);
   if (!verdict.admitted) return null;
   const state = await loadLatestAdmission(orgId, substrate.factoryOriginId);
+  const consumedOverrides = await collectConsumedOverrides(
+    orgId,
+    substrate.factoryOriginId,
+    state.composed,
+  );
   return {
     origin: substrate.factoryOriginId,
     envelopeHash: state.envelopeHash,
     sealJws: state.sealJws,
+    consumedOverrides,
   };
 }
 

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:979546ce0ec98cca7951d9a4badbc4a81717634c23a86937fd96c23878dc67f6",
+  "graph_fingerprint": "sha256:74a528953c6f130016ca456233783043bba9f14d3f09d9604fc97dee7c88c4c1",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3732,7 +3732,7 @@
       "title": "Open-Standard Factory Contract Extensions (Build Spec 1.1.0)",
       "spec_path": "specs/197-factory-contract-open-standard-extensions/spec.md",
       "status": "approved",
-      "implementation": "in-progress",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",
@@ -3772,6 +3772,40 @@
         "198-factory-governance-envelope",
         "139-factory-artifact-substrate",
         "197-factory-contract-open-standard-extensions"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "200-substrate-override-async-scanner",
+      "title": "Substrate Override Async Scanner (ASI06 model-assisted detection)",
+      "spec_path": "specs/200-substrate-override-async-scanner/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "198-factory-governance-envelope",
+        "139-factory-artifact-substrate"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "201-anti-blind-approval-ui",
+      "title": "Anti-Blind-Approval UI (ASI09 human-agent trust surfaces)",
+      "spec_path": "specs/201-anti-blind-approval-ui/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "198-factory-governance-envelope",
+        "166-opc-stop-hook-gate-chain"
       ],
       "impl_files": [],
       "test_files": [],

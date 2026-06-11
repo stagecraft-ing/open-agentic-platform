@@ -116,13 +116,49 @@ no dependency). Phases A–C = PR-A (`feat/198-seal-grants`); D–F = PR-B
       44) in the same PR; `make ci` (Rust legs need clippy); `make pr-prep`
       after the LAST commit.
 
+> **PR-B status (2026-06-10): phases D–F COMPLETE** (T017–T026, branch
+> `feat/198-override-gate`). Recorded deviations from the task sketches:
+> - **T018 scope**: the gate is wired into ALL `user_body` write doors,
+>   not only `applyOverrideCore` — `conflicts.ts::edit_and_accept` (an
+>   override revision by another door) and the user-authored agent writes
+>   in `api/agents/catalog.ts` (create + patch). Agent FORK is exempt:
+>   it copies content already in the substrate, and gating it would
+>   block the fork-then-fix remediation path for pre-gate legacy rows.
+>   `createAgent` refusals carry no audit row (the audit table requires
+>   an artifact id that does not exist pre-insert); the attributable 400
+>   is the record.
+> - **T018 provenance**: existing `userModifiedBy/At` + recomputed
+>   `contentHash` cover FR-013(b) verbatim; nothing was added.
+> - **T020 enforcement point**: the predicate is enforced at OPC-bundle
+>   assembly (`opcBundle.ts::loadAdmissionBlock` →
+>   `admission.ts::collectConsumedOverrides`) — the run's content source.
+>   A violating bundle request FAILS (failedPrecondition naming artifact
+>   + predicate) rather than silently serving upstream content, which
+>   would swap what the org configured. Display surfaces (artifacts API,
+>   web) keep serving with provenance attached — that IS the trust-class
+>   segregation. Scope boundary: the predicate governs overrides of the
+>   admitted factory's content; user-authored agents remain governed by
+>   their own publication gate (spec 111).
+> - **T021 premise correction**: tasks.md claimed the certificate field
+>   "landed with 1.4.0 in T011" — it had NOT. The field lands here:
+>   `consumedOverrides` (inside hash + signature), CERTIFICATE_VERSION
+>   1.4.0 → **1.5.0**, empty list skipped in serialization so
+>   override-free certs stay byte-identical to 1.4.0 payloads. Wire leg:
+>   `OpcBundleAdmission.consumedOverrides` (stagecraft + desktop twin),
+>   threaded `run_governance.rs::establish` → `CapsuleBinding` →
+>   `generate_certificate_bound`.
+> - **Row-shape ripple**: migration 45's columns are a substrate
+>   row-shape change → `SUBSTRATE_VERSION` bumped 1 → 2 in lockstep
+>   (TS const + Rust mirror, same commit, per the version-discipline
+>   note in both files).
+
 ## Phase D — Override gate + provenance (FR-013 a+b)
 
-- [ ] T017 `overrideGate.ts`: deterministic rules per PD-6, each with a rule
+- [x] T017 `overrideGate.ts`: deterministic rules per PD-6, each with a rule
       id; fixture-driven tests (zero-width, bidi, HTML comment, data-URI,
       oversized base64, ANSI, PEM/token/JWT secrets, size ceiling, kind
       stability, clean-pass).
-- [ ] T018 Wire into `applyOverrideCore` (`artifacts.ts`) before any write;
+- [x] T018 Wire into `applyOverrideCore` (`artifacts.ts`) before any write;
       attributable 400 with rule id; audit `artifact.override_gate_rejected`;
       provenance stamp formalized (author = auth identity, timestamp,
       content hash on every revision — confirm existing
@@ -130,36 +166,36 @@ no dependency). Phases A–C = PR-A (`feat/198-seal-grants`); D–F = PR-B
 
 ## Phase E — Verified-flag trust class (FR-013 c, AC-11)
 
-- [ ] T019 Migration 45: `user_body_verified` (default false) +
+- [x] T019 Migration 45: `user_body_verified` (default false) +
       `verified_by`/`verified_at`; new override revision resets the flag;
       `POST /api/factory/artifacts/:id/verify-override` (org-admin gated);
       audit `artifact.override_verified`.
-- [ ] T020 Enforcement: serve/bundle path refuses unverified override
+- [x] T020 Enforcement: serve/bundle path refuses unverified override
       content fail-closed when the admitted envelope declares
       `overrides.require_verified: true` (error names artifact + predicate);
       overrides always served with provenance attached (trust-class
       segregation); tests for predicate true/false × verified/unverified.
-- [ ] T021 Certificate binding: consumed overrides (artifact id, content
+- [x] T021 Certificate binding: consumed overrides (artifact id, content
       hash, author, verified state) ride the OPC bundle; engine binds them
       into the certificate (field landed with 1.4.0 in T011).
-- [ ] T022 [P] Web: verified badge + verify action on the artifacts route;
+- [x] T022 [P] Web: verified badge + verify action on the artifacts route;
       admission-verdict tab untouched.
 
 ## Phase F — Closure (AC-6, AC-7)
 
-- [ ] T023 Spec 198 frontmatter: `compliance:` block
+- [x] T023 Spec 198 frontmatter: `compliance:` block
       (framework owasp-asi-2026, controls = union of the envelope schema's
       inline ASI tags); verify `oap-registry-enrich compliance-report`
       agrees with the inline tags (AC-6); refresh the spec's ASI table rows
       that change status (ASI06 → "designed, phased — scanner filed as spec
       200"; ASI09 names spec 201).
-- [ ] T024 [P] Draft spec stub `200-substrate-override-async-scanner`
+- [x] T024 [P] Draft spec stub `200-substrate-override-async-scanner`
       (ASI06 / FR-013 d: async, quarantine-only via FR-010 machinery; a
       model may detect, only rules block).
-- [ ] T025 [P] Draft spec stub `201-anti-blind-approval-ui` (ASI09:
+- [x] T025 [P] Draft spec stub `201-anti-blind-approval-ui` (ASI09:
       plain-language risk summaries with provenance, preview ≠ effect,
       never model-generated rationale as approval basis).
-- [ ] T026 Gate tasks for PR-B: registry recompile (new specs), codebase
+- [x] T026 Gate tasks for PR-B: registry recompile (new specs), codebase
       index regen, featuregraph golden `UPDATE_GOLDEN=1` (spec adds always
       bump it), `npm run gen` if endpoints changed, `make ci`,
       `make pr-prep` after the LAST commit.

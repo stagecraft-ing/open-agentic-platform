@@ -1345,6 +1345,12 @@ export namespace factory {
         contentHash: string
         conflictState: "ok" | "diverged" | null
         hasOverride: boolean
+        /**
+         * Spec 198 FR-013(c) — null when no override; otherwise the trust-class
+         * verdict (false until a privileged human verifies the revision).
+         */
+        overrideVerified: boolean | null
+
         syncedAt: string
         upstreamSha: string | null
         upstreamBody: string | null
@@ -1354,6 +1360,8 @@ export namespace factory {
         conflictUpstreamSha: string | null
         userModifiedAt: string | null
         userModifiedBy: string | null
+        verifiedBy: string | null
+        verifiedAt: string | null
     }
 
     export interface ArtifactSummary {
@@ -1368,6 +1376,12 @@ export namespace factory {
         contentHash: string
         conflictState: "ok" | "diverged" | null
         hasOverride: boolean
+        /**
+         * Spec 198 FR-013(c) — null when no override; otherwise the trust-class
+         * verdict (false until a privileged human verifies the revision).
+         */
+        overrideVerified: boolean | null
+
         syncedAt: string
     }
 
@@ -2054,6 +2068,7 @@ export namespace factory {
             this.upsertUpstreamSource = this.upsertUpstreamSource.bind(this)
             this.upsertUpstreams = this.upsertUpstreams.bind(this)
             this.validateFactoryUpstreamPat = this.validateFactoryUpstreamPat.bind(this)
+            this.verifyOverride = this.verifyOverride.bind(this)
         }
 
         public async applyOverride(id: string, params: {
@@ -2509,6 +2524,12 @@ export namespace factory {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("POST", `/api/factory/upstreams/pat/validate`)
             return await resp.json() as FactoryUpstreamPatValidationResult
+        }
+
+        public async verifyOverride(id: string): Promise<ArtifactDetail> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/factory/artifacts/${encodeURIComponent(id)}/verify-override`)
+            return await resp.json() as ArtifactDetail
         }
     }
 }
@@ -3640,18 +3661,17 @@ export namespace projects {
         manifest: any
     }
 
-    /**
-     * Spec 198 FR-014 — the standing admission for the org's factory origin,
-     * with the platform's admission seal (compact JWS, Ed25519, kid resolved
-     * against `/api/factory/.well-known/jwks.json`). The OPC engine verifies
-     * the seal before trusting any factory content in this bundle (ASI04 m1);
-     * a null `sealJws` is an unsealed admission and is refused fail-closed.
-     * Null `admission` means the bundle carries no admitted factory content.
-     */
     export interface OpcBundleAdmission {
         origin: string
         envelopeHash: string | null
         sealJws: string | null
+        /**
+         * Spec 198 FR-013(c) — overrides active on the admitted factory's
+         * content at bundle assembly. Already predicate-checked: when the
+         * admitted envelope declares `overrides.require_verified: true`, an
+         * unverified override fails the bundle request instead of riding here.
+         */
+        consumedOverrides: OpcBundleConsumedOverride[]
     }
 
     export interface OpcBundleAgent {
@@ -3682,6 +3702,21 @@ export namespace projects {
         value: string
         source: "github_installation" | "project_github_pat"
         expiresAt: string | null
+    }
+
+    /**
+     * Spec 198 FR-013(c) — one override the run will consume; the engine
+     * binds these into the governance certificate at emission. Mirrors
+     * `admission.ts::ConsumedOverride` (same wire shape, camelCase).
+     */
+    export interface OpcBundleConsumedOverride {
+        artifactId: string
+        path: string
+        contentHash: string
+        author: string | null
+        modifiedAt: string | null
+        verified: boolean
+        verifiedBy: string | null
     }
 
     export interface OpcBundleContract {

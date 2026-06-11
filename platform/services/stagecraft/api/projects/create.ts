@@ -315,7 +315,14 @@ export const createFactoryProject = api(
       );
       await rm(tmpRoot, { recursive: true, force: true }).catch(() => {});
       const msg = err instanceof Error ? err.message : String(err);
-      throw APIError.internal(`Scaffold/push failed: ${msg}`);
+      // `aborted`, not `internal`: production Encore redacts internal
+      // messages to a generic 500, leaving the real cause readable only
+      // in pod logs while the user retries blind. The message is already
+      // token-redacted by the scaffold subprocess wrappers, and the job
+      // id lets an operator find the orphaned row.
+      throw APIError.aborted(
+        `Scaffold/push failed: ${msg} (scaffold job ${job.id} orphaned — operator reclaim)`
+      );
     }
 
     // ── 8. DB transaction: project + repo + member + env + audit. ─────
@@ -414,7 +421,11 @@ export const createFactoryProject = api(
           "A project with that slug already exists in this org"
         );
       }
-      throw APIError.internal(`Failed to record project: ${msg}`);
+      // Typed (non-internal) so the real cause survives prod redaction —
+      // same rationale as the scaffold/push failure above.
+      throw APIError.aborted(
+        `Failed to record project: ${msg} (scaffold job ${job.id} orphaned — operator reclaim)`
+      );
     }
 
     // ── 9. Mark scaffold_jobs succeeded + clean up the working tree. ──

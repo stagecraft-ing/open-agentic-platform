@@ -15,11 +15,13 @@
  */
 
 import log from "encore.dev/log";
-import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { APIError } from "encore.dev/api";
+import { and, desc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { parse as parseYaml } from "yaml";
 import { db } from "../db/drizzle";
 import {
   factoryAdmissions,
+  factoryArtifactSubstrate,
   factoryRevocations,
   factoryUpstreams,
 } from "../db/schema";
@@ -768,6 +770,86 @@ export async function isFactoryAdmitted(
     };
   }
   return { admitted: true, reason: null };
+}
+
+// ---------------------------------------------------------------------------
+// Override consumption (spec 198 FR-013 c) — collection + envelope predicate
+// ---------------------------------------------------------------------------
+
+/** One override a run will consume — bound into the run's certificate by
+ * the engine (traceable + revocable via FR-010 content-hash keys). */
+export type ConsumedOverride = {
+  artifactId: string;
+  path: string;
+  contentHash: string;
+  /** Rauthy subject that authored the revision (FR-013 b). */
+  author: string | null;
+  modifiedAt: string | null;
+  verified: boolean;
+  verifiedBy: string | null;
+};
+
+/**
+ * Collect the active overrides on the admitted factory's content and
+ * enforce the envelope's consumption predicate: when the admitted
+ * envelope declares `overrides.require_verified: true`, an unverified
+ * override refuses the whole serve fail-closed — serving upstream content
+ * instead would silently swap what the org configured, and serving the
+ * unverified override would violate the filed org policy (ASI06 m3/m9).
+ *
+ * User-authored agent rows are a separate trust class with their own
+ * publication gate (spec 111 `publication_status`); the envelope predicate
+ * governs overrides of the admitted factory's content only.
+ */
+export async function collectConsumedOverrides(
+  orgId: string,
+  origin: string,
+  composed: AdmissionEvaluation["composed"],
+): Promise<ConsumedOverride[]> {
+  const rows = await db
+    .select({
+      id: factoryArtifactSubstrate.id,
+      path: factoryArtifactSubstrate.path,
+      contentHash: factoryArtifactSubstrate.contentHash,
+      userModifiedAt: factoryArtifactSubstrate.userModifiedAt,
+      userModifiedBy: factoryArtifactSubstrate.userModifiedBy,
+      userBodyVerified: factoryArtifactSubstrate.userBodyVerified,
+      verifiedBy: factoryArtifactSubstrate.verifiedBy,
+    })
+    .from(factoryArtifactSubstrate)
+    .where(
+      and(
+        eq(factoryArtifactSubstrate.orgId, orgId),
+        eq(factoryArtifactSubstrate.origin, origin),
+        eq(factoryArtifactSubstrate.status, "active"),
+        isNotNull(factoryArtifactSubstrate.userBody),
+      ),
+    )
+    .orderBy(factoryArtifactSubstrate.path);
+
+  const requireVerified =
+    composed?.process?.overrides?.require_verified === true;
+  if (requireVerified) {
+    const unverified = rows.find((r) => !r.userBodyVerified);
+    if (unverified) {
+      throw APIError.failedPrecondition(
+        `artifact '${unverified.path}' (${unverified.id}) carries an unverified ` +
+          `override and the admitted envelope declares ` +
+          `overrides.require_verified: true — verify or clear the override ` +
+          `(spec 198 FR-013 c)`,
+      );
+    }
+  }
+
+  return rows.map((r) => ({
+    artifactId: r.id,
+    path: r.path,
+    contentHash: r.contentHash,
+    author: r.userModifiedBy,
+    modifiedAt: r.userModifiedAt ? r.userModifiedAt.toISOString() : null,
+    verified: r.userBodyVerified,
+    verifiedBy: r.verifiedBy,
+  }));
 }
 
 // ---------------------------------------------------------------------------

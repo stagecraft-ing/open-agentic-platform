@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicI64, Ordering};
 
-use factory_engine::governance_certificate::CapsuleBinding;
+use factory_engine::governance_certificate::{CapsuleBinding, ConsumedOverride};
 use factory_engine::intent_capsule::IntentCapsule;
 use factory_engine::platform_jws::{PlatformJwks, TYP_ADMISSION_SEAL, verify_compact_jws};
 use orchestrator::PreStepGate;
@@ -27,6 +27,10 @@ pub struct RunGovernance {
     pub capsule: IntentCapsule,
     pub envelope_hash: String,
     pub jwks: PlatformJwks,
+    /// Spec 198 FR-013(c) — overrides of admitted factory content this run
+    /// consumes, from the bundle's admission block (platform
+    /// predicate-checked); bound into the certificate at emission.
+    pub consumed_overrides: Vec<ConsumedOverride>,
     /// Sequence of the most recent grant the platform issued. The next
     /// renewal presents `last_seq + 1`; the reply's seq is stored back
     /// (issuance after an engine restart may resume above 0).
@@ -40,6 +44,7 @@ impl RunGovernance {
             admitted_envelope_hash: self.envelope_hash.clone(),
             goal_id: self.capsule.goal_id.clone(),
             intent_capsule_hash: self.capsule.capsule_hash(),
+            consumed_overrides: self.consumed_overrides.clone(),
         }
     }
 }
@@ -96,6 +101,24 @@ pub async fn establish(
         );
     }
 
+    // Spec 198 FR-013(c) — carry the consumed overrides into the run's
+    // certificate binding. The platform already enforced the envelope's
+    // `overrides.require_verified` predicate at bundle assembly; the
+    // engine's job is traceability, not re-adjudication.
+    let consumed_overrides: Vec<ConsumedOverride> = admission
+        .consumed_overrides
+        .iter()
+        .map(|o| ConsumedOverride {
+            artifact_id: o.artifact_id.clone(),
+            path: o.path.clone(),
+            content_hash: o.content_hash.clone(),
+            author: o.author.clone(),
+            modified_at: o.modified_at.clone(),
+            verified: o.verified,
+            verified_by: o.verified_by.clone(),
+        })
+        .collect();
+
     // 2. File the intent capsule (FR-005) — persisted next to the run's
     //    other governance artifacts for audit + certificate binding.
     let capsule = IntentCapsule::new(
@@ -137,6 +160,7 @@ pub async fn establish(
         capsule,
         envelope_hash,
         jwks,
+        consumed_overrides,
         last_seq: AtomicI64::new(seq),
         emitter,
     }))

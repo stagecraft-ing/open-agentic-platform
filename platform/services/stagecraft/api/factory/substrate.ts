@@ -34,7 +34,9 @@ export type { ArtifactKind, ArtifactStatus, ArtifactConflictState };
 // the same commit.
 // ---------------------------------------------------------------------------
 
-export const SUBSTRATE_VERSION = 1 as const;
+// v2 (spec 198 FR-013 c, migration 45): + user_body_verified / verified_by /
+// verified_at — the override trust-class columns.
+export const SUBSTRATE_VERSION = 2 as const;
 export type SubstrateVersion = typeof SUBSTRATE_VERSION;
 
 // ---------------------------------------------------------------------------
@@ -56,6 +58,12 @@ export type SubstrateRow = {
   userBody: string | null;
   userModifiedAt: Date | null;
   userModifiedBy: string | null;
+  /** Spec 198 FR-013(c) — override trust class. A new override revision
+   * always resets to unverified; only the privileged verify-override
+   * endpoint flips it. */
+  userBodyVerified: boolean;
+  verifiedBy: string | null;
+  verifiedAt: Date | null;
 
   /** Generated stored at the SQL level: COALESCE(userBody, upstreamBody). */
   effectiveBody: string;
@@ -154,6 +162,9 @@ export function initialRow(input: InitialRowInput): SubstrateRow {
     userBody: null,
     userModifiedAt: null,
     userModifiedBy: null,
+    userBodyVerified: false,
+    verifiedBy: null,
+    verifiedAt: null,
     effectiveBody,
     contentHash: sha256Hex(effectiveBody),
     frontmatter: input.frontmatter,
@@ -248,6 +259,10 @@ function applyOverride(row: SubstrateRow, op: OverrideOp): SubstrateRow {
     userBody: op.userBody,
     userModifiedAt: new Date(0),
     userModifiedBy: op.userId,
+    // FR-013(c): a new override revision is always unverified.
+    userBodyVerified: false,
+    verifiedBy: null,
+    verifiedAt: null,
     effectiveBody: eff.effectiveBody,
     contentHash: eff.contentHash,
     // Pin the upstream sha at the moment of override — used by sync's
@@ -269,6 +284,9 @@ function applyClearOverride(
     userBody: null,
     userModifiedAt: new Date(0),
     userModifiedBy: op.userId,
+    userBodyVerified: false,
+    verifiedBy: null,
+    verifiedAt: null,
     effectiveBody: eff.effectiveBody,
     contentHash: eff.contentHash,
     conflictState: "ok",
@@ -292,6 +310,9 @@ function applyResolve(row: SubstrateRow, op: ResolveOp): SubstrateRow {
     userBody: null,
     userModifiedAt: new Date(0),
     userModifiedBy: op.userId,
+    userBodyVerified: false,
+    verifiedBy: null,
+    verifiedAt: null,
     effectiveBody: eff.effectiveBody,
     contentHash: eff.contentHash,
     conflictState: "ok",

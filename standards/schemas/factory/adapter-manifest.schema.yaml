@@ -247,6 +247,13 @@ agents:
 # ─────────────────────────────────────────────────────────────────────────────
 # Base project template to copy before scaffolding features.
 #
+# NORMATIVE (spec 112 §5.3, graduated into the open standard): the scaffold
+# output tree handed to the consumer MUST be VCS-free — no `.git` directory
+# at any depth. Version-control initialisation is the consumer's act, never
+# the scaffold's; machine-driven scaffold entry points MUST NOT run
+# `git init` (template-encore precedent: `--no-git` / `NO_GIT`, implied by
+# `noInstall`).
+#
 scaffold:
   source: string                    # Path to base project (relative to adapter root), e.g., "scaffold/"
   description: string               # What the scaffold provides out of the box

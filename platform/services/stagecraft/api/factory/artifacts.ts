@@ -7,6 +7,12 @@
 //
 // Audit writes for `artifact.overridden` and `artifact.override_cleared`
 // land inside the same transaction as the row mutation (T031).
+//
+// Spec 198 FR-013: every `user_body` write passes the deterministic
+// override gate (a) before any row mutation; refusals are audited as
+// `artifact.override_gate_rejected` and surface as an attributable 400
+// naming the rule id. New override revisions reset the verified flag (c);
+// the privileged verify-override endpoint flips it back.
 
 import { api, APIError } from "encore.dev/api";
 import { getAuthData } from "~encore/auth";
@@ -18,6 +24,7 @@ import {
   type ArtifactKind,
 } from "../db/schema";
 import { hasOrgPermission } from "../auth/membership";
+import { runOverrideGate } from "./overrideGate";
 import { sha256Hex, type SubstrateRow } from "./substrate";
 
 // ---------------------------------------------------------------------------
@@ -36,6 +43,9 @@ export type ArtifactSummary = {
   contentHash: string;
   conflictState: "ok" | "diverged" | null;
   hasOverride: boolean;
+  /** Spec 198 FR-013(c) — null when no override; otherwise the trust-class
+   * verdict (false until a privileged human verifies the revision). */
+  overrideVerified: boolean | null;
   syncedAt: string;
 };
 
@@ -48,6 +58,8 @@ export type ArtifactDetail = ArtifactSummary & {
   conflictUpstreamSha: string | null;
   userModifiedAt: string | null;
   userModifiedBy: string | null;
+  verifiedBy: string | null;
+  verifiedAt: string | null;
 };
 
 export type ListArtifactsRequest = {
@@ -167,6 +179,46 @@ export type ApplyOverrideArgs = {
   userBody: string;
 };
 
+/**
+ * Spec 198 FR-013(a) — run the deterministic gate over a candidate
+ * `user_body` revision; on refusal, audit `artifact.override_gate_rejected`
+ * and throw an attributable 400 naming the rule id.
+ *
+ * The audit insert deliberately uses the global `db` handle (not the
+ * caller's transaction) so the refusal record survives the rollback the
+ * thrown error triggers. Shared by `applyOverrideCore`, the conflicts
+ * `edit_and_accept` arm, and the user-authored agent writes (FR-013
+ * governs the write-path class, not one endpoint).
+ */
+export async function assertOverrideGate(
+  target: {
+    orgId: string;
+    userId: string;
+    artifactId: string;
+    kind: string;
+    path: string;
+  },
+  content: string,
+): Promise<void> {
+  const verdict = runOverrideGate({
+    content,
+    kind: target.kind,
+    path: target.path,
+  });
+  if (verdict.ok) return;
+  await db.insert(factoryArtifactSubstrateAudit).values({
+    artifactId: target.artifactId,
+    orgId: target.orgId,
+    action: "artifact.override_gate_rejected",
+    actorUserId: target.userId,
+    before: null,
+    after: { ruleId: verdict.ruleId, detail: verdict.detail },
+  });
+  throw APIError.invalidArgument(
+    `override rejected by ${verdict.ruleId}: ${verdict.detail} (spec 198 FR-013 a)`,
+  );
+}
+
 export async function applyOverrideCore(
   args: ApplyOverrideArgs,
 ): Promise<SubstrateRow> {
@@ -190,6 +242,16 @@ export async function applyOverrideCore(
         `artifact ${args.artifactId} is retired and cannot be overridden`,
       );
     }
+    await assertOverrideGate(
+      {
+        orgId: args.orgId,
+        userId: args.userId,
+        artifactId: existing.id,
+        kind: existing.kind,
+        path: existing.path,
+      },
+      args.userBody,
+    );
     const now = new Date();
     const updatedRows = await tx
       .update(factoryArtifactSubstrate)
@@ -197,6 +259,10 @@ export async function applyOverrideCore(
         userBody: args.userBody,
         userModifiedAt: now,
         userModifiedBy: args.userId,
+        // FR-013(c): every new override revision is unverified.
+        userBodyVerified: false,
+        verifiedBy: null,
+        verifiedAt: null,
         contentHash: sha256Hex(args.userBody),
         // Pin the upstream sha at the moment of override — used by sync's
         // divergence detection.
@@ -255,6 +321,10 @@ export async function clearOverrideCore(
         userBody: null,
         userModifiedAt: now,
         userModifiedBy: args.userId,
+        // FR-013(c): verified state has no meaning without an override.
+        userBodyVerified: false,
+        verifiedBy: null,
+        verifiedAt: null,
         contentHash: sha256Hex(existing.upstreamBody ?? ""),
         conflictUpstreamSha: null,
         conflictState: "ok",
@@ -270,6 +340,68 @@ export async function clearOverrideCore(
       actorUserId: args.userId,
       before: { userBody: existing.userBody },
       after: { userBody: null },
+    });
+    return row;
+  });
+}
+
+export type VerifyOverrideArgs = {
+  orgId: string;
+  userId: string;
+  artifactId: string;
+};
+
+/**
+ * Spec 198 FR-013(c) — privileged verified-flag flip. The actor attests
+ * the CURRENT override revision; any later revision resets the flag.
+ */
+export async function verifyOverrideCore(
+  args: VerifyOverrideArgs,
+): Promise<SubstrateRow> {
+  return db.transaction(async (tx) => {
+    const existingRows = await tx
+      .select()
+      .from(factoryArtifactSubstrate)
+      .where(
+        and(
+          eq(factoryArtifactSubstrate.orgId, args.orgId),
+          eq(factoryArtifactSubstrate.id, args.artifactId),
+        ),
+      )
+      .limit(1);
+    const existing = existingRows[0];
+    if (!existing) {
+      throw APIError.notFound(`artifact ${args.artifactId} not found`);
+    }
+    if (existing.userBody === null) {
+      throw APIError.failedPrecondition(
+        `artifact ${args.artifactId} has no override to verify`,
+      );
+    }
+    if (existing.userBodyVerified) {
+      // Idempotent — re-verifying an already-verified revision is a no-op,
+      // not a fresh audit event.
+      return mapStoredRowToSubstrate(existing);
+    }
+    const now = new Date();
+    const updatedRows = await tx
+      .update(factoryArtifactSubstrate)
+      .set({
+        userBodyVerified: true,
+        verifiedBy: args.userId,
+        verifiedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(factoryArtifactSubstrate.id, existing.id))
+      .returning();
+    const row = mapStoredRowToSubstrate(updatedRows[0]);
+    await tx.insert(factoryArtifactSubstrateAudit).values({
+      artifactId: row.id,
+      orgId: args.orgId,
+      action: "artifact.override_verified",
+      actorUserId: args.userId,
+      before: { userBodyVerified: false },
+      after: { userBodyVerified: true, contentHash: row.contentHash },
     });
     return row;
   });
@@ -357,6 +489,29 @@ export const applyOverride = api(
   },
 );
 
+export const verifyOverride = api(
+  {
+    expose: true,
+    auth: true,
+    method: "POST",
+    path: "/api/factory/artifacts/:id/verify-override",
+  },
+  async (req: { id: string }): Promise<ArtifactDetail> => {
+    const auth = getAuthData()!;
+    if (!hasOrgPermission(auth.platformRole, "factory:configure")) {
+      throw APIError.permissionDenied(
+        "factory:configure permission required to verify an override",
+      );
+    }
+    const row = await verifyOverrideCore({
+      orgId: auth.orgId,
+      userId: auth.userID,
+      artifactId: req.id,
+    });
+    return substrateRowToDetail(row);
+  },
+);
+
 export const clearOverride = api(
   {
     expose: true,
@@ -399,6 +554,7 @@ function toSummary(row: StoredArtifactRow): ArtifactSummary {
     contentHash: row.contentHash,
     conflictState: row.conflictState ?? null,
     hasOverride: row.userBody !== null,
+    overrideVerified: row.userBody !== null ? row.userBodyVerified : null,
     syncedAt: row.updatedAt.toISOString(),
   };
 }
@@ -416,6 +572,8 @@ function toDetail(row: StoredArtifactRow): ArtifactDetail {
       ? row.userModifiedAt.toISOString()
       : null,
     userModifiedBy: row.userModifiedBy,
+    verifiedBy: row.verifiedBy,
+    verifiedAt: row.verifiedAt ? row.verifiedAt.toISOString() : null,
   };
 }
 
@@ -434,6 +592,9 @@ function mapStoredRowToSubstrate(row: StoredArtifactRow): SubstrateRow {
     userBody: row.userBody,
     userModifiedAt: row.userModifiedAt,
     userModifiedBy: row.userModifiedBy,
+    userBodyVerified: row.userBodyVerified,
+    verifiedBy: row.verifiedBy,
+    verifiedAt: row.verifiedAt,
     effectiveBody: row.effectiveBody,
     contentHash: row.contentHash,
     frontmatter: (row.frontmatter as Record<string, unknown> | null) ?? null,
@@ -459,6 +620,7 @@ function substrateRowToDetail(row: SubstrateRow): ArtifactDetail {
     contentHash: row.contentHash,
     conflictState: row.conflictState,
     hasOverride: row.userBody !== null,
+    overrideVerified: row.userBody !== null ? row.userBodyVerified : null,
     syncedAt: row.updatedAt.toISOString(),
     upstreamSha: row.upstreamSha,
     upstreamBody: row.upstreamBody,
@@ -470,5 +632,7 @@ function substrateRowToDetail(row: SubstrateRow): ArtifactDetail {
       ? row.userModifiedAt.toISOString()
       : null,
     userModifiedBy: row.userModifiedBy,
+    verifiedBy: row.verifiedBy,
+    verifiedAt: row.verifiedAt ? row.verifiedAt.toISOString() : null,
   };
 }
