@@ -20,7 +20,7 @@ summary: >
   contract/schemas/** at a committed pin and asserts FIELD-LEVEL structural
   parity against standards/schemas/factory/** (byte-equality is impossible —
   the surfaces carry divergent comments and org-specific example values by
-  design), plus an FR-005 guard that no GoA-specific concept entered either
+  design), plus a spec-197 FR-005 guard that no GoA-specific concept entered either
   contract surface. Two lanes: a PR-time check against the committed pin,
   and a scheduled check against factory-encore@main that catches upstream
   drift the pin hasn't yet absorbed. factory-encore stays gate-free
@@ -47,7 +47,7 @@ extends:
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 references:
   # The open-standard contract whose cross-repo mirror this gate makes
-  # falsifiable. Spec 197 AC-8 is the manual check this automates; FR-005 is
+  # falsifiable. Spec 197 AC-8 is the manual check this automates; its FR-005 is
   # the GoA-concept rejection this asserts mechanically. This spec does not
   # reshape 197's contract surface — it watches it — so this is a reference,
   # not an extends.
@@ -110,7 +110,7 @@ the Rust↔TS axis; this closes the third axis — OAP↔factory-encore.
 
 It is scoped to a **gate over existing artifacts**. It adds no new contract
 field and changes no schema; it asserts that two already-authored surfaces
-agree, and that neither has acquired a GoA-specific concept FR-005 forbids.
+agree, and that neither has acquired a GoA-specific concept spec 197 FR-005 forbids.
 
 ## Why not extend the existing schema-parity-check (§4 of the design)
 
@@ -235,7 +235,23 @@ envelope". The lockstep set therefore distinguishes **two tiers**:
   Tier B silently mask a *real* Tier-A divergence — gap classification is
   per-file and explicit, never a catch-all.
 
-### FR-005 GoA-concept guard — denylist token scan, both surfaces
+**Classification home (Principle I):** the tier assignment above — this
+section's file list — IS the authored source of truth; the tool mirrors it
+as data validated by fixtures, and moving a file between tiers (or adding
+one) is an edit to this spec, coupling-gated like the pin. No tool-resident
+or standalone-config classification.
+
+### The lockstep route (PR-lane trigger)
+
+The PR lane dispatches from the spec-177 orchestrator only when the diff
+touches the lockstep surface: `standards/schemas/factory/**`, the checker
+tool's own directory, the lockstep workflow file, or this spec's `spec.md`
+(a pin bump or tier move). Any other PR skips the job entirely — no
+network fetch, no token exposure, which is the blast-radius bound the
+fetch-auth section relies on. The route is defined here so AC-1's trigger
+condition is falsifiable rather than implied.
+
+### Spec-197-FR-005 GoA-concept guard — denylist token scan, both surfaces
 
 Spec 197 FR-005 rejects two GoA concepts from the contract: **security
 classification labels** (`Public`/`Protected A`/`Protected B`/`Protected
@@ -245,14 +261,21 @@ taxonomy). Spec 197 AC-6 already asserts no such token appears in
 for the OAP side, and only by intent. **Decision:** a denylist token scan
 (case-insensitive, word-boundary) over **both** the OAP and the fetched
 factory-encore contract surfaces, with the denylist defined by citation to
-spec 197 FR-005 (`Protected\s+[ABC]`, classification-label and
-service-catalogue identifiers). A match on either side fails the lane
-naming the file, line, and the FR-005 clause it violates. This is a guard,
+spec 197 FR-005 (the enumerated label set and
+service-catalogue identifiers). The label set is covered in two forms:
+`Protected\s+[ABC]` verbatim (unambiguous), and `Public` only
+context-bound — as part of the four-label enumeration or adjacent to
+classification vocabulary — because the bare word `Public` appears in
+ordinary schema prose and a naive token match would drown the guard in
+false positives; the exact context-binding is fixed at implementation with
+fixtures for both the caught and the deliberately-not-caught cases. A
+match on either side fails the lane naming the file, line, and the
+spec-197 FR-005 clause it violates. This is a guard,
 not a parser — it does not understand YAML; it asserts the rejected
 vocabulary never entered the open standard on *either* repo, which is the
 mechanizable reading of "no GoA-specific concepts in the contract layer".
 The denylist is the gate's single source of forbidden vocabulary and cites
-FR-005 as its authority, so widening it is a spec-coupled edit.
+spec 197 FR-005 as its authority, so widening it is a spec-coupled edit.
 
 ### Free-disk-space composite — not needed (recorded)
 
@@ -273,23 +296,28 @@ review note.
   and free-form example values. Divergence exits non-zero naming the file
   and field path; Tier-B gaps are reported with their spec-198 citation and
   do not fail the PR lane.
-- **FR-002 — FR-005 GoA-concept guard.** The same tool scans both contract
-  surfaces for the spec-197-FR-005 denylist vocabulary; a match fails
-  naming file:line and the FR-005 clause. The denylist cites FR-005 as its
-  authority.
+- **FR-002 — Spec-197-FR-005 GoA-concept guard.** The same tool scans both contract
+  surfaces for the spec-197 FR-005 denylist vocabulary; a match fails
+  naming file:line and the spec-197 FR-005 clause it violates.
 - **FR-003 — PR lane (pinned, blocking).** A reusable workflow dispatched
-  from the spec-177 orchestrator on the lockstep route (below) fetches
-  factory-encore at the pin in this spec's frontmatter (`pinned_ref`),
-  runs FR-001/FR-002, and blocks the PR on a Tier-A divergence or an
-  FR-005 hit. Runs identically in `merge_group`. SHA-pinned action refs
+  from the spec-177 orchestrator on the lockstep route (defined above)
+  sparse-fetches ONLY `contract/schemas/**` from factory-encore at the pin
+  in this spec's frontmatter (`pinned_ref`) — never a full clone,
+  runs FR-001/FR-002, and blocks the PR on a Tier-A divergence or a
+  spec-197 FR-005 guard hit. Runs identically in `merge_group`. SHA-pinned action refs
   (spec 158). Fail-visible on fetch/auth failure (never skipped-green).
 - **FR-004 — Cron lane (against main, human-routed).** A scheduled
-  (+ `workflow_dispatch`) lane fetches `factory-encore@main`, runs the same
-  assertions, and on divergence opens/annotates a tracking issue ("upstream
-  drifted from pin `<ref>`; reconcile and bump") rather than failing an
-  unrelated PR. Catches the stale-pin failure mode the PR lane structurally
-  cannot.
-- **FR-005 — Makefile mirror + parity classification (spec 104).** A
+  (+ `workflow_dispatch`) lane sparse-fetches `factory-encore@main`, runs
+  the same assertions, and on divergence opens/annotates a tracking issue
+  ("upstream drifted from pin `<ref>`; reconcile and bump") rather than
+  failing an unrelated PR. Catches the stale-pin failure mode the PR lane
+  structurally cannot. The lane declares `permissions: issues: write`
+  explicitly (the fetch token stays read-only and separate), and
+  deduplicates: it searches for an open issue by the lane's label and
+  updates it rather than filing a new one per run — an advisory channel
+  noisy enough to be ignored is the skipped-green failure mode in another
+  coat.
+- **FR-006 — Makefile mirror + parity classification (spec 104).** A
   `make factory-schema-lockstep` target mirrors the PR-lane recipe; the
   workflow is added to `ci-parity-check`'s `ENFORCING_WORKFLOWS` with
   aligned/divergent fixtures proving drift detection; the target joins
@@ -297,7 +325,7 @@ review note.
   spec-135 decision — it needs a network fetch, so default to strict-only
   unless the fetch is cheap enough and reliable enough for the ~5-minute
   budget, with the measurement recorded (the spec 211 FR-002 rule).
-- **FR-006 — Pin lives in frontmatter (Principle I).** The checked
+- **FR-007 — Pin lives in frontmatter (Principle I).** The checked
   factory-encore ref is a `pinned_ref` field in this spec's frontmatter, not
   a standalone data file. Bumping it is a coupling-gated spec edit, so a pin
   move is attributable and reviewable.
@@ -313,7 +341,7 @@ review note.
   **not** fail — structural parity ignores prose and free-form example
   scalars.
 - **AC-3.** A GoA-specific token (e.g. `Protected B`, or a service-catalogue
-  identifier from FR-005) introduced into either contract surface fails the
+  identifier from spec 197 FR-005) introduced into either contract surface fails the
   guard naming file:line and the FR-005 clause.
 - **AC-4.** `governance-envelope.schema.yaml` present on OAP and absent on
   factory-encore is reported as a named Tier-B expected gap citing spec 198
@@ -361,4 +389,12 @@ only at verified existing paths; the `establishes:` edges for the new tool,
 the workflow file, and the parity fixtures ride the implementation PR that
 creates them (the spec 191 precedent). The `pinned_ref` field is added to
 this spec's frontmatter when the implementation lands, pinned to the then-
-current factory-encore contract SHA.
+current factory-encore contract SHA. Two implementation-PR obligations
+the AI review surfaced, recorded so they are not rediscovered: (a) adding
+`pinned_ref` to this frontmatter and the `establishes:` edges is a spec
+edit riding the implementation PR — which the coupling gate then accepts
+as the authority edit for the new paths; (b) the implementation PR's edits
+to the two `extends:` units above (`ci.yml`, ci-parity-check `lib.rs`)
+fire the coupling gate against their existing authorities — this spec's
+edit in the same PR satisfies it via the extends edges (the spec-191
+precedent).
