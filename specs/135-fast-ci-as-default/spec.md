@@ -7,7 +7,7 @@ owner: bart
 created: "2026-05-03"
 approved: "2026-05-03"
 completed: "2026-05-03"
-amended: "2026-05-30"
+amended: "2026-06-11"
 amendment_record: |
   amended by spec 182 (2026-05-30) — the `validate-and-fix` file this
   spec extends (wrapping) moved verbatim to
@@ -15,6 +15,10 @@ amendment_record: |
   deprecation PR (legacy command file deleted); the `extends:` unit
   path is repointed from `.claude/commands/validate-and-fix.md`
   accordingly. No behavioral change.
+  self-amended (2026-06-11), FR-05a: hosted-runner disk-headroom step
+  added to the ci-crates.yml workspace job after merge_group run
+  27355231139 failed ENOSPC mid-build. Guarded to GitHub-hosted
+  runners; no change to the validation surface.
 kind: governance
 domain: tooling
 risk: low
@@ -270,6 +274,29 @@ at the top of the file gain `# Spec: 135-fast-ci-as-default`. The
 `agent-frontmatter` TS-drift conditional step is preserved, gated on
 the workspace test step having run.
 
+### FR-05a: Hosted-runner disk headroom (amendment 2026-06-11)
+
+On GitHub-hosted runners, the `workspace` job MUST reclaim
+preinstalled-toolchain disk space before any cargo invocation. The
+workspace debug build plus the two release fixture-producer builds
+(spec-compiler, codebase-indexer) exhausted the `ubuntu-latest`
+image's free margin: merge_group run 27355231139 (2026-06-11) failed
+with ENOSPC ("couldn't create a temp dir: No space left on device")
+during the workspace step. The headroom step:
+
+- is guarded with `if: runner.environment == 'github-hosted'` so the
+  dormant self-hosted enabler in the `runs-on` expression (2026-06-10)
+  can never delete paths on an operator machine;
+- is a plain shell step, not a third-party action: keeps the
+  supply-chain surface flat (spec 116 posture) and adds no new
+  SHA-pinned action ref under the spec 158 lint;
+- deletes only preinstalled toolchains this job never uses (.NET,
+  Android, Haskell, CodeQL toolcache, preloaded Docker images),
+  reclaiming roughly 25 GB;
+- prints `df -h` before and after, so future margin erosion is
+  visible in the job log rather than surfacing as the next ENOSPC
+  flake.
+
 ### FR-06: `validate-and-fix` calls `make ci` as the dev-loop default
 
 `.claude/commands/validate-and-fix.md` MUST recommend `make ci` (the
@@ -410,3 +437,10 @@ expectations and intended audience, mirroring spec 134 §SC-04.
 Spec 178 (opc-directory-rename, 2026-05-24): mechanical path rename
 `product/apps/desktop/*` → `product/apps/opc/*`. No semantic change
 to this spec's claims; owned paths inherit the new prefix.
+
+**Amendment 2026-06-11 (record: self, FR-05a).** Operational
+hardening of the FR-05 workspace job: a hosted-runner disk-headroom
+step is added to `.github/workflows/ci-crates.yml` after merge_group
+run 27355231139 died ENOSPC during the workspace build. Guarded to
+`runner.environment == 'github-hosted'`; the validation surface
+(check + clippy + test, TS-drift gate) is unchanged.
