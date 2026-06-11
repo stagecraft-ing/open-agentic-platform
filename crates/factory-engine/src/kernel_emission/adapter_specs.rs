@@ -126,7 +126,7 @@ mod tests {
 
     fn adapter() -> AdapterIdentity {
         AdapterIdentity {
-            id: "aim-vue-node".into(),
+            id: "aim-vue-encore".into(),
             version: "0.1.0".into(),
             manifest_hash: "deadbeef".into(),
         }
@@ -137,7 +137,7 @@ mod tests {
         let spec = build_scaffold_claim_spec(&adapter(), &["apps/".into()], None);
         assert_eq!(
             spec.relative_path(),
-            "specs/001-aim-vue-node-scaffold-claim/spec.md"
+            "specs/001-aim-vue-encore-scaffold-claim/spec.md"
         );
     }
 
@@ -146,7 +146,7 @@ mod tests {
         let spec = build_scaffold_claim_spec(
             &adapter(),
             &["apps/".into(), "packages/".into()],
-            Some("file://adapter-scopes.json#aim-vue-node"),
+            Some("file://adapter-scopes.json#aim-vue-encore"),
         );
         let md = &spec.markdown;
         // Spec 147 — kind grammar.

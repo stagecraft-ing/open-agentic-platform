@@ -23,7 +23,7 @@ summary: >
   (spec 198), which this spec consumes. No backward compatibility is preserved;
   factory-encore/template-encore are the baseline.
 code_aliases: ["FACTORY_THIN_CONSUMER_SYNC"]
-amends: ["139", "140", "141"]
+amends: ["075", "139", "140", "141"]
 depends_on:
   - "198-factory-governance-envelope"
   - "139-factory-artifact-substrate"
@@ -346,3 +346,24 @@ org-scoped id is org configuration and never enters the open contract (spec
   `adapter-agent-examples.md`. Runtime ACs (AC-1..AC-5) stay gated on the
   first real ADMIT after the GovAlta-side envelope merge + org re-sync —
   `implementation:` stays `in-progress`.
+- **2026-06-11 — Rust-side fixture sweep (phasing item 4, FR-007).**
+  The "Rust test fixtures" hygiene tail lands for `factory-engine` and
+  `factory-contracts`: every LIVE test fixture, doc comment, and CLI
+  help string carrying `aim-vue-node` (or the retired example adapters
+  `next-prisma`/`rust-axum`/`encore-react` as arbitrary names) now uses
+  the manifest-declared `aim-vue-encore`; the synthetic
+  `aim-vue-node-template` origin fixtures become `template-encore`
+  (its true post-spec-141-retirement name); one capability-gap fixture
+  uses the neutral `single-stack-example` since it deliberately models
+  an incompatible adapter. Zero production-code occurrences existed
+  (classification sweep, 2026-06-11): the only compiled-surface hits
+  were the `factory_run` CLI help list and lib doc comments. Dead tests
+  guarded on the spec-108-retired repo-root `factory/` directory
+  (`preflight.rs::preflight_real_examples`,
+  `integration_078_e2e.rs`, `adapter_registry.rs` discovery trio,
+  `validation.rs` contract-example pair) are left verbatim as history
+  by construction, per the AC-6 standard; their deletion is a separate
+  decision tied to the dead-suite repair backlog. Remaining Rust-side
+  matches outside this spec's crates (`factory-project-detect` unit
+  fixtures, `factory-platform-client` mock responses) are live-fixture
+  leftovers owed to specs 112/124 follow-ups.

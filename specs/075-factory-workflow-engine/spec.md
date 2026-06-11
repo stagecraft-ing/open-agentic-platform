@@ -17,9 +17,29 @@ summary: >
 code_aliases: ["FACTORY_WORKFLOW", "FACTORY_FANOUT"]
 origin:
   retroactive: true
+amended: "2026-06-11"
+amendment_record: |
+  amended by spec 199 (2026-06-11), editorial: the engine's live test
+  fixtures, doc comments, and the factory_run CLI help no longer name
+  the upstream-retired example adapters (aim-vue-node, next-prisma,
+  rust-axum, encore-react); they use the manifest-declared
+  aim-vue-encore (spec 199 FR-007 Rust-fixture hygiene). No contract
+  or behavior change: the engine remains adapter-agnostic; adapter
+  identity always came from the manifest. Dead tests guarded on the
+  spec-108-retired repo-root factory/ directory keep their historical
+  fixture names.
 ---
 
 # Feature Specification: Factory Workflow Engine
+
+> **Amended by spec 199 (2026-06-11), editorial.** Live test fixtures,
+> doc-comment examples, and the `factory_run` CLI help now reference
+> the manifest-declared `aim-vue-encore` adapter instead of the
+> upstream-retired example adapters; synthetic `aim-vue-node-template`
+> origin fixtures became `template-encore`. No behavior change. Dead
+> tests guarded on the retired repo-root `factory/` directory keep
+> their historical names (history by construction, spec 199 AC-6
+> standard).
 
 ## Purpose
 

@@ -117,7 +117,7 @@ mod tests {
                 emitted_at: Utc.with_ymd_and_hms(2026, 5, 23, 12, 0, 0).unwrap(),
             },
             adapter: AdapterIdentity {
-                id: "aim-vue-node".into(),
+                id: "aim-vue-encore".into(),
                 version: "0.1.0".into(),
                 manifest_hash: "def456".into(),
             },

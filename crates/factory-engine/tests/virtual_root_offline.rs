@@ -34,7 +34,7 @@ async fn cache_warm_reads_succeed_with_empty_fetcher() {
     let manifest = vec![ArtifactRef {
         artifact_id: "art-warm".into(),
         origin: "oap-self".into(),
-        path: "adapters/next-prisma/manifest.yaml".into(),
+        path: "adapters/aim-vue-encore/manifest.yaml".into(),
         version: 1,
         content_hash: hash.clone(),
     }];
@@ -43,7 +43,7 @@ async fn cache_warm_reads_succeed_with_empty_fetcher() {
         store.insert(
             (
                 "oap-self".to_string(),
-                "adapters/next-prisma/manifest.yaml".to_string(),
+                "adapters/aim-vue-encore/manifest.yaml".to_string(),
             ),
             body.to_string(),
         );
@@ -63,7 +63,7 @@ async fn cache_warm_reads_succeed_with_empty_fetcher() {
         let vr = VirtualRoot::new(ORG_ID, cache_dir.path().to_path_buf(), empty_fetcher.clone());
 
         let body_read = vr
-            .read_artifact("oap-self", "adapters/next-prisma/manifest.yaml")
+            .read_artifact("oap-self", "adapters/aim-vue-encore/manifest.yaml")
             .await
             .expect("offline read succeeds");
         assert_eq!(body_read, body);
