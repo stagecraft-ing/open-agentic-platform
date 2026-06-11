@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "4eb5a2656d752f2c1a9cb45839670a091dddb2968088cf7fba01409c783b610a",
+    "contentHash": "5fc9c403484bd2c011b081a2bae0109c5dd3943a7e4a4b80dcb588229169ac82",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -47414,6 +47414,158 @@
           }
         ],
         "specId": "211-encore-test-ci-job",
+        "specStatus": "draft"
+      },
+      {
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/src/lib.rs"
+            }
+          },
+          {
+            "kind": "directory",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "factory"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "standards/schemas/factory/adapter-manifest.schema.yaml"
+              },
+              {
+                "file": "standards/schemas/factory/build-spec.schema.yaml"
+              },
+              {
+                "file": "standards/schemas/factory/governance-envelope.schema.yaml"
+              },
+              {
+                "file": "standards/schemas/factory/pipeline-state.schema.yaml"
+              },
+              {
+                "file": "standards/schemas/factory/stage-outputs/audiences.schema.json"
+              },
+              {
+                "file": "standards/schemas/factory/stage-outputs/business-rules.schema.json"
+              },
+              {
+                "file": "standards/schemas/factory/stage-outputs/entity-model.schema.json"
+              },
+              {
+                "file": "standards/schemas/factory/stage-outputs/sitemap.schema.json"
+              },
+              {
+                "file": "standards/schemas/factory/stage-outputs/use-cases.schema.json"
+              },
+              {
+                "file": "standards/schemas/factory/verification.schema.yaml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "standards/schemas/factory"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "tools/oap/schema-parity-check/envelope-version.mjs"
+              },
+              {
+                "file": "tools/oap/schema-parity-check/envelope-version.test.mjs"
+              },
+              {
+                "file": "tools/oap/schema-parity-check/index.mjs"
+              },
+              {
+                "file": "tools/oap/schema-parity-check/walk-descriptor.mjs"
+              },
+              {
+                "file": "tools/oap/schema-parity-check/walk-descriptor.test.mjs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "tools/oap/schema-parity-check"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/197-factory-contract-open-standard-extensions/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/197-factory-contract-open-standard-extensions/spec.md"
+            }
+          }
+        ],
+        "specId": "212-factory-schema-lockstep-ci",
         "specStatus": "draft"
       }
     ],
