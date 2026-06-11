@@ -124,6 +124,9 @@ export default defineConfig({
       // `factory_artifact_substrate*` (gate audit, verified flag,
       // consumed-override predicate matrix); live DB.
       "**/factory/overrideTrustClass.test.ts",
+      // Spec 201 — approval-summary endpoint assembly + AC-3 GET-purity
+      // assertions against seeded substrate/admission rows; live DB.
+      "**/factory/approvalSummaryEndpoint.test.ts",
     ],
   },
 });

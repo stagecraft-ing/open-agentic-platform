@@ -29,11 +29,19 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummary.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummary-pure.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummary.test.ts }
+  # Phase 2 — override-verify surface:
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/approval-basis-helpers.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/approval-basis-helpers.test.ts }
 refines:
   - aspect: "hitl-approval-presentation"
     unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.factory.runs.$runId.tsx }
   - aspect: "hitl-approval-presentation"
     unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx }
+  - aspect: "hitl-approval-presentation"
+    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/factory-api.server.ts }
+  - aspect: "encore-test-gating"
+    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
   - aspect: "hitl-approval-audit"
     unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
   - aspect: "hitl-approval-audit"

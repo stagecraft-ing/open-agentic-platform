@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "0e47a59b63f6a1811ccf49c2977cc45a2a802ea0c19f68bd2c4baf92e533ec9f",
+    "contentHash": "605e25030797740b576f2ef52bda0f08543c5ae909e7a758b8f8891e7cc64704",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15640,6 +15640,9 @@
               },
               {
                 "file": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/factory/artifacts.test.ts"
@@ -31782,6 +31785,9 @@
                 "file": "platform/services/stagecraft/api/factory/approvalSummary.ts"
               },
               {
+                "file": "platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/api/factory/artifacts.test.ts"
               },
               {
@@ -32536,6 +32542,12 @@
               },
               {
                 "file": "platform/services/stagecraft/web/app/lib/agents-api.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.ts"
               },
               {
                 "file": "platform/services/stagecraft/web/app/lib/auth-api.server.ts"
@@ -45761,11 +45773,31 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/artifacts.ts",
             "source": "spec-implements"
           },
           {
             "path": "platform/services/stagecraft/api/factory/auditActions.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/vite.config.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/factory-api.server.ts",
             "source": "spec-implements"
           },
           {
@@ -45818,6 +45850,48 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.ts"
             }
           },
           {
@@ -45902,6 +45976,34 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/vite.config.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/vite.config.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/factory-api.server.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/factory-api.server.ts"
             }
           },
           {
