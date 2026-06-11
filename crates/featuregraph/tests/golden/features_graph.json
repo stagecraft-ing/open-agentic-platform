@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:3bc6d67a8e0f41bb684c12909e8ad975b150df7fe1e5ad7cfbefd3542696f8c1",
+  "graph_fingerprint": "sha256:662d62957d92e2af1b2baef2a86f1fbf1ea669098b6f66f453349b9e0be4c00e",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3971,6 +3971,26 @@
         "198-factory-governance-envelope",
         "203-produced-app-sbom-attestation",
         "168-per-project-governance-certificate"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "211-encore-test-ci-job",
+      "title": "Encore-Test CI Job (ASI09 verification integrity — the encore-test CI gap, closed)",
+      "spec_path": "specs/211-encore-test-ci-job/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "104-makefile-ci-parity-contract",
+        "135-fast-ci-as-default",
+        "177-ci-orchestrator-pr-gate",
+        "198-factory-governance-envelope",
+        "201-anti-blind-approval-ui"
       ],
       "impl_files": [],
       "test_files": [],

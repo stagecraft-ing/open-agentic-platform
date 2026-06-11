@@ -562,8 +562,10 @@ renders).
     (`approvalSummaryEndpoint.test.ts`, `overrideTrustClass.test.ts`)
     are encore-test-gated and CI runs bare vitest only. That CI gap
     (discovered during phase 1, recorded in spec 198's FR-013
-    correction note) is the named trigger: when an encore-test CI job
-    exists and these suites run green in it, the ASI09 row flips to
+    correction note, filed as
+    [spec 211](../211-encore-test-ci-job/spec.md)) is the named
+    trigger: when spec 211's encore-test CI job exists and these
+    suites run green in it, the ASI09 row flips to
     "solid" and this spec's `implementation:` flips to `complete`.
     Until then `implementation: in-progress` is the honest state —
     all four phases' code and local verification are done; the
