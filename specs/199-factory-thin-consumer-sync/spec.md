@@ -326,3 +326,23 @@ org-scoped id is org configuration and never enters the open contract (spec
   in stagecraft runtime-reads `templateName`).
 - Sequencing (migration memory `project-template-lineage-research`): lands after
   the factory-encore POC finalize + Windows handoff settle the owned-repo shape.
+
+## Implementation log
+
+- **2026-06-10 — AC-6 hygiene closure.** The live legacy remnants the
+  AC-6 negative grep still caught after the main cutover PR (#313) are
+  retired: `translator.ts::selectAdapter` no longer fabricates
+  `aim-vue-node@0.0.0` for an adapter-less org (it throws; `import.ts`
+  already guards that case with `failedPrecondition` before translating),
+  `syncPipeline.ts::countByLegacyKind` stops counting the retired
+  synthetic template-orchestrator adapter, and `repoInit.ts`'s
+  `VALID_ADAPTERS` carries only the manifest-declared `aim-vue-encore`.
+  Test fixtures, doc-comment examples, the stagecraft CLAUDE.md
+  read-path/scheduler narratives, the factory web index tile, root
+  README's adapter section, and `docs/factory/{how-to,architecture}.md`
+  (historical banners) follow. Remaining matches in stagecraft source are
+  history by construction: migrations 36/37, retirement notes, and the
+  explicitly historical `factory-evolution.md` /
+  `adapter-agent-examples.md`. Runtime ACs (AC-1..AC-5) stay gated on the
+  first real ADMIT after the GovAlta-side envelope merge + org re-sync —
+  `implementation:` stays `in-progress`.

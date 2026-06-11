@@ -150,7 +150,7 @@ export default function FactoryOverview() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Tile
           title="Adapters"
-          description="Pluggable tech stacks — aim-vue-node, next-prisma, encore-react, rust-axum."
+          description="Pluggable tech stacks — manifest-declared adapters (aim-vue-encore today)."
           count={counts.adapters}
         />
         <Tile

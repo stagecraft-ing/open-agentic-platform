@@ -208,7 +208,10 @@ function selectAdapter(
 ): { name: string; version: string } {
   // Heuristic (deterministic): prefer an adapter matching the legacy
   // factoryInputs.templateMode / templateVariant hint if one is available,
-  // else the first adapter in the supplied list, else a conservative fallback.
+  // else the first adapter in the supplied list. Adapter identity comes
+  // from the substrate's manifests (spec 199 FR-002) — there is no
+  // synthetic fallback; callers guard the empty-org case (import.ts
+  // raises failedPrecondition before translating).
   const inputs = legacy.factoryInputs ?? {};
   const clientStack = typeof inputs.clientTechStack === "string"
     ? inputs.clientTechStack.toLowerCase()
@@ -217,10 +220,12 @@ function selectAdapter(
     clientStack.includes("vue") && a.name.toLowerCase().includes("vue")
   );
   const picked = preferred ?? orgAdapters[0];
-  if (picked) {
-    return { name: picked.name, version: picked.version };
+  if (!picked) {
+    throw new Error(
+      "translateLegacyManifest requires at least one org adapter; sync the factory upstream first"
+    );
   }
-  return { name: "aim-vue-node", version: "0.0.0" };
+  return { name: picked.name, version: picked.version };
 }
 
 function pickPipelineTimestamps(

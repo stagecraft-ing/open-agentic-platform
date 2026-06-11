@@ -2,6 +2,12 @@
 
 Factory turns business documents into working applications through a structured, verifiable pipeline. You provide business requirements; Factory produces a technology-free specification; an adapter generates code for your chosen stack.
 
+> **Adapter naming note (spec 199):** adapters are manifest-declared; the
+> owned factory currently ships `aim-vue-encore`. The multi-adapter tables
+> below (`aim-vue-node`, `encore-react`, `next-prisma`, `rust-axum`)
+> predate the factory-encore consolidation and are retained as historical
+> context for the adapter contract's breadth.
+
 This guide walks you through the entire process, starting from your business artifacts.
 
 ---
@@ -10,7 +16,7 @@ This guide walks you through the entire process, starting from your business art
 
 - Rust (for `factory-run` CLI and the native verification harness)
 - An AI agent runtime (Claude CLI) for executing agent prompts
-- A target adapter installed (e.g., `aim-vue-node`, `encore-react`, `next-prisma`, `rust-axum`)
+- A target adapter installed (e.g., `aim-vue-encore`)
 - Your business documents (PDFs, Word docs, spreadsheets, meeting notes, etc.)
 
 ---
