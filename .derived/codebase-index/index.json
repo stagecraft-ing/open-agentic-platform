@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "71dc1cae75cc3ffd81725bb1e4a6cb5e03718d9b9126f5133b2c0d2b6f2a40ff",
+    "contentHash": "e8c0837b9f35257edf1231ee33bcacf1ec5fa1ae6e24a35a51d104d81442e380",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
