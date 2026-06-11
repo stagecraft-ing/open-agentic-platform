@@ -4,7 +4,7 @@ slug: factory-project-lifecycle
 title: Factory Project Lifecycle — Create, Import, Open
 status: approved
 implementation: complete
-amended: "2026-06-05"
+amended: "2026-06-10"
 amendment_record: |
   138-stagecraft-create-realised-scaffold (2026-05-04).
   self-amended (2026-06-05) — §6.3 Open-in-OPC handoff refined: the
@@ -16,6 +16,13 @@ amendment_record: |
   single-fetch revalidation), which stacked with bulk-knowledge-upload
   extraction fan-out at the pod's 1Gi limit. Adds a refines: edge over the
   OPC-handoff consumer paths.
+  self-amended (2026-06-10) — §5.2 failure-surfacing posture extended from
+  pre-flight to mid-flight: scaffold/push and post-push DB failures raise
+  typed (non-internal) APIErrors carrying the real cause + the orphaned
+  scaffold-job id, because production Encore redacts internal messages to
+  a generic 500. §5.3's scaffold-output VCS-free invariant graduated into
+  the open standard (one normative sentence in
+  standards/schemas/factory/adapter-manifest.schema.yaml `scaffold:`).
 owner: bart
 created: "2026-04-22"
 kind: platform
@@ -496,6 +503,17 @@ Flow:
    row added per spec 138 §2.2.)*
 8. Return `{ project_id, repo_url, clone_url }` for the UI to link to.
 
+**Failure surfacing (amended 2026-06-10):** the pre-flight posture —
+actionable `APIError.failedPrecondition` with the real cause, never the
+Encore-wrapped generic 500 — extends to mid-flight failures. Scaffold/push
+failures (between repo creation and commit #1) and post-push DB failures
+raise **typed, non-internal** errors (`aborted`) carrying the underlying
+message (already token-redacted by the subprocess wrappers) plus the
+orphaned `scaffold_jobs` row id, because production Encore redacts
+`internal` messages — the user would otherwise retry blind against a
+cause only visible in pod logs, while `scaffold_jobs.error_message`
+already held the truth.
+
 ### 5.3 What is absorbed from template-distributor
 
 Stagecraft's server-side scaffold scope is **exactly** the six operations
@@ -537,6 +555,11 @@ an embedded commit-less repository inside the project tree, and operation
 out` — the 2026-06-09 production create failure under the dual profile.
 The legacy single-profile case only worked by coincidence (the carried
 `.git` sat at the root, where operation 5's own `git init` reused it).
+*(Graduated 2026-06-10 into the open standard: the normative VCS-free
+sentence now also lives in
+`standards/schemas/factory/adapter-manifest.schema.yaml` under
+`scaffold:`, so third-party adapter authors inherit the obligation —
+stagecraft's strip-at-any-depth remains the defensive enforcement.)*
 
 **Net drops:**
 
