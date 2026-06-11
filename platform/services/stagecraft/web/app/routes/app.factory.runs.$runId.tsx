@@ -13,15 +13,19 @@
  */
 
 import { useEffect } from "react";
-import { Link, useLoaderData, useRevalidator } from "react-router";
+import { Form, Link, useLoaderData, useNavigation, useRevalidator } from "react-router";
 import { requireUser } from "../lib/auth.server";
 import {
+  approveFactoryRunGate,
   getFactoryRun,
+  getFactoryRunApprovalContext,
   listFactoryAdapters,
   listFactoryProcesses,
   type FactoryRunDetail,
   type FactoryRunStageProgressEntry,
+  type RunApprovalContextWire,
 } from "../lib/factory-api.server";
+import { runGateControlState } from "../lib/approval-basis-helpers";
 import {
   STAGE_STATUS_CLASSES,
   STATUS_PILL_CLASSES,
@@ -37,6 +41,9 @@ type LoaderData = {
   run: FactoryRunDetail;
   adapterName: string | null;
   processName: string | null;
+  /** Spec 201 phase 3 — the HITL gate basis + recorded approvals. null on
+   * fetch failure (renderer fails closed, FR-002). Read-only (FR-003). */
+  approvalContext: RunApprovalContextWire | null;
 };
 
 export async function loader({
@@ -53,22 +60,61 @@ export async function loader({
   // Resolve adapter / process names from their UUIDs. Failures are non-fatal:
   // the page falls back to short-UUID display so a partial outage of the
   // browse endpoints doesn't block the run-detail view.
-  const [run, adaptersList, processesList] = await Promise.all([
-    getFactoryRun(request, params.runId),
-    listFactoryAdapters(request).catch(() => ({ adapters: [] })),
-    listFactoryProcesses(request).catch(() => ({ processes: [] })),
-  ]);
+  const [run, adaptersList, processesList, approvalContext] =
+    await Promise.all([
+      getFactoryRun(request, params.runId),
+      listFactoryAdapters(request).catch(() => ({ adapters: [] })),
+      listFactoryProcesses(request).catch(() => ({ processes: [] })),
+      // Fail closed on fetch error: a null context renders an attributable
+      // error with no approve control (spec 201 FR-002).
+      getFactoryRunApprovalContext(request, params.runId).catch(() => null),
+    ]);
 
   const adapterName =
     adaptersList.adapters.find((a) => a.id === run.adapterId)?.name ?? null;
   const processName =
     processesList.processes.find((p) => p.id === run.processId)?.name ?? null;
 
-  return { run, adapterName, processName };
+  return { run, adapterName, processName, approvalContext };
+}
+
+type ActionResult = { ok: boolean; error?: string };
+
+/** Spec 201 FR-003 — approve is a distinct POST, never a loader side
+ * effect. The summaryHash from the rendered basis rides along for the
+ * replay guard; the server re-assembles and refuses on mismatch. */
+export async function action({
+  request,
+  params,
+}: {
+  request: Request;
+  params: { runId: string };
+}): Promise<ActionResult> {
+  await requireUser(request);
+  const form = await request.formData();
+  const intent = String(form.get("intent") ?? "");
+  if (intent !== "approve_gate") {
+    return { ok: false, error: `unknown intent: ${intent}` };
+  }
+  const stageId = String(form.get("stageId") ?? "");
+  const summaryHash = String(form.get("summaryHash") ?? "");
+  if (!stageId || !summaryHash) {
+    return { ok: false, error: "missing stageId or summaryHash" };
+  }
+  try {
+    await approveFactoryRunGate(request, params.runId, stageId, summaryHash);
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
 }
 
 export default function FactoryRunDetailRoute() {
-  const { run, adapterName, processName } = useLoaderData<typeof loader>();
+  const { run, adapterName, processName, approvalContext } =
+    useLoaderData<typeof loader>();
   useLiveRevalidation(run);
 
   return (
@@ -81,9 +127,137 @@ export default function FactoryRunDetailRoute() {
       />
       {run.status === "failed" && run.error && <ErrorBlock error={run.error} />}
       <StageProgressList stages={run.stageProgress} />
+      <RunGateApprovalsPanel context={approvalContext} />
       <TokenSpendCard run={run} />
       <SourceShasFooter run={run} />
     </div>
+  );
+}
+
+/**
+ * Spec 201 phase 3 — the run-level HITL gate surface (FR-002). One row per
+ * stage in the require_stage_approval policy; the approve control renders
+ * only behind an assembled, clean basis. FR-005 is vacuously satisfied on
+ * this page today: it renders statuses, durations, and content hashes —
+ * no model-produced text. If stage OUTPUT bodies are ever rendered here,
+ * they must go into a labelled untrusted region per FR-005.
+ */
+function RunGateApprovalsPanel({
+  context,
+}: {
+  context: RunApprovalContextWire | null;
+}) {
+  const nav = useNavigation();
+  const submitting = nav.state === "submitting";
+  const requiredStageIds = context?.requiredStageIds ?? ["s1", "s2", "s3"];
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+      <h3 className="border-b border-gray-200 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-700 dark:text-gray-400">
+        Stage approvals — human sign-off
+      </h3>
+      <ol className="divide-y divide-gray-100 dark:divide-gray-800">
+        {requiredStageIds.map((stageId) => (
+          <RunGateRow
+            key={stageId}
+            stageId={stageId}
+            context={context}
+            submitting={submitting}
+          />
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function RunGateRow({
+  stageId,
+  context,
+  submitting,
+}: {
+  stageId: string;
+  context: RunApprovalContextWire | null;
+  submitting: boolean;
+}) {
+  const state = runGateControlState(context, stageId);
+
+  return (
+    <li className="px-4 py-3 text-sm">
+      <div className="flex items-start justify-between gap-4">
+        <code className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          {stageId}
+        </code>
+        {state.kind === "approved" ? (
+          <div className="text-right text-xs">
+            <span className="font-semibold text-green-700 dark:text-green-400">
+              approved
+            </span>
+            <div className="mt-0.5 font-mono text-[10px] text-gray-500">
+              basis {state.approval.summaryHash.slice(0, 12)}… · @
+              {state.approval.approvedBy.slice(0, 8)} ·{" "}
+              {new Date(state.approval.approvedAt).toLocaleString()}
+            </div>
+          </div>
+        ) : state.kind === "blocked" ? (
+          <div className="max-w-md text-right text-xs text-red-700 dark:text-red-400">
+            approval unavailable: {state.reason}
+          </div>
+        ) : state.kind === "withheld" ? (
+          <div className="max-w-md text-right text-xs text-orange-700 dark:text-orange-400">
+            approval withheld — unverified override(s) under the envelope's
+            require_verified policy:
+            <ul className="mt-1 font-mono text-[10px]">
+              {state.blockingPaths.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="max-w-lg text-right">
+            <dl className="space-y-1 text-left text-xs">
+              <div>
+                <dt className="inline font-semibold text-gray-500">
+                  Gate predicate:{" "}
+                </dt>
+                <dd className="inline font-mono">{state.gatePredicate}</dd>
+              </div>
+              <div>
+                <dt className="inline font-semibold text-gray-500">
+                  Blast radius:{" "}
+                </dt>
+                <dd className="inline">{state.summary.blastRadiusStatement}</dd>
+              </div>
+              <div>
+                <dt className="inline font-semibold text-gray-500">
+                  Provenance:{" "}
+                </dt>
+                <dd className="inline font-mono text-[10px]">
+                  {state.summary.provenanceLinks
+                    .map((l) => `${l.kind}@${l.contentHash.slice(0, 12)}…`)
+                    .join(", ")}
+                </dd>
+              </div>
+            </dl>
+            <Form method="post" className="mt-2">
+              <input type="hidden" name="intent" value="approve_gate" />
+              <input type="hidden" name="stageId" value={stageId} />
+              <input
+                type="hidden"
+                name="summaryHash"
+                value={state.summary.summaryHash}
+              />
+              <button
+                type="submit"
+                disabled={submitting}
+                className="rounded border border-green-600 px-3 py-1 text-xs text-green-700 disabled:opacity-50 dark:text-green-400"
+              >
+                Approve {stageId} gate
+              </button>
+            </Form>
+          </div>
+        )}
+      </div>
+    </li>
   );
 }
 

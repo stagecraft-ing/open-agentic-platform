@@ -42,6 +42,8 @@ refines:
     unit: { kind: file, path: platform/services/stagecraft/web/app/lib/factory-api.server.ts }
   - aspect: "encore-test-gating"
     unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+  - aspect: "hitl-approval-policy-read"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/factory.ts }
   - aspect: "hitl-approval-audit"
     unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
   - aspect: "hitl-approval-audit"
@@ -512,3 +514,39 @@ amendments made before writing code, none changing the spec's intent:
 Frontmatter changes in the same edit: `establishes:` claims the new
 `approvalSummary.ts` + `approvalSummary-pure.ts`; `implementation:`
 flipped to `in-progress` with phase 1 starting.
+
+**2026-06-11 (implementation contact, phase 3).** Four further
+precision decisions, recorded before the run-surface code:
+
+6. **Approve endpoint contract** — `POST
+   /api/factory/runs/:id/gates/:stageId/approve` with `{summaryHash}`;
+   the FR-004 audit `metadata` additionally carries `stageId` (the
+   FR-004 example shape predates per-stage gating; the addition is
+   additive). Approval state IS the audit trail — one
+   `factory.run.gate_approved` row per `(runId, stageId)`, no second
+   state store; re-approving returns the recorded approval idempotently
+   with no new row (Purpose 3: distinct, audited, idempotent).
+7. **Predicate selection** — OAP never models predicate→stage binding
+   (spec 198 P-2: run topology is the engine's). The run surface records
+   a deterministically-selected declared predicate:
+   `pickRunGatePredicate` = first `gates[].predicate` containing
+   `"approval"`, else the first declared; fail-closed (no approve
+   control) when the envelope declares no gates. The selected predicate
+   is rendered to the approver and recorded in the audit row.
+8. **FR-003 (c) is subsumed by (b)** — `actorId` is inside the hashed
+   field set, so the approve-time re-assembly (bound to the session
+   actor) can never hash-match a summary rendered for a different actor;
+   the replay guard enforces the actor check structurally.
+9. **FR-002 withhold asymmetry confirmed in code** — the run-surface
+   approve is withheld (server-side `failedPrecondition` + UI blocking
+   list) on any envelope-unsatisfied override; the verify surface is
+   not (amendment 4: verify is the resolution path). FR-005 is
+   vacuously satisfied on the run-detail page today (it renders
+   statuses, durations, and hashes — no model-produced text); if stage
+   output bodies are ever rendered there, they take the labelled
+   untrusted region.
+
+Phase 3 frontmatter changes: `refines` adds `factory.ts`
+(`hitl-approval-policy-read` — the exported
+`DEFAULT_REQUIRE_STAGE_APPROVAL` policy fact the context endpoint
+renders).
