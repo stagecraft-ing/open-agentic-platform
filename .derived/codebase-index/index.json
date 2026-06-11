@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "e142ccea311806347bd47b6c8f81110a5023e6b626a5370caabe0fffcd871fdb",
+    "contentHash": "9509f2b4bfba7c3474d737ae44fdb7faaa81cf1c89c0c3bf5bba0b96e785b4cc",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -45319,6 +45319,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/adapterView.ts",
             "source": "spec-implements"
           },
@@ -45416,6 +45420,20 @@
             "unit": {
               "id": "factory-contracts",
               "kind": "crate"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
             }
           },
           {

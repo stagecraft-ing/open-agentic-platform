@@ -34,6 +34,13 @@ extends:
   - spec: "074-factory-ingestion"
     nature: additive
     unit: { kind: crate, id: factory-contracts }
+  # The featuregraph golden snapshots this spec's lifecycle row; the
+  # implementation: flip (2026-06-11) regenerates it. Same edge the
+  # 187/183/193/202-211 convention uses to keep golden regens
+  # coupling-clean without a waiver.
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "thin-consumer-substrate-reads"
     unit: { kind: file, path: platform/services/stagecraft/api/factory/browse.ts }
