@@ -513,14 +513,15 @@ and loses all standing one stage boundary after revocation.
 | **06 Memory & Context Poisoning** | Factory run is *architecturally low-surface* — stateless stages, content-addressed artifact passing, no self-ingestion. Control-point = substrate **`user_body` write path**, contract-specified by FR-013 and live for (a)–(c): deterministic gate + provenance on every write, verified-flag trust class, envelope predicate enforced at bundle assembly, consumed overrides certificate-bound + knowledge provenance 115/161/121 | **Designed (FR-013), a–c implemented** — async scanner (d) filed as [spec 200](../200-substrate-override-async-scanner/spec.md) |
 | **07 Insecure Inter-Agent Comms** | Emit-manifest (FR-005/009) + signed inter-stage manifests 170 + duplex version parity 189 + schema parity 125/191; typed contracts, reject downgrades @ run | **Solid** |
 | **08 Cascading Failures** | HITL/gate predicates as circuit-breakers (FR-008); PEP between planner/executor (FR-007); per-stage verification fail-closed; stop-hook 166; introspection 172. Residual: fan-out can outpace oversight — must be evaluated vs org risk budget | **Partial — residual stated** (blast-radius caps are follow-on) |
-| **09 Human-Agent Trust** | HITL declaration requiring plain-language + provenance, never model rationale; preview≠effect (FR-008); certificate's independent `verify-certificate` (does not trust the producer) gives the human a verifiable basis | **Partial — declared gap** (anti-blind-approval UI filed as [spec 201](../201-anti-blind-approval-ui/spec.md)) |
+| **09 Human-Agent Trust** | HITL declaration requiring plain-language + provenance, never model rationale; preview≠effect (FR-008); certificate's independent `verify-certificate` (does not trust the producer) gives the human a verifiable basis | **Partial — presentation contract implemented** ([spec 201](../201-anti-blind-approval-ui/spec.md) phases 1–3: fact-grounded `ApprovalSummary`, fail-closed verify + run-gate surfaces, replay-guarded approve, `summaryHash` audit evidence). "Solid" awaits spec 201 AC-1–AC-5 verified **in CI** — the DB-bound AC suites are encore-test-gated and CI runs bare vitest only (the encore-test CI gap, discovered 2026-06-11, tracked as a process follow-up) |
 | **10 Rogue Agents** | Admitted behavioral manifest = the legitimate-agent allowlist (FR-006), off-list = rogue; agents never hold keys (FR-006); kill-switch/quarantine (FR-010); sandbox prevents hidden spawn; introspection 172 detects | **Solid-ish** (admission-prevention strong; runtime detection leans on 172/sandbox) |
 
 Shape of the defense: the envelope makes **01/03/04/10 explicit and
 fail-closed at the door**, **declares the runtime levers for 02/05/07/08** that
 existing specs enforce, **specifies 06's control-point as contract** (FR-013;
 (a)–(c) implemented, (d) filed as spec 200), and is **honest that 09 remains
-partial** (anti-blind-approval UI filed as spec 201).
+partial** (spec 201's presentation contract is implemented; the "solid"
+flip is gated on its AC suites running in CI, not just locally).
 
 ## Acceptance criteria
 
