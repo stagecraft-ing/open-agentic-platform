@@ -245,12 +245,12 @@ mod tests {
         write(
             tmp.path(),
             "template.json",
-            r#"{ "templateName": "aim-vue-node", "baseVersion": "3.0.0" }"#,
+            r#"{ "templateName": "template-encore", "baseVersion": "3.0.0" }"#,
         );
         let result = detect(tmp.path()).unwrap();
         assert_eq!(result.level, DetectionLevel::ScaffoldOnly);
         let adapter = result.adapter_ref.unwrap();
-        assert_eq!(adapter.name, "aim-vue-node");
+        assert_eq!(adapter.name, "template-encore");
         assert_eq!(adapter.version, "3.0.0");
     }
 
@@ -340,7 +340,7 @@ mod tests {
                 "started_at": "2026-04-22T00:00:00Z",
                 "updated_at": "2026-04-22T00:00:00Z",
                 "status": "running",
-                "adapter": { "name": "aim-vue-node", "version": "3.0.0" },
+                "adapter": { "name": "aim-vue-encore", "version": "3.0.0" },
                 "build_spec": { "path": "build-spec.yaml", "hash": "abc" }
             },
             "stages": {}
@@ -350,7 +350,10 @@ mod tests {
             ".factory/pipeline-state.json",
             &serde_json::to_string(&state).unwrap(),
         );
-        // Also drop legacy and scaffold markers — L2 must still win.
+        // Also drop legacy and scaffold markers — L2 must still win. The
+        // decoy template.json keeps the legacy-era name on purpose: the
+        // adapter_ref assertion below proves provenance (ACP state, not
+        // the stale scaffold marker) precisely because the names differ.
         write(
             tmp.path(),
             "requirements/audit/factory-manifest.json",
@@ -369,7 +372,7 @@ mod tests {
         let result = detect(tmp.path()).unwrap();
         assert_eq!(result.level, DetectionLevel::AcpProduced);
         assert!(result.pipeline_state.is_some());
-        assert_eq!(result.adapter_ref.as_ref().unwrap().name, "aim-vue-node");
+        assert_eq!(result.adapter_ref.as_ref().unwrap().name, "aim-vue-encore");
     }
 
     #[test]

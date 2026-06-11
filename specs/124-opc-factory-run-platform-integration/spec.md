@@ -7,6 +7,13 @@ implementation: complete
 owner: bart
 created: "2026-05-01"
 approved: "2026-05-01"
+amended: "2026-06-11"
+amendment_record: |
+  amended by spec 199 (2026-06-11), editorial: the platform-client
+  wire-format test mocks (adapter list envelope/id-default round-trip)
+  use the manifest-declared aim-vue-encore plus a neutral
+  second-adapter instead of the upstream-retired aim-vue-node /
+  next-prisma. Pure fixture rename; no wire-contract change.
 kind: platform
 domain: opc
 risk: high
@@ -36,6 +43,11 @@ extends:
 ---
 
 # 124 — OPC Factory-Run Platform Integration
+
+> **Amended by spec 199 (2026-06-11), editorial.** The platform-client
+> wire-format test mocks now use the manifest-declared `aim-vue-encore`
+> (plus a neutral `second-adapter`) instead of the upstream-retired
+> example adapter names. No wire-contract change.
 
 ## 1. Problem Statement
 

@@ -151,14 +151,14 @@ async fn list_adapters_round_trips_and_unwraps_envelope() {
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "adapters": [
                 {
-                    "id": "org-1:aim-vue-node",
-                    "name": "aim-vue-node",
+                    "id": "org-1:aim-vue-encore",
+                    "name": "aim-vue-encore",
                     "version": "v1",
                     "sourceSha": "ada-sha-1",
                     "syncedAt": "2026-05-01T12:00:00Z"
                 },
                 {
-                    "name": "next-prisma",
+                    "name": "second-adapter",
                     "version": "v2",
                     "sourceSha": "ada-sha-2",
                     "syncedAt": "2026-05-01T12:00:00Z"
@@ -172,10 +172,10 @@ async fn list_adapters_round_trips_and_unwraps_envelope() {
     let client = PlatformClient::new(server.uri(), provider());
     let adapters = client.list_adapters().await.unwrap();
     assert_eq!(adapters.len(), 2);
-    assert_eq!(adapters[0].name, "aim-vue-node");
-    assert_eq!(adapters[0].id.as_deref(), Some("org-1:aim-vue-node"));
+    assert_eq!(adapters[0].name, "aim-vue-encore");
+    assert_eq!(adapters[0].id.as_deref(), Some("org-1:aim-vue-encore"));
     assert_eq!(adapters[0].source_sha, "ada-sha-1");
-    assert_eq!(adapters[1].name, "next-prisma");
+    assert_eq!(adapters[1].name, "second-adapter");
     assert_eq!(adapters[1].id, None);
     assert_eq!(adapters[1].source_sha, "ada-sha-2");
 }
