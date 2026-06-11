@@ -7,16 +7,21 @@ use std::process::ExitCode;
 #[command(
     name = "adapter-scopes-compiler",
     version,
-    about = "Compile factory/adapters/*/manifest.yaml into adapter-scopes.json (spec 105)."
+    about = "Project the admitted adapter sub-envelope(s) (manifest governance: \
+             sections) into adapter-scopes.json (spec 105, derivation per spec 198 FR-012).",
+    after_help = "EXAMPLE (from the OAP repo root, factory checkout as sibling):\n  \
+                  adapter-scopes-compiler --repo . --adapters-dir ../factory-encore/adapters"
 )]
 struct Cli {
     /// Repository root. The tool writes outputs relative to this.
     #[arg(long)]
     repo: Option<PathBuf>,
 
-    /// Override adapters directory (defaults to `<repo>/factory/adapters`).
+    /// Adapters directory of a factory source checkout (e.g.
+    /// `../factory-encore/adapters`). Required: the in-repo
+    /// `factory/adapters` directory was retired by spec 108.
     #[arg(long)]
-    adapters_dir: Option<PathBuf>,
+    adapters_dir: PathBuf,
 }
 
 fn main() -> ExitCode {
@@ -24,9 +29,7 @@ fn main() -> ExitCode {
     let repo = cli
         .repo
         .unwrap_or_else(|| std::env::current_dir().expect("cwd"));
-    let adapters_dir = cli
-        .adapters_dir
-        .unwrap_or_else(|| repo.join("factory").join("adapters"));
+    let adapters_dir = cli.adapters_dir;
 
     let compiled = match compile_from_adapters_dir(&adapters_dir) {
         Ok(v) => v,
@@ -43,22 +46,6 @@ fn main() -> ExitCode {
             return ExitCode::from(1);
         }
     };
-
-    let build_dir = repo.join("build");
-    if let Err(e) = std::fs::create_dir_all(&build_dir) {
-        eprintln!(
-            "adapter-scopes-compiler: create {}: {e}",
-            build_dir.display()
-        );
-        return ExitCode::from(1);
-    }
-
-    let build_path = build_dir.join("adapter-scopes.json");
-    if let Err(e) = std::fs::write(&build_path, &json) {
-        eprintln!("adapter-scopes-compiler: write {}: {e}", build_path.display());
-        return ExitCode::from(1);
-    }
-    println!("wrote {}", build_path.display());
 
     let stagecraft_path = repo
         .join("platform")

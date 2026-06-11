@@ -640,3 +640,29 @@ the FRs:
   the signing authority (JWKS + `kid` rotation, platform-side custody); the
   capsule is realised as a short-lived run-grant renewed per stage boundary;
   OPC and agents are keyless, categorically.
+
+## Implementation log
+
+- **2026-06-11 — FR-014 signing authority live; first SEALED admission.**
+  The deployed Hetzner stagecraft gained `FACTORY_SIGNING_PRIVATE_KEY` /
+  `FACTORY_SIGNING_KID` (`fk-2026-06`, Ed25519) under the documented
+  K8s-Secret custody profile; the keyset serves at
+  `/api/factory/.well-known/jwks.json`. The next org re-sync produced the
+  first sealed admission for `GovAlta-Pronghorn/factory-encore`
+  (record `7cf82fae…`, factory sha `cc1139f…`, envelope hash `549c1350…`,
+  14 agent digests, 0 violations). The seal's compact JWS
+  (`typ: oap-admission-seal+jws`) was verified independently against the
+  published JWKS — signature valid, claims bind the envelope hash, the
+  `aim-vue-encore` manifest hash (`57f43e1a…`), every agent digest, and the
+  scaffold resolution to `GovAlta-Pronghorn/template-encore @ main`. Three
+  earlier admissions (2026-06-10/11) were admitted-but-UNSEALED — exactly
+  the fail-closed posture this FR prescribes for the engine side.
+- **2026-06-11 — FR-012 first derivation ran (AC-10 closes).**
+  `adapter-scopes-compiler` (spec 105, amended same date) now projects the
+  manifest `governance:` sub-envelope verbatim; the committed snapshot
+  `platform/services/stagecraft/api/factory/adapter-scopes.json` was
+  regenerated from the admitted manifest (hash-equal to the sealed
+  admission's `adapter_manifest_hashes` entry) and re-derivation is
+  byte-identical. The interim hand-regenerated snapshot (spec 199 FR-007)
+  is retired: OAP materialises the enforcement snapshot; it no longer
+  authors the facts.

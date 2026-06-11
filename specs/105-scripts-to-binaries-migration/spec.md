@@ -5,8 +5,30 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-16"
-amended: "2026-06-04"
+amended: "2026-06-11"
 amendment_record: |
+  Amended 2026-06-11 — adapter-scopes derivation source cutover (spec 198
+  FR-012). `adapter-scopes-compiler` no longer scrapes top-level directories
+  from `directory_conventions:`; it projects each adapter manifest's
+  `governance:` sub-envelope verbatim (`file_write_scope` as declared,
+  admission-validated write globs; `allowed_commands` still derived from the
+  manifest's own `commands:` map — the manifest's
+  `allowed_commands_from: commands` declaration names that home and the
+  admission gate enforces it; the compiler itself reads `commands:`
+  unconditionally). A
+  manifest without a `governance:` section now fails the compile —
+  fail-closed, mirroring admissibility (adapter-manifest schema 1.1.0).
+  Input moves to a factory-source checkout via a now-required
+  `--adapters-dir` (the in-repo `factory/adapters/` this spec originally
+  read was retired by spec 108); output narrows to the single committed
+  stagecraft snapshot (the legacy `build/adapter-scopes.json` copy is
+  retired, with the ci-parity-check PRODUCERS rule repointed under the
+  spec 104 amendment of the same date). First derivation ran 2026-06-11
+  against the admitted aim-vue-encore manifest
+  (sha256 57f43e1a8908…, matching the sealed admission record's
+  adapter_manifest_hashes). The governed-binary venue split this spec
+  establishes is unchanged.
+
   Amended 2026-06-04 — axiomregent demotion fetch re-point. `make fetch-axiomregent`
   (the Makefile recipe this spec moved off `scripts/fetch-axiomregent.js`) no longer
   downloads from a GitHub *Release*: axiomregent has no standalone release (specs

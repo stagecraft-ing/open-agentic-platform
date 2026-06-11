@@ -453,6 +453,14 @@ expectations and intended audience, mirroring spec 134 §SC-04.
 
 ## Amendments received
 
+**Amendment 2026-06-11 (record: 104 self-amendment with spec 198 FR-012).**
+Spec 104 — whose parity contract this spec implements as the default `make
+ci` — self-amended its `PRODUCERS` rule for `adapter-scopes-compiler`: the
+artifact repoints from the retired `build/adapter-scopes.json` to the
+committed stagecraft snapshot, following the spec-198 FR-012 derivation
+cutover. No fast-ci lane, recipe, or parity verdict changes; recorded here
+because this spec is 104's current implements-owner.
+
 **Amendment 2026-05-24 (record: 178-opc-directory-rename).**
 Spec 178 (opc-directory-rename, 2026-05-24): mechanical path rename
 `product/apps/desktop/*` → `product/apps/opc/*`. No semantic change

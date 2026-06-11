@@ -1,9 +1,25 @@
-//! Adapter scopes compiler (spec 105 Phase 1).
+//! Adapter scopes compiler (spec 105 Phase 1; derivation source amended by
+//! spec 198 FR-012).
 //!
-//! Reads every `factory/adapters/*/manifest.yaml`, extracts the adapter's
-//! effective `file_write_scope` (top-level directories referenced in
-//! `directory_conventions:`) and `allowed_commands` (unique binary names
-//! from every command string under `commands:`), and emits a compiled JSON.
+//! Reads every `<adapters-dir>/*/manifest.yaml` from a factory source
+//! checkout (e.g. factory-encore) and emits the enforcement snapshot
+//! `adapter-scopes.json` as a DERIVED PROJECTION of each adapter's
+//! `governance:` sub-envelope:
+//!
+//! - `file_write_scope` — verbatim from `governance.file_write_scope`
+//!   (the declared, admission-validated write globs; spec 198 FR-012).
+//! - `allowed_commands` — unique binary names from every command string
+//!   under `commands:`. The compiler always reads the manifest's own
+//!   `commands:` map (one home per fact); the admission gate separately
+//!   enforces that `governance.allowed_commands_from` declares `commands`
+//!   (the only defined value), so the two stay consistent by construction.
+//!
+//! A manifest without a `governance:` section fails the compile: the
+//! snapshot projects the *admitted* sub-envelope(s), and a manifest lacking
+//! one is not admissible (adapter-manifest schema 1.1.0, spec 198 FR-012).
+//! The pre-198 heuristic (top-level directories scraped from
+//! `directory_conventions:`) is retired — OAP materialises the snapshot;
+//! it no longer authors the facts.
 //!
 //! Replaces `scripts/compile-adapter-scopes.js`. Output is deterministic —
 //! no timestamp — so the committed artifact is stable across regenerations.
@@ -29,18 +45,30 @@ const TOP_LEVEL_COMMAND_KEYS: &[&str] = &[
     "gen_client",
 ];
 
+/// Snapshot header emitted into the compiled JSON. States provenance and
+/// the no-hand-edit rule next to the facts it governs.
+const SNAPSHOT_COMMENT: &str = "Spec 198 FR-012 — DERIVED PROJECTION of the \
+admitted adapter sub-envelope(s) (manifest governance: section). Generated \
+by adapter-scopes-compiler from the factory source's adapters/*/manifest.yaml; \
+do not hand-edit. One home per fact: the manifest declares, this snapshot \
+materialises enforcement.";
+
 #[derive(Debug, Deserialize)]
 struct Manifest {
     adapter: AdapterSection,
     #[serde(default)]
     commands: serde_yaml::Value,
-    #[serde(default)]
-    directory_conventions: serde_yaml::Value,
+    governance: Option<GovernanceSection>,
 }
 
 #[derive(Debug, Deserialize)]
 struct AdapterSection {
     name: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct GovernanceSection {
+    file_write_scope: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -51,6 +79,8 @@ pub struct AdapterScope {
 
 #[derive(Debug, Serialize)]
 pub struct CompiledOutput {
+    #[serde(rename = "_comment")]
+    pub comment: String,
     pub adapters: BTreeMap<String, AdapterScope>,
 }
 
@@ -58,7 +88,12 @@ pub struct CompiledOutput {
 /// each, and return the combined output with adapters keyed by name.
 pub fn compile_from_adapters_dir(adapters_dir: &Path) -> Result<CompiledOutput, String> {
     let mut entries: Vec<_> = fs::read_dir(adapters_dir)
-        .map_err(|e| format!("reading {}: {e}", adapters_dir.display()))?
+        .map_err(|e| {
+            format!(
+                "reading --adapters-dir {}: {e}",
+                adapters_dir.display()
+            )
+        })?
         .filter_map(Result::ok)
         .filter(|e| e.path().join("manifest.yaml").is_file())
         .collect();
@@ -79,17 +114,41 @@ pub fn compile_from_adapters_dir(adapters_dir: &Path) -> Result<CompiledOutput, 
         let manifest: Manifest = serde_yaml::from_str(&text)
             .map_err(|e| format!("parsing {}: {e}", manifest_path.display()))?;
 
-        let scope = compile_adapter(&manifest);
+        let scope = compile_adapter(&manifest)?;
+        if adapters.contains_key(&manifest.adapter.name) {
+            return Err(format!(
+                "duplicate adapter name '{}' (second manifest: {}) — each \
+                 adapter.name keys one snapshot entry; a silent overwrite would \
+                 drop an admitted scope set",
+                manifest.adapter.name,
+                manifest_path.display()
+            ));
+        }
         adapters.insert(manifest.adapter.name, scope);
     }
 
-    Ok(CompiledOutput { adapters })
+    Ok(CompiledOutput {
+        comment: SNAPSHOT_COMMENT.to_string(),
+        adapters,
+    })
 }
 
-fn compile_adapter(m: &Manifest) -> AdapterScope {
-    let file_write_scope: Vec<String> = extract_directory_dirs(&m.directory_conventions)
-        .into_iter()
-        .collect();
+fn compile_adapter(m: &Manifest) -> Result<AdapterScope, String> {
+    let Some(governance) = &m.governance else {
+        return Err(format!(
+            "adapter '{}': manifest has no governance: section — the snapshot \
+             projects the admitted adapter sub-envelope (spec 198 FR-012), and a \
+             manifest without one is not admissible (adapter-manifest schema 1.1.0)",
+            m.adapter.name
+        ));
+    };
+    if governance.file_write_scope.is_empty() {
+        return Err(format!(
+            "adapter '{}': governance.file_write_scope is empty (an adapter that \
+             writes nowhere scaffolds nothing)",
+            m.adapter.name
+        ));
+    }
 
     let mut binaries: BTreeSet<String> = BTreeSet::new();
     for cmd in extract_commands(&m.commands) {
@@ -98,10 +157,12 @@ fn compile_adapter(m: &Manifest) -> AdapterScope {
         }
     }
 
-    AdapterScope {
-        file_write_scope,
+    Ok(AdapterScope {
+        // Verbatim, declaration order preserved: these are the admitted
+        // write globs, not an OAP-derived approximation.
+        file_write_scope: governance.file_write_scope.clone(),
         allowed_commands: binaries.into_iter().collect(),
-    }
+    })
 }
 
 /// Walk `commands:` and collect every executable command string.
@@ -140,45 +201,6 @@ fn extract_commands(value: &serde_yaml::Value) -> Vec<String> {
     out
 }
 
-/// Recursively walk `directory_conventions:` and collect the set of unique
-/// top-level directories (first path component + `/`), skipping values that
-/// are null, empty, dotfiles, or have no `/` separator.
-fn extract_directory_dirs(value: &serde_yaml::Value) -> BTreeSet<String> {
-    let mut dirs = BTreeSet::new();
-    collect_dirs_from(value, &mut dirs);
-    dirs
-}
-
-fn collect_dirs_from(value: &serde_yaml::Value, dirs: &mut BTreeSet<String>) {
-    match value {
-        serde_yaml::Value::String(s) => {
-            let trimmed = s.trim();
-            if trimmed.is_empty() {
-                return;
-            }
-            if !trimmed.contains('/') {
-                return;
-            }
-            let top = trimmed.split('/').next().unwrap_or("");
-            if top.is_empty() || top.starts_with('.') {
-                return;
-            }
-            dirs.insert(format!("{top}/"));
-        }
-        serde_yaml::Value::Mapping(m) => {
-            for (_k, v) in m {
-                collect_dirs_from(v, dirs);
-            }
-        }
-        serde_yaml::Value::Sequence(seq) => {
-            for v in seq {
-                collect_dirs_from(v, dirs);
-            }
-        }
-        _ => {}
-    }
-}
-
 fn first_word(s: &str) -> Option<&str> {
     s.split_whitespace().next()
 }
@@ -196,6 +218,10 @@ pub fn serialize_to_string(output: &CompiledOutput) -> Result<String, String> {
 mod tests {
     use super::*;
 
+    fn manifest(yaml: &str) -> Manifest {
+        serde_yaml::from_str(yaml).unwrap()
+    }
+
     #[test]
     fn first_word_basic() {
         assert_eq!(first_word("npm install"), Some("npm"));
@@ -205,21 +231,64 @@ mod tests {
     }
 
     #[test]
-    fn collect_dirs_scalar_rules() {
-        let mut out = BTreeSet::new();
-        collect_dirs_from(
-            &serde_yaml::Value::String("apps/web/src/routes.ts".into()),
-            &mut out,
+    fn governance_scope_is_projected_verbatim_in_declared_order() {
+        let m = manifest(
+            r#"
+adapter:
+  name: "aim-vue-encore"
+commands:
+  install: "npm install"
+  test: "npm test"
+governance:
+  max_tier: tier2
+  file_write_scope:
+    - "apps/api/**"
+    - "apps/web/**"
+    - "package.json"
+    - ".env.external.example"
+  allowed_commands_from: commands
+"#,
         );
-        assert!(out.contains("apps/"));
+        let scope = compile_adapter(&m).unwrap();
+        assert_eq!(
+            scope.file_write_scope,
+            vec![
+                "apps/api/**",
+                "apps/web/**",
+                "package.json",
+                ".env.external.example"
+            ]
+        );
+        assert_eq!(scope.allowed_commands, vec!["npm"]);
+    }
 
-        out.clear();
-        collect_dirs_from(&serde_yaml::Value::String(".env.example".into()), &mut out);
-        assert!(out.is_empty(), "dotfiles are skipped");
+    #[test]
+    fn manifest_without_governance_fails_closed() {
+        let m = manifest(
+            r#"
+adapter:
+  name: "legacy-adapter"
+commands:
+  install: "npm install"
+"#,
+        );
+        let err = compile_adapter(&m).unwrap_err();
+        assert!(err.contains("no governance: section"), "got: {err}");
+        assert!(err.contains("spec 198 FR-012"), "got: {err}");
+    }
 
-        out.clear();
-        collect_dirs_from(&serde_yaml::Value::String("noslash".into()), &mut out);
-        assert!(out.is_empty(), "values without `/` are skipped");
+    #[test]
+    fn empty_file_write_scope_fails_closed() {
+        let m = manifest(
+            r#"
+adapter:
+  name: "empty-scope"
+governance:
+  file_write_scope: []
+"#,
+        );
+        let err = compile_adapter(&m).unwrap_err();
+        assert!(err.contains("file_write_scope is empty"), "got: {err}");
     }
 
     #[test]

@@ -5,8 +5,17 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-16"
-amended: "2026-05-31"
+amended: "2026-06-11"
 amendment_record: |
+  amended 2026-06-11 (self-amendment, riding the spec-198 FR-012
+  adapter-scopes derivation cutover) — the PRODUCERS rule for
+  `adapter-scopes-compiler` repoints its artifact from the retired
+  `build/adapter-scopes.json` to the real committed snapshot at
+  `platform/services/stagecraft/api/factory/adapter-scopes.json`. The
+  tool no longer writes a `build/` copy; the rule table stays truthful.
+  No workflow or Makefile recipe invokes the pattern today, so no
+  parity verdict changes.
+
   amended by the spec-177 ci-gate fold (2026-05-31) — `ai-pr-review.yml` is
   no longer "not enforcing." It is folded into the orchestrated gate
   (made reusable, dispatched from `ci.yml`, required via `ci-gate.needs`), so
@@ -358,6 +367,15 @@ a pre-PR check, alongside the existing `make ci` step.
 
 
 ## Amendments received
+
+**Amendment 2026-06-11 (record: self-amendment with spec 198 FR-012).**
+The `PRODUCERS` table in `tools/oap/ci-parity-check/src/lib.rs` maps the
+`adapter-scopes-compiler` command pattern to the artifact it writes. The
+spec-198 FR-012 derivation cutover retired the tool's legacy
+`build/adapter-scopes.json` copy (untracked, consumer-less); the rule now
+names the committed snapshot
+`platform/services/stagecraft/api/factory/adapter-scopes.json`. No
+enforcement change: no Makefile recipe or workflow invokes the pattern.
 
 **Amendment 2026-05-24 (record: 178-opc-directory-rename).**
 Spec 178 (opc-directory-rename, 2026-05-24): mechanical path rename
