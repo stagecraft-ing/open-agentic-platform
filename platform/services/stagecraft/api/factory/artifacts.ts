@@ -25,6 +25,10 @@ import {
 } from "../db/schema";
 import { hasOrgPermission } from "../auth/membership";
 import { runOverrideGate } from "./overrideGate";
+import {
+  assembleApprovalSummary,
+  OVERRIDE_VERIFICATION_PREDICATE,
+} from "./approvalSummary";
 import { sha256Hex, type SubstrateRow } from "./substrate";
 
 // ---------------------------------------------------------------------------
@@ -383,6 +387,28 @@ export async function verifyOverrideCore(
       // not a fresh audit event.
       return mapStoredRowToSubstrate(existing);
     }
+    // Spec 201 FR-004 — the verify act records the basis the verifier saw.
+    // Scoped to admitted-factory origins; `user-authored` rows are spec
+    // 111's publication-status trust class with no admitted envelope.
+    // The summary's own consumedOverrides will list THIS artifact as
+    // unverified under a require_verified envelope — that is the recorded
+    // pre-verify state, not a blocker (verify is the resolution path).
+    let summaryHash: string | null = null;
+    if (existing.origin !== "user-authored") {
+      const assembled = await assembleApprovalSummary({
+        orgId: args.orgId,
+        origin: existing.origin,
+        gatePredicate: OVERRIDE_VERIFICATION_PREDICATE,
+        actorId: args.userId,
+      });
+      if (!assembled.ok) {
+        throw APIError.failedPrecondition(
+          `approval summary unavailable for verify-override: ` +
+            `${assembled.reason} (spec 201 FR-004)`,
+        );
+      }
+      summaryHash = assembled.summary.summaryHash;
+    }
     const now = new Date();
     const updatedRows = await tx
       .update(factoryArtifactSubstrate)
@@ -401,7 +427,11 @@ export async function verifyOverrideCore(
       action: "artifact.override_verified",
       actorUserId: args.userId,
       before: { userBodyVerified: false },
-      after: { userBodyVerified: true, contentHash: row.contentHash },
+      after: {
+        userBodyVerified: true,
+        contentHash: row.contentHash,
+        ...(summaryHash !== null ? { summaryHash } : {}),
+      },
     });
     return row;
   });

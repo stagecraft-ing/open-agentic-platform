@@ -76,6 +76,35 @@ describe("spec 198 FR-013 — override trust class (encore test)", () => {
       RETURNING id
     `);
     artifactId = (inserted.rows[0] as { id: string }).id;
+
+    // Spec 201 FR-004 — verifyOverrideCore now assembles an ApprovalSummary
+    // for admitted-factory origins; seed the envelope row + a standing
+    // admitted record so the verify path has a basis to record.
+    const envelopeHash = "2".padStart(64, "0");
+    await db.execute(sql`
+      INSERT INTO factory_artifact_substrate
+        (org_id, origin, path, kind, version, status, upstream_sha, upstream_body, content_hash, conflict_state)
+      VALUES
+        (${ORG_ID}::uuid, ${ORIGIN},
+         'process/governance-envelope.yaml', 'governance-envelope', 1, 'active',
+         ${"b".repeat(40)}, 'schema_version: "1.0.0"',
+         ${envelopeHash}, 'ok')
+    `);
+    await db.execute(sql`
+      DELETE FROM factory_admissions WHERE org_id = ${ORG_ID}::uuid
+    `);
+    const composed = JSON.stringify({
+      process: composedWith(false)!.process,
+      adapters: {},
+      agentDigests: {},
+    });
+    await db.execute(sql`
+      INSERT INTO factory_admissions
+        (org_id, origin, status, envelope_hash, composed, violations, scaffold_resolutions)
+      VALUES
+        (${ORG_ID}::uuid, ${ORIGIN}, 'admitted', ${envelopeHash},
+         ${composed}::jsonb, '[]'::jsonb, '{}'::jsonb)
+    `);
   });
 
   it("refuses a gate-violating override, audits it, leaves the row untouched", async () => {
@@ -132,11 +161,16 @@ describe("spec 198 FR-013 — override trust class (encore test)", () => {
     });
     expect(again.userBodyVerified).toBe(true);
     const verifyAudits = await db.execute(sql`
-      SELECT id FROM factory_artifact_substrate_audit
+      SELECT id, after FROM factory_artifact_substrate_audit
         WHERE artifact_id = ${artifactId}::uuid
           AND action = 'artifact.override_verified'
     `);
     expect(verifyAudits.rows.length).toBe(1);
+    // Spec 201 FR-004 / AC-4 — the audit row records the basis, not just
+    // the click: a recomputable summaryHash rides in the after payload.
+    const after = (verifyAudits.rows[0] as { after: { summaryHash?: string } })
+      .after;
+    expect(after.summaryHash).toMatch(/^[0-9a-f]{64}$/);
 
     // A new revision is unverified again (FR-013 c).
     const second = await applyOverrideCore({

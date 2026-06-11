@@ -23,6 +23,10 @@ export const FACTORY_RUN_SWEPT = "factory.run.swept" as const;
 export const FACTORY_RUN_GRANT_ISSUED = "factory.run.grant_issued" as const;
 export const FACTORY_RUN_GRANT_REFUSED = "factory.run.grant_refused" as const;
 export const FACTORY_RUN_COUNTERSIGNED = "factory.run.countersigned" as const;
+// Spec 201 FR-004 — run-level HITL gate ratification. The metadata carries
+// the `summaryHash` of the ApprovalSummary the approver saw, so the
+// certificate chain can prove the basis, not just the click.
+export const FACTORY_RUN_GATE_APPROVED = "factory.run.gate_approved" as const;
 
 export type FactoryRunAuditAction =
   | typeof FACTORY_RUN_RESERVED
@@ -32,4 +36,5 @@ export type FactoryRunAuditAction =
   | typeof FACTORY_RUN_SWEPT
   | typeof FACTORY_RUN_GRANT_ISSUED
   | typeof FACTORY_RUN_GRANT_REFUSED
-  | typeof FACTORY_RUN_COUNTERSIGNED;
+  | typeof FACTORY_RUN_COUNTERSIGNED
+  | typeof FACTORY_RUN_GATE_APPROVED;

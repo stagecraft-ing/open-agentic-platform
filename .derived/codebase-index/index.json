@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "106139a1f3f9670f2ec52c59e998a631e285f79f53b59b6bf26d06705c720652",
+    "contentHash": "0e47a59b63f6a1811ccf49c2977cc45a2a802ea0c19f68bd2c4baf92e533ec9f",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15633,6 +15633,15 @@
                 "file": "platform/services/stagecraft/api/factory/agentRefWalker.ts"
               },
               {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary-pure.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/api/factory/artifacts.test.ts"
               },
               {
@@ -22083,6 +22092,12 @@
               },
               {
                 "file": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql"
               },
               {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
@@ -31665,6 +31680,12 @@
                 "file": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql"
               },
               {
+                "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql"
+              },
+              {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
               },
               {
@@ -31750,6 +31771,15 @@
               },
               {
                 "file": "platform/services/stagecraft/api/factory/agentRefWalker.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary-pure.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/factory/artifacts.test.ts"
@@ -44081,6 +44111,14 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/db/schema.ts",
             "source": "spec-implements"
           },
@@ -44330,6 +44368,34 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql"
             }
           },
           {
@@ -45683,6 +45749,18 @@
         ],
         "implementingPaths": [
           {
+            "path": "platform/services/stagecraft/api/factory/approvalSummary-pure.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/approvalSummary.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/approvalSummary.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/artifacts.ts",
             "source": "spec-implements"
           },
@@ -45700,6 +45778,48 @@
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary-pure.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/approvalSummary-pure.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/approvalSummary.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+            }
+          },
           {
             "kind": "file",
             "locations": [

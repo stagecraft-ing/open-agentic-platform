@@ -3,7 +3,7 @@ id: "201-anti-blind-approval-ui"
 title: "Anti-Blind-Approval UI (ASI09 human-agent trust surfaces)"
 feature_branch: "feat/201-anti-blind-approval-ui"
 status: draft
-implementation: pending
+implementation: in-progress
 kind: platform
 domain: platform
 created: "2026-06-10"
@@ -25,6 +25,10 @@ code_aliases: ["ANTI_BLIND_APPROVAL_UI"]
 depends_on:
   - "198-factory-governance-envelope"
   - "166-opc-stop-hook-gate-chain"
+establishes:
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummary.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummary-pure.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummary.test.ts }
 refines:
   - aspect: "hitl-approval-presentation"
     unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.factory.runs.$runId.tsx }
@@ -50,7 +54,8 @@ references:
 **Feature Branch**: `201-anti-blind-approval-ui`
 **Created**: 2026-06-10
 **Status**: Draft (follow-on stub filed by spec 198 phase 5, AC-7; refined to
-implementable 2026-06-10)
+implementable 2026-06-10; implementation-contact amendments 2026-06-11 — see
+§Amendment log)
 
 ## Purpose
 
@@ -130,14 +135,21 @@ The shape MUST carry:
 ```typescript
 type ApprovalSummary = {
   /** Stable id for this summary revision — sha256 over the canonical
-   *  JSON serialisation of the fields below. Recorded in the audit row
-   *  (FR-004) so the certificate chain can reproduce the exact basis. */
+   *  JSON serialisation of the hashed field set: every field below except
+   *  `summaryHash` itself and `assembledAt` (see assembly rule 3 for why
+   *  the timestamp is excluded). Recorded in the audit row (FR-004) so the
+   *  certificate chain can reproduce the exact basis. */
   summaryHash: string;
 
   /** The gate predicate being satisfied, as declared in the admitted
    *  governance envelope (spec 198 FR-008 / governance-envelope.schema.yaml
    *  gates[].predicate). Examples: "approval-before-build-spec-freeze",
-   *  "plain-language-summaries". Never a model-generated label. */
+   *  "plain-language-summaries". Never a model-generated label. Validated
+   *  against the admitted envelope: the value MUST be one of the envelope's
+   *  gates[].predicate ids, or the reserved id "overrides.require_verified"
+   *  used by the override-verify surface — the obligation that surface
+   *  ratifies is declared by the envelope's overrides: section rather than
+   *  gates[] (amendment 2026-06-11). */
   gatePredicate: string;
 
   /** Human-readable statement of scope: which files or artifact kinds
@@ -189,13 +201,23 @@ The assembly function (`assembleApprovalSummary`) MUST:
    adapter sub-envelope `file_write_scope`, `emits[].kind`,
    `overrides.require_verified`) — all from `factoryArtifactSubstrate`
    rows with `kind = "governance-envelope"` or `kind = "adapter-manifest"`.
-2. Enumerate consumed overrides: substrate rows in the org whose
-   `userBody IS NOT NULL` and whose `path` falls within the admitted
-   adapter's `file_write_scope`.
-3. Compute `summaryHash` as `sha256Hex(JSON.stringify(summary, null, 0))`
-   over the serialised field set (excluding `summaryHash` itself) —
-   matching the `sha256Hex` helper already in
-   `platform/services/stagecraft/api/factory/substrate.ts`.
+2. Enumerate consumed overrides: substrate rows in the org for the
+   admitted origin with `status = 'active'` and `userBody IS NOT NULL`,
+   ordered by path — the same enumeration spec 198's
+   `collectConsumedOverrides` performs (FR-013 c parity). *(Amendment
+   2026-06-11: the earlier draft filtered by the adapter's
+   `file_write_scope`; that filter is wrong at the substrate layer —
+   `file_write_scope` globs address scaffold-output paths, not substrate
+   content paths, and would enumerate nothing.)*
+3. Compute `summaryHash` as `sha256Hex(JSON.stringify(hashedFields))`
+   over the serialised field set excluding `summaryHash` itself **and
+   `assembledAt`** — matching the `sha256Hex` helper already in
+   `platform/services/stagecraft/api/factory/substrate.ts`. *(Amendment
+   2026-06-11: `assembledAt` must be outside the hash — the FR-003 (b)
+   replay guard compares a freshly-assembled hash against the
+   client-presented one across page-load boundaries, and AC-4 requires
+   recomputing the hash from DB state alone; a clock-dependent field in
+   the hashed set would defeat both.)*
 4. Return `{ ok: false, reason: string }` if any required field cannot be
    assembled from recorded facts (admitted envelope not present, revoked,
    or substrate row unresolvable). The caller MUST refuse to render an
@@ -278,6 +300,22 @@ the approval; the result's `summaryHash` is the value recorded. If
 `assembleApprovalSummary` returns `ok: false`, `verifyOverrideCore` MUST
 throw `APIError.failedPrecondition` with the reason — making the
 server-side enforcement match the UI's fail-closed rendering.
+
+This requirement is scoped to rows whose `origin` is an admitted-factory
+origin. Rows with `origin = 'user-authored'` carry spec 111's
+publication-status trust class and have no admitted envelope (the boundary
+`admission.ts` documents for `collectConsumedOverrides`); for that class
+`verifyOverrideCore` preserves its existing audit shape, with no
+`summaryHash` (amendment 2026-06-11).
+
+Verifying an override is the *resolution path* for an unverified override,
+not a gate ratification: `assembleApprovalSummary`'s `consumedOverrides`
+will, by construction, contain the artifact being verified with
+`requireVerifiedSatisfied: false` under a `require_verified: true`
+envelope. That entry does not block the verify action (it would deadlock
+the first verification); the FR-002 withhold-on-unverified rule applies to
+*approve* controls, not to the verify control. The recorded summary
+captures the pre-verify state — exactly the basis the verifier saw.
 
 **For run-level HITL gate approvals:** A new audit action constant
 `FACTORY_RUN_GATE_APPROVED = "factory.run.gate_approved"` MUST be added
@@ -432,3 +470,37 @@ by spec 198 phase 5 bundles. The run-level HITL gate surface (phase 3) shares
 spec 198's run-grant precondition only for the envelope-predicate lookup; the
 `assembleApprovalSummary` function reads the `governance-envelope` substrate
 row directly and does not depend on grant machinery being live.
+
+## Amendment log
+
+**2026-06-11 (implementation contact, phase 1).** Four precision
+amendments made before writing code, none changing the spec's intent:
+
+1. **FR-001 assembly rule 2** — consumed-override enumeration aligned to
+   spec 198 FR-013 c semantics (`collectConsumedOverrides` parity:
+   origin-scoped, `status='active'`, `userBody IS NOT NULL`). The draft's
+   `file_write_scope` filter addressed the wrong path namespace
+   (scaffold-output globs, not substrate content paths) and would have
+   enumerated nothing.
+2. **FR-001 assembly rule 3** — `assembledAt` excluded from the hashed
+   field set alongside `summaryHash`. Required for the FR-003 (b) replay
+   guard (hash comparison across page loads) and AC-4 recomputability
+   from DB state.
+3. **FR-001 `gatePredicate`** — validation vocabulary fixed as the
+   admitted envelope's `gates[].predicate` ids plus the reserved
+   `"overrides.require_verified"` for the override-verify surface.
+4. **FR-004** — scoped to admitted-factory origins; `user-authored` rows
+   are spec 111's publication-status trust class with no envelope, so
+   their verify path keeps its existing audit shape. Also clarified that
+   verify-override is the resolution path for unverified overrides, not a
+   gate ratification — the FR-002 withhold rule does not apply to it.
+
+5. **File layout** — the contract is split as
+   `approvalSummary-pure.ts` (type + assembly over fetched facts + hash
+   rules; Encore-runtime-free so unit tests run under bare vitest) and
+   `approvalSummary.ts` (DB wrapper; re-exports the contract). Same
+   pattern as `signing-pure.ts` / `patCrypto-pure.ts`.
+
+Frontmatter changes in the same edit: `establishes:` claims the new
+`approvalSummary.ts` + `approvalSummary-pure.ts`; `implementation:`
+flipped to `in-progress` with phase 1 starting.
