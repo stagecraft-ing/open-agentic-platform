@@ -506,6 +506,21 @@ Two consequences recorded honestly:
    they enumerate the available extension points so future
    hook additions are diff-visible against a named slot.
 
+### 2026-06-10 (third edit) — SessionStart matcher widened to compaction
+
+The session-freshness hook's matcher grows from
+`startup|resume|clear` to `startup|resume|clear|compact`.
+Direction judgment per AC-7: **automation coverage broadened;
+no guard surface changed**. Rationale: compaction summarizes
+the session context, so the freshness line injected at session
+start can be summarized away while registry/index state drifts
+mid-session. SessionStart is exempt from the stale-replay
+behavior of mid-session hook output on resume — it re-runs on
+every firing — and the `compact` matcher extends that same
+re-injection guarantee to the post-compaction context window.
+The hook command body, the permission arrays, and every other
+hook event are byte-identical to the second-edit state.
+
 ## Follow-up tooling (not in this spec)
 
 Two pieces of tooling are out of scope but worth naming so
