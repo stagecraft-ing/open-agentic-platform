@@ -295,7 +295,7 @@ const PRODUCERS: &[ProducerRule] = &[
     },
     ProducerRule {
         pattern: "adapter-scopes-compiler",
-        artifact: "build/adapter-scopes.json",
+        artifact: "platform/services/stagecraft/api/factory/adapter-scopes.json",
     },
 ];
 

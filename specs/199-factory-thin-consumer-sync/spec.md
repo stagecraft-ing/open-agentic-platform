@@ -329,6 +329,39 @@ org-scoped id is org configuration and never enters the open contract (spec
 
 ## Implementation log
 
+- **2026-06-11 — first real (and first sealed) ADMIT; runtime-AC evidence.**
+  After the FR-014 signing cutover (spec 198 implementation log, same date),
+  an org re-sync produced a sealed `admitted` record (0 violations) for
+  `GovAlta-Pronghorn/factory-encore` at sha `cc1139f…`. Evidence against the
+  runtime ACs: **AC-1** — the factory origin's substrate carries
+  `governance-envelope` (1), `process-stage` (8), `adapter-manifest` (1),
+  agents (14 digests in the seal), all served by kind; no synthetic
+  projection. **AC-4** — origins are `legacy-mixed` / `legacy-template-mixed`
+  (source-derived); the stale post-rename source row
+  `aim-vue-node → GovAlta-Pronghorn/template` was deleted (audited
+  `factory.source.deleted`), leaving exactly the two configured sources.
+  **AC-7** — the admission's `scaffold_resolutions` binds `aim-vue-encore`
+  to `legacy-template-mixed` / `GovAlta-Pronghorn/template-encore @ main`,
+  resolved at admission; no flat `scaffold_source_id` involved. **AC-5** —
+  a sealed admission now exists for the serve/bind gate to honour
+  (unevaluated/unsealed refusal verified during the cutover window).
+  **AC-2/AC-3** — operator-verified in the deployed UI (2026-06-11): the
+  Adapters tab serves the parsed `aim-vue-encore` manifest at source sha
+  `cc1139f…` (200, no synthetic adapter), the Create dropdown lists
+  `aim-vue-encore @ 1.0.0`, and an end-to-end Create succeeded
+  (test-project-01, commit #1 with seeded pipeline-state). **FR-007
+  partial**: the interim hand-regenerated `adapter-scopes.json` is replaced
+  by the spec-198 FR-012 derived projection (`adapter-scopes-compiler`,
+  spec 105 amended 2026-06-11; re-derivation byte-identical) — but the
+  same UI verification surfaced the remaining FR-007 hygiene item:
+  `moduleCatalog.ts` still mirrors the retired template-distributor
+  catalog (10 entries incl. express-session-era `session-store-*` and
+  module-shaped `auth-*` ids) while template-encore's real `modules/`
+  catalog has 5 (`api-gateway`, `data-postgres`, `data-redis`,
+  `security-core`, `user-management`; auth is the `AUTH_DRIVER` profile
+  axis, not a module). A Create selecting a phantom module would fail at
+  `add-module.ts`. `implementation:` stays `in-progress` until the
+  catalog cutover lands.
 - **2026-06-10 — AC-6 hygiene closure.** The live legacy remnants the
   AC-6 negative grep still caught after the main cutover PR (#313) are
   retired: `translator.ts::selectAdapter` no longer fabricates

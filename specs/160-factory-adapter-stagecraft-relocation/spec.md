@@ -238,6 +238,19 @@ synthetic recreation of manifests for adapters that never had them.
   `collect_input_files` list that names the legacy paths today;
   the load-bearing fossil this spec excises.
 
+## Amendments received
+
+**Amendment 2026-06-11 (record: spec 198 FR-012 derivation cutover).**
+The stagecraft-resident snapshot this spec relocated
+(`platform/services/stagecraft/api/factory/adapter-scopes.json`) is no
+longer hand-regenerated: its content is now the derived projection of the
+admitted adapter sub-envelope (manifest `governance:` section), produced
+by `adapter-scopes-compiler` (spec 105, amended same date) from the
+factory source checkout. First derivation ran against the sealed
+`aim-vue-encore` admission (manifest sha `57f43e1a…`). This spec's
+residence and indexer-hashing posture are unchanged — only the snapshot's
+provenance upgrades from authored to materialised.
+
 ## 9. Amendment to spec 101 (codebase-index-mvp)
 
 Spec 101 §2.2 *Layer 3 — Factory Adapter Inventory* and §FR-07
