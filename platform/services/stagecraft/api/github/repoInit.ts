@@ -139,12 +139,11 @@ export async function createGitHubRepo(
 // FR-008: Adapter template seeding
 // ---------------------------------------------------------------------------
 
-const VALID_ADAPTERS = new Set([
-  "aim-vue-node",
-  "encore-react",
-  "next-prisma",
-  "rust-axum",
-]);
+// The owned factory self-declares its adapter identity in its manifest
+// (spec 199 FR-002); the retired example adapters (encore-react,
+// next-prisma, rust-axum) and the legacy aim-vue-node name were removed
+// upstream (spec 199 FR-007).
+const VALID_ADAPTERS = new Set(["aim-vue-encore"]);
 
 /**
  * Seed the repo with a minimal adapter README via the GitHub Contents API.

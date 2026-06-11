@@ -420,6 +420,55 @@ export async function verifyFactoryArtifactOverride(
   ) as Promise<ArtifactDetail>;
 }
 
+// Spec 201 FR-001/FR-002 — the fact-grounded approval basis the verify
+// surface renders. Wire mirror of `api/factory/approvalSummary.ts`.
+
+export type ApprovalProvenanceLink = {
+  artifactId: string;
+  contentHash: string;
+  kind: string;
+  path: string;
+};
+
+export type ApprovalConsumedOverride = {
+  artifactId: string;
+  contentHash: string;
+  path: string;
+  verifiedBy: string | null;
+  verifiedAt: string | null;
+  requireVerifiedSatisfied: boolean;
+};
+
+export type ApprovalSummaryWire = {
+  summaryHash: string;
+  gatePredicate: string;
+  blastRadiusStatement: string;
+  provenanceLinks: ApprovalProvenanceLink[];
+  consumedOverrides: ApprovalConsumedOverride[];
+  assembledAt: string;
+  actorId: string;
+};
+
+/** Flat mirror of the Encore wire shape: `applicable: false` → spec 111
+ * user-authored trust class (legacy verify, no basis); otherwise exactly
+ * one of `summary` (ok) or `reason` (refused) is present. */
+export type ArtifactApprovalSummaryResponse = {
+  applicable: boolean;
+  ok?: boolean;
+  reason?: string;
+  summary?: ApprovalSummaryWire;
+};
+
+export async function getFactoryArtifactApprovalSummary(
+  request: Request,
+  id: string,
+) {
+  return apiFetch(
+    request,
+    `/api/factory/artifacts/${encodeURIComponent(id)}/approval-summary`,
+  ) as Promise<ArtifactApprovalSummaryResponse>;
+}
+
 export type ArtifactConflictSummary = {
   id: string;
   origin: string;
@@ -573,4 +622,51 @@ export async function getFactoryRun(
     request,
     `/api/factory/runs/${encodeURIComponent(id)}`
   ) as Promise<FactoryRunDetail>;
+}
+
+// Spec 201 phase 3 — run-level HITL gate (FR-002/FR-003/FR-004 run path).
+
+export type RunGateApprovalWire = {
+  stageId: string;
+  gatePredicate: string;
+  summaryHash: string;
+  approvedBy: string;
+  approvedAt: string;
+};
+
+export type RunApprovalContextWire = {
+  requiredStageIds: string[];
+  approvals: RunGateApprovalWire[];
+  ok: boolean;
+  reason?: string;
+  gatePredicate?: string;
+  summary?: ApprovalSummaryWire;
+  blockingOverridePaths?: string[];
+};
+
+export async function getFactoryRunApprovalContext(
+  request: Request,
+  runId: string,
+) {
+  return apiFetch(
+    request,
+    `/api/factory/runs/${encodeURIComponent(runId)}/approval-context`,
+  ) as Promise<RunApprovalContextWire>;
+}
+
+export async function approveFactoryRunGate(
+  request: Request,
+  runId: string,
+  stageId: string,
+  summaryHash: string,
+) {
+  return apiFetch(
+    request,
+    `/api/factory/runs/${encodeURIComponent(runId)}/gates/${encodeURIComponent(stageId)}/approve`,
+    {
+      method: "POST",
+      body: JSON.stringify({ summaryHash }),
+      headers: { "content-type": "application/json" },
+    },
+  ) as Promise<{ approval: RunGateApprovalWire; created: boolean }>;
 }

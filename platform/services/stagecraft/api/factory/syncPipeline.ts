@@ -189,18 +189,9 @@ function countByLegacyKind(substrate: SubstrateTranslation): {
   for (const row of substrate.rows) {
     if (row.kind === "contract-schema") contracts += 1;
   }
-  // Adapters: the synthetic aim-vue-node (1 if the template upstream
-  // carries a pipeline-orchestrator) PLUS one per OAP-native
-  // `adapter-manifest` substrate row.
-  if (
-    substrate.rows.some(
-      (r) =>
-        r.origin === substrate.templateOriginId &&
-        r.kind === "pipeline-orchestrator",
-    )
-  ) {
-    adapters += 1;
-  }
+  // Adapters: one per `adapter-manifest` substrate row. The synthetic
+  // template-orchestrator adapter is retired (spec 199 FR-002) —
+  // adapter identity comes only from manifests.
   for (const row of substrate.rows) {
     if (row.kind === "adapter-manifest") adapters += 1;
   }

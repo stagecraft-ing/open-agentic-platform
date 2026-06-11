@@ -3,9 +3,7 @@
 //
 // Lives in its own module (separate from `scaffoldReadiness.ts`) so the
 // pure-function tests can run under bare vitest without pulling in
-// `encore.dev/storage/sqldb` (the DB collaborator chain). Mirrors the
-// pattern `oapNativeSanitise.ts` uses to isolate sanitisers from the
-// encore runtime.
+// `encore.dev/storage/sqldb` (the DB collaborator chain).
 
 export type ScaffoldReadinessBlocker =
   | "warming-up"

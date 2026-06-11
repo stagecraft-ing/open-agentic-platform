@@ -98,11 +98,14 @@ Project creation and import live under `api/projects/`:
 were dropped by migration 34 (Phase 4 narrow); the spec 111/123
 `agent_catalog` / `agent_catalog_audit` / `project_agent_bindings`
 tables and the four legacy `factory_upstreams` per-side columns were
-dropped by migration 35 (Phase 4b). All reads project from
+dropped by migration 35 (Phase 4b). All reads come from
 `factory_artifact_substrate` (`origin='user-authored', kind='agent'` for
-spec 111/123 content; spec 108 wire shape via
+spec 111/123 content). The spec 108 legacy projection
+(`projection.ts::projectSubstrateToLegacy`) was retired by spec 199
+(FR-005): substrate rows are served verbatim by kind via
 `api/factory/substrateBrowser.ts::loadSubstrateForOrg` +
-`api/factory/projection.ts::projectSubstrateToLegacy`).
+`api/factory/adapterView.ts`, with adapter identity coming from the
+parsed manifest (`aim-vue-encore`).
 `api/agents/{catalog,bindings}.ts` and `api/factory/runAgentRefs.ts`
 read+write the substrate directly. The OPC desktop's factory_root
 materialises through the substrate-aware `VirtualRoot`
@@ -115,7 +118,7 @@ materialises through the substrate-aware `VirtualRoot`
 - `cloneAvailability.ts` (spec 113) — `GET /api/projects/clone/check-availability`. Read-only, idempotent verdict for the Clone dialog's debounced field checks.
 - `scaffold/` — the absorbed scaffold subflow:
   - `templateCache.ts` — clones the upstream template into `${STAGECRAFT_WORKSPACE_DIR}/_template-cache`, runs `npm install`, persists upstream SHA in `.template-commit`. Materialises `_prebuilt-{minimal,public,internal,dual}` via `tsx scripts/setup-{app,dual-app}.ts`, persists prebuild SHA in `.prebuilt-commit`. Module-scoped `initStatus` drives the readiness endpoint.
-  - `scheduler.ts` — Encore `CronJob("scaffold-warmup-refresher", every: "30m")` plus a fire-and-forget warmup at module load. Resolves `(scaffoldRepoUrl, scaffoldRef, PAT)` from the first eligible org. Spec 140 §2.2 cutover (2026-05-06): the resolver reads `manifest.scaffold_source_id` off each projected adapter and looks up `factory_upstreams (org_id, source_id)` for the canonical `(repo_url, ref)`; the legacy `template_remote` field is gone end-to-end. `WarmupResolution` discriminator: `"no-adapters" | "no-scaffold-source-id" | "no-scaffold-source-resolved" | "no-pat" | "ok"`.
+  - `scheduler.ts` — Encore `CronJob("scaffold-warmup-refresher", every: "30m")` plus a fire-and-forget warmup at module load. Resolves `(scaffoldRepoUrl, scaffoldRef, PAT)` from the first eligible org. Spec 199 FR-009 cutover: the resolver reads each org's latest admission record, where the manifest's org-agnostic `scaffold.source.remote` was resolved against `factory_upstreams` at admission time; the manifest-injected `scaffold_source_id` (spec 140 §2.2) and the older `template_remote` field are both retired. `WarmupResolution` discriminator: `"no-adapters" | "no-scaffold-source-id" | "no-scaffold-source-resolved" | "no-pat" | "ok"`.
   - `perRequestScaffold.ts` — copies the chosen prebuilt tree into a per-request temp dir, runs `tsx add-module.ts <id>` for each user-selected extra, refreshes the lockfile via `npm install --package-lock-only`, writes `.factory/pipeline-state.json`.
   - `gitInitAndPush.ts` — `git init -b <branch>` → `add` → `commit` → token-injected push, then `git remote set-url origin <bare>` so the token does not survive in `.git/config`. Subprocess output is token-redacted before any error surface.
   - `githubRepoCreate.ts` — wraps `createGitHubRepo` with `autoInit: false` so commit #1 is the scaffold tree, not an auto-generated README.

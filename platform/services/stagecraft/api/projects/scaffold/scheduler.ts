@@ -9,15 +9,15 @@
 //      every 30 minutes. Replaces template-distributor's setInterval.
 //
 // Multi-tenancy: stagecraft today resolves a single warmup context (the
-// first org with both an adapter declaring `scaffold_source_id` resolving
-// to a `factory_upstreams` row and a configured upstream PAT). Cache
-// contents are public template files + npm node_modules — neither
-// org-sensitive — so a shared cache is safe for MVP.
+// first org whose latest admission record carries a resolved scaffold
+// source and which has a configured upstream PAT). Cache contents are
+// public template files + npm node_modules — neither org-sensitive — so
+// a shared cache is safe for MVP.
 //
-// Spec 140 §2.2 — the warmup resolver reads `manifest.scaffold_source_id`
-// off each projected adapter and looks up `factory_upstreams (org_id,
-// source_id)` for the actual `(repo_url, ref)`. URLs no longer ride on
-// the manifest itself.
+// Spec 199 FR-009 / spec 198 D-5 — the warmup resolver reads each org's
+// admission record, where `scaffold.source.remote` from the adapter
+// manifest was resolved against `factory_upstreams` at admission time.
+// The manifest-injected `scaffold_source_id` (spec 140 §2.2) is retired.
 
 import { api } from "encore.dev/api";
 import { CronJob } from "encore.dev/cron";
@@ -58,9 +58,9 @@ function refToBranch(ref: string): string {
 }
 
 /**
- * Spec 140 §2.2 — read `manifest.scaffold_source_id` and translate it
- * into a `factory_upstreams` row for the same org. Exported so the
- * scaffoldReadiness endpoint and tests can share the resolver.
+ * Org-scoped `factory_upstreams` lookup by source id. The admission-time
+ * resolution (spec 199 FR-009) and the scaffoldReadiness endpoint share
+ * this helper; tests drive it directly.
  */
 export async function resolveScaffoldUpstream(
   orgId: string,

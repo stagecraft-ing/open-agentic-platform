@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:9e2529c1c729febbc6e9e7e70166e2a6e7979bc886621b5f8dbbed18f85642e3",
+  "graph_fingerprint": "sha256:3bc6d67a8e0f41bb684c12909e8ad975b150df7fe1e5ad7cfbefd3542696f8c1",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3799,7 +3799,7 @@
       "title": "Anti-Blind-Approval UI (ASI09 human-agent trust surfaces)",
       "spec_path": "specs/201-anti-blind-approval-ui/spec.md",
       "status": "draft",
-      "implementation": "pending",
+      "implementation": "in-progress",
       "governance": "",
       "owner": "",
       "group": "",

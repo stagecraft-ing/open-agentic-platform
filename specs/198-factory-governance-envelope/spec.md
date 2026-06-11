@@ -77,6 +77,9 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideTrustClass.test.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/45_user_body_verified.down.sql }
+  # FR-013 audit-action correction (discovered during spec 201 phase 1):
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql }
 extends:
   - spec: "074-factory-ingestion"
     nature: additive
@@ -463,6 +466,18 @@ machinery; a model may detect, **only rules may block** (cross-cutting
 principle 4 — this is how "rules + AI" from ASI06 m2 composes with
 untrusted-model-output). Phasing: (a)+(b) land with the admission gate,
 (c) with the envelope schema, (d) as the named follow-on spec.
+
+> **Correction (2026-06-11, discovered during spec 201 phase 1).** The
+> phase 5 implementation of (a) and (c) emitted the audit actions
+> `artifact.override_gate_rejected` and `artifact.override_verified`, but
+> the migration-32 check constraint
+> `factory_artifact_substrate_audit_action_chk` was never widened to admit
+> them — every gate-refusal and verify-override audit INSERT violated it
+> on a real database. The covering tests (`overrideTrustClass.test.ts`)
+> are encore-test-gated and outside the CI vitest run, so the violation
+> shipped invisibly. Migration 46 widens the constraint to the full
+> `ArtifactAuditAction` vocabulary. The encore-test CI gap is a separate
+> process finding, tracked outside this spec.
 
 ### FR-014 — Signing authority: stagecraft seals, OPC is keyless (resolves OQ-4; ASI10 m6)
 

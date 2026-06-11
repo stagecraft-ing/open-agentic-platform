@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "c498edcf4857732ded842ee26355acda005e19f1a5bf652582d237abd689bce8",
+    "contentHash": "6061f5cfa2e8a5c56b5789af6f91cc951ac31e9cdd4a04575fd25a489ac8a420",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15633,6 +15633,18 @@
                 "file": "platform/services/stagecraft/api/factory/agentRefWalker.ts"
               },
               {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary-pure.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/api/factory/artifacts.test.ts"
               },
               {
@@ -22083,6 +22095,12 @@
               },
               {
                 "file": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql"
               },
               {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
@@ -31665,6 +31683,12 @@
                 "file": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql"
               },
               {
+                "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql"
+              },
+              {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
               },
               {
@@ -31750,6 +31774,18 @@
               },
               {
                 "file": "platform/services/stagecraft/api/factory/agentRefWalker.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary-pure.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/factory/artifacts.test.ts"
@@ -32506,6 +32542,12 @@
               },
               {
                 "file": "platform/services/stagecraft/web/app/lib/agents-api.server.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.ts"
               },
               {
                 "file": "platform/services/stagecraft/web/app/lib/auth-api.server.ts"
@@ -44081,6 +44123,14 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/db/schema.ts",
             "source": "spec-implements"
           },
@@ -44330,6 +44380,34 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql"
             }
           },
           {
@@ -45683,6 +45761,50 @@
         ],
         "implementingPaths": [
           {
+            "path": "platform/services/stagecraft/api/factory/approvalSummary-pure.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/approvalSummary.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/approvalSummary.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/artifacts.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/auditActions.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/factory.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/vite.config.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/factory-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx",
             "source": "spec-implements"
           },
@@ -45692,6 +45814,90 @@
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary-pure.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/approvalSummary-pure.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/approvalSummary.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/approval-basis-helpers.ts"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -45710,6 +45916,34 @@
             "kind": "file",
             "locations": [
               {
+                "file": "platform/services/stagecraft/api/db/schema.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/schema.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideGate.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "standards/schemas/factory/governance-envelope.schema.yaml"
               }
             ],
@@ -45718,6 +45952,76 @@
             "unit": {
               "kind": "file",
               "path": "standards/schemas/factory/governance-envelope.schema.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/artifacts.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/artifacts.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/auditActions.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/factory.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/factory.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/vite.config.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/vite.config.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/factory-api.server.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/factory-api.server.ts"
             }
           },
           {
