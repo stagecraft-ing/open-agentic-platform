@@ -3,7 +3,13 @@ id: "197-factory-contract-open-standard-extensions"
 title: "Open-Standard Factory Contract Extensions (Build Spec 1.1.0)"
 feature_branch: "feat/197-factory-contract-open-standard-extensions"
 status: approved
-implementation: in-progress
+implementation: complete # AC-1..AC-7 landed via PR #312 (squash 81566933, 2026-06-09) with Rust+YAML+tests, commands.seed typed, SCHEMA_VERSION consts, provisioning_model REQUIRED. AC-8 closed 2026-06-10: factory-encore origin/main @ cc1139f verified directly — contract/schemas/build-spec.schema.yaml declares schema_version "1.1.0" with field definitions identical to standards/schemas/factory/build-spec.schema.yaml (provisioning_model required, enum [admin-only, open-authenticated]; implementation_status optional, enum [live, stub, deferred]). The POC leg collapsed into the factory-encore leg: factory-encore-poc was absorbed into factory-encore main by the 2026-06-09 handoff (#1 three-layer shape), so one verified surface covers both. See §AC-8 verification note.
+amended: "2026-06-10"
+amendment_record: |
+  self-amended (2026-06-10) — AC-8 verification recorded; cross-repo
+  section updated for the POC absorption; the richer-command-set timing
+  claim corrected (the adapter rename landed via spec 199 / PR #313
+  WITHOUT the typed-command promotion, which remains future work).
 kind: platform
 domain: platform
 created: "2026-06-08"
@@ -189,10 +195,14 @@ the untyped `#[serde(flatten)] extra` map and is invisible to the engine. Add
 
 The reference adapter (`aim-vue-encore`) declares a richer command set
 (`gen_client`, `generate_keys`, `migrate`, `graph_check`, `pre_verify`,
-`post_verify`) that is **not yet** in OAP's canonical manifest schema. Promoting
-those to typed fields on both surfaces lands with the adapter-rename PR — when
-those commands become live in OAP's substrate — not here. This keeps the
-drift fix minimal and accurate to what OAP's schema declares today.
+`post_verify`) that is **not yet** in OAP's canonical manifest schema —
+explicitly out of this spec's scope. *(Amended 2026-06-10: the original
+staging said the promotion "lands with the adapter-rename PR"; the rename
+landed via spec 199 / PR #313 without it — the manifest is served verbatim
+under the thin consumer and unknown commands ride `extra` harmlessly. The
+typed promotion remains future work, owed when engine-side consumption of
+those commands becomes load-bearing.)* This keeps the drift fix minimal
+and accurate to what OAP's schema declares today.
 
 Add named `SCHEMA_VERSION` consts for AdapterManifest / BuildSpec /
 PipelineState (the version literal lives only in fixtures today), following the
@@ -223,6 +233,12 @@ the other two remain `"1.0.0"` (untouched).
 - **AC-8**: The POC and factory-encore Build Spec schemas declare
   `schema_version: "1.1.0"` and carry the identical field definitions to this
   spec (cross-repo conformance; verified when those repos land).
+  *(Verified 2026-06-10 against factory-encore `origin/main` @ `cc1139f`:
+  `schema_version: "1.1.0"`, `provisioning_model` required with the
+  identical enum, `implementation_status` optional with the identical
+  enum. The POC surface no longer exists separately — factory-encore main
+  absorbed it via the 2026-06-09 handoff — so the two legs collapsed into
+  the one verified surface.)*
 
 ## Cross-repo coordination
 
@@ -236,6 +252,11 @@ mirror it:
    working in that repo, briefed from this spec.)
 3. **factory-encore** — inherits the POC shape during its refactor (deferred
    until the POC is final).
+
+*(Resolved 2026-06-10: surface 3 happened — the 2026-06-09 Windows handoff
+mirrored the finalized POC into factory-encore main, after which the POC
+ceased to exist as a separate checkout. Surfaces 2 and 3 are now the same
+repo, verified conformant under AC-8.)*
 
 The adapter authorization *enforcement* (zero-role denial, case-insensitive
 email lookup, server-side nav construction) is adapter-layer content keyed off
