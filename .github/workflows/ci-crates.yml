@@ -46,23 +46,15 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
       # FR-05a (spec 135, amendment 2026-06-11): the workspace debug build
       # plus the two release fixture-producer builds exhausted the
       # ubuntu-latest image's free disk margin (merge_group run 27355231139,
-      # ENOSPC mid-build). Reclaim ~25 GB by deleting preinstalled
-      # toolchains this job never uses. Hosted runners only: the
-      # self-hosted enabler above must never delete paths on an operator
-      # machine. Plain shell rather than a third-party action: flat
-      # supply-chain surface, no new pinned ref under the spec 158 lint.
-      - name: Free disk space (hosted runners only)
-        if: runner.environment == 'github-hosted'
-        run: |
-          df -h /
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
-          sudo docker image prune --all --force >/dev/null || true
-          df -h /
-
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      # ENOSPC mid-build). The local composite reclaims ~25 GB on hosted
+      # runners only (guard inside the action); see
+      # .github/actions/free-disk-space/action.yml.
+      - uses: ./.github/actions/free-disk-space
 
       # The spec-152 section-aware verification tests under
       # tools/spec-spine/spec-code-coupling-check/tests/ read the live

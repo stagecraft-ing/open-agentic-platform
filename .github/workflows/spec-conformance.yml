@@ -28,6 +28,13 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
+      # Disk headroom (spec 135 FR-05a, amendment 2026-06-11): this job
+      # stacks six per-tool release target dirs in one workspace, and its
+      # merge_group instance ENOSPC'd on a hosted runner (run 27371047814,
+      # rustc LLVM "IO failure on output stream"). The local composite
+      # reclaims ~25 GB on hosted runners only (guard inside the action).
+      - uses: ./.github/actions/free-disk-space
+
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # pinned for rust-toolchain.toml lockstep
         with:
@@ -61,18 +68,25 @@ jobs:
           ./tools/spec-spine/registry-consumer/target/release/registry-consumer list | head -n 5
           cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml
 
+      # `--all` (= --workspace) was dropped from these ten invocations on
+      # 2026-06-11: it made each one build the ENTIRE root workspace's
+      # test targets into the shared target/ directory, which is the disk
+      # profile that ENOSPC'd merge_group run 27371047814. The contract
+      # filters only ever matched registry-consumer tests (verified: no
+      # fn or mod name elsewhere in the repo contains these substrings),
+      # so the package-scoped form runs the identical test set.
       - name: Registry consumer contract subsets (governance gate)
         run: |
-          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all readme_
-          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all error_contract_
-          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all shape_contract_
-          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all help_contract_
-          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all arg_contract_
-          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all version_contract_
-          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all default_path_contract_
-          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all allow_invalid_contract_
-          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all sorting_contract_
-          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all channel_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml readme_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml error_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml shape_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml help_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml arg_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml version_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml default_path_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml allow_invalid_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml sorting_contract_
+          cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml channel_contract_
 
       - name: Build spec-lint (Feature 006)
         run: cargo build --release --manifest-path tools/spec-spine/spec-lint/Cargo.toml --target-dir tools/spec-spine/spec-lint/target
