@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "6eea35656becee3cf5e306ccf9c68390dfef42467b7e782b7ccd8a6dea16c4b6",
+    "contentHash": "1389d32c0e9fe8d1b669d209ee9faa1cf14b23b5c666115ffc71299083393e72",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -47301,6 +47301,117 @@
           }
         ],
         "specId": "210-build-spec-agentic-posture",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "104-makefile-ci-parity-contract",
+          "135-fast-ci-as-default",
+          "177-ci-orchestrator-pr-gate",
+          "198-factory-governance-envelope",
+          "201-anti-blind-approval-ui"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/src/lib.rs",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/src/lib.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-stagecraft.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-stagecraft.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/owasp-agentic-top-10-2026.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/owasp-agentic-top-10-2026.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/vite.config.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/vite.config.ts"
+            }
+          }
+        ],
+        "specId": "211-encore-test-ci-job",
         "specStatus": "draft"
       }
     ],
