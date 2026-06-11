@@ -16,7 +16,11 @@ distributed = ["dep:hiqlite"]
 provider-registry = { path = "../provider-registry", default-features = false, features = ["anthropic", "openai"] }
 standards-loader = { path = "../standards-loader" }
 async-trait = "0.1"
-rusqlite = { version = "0.39", features = ["bundled"], optional = true }
+# Range, not a plain bump: hiqlite 0.13 (root workspace, via axiomregent) pins
+# rusqlite ^0.39 and libsqlite3-sys's `links = "sqlite3"` forbids two versions in
+# one graph, so root resolves this to 0.39; the isolated opc src-tauri workspace
+# (no hiqlite) resolves it to 0.40. Collapse to "0.40" once hiqlite takes 0.40.
+rusqlite = { version = ">=0.39, <0.41", features = ["bundled"], optional = true }
 hiqlite = { version = "~0.13", default-features = false, features = ["sqlite", "listen_notify_local", "auto-heal"], optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
