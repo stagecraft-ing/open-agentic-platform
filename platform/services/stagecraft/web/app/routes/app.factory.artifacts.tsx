@@ -12,17 +12,20 @@ import { requireUser } from "../lib/auth.server";
 import {
   applyFactoryArtifactOverride,
   clearFactoryArtifactOverride,
+  getFactoryArtifactApprovalSummary,
   getFactoryArtifactById,
   listFactoryArtifactConflicts,
   listFactoryArtifacts,
   resolveFactoryArtifactConflict,
   resolveFactoryArtifactEditAndAccept,
   verifyFactoryArtifactOverride,
+  type ArtifactApprovalSummaryResponse,
   type ArtifactConflictSummary,
   type ArtifactDetail,
   type ArtifactKind,
   type ArtifactSummary,
 } from "../lib/factory-api.server";
+import { approvalControlState } from "../lib/approval-basis-helpers";
 import { ArtifactMergeEditor } from "../components/artifact-merge-editor";
 
 const KIND_FILTERS: Array<ArtifactKind | "all"> = [
@@ -48,6 +51,11 @@ type LoaderData = {
   pageSize: number;
   selectedId: string | null;
   selected: ArtifactDetail | null;
+  /** Spec 201 FR-002 — the approval basis for the verify control; fetched
+   * only when the selected artifact carries an unverified override. null
+   * when not fetched OR the fetch failed (both fail closed in the
+   * renderer). */
+  approval: ArtifactApprovalSummaryResponse | null;
   conflicts: ArtifactConflictSummary[];
   loadError: string | null;
 };
@@ -92,16 +100,31 @@ export async function loader({
       pageSize,
       selectedId,
       selected: null,
+      approval: null,
       conflicts: [],
       loadError: err instanceof Error ? err.message : String(err),
     };
   }
 
   let selected: ArtifactDetail | null = null;
+  let approval: ArtifactApprovalSummaryResponse | null = null;
   let loadError: string | null = null;
   if (selectedId) {
     try {
       selected = await getFactoryArtifactById(request, selectedId);
+      // Spec 201 FR-002 — fetch the approval basis whenever the verify
+      // control would render. Read-only (FR-003); a fetch failure leaves
+      // `approval` null, which the renderer treats as fail-closed.
+      if (selected.userBody !== null && selected.overrideVerified !== true) {
+        try {
+          approval = await getFactoryArtifactApprovalSummary(
+            request,
+            selectedId,
+          );
+        } catch {
+          approval = null;
+        }
+      }
     } catch (err) {
       loadError = err instanceof Error ? err.message : String(err);
     }
@@ -115,6 +138,7 @@ export async function loader({
     pageSize: listResp.pageSize,
     selectedId,
     selected,
+    approval,
     conflicts: conflictsResp.conflicts,
     loadError,
   };
@@ -217,6 +241,7 @@ export default function FactoryArtifacts() {
           />
           <ArtifactDrawer
             selected={data.selected}
+            approval={data.approval}
             loadError={data.loadError}
             submitting={submitting}
           />
@@ -325,10 +350,12 @@ function ArtifactList({
 
 function ArtifactDrawer({
   selected,
+  approval,
   loadError,
   submitting,
 }: {
   selected: ArtifactDetail | null;
+  approval: ArtifactApprovalSummaryResponse | null;
   loadError: string | null;
   submitting: boolean;
 }) {
@@ -380,59 +407,195 @@ function ArtifactDrawer({
         </div>
       </header>
 
-      <Form method="post" className="flex flex-col gap-2">
-        <input type="hidden" name="id" value={selected.id} />
-        <label className="text-xs uppercase text-gray-500">User body</label>
-        <textarea
-          name="userBody"
-          defaultValue={selected.userBody ?? selected.upstreamBody ?? ""}
-          className="h-72 w-full rounded border border-gray-300 p-2 font-mono text-xs"
-        />
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            name="intent"
-            value="save_override"
-            disabled={submitting}
-            className="rounded bg-gray-900 px-3 py-1 text-white disabled:opacity-50"
-          >
-            Save override
-          </button>
-          {selected.userBody !== null ? (
-            <button
-              type="submit"
-              name="intent"
-              value="clear_override"
-              disabled={submitting}
-              className="rounded border border-gray-300 px-3 py-1 text-gray-700 disabled:opacity-50"
-            >
-              Clear override
-            </button>
-          ) : null}
-          {selected.userBody !== null && !selected.overrideVerified ? (
-            <button
-              type="submit"
-              name="intent"
-              value="verify_override"
-              disabled={submitting}
-              className="rounded border border-green-600 px-3 py-1 text-green-700 disabled:opacity-50"
-              title="Attest this override revision (org owner/admin). Runs under an envelope declaring overrides.require_verified refuse unverified overrides."
-            >
-              Verify override
-            </button>
-          ) : null}
+      {/* Spec 201 FR-005 — the artifact content (override editor + upstream
+          body) is the thing under verification, not the approval basis. It
+          renders inside an explicitly labelled region, and the verify
+          control lives in a distinct subtree below (ApprovalBasisPanel),
+          never inside this one. */}
+      <section
+        data-untrusted-content
+        className="rounded border border-amber-200 bg-amber-50/40 p-2"
+      >
+        <div className="mb-2 text-xs font-semibold uppercase text-amber-700">
+          Artifact content — not the approval basis
         </div>
-      </Form>
+        <Form method="post" className="flex flex-col gap-2">
+          <input type="hidden" name="id" value={selected.id} />
+          <label className="text-xs uppercase text-gray-500">User body</label>
+          <textarea
+            name="userBody"
+            defaultValue={selected.userBody ?? selected.upstreamBody ?? ""}
+            className="h-72 w-full rounded border border-gray-300 p-2 font-mono text-xs"
+          />
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              name="intent"
+              value="save_override"
+              disabled={submitting}
+              className="rounded bg-gray-900 px-3 py-1 text-white disabled:opacity-50"
+            >
+              Save override
+            </button>
+            {selected.userBody !== null ? (
+              <button
+                type="submit"
+                name="intent"
+                value="clear_override"
+                disabled={submitting}
+                className="rounded border border-gray-300 px-3 py-1 text-gray-700 disabled:opacity-50"
+              >
+                Clear override
+              </button>
+            ) : null}
+          </div>
+        </Form>
 
-      <details className="text-xs">
-        <summary className="cursor-pointer text-gray-500">
-          Upstream body (read-only)
-        </summary>
-        <pre className="mt-2 max-h-72 overflow-y-auto rounded bg-gray-50 p-2 font-mono">
-          {selected.upstreamBody ?? "(null)"}
-        </pre>
-      </details>
+        <details className="mt-2 text-xs">
+          <summary className="cursor-pointer text-gray-500">
+            Upstream body (read-only)
+          </summary>
+          <pre className="mt-2 max-h-72 overflow-y-auto rounded bg-gray-50 p-2 font-mono">
+            {selected.upstreamBody ?? "(null)"}
+          </pre>
+        </details>
+      </section>
+
+      <ApprovalBasisPanel
+        selected={selected}
+        approval={approval}
+        submitting={submitting}
+      />
     </div>
+  );
+}
+
+/**
+ * Spec 201 FR-002 — the verify control and its fact-grounded basis.
+ * Renders outside the untrusted-content region (FR-005); withholds the
+ * control entirely when no basis can be assembled (fail-closed).
+ */
+function ApprovalBasisPanel({
+  selected,
+  approval,
+  submitting,
+}: {
+  selected: ArtifactDetail;
+  approval: ArtifactApprovalSummaryResponse | null;
+  submitting: boolean;
+}) {
+  const state = approvalControlState(selected, approval);
+  if (state.kind === "hidden") return null;
+
+  if (state.kind === "blocked") {
+    return (
+      <section className="rounded border border-red-200 bg-red-50 p-3 text-xs">
+        <div className="font-semibold text-red-800">
+          Verification unavailable
+        </div>
+        <p className="mt-1 text-red-700">{state.reason}</p>
+      </section>
+    );
+  }
+
+  if (state.kind === "legacy-verify") {
+    return (
+      <section className="rounded border border-gray-200 p-3">
+        <p className="mb-2 text-xs text-gray-500">
+          User-authored content — governed by its publication status (spec
+          111), not an admitted envelope.
+        </p>
+        <VerifyForm id={selected.id} submitting={submitting} />
+      </section>
+    );
+  }
+
+  const s = state.summary;
+  return (
+    <section className="rounded border border-green-200 p-3">
+      <h3 className="text-xs font-semibold uppercase text-gray-600">
+        Approval basis — recorded facts
+      </h3>
+      <dl className="mt-2 space-y-2 text-xs">
+        <div>
+          <dt className="font-semibold text-gray-500">Gate predicate</dt>
+          <dd className="font-mono">{s.gatePredicate}</dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-gray-500">Blast radius</dt>
+          <dd>{s.blastRadiusStatement}</dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-gray-500">
+            Provenance ({s.provenanceLinks.length})
+          </dt>
+          <dd>
+            <ul className="mt-1 space-y-0.5 font-mono">
+              {s.provenanceLinks.map((l) => (
+                <li key={l.artifactId}>
+                  {l.kind}: {l.path} @ {l.contentHash.slice(0, 12)}…
+                </li>
+              ))}
+            </ul>
+          </dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-gray-500">
+            Overrides in scope ({s.consumedOverrides.length})
+          </dt>
+          <dd>
+            {s.consumedOverrides.length === 0 ? (
+              <span className="text-gray-500">none</span>
+            ) : (
+              <ul className="mt-1 space-y-0.5 font-mono">
+                {s.consumedOverrides.map((o) => (
+                  <li key={o.artifactId}>
+                    {o.path} @ {o.contentHash.slice(0, 12)}…{" "}
+                    {o.requireVerifiedSatisfied ? (
+                      <span className="text-green-700">ok</span>
+                    ) : (
+                      <span className="text-orange-600">unverified</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-gray-500">Summary hash</dt>
+          <dd className="font-mono">{s.summaryHash.slice(0, 16)}… </dd>
+        </div>
+      </dl>
+      {state.unverifiedPaths.length > 0 ? (
+        <p className="mt-2 text-xs text-orange-700">
+          {state.unverifiedPaths.length} override(s) above are unverified
+          under this envelope's require_verified policy — verifying here is
+          how they get resolved.
+        </p>
+      ) : null}
+      <div className="mt-3">
+        <VerifyForm id={selected.id} submitting={submitting} />
+      </div>
+    </section>
+  );
+}
+
+function VerifyForm({ id, submitting }: { id: string; submitting: boolean }) {
+  return (
+    <Form method="post">
+      <input type="hidden" name="id" value={id} />
+      <button
+        type="submit"
+        name="intent"
+        value="verify_override"
+        disabled={submitting}
+        className="rounded border border-green-600 px-3 py-1 text-green-700 disabled:opacity-50"
+        title="Attest this override revision (org owner/admin). Runs under an envelope declaring overrides.require_verified refuse unverified overrides."
+      >
+        Verify override
+      </button>
+    </Form>
   );
 }
 

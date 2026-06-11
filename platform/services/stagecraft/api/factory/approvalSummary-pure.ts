@@ -21,23 +21,26 @@ import type { AdmissionEvaluation } from "./admission";
  */
 export const OVERRIDE_VERIFICATION_PREDICATE = "overrides.require_verified";
 
-export type ApprovalProvenanceLink = {
+// Interfaces (not type aliases): these cross the Encore wire boundary in
+// `ArtifactApprovalSummaryResponse`, and Encore's static analysis accepts
+// named interface types only.
+export interface ApprovalProvenanceLink {
   artifactId: string;
   contentHash: string;
   kind: string;
   path: string;
-};
+}
 
-export type ApprovalConsumedOverride = {
+export interface ApprovalConsumedOverride {
   artifactId: string;
   contentHash: string;
   path: string;
   verifiedBy: string | null;
   verifiedAt: string | null;
   requireVerifiedSatisfied: boolean;
-};
+}
 
-export type ApprovalSummary = {
+export interface ApprovalSummary {
   /** sha256 over the hashed field set — every field below except
    * `summaryHash` itself and `assembledAt` (FR-001 rule 3: the timestamp
    * is outside the hash so the FR-003 (b) replay guard can compare a
@@ -50,7 +53,7 @@ export type ApprovalSummary = {
   consumedOverrides: ApprovalConsumedOverride[];
   assembledAt: string;
   actorId: string;
-};
+}
 
 export type ApprovalSummaryResult =
   | { ok: true; summary: ApprovalSummary }
