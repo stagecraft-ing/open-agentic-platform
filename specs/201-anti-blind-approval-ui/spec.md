@@ -550,3 +550,24 @@ Phase 3 frontmatter changes: `refines` adds `factory.ts`
 (`hitl-approval-policy-read` — the exported
 `DEFAULT_REQUIRE_STAGE_APPROVAL` policy fact the context endpoint
 renders).
+
+**2026-06-11 (phase 4 closeout).**
+
+10. **AC-6 two-tier completion, refined at contact.** AC-6's middle
+    state ("presentation contract specified, pending implementation")
+    was written before phases 1–3 shipped in the same cycle; the spec
+    198 ASI09 row now reads "presentation contract **implemented**".
+    The "solid" flip remains gated on AC-1–AC-5 verified **in CI** —
+    currently impossible: the DB-bound AC suites
+    (`approvalSummaryEndpoint.test.ts`, `overrideTrustClass.test.ts`)
+    are encore-test-gated and CI runs bare vitest only. That CI gap
+    (discovered during phase 1, recorded in spec 198's FR-013
+    correction note) is the named trigger: when an encore-test CI job
+    exists and these suites run green in it, the ASI09 row flips to
+    "solid" and this spec's `implementation:` flips to `complete`.
+    Until then `implementation: in-progress` is the honest state —
+    all four phases' code and local verification are done; the
+    CI-verified tier is not. AC-6's "same PR as AC-4" sequencing is
+    satisfied in spirit: the audit evidence landed in the phase 1 and
+    phase 3 PRs (#330, #332), and this flip rides the immediately
+    following closeout commit with that evidence cited.
