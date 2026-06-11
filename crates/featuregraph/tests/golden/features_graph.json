@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:662d62957d92e2af1b2baef2a86f1fbf1ea669098b6f66f453349b9e0be4c00e",
+  "graph_fingerprint": "sha256:426ae332598661fd78d0f82a23291981f006f67000551576dd4a75b1b6c03d96",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3992,6 +3992,20 @@
         "198-factory-governance-envelope",
         "201-anti-blind-approval-ui"
       ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "212-factory-schema-lockstep-ci",
+      "title": "Factory Schema Lockstep CI (cross-repo contract parity, automated)",
+      "spec_path": "specs/212-factory-schema-lockstep-ci/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
       "impl_files": [],
       "test_files": [],
       "violations": []
