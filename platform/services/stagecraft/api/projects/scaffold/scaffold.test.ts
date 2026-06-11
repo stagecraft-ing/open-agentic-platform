@@ -17,7 +17,7 @@ import type { ScaffoldAdapterRef } from "./types";
 // resolved via `factory_upstreams` at warmup / create time.
 const adapter: ScaffoldAdapterRef = {
   id: "00000000-0000-0000-0000-000000000000",
-  name: "aim-vue-node",
+  name: "aim-vue-encore",
   version: "3.0.0",
   sourceSha: "a".repeat(40),
 };
@@ -29,7 +29,7 @@ describe("buildL0PipelineStateSeed", () => {
     expect(seed.pipeline.status).toBe("pending");
     expect(seed.pipeline.started_at).toBeNull();
     expect(seed.pipeline.adapter).toEqual({
-      name: "aim-vue-node",
+      name: "aim-vue-encore",
       version: "3.0.0",
       source_sha: "a".repeat(40),
     });
@@ -161,7 +161,7 @@ describe("spec 112 §10 runtime gate (shape)", () => {
     expect(
       evaluateRuntimeGate({
         entry: "orchestration/template-orchestrator.md",
-        scaffold_source_id: "aim-vue-node",
+        scaffold_source_id: "legacy-template-source",
         scaffold_runtime: "node-24",
       })
     ).toBe("pass");

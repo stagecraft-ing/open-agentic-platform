@@ -839,7 +839,7 @@ export const factoryUpstreams = pgTable(
     // Repo identity + ref drive `cloneAndTranslate` regardless of role.
     repoUrl: text("repo_url").notNull(),
     ref: text("ref").notNull().default("main"),
-    // Optional subpath inside the repo (e.g. 'Factory Agent/' or
+    // Optional subpath inside the repo (e.g. 'process/' or
     // 'orchestration/'); NULL means whole repo.
     subpath: text("subpath"),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
@@ -865,7 +865,9 @@ export const factoryUpstreams = pgTable(
 //     `agent_catalog_audit`, `project_agent_bindings`. Reads project
 //     from `factory_artifact_substrate` (origin='user-authored',
 //     kind='agent') and `factory_bindings`.
-// The substrate is the only authoritative store post-cutover.
+// The substrate is the only authoritative store post-cutover. The
+// `projectSubstrateToLegacy` projection named above was itself retired
+// by spec 199 (FR-005): reads now serve substrate rows verbatim by kind.
 
 // ---------------------------------------------------------------------------
 // Spec 139 Phase 1 — content-addressed factory artifact substrate.

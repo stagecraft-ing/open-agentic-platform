@@ -134,7 +134,7 @@ describe("translateUpstreamsToSubstrate (origin-from-source)", () => {
 
 describe("translateLegacyManifest", () => {
   const aimAdapter: FactoryAdapterRow = {
-    name: "aim-vue-node",
+    name: "aim-vue-encore",
     version: "3.0.0",
     sourceSha: "a".repeat(40),
   };
@@ -191,7 +191,7 @@ describe("translateLegacyManifest", () => {
     const out = translateLegacyManifest(fullyExecutedManifest(), workingState, [aimAdapter]);
     expect(out.schema_version).toBe("1.0.0");
     expect(out.pipeline.status).toBe("completed");
-    expect(out.pipeline.adapter.name).toBe("aim-vue-node");
+    expect(out.pipeline.adapter.name).toBe("aim-vue-encore");
     expect(out.pipeline.adapter.version).toBe("3.0.0");
     // Seven stages: pre-flight + 5 mapped + adapter-handoff.
     expect(Object.keys(out.stages).sort()).toEqual(
@@ -269,9 +269,10 @@ describe("translateLegacyManifest", () => {
     expect(out.pipeline.adapter.name).toBe("rust-axum");
   });
 
-  test("conservative fallback adapter when orgAdapters is empty", () => {
-    const out = translateLegacyManifest(fullyExecutedManifest(), workingState, []);
-    expect(out.pipeline.adapter).toEqual({ name: "aim-vue-node", version: "0.0.0" });
+  test("throws when orgAdapters is empty — no synthetic fallback (spec 199 FR-002)", () => {
+    expect(() =>
+      translateLegacyManifest(fullyExecutedManifest(), workingState, [])
+    ).toThrow(/requires at least one org adapter/);
   });
 
   test("emits a unique pipeline.id per invocation", () => {

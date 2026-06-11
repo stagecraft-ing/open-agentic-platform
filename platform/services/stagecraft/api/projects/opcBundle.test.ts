@@ -25,7 +25,7 @@ const baseRepo = {
 
 const baseAdapter = {
   id: "44444444-4444-4444-4444-444444444444",
-  name: "aim-vue-node",
+  name: "aim-vue-encore",
   version: "3.0.0",
   sourceSha: "abc123",
   syncedAt: SYNCED,
@@ -90,7 +90,7 @@ describe("buildOpcBundle", () => {
     );
     expect(bundle.adapter).toMatchObject({
       id: baseAdapter.id,
-      name: "aim-vue-node",
+      name: "aim-vue-encore",
       syncedAt: SYNCED.toISOString(),
     });
     expect(bundle.contracts).toHaveLength(1);
@@ -339,7 +339,7 @@ describe("opc deep-link projection (spec 112 §6.3)", () => {
     });
 
     expect(lightweight.deepLink).toBeNull();
-    expect(lightweight.adapter?.name ?? null).toBe("aim-vue-node");
+    expect(lightweight.adapter?.name ?? null).toBe("aim-vue-encore");
   });
 });
 

@@ -145,20 +145,21 @@ snapshot at `platform/services/stagecraft/api/factory/adapter-scopes.json`
 is the static fallback the codebase-indexer hashes per spec 160; per-org
 content is materialised at runtime via the substrate.
 
-- **`aim-vue-node`** — production-supported scope entry in
-  `adapter-scopes.json`. The active scaffold target; recent specs
+- **`aim-vue-encore`** — the manifest-declared adapter of the owned
+  `factory-encore` upstream and the only scope entry in
+  `adapter-scopes.json` (an interim hand-regenerated projection of the
+  admitted adapter sub-envelope until the first admission-time
+  derivation runs — specs 198 FR-012 / 199 FR-007). The active scaffold
+  target, used end-to-end by the tenant onboarding path; the earlier
+  `aim-vue-node` hardening specs
   ([138](specs/138-stagecraft-create-realised-scaffold/spec.md),
   [140](specs/140-aim-vue-node-scaffold-source-id-cutover/spec.md),
   [141](specs/141-aim-vue-node-source-id-template-name-alignment/spec.md))
-  drive its hardening. Used end-to-end by the tenant onboarding path.
-- **`next-prisma`**, **`rust-axum`**, **`encore-react`** — registered
-  scope entries in `adapter-scopes.json` (file_write_scope +
-  allowed_commands only at this layer). Their full manifest content
-  lives upstream in the factory-template repository and lands in each
-  org's substrate via the sync worker (spec 108 Phase 4); the in-tree
-  state of this repository carries only the scope fallback, not the
-  per-adapter manifest. Treat them as parity validators for the
-  factory contract, not drop-in alternatives.
+  are its lineage.
+- The legacy example adapters (`next-prisma`, `rust-axum`,
+  `encore-react`) were retired upstream (spec 199 FR-007). The factory
+  contract's multi-adapter breadth is governed by the open-standard
+  schemas (spec 197) rather than by in-tree scope entries.
 
 ## License (and why AGPL)
 

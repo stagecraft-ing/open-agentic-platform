@@ -1,5 +1,11 @@
 # Factory Architecture
 
+> **Historical layout note (spec 199):** the repository trees sketched in
+> this document describe the legacy `goa-software-factory` layout. The
+> owned `factory-encore` repository follows the 3-layer layout and
+> self-declares its adapter identity (`aim-vue-encore`) in its manifest
+> (specs 197/199); legacy adapter names below are historical context.
+
 ## Problem Statement
 
 Agentic software factories today suffer from three structural flaws:
