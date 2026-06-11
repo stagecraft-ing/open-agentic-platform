@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "dc01a8f33309fee2ce5adadb59e36fa1bb12e0d2dabd3ab5e636678f4b7f1f33",
+    "contentHash": "6eea35656becee3cf5e306ccf9c68390dfef42467b7e782b7ccd8a6dea16c4b6",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -45283,6 +45283,7 @@
       },
       {
         "amends": [
+          "075-factory-workflow-engine",
           "139-factory-artifact-substrate",
           "140-aim-vue-node-scaffold-source-id-cutover",
           "141-aim-vue-node-source-id-template-name-alignment"

@@ -151,7 +151,7 @@ fn build_cli_bundles(paths: &[PathBuf]) -> std::io::Result<Vec<KnowledgeBundleRe
     about = "Run a full Factory pipeline with real agent dispatch"
 )]
 struct Cli {
-    /// Adapter name (e.g., aim-vue-node, next-prisma, rust-axum, encore-react)
+    /// Adapter name (e.g., aim-vue-encore)
     #[arg(long)]
     adapter: String,
 

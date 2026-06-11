@@ -402,21 +402,21 @@ mod tests {
 
     #[test]
     fn test_capabilities_match_dual_supported() {
-        let manifest = minimal_manifest("aim-vue-node", true);
+        let manifest = minimal_manifest("aim-vue-encore", true);
         let registry = AdapterRegistry::from_manifests(vec![manifest]);
         let spec = minimal_build_spec(Variant::Dual, AudienceMethod::Saml);
 
-        let report = registry.capabilities_match("aim-vue-node", &spec);
+        let report = registry.capabilities_match("aim-vue-encore", &spec);
         assert!(report.compatible, "Gaps: {:?}", report.gaps);
     }
 
     #[test]
     fn test_capabilities_match_dual_unsupported() {
-        let manifest = minimal_manifest("next-prisma", false);
+        let manifest = minimal_manifest("single-stack-example", false);
         let registry = AdapterRegistry::from_manifests(vec![manifest]);
         let spec = minimal_build_spec(Variant::Dual, AudienceMethod::Oidc);
 
-        let report = registry.capabilities_match("next-prisma", &spec);
+        let report = registry.capabilities_match("single-stack-example", &spec);
         assert!(!report.compatible);
         assert!(report.gaps.iter().any(|g| g.capability == "dual_stack"));
     }

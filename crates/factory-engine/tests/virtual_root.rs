@@ -52,7 +52,7 @@ fn make_fetcher(
 async fn materialises_artifacts_into_cache_dir() {
     let (fetcher, _manifest) = make_fetcher(&[
         ("goa-software-factory", "Factory Agent/factory-orchestration.md", "root body", "1"),
-        ("aim-vue-node-template", "orchestration/template-orchestrator.md", "tpl body", "1"),
+        ("template-encore", "orchestration/template-orchestrator.md", "tpl body", "1"),
     ]);
     let cache_dir = TempDir::new().unwrap();
     let vr = VirtualRoot::new(ORG_ID, cache_dir.path().to_path_buf(), fetcher.clone());
@@ -69,7 +69,7 @@ async fn materialises_artifacts_into_cache_dir() {
     .expect("file present in cache");
     assert_eq!(body1, "root body");
     let body2 = tokio::fs::read_to_string(
-        local.join("aim-vue-node-template/orchestration/template-orchestrator.md"),
+        local.join("template-encore/orchestration/template-orchestrator.md"),
     )
     .await
     .expect("file present in cache");
@@ -128,7 +128,7 @@ async fn cache_hit_skips_refetch() {
 #[tokio::test]
 async fn read_artifact_returns_effective_body_by_origin_path() {
     let (fetcher, _manifest) = make_fetcher(&[
-        ("oap-self", "adapters/next-prisma/manifest.yaml", "manifest content", "1"),
+        ("oap-self", "adapters/aim-vue-encore/manifest.yaml", "manifest content", "1"),
     ]);
     let cache_dir = TempDir::new().unwrap();
     let vr = VirtualRoot::new(ORG_ID, cache_dir.path().to_path_buf(), fetcher);
@@ -136,7 +136,7 @@ async fn read_artifact_returns_effective_body_by_origin_path() {
     vr.materialize().await.unwrap();
 
     let body = vr
-        .read_artifact("oap-self", "adapters/next-prisma/manifest.yaml")
+        .read_artifact("oap-self", "adapters/aim-vue-encore/manifest.yaml")
         .await
         .expect("artifact resolves");
     assert_eq!(body, "manifest content");

@@ -31,7 +31,7 @@ async fn recorded_run_replay_produces_byte_identical_prompts() {
     // The run's authoritative bodies are known; we record the hashes only.
     let stage1_body = "# Stage 1 prompt\n\nDispatched content for s1.";
     let stage2_body = "# Stage 2 prompt — service catalog reference";
-    let adapter_body = "# Adapter manifest\n\nname: aim-vue-node";
+    let adapter_body = "# Adapter manifest\n\nname: aim-vue-encore";
 
     let stage1_hash = sha256_hex(stage1_body);
     let stage2_hash = sha256_hex(stage2_body);
@@ -55,7 +55,7 @@ async fn recorded_run_replay_produces_byte_identical_prompts() {
         },
         ArtifactRef {
             artifact_id: "art-adapter".into(),
-            origin: "aim-vue-node-template".into(),
+            origin: "template-encore".into(),
             path: "orchestration/template-orchestrator.md".into(),
             version: 3,
             content_hash: adapter_hash.clone(),
@@ -78,7 +78,7 @@ async fn recorded_run_replay_produces_byte_identical_prompts() {
     );
     store.insert(
         (
-            "aim-vue-node-template".to_string(),
+            "template-encore".to_string(),
             "orchestration/template-orchestrator.md".to_string(),
         ),
         adapter_body.to_string(),

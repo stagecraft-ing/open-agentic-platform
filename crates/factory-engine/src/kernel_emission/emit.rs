@@ -254,12 +254,12 @@ mod tests {
             source: KernelSource::from_repo_root(source_root.to_path_buf()),
             target_root,
             adapter: AdapterIdentity {
-                id: "aim-vue-node".into(),
+                id: "aim-vue-encore".into(),
                 version: "0.1.0".into(),
                 manifest_hash: "abc".into(),
             },
             scaffolded_paths: vec!["apps/".into(), "packages/".into()],
-            adapter_manifest_uri: Some("file://adapter-scopes.json#aim-vue-node".into()),
+            adapter_manifest_uri: Some("file://adapter-scopes.json#aim-vue-encore".into()),
             toolchain_mode: ToolchainMode::VendorBinaries,
             source_commit: "deadbeefcafef00d".into(),
             emitted_at: Some(fixed_timestamp()),
@@ -285,7 +285,7 @@ mod tests {
             ".kernel-version",
             ".github/workflows/ci-spec-code-coupling.yml",
             "Makefile",
-            "specs/001-aim-vue-node-scaffold-claim/spec.md",
+            "specs/001-aim-vue-encore-scaffold-claim/spec.md",
         ] {
             let abs = target.path().join(rel);
             assert!(abs.exists(), "missing emitted file: {rel}");
@@ -297,7 +297,7 @@ mod tests {
         let parsed = KernelVersion::from_yaml(&yaml).unwrap();
         assert_eq!(parsed.kernel.source_commit, "deadbeefcafef00d");
         assert_eq!(parsed.kernel.source_hash, report.kernel_hash);
-        assert_eq!(parsed.adapter.id, "aim-vue-node");
+        assert_eq!(parsed.adapter.id, "aim-vue-encore");
         assert_eq!(parsed.toolchain_mode, ToolchainMode::VendorBinaries);
     }
 

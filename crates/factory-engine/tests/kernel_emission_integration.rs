@@ -46,7 +46,7 @@ fn minimal_manifest() -> AdapterManifest {
     AdapterManifest {
         schema_version: "1.0.0".into(),
         adapter: AdapterIdentity {
-            name: "aim-vue-node".into(),
+            name: "aim-vue-encore".into(),
             display_name: "AIM Vue Node".into(),
             version: "0.1.0".into(),
             description: None,
@@ -166,17 +166,17 @@ fn factory_engine_emits_kernel_for_named_adapter() {
 
     let report = engine
         .emit_project_kernel(
-            "aim-vue-node",
+            "aim-vue-encore",
             target.path(),
             oap_source.path(),
             vec!["apps/".into(), "packages/".into()],
-            Some("file://adapter-scopes.json#aim-vue-node".into()),
+            Some("file://adapter-scopes.json#aim-vue-encore".into()),
             ToolchainMode::VendorBinaries,
             "fixturecommit".into(),
         )
         .expect("kernel emission succeeded");
 
-    assert_eq!(report.kernel_version.adapter.id, "aim-vue-node");
+    assert_eq!(report.kernel_version.adapter.id, "aim-vue-encore");
     assert_eq!(report.kernel_version.adapter.version, "0.1.0");
     assert_eq!(
         report.kernel_version.toolchain_mode,
@@ -195,7 +195,7 @@ fn factory_engine_emits_kernel_for_named_adapter() {
         ".kernel-version",
         ".github/workflows/ci-spec-code-coupling.yml",
         "Makefile",
-        "specs/001-aim-vue-node-scaffold-claim/spec.md",
+        "specs/001-aim-vue-encore-scaffold-claim/spec.md",
     ] {
         assert!(target.path().join(rel).exists(), "missing {rel}");
     }
@@ -203,14 +203,14 @@ fn factory_engine_emits_kernel_for_named_adapter() {
     // `.kernel-version` parses back to the same struct shape.
     let yaml = fs::read_to_string(target.path().join(".kernel-version")).unwrap();
     let parsed = KernelVersion::from_yaml(&yaml).unwrap();
-    assert_eq!(parsed.adapter.id, "aim-vue-node");
+    assert_eq!(parsed.adapter.id, "aim-vue-encore");
     assert!(!parsed.adapter.manifest_hash.is_empty());
 
     // The adapter-seeded scaffold-claim spec carries the spec 147 / 154 grammars.
     let seed_md = fs::read_to_string(
         target
             .path()
-            .join("specs/001-aim-vue-node-scaffold-claim/spec.md"),
+            .join("specs/001-aim-vue-encore-scaffold-claim/spec.md"),
     )
     .unwrap();
     assert!(seed_md.contains("kind: capability"));
