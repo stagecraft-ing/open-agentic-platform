@@ -131,10 +131,28 @@ export interface OpcBundleCloneToken {
  * a null `sealJws` is an unsealed admission and is refused fail-closed.
  * Null `admission` means the bundle carries no admitted factory content.
  */
+/** Spec 198 FR-013(c) — one override the run will consume; the engine
+ * binds these into the governance certificate at emission. Mirrors
+ * `admission.ts::ConsumedOverride` (same wire shape, camelCase). */
+export interface OpcBundleConsumedOverride {
+  artifactId: string;
+  path: string;
+  contentHash: string;
+  author: string | null;
+  modifiedAt: string | null;
+  verified: boolean;
+  verifiedBy: string | null;
+}
+
 export interface OpcBundleAdmission {
   origin: string;
   envelopeHash: string | null;
   sealJws: string | null;
+  /** Spec 198 FR-013(c) — overrides active on the admitted factory's
+   * content at bundle assembly. Already predicate-checked: when the
+   * admitted envelope declares `overrides.require_verified: true`, an
+   * unverified override fails the bundle request instead of riding here. */
+  consumedOverrides: OpcBundleConsumedOverride[];
 }
 
 export interface OpcBundleResponse {

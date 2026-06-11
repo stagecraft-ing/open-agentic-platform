@@ -120,6 +120,10 @@ export default defineConfig({
       // `factory_run_grants` / `factory_admissions` / `factory_runs`;
       // live DB, signing via throwaway env-injected keypair.
       "**/factory/grantDuplexHandlers.test.ts",
+      // Spec 198 FR-013 — override trust-class tests mutate
+      // `factory_artifact_substrate*` (gate audit, verified flag,
+      // consumed-override predicate matrix); live DB.
+      "**/factory/overrideTrustClass.test.ts",
     ],
   },
 });

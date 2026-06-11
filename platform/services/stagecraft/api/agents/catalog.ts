@@ -22,6 +22,8 @@ import {
 import { and, desc, eq, max, ne } from "drizzle-orm";
 import type { CatalogFrontmatter } from "./frontmatter";
 import { publishAgentCatalogUpdated } from "./relay";
+import { assertOverrideGate } from "../factory/artifacts";
+import { runOverrideGate } from "../factory/overrideGate";
 import {
   mapAgentCatalogAuditAction,
   mapAgentCatalogStatus,
@@ -327,8 +329,22 @@ export const createAgent = api(
 
     const { userId, orgId } = requireOrgAuth();
     await verifyOrgAccess(req.orgId, orgId);
-    const hash = computeContentHash(req.frontmatter, req.body_markdown);
     const path = userAuthoredAgentPath(req.name);
+    // Spec 198 FR-013(a) — user-authored agent bodies are `user_body`
+    // writes; the deterministic gate applies. No audit row here: the
+    // artifact does not exist yet (the audit table requires an id), so
+    // the attributable 400 is the refusal record.
+    const createVerdict = runOverrideGate({
+      content: req.body_markdown,
+      kind: "agent",
+      path,
+    });
+    if (!createVerdict.ok) {
+      throw APIError.invalidArgument(
+        `agent body rejected by ${createVerdict.ruleId}: ${createVerdict.detail} (spec 198 FR-013 a)`,
+      );
+    }
+    const hash = computeContentHash(req.frontmatter, req.body_markdown);
     const frontmatterWithStatus = injectPublicationStatus(
       req.frontmatter,
       "draft",
@@ -461,6 +477,20 @@ export const patchAgent = api(
           existing.frontmatter as Record<string, unknown> | null,
         ));
       const newBody = req.body_markdown ?? existing.userBody ?? "";
+      // Spec 198 FR-013(a) — gate the edited body before the write (the
+      // refusal audit survives this transaction's rollback by design).
+      if (req.body_markdown !== undefined) {
+        await assertOverrideGate(
+          {
+            orgId: req.orgId,
+            userId,
+            artifactId: existing.id,
+            kind: existing.kind,
+            path: existing.path,
+          },
+          newBody,
+        );
+      }
       const newHash = computeContentHash(newFrontmatter, newBody);
       const frontmatterWithStatus = injectPublicationStatus(
         newFrontmatter,
@@ -859,6 +889,11 @@ function substrateActionToLegacy(
     case "artifact.override_cleared":
     case "artifact.conflict_detected":
     case "artifact.conflict_resolved":
+    // Spec 198 FR-013 — gate refusals and verified-flag flips have no
+    // legacy spec 111 equivalent; fold into the edit bucket like the
+    // other override-lifecycle actions.
+    case "artifact.override_gate_rejected":
+    case "artifact.override_verified":
       return "edit";
   }
 }

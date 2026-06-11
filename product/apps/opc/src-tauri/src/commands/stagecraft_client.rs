@@ -1418,6 +1418,30 @@ pub struct OpcBundleAdmission {
     /// platform JWKS at `GET /api/factory/.well-known/jwks.json`).
     #[serde(default)]
     pub seal_jws: Option<String>,
+    /// Spec 198 FR-013(c) — overrides active on the admitted factory's
+    /// content at bundle assembly, already predicate-checked platform-side
+    /// (`overrides.require_verified`). The engine binds these into the
+    /// run's governance certificate at emission.
+    #[serde(default)]
+    pub consumed_overrides: Vec<OpcBundleConsumedOverride>,
+}
+
+/// Spec 198 FR-013(c) — one override the run will consume. Mirrors
+/// stagecraft `opcBundleHelpers.ts::OpcBundleConsumedOverride`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OpcBundleConsumedOverride {
+    pub artifact_id: String,
+    pub path: String,
+    pub content_hash: String,
+    /// Rauthy subject that authored the revision (FR-013 b).
+    #[serde(default)]
+    pub author: Option<String>,
+    #[serde(default)]
+    pub modified_at: Option<String>,
+    pub verified: bool,
+    #[serde(default)]
+    pub verified_by: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

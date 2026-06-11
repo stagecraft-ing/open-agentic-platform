@@ -27,6 +27,27 @@ summary: >
   law, the factory interprets it for the org, OAP arbitrates, and OPC is an
   untrusted executor permitted only within the admitted envelope.
 code_aliases: ["FACTORY_GOVERNANCE_ENVELOPE"]
+compliance:
+  - framework: "owasp-asi-2026"
+    # AC-6: the control list is the union of the inline ASI tags carried
+    # by `standards/schemas/factory/governance-envelope.schema.yaml`
+    # (intent capsule ASI01; ceilings ASI02/03/05; emits ASI04/07; gates
+    # ASI09; constituents ASI10; overrides ASI06). ASI08 is deliberately
+    # absent — the schema declares circuit-breaker gates but the envelope
+    # does not claim cascading-failure coverage (see the all-ten table:
+    # partial, residual stated).
+    controls:
+      [
+        "ASI01",
+        "ASI02",
+        "ASI03",
+        "ASI04",
+        "ASI05",
+        "ASI06",
+        "ASI07",
+        "ASI09",
+        "ASI10",
+      ]
 depends_on:
   - "102-governed-excellence"
   - "139-factory-artifact-substrate"
@@ -50,6 +71,12 @@ establishes:
   - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/run_governance.rs }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.test.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/grantDuplexHandlers.test.ts }
+  # Phase 5 (FR-013 a–c) — override gate + trust class:
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideTrustClass.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/45_user_body_verified.down.sql }
 extends:
   - spec: "074-factory-ingestion"
     nature: additive
@@ -91,6 +118,22 @@ refines:
     unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
   - aspect: "run-grant-records"
     unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
+  # Phase 5 (FR-013) — the override gate tightens every user_body write
+  # path and the trust-class columns ride the substrate row shape:
+  - aspect: "override-write-gate"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/artifacts.ts }
+  - aspect: "override-write-gate"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/conflicts.ts }
+  - aspect: "override-write-gate"
+    unit: { kind: file, path: platform/services/stagecraft/api/agents/catalog.ts }
+  - aspect: "override-trust-class"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/substrate.ts }
+  - aspect: "override-trust-class"
+    unit: { kind: file, path: crates/factory-engine/src/substrate_version.rs }
+  - aspect: "override-verify-ui"
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx }
+  - aspect: "override-verify-ui"
+    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/factory-api.server.ts }
 references:
   - role: enforcer
     unit: { kind: crate, id: factory-engine }
@@ -452,17 +495,17 @@ and loses all standing one stage boundary after revocation.
 | **03 Identity & Privilege Abuse** | Adapter sub-envelope scopes + tier ceiling, bounded @ admission (FR-003/004); Rauthy short-lived OIDC, deployd scope-gate, tenant gates 137 @ run; OPC = executor-on-conditions | **Solid** (token/PAT handling stays a watched surface) |
 | **04 Agentic Supply Chain** | The envelope *is* the live-supply-chain admission gate (FR-001); content-hash pinning (FR-009, substrate 139); kill-switch (FR-010); SHA-pinning 158, attestations 117 | **Closed by this spec** (was: hashes without admission) |
 | **05 Unexpected RCE** | Envelope declares which stages execute code + isolation tier; sandbox 162 / local-container 185 / k8s 186 @ run; preview≠effect (FR-008) | **Solid** |
-| **06 Memory & Context Poisoning** | Factory run is *architecturally low-surface* — stateless stages, content-addressed artifact passing, no self-ingestion. Control-point = substrate **`user_body` write path**, now contract-specified by FR-013 (rules block / models quarantine / provenance + verified-flag + envelope predicate) + knowledge provenance 115/161/121 | **Designed (FR-013), phased** — async scanner is the named follow-on |
+| **06 Memory & Context Poisoning** | Factory run is *architecturally low-surface* — stateless stages, content-addressed artifact passing, no self-ingestion. Control-point = substrate **`user_body` write path**, contract-specified by FR-013 and live for (a)–(c): deterministic gate + provenance on every write, verified-flag trust class, envelope predicate enforced at bundle assembly, consumed overrides certificate-bound + knowledge provenance 115/161/121 | **Designed (FR-013), a–c implemented** — async scanner (d) filed as [spec 200](../200-substrate-override-async-scanner/spec.md) |
 | **07 Insecure Inter-Agent Comms** | Emit-manifest (FR-005/009) + signed inter-stage manifests 170 + duplex version parity 189 + schema parity 125/191; typed contracts, reject downgrades @ run | **Solid** |
 | **08 Cascading Failures** | HITL/gate predicates as circuit-breakers (FR-008); PEP between planner/executor (FR-007); per-stage verification fail-closed; stop-hook 166; introspection 172. Residual: fan-out can outpace oversight — must be evaluated vs org risk budget | **Partial — residual stated** (blast-radius caps are follow-on) |
-| **09 Human-Agent Trust** | HITL declaration requiring plain-language + provenance, never model rationale; preview≠effect (FR-008); certificate's independent `verify-certificate` (does not trust the producer) gives the human a verifiable basis | **Partial — declared gap** (anti-blind-approval UI is follow-on) |
+| **09 Human-Agent Trust** | HITL declaration requiring plain-language + provenance, never model rationale; preview≠effect (FR-008); certificate's independent `verify-certificate` (does not trust the producer) gives the human a verifiable basis | **Partial — declared gap** (anti-blind-approval UI filed as [spec 201](../201-anti-blind-approval-ui/spec.md)) |
 | **10 Rogue Agents** | Admitted behavioral manifest = the legitimate-agent allowlist (FR-006), off-list = rogue; agents never hold keys (FR-006); kill-switch/quarantine (FR-010); sandbox prevents hidden spawn; introspection 172 detects | **Solid-ish** (admission-prevention strong; runtime detection leans on 172/sandbox) |
 
 Shape of the defense: the envelope makes **01/03/04/10 explicit and
 fail-closed at the door**, **declares the runtime levers for 02/05/07/08** that
-existing specs enforce, **specifies 06's control-point as contract** (FR-013,
-phased), and is **honest that 09 remains partial** (anti-blind-approval UI is
-the named follow-on).
+existing specs enforce, **specifies 06's control-point as contract** (FR-013;
+(a)–(c) implemented, (d) filed as spec 200), and is **honest that 09 remains
+partial** (anti-blind-approval UI filed as spec 201).
 
 ## Acceptance criteria
 

@@ -16,7 +16,7 @@ import { db } from "../db/drizzle";
 import { factoryArtifactSubstrate, factoryArtifactSubstrateAudit } from "../db/schema";
 import { hasOrgPermission } from "../auth/membership";
 import { sha256Hex, type SubstrateRow } from "./substrate";
-import type { ArtifactDetail } from "./artifacts";
+import { assertOverrideGate, type ArtifactDetail } from "./artifacts";
 
 // ---------------------------------------------------------------------------
 // Wire types
@@ -138,6 +138,10 @@ export async function resolveConflictCore(
           userBody: null,
           userModifiedAt: now,
           userModifiedBy: args.userId,
+          // Spec 198 FR-013(c): verified state dies with the override.
+          userBodyVerified: false,
+          verifiedBy: null,
+          verifiedAt: null,
           contentHash: sha256Hex(existing.upstreamBody ?? ""),
           conflictState: "ok",
           conflictUpstreamSha: null,
@@ -150,7 +154,8 @@ export async function resolveConflictCore(
         // Spec 139 Phase 2 (T058) — accept a hand-merged body. The
         // server stores it as `user_body`, recomputes content_hash, and
         // clears divergence. The merge UI handles the three-way diff;
-        // the server only validates presence + length.
+        // the server validates presence + length and runs the spec 198
+        // FR-013(a) gate (this arm is an override revision by another door).
         if (typeof args.body !== "string") {
           throw APIError.invalidArgument(
             "edit_and_accept requires a `body` string",
@@ -161,10 +166,25 @@ export async function resolveConflictCore(
             "edit_and_accept body must be non-empty",
           );
         }
+        await assertOverrideGate(
+          {
+            orgId: args.orgId,
+            userId: args.userId,
+            artifactId: existing.id,
+            kind: existing.kind,
+            path: existing.path,
+          },
+          args.body,
+        );
         updateSet = {
           userBody: args.body,
           userModifiedAt: now,
           userModifiedBy: args.userId,
+          // Spec 198 FR-013(c): a hand-merged body is a new, unverified
+          // override revision.
+          userBodyVerified: false,
+          verifiedBy: null,
+          verifiedAt: null,
           contentHash: sha256Hex(args.body),
           conflictState: "ok",
           conflictUpstreamSha: null,
@@ -258,6 +278,7 @@ export const resolveConflict = api(
       contentHash: row.contentHash,
       conflictState: row.conflictState,
       hasOverride: row.userBody !== null,
+      overrideVerified: row.userBody !== null ? row.userBodyVerified : null,
       syncedAt: row.updatedAt.toISOString(),
       upstreamSha: row.upstreamSha,
       upstreamBody: row.upstreamBody,
@@ -269,6 +290,8 @@ export const resolveConflict = api(
         ? row.userModifiedAt.toISOString()
         : null,
       userModifiedBy: row.userModifiedBy,
+      verifiedBy: row.verifiedBy,
+      verifiedAt: row.verifiedAt ? row.verifiedAt.toISOString() : null,
     };
   },
 );
@@ -294,6 +317,9 @@ function mapStoredRowToSubstrate(row: StoredArtifactRow): SubstrateRow {
     userBody: row.userBody,
     userModifiedAt: row.userModifiedAt,
     userModifiedBy: row.userModifiedBy,
+    userBodyVerified: row.userBodyVerified,
+    verifiedBy: row.verifiedBy,
+    verifiedAt: row.verifiedAt,
     effectiveBody: row.effectiveBody,
     contentHash: row.contentHash,
     frontmatter: (row.frontmatter as Record<string, unknown> | null) ?? null,

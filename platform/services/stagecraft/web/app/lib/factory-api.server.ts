@@ -323,6 +323,9 @@ export type ArtifactSummary = {
   contentHash: string;
   conflictState: "ok" | "diverged" | null;
   hasOverride: boolean;
+  /** Spec 198 FR-013(c) — null when no override; otherwise the trust-class
+   * verdict (false until a privileged human verifies the revision). */
+  overrideVerified: boolean | null;
   syncedAt: string;
 };
 
@@ -335,6 +338,8 @@ export type ArtifactDetail = ArtifactSummary & {
   conflictUpstreamSha: string | null;
   userModifiedAt: string | null;
   userModifiedBy: string | null;
+  verifiedBy: string | null;
+  verifiedAt: string | null;
 };
 
 export type ListArtifactsResponse = {
@@ -399,6 +404,19 @@ export async function clearFactoryArtifactOverride(
     request,
     `/api/factory/artifacts/${encodeURIComponent(id)}/override`,
     { method: "DELETE" },
+  ) as Promise<ArtifactDetail>;
+}
+
+/** Spec 198 FR-013(c) — privileged verified-flag flip on the current
+ * override revision (org owner/admin). */
+export async function verifyFactoryArtifactOverride(
+  request: Request,
+  id: string,
+) {
+  return apiFetch(
+    request,
+    `/api/factory/artifacts/${encodeURIComponent(id)}/verify-override`,
+    { method: "POST" },
   ) as Promise<ArtifactDetail>;
 }
 

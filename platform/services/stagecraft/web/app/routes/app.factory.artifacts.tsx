@@ -17,6 +17,7 @@ import {
   listFactoryArtifacts,
   resolveFactoryArtifactConflict,
   resolveFactoryArtifactEditAndAccept,
+  verifyFactoryArtifactOverride,
   type ArtifactConflictSummary,
   type ArtifactDetail,
   type ArtifactKind,
@@ -141,6 +142,12 @@ export async function action({
       }
       case "clear_override": {
         await clearFactoryArtifactOverride(request, id);
+        return { ok: true };
+      }
+      case "verify_override": {
+        // Spec 198 FR-013(c) — org owner/admin attests the current
+        // override revision; the API enforces the permission.
+        await verifyFactoryArtifactOverride(request, id);
         return { ok: true };
       }
       case "resolve_keep_mine": {
@@ -290,6 +297,17 @@ function ArtifactList({
                     override
                   </span>
                 ) : null}
+                {a.hasOverride ? (
+                  a.overrideVerified ? (
+                    <span className="font-semibold text-green-700">
+                      verified
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-orange-600">
+                      unverified
+                    </span>
+                  )
+                ) : null}
                 {a.conflictState === "diverged" ? (
                   <span className="font-semibold text-red-600">diverged</span>
                 ) : null}
@@ -341,6 +359,24 @@ function ArtifactDrawer({
           {selected.conflictState === "diverged" ? (
             <span className="font-semibold text-red-600">diverged</span>
           ) : null}
+          {selected.userBody !== null ? (
+            selected.overrideVerified ? (
+              <span
+                className="font-semibold text-green-700"
+                title={
+                  selected.verifiedAt
+                    ? `verified ${selected.verifiedAt}`
+                    : undefined
+                }
+              >
+                override verified
+              </span>
+            ) : (
+              <span className="font-semibold text-orange-600">
+                override unverified
+              </span>
+            )
+          ) : null}
         </div>
       </header>
 
@@ -371,6 +407,18 @@ function ArtifactDrawer({
               className="rounded border border-gray-300 px-3 py-1 text-gray-700 disabled:opacity-50"
             >
               Clear override
+            </button>
+          ) : null}
+          {selected.userBody !== null && !selected.overrideVerified ? (
+            <button
+              type="submit"
+              name="intent"
+              value="verify_override"
+              disabled={submitting}
+              className="rounded border border-green-600 px-3 py-1 text-green-700 disabled:opacity-50"
+              title="Attest this override revision (org owner/admin). Runs under an envelope declaring overrides.require_verified refuse unverified overrides."
+            >
+              Verify override
             </button>
           ) : null}
         </div>

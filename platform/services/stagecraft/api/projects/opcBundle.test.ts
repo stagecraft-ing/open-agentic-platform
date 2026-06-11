@@ -223,6 +223,19 @@ describe("buildOpcBundle", () => {
   });
 
   test("propagates the admission seal block verbatim (spec 198 FR-014)", () => {
+    // Spec 198 FR-013(c) — the consumed-overrides leg rides the block
+    // verbatim too; the predicate check happened before assembly.
+    const consumedOverrides = [
+      {
+        artifactId: "11111111-2222-3333-4444-555555555555",
+        path: "adapters/aim-vue-encore/agents/scaffolder.md",
+        contentHash: "ab".repeat(32),
+        author: "66666666-0000-0000-0000-000000000003",
+        modifiedAt: "2026-06-10T00:00:00.000Z",
+        verified: true,
+        verifiedBy: "66666666-0000-0000-0000-000000000004",
+      },
+    ];
     const bundle = buildOpcBundle({
       project: baseProject,
       repo: baseRepo,
@@ -235,6 +248,7 @@ describe("buildOpcBundle", () => {
         origin: "factory-encore",
         envelopeHash: "e3b0c44298fc1c149afbf4c8996fb924",
         sealJws: "eyJhbGciOiJFZERTQSJ9.eyJvcmlnaW4iOiJmIn0.c2ln",
+        consumedOverrides,
       },
     });
 
@@ -242,6 +256,7 @@ describe("buildOpcBundle", () => {
       origin: "factory-encore",
       envelopeHash: "e3b0c44298fc1c149afbf4c8996fb924",
       sealJws: "eyJhbGciOiJFZERTQSJ9.eyJvcmlnaW4iOiJmIn0.c2ln",
+      consumedOverrides,
     });
   });
 });
