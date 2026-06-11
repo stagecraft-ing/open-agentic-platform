@@ -23,7 +23,7 @@ summary: >
   (spec 198), which this spec consumes. No backward compatibility is preserved;
   factory-encore/template-encore are the baseline.
 code_aliases: ["FACTORY_THIN_CONSUMER_SYNC"]
-amends: ["075", "139", "140", "141"]
+amends: ["075", "112", "124", "139", "140", "141"]
 depends_on:
   - "198-factory-governance-envelope"
   - "139-factory-artifact-substrate"
@@ -367,3 +367,14 @@ org-scoped id is org configuration and never enters the open contract (spec
   matches outside this spec's crates (`factory-project-detect` unit
   fixtures, `factory-platform-client` mock responses) are live-fixture
   leftovers owed to specs 112/124 follow-ups.
+- **2026-06-11 — specs 112/124 fixture follow-up closed.** The owed
+  leftovers land: `factory-platform-client` wire mocks use
+  `aim-vue-encore` + a neutral `second-adapter`;
+  `factory-project-detect` current-protocol fixtures use the live
+  names (`template-encore` scaffold-only, `aim-vue-encore` ACP), while
+  its legacy-detection fixtures KEEP `aim-vue-node` deliberately (they
+  model real goa-factory-produced artifacts; the ACP-precedence test's
+  decoy now differs from the ACP adapter name, making the provenance
+  assertion meaningful). With this, `git grep aim-vue-node crates/`
+  returns only history: dead factory/-guarded tests and the
+  legacy-modelling detect fixtures.

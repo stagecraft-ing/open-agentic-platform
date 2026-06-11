@@ -4,8 +4,16 @@ slug: factory-project-lifecycle
 title: Factory Project Lifecycle — Create, Import, Open
 status: approved
 implementation: complete
-amended: "2026-06-10"
+amended: "2026-06-11"
 amendment_record: |
+  amended by spec 199 (2026-06-11), editorial: factory-project-detect's
+  current-protocol test fixtures use the live names (templateName
+  "template-encore" for scaffold-only; adapter "aim-vue-encore" in ACP
+  pipeline-state). The legacy-detection fixtures intentionally KEEP
+  "aim-vue-node": they model real-world goa-factory-produced artifacts
+  whose template.json genuinely carries that name, and the ACP-precedence
+  test's decoy marker now differs from the ACP adapter name, making its
+  provenance assertion meaningful. No detection behavior change.
   138-stagecraft-create-realised-scaffold (2026-05-04).
   self-amended (2026-06-05) — §6.3 Open-in-OPC handoff refined: the
   stagecraft web-UI "Open in OPC" button now resolves its deep link via a
@@ -82,6 +90,12 @@ refines:
 ---
 
 # 112 — Factory Project Lifecycle — Create, Import, Open
+
+> **Amended by spec 199 (2026-06-11), editorial.** The
+> factory-project-detect current-protocol fixtures use the live names
+> (`template-encore`, `aim-vue-encore`); legacy-detection fixtures keep
+> `aim-vue-node` deliberately, modelling real goa-factory-produced
+> artifacts. No detection behavior change.
 
 ## 1. Problem
 
