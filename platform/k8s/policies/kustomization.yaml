@@ -9,8 +9,15 @@
 # `kubectl apply -n <ns>` by post-create.sh. Recursing over this
 # directory would dump them into `default`. Only namespace-explicit
 # policy manifests belong in this list.
+#
+# WITHDRAWN (2026-06-12 incident, spec 196 §Incident addendum): the
+# cross-namespace metrics allows (`networkpolicy-allow-metrics-egress.yaml`)
+# selected service pods in namespaces that have no default-deny. A
+# NetworkPolicy isolates every pod it selects for the policy type it
+# names — there is no "dormant-additive" allow — so the objects became
+# whole-namespace deny-excepts and took down all public ingress. Those
+# flows return WITH each namespace's default-deny under its own spec.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - monitoring/networkpolicy-monitoring.yaml
-  - namespace-baseline/networkpolicy-allow-metrics-egress.yaml
