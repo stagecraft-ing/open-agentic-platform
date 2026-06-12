@@ -84,7 +84,7 @@ describe("listKnowledgeObjectsCore — IN (sql.join) array binding", () => {
       VALUES
         (${OBJ_A_ID}, ${PROJECT_ID}, 'failed', 'deterministic-text',
          '2026-05-07T10:00:00Z', '2026-05-07T10:00:01Z', 1000, 1),
-        (${OBJ_A_ID}, ${PROJECT_ID}, 'succeeded', 'deterministic-text',
+        (${OBJ_A_ID}, ${PROJECT_ID}, 'completed', 'deterministic-text',
          '2026-05-07T11:00:00Z', '2026-05-07T11:00:02Z', 2000, 2)
     `);
 
@@ -129,8 +129,8 @@ describe("listKnowledgeObjectsCore — IN (sql.join) array binding", () => {
     });
     const byId = new Map(result.objects.map((o) => [o.id, o]));
 
-    // OBJ_A: two runs, latest is "succeeded".
-    expect(byId.get(OBJ_A_ID)?.latestRun?.status).toBe("succeeded");
+    // OBJ_A: two runs, latest is "completed".
+    expect(byId.get(OBJ_A_ID)?.latestRun?.status).toBe("completed");
     expect(byId.get(OBJ_A_ID)?.latestRun?.durationMs).toBe(2000);
     // FU-014 regression — completedAt must serialize as ISO 8601 string for
     // populated rows. Prior bug: the handler called r.completed_at.toISOString()

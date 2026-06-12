@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:08104ef9bd2dd3fec59b4c920004365b5a2dfad458a347cec8402a2a51308cfc",
+  "graph_fingerprint": "sha256:258618cc45ce87f55c721aff42bbedbb785a604fe737b07e28953b51ce3b9e48",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3981,7 +3981,7 @@
       "title": "Encore-Test CI Job (ASI09 verification integrity — the encore-test CI gap, closed)",
       "spec_path": "specs/211-encore-test-ci-job/spec.md",
       "status": "draft",
-      "implementation": "pending",
+      "implementation": "in-progress",
       "governance": "",
       "owner": "",
       "group": "",

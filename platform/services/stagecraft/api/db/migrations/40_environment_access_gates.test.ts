@@ -17,6 +17,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../drizzle";
 
 const ORG_ID = "70137040-0000-0000-0000-000000000001";
+const USER_ID = "70137040-0000-0000-0000-000000000003";
 const PROJECT_ID = "70137040-0000-0000-0000-000000000002";
 const ENV_ID_GATE = "70137040-0000-0000-0000-000000000010";
 const ENV_ID_ALLOW = "70137040-0000-0000-0000-000000000011";
@@ -31,8 +32,14 @@ describe("spec 137 Phase 1 — migration 40 (environment access gates)", () => {
         ON CONFLICT (id) DO NOTHING
     `);
     await db.execute(sql`
-      INSERT INTO projects (id, org_id, name, slug)
-        VALUES (${PROJECT_ID}, ${ORG_ID}, 'spec137-mig40-project', 'spec137-mig40-project')
+      INSERT INTO users (id, email, password_hash, name, role)
+        VALUES (${USER_ID}, 'spec137-mig40@test', 'x', 'Spec137 Mig40 Tester', 'user')
+        ON CONFLICT (id) DO NOTHING
+    `);
+    await db.execute(sql`
+      INSERT INTO projects (id, org_id, name, slug, description, object_store_bucket, created_by)
+        VALUES (${PROJECT_ID}, ${ORG_ID}, 'spec137-mig40-project', 'spec137-mig40-project',
+                '', 'spec137-mig40-bucket', ${USER_ID})
         ON CONFLICT (id) DO NOTHING
     `);
     for (const envId of [ENV_ID_GATE, ENV_ID_ALLOW, ENV_ID_CASCADE]) {
@@ -59,6 +66,7 @@ describe("spec 137 Phase 1 — migration 40 (environment access gates)", () => {
         WHERE id IN (${ENV_ID_GATE}, ${ENV_ID_ALLOW}, ${ENV_ID_CASCADE})
     `);
     await db.execute(sql`DELETE FROM projects WHERE id = ${PROJECT_ID}`);
+    await db.execute(sql`DELETE FROM users WHERE id = ${USER_ID}`);
     await db.execute(sql`DELETE FROM organizations WHERE id = ${ORG_ID}`);
   });
 
@@ -72,13 +80,19 @@ describe("spec 137 Phase 1 — migration 40 (environment access gates)", () => {
         INSERT INTO environment_access_gates (environment_id, enabled, rauthy_client_ref)
           VALUES (${ENV_ID_GATE}, true, NULL)
       `),
-    ).rejects.toThrow(/enabled_requires_ref/i);
+    ).rejects.toMatchObject({ cause: { constraint: "environment_access_gates_enabled_requires_ref" } });
   });
 
+  // Migration 41 tightened the constraint: enabled=true also requires
+  // cookie_secret and rauthy_client_secret to be NOT NULL.
   it("accepts enabled=true with a rauthy_client_ref present", async () => {
     await db.execute(sql`
-      INSERT INTO environment_access_gates (environment_id, enabled, rauthy_client_ref)
-        VALUES (${ENV_ID_GATE}, true, 'rauthy-client-smoke-1')
+      INSERT INTO environment_access_gates (
+        environment_id, enabled, rauthy_client_ref,
+        rauthy_client_secret, cookie_secret
+      )
+        VALUES (${ENV_ID_GATE}, true, 'rauthy-client-smoke-1',
+                'rauthy-secret-smoke-1', 'cookie-secret-smoke-1')
     `);
     const row = await db.execute<{ count: string }>(sql`
       SELECT COUNT(*)::text AS count FROM environment_access_gates
@@ -114,7 +128,7 @@ describe("spec 137 Phase 1 — migration 40 (environment access gates)", () => {
         )
         VALUES (${ENV_ID_GATE}, false, NULL, 'okta', 'okta-client-1')
       `),
-    ).rejects.toThrow(/federated_provider_values/i);
+    ).rejects.toMatchObject({ cause: { constraint: "environment_access_gates_federated_provider_values" } });
   });
 
   it("accepts each known federated provider value", async () => {
@@ -145,7 +159,7 @@ describe("spec 137 Phase 1 — migration 40 (environment access gates)", () => {
         )
         VALUES (${ENV_ID_GATE}, false, NULL, 'google', NULL)
       `),
-    ).rejects.toThrow(/federated_pair_consistent/i);
+    ).rejects.toMatchObject({ cause: { constraint: "environment_access_gates_federated_pair_consistent" } });
   });
 
   it("rejects federated client_ref without provider (federated_pair_consistent)", async () => {
@@ -157,7 +171,7 @@ describe("spec 137 Phase 1 — migration 40 (environment access gates)", () => {
         )
         VALUES (${ENV_ID_GATE}, false, NULL, NULL, 'orphan-client')
       `),
-    ).rejects.toThrow(/federated_pair_consistent/i);
+    ).rejects.toMatchObject({ cause: { constraint: "environment_access_gates_federated_pair_consistent" } });
   });
 
   // -------------------------------------------------------------------------
@@ -170,7 +184,7 @@ describe("spec 137 Phase 1 — migration 40 (environment access gates)", () => {
         INSERT INTO environment_access_gate_allowlist_emails (environment_id, kind, value)
           VALUES (${ENV_ID_ALLOW}, 'phone', '555-1234')
       `),
-    ).rejects.toThrow(/kind_values/i);
+    ).rejects.toMatchObject({ cause: { constraint: "environment_access_gate_allowlist_emails_kind_values" } });
   });
 
   it("enforces case-insensitive uniqueness via lower(value) index", async () => {
@@ -183,7 +197,7 @@ describe("spec 137 Phase 1 — migration 40 (environment access gates)", () => {
         INSERT INTO environment_access_gate_allowlist_emails (environment_id, kind, value)
           VALUES (${ENV_ID_ALLOW}, 'email', 'alice@example.com')
       `),
-    ).rejects.toThrow(/environment_access_gate_allowlist_emails_unique/i);
+    ).rejects.toMatchObject({ cause: { constraint: "environment_access_gate_allowlist_emails_unique" } });
     // Different kind on the same value: allowed (kind is part of the unique index)
     await db.execute(sql`
       INSERT INTO environment_access_gate_allowlist_emails (environment_id, kind, value)
@@ -200,10 +214,15 @@ describe("spec 137 Phase 1 — migration 40 (environment access gates)", () => {
   // -------------------------------------------------------------------------
 
   it("cascades environment delete through both gate tables", async () => {
-    // Plant a gate + two allowlist entries on the cascade env
+    // Plant a gate + two allowlist entries on the cascade env.
+    // Migration 41 tightened the constraint: enabled=true requires both secrets.
     await db.execute(sql`
-      INSERT INTO environment_access_gates (environment_id, enabled, rauthy_client_ref)
-        VALUES (${ENV_ID_CASCADE}, true, 'rauthy-cascade-client')
+      INSERT INTO environment_access_gates (
+        environment_id, enabled, rauthy_client_ref,
+        rauthy_client_secret, cookie_secret
+      )
+        VALUES (${ENV_ID_CASCADE}, true, 'rauthy-cascade-client',
+                'rauthy-secret-cascade', 'cookie-secret-cascade')
     `);
     await db.execute(sql`
       INSERT INTO environment_access_gate_allowlist_emails (environment_id, kind, value)

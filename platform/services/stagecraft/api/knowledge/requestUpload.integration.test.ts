@@ -5,12 +5,42 @@
 // APIError.invalidArgument, mirroring the browser-side pre-check.
 // The two layers MUST agree on the same number — see
 // uploadLimits.test.ts for the constant pinning.
+//
+// `getAuthData` is stubbed because the test calls the api() wrapper
+// directly as a plain function (no HTTP request context), so the real
+// encore runtime returns null from getCurrentRequest(). The stub
+// injects ORG_ID so loadProjectScope resolves the seeded project row.
+//
+// `getPresignedUploadUrl` is stubbed because no MinIO instance is
+// available in the encore-test sandbox; the assertion only checks the
+// URL shape, which the stub satisfies.
 
-import { describe, expect, it, beforeAll, afterAll } from "vitest";
+import { describe, expect, it, beforeAll, afterAll, vi } from "vitest";
 import { sql } from "drizzle-orm";
 import { db } from "../db/drizzle";
-import { requestUpload } from "./knowledge";
 import { KNOWLEDGE_UPLOAD_MAX_BYTES } from "./uploadLimits";
+
+vi.mock("~encore/auth", () => ({
+  getAuthData: () => ({
+    userID: "55000000-0000-0000-0000-0000000000e2",
+    orgId: "55000000-0000-0000-0000-0000000000e1",
+    orgSlug: "request-upload-test",
+    githubLogin: "",
+    idpProvider: "",
+    idpLogin: "",
+    platformRole: "member",
+  }),
+}));
+
+vi.mock("./storage", async (importOriginal) => {
+  const real = await importOriginal<typeof import("./storage")>();
+  return {
+    ...real,
+    getPresignedUploadUrl: vi.fn(async () => "http://fake-s3/upload-url"),
+  };
+});
+
+import { requestUpload } from "./knowledge";
 
 const ORG_ID = "55000000-0000-0000-0000-0000000000e1";
 const USER_ID = "55000000-0000-0000-0000-0000000000e2";
@@ -24,6 +54,8 @@ async function deleteFixtures() {
     DELETE FROM projects WHERE id = ${PROJECT_ID}
   `);
   await db.execute(sql`DELETE FROM organizations WHERE id = ${ORG_ID}`);
+  // audit_log rows reference actor_user_id; remove them before deleting the user
+  await db.execute(sql`DELETE FROM audit_log WHERE actor_user_id = ${USER_ID}`);
   await db.execute(sql`DELETE FROM users WHERE id = ${USER_ID}`);
 }
 

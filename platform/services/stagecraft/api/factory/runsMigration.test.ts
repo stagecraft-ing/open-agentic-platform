@@ -1,21 +1,23 @@
 // Spec 124 Phase 1 — migration 31 (`factory_runs`) integration test.
 //
-// Verifies the migration body, FK semantics, idempotency unique key, and the
-// status CHECK constraint against a real Postgres. Designed to run under
-// `encore test` (which provisions a per-test database with all migrations
-// applied) — the assertions match what `make ci` will run.
+// Verifies the migration body, unique key, and the status CHECK constraint
+// against a real Postgres. Designed to run under `encore test` (which
+// provisions a per-test database with all migrations applied).
 //
 // What's covered:
 //   * project deletion CASCADEs to factory_runs (T016)
-//   * adapter deletion is rejected by the FK (NO ACTION default)
 //   * (org_id, client_run_id) is unique → reservation idempotency primitive
 //   * the status CHECK rejects values outside the closed set
 //
 // What's NOT covered here:
+//   * "rejects deletion of an adapter still referenced by a run" — the FK
+//     from factory_runs.adapter_id → factory_adapters was dropped by
+//     migration 34 (drop_legacy_factory_tables). adapter_id / process_id are
+//     plain TEXT columns since migration 38. The text-column behaviour is
+//     covered by api/db/migrations/38_factory_id_columns_to_text.test.ts.
 //   * The ordering-guard pre-flight (T013) is exercised manually during
-//     local `make dev-platform` migration runs and on the spec 124 phase-1
-//     verification log; running it under `encore test` is moot because
-//     Encore always applies migrations in order.
+//     local `make dev-platform` migration runs; running it under `encore test`
+//     is moot because Encore always applies migrations in order.
 
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { sql } from "drizzle-orm";
@@ -25,8 +27,11 @@ import { factoryRuns } from "../db/schema";
 const ORG_ID = "11111111-0000-0000-0000-0000000000a1";
 const USER_ID = "11111111-0000-0000-0000-0000000000a2";
 const PROJECT_ID = "11111111-0000-0000-0000-0000000000a3";
-const ADAPTER_ID = "11111111-0000-0000-0000-0000000000a4";
-const PROCESS_ID = "11111111-0000-0000-0000-0000000000a5";
+
+// migration 38 changed adapter_id / process_id to TEXT; synthetic ids insert
+// directly without any FK target row.
+const ADAPTER_ID = "synthetic-adapter-11111111-spec124-rest";
+const PROCESS_ID = "synthetic-process-11111111-spec124-rp-v1";
 
 describe("spec 124 — factory_runs migration", () => {
   beforeAll(async () => {
@@ -47,25 +52,13 @@ describe("spec 124 — factory_runs migration", () => {
         VALUES (${PROJECT_ID}, ${ORG_ID}, 'spec124-p', 'spec124-p', '', 'b-spec124', ${USER_ID})
         ON CONFLICT (id) DO NOTHING
     `);
-    await db.execute(sql`
-      INSERT INTO factory_adapters (id, org_id, name, version, manifest, source_sha)
-        VALUES (${ADAPTER_ID}, ${ORG_ID}, 'spec124-rest', 'v1', '{}'::jsonb, 'ada-sha-spec124')
-        ON CONFLICT (id) DO NOTHING
-    `);
-    await db.execute(sql`
-      INSERT INTO factory_processes (id, org_id, name, version, definition, source_sha)
-        VALUES (${PROCESS_ID}, ${ORG_ID}, 'spec124-rp', 'v1', '{}'::jsonb, 'proc-sha-spec124')
-        ON CONFLICT (id) DO NOTHING
-    `);
   });
 
   afterAll(async () => {
-    // Best-effort cleanup. CASCADE on project_id will reach factory_runs
-    // even if a test left rows behind.
+    // Best-effort cleanup in dependency order. CASCADE on project_id will
+    // reach factory_runs even if a test left rows behind.
     await db.execute(sql`DELETE FROM factory_runs WHERE org_id = ${ORG_ID}`);
     await db.execute(sql`DELETE FROM projects WHERE id = ${PROJECT_ID}`);
-    await db.execute(sql`DELETE FROM factory_processes WHERE id = ${PROCESS_ID}`);
-    await db.execute(sql`DELETE FROM factory_adapters WHERE id = ${ADAPTER_ID}`);
     await db.execute(sql`DELETE FROM users WHERE id = ${USER_ID}`);
     await db.execute(sql`DELETE FROM organizations WHERE id = ${ORG_ID}`);
   });
@@ -108,18 +101,6 @@ describe("spec 124 — factory_runs migration", () => {
     `);
   });
 
-  it("rejects deletion of an adapter still referenced by a run (no cascade)", async () => {
-    const runId = "11111111-0000-0000-0000-0000000000b3";
-    await db.execute(sql`
-      INSERT INTO factory_runs (id, org_id, project_id, triggered_by, adapter_id, process_id, client_run_id, status, source_shas)
-        VALUES (${runId}, ${ORG_ID}, ${PROJECT_ID}, ${USER_ID}, ${ADAPTER_ID}, ${PROCESS_ID}, 'cli-run-no-cascade', 'queued', '{}'::jsonb)
-    `);
-    await expect(
-      db.execute(sql`DELETE FROM factory_adapters WHERE id = ${ADAPTER_ID}`),
-    ).rejects.toThrow(/foreign key constraint/i);
-    await db.execute(sql`DELETE FROM factory_runs WHERE id = ${runId}`);
-  });
-
   it("treats (org_id, client_run_id) as unique — second insert with same key is rejected", async () => {
     const a = "11111111-0000-0000-0000-0000000000b4";
     const b = "11111111-0000-0000-0000-0000000000b5";
@@ -132,7 +113,11 @@ describe("spec 124 — factory_runs migration", () => {
         INSERT INTO factory_runs (id, org_id, project_id, triggered_by, adapter_id, process_id, client_run_id, status, source_shas)
           VALUES (${b}, ${ORG_ID}, ${PROJECT_ID}, ${USER_ID}, ${ADAPTER_ID}, ${PROCESS_ID}, 'cli-run-dup', 'queued', '{}'::jsonb)
       `),
-    ).rejects.toThrow(/factory_runs_org_client_run_id_uniq|unique constraint/i);
+    ).rejects.toMatchObject({
+      // drizzle-orm wraps query failures; the pg error (carrying the
+      // violated constraint's name) lives on `.cause`.
+      cause: { constraint: "factory_runs_org_client_run_id_uniq" },
+    });
     await db.execute(sql`DELETE FROM factory_runs WHERE id = ${a}`);
   });
 
@@ -143,6 +128,8 @@ describe("spec 124 — factory_runs migration", () => {
         INSERT INTO factory_runs (id, org_id, project_id, triggered_by, adapter_id, process_id, client_run_id, status, source_shas)
           VALUES (${runId}, ${ORG_ID}, ${PROJECT_ID}, ${USER_ID}, ${ADAPTER_ID}, ${PROCESS_ID}, 'cli-run-bad-status', 'in_progress', '{}'::jsonb)
       `),
-    ).rejects.toThrow(/factory_runs_status_check|check constraint/i);
+    ).rejects.toMatchObject({
+      cause: { constraint: "factory_runs_status_check" },
+    });
   });
 });
