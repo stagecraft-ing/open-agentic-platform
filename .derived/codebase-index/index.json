@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "63b7f285b9e97d14afe8ad3b37b76f7f7cc3be3fb044d01e0c7a09ff661c9fe5",
+    "contentHash": "bda9d3db38b88cc426e684adbbab8aac01266eeb447c2f178b75885faa389905",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -46649,6 +46649,34 @@
             "kind": "file",
             "locations": [
               {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/governance_certificate.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/orchestrator/src/circuit_breaker.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "crates/orchestrator/src/circuit_breaker.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "docs/owasp-agentic-top-10-2026.md"
               }
             ],
@@ -46671,6 +46699,20 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/factory/runsScheduler.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
             }
           },
           {
