@@ -6,7 +6,7 @@ status: approved
 implementation: in-progress
 owner: bart
 created: "2026-05-22"
-amended: "2026-06-11"
+amended: "2026-06-12"
 amendment_record: |
   amended by spec 178 (2026-05-24): mechanical regeneration of
   crates/featuregraph/tests/golden/features_graph.json reflecting the
@@ -30,6 +30,19 @@ amendment_record: |
   in-progress: the contract is amended ahead of the code swap. Distribution
   shape stays adapter-determined (npm is the first realized mode); spec 209
   owns enforcement activation, not this amendment.
+  self-amended (2026-06-12) — PR-2 implementation. The .kernel-version stamp
+  is now WRITTEN by the live stagecraft Create flow
+  (platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.ts,
+  wired into perRequestScaffold.ts before push): it records the resolved
+  spec-spine npm pin (read from the scaffolded package.json; root for single
+  profiles, public/ for dual), adapter identity + manifest hash, source SHA,
+  and toolchain_mode: pinned-toolchain (spec 168 E2). The vendored-binary CI
+  template (templates/kernel/tenant-ci.yml.tmpl) + its render_tenant_workflow,
+  and the synthetic scaffold-claim generator (kernel_emission/adapter_specs.rs
+  + build_scaffold_claim_spec) are retired; their establishes rows are removed
+  with the files. The Rust emit_kernel path remains the adapter-determined
+  fallback (OQ-6). 167 claims the new helper via an extends edge into spec
+  112's scaffold path (plan G4); 112 + 168 carry appended narrative entries.
 kind: capability
 domain: platform
 risk: high
@@ -48,9 +61,10 @@ establishes:
   - unit: { kind: file, path: crates/factory-engine/src/kernel_emission/version.rs }
   - unit: { kind: file, path: crates/factory-engine/src/kernel_emission/gather.rs }
   - unit: { kind: file, path: crates/factory-engine/src/kernel_emission/templates.rs }
-  - unit: { kind: file, path: crates/factory-engine/src/kernel_emission/adapter_specs.rs }
   - unit: { kind: file, path: crates/factory-engine/src/kernel_emission/emit.rs }
-  - unit: { kind: file, path: crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl }
+  # tenant-ci.yml.tmpl + adapter_specs.rs were retired in the PR-2 npm-kernel
+  # impl (the vendored-binary CI template + the synthetic scaffold-claim
+  # generator); their establishes rows are removed with the files.
   - unit: { kind: file, path: crates/factory-engine/templates/kernel/tenant.makefile.tmpl }
   - unit: { kind: file, path: crates/factory-engine/tests/kernel_emission_integration.rs }
 extends:
@@ -63,6 +77,12 @@ extends:
   - spec: "075-factory-workflow-engine"
     nature: additive
     unit: { kind: file, path: crates/factory-engine/src/lib.rs }
+  # The .kernel-version born-with stamp is 167's concept, written into the live
+  # stagecraft Create flow (spec 112's scaffold path). 167 claims the new
+  # helper additively; 112 carries the narrative self-amend (PR-2 / plan G4).
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.ts }
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }

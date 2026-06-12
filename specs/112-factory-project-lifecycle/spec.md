@@ -4,7 +4,7 @@ slug: factory-project-lifecycle
 title: Factory Project Lifecycle — Create, Import, Open
 status: approved
 implementation: complete
-amended: "2026-06-11"
+amended: "2026-06-12"
 amendment_record: |
   amended by spec 199 (2026-06-11), editorial: factory-project-detect's
   current-protocol test fixtures use the live names (templateName
@@ -31,6 +31,14 @@ amendment_record: |
   a generic 500. §5.3's scaffold-output VCS-free invariant graduated into
   the open standard (one normative sentence in
   standards/schemas/factory/adapter-manifest.schema.yaml `scaffold:`).
+  self-amended (2026-06-12) — the Create flow now writes the spec-167
+  `.kernel-version` born-with stamp into commit #1. perRequestScaffold.ts
+  gained a step-5 write (after the L0 pipeline-state seed, before push) via a
+  new sibling helper kernelVersionStamp.ts; create.ts threads adapter identity
+  + manifest into it. The helper file is claimed by spec 167 (extends edge,
+  the stamp is 167's concept — plan G4); this entry is the narrative record on
+  112's side. No project-lifecycle contract change: the stamp is one
+  additional commit-#1 artifact alongside `.factory/pipeline-state.json`.
 owner: bart
 created: "2026-04-22"
 kind: platform

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:8ec84b3f6a17bd9d524c2e0a8c1f3e68da8fd998dfb240cfdd1171f3bbe4a545",
+  "graph_fingerprint": "sha256:00be0a94f4a591ff27583374b3e389970e28382aa6769888a127a1172ca64bfa",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4311,13 +4311,6 @@
       "severity": "error",
       "path": "crates/factory-engine/src/inter_stage_manifest.rs",
       "message": "Malformed Spec directive: // Spec: specs/170-signed-inter-stage-manifests/spec.md",
-      "suggested_fix": "Fix header format"
-    },
-    {
-      "code": "INVALID_HEADER_FORMAT",
-      "severity": "error",
-      "path": "crates/factory-engine/src/kernel_emission/adapter_specs.rs",
-      "message": "Malformed Spec directive: // Spec: specs/167-born-with-spec-spine-kernel/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
