@@ -354,27 +354,37 @@ validation:
 # DUAL STACK MAPPING
 # ─────────────────────────────────────────────────────────────────────────────
 # For adapters that support dual_stack: maps Build Spec audiences
-# to physical application stacks.
+# to physical application variants. A variant is a standalone top-level
+# copy of the base (not an in-tree stack).
 #
 dual_stack:
-  # Maps audience → stack
-  audience_to_stack:
+  # Generator that emits the dual deployment (optional)
+  generator: string                 # e.g., "scripts/setup-dual-app.ts"
+
+  # Maps audience → variant
+  audience_to_variant:
     <audience_name>: string         # e.g., citizen: "public", staff: "internal"
 
-  # Stack names used in directory_conventions {stack} placeholder
-  stacks:
+  # Variant names used in directory_conventions {variant} placeholder
+  variants:
     public:
-      api: string                   # e.g., "api-public"
-      web: string                   # e.g., "web-public"
-      port_api: integer             # e.g., 3000
+      dir: string                   # top-level copy dir, e.g. "public"
+      api: string                   # backend app path, e.g. "apps/api"
+      web: string                   # SPA served, e.g. "apps/web"
+      port_api: integer             # e.g., 4000
       port_web: integer             # e.g., 5173
+      auth_driver: string           # e.g., "saml"
+      env_example: string           # e.g., ".env.external.example"
     internal:
-      api: string                   # e.g., "api-internal"
-      web: string                   # e.g., "web-internal"
-      port_api: integer             # e.g., 3001
+      dir: string                   # e.g., "internal"
+      api: string                   # e.g., "apps/api"
+      web: string                   # e.g., "apps/web-internal"
+      port_api: integer             # e.g., 4000
       port_web: integer             # e.g., 5174
+      auth_driver: string           # e.g., "entra-id"
+      env_example: string           # e.g., ".env.internal.example"
 
   # Data flow constraints
   data_access:
-    public: string                  # e.g., "proxy-only" — public stack NEVER touches database
-    internal: string                # e.g., "direct" — internal stack owns database
+    public: string                  # e.g., "proxy" — public copy proxies /api/v1/data/* to internal
+    internal: string                # e.g., "direct" — internal copy owns the database
