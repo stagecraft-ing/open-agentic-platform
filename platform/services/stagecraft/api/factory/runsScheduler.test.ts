@@ -13,6 +13,9 @@
 //   * terminal rows (ok / failed / cancelled) are never touched
 //   * env knob honoured: a small STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC
 //     value sweeps a row that would otherwise be young
+//
+// adapter_id / process_id are plain TEXT since migration 38 (dropped FK
+// from migration 34); no factory_adapters / factory_processes rows needed.
 
 import { describe, expect, it, beforeAll, afterAll, beforeEach } from "vitest";
 import { sql } from "drizzle-orm";
@@ -23,8 +26,10 @@ import { FACTORY_RUN_SWEPT } from "./auditActions";
 const ORG_ID = "55555555-0000-0000-0000-0000000000a1";
 const USER_ID = "55555555-0000-0000-0000-0000000000a2";
 const PROJECT_ID = "55555555-0000-0000-0000-0000000000a3";
-const ADAPTER_ID = "55555555-0000-0000-0000-0000000000a4";
-const PROCESS_ID = "55555555-0000-0000-0000-0000000000a5";
+
+// Synthetic TEXT ids — no FK target rows required after migration 34/38.
+const ADAPTER_ID = "synthetic-adapter-55555555-spec124-sweep";
+const PROCESS_ID = "synthetic-process-55555555-spec124-sweep-v1";
 
 const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
 
@@ -100,24 +105,14 @@ describe("spec 124 — sweepStaleFactoryRuns", () => {
         VALUES (${PROJECT_ID}, ${ORG_ID}, 'spec124-sweep-p', 'spec124-sweep-p', '', 'bucket-sweep', ${USER_ID})
         ON CONFLICT (id) DO NOTHING
     `);
-    await db.execute(sql`
-      INSERT INTO factory_adapters (id, org_id, name, version, manifest, source_sha)
-        VALUES (${ADAPTER_ID}, ${ORG_ID}, 'spec124-sweep', 'v1', '{}'::jsonb, 'a')
-        ON CONFLICT (id) DO NOTHING
-    `);
-    await db.execute(sql`
-      INSERT INTO factory_processes (id, org_id, name, version, definition, source_sha)
-        VALUES (${PROCESS_ID}, ${ORG_ID}, 'spec124-sweep-process', 'v1', '{}'::jsonb, 'p')
-        ON CONFLICT (id) DO NOTHING
-    `);
   });
 
   afterAll(async () => {
+    // Cleanup in dependency order; no factory_adapters / factory_processes
+    // rows were seeded (migration 34 dropped those tables).
     await db.execute(sql`DELETE FROM audit_log WHERE action = ${FACTORY_RUN_SWEPT} AND metadata->>'orgId' = ${ORG_ID}`);
     await db.execute(sql`DELETE FROM factory_runs WHERE org_id = ${ORG_ID}`);
     await db.execute(sql`DELETE FROM projects WHERE id = ${PROJECT_ID}`);
-    await db.execute(sql`DELETE FROM factory_processes WHERE id = ${PROCESS_ID}`);
-    await db.execute(sql`DELETE FROM factory_adapters WHERE id = ${ADAPTER_ID}`);
     await db.execute(sql`DELETE FROM users WHERE id = ${USER_ID}`);
     await db.execute(sql`DELETE FROM organizations WHERE id = ${ORG_ID}`);
     delete process.env.STAGECRAFT_FACTORY_RUN_STALE_AFTER_SEC;

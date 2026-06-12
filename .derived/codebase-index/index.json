@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "8c46655d1d782a66b76c25b5db464c75424a9620b78646d5a4f7a9e8f9a09d8d",
+    "contentHash": "8c36eebfedf5a1a894bdb29ce772a4f2987aaf64c1272af7fa43750e8a858075",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15639,9 +15639,6 @@
                 "file": "platform/services/stagecraft/api/factory/admission.ts"
               },
               {
-                "file": "platform/services/stagecraft/api/factory/agentCatalogMigration.dryrun.test.ts"
-              },
-              {
                 "file": "platform/services/stagecraft/api/factory/agentCatalogMigration.test.ts"
               },
               {
@@ -19315,8 +19312,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 739,
-                  "startLine": 735
+                  "endLine": 766,
+                  "startLine": 762
                 }
               }
             ],
@@ -21518,8 +21515,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 734,
-                  "startLine": 688
+                  "endLine": 761,
+                  "startLine": 715
                 }
               }
             ],
@@ -21819,6 +21816,9 @@
               },
               {
                 "file": ".github/workflows/ci-spec-code-coupling.yml"
+              },
+              {
+                "file": ".github/workflows/ci-stagecraft-encore.yml"
               },
               {
                 "file": ".github/workflows/ci-stagecraft.yml"
@@ -25144,8 +25144,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 687,
-                  "startLine": 665
+                  "endLine": 714,
+                  "startLine": 692
                 }
               }
             ],
@@ -25238,7 +25238,7 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 630,
+                  "endLine": 607,
                   "startLine": 526
                 }
               }
@@ -25804,8 +25804,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 780,
-                  "startLine": 740
+                  "endLine": 807,
+                  "startLine": 767
                 }
               }
             ],
@@ -25891,8 +25891,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 1009,
-                  "startLine": 781
+                  "endLine": 1037,
+                  "startLine": 808
                 }
               }
             ],
@@ -31818,9 +31818,6 @@
                 "file": "platform/services/stagecraft/api/factory/admission.ts"
               },
               {
-                "file": "platform/services/stagecraft/api/factory/agentCatalogMigration.dryrun.test.ts"
-              },
-              {
                 "file": "platform/services/stagecraft/api/factory/agentCatalogMigration.test.ts"
               },
               {
@@ -32488,6 +32485,9 @@
               },
               {
                 "file": "platform/services/stagecraft/scripts/docker-build.sh"
+              },
+              {
+                "file": "platform/services/stagecraft/scripts/encore-test-lane.mjs"
               },
               {
                 "file": "platform/services/stagecraft/scripts/migrate.mjs"
@@ -47294,7 +47294,15 @@
         ],
         "implementingPaths": [
           {
+            "path": ".github/workflows/ci-stagecraft-encore.yml",
+            "source": "spec-implements"
+          },
+          {
             "path": ".github/workflows/ci.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
             "source": "spec-implements"
           },
           {
@@ -47302,11 +47310,102 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/scripts/encore-test-lane.mjs",
+            "source": "spec-implements"
+          },
+          {
             "path": "tools/oap/ci-parity-check/src/lib.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-stagecraft-encore.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-stagecraft-encore.yml",
             "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "section",
+            "locations": [
+              {
+                "file": "Makefile",
+                "span": {
+                  "endLine": 657,
+                  "startLine": 608
+                }
+              }
+            ],
+            "ownership": true,
+            "sourceField": "co_authority",
+            "unit": {
+              "anchor": "ci-stagecraft-encore",
+              "file": "Makefile",
+              "kind": "section"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-stagecraft-encore.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-stagecraft-encore.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/scripts/encore-test-lane.mjs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/scripts/encore-test-lane.mjs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-stagecraft-encore.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-stagecraft-encore.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-stagecraft-encore.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-stagecraft-encore.yml"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -47347,6 +47446,20 @@
             "unit": {
               "kind": "file",
               "path": "tools/oap/ci-parity-check/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/tests/fixtures/aligned/Makefile"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/Makefile"
             }
           },
           {
@@ -47445,8 +47558,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 664,
-                  "startLine": 631
+                  "endLine": 691,
+                  "startLine": 658
                 }
               }
             ],

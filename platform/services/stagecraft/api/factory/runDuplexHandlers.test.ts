@@ -10,6 +10,11 @@
 //     `isClientEnvelope` before any handler runs — invalid)
 //   * terminal events emit the corresponding audit row
 //
+// adapter_id / process_id are plain TEXT since migration 38 (FK dropped by
+// migration 34); no factory_adapters / factory_processes rows are seeded.
+// agent_catalog was dropped by migration 35; agentRef in stage events
+// carries a literal id string — no catalog row required for duplex handlers.
+//
 // Excluded from `npm test` and run only under `encore test` — same posture
 // as runs.test.ts and runsMigration.test.ts (the live DB is required).
 
@@ -41,8 +46,14 @@ const ORG_ID = "44444444-0000-0000-0000-0000000000a1";
 const FOREIGN_ORG = "44444444-0000-0000-0000-0000000000a2";
 const USER_ID = "44444444-0000-0000-0000-0000000000a3";
 const PROJECT_ID = "44444444-0000-0000-0000-0000000000a4";
-const ADAPTER_ID = "44444444-0000-0000-0000-0000000000a5";
-const PROCESS_ID = "44444444-0000-0000-0000-0000000000a6";
+
+// Synthetic TEXT ids — migration 34 dropped factory_adapters / factory_processes;
+// migration 38 widened adapter_id / process_id to TEXT.
+const ADAPTER_ID = "synthetic-adapter-44444444-spec124-dx";
+const PROCESS_ID = "synthetic-process-44444444-spec124-dx-v1";
+
+// A literal agent id used in agentRef fields. agent_catalog was dropped by
+// migration 35; duplex handlers store the ref as-is without a catalog lookup.
 const AGENT_ID = "44444444-0000-0000-0000-0000000000a7";
 
 const CTX = { orgId: ORG_ID, userId: USER_ID };
@@ -100,9 +111,7 @@ describe("spec 124 §6 — factory.run.* duplex handlers", () => {
         VALUES (${ORG_ID}, 'spec124-dx-org', 'spec124-dx-org')
         ON CONFLICT (id) DO NOTHING
     `);
-    // The foreign-org fixture exists so the foreign run row's FK on
-    // factory_adapters / factory_processes (which we share across orgs in
-    // the test seed) does not fall over.
+    // Foreign org for the cross-org rejection tests.
     await db.execute(sql`
       INSERT INTO organizations (id, name, slug)
         VALUES (${FOREIGN_ORG}, 'spec124-dx-foreign', 'spec124-dx-foreign')
@@ -118,30 +127,12 @@ describe("spec 124 §6 — factory.run.* duplex handlers", () => {
         VALUES (${PROJECT_ID}, ${ORG_ID}, 'spec124-dx-p', 'spec124-dx-p', '', 'bucket-spec124-dx', ${USER_ID})
         ON CONFLICT (id) DO NOTHING
     `);
-    await db.execute(sql`
-      INSERT INTO factory_adapters (id, org_id, name, version, manifest, source_sha)
-        VALUES (${ADAPTER_ID}, ${ORG_ID}, 'spec124-dx', 'v1', '{}'::jsonb, 'ada-sha-dx')
-        ON CONFLICT (id) DO NOTHING
-    `);
-    await db.execute(sql`
-      INSERT INTO factory_processes (id, org_id, name, version, definition, source_sha)
-        VALUES (${PROCESS_ID}, ${ORG_ID}, 'spec124-dx-process', 'v1', '{}'::jsonb, 'proc-sha-dx')
-        ON CONFLICT (id) DO NOTHING
-    `);
-    await db.execute(sql`
-      INSERT INTO agent_catalog (id, org_id, name, version, status, frontmatter, body_markdown, content_hash, created_by)
-        VALUES (${AGENT_ID}, ${ORG_ID}, 'dx-agent', 1, 'published', '{}'::jsonb, '# dx', 'dx-hash-1', ${USER_ID})
-        ON CONFLICT (id) DO NOTHING
-    `);
   });
 
   afterAll(async () => {
     await db.execute(sql`DELETE FROM factory_runs WHERE org_id IN (${ORG_ID}, ${FOREIGN_ORG})`);
     await db.execute(sql`DELETE FROM audit_log WHERE target_type = 'factory_runs' AND metadata->>'orgId' IN (${ORG_ID}, ${FOREIGN_ORG})`);
-    await db.execute(sql`DELETE FROM agent_catalog WHERE id = ${AGENT_ID}`);
     await db.execute(sql`DELETE FROM projects WHERE id = ${PROJECT_ID}`);
-    await db.execute(sql`DELETE FROM factory_processes WHERE id = ${PROCESS_ID}`);
-    await db.execute(sql`DELETE FROM factory_adapters WHERE id = ${ADAPTER_ID}`);
     await db.execute(sql`DELETE FROM users WHERE id = ${USER_ID}`);
     await db.execute(sql`DELETE FROM organizations WHERE id IN (${ORG_ID}, ${FOREIGN_ORG})`);
   });

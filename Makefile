@@ -15,7 +15,7 @@
         check-deps \
         agent-frontmatter-ts ci-agent-frontmatter-ts \
         build-certificate verify-certificate \
-        ci ci-strict ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-schema-parity \
+        ci ci-strict ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-stagecraft-encore ci-schema-parity \
         factory-schema-lockstep \
         ci-supply-chain ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm \
         ci-spec-code-coupling \
@@ -453,7 +453,7 @@ destroy-%:
 #                   requires `rustup target add <triple>` per target.
 # ============================================================
 
-ci-strict: ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-schema-parity factory-schema-lockstep ci-spec-code-coupling ci-supply-chain
+ci-strict: ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-stagecraft-encore ci-schema-parity factory-schema-lockstep ci-spec-code-coupling ci-supply-chain
 	@echo ""
 	@echo "==> ci-strict: parity-mirror gates passed."
 
@@ -588,6 +588,33 @@ ci-stagecraft: ci-agent-frontmatter-ts
 	@echo "==> ci-stagecraft: npm ci + tsc + vitest"
 	@# CI=true forces vitest to run-once instead of TTY watch mode.
 	cd platform/services/stagecraft && CI=true npm ci && CI=true npx tsc --noEmit && CI=true npm test
+
+# ============================================================
+# Stagecraft encore-test lane (spec 211) — mirrors
+# .github/workflows/ci-stagecraft-encore.yml.
+#
+# Runs the DB-bound suites that vite.config.ts excludes from bare vitest
+# (the `encore test` lane) against Encore-provisioned per-test databases,
+# then cross-checks the reporter output against the exclude list so a
+# file can never silently skip both lanes (FR-003 skip-as-pass guard).
+# Requires the Encore CLI + Docker locally; CI installs the same pinned
+# CLI version ci-stagecraft.yml uses for codegen.
+#
+# Strict-lane only (spec 135 / FR-002 decision): the suite itself runs in
+# seconds warm, but the lane needs the Encore CLI + a Docker daemon —
+# dependencies `make ci` must not require for the daily loop. Measured
+# 2026-06-12 (M1 Pro): DB-bound set ~40s warm incl. daemon startup.
+# ============================================================
+## tag: ci-stagecraft-encore
+
+ci-stagecraft-encore:
+	@echo "==> ci-stagecraft-encore: DB-bound encore-test lane (spec 211)"
+	@command -v encore >/dev/null 2>&1 || { echo "  MISSING: encore — brew install encoredev/tap/encore"; exit 1; }
+	cd platform/services/stagecraft && CI=true npm ci
+	cd platform/services/stagecraft/web && npx react-router build
+	cd platform/services/stagecraft && node scripts/encore-test-lane.mjs list > /tmp/encore-lane-files.txt
+	cd platform/services/stagecraft && CI=true encore test --run $$(cat /tmp/encore-lane-files.txt) --fileParallelism=false --reporter=default --reporter=json --outputFile=/tmp/encore-test-report.json
+	cd platform/services/stagecraft && node scripts/encore-test-lane.mjs check --report /tmp/encore-test-report.json
 
 # ============================================================
 # Schema parity (spec 120 FR-003) — asserts the Rust mirror in
@@ -988,6 +1015,7 @@ help:
 	@echo "  make ci-tools           Spec tool crates + registry-consumer contract subsets + staleness gate"
 	@echo "  make ci-desktop         product/apps/opc rust + version alignment + tsc + vitest"
 	@echo "  make ci-stagecraft      platform/services/stagecraft: npm ci + tsc + vitest"
+	@echo "  make ci-stagecraft-encore  DB-bound encore-test lane + coverage guard (spec 211; needs encore CLI + Docker)"
 	@echo "  make ci-spec-code-coupling  PR-time spec/code coupling gate (spec 127)"
 	@echo "  make ci-supply-chain    cargo-deny + pnpm/npm audit (spec 116; blocking)"
 	@echo "  make ci-cross           axiomregent cross-target matrix (opt-in; requires rustup targets)"

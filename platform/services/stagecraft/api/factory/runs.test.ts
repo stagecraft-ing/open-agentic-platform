@@ -1,13 +1,32 @@
 // Spec 124 §4 / T021 + T023 — `/api/factory/runs` integration tests.
 //
-// Covers the four canonical reservation cases plus list/detail behaviour:
-//   * happy-path reservation populates a row with `source_shas.agents[]`
+// Covers the canonical reservation cases plus list/detail behaviour:
+//   * happy-path reservation populates a row with correct source_shas
 //   * idempotent replay with the same `clientRunId` returns the existing
 //     row (and a hot loop produces exactly one row)
 //   * foreign-org GETs are 404
-//   * a project binding pinned to a retired catalog row rejects the
-//     reservation (412 / failedPrecondition)
 //   * list pagination + filters return the expected slice
+//
+// Spec 199 cutover (2026-06-12): factory_adapters / factory_processes /
+// agent_catalog / project_agent_bindings are all dropped (migrations 34/35).
+// Adapters resolve via loadSubstrateForOrg + findAdapterView from
+// factory_artifact_substrate; the process comes from findEnvelopeProcess;
+// admission is gated on factory_admissions (spec 198). The substrate seeding
+// idiom follows grantDuplexHandlers.test.ts / approvalSummaryEndpoint.test.ts.
+//
+// Two tests from the previous version of this suite were retired:
+//   "rejects reservation when binding points at retired catalog row" —
+//       reserveRunCore now builds process.definition as { byKind: ... } from
+//       substrate rows (spec 199 FR-004); walkForAgentRefs finds zero embedded
+//       AgentReference tokens so resolveProcessAgentRefs always returns [].
+//       Factory bindings no longer participate in the reservation path through
+//       this surface. The retired-agent contract is still live in
+//       runAgentRefs.ts::resolveProcessAgentRefs and is tested directly in
+//       that module's own integration suite.
+//   "two projects bound to same agent record identical source_shas.agents" —
+//       same reason: agents[] is always [] at reservation time under spec 199.
+//       The spec 122 Stage CD comparator contract is exercised at the engine
+//       layer (crates/factory-engine).
 //
 // These tests touch the live database; they are EXCLUDED from `npm test`
 // (vite.config.ts) and run only under `encore test`. See the
@@ -24,11 +43,15 @@ import { APIError } from "encore.dev/api";
 const ORG_ID = "22222222-0000-0000-0000-0000000000a1";
 const USER_ID = "22222222-0000-0000-0000-0000000000a2";
 const PROJECT_ID = "22222222-0000-0000-0000-0000000000a3";
-const ADAPTER_ID = "22222222-0000-0000-0000-0000000000a4";
-const PROCESS_ID = "22222222-0000-0000-0000-0000000000a5";
-const AGENT_ID = "22222222-0000-0000-0000-0000000000a6";
-const RETIRED_AGENT_ID = "22222222-0000-0000-0000-0000000000a7";
 const FOREIGN_ORG = "33333333-0000-0000-0000-0000000000a1";
+
+// Substrate-derived identity (spec 199): the origin that factory_upstreams
+// points at, the adapter name the manifest declares, and the process id the
+// governance envelope declares.
+const ORIGIN = "factory-encore-runs-test";
+const ADAPTER_NAME = "aim-vue-encore";
+const PROCESS_NAME = "seven-stage-build";
+const FACTORY_SHA = "a".repeat(40);
 
 // The reservation/list/detail Core functions take auth explicitly so the
 // integration test does not need to wire the `~encore/auth` runtime.
@@ -59,57 +82,84 @@ describe("spec 124 — /api/factory/runs", () => {
         VALUES (${PROJECT_ID}, ${ORG_ID}, 'spec124-rp', 'spec124-rp', '', 'bucket-spec124-runs', ${USER_ID})
         ON CONFLICT (id) DO NOTHING
     `);
+
+    // Spec 199 seeding: factory_upstreams row so resolveOriginsForOrg picks
+    // up the factory origin id.
     await db.execute(sql`
-      INSERT INTO factory_adapters (id, org_id, name, version, manifest, source_sha)
-        VALUES (${ADAPTER_ID}, ${ORG_ID}, 'spec124-rest', 'v1', '{}'::jsonb, 'ada-sha-runs')
-        ON CONFLICT (id) DO NOTHING
+      INSERT INTO factory_upstreams (org_id, source_id, role, repo_url, ref)
+        VALUES (${ORG_ID}, ${ORIGIN}, 'orchestration',
+                'https://github.com/example/factory-encore-runs-test.git', 'main')
+        ON CONFLICT (org_id, source_id) DO NOTHING
     `);
-    // Process body references one agent via by_name_latest. The agent is
-    // resolved at reservation time.
+
+    // Adapter manifest row — findAdapterView resolves adapter.name from the
+    // parsed upstream_body YAML.
     await db.execute(sql`
-      INSERT INTO factory_processes (id, org_id, name, version, definition, source_sha)
-        VALUES (${PROCESS_ID}, ${ORG_ID}, 'spec124-rp-process', 'v1',
-                '{"stages":[{"id":"s0","agent_ref":{"by_name_latest":{"name":"extract"}}}]}'::jsonb,
-                'proc-sha-runs')
-        ON CONFLICT (id) DO NOTHING
+      INSERT INTO factory_artifact_substrate
+        (org_id, origin, path, kind, version, status, upstream_sha, upstream_body, content_hash, conflict_state)
+      VALUES
+        (${ORG_ID}, ${ORIGIN},
+         'adapters/aim-vue-encore/adapter.yaml', 'adapter-manifest', 1, 'active',
+         ${FACTORY_SHA},
+         ${'adapter:\n  name: aim-vue-encore\n  version: "1.0.0"\n'},
+         ${"1".padStart(64, "0")}, 'ok')
+      ON CONFLICT (org_id, origin, path, version) DO NOTHING
     `);
-    // Published agent for happy-path resolution.
+
+    // Governance envelope row — findEnvelopeProcess reads process.id from
+    // the parsed upstream_body YAML.
     await db.execute(sql`
-      INSERT INTO agent_catalog (id, org_id, name, version, status, frontmatter, body_markdown, content_hash, created_by)
-        VALUES (${AGENT_ID}, ${ORG_ID}, 'extract', 1, 'published', '{}'::jsonb, '# extract', 'agent-hash-1', ${USER_ID})
-        ON CONFLICT (id) DO NOTHING
+      INSERT INTO factory_artifact_substrate
+        (org_id, origin, path, kind, version, status, upstream_sha, upstream_body, content_hash, conflict_state)
+      VALUES
+        (${ORG_ID}, ${ORIGIN},
+         'process/governance-envelope.yaml', 'governance-envelope', 1, 'active',
+         ${FACTORY_SHA},
+         ${'schema_version: "1.0.0"\nprocess:\n  id: seven-stage-build\n  objective_class: scaffold\n  goal_identifier_scheme: uuid\n'},
+         ${"2".padStart(64, "0")}, 'ok')
+      ON CONFLICT (org_id, origin, path, version) DO NOTHING
     `);
-    // Retired agent for the rejection test (kept under a different name).
+
+    // Admission record — isFactoryAdmitted checks for the latest row for
+    // (orgId, origin). factory_admissions has no unique constraint so the
+    // idempotent pattern is delete-then-insert (matches overrideTrustClass.test.ts).
     await db.execute(sql`
-      INSERT INTO agent_catalog (id, org_id, name, version, status, frontmatter, body_markdown, content_hash, created_by)
-        VALUES (${RETIRED_AGENT_ID}, ${ORG_ID}, 'retired-trigger', 1, 'retired', '{}'::jsonb, '# retired', 'agent-hash-retired', ${USER_ID})
-        ON CONFLICT (id) DO NOTHING
+      DELETE FROM factory_admissions WHERE org_id = ${ORG_ID}::uuid AND origin = ${ORIGIN}
     `);
-    // Bind the published agent to the project. Phase resolves
-    // `by_name_latest` against this binding, not against the catalog directly.
+    const composed = JSON.stringify({
+      process: null,
+      adapters: {
+        "aim-vue-encore": { governance: {}, manifestHash: "manifest-hash-runs-test" },
+      },
+      agentDigests: {},
+      agentIds: {},
+    });
     await db.execute(sql`
-      INSERT INTO project_agent_bindings (project_id, org_agent_id, pinned_version, pinned_content_hash, bound_by)
-        VALUES (${PROJECT_ID}, ${AGENT_ID}, 1, 'agent-hash-1', ${USER_ID})
-        ON CONFLICT (project_id, org_agent_id) DO NOTHING
+      INSERT INTO factory_admissions
+        (org_id, origin, status, envelope_hash, composed, violations, scaffold_resolutions)
+      VALUES
+        (${ORG_ID}, ${ORIGIN}, 'admitted', ${"3".padStart(64, "0")},
+         ${composed}::jsonb, '[]'::jsonb, '{}'::jsonb)
     `);
   });
 
   afterAll(async () => {
-    await db.execute(sql`DELETE FROM factory_runs WHERE org_id = ${ORG_ID} OR org_id = ${FOREIGN_ORG}`);
-    await db.execute(sql`DELETE FROM project_agent_bindings WHERE project_id = ${PROJECT_ID}`);
-    await db.execute(sql`DELETE FROM agent_catalog WHERE id IN (${AGENT_ID}, ${RETIRED_AGENT_ID})`);
+    // Cleanup in dependency order.
+    await db.execute(sql`DELETE FROM factory_runs WHERE org_id IN (${ORG_ID}, ${FOREIGN_ORG})`);
+    await db.execute(sql`DELETE FROM audit_log WHERE actor_user_id = ${USER_ID}`);
+    await db.execute(sql`DELETE FROM factory_admissions WHERE org_id = ${ORG_ID}`);
+    await db.execute(sql`DELETE FROM factory_artifact_substrate WHERE org_id = ${ORG_ID}`);
+    await db.execute(sql`DELETE FROM factory_upstreams WHERE org_id = ${ORG_ID}`);
     await db.execute(sql`DELETE FROM projects WHERE id = ${PROJECT_ID}`);
-    await db.execute(sql`DELETE FROM factory_processes WHERE id = ${PROCESS_ID}`);
-    await db.execute(sql`DELETE FROM factory_adapters WHERE id = ${ADAPTER_ID}`);
-    await db.execute(sql`DELETE FROM users WHERE id = ${USER_ID}`);
     await db.execute(sql`DELETE FROM organizations WHERE id IN (${ORG_ID}, ${FOREIGN_ORG})`);
+    await db.execute(sql`DELETE FROM users WHERE id = ${USER_ID}`);
   });
 
-  it("reserves a new run, populates source_shas.agents, returns reserved=true", async () => {
+  it("reserves a new run, populates source_shas, returns reserved=true", async () => {
     const result = await reserveRunCore(
       {
-        adapterName: "spec124-rest",
-        processName: "spec124-rp-process",
+        adapterName: ADAPTER_NAME,
+        processName: PROCESS_NAME,
         projectId: PROJECT_ID,
         clientRunId: "happy-path-1",
       },
@@ -117,18 +167,20 @@ describe("spec 124 — /api/factory/runs", () => {
     );
     expect(result.reserved).toBe(true);
     expect(result.runId).toBeDefined();
-    expect(result.sourceShas.adapter).toBe("ada-sha-runs");
-    expect(result.sourceShas.process).toBe("proc-sha-runs");
-    expect(result.sourceShas.agents).toEqual([
-      { orgAgentId: AGENT_ID, version: 1, contentHash: "agent-hash-1" },
-    ]);
+    // adapter sha comes from the adapter-manifest row's upstream_sha.
+    expect(result.sourceShas.adapter).toBe(FACTORY_SHA);
+    // process sha comes from factorySourceSha (same upstream_sha for this origin).
+    expect(result.sourceShas.process).toBe(FACTORY_SHA);
+    // spec 199: process.definition is { byKind: ... } — no embedded
+    // AgentReference tokens, so agents[] is always empty at reservation.
+    expect(result.sourceShas.agents).toEqual([]);
   });
 
   it("idempotent replay returns the same runId without creating a second row", async () => {
     const first = await reserveRunCore(
       {
-        adapterName: "spec124-rest",
-        processName: "spec124-rp-process",
+        adapterName: ADAPTER_NAME,
+        processName: PROCESS_NAME,
         projectId: PROJECT_ID,
         clientRunId: "idempotent-1",
       },
@@ -136,8 +188,8 @@ describe("spec 124 — /api/factory/runs", () => {
     );
     const second = await reserveRunCore(
       {
-        adapterName: "spec124-rest",
-        processName: "spec124-rp-process",
+        adapterName: ADAPTER_NAME,
+        processName: PROCESS_NAME,
         projectId: PROJECT_ID,
         clientRunId: "idempotent-1",
       },
@@ -153,126 +205,42 @@ describe("spec 124 — /api/factory/runs", () => {
     expect(Number((rows.rows[0] as { c: string | number }).c)).toBe(1);
   });
 
-  it("hot-loop concurrent reservations produce exactly one row (T023)", async () => {
-    // Fire the same (orgId, clientRunId) ten times in parallel; the
-    // (org_id, client_run_id) unique index plus ON CONFLICT DO NOTHING
-    // ensures only one row is created.
-    const results = await Promise.all(
-      Array.from({ length: 10 }, () =>
-        reserveRunCore(
-          {
-            adapterName: "spec124-rest",
-            processName: "spec124-rp-process",
-            projectId: PROJECT_ID,
-            clientRunId: "hot-loop-1",
-          },
-          ORG_CTX,
+  it(
+    "hot-loop concurrent reservations produce exactly one row (T023)",
+    async () => {
+      // Fire the same (orgId, clientRunId) ten times in parallel; the
+      // (org_id, client_run_id) unique index plus ON CONFLICT DO NOTHING
+      // ensures only one row is created. Each reservation loads the org
+      // substrate, so under parallel test files the default 5s budget is
+      // too tight — this is a stress test, give it headroom.
+      const results = await Promise.all(
+        Array.from({ length: 10 }, () =>
+          reserveRunCore(
+            {
+              adapterName: ADAPTER_NAME,
+              processName: PROCESS_NAME,
+              projectId: PROJECT_ID,
+              clientRunId: "hot-loop-1",
+            },
+            ORG_CTX,
+          ),
         ),
-      ),
-    );
-    const ids = new Set(results.map((r) => r.runId));
-    expect(ids.size).toBe(1);
-    const rows = await db.execute(sql`
-      SELECT count(*) AS c FROM factory_runs WHERE org_id = ${ORG_ID} AND client_run_id = 'hot-loop-1'
-    `);
-    expect(Number((rows.rows[0] as { c: string | number }).c)).toBe(1);
-  });
-
-  it("rejects reservation when the project's binding points at a retired catalog row", async () => {
-    // Re-bind the project to the retired agent under the binding name
-    // the process expects. We swap bindings under a unique-fixture
-    // project so the happy-path tests above don't see this state.
-    const altProject = "22222222-0000-0000-0000-0000000000b9";
-    await db.execute(sql`
-      INSERT INTO projects (id, org_id, name, slug, description, object_store_bucket, created_by)
-        VALUES (${altProject}, ${ORG_ID}, 'spec124-retired-p', 'spec124-retired-p', '', 'bucket-retired', ${USER_ID})
-        ON CONFLICT (id) DO NOTHING
-    `);
-    // Bind the project to the *retired* row under the name the process
-    // looks up (`extract`) by reusing the same agent name with status=retired.
-    const retiredNamedAgent = "22222222-0000-0000-0000-0000000000ba";
-    await db.execute(sql`
-      INSERT INTO agent_catalog (id, org_id, name, version, status, frontmatter, body_markdown, content_hash, created_by)
-        VALUES (${retiredNamedAgent}, ${ORG_ID}, 'extract', 9, 'retired', '{}'::jsonb, '# retired-extract', 'agent-hash-retired-named', ${USER_ID})
-        ON CONFLICT (id) DO NOTHING
-    `);
-    await db.execute(sql`
-      INSERT INTO project_agent_bindings (project_id, org_agent_id, pinned_version, pinned_content_hash, bound_by)
-        VALUES (${altProject}, ${retiredNamedAgent}, 9, 'agent-hash-retired-named', ${USER_ID})
-        ON CONFLICT (project_id, org_agent_id) DO NOTHING
-    `);
-
-    await expect(
-      reserveRunCore(
-        {
-          adapterName: "spec124-rest",
-          processName: "spec124-rp-process",
-          projectId: altProject,
-          clientRunId: "retired-1",
-        },
-        ORG_CTX,
-      ),
-    ).rejects.toThrow(/retired/i);
-
-    // Cleanup the alt fixture.
-    await db.execute(sql`DELETE FROM project_agent_bindings WHERE project_id = ${altProject}`);
-    await db.execute(sql`DELETE FROM agent_catalog WHERE id = ${retiredNamedAgent}`);
-    await db.execute(sql`DELETE FROM projects WHERE id = ${altProject}`);
-  });
-
-  it("two projects bound to the same agent record identical source_shas.agents (A-8 cross-project comparator)", async () => {
-    // A-8 / spec §10: a Stage CD comparator (spec 122) needs two runs of
-    // the same (adapter, process) against two different projects to record
-    // identical `agents[].content_hash` arrays when both projects bind the
-    // same catalog row. This test pins the comparator contract at the
-    // reservation surface — anything later (resolver drift, binding
-    // mutation) is owned by the consumer specs.
-    const altProjectId = "22222222-0000-0000-0000-0000000000c1";
-    await db.execute(sql`
-      INSERT INTO projects (id, org_id, name, slug, description, object_store_bucket, created_by)
-        VALUES (${altProjectId}, ${ORG_ID}, 'spec124-rp-alt', 'spec124-rp-alt', '', 'bucket-spec124-runs-alt', ${USER_ID})
-        ON CONFLICT (id) DO NOTHING
-    `);
-    await db.execute(sql`
-      INSERT INTO project_agent_bindings (project_id, org_agent_id, pinned_version, pinned_content_hash, bound_by)
-        VALUES (${altProjectId}, ${AGENT_ID}, 1, 'agent-hash-1', ${USER_ID})
-        ON CONFLICT (project_id, org_agent_id) DO NOTHING
-    `);
-
-    const runA = await reserveRunCore(
-      {
-        adapterName: "spec124-rest",
-        processName: "spec124-rp-process",
-        projectId: PROJECT_ID,
-        clientRunId: "comparator-a",
-      },
-      ORG_CTX,
-    );
-    const runB = await reserveRunCore(
-      {
-        adapterName: "spec124-rest",
-        processName: "spec124-rp-process",
-        projectId: altProjectId,
-        clientRunId: "comparator-b",
-      },
-      ORG_CTX,
-    );
-
-    expect(runA.runId).not.toBe(runB.runId);
-    const hashesA = runA.sourceShas.agents.map((a) => a.contentHash);
-    const hashesB = runB.sourceShas.agents.map((a) => a.contentHash);
-    expect(hashesA).toEqual(hashesB);
-    expect(runA.sourceShas.agents).toEqual(runB.sourceShas.agents);
-
-    await db.execute(sql`DELETE FROM project_agent_bindings WHERE project_id = ${altProjectId}`);
-    await db.execute(sql`DELETE FROM projects WHERE id = ${altProjectId}`);
-  });
+      );
+      const ids = new Set(results.map((r) => r.runId));
+      expect(ids.size).toBe(1);
+      const rows = await db.execute(sql`
+        SELECT count(*) AS c FROM factory_runs WHERE org_id = ${ORG_ID} AND client_run_id = 'hot-loop-1'
+      `);
+      expect(Number((rows.rows[0] as { c: string | number }).c)).toBe(1);
+    },
+    20_000,
+  );
 
   it("returns 404 when fetching a run from a foreign org", async () => {
     const created = await reserveRunCore(
       {
-        adapterName: "spec124-rest",
-        processName: "spec124-rp-process",
+        adapterName: ADAPTER_NAME,
+        processName: PROCESS_NAME,
         projectId: PROJECT_ID,
         clientRunId: "foreign-org-1",
       },
@@ -287,8 +255,8 @@ describe("spec 124 — /api/factory/runs", () => {
     // Create two runs in different statuses.
     const a = await reserveRunCore(
       {
-        adapterName: "spec124-rest",
-        processName: "spec124-rp-process",
+        adapterName: ADAPTER_NAME,
+        processName: PROCESS_NAME,
         projectId: PROJECT_ID,
         clientRunId: "list-a",
       },
@@ -296,8 +264,8 @@ describe("spec 124 — /api/factory/runs", () => {
     );
     const b = await reserveRunCore(
       {
-        adapterName: "spec124-rest",
-        processName: "spec124-rp-process",
+        adapterName: ADAPTER_NAME,
+        processName: PROCESS_NAME,
         projectId: PROJECT_ID,
         clientRunId: "list-b",
       },
@@ -307,7 +275,7 @@ describe("spec 124 — /api/factory/runs", () => {
     await db.execute(sql`UPDATE factory_runs SET status = 'running' WHERE id = ${a.runId}`);
 
     const queued = await listRunsCore(
-      { status: "queued", adapter: "spec124-rest" },
+      { status: "queued", adapter: ADAPTER_NAME },
       ORG_CTX,
     );
     const queuedIds = queued.runs.map((r) => r.id);
@@ -335,5 +303,64 @@ describe("spec 124 — /api/factory/runs", () => {
     await expect(
       listRunsCore({ before: "not-a-date" }, ORG_CTX),
     ).rejects.toMatchObject({ code: APIError.invalidArgument("x").code });
+  });
+
+  it("rejects reservation when the org has no admitted factory", async () => {
+    // Use a distinct org id that has substrate rows but NO admission record.
+    // reserveRunCore must fail with failedPrecondition.
+    const inadmissibleOrg = "22222222-0000-0000-0000-00000000ff01";
+    const inadmissibleUser = "22222222-0000-0000-0000-00000000ff02";
+    await db.execute(sql`
+      INSERT INTO organizations (id, name, slug)
+        VALUES (${inadmissibleOrg}, 'spec124-inadmissible', 'spec124-inadmissible')
+        ON CONFLICT (id) DO NOTHING
+    `);
+    await db.execute(sql`
+      INSERT INTO users (id, email, password_hash, name, role)
+        VALUES (${inadmissibleUser}, 'spec124-inadmissible@test', 'x', 'Inadmissible', 'user')
+        ON CONFLICT (id) DO NOTHING
+    `);
+    // Same substrate shape as the admitted org but no factory_admissions row.
+    await db.execute(sql`
+      INSERT INTO factory_upstreams (org_id, source_id, role, repo_url, ref)
+        VALUES (${inadmissibleOrg}, ${ORIGIN}, 'orchestration',
+                'https://github.com/example/factory-encore-runs-test.git', 'main')
+        ON CONFLICT (org_id, source_id) DO NOTHING
+    `);
+    await db.execute(sql`
+      INSERT INTO factory_artifact_substrate
+        (org_id, origin, path, kind, version, status, upstream_sha, upstream_body, content_hash, conflict_state)
+      VALUES
+        (${inadmissibleOrg}, ${ORIGIN},
+         'adapters/aim-vue-encore/adapter.yaml', 'adapter-manifest', 1, 'active',
+         ${FACTORY_SHA},
+         ${'adapter:\n  name: aim-vue-encore\n  version: "1.0.0"\n'},
+         ${"a".padStart(64, "0")}, 'ok'),
+        (${inadmissibleOrg}, ${ORIGIN},
+         'process/governance-envelope.yaml', 'governance-envelope', 1, 'active',
+         ${FACTORY_SHA},
+         ${'schema_version: "1.0.0"\nprocess:\n  id: seven-stage-build\n  objective_class: scaffold\n  goal_identifier_scheme: uuid\n'},
+         ${"b".padStart(64, "0")}, 'ok')
+      ON CONFLICT (org_id, origin, path, version) DO NOTHING
+    `);
+
+    try {
+      await expect(
+        reserveRunCore(
+          {
+            adapterName: ADAPTER_NAME,
+            processName: PROCESS_NAME,
+            clientRunId: "inadmissible-1",
+          },
+          { orgId: inadmissibleOrg, userID: inadmissibleUser },
+        ),
+      ).rejects.toThrow(/cannot start a run/i);
+    } finally {
+      // Cleanup regardless of assertion outcome.
+      await db.execute(sql`DELETE FROM factory_artifact_substrate WHERE org_id = ${inadmissibleOrg}`);
+      await db.execute(sql`DELETE FROM factory_upstreams WHERE org_id = ${inadmissibleOrg}`);
+      await db.execute(sql`DELETE FROM users WHERE id = ${inadmissibleUser}`);
+      await db.execute(sql`DELETE FROM organizations WHERE id = ${inadmissibleOrg}`);
+    }
   });
 });

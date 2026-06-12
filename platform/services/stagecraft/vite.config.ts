@@ -79,9 +79,7 @@ export default defineConfig({
       // live `factory_artifacts*` tables and run only under `encore test`.
       "**/factory/conflicts.test.ts",
       "**/factory/artifacts.test.ts",
-      // Spec 139 Phase 2 — agent_catalog → substrate migration dry-run +
-      // dispatch / createOapNative E2E tests; live DB.
-      "**/factory/agentCatalogMigration.dryrun.test.ts",
+      // Spec 139 Phase 2 — dispatch / createOapNative E2E tests; live DB.
       "**/agents/dispatch.test.ts",
       "**/projects/scaffold/createOapNative.test.ts",
       // Spec 139 Phase 4b — bindings.ts substrate-direct integration

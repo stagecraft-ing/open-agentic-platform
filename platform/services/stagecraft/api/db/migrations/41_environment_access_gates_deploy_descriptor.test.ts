@@ -19,6 +19,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../drizzle";
 
 const ORG_ID = "70137041-0000-0000-0000-000000000001";
+const USER_ID = "70137041-0000-0000-0000-000000000003";
 const PROJECT_ID = "70137041-0000-0000-0000-000000000002";
 const ENV_ID = "70137041-0000-0000-0000-000000000010";
 
@@ -30,8 +31,14 @@ describe("spec 137 — migration 41 (gate deploy-descriptor secrets)", () => {
         ON CONFLICT (id) DO NOTHING
     `);
     await db.execute(sql`
-      INSERT INTO projects (id, org_id, name, slug)
-        VALUES (${PROJECT_ID}, ${ORG_ID}, 'spec137-mig41-project', 'spec137-mig41-project')
+      INSERT INTO users (id, email, password_hash, name, role)
+        VALUES (${USER_ID}, 'spec137-mig41@test', 'x', 'Spec137 Mig41 Tester', 'user')
+        ON CONFLICT (id) DO NOTHING
+    `);
+    await db.execute(sql`
+      INSERT INTO projects (id, org_id, name, slug, description, object_store_bucket, created_by)
+        VALUES (${PROJECT_ID}, ${ORG_ID}, 'spec137-mig41-project', 'spec137-mig41-project',
+                '', 'spec137-mig41-bucket', ${USER_ID})
         ON CONFLICT (id) DO NOTHING
     `);
     await db.execute(sql`
@@ -47,6 +54,7 @@ describe("spec 137 — migration 41 (gate deploy-descriptor secrets)", () => {
     `);
     await db.execute(sql`DELETE FROM environments WHERE id = ${ENV_ID}`);
     await db.execute(sql`DELETE FROM projects WHERE id = ${PROJECT_ID}`);
+    await db.execute(sql`DELETE FROM users WHERE id = ${USER_ID}`);
     await db.execute(sql`DELETE FROM organizations WHERE id = ${ORG_ID}`);
   });
 
@@ -59,7 +67,7 @@ describe("spec 137 — migration 41 (gate deploy-descriptor secrets)", () => {
         )
         VALUES (${ENV_ID}, true, 'rauthy-client-x', 'rauthy-secret-x', NULL)
       `),
-    ).rejects.toThrow(/enabled_requires_secrets/i);
+    ).rejects.toMatchObject({ cause: { constraint: "environment_access_gates_enabled_requires_secrets" } });
   });
 
   it("rejects enabled=true with NULL rauthy_client_secret (enabled_requires_secrets)", async () => {
@@ -71,7 +79,7 @@ describe("spec 137 — migration 41 (gate deploy-descriptor secrets)", () => {
         )
         VALUES (${ENV_ID}, true, 'rauthy-client-x', NULL, 'cookie-secret-x')
       `),
-    ).rejects.toThrow(/enabled_requires_secrets/i);
+    ).rejects.toMatchObject({ cause: { constraint: "environment_access_gates_enabled_requires_secrets" } });
   });
 
   it("accepts enabled=true with both secrets populated", async () => {

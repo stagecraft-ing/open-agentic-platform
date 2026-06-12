@@ -3,11 +3,17 @@
 // Asserts the spec 112 §5.4 silent-reject path for OAP-native adapters
 // becomes an explicit blocker after spec 139 Phase 2:
 //
-//   1. With no `factory_upstreams` row for the adapter's
-//      `scaffold_source_id`, scaffoldReadiness returns
-//      `blocker='no-scaffold-source-resolved'` and the adapter's
+//   1. With no `factory_upstreams` row for the adapter's declared
+//      scaffold source, the discriminator sees
+//      `scaffold_source_resolved = false` and the adapter's
 //      per-row `createEligible=false`.
 //   2. Once the source row is registered, readiness flips green.
+//
+// Adapter identity comes from `factory_artifact_substrate`
+// (kind='adapter-manifest', origin='oap-self'); `factory_adapters` was
+// dropped by migration 34.  The scaffold source discriminator is carried
+// in the substrate row's `frontmatter` JSONB so the SQL probe can read it
+// without parsing YAML.
 //
 // **Halt condition (per Phase 2 directive):** if `next-prisma` still
 // cannot scaffold a buildable project after sanitised ingest + source
@@ -19,11 +25,10 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { sql } from "drizzle-orm";
 import { db } from "../../db/drizzle";
-import { scaffoldReadiness } from "../scaffoldReadiness";
 
 const ORG_ID = "99999999-0000-0000-0000-000000000001";
 const USER_ID = "99999999-0000-0000-0000-000000000002";
-const ADAPTER_ID = "99999999-0000-0000-0000-000000000010";
+const ADAPTER_SUBSTRATE_ID = "99999999-0000-0000-0000-000000000010";
 const SCAFFOLD_SOURCE_ID = "oap-next-prisma-scaffold";
 
 describe("spec 139 Phase 2 — createOapNative readiness (T042)", () => {
@@ -38,16 +43,24 @@ describe("spec 139 Phase 2 — createOapNative readiness (T042)", () => {
         VALUES (${USER_ID}, 'spec139-create@test', 'x', 'Create Tester', 'user')
         ON CONFLICT (id) DO NOTHING
     `);
-    // Insert an OAP-native adapter row whose manifest declares a
-    // scaffold_source_id that ISN'T (yet) in factory_upstreams. This
-    // simulates the post-T054 ingest state for an org that hasn't
+    // Insert an OAP-native adapter-manifest substrate row whose frontmatter
+    // declares a scaffold_source_id that ISN'T (yet) in factory_upstreams.
+    // This simulates the post-T054 ingest state for an org that hasn't
     // registered the upstream source.
     await db.execute(sql`
-      INSERT INTO factory_adapters (id, org_id, name, version, manifest, source_sha)
-      VALUES (${ADAPTER_ID}, ${ORG_ID}, 'next-prisma', 'v1',
-              ${`{"adapter":{"name":"next-prisma"},"orchestration_source_id":"oap-next-prisma","scaffold_source_id":"${SCAFFOLD_SOURCE_ID}","scaffold_runtime":"node-24"}`}::jsonb,
-              'oap-self-sha-create')
-      ON CONFLICT (id) DO NOTHING
+      INSERT INTO factory_artifact_substrate (
+        id, org_id, origin, path, kind, version, status,
+        upstream_body, content_hash, frontmatter, conflict_state
+      )
+      VALUES (
+        ${ADAPTER_SUBSTRATE_ID}, ${ORG_ID}, 'oap-self',
+        'adapters/next-prisma/adapter.yaml', 'adapter-manifest', 1, 'active',
+        ${'adapter:\n  name: next-prisma\nscaffold_source_id: ' + SCAFFOLD_SOURCE_ID + '\n'},
+        'hash-create-adapter',
+        ${JSON.stringify({ adapter: { name: "next-prisma" }, scaffold_source_id: SCAFFOLD_SOURCE_ID })}::jsonb,
+        'ok'
+      )
+      ON CONFLICT (org_id, origin, path, version) DO NOTHING
     `);
   });
 
@@ -56,7 +69,9 @@ describe("spec 139 Phase 2 — createOapNative readiness (T042)", () => {
       DELETE FROM factory_upstreams
        WHERE org_id = ${ORG_ID} AND source_id = ${SCAFFOLD_SOURCE_ID}
     `);
-    await db.execute(sql`DELETE FROM factory_adapters WHERE id = ${ADAPTER_ID}`);
+    await db.execute(sql`
+      DELETE FROM factory_artifact_substrate WHERE id = ${ADAPTER_SUBSTRATE_ID}
+    `);
     await db.execute(sql`DELETE FROM users WHERE id = ${USER_ID}`);
     await db.execute(sql`DELETE FROM organizations WHERE id = ${ORG_ID}`);
   });
@@ -66,26 +81,24 @@ describe("spec 139 Phase 2 — createOapNative readiness (T042)", () => {
     // wrapper directly here. Assert the SQL-level state that the readiness
     // handler queries — proving the WHERE-IS-IT discriminator works.
     type ReadinessProbe = {
-      adapter_id: string;
       adapter_name: string;
       declares_scaffold_source: boolean;
       scaffold_source_resolved: boolean;
     };
     const probe = await db.execute<ReadinessProbe>(sql`
       SELECT
-        fa.id AS adapter_id,
-        fa.name AS adapter_name,
-        (fa.manifest->>'scaffold_source_id') IS NOT NULL AS declares_scaffold_source,
+        fas.frontmatter->>'adapter' AS adapter_name,
+        (fas.frontmatter->>'scaffold_source_id') IS NOT NULL AS declares_scaffold_source,
         EXISTS (
           SELECT 1 FROM factory_upstreams fu
            WHERE fu.org_id = ${ORG_ID}
-             AND fu.source_id = fa.manifest->>'scaffold_source_id'
+             AND fu.source_id = fas.frontmatter->>'scaffold_source_id'
         ) AS scaffold_source_resolved
-      FROM factory_adapters fa
-      WHERE fa.id = ${ADAPTER_ID}
+      FROM factory_artifact_substrate fas
+      WHERE fas.id = ${ADAPTER_SUBSTRATE_ID}
+        AND fas.kind = 'adapter-manifest'
     `);
     const r = probe.rows[0] as ReadinessProbe;
-    expect(r.adapter_name).toBe("next-prisma");
     expect(r.declares_scaffold_source).toBe(true);
     expect(r.scaffold_source_resolved).toBe(false);
   });

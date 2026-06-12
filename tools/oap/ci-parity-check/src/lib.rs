@@ -70,6 +70,10 @@ pub const ENFORCING_WORKFLOWS: &[&str] = &[
     "ci-schema-parity.yml",
     "ci-spec-code-coupling.yml",
     "ci-stagecraft.yml",
+    // spec 211 — the DB-bound encore-test lane; `make ci-strict` mirrors it
+    // via the `ci-stagecraft-encore` target (lane derivation + encore test +
+    // the skip-as-pass coverage guard).
+    "ci-stagecraft-encore.yml",
     "ci-supply-chain.yml",
     "spec-conformance.yml",
 ];
