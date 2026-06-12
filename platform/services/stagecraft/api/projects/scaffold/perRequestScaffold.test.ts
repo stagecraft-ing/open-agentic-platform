@@ -8,7 +8,7 @@
 // never shells npm/tsx) — runs under bare vitest.
 
 import { describe, expect, test } from "vitest";
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { scaffoldFromPrebuilt } from "./perRequestScaffold";
@@ -27,7 +27,13 @@ function makeWorkspaceWithDualPrebuilt(): string {
     writeFileSync(join(root, ".git", "HEAD"), "ref: refs/heads/main\n");
     mkdirSync(join(root, "apps", "api"), { recursive: true });
     writeFileSync(join(root, "apps", "api", "main.ts"), "export {};\n");
-    writeFileSync(join(root, "package.json"), `{"name":"${variant}"}\n`);
+    // The born-with kernel pin (spec 167): the spec-spine devDependency the
+    // .kernel-version stamp reads. dual copies the base per-variant, so the
+    // pin lives in each variant's package.json (no root package.json).
+    writeFileSync(
+      join(root, "package.json"),
+      `{"name":"${variant}","devDependencies":{"spec-spine":"0.2.0"}}\n`
+    );
     // .gitignore (a FILE starting with ".git") must survive the filter.
     writeFileSync(join(root, ".gitignore"), "node_modules\n");
     // Nested node_modules — the exclusion must hold at any depth, and must
@@ -54,6 +60,13 @@ describe("scaffoldFromPrebuilt — VCS-free output (spec 112 §5.3)", () => {
         selectedModules: [],
         destDir: dest,
         pipelineStateSeed: { level: "L0" },
+        adapter: {
+          id: "adapter-id",
+          name: "aim-vue-encore",
+          version: "0.1.0",
+          sourceSha: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+        },
+        manifest: { adapter: { name: "aim-vue-encore", version: "0.1.0" } },
       });
       expect(result.destDir).toBe(dest);
 
@@ -77,6 +90,16 @@ describe("scaffoldFromPrebuilt — VCS-free output (spec 112 §5.3)", () => {
 
       // The L0 seed still lands (step 4).
       expect(existsSync(join(dest, ".factory", "pipeline-state.json"))).toBe(true);
+
+      // The .kernel-version born-with stamp lands at the project root (step 5,
+      // spec 167), with the resolved pin read from a variant's package.json
+      // (dual has no root package.json) and the pinned-toolchain mode.
+      const stampPath = join(dest, ".kernel-version");
+      expect(existsSync(stampPath)).toBe(true);
+      const stamp = readFileSync(stampPath, "utf8");
+      expect(stamp).toContain("toolchain_mode: pinned-toolchain");
+      expect(stamp).toContain("spec_spine_version: 0.2.0");
+      expect(stamp).toContain("aim-vue-encore");
     } finally {
       rmSync(ws, { recursive: true, force: true });
     }

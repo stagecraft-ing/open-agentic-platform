@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "7eeb8561e350c8f82e9e6dbeb33d8306d2a53215e0661656d7bb29da65d0d2e1",
+    "contentHash": "155e92cfb86cab53034c32b99c9eddced2b321ebcca7f67b7e230211c8189cbf",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -20394,6 +20394,12 @@
                 "file": "platform/services/stagecraft/api/projects/scaffold/githubRepoCreate.ts"
               },
               {
+                "file": "platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts"
               },
               {
@@ -22384,6 +22390,12 @@
               },
               {
                 "file": "platform/services/stagecraft/api/projects/scaffold/githubRepoCreate.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts"
@@ -32235,6 +32247,12 @@
                 "file": "platform/services/stagecraft/api/projects/scaffold/githubRepoCreate.ts"
               },
               {
+                "file": "platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts"
               },
               {
@@ -33133,9 +33151,6 @@
                 "file": "crates/factory-engine/src/inter_stage_manifest.rs"
               },
               {
-                "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
-              },
-              {
                 "file": "crates/factory-engine/src/kernel_emission/emit.rs"
               },
               {
@@ -33221,9 +33236,6 @@
               },
               {
                 "file": "crates/factory-engine/src/virtual_root.rs"
-              },
-              {
-                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
               },
               {
                 "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
@@ -34967,10 +34979,6 @@
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-engine/src/kernel_emission/adapter_specs.rs",
-            "source": "multiple"
-          },
-          {
             "path": "crates/factory-engine/src/kernel_emission/emit.rs",
             "source": "multiple"
           },
@@ -34995,10 +35003,6 @@
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl",
-            "source": "spec-implements"
-          },
-          {
             "path": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl",
             "source": "spec-implements"
           },
@@ -35009,15 +35013,16 @@
           {
             "path": "crates/featuregraph/tests/golden/features_graph.json",
             "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.ts",
+            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
           {
             "kind": "directory",
             "locations": [
-              {
-                "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
-              },
               {
                 "file": "crates/factory-engine/src/kernel_emission/emit.rs"
               },
@@ -35039,20 +35044,6 @@
             "unit": {
               "kind": "directory",
               "path": "crates/factory-engine/src/kernel_emission"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
             }
           },
           {
@@ -35123,20 +35114,6 @@
             "unit": {
               "kind": "file",
               "path": "crates/factory-engine/src/kernel_emission/version.rs"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
             }
           },
           {
@@ -35220,9 +35197,6 @@
               },
               {
                 "file": "crates/factory-engine/src/inter_stage_manifest.rs"
-              },
-              {
-                "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
               },
               {
                 "file": "crates/factory-engine/src/kernel_emission/emit.rs"
@@ -35310,9 +35284,6 @@
               },
               {
                 "file": "crates/factory-engine/src/virtual_root.rs"
-              },
-              {
-                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
               },
               {
                 "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
@@ -35413,6 +35384,20 @@
             "unit": {
               "kind": "file",
               "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projects/scaffold/kernelVersionStamp.ts"
             }
           },
           {
@@ -36186,9 +36171,6 @@
                 "file": "crates/factory-engine/src/inter_stage_manifest.rs"
               },
               {
-                "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
-              },
-              {
                 "file": "crates/factory-engine/src/kernel_emission/emit.rs"
               },
               {
@@ -36274,9 +36256,6 @@
               },
               {
                 "file": "crates/factory-engine/src/virtual_root.rs"
-              },
-              {
-                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
               },
               {
                 "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
@@ -43785,9 +43764,6 @@
                 "file": "crates/factory-engine/src/inter_stage_manifest.rs"
               },
               {
-                "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
-              },
-              {
                 "file": "crates/factory-engine/src/kernel_emission/emit.rs"
               },
               {
@@ -43873,9 +43849,6 @@
               },
               {
                 "file": "crates/factory-engine/src/virtual_root.rs"
-              },
-              {
-                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
               },
               {
                 "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
@@ -44766,9 +44739,6 @@
                 "file": "crates/factory-engine/src/inter_stage_manifest.rs"
               },
               {
-                "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
-              },
-              {
                 "file": "crates/factory-engine/src/kernel_emission/emit.rs"
               },
               {
@@ -44854,9 +44824,6 @@
               },
               {
                 "file": "crates/factory-engine/src/virtual_root.rs"
-              },
-              {
-                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
               },
               {
                 "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
@@ -45491,9 +45458,6 @@
                 "file": "crates/factory-engine/src/inter_stage_manifest.rs"
               },
               {
-                "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
-              },
-              {
                 "file": "crates/factory-engine/src/kernel_emission/emit.rs"
               },
               {
@@ -45579,9 +45543,6 @@
               },
               {
                 "file": "crates/factory-engine/src/virtual_root.rs"
-              },
-              {
-                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
               },
               {
                 "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
@@ -46218,9 +46179,6 @@
                 "file": "crates/factory-engine/src/inter_stage_manifest.rs"
               },
               {
-                "file": "crates/factory-engine/src/kernel_emission/adapter_specs.rs"
-              },
-              {
                 "file": "crates/factory-engine/src/kernel_emission/emit.rs"
               },
               {
@@ -46306,9 +46264,6 @@
               },
               {
                 "file": "crates/factory-engine/src/virtual_root.rs"
-              },
-              {
-                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
               },
               {
                 "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
@@ -46432,10 +46387,6 @@
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl",
-            "source": "spec-implements"
-          },
-          {
             "path": "crates/featuregraph/tests/golden/features_graph.json",
             "source": "spec-implements"
           }
@@ -46509,20 +46460,6 @@
             "unit": {
               "kind": "file",
               "path": "crates/factory-engine/src/kernel_emission/emit.rs"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "refines",
-            "unit": {
-              "kind": "file",
-              "path": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
             }
           }
         ],
@@ -47134,10 +47071,6 @@
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl",
-            "source": "spec-implements"
-          },
-          {
             "path": "crates/featuregraph/tests/golden/features_graph.json",
             "source": "spec-implements"
           }
@@ -47155,20 +47088,6 @@
             "unit": {
               "kind": "file",
               "path": "crates/factory-engine/src/governance_certificate.rs"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
-              "path": "crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl"
             }
           },
           {

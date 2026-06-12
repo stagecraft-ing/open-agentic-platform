@@ -6,7 +6,7 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-05-22"
-amended: "2026-06-11"
+amended: "2026-06-12"
 amendment_record: |
   amended by spec 178 (2026-05-24): mechanical regeneration of
   crates/featuregraph/tests/golden/features_graph.json reflecting the
@@ -22,6 +22,14 @@ amendment_record: |
   2026-06-11 self-amendment. No change to spec 168's certificate emission
   or verifier contract; the verifier still ships with the kernel, now via
   the pinned spec-spine distribution rather than loose vendored binaries.
+  amended by spec 167 (2026-06-12), PR-2 retirement touch: 168's extends
+  edges on kernel_emission/{templates.rs,emit.rs} and
+  tests/kernel_emission_integration.rs were edited when 167's PR-2 retired the
+  vendored-binary CI workflow template + the scaffold-claim generator. 168's
+  establishes target templates/kernel/toolchain.yaml.tmpl is UNCHANGED and the
+  certificate_toolchain emission contract (FR-001/FR-008) is intact — the
+  fallback emit_kernel still writes .factory/toolchain.yaml with the
+  emitter/verifier pin. Editorial-on-168; the change is 167's.
 kind: capability
 domain: platform
 risk: medium
