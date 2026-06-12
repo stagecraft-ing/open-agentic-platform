@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "e5355766c3006586be7e5dd29c77bfb6b43690aeaaad15b600c03ac8ef40b654",
+    "contentHash": "591fb7971a09f1083234b6e51bece36475e441efd271e92077d84b0842ad2833",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -21509,6 +21509,14 @@
           {
             "path": "deny.toml",
             "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/package.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "product/pnpm-workspace.yaml",
+            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
@@ -21557,6 +21565,34 @@
             "unit": {
               "kind": "file",
               "path": "deny.toml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/package.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/package.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "product/pnpm-workspace.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "product/pnpm-workspace.yaml"
             }
           }
         ],

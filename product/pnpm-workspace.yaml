@@ -2,6 +2,20 @@ packages:
   - "apps/*"
   - "packages/*"
 
+# GHSA-gv7w-rqvm-qjhr (2026-06-12 advisory wave, esbuild <0.28.1):
+# ignored-with-rationale rather than overridden. The patched 0.28.1
+# regresses down-level transforms ("Transforming destructuring to the
+# configured target environment ... is not supported yet") against the
+# OPC Tauri target set (chrome87/safari14), breaking `vite build`. The
+# advisory's vector is the Deno-module binary fetch trusting
+# NPM_CONFIG_REGISTRY at install time — not our lockfile-pinned pnpm
+# install path. Revisit (drop the ignore, take the patched release)
+# when esbuild ships a fix for the transform regression. Spec 116
+# supply-chain gate response, recorded in the spec's implementation log.
+auditConfig:
+  ignoreGhsas:
+    - "GHSA-gv7w-rqvm-qjhr"
+
 onlyBuiltDependencies:
   - "@parcel/watcher"
   - "better-sqlite3"

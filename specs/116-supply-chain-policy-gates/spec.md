@@ -21,6 +21,15 @@ code_aliases: ["SUPPLY_CHAIN_POLICY"]
 establishes:
   - unit: { kind: file, path: deny.toml }
   - unit: { kind: file, path: .github/workflows/ci-supply-chain.yml }
+refines:
+  # §11 advisory responses — the audit-response knobs (dependency
+  # overrides, documented audit ignores) are this spec's gate machinery
+  # even though the host manifests belong to their service specs, same
+  # as deny.toml's triaged ignores (2026-06-12, GHSA-gv7w-rqvm-qjhr).
+  - aspect: "advisory-response-overrides"
+    unit: { kind: file, path: platform/services/stagecraft/package.json }
+  - aspect: "advisory-response-overrides"
+    unit: { kind: file, path: product/pnpm-workspace.yaml }
 co_authority:
   - with_specs:
       - "104-makefile-ci-parity-contract"
@@ -365,3 +374,21 @@ does not belong to this spec — open a follow-up if pursued.
 - Spec 127 (`spec-code-coupling-gate`) adds an `ci-spec-code-coupling`
   Makefile target as a sibling above `ci-supply-chain` in the `make ci`
   composition. No change to this spec's gates or warn-window posture.
+
+## 11. Advisory response log
+
+- **2026-06-12 — GHSA-gv7w-rqvm-qjhr (esbuild <0.28.1, high).** The
+  advisory wave landed mid-day and turned both JS audit gates red on
+  every open PR. Two-pronged response, each leg justified on its own
+  facts: (a) **stagecraft (npm)** — `"overrides": { "esbuild": "^0.28.1" }`
+  takes the patched release; validated by the full vitest lane (585
+  green) and the react-router frontend build. (b) **product (pnpm)** —
+  the patched 0.28.1 itself regresses down-level transforms against the
+  OPC Tauri target set (chrome87/safari14: "Transforming destructuring
+  … is not supported yet"), breaking `vite build`; since the advisory's
+  vector is the Deno-module binary fetch trusting `NPM_CONFIG_REGISTRY`
+  at install time (not our lockfile-pinned pnpm path),
+  `auditConfig.ignoreGhsas` carries the documented ignore until esbuild
+  ships a transform fix, at which point the ignore drops in favour of
+  the override. This entry is the triage record the gate design (§8)
+  prescribes for advisory storms.
