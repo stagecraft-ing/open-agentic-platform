@@ -39,6 +39,7 @@ members = [
     "tools/oap/assumption-cascade-check",
     "tools/oap/ci-parity-check",
     "tools/oap/codification-gate",
+    "tools/oap/factory-schema-lockstep",
     "tools/oap/oap-code-index-enrich",
     "tools/oap/oap-registry-enrich",
     "tools/oap/policy-compiler",

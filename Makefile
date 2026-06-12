@@ -16,6 +16,7 @@
         agent-frontmatter-ts ci-agent-frontmatter-ts \
         build-certificate verify-certificate \
         ci ci-strict ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-schema-parity \
+        factory-schema-lockstep \
         ci-supply-chain ci-supply-chain-cargo ci-supply-chain-pnpm ci-supply-chain-npm \
         ci-spec-code-coupling \
         ci-cross ci-parity \
@@ -452,7 +453,7 @@ destroy-%:
 #                   requires `rustup target add <triple>` per target.
 # ============================================================
 
-ci-strict: ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-schema-parity ci-spec-code-coupling ci-supply-chain
+ci-strict: ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-schema-parity factory-schema-lockstep ci-spec-code-coupling ci-supply-chain
 	@echo ""
 	@echo "==> ci-strict: parity-mirror gates passed."
 
@@ -612,6 +613,45 @@ ci-schema-parity:
 	@echo ""
 	@echo "==> ci-schema-parity: walk TS descriptors and compare"
 	bun run tools/oap/schema-parity-check/index.mjs
+
+# ============================================================
+# Factory schema lockstep (spec 212) — mirrors
+# .github/workflows/ci-factory-schema-lockstep.yml (the PR lane).
+#
+# Cross-repo contract parity: OAP's canonical standards/schemas/factory/**
+# vs the owned factory source factory-encore's contract/schemas/** under a
+# three-mode structural compare + the spec-197 FR-005 GoA-concept guard.
+#
+# CI fetches the pinned ref (specs/212-*/spec.md `pinned_ref`) into
+# .factory-encore/ via FACTORY_ENCORE_RO_TOKEN. Locally, point FE_SCHEMAS at
+# an existing factory-encore checkout's contract/schemas, or export the token
+# to fetch. Absent both, the LOCAL run degrades gracefully (loud skip) — the
+# CI lane is the enforcing gate and is never skipped-green.
+# ============================================================
+## tag: factory-schema-lockstep
+FE_SCHEMAS ?= .factory-encore/contract/schemas
+
+factory-schema-lockstep:
+	@echo "==> factory-schema-lockstep: cross-repo contract lockstep (spec 212)"
+	cargo build --release --manifest-path tools/oap/factory-schema-lockstep/Cargo.toml --target-dir tools/oap/factory-schema-lockstep/target
+	cargo test --manifest-path tools/oap/factory-schema-lockstep/Cargo.toml --target-dir tools/oap/factory-schema-lockstep/target
+	@# Resolve the factory-encore contract/schemas tree. The pin (FR-007) lives
+	@# in specs/212-factory-schema-lockstep-ci/spec.md. Prefer an existing local
+	@# checkout (FE_SCHEMAS); else fetch the pinned ref if a token is present.
+	@if [ -d "$(FE_SCHEMAS)" ]; then \
+	    ./tools/oap/factory-schema-lockstep/target/release/factory-schema-lockstep --oap-dir standards/schemas/factory --factory-dir $(FE_SCHEMAS); \
+	  elif [ -n "$$FACTORY_ENCORE_RO_TOKEN" ]; then \
+	    pin=$$(grep -E '^pinned_ref:' specs/212-factory-schema-lockstep-ci/spec.md | head -1 | sed -E 's/^pinned_ref:[[:space:]]*"?([0-9a-fA-F]+)"?.*/\1/'); \
+	    [ -n "$$pin" ] || { echo "ERROR: could not read pinned_ref from specs/212-factory-schema-lockstep-ci/spec.md"; exit 1; }; \
+	    rm -rf .factory-encore && mkdir .factory-encore && cd .factory-encore && git init -q && \
+	    git remote add origin "https://x-access-token:$$FACTORY_ENCORE_RO_TOKEN@github.com/GovAlta-Pronghorn/factory-encore.git" && \
+	    git config core.sparseCheckout true && git sparse-checkout init --cone && git sparse-checkout set contract/schemas && \
+	    git fetch --depth 1 origin $$pin && git checkout -q FETCH_HEAD && cd .. && \
+	    ./tools/oap/factory-schema-lockstep/target/release/factory-schema-lockstep --oap-dir standards/schemas/factory --factory-dir .factory-encore/contract/schemas; \
+	  else \
+	    echo "    SKIPPED locally: set FE_SCHEMAS=<factory-encore/contract/schemas> or export FACTORY_ENCORE_RO_TOKEN."; \
+	    echo "    The CI lane (ci-factory-schema-lockstep.yml) enforces this — never skipped-green in CI."; \
+	  fi
 
 # ============================================================
 # Spec/code coupling (spec 127) — mirrors

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:256ab6311d669a11c7146ff1f0474e41bef60b93af9347ff2fc47e9f09af886f",
+  "graph_fingerprint": "sha256:00be0a94f4a591ff27583374b3e389970e28382aa6769888a127a1172ca64bfa",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4001,7 +4001,7 @@
       "title": "Factory Schema Lockstep CI (cross-repo contract parity, automated)",
       "spec_path": "specs/212-factory-schema-lockstep-ci/spec.md",
       "status": "draft",
-      "implementation": "pending",
+      "implementation": "in-progress",
       "governance": "",
       "owner": "",
       "group": "",

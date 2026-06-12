@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "155e92cfb86cab53034c32b99c9eddced2b321ebcca7f67b7e230211c8189cbf",
+    "contentHash": "e385465d2ef8dc8685eaeddd88dac88d6779dba4a70b3da808dcc021cf6ee0e9",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1277,6 +1277,24 @@
       "name": "open_agentic_codification_gate",
       "path": "tools/oap/codification-gate",
       "specRef": "174-codification-gate",
+      "version": "0.1.0"
+    },
+    {
+      "edition": "2024",
+      "entryPoints": [
+        "src/lib.rs",
+        "src/main.rs"
+      ],
+      "externalDeps": [
+        "clap",
+        "serde",
+        "serde_json",
+        "serde_yaml"
+      ],
+      "kind": "rust-lib-bin",
+      "name": "open_agentic_factory_schema_lockstep",
+      "path": "tools/oap/factory-schema-lockstep",
+      "specRef": "212-factory-schema-lockstep-ci",
       "version": "0.1.0"
     },
     {
@@ -19048,8 +19066,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 461,
-                  "startLine": 183
+                  "endLine": 462,
+                  "startLine": 184
                 }
               }
             ],
@@ -19297,8 +19315,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 699,
-                  "startLine": 695
+                  "endLine": 739,
+                  "startLine": 735
                 }
               }
             ],
@@ -19409,8 +19427,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 182,
-                  "startLine": 94
+                  "endLine": 183,
+                  "startLine": 95
                 }
               }
             ],
@@ -21500,8 +21518,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 694,
-                  "startLine": 648
+                  "endLine": 734,
+                  "startLine": 688
                 }
               }
             ],
@@ -21774,6 +21792,12 @@
               },
               {
                 "file": ".github/workflows/ci-desktop.yml"
+              },
+              {
+                "file": ".github/workflows/ci-factory-schema-lockstep-cron.yml"
+              },
+              {
+                "file": ".github/workflows/ci-factory-schema-lockstep.yml"
               },
               {
                 "file": ".github/workflows/ci-featuregraph-golden.yml"
@@ -25120,8 +25144,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 647,
-                  "startLine": 625
+                  "endLine": 687,
+                  "startLine": 665
                 }
               }
             ],
@@ -25214,8 +25238,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 624,
-                  "startLine": 525
+                  "endLine": 630,
+                  "startLine": 526
                 }
               }
             ],
@@ -25780,8 +25804,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 740,
-                  "startLine": 700
+                  "endLine": 780,
+                  "startLine": 740
                 }
               }
             ],
@@ -25867,8 +25891,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 969,
-                  "startLine": 741
+                  "endLine": 1009,
+                  "startLine": 781
                 }
               }
             ],
@@ -31330,8 +31354,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 461,
-                  "startLine": 183
+                  "endLine": 462,
+                  "startLine": 184
                 }
               }
             ],
@@ -42660,8 +42684,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 524,
-                  "startLine": 462
+                  "endLine": 525,
+                  "startLine": 463
                 }
               }
             ],
@@ -42679,8 +42703,8 @@
               {
                 "file": "Makefile",
                 "span": {
-                  "endLine": 93,
-                  "startLine": 81
+                  "endLine": 94,
+                  "startLine": 82
                 }
               }
             ],
@@ -47374,7 +47398,19 @@
       {
         "implementingPaths": [
           {
+            "path": ".github/workflows/ci-factory-schema-lockstep-cron.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci-factory-schema-lockstep.yml",
+            "source": "spec-implements"
+          },
+          {
             "path": ".github/workflows/ci.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "Makefile",
             "source": "spec-implements"
           },
           {
@@ -47384,9 +47420,123 @@
           {
             "path": "tools/oap/ci-parity-check/src/lib.rs",
             "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-factory-schema-lockstep.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/Makefile",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-factory-schema-lockstep.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "tools/oap/factory-schema-lockstep",
+            "source": "multiple"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "section",
+            "locations": [
+              {
+                "file": "Makefile",
+                "span": {
+                  "endLine": 664,
+                  "startLine": 631
+                }
+              }
+            ],
+            "ownership": true,
+            "sourceField": "co_authority",
+            "unit": {
+              "anchor": "factory-schema-lockstep",
+              "file": "Makefile",
+              "kind": "section"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "tools/oap/factory-schema-lockstep/Cargo.toml"
+              },
+              {
+                "file": "tools/oap/factory-schema-lockstep/src/lib.rs"
+              },
+              {
+                "file": "tools/oap/factory-schema-lockstep/src/main.rs"
+              },
+              {
+                "file": "tools/oap/factory-schema-lockstep/tests/run_check_integration.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "tools/oap/factory-schema-lockstep"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-factory-schema-lockstep-cron.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-factory-schema-lockstep-cron.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-factory-schema-lockstep.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-factory-schema-lockstep.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-factory-schema-lockstep.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-factory-schema-lockstep.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-factory-schema-lockstep.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-factory-schema-lockstep.yml"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -47427,6 +47577,20 @@
             "unit": {
               "kind": "file",
               "path": "tools/oap/ci-parity-check/src/lib.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "tools/oap/ci-parity-check/tests/fixtures/aligned/Makefile"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "tools/oap/ci-parity-check/tests/fixtures/aligned/Makefile"
             }
           },
           {
