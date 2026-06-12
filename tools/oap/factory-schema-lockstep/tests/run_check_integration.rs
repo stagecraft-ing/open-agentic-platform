@@ -18,7 +18,7 @@ fn baseline_files() -> Vec<(&'static str, String)> {
         ("pipeline-state.schema.yaml", "schema_version: \"1.0.0\"\nstages: [s0, s1]\n".into()),
         ("verification.schema.yaml", "schema_version: \"1.0.0\"\nchecks: [build, test]\n".into()),
         ("build-spec.schema.yaml", "schema_version: \"1.1.0\"\nproject:\n  name: string\nauth:\n  audiences:\n    x:\n      provisioning_model:\n        enum: [admin-only, open-authenticated]\n".into()),
-        ("adapter-manifest.schema.yaml", "schema_version: \"1.1.0\"\nadapter:\n  name: string\ndirectory_conventions:\n  api_service: string\ngovernance:\n  max_tier: string\n  agents_from: string\n".into()),
+        ("adapter-manifest.schema.yaml", "schema_version: \"1.1.0\"\nadapter:\n  name: string\ndirectory_conventions:\n  api_service: string\ngovernance:\n  max_tier: string\n  agents_from: string\ndual_stack:\n  audience_to_variant:\n    citizen: string\n  variants:\n    public:\n      web: string\n".into()),
         ("stage-outputs/audiences.schema.json", "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"who\"}}}".into()),
         ("stage-outputs/business-rules.schema.json", "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}}}".into()),
         ("stage-outputs/entity-model.schema.json", "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}}}".into()),
@@ -76,6 +76,34 @@ fn dropped_floor_field_fails_even_with_tier_b_gap_present() {
         report.divergences
     );
     assert_eq!(report.tier_b_gaps.len(), 1, "the gap is still reported, advisory");
+}
+
+#[test]
+fn dual_stack_stack_model_drift_fails_through_run_check() {
+    // Regression for the 2026-06-12 OPC adapter-load failure: dual_stack is a
+    // contract-governed section of adapter-manifest (no longer excluded), so a
+    // factory side still carrying the legacy stack model (audience_to_stack/
+    // stacks instead of audience_to_variant/variants) must fail the full run.
+    let oap = tempfile::tempdir().unwrap();
+    let fac = tempfile::tempdir().unwrap();
+    let base = baseline_files();
+    write_tree(oap.path(), &base);
+    write_tree(fac.path(), &base);
+    fs::write(
+        fac.path().join("adapter-manifest.schema.yaml"),
+        "schema_version: \"1.1.0\"\nadapter:\n  name: string\ndirectory_conventions:\n  api_service: string\ngovernance:\n  max_tier: string\n  agents_from: string\ndual_stack:\n  audience_to_stack:\n    citizen: string\n  stacks:\n    public:\n      web: string\n",
+    )
+    .unwrap();
+
+    let report = run_check(oap.path(), fac.path()).expect("run ok");
+    assert!(report.failed(), "stack-model drift in dual_stack must fail");
+    assert!(
+        report.divergences.iter().any(|d| {
+            d.file == "adapter-manifest.schema.yaml" && d.path.starts_with("dual_stack.")
+        }),
+        "divergence must name the dual_stack path: {:?}",
+        report.divergences
+    );
 }
 
 #[test]

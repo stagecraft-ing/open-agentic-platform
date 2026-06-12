@@ -73,13 +73,17 @@ pub fn lockstep_files() -> Vec<LockstepFile> {
         // larger page_type catalog); OAP fields must persist.
         LockstepFile { rel_path: "build-spec.schema.yaml", format: Yaml, mode: Floor },
         LockstepFile { rel_path: "stage-outputs/sitemap.schema.json", format: Json, mode: Floor },
-        // Section-scoped floor — adapter-specialised (spec 197 FR-007); only
-        // schema_version + the governance sub-envelope (spec 198 FR-012) are
-        // contract-governed.
+        // Section-scoped floor — adapter-specialised (spec 197 FR-007); the
+        // schema_version, the governance sub-envelope (spec 198 FR-012), and
+        // the dual_stack variant contract are contract-governed. dual_stack
+        // was added (2026-06-12) after a live OPC adapter-load failure exposed
+        // stack->variant drift that fell outside the gate's coverage.
         LockstepFile {
             rel_path: "adapter-manifest.schema.yaml",
             format: Yaml,
-            mode: SectionScoped { include_top_keys: &["schema_version", "governance"] },
+            mode: SectionScoped {
+                include_top_keys: &["schema_version", "governance", "dual_stack"],
+            },
         },
     ]
 }
@@ -651,6 +655,41 @@ mod tests {
         let mut out = Vec::new();
         compare_section_scoped(&shape_yaml(oap), &shape_yaml(fac), &["schema_version", "governance"], &mut out);
         assert!(out.iter().any(|(p, _)| p == "governance.agents_from"), "{out:?}");
+    }
+    #[test]
+    fn section_scoped_flags_dual_stack_variant_drift() {
+        // Regression for the 2026-06-12 OPC adapter-load failure: the factory
+        // side renaming/dropping a dual_stack variant key must now be caught.
+        let oap = "schema_version: \"1.1.0\"\n\
+                   dual_stack:\n  audience_to_variant:\n    citizen: string\n  variants:\n    public:\n      web: string\n";
+        let fac = "schema_version: \"1.1.0\"\n\
+                   dual_stack:\n  audience_to_stack:\n    citizen: string\n  stacks:\n    public:\n      web: string\n"; // legacy stack-model drift
+        let mut out = Vec::new();
+        compare_section_scoped(
+            &shape_yaml(oap),
+            &shape_yaml(fac),
+            &["schema_version", "governance", "dual_stack"],
+            &mut out,
+        );
+        assert!(
+            out.iter().any(|(p, _)| p == "dual_stack.audience_to_variant"
+                || p == "dual_stack.variants"),
+            "stack->variant drift must be flagged: {out:?}"
+        );
+    }
+    #[test]
+    fn section_scoped_dual_stack_aligned_passes() {
+        // When both sides carry the variant model, dual_stack is clean.
+        let s = "schema_version: \"1.1.0\"\n\
+                 dual_stack:\n  audience_to_variant:\n    citizen: string\n  variants:\n    public:\n      web: string\n      port_web: integer\n";
+        let mut out = Vec::new();
+        compare_section_scoped(
+            &shape_yaml(s),
+            &shape_yaml(s),
+            &["schema_version", "governance", "dual_stack"],
+            &mut out,
+        );
+        assert!(out.is_empty(), "aligned dual_stack must not drift: {out:?}");
     }
 
     // AC-3: GoA-concept guard.

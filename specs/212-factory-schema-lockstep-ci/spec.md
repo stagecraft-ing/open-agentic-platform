@@ -3,7 +3,7 @@ id: "212-factory-schema-lockstep-ci"
 title: "Factory Schema Lockstep CI (cross-repo contract parity, automated)"
 feature_branch: "feat/212-factory-schema-lockstep-ci"
 status: draft
-implementation: in-progress
+implementation: complete
 kind: governance
 domain: tooling
 created: "2026-06-11"
@@ -23,6 +23,20 @@ amendment_record: |
   directional floor) that is true at the pin and still falsifiable. Adds
   pinned_ref and the establishes: edges for the tool + two lanes + fixtures.
   implementation flipped pending → in-progress.
+
+  self-amended (2026-06-12, second) — dual_stack joins the section scope;
+  implementation closes. A live OPC adapter-load failure proved dual_stack is
+  cross-repo contract surface, not an adapter-determined detail: OAP's mirror
+  (and its Rust parser + consumer) sat on the legacy stack model
+  (audience_to_stack/stacks) while factory-encore's manifest had moved to the
+  variant model (audience_to_variant/variants) — drift the gate could not see
+  because §"The lockstep set" excluded dual_stack from the section-scoped
+  compare. PR #344 realigned all three OAP artifacts to the variant model;
+  this amendment widens the gate's adapter-manifest scope to {schema_version,
+  governance, dual_stack} so that drift class fails CI from now on.
+  §"The lockstep set", FR-001, and AC-2(c) are updated in lockstep with the
+  tool's include_top_keys. implementation flipped in-progress → complete
+  (evidence in §Implementation log).
 # The factory-encore contract ref the PR lane checks against. Bumping it is a
 # coupling-gated spec edit (FR-007). Verified in lockstep at this SHA
 # 2026-06-12 (spec 197 AC-8 / spec 198 admission).
@@ -321,14 +335,20 @@ spec, like the pin):
   persist on the factory side; factory additions (`workspace_id`, the extra
   page types) pass.
 - **Section-scoped directional floor:** `adapter-manifest.schema.yaml` —
-  compare only `schema_version` and the **`governance:` sub-envelope**
+  compare `schema_version`, the **`governance:` sub-envelope**
   (spec 198 FR-012: `max_tier`, `file_write_scope`, `file_write_denied`,
   `allowed_commands_from`, `scaffold_execution{entry_points_from,
-  setup_commands_from, isolation}`, `agents_from`) under the floor rule —
-  these *do* match at `cc1139f`. The adapter-determined sections (`adapter`,
-  `stack`, `capabilities`, `supported_auth`, `commands`,
-  `directory_conventions`, `patterns`, `agents`, `scaffold`, `validation`,
-  `dual_stack`) are **excluded** from structural compare, per 197 FR-007.
+  setup_commands_from, isolation}`, `agents_from`), and **`dual_stack`**
+  under the floor rule. `dual_stack` joined the scope 2026-06-12 (second
+  self-amend): its audience→variant mapping is consumed by OPC's adapter
+  loading path, so it is cross-repo contract surface — the live OPC failure
+  that motivated the widening was exactly a stack→variant model drift
+  (`audience_to_stack`/`stacks` vs `audience_to_variant`/`variants`) sitting
+  outside the gate's then-coverage, and the two subtrees are aligned at the
+  pin since PR #344. The adapter-determined sections (`adapter`, `stack`,
+  `capabilities`, `supported_auth`, `commands`, `directory_conventions`,
+  `patterns`, `agents`, `scaffold`, `validation`) remain **excluded** from
+  structural compare, per 197 FR-007.
 
 **Tier B — present-on-OAP, expected-but-absent on factory-encore**
 (`governance-envelope.schema.yaml` today). The gate reports this as a
@@ -395,7 +415,8 @@ review note.
   surface, *directional floor* for `build-spec`/`sitemap` (OAP fields must
   persist on factory; factory additions pass), and *section-scoped
   directional floor* for the adapter-specialised `adapter-manifest`
-  (`schema_version` + the `governance:` sub-envelope only). Comments and
+  (`schema_version`, the `governance:` sub-envelope, and `dual_stack`).
+  Comments and
   free-form prose (`description`) values are ignored in every mode.
   Divergence exits non-zero naming the file and field path and the mode it
   violated; Tier-B gaps are reported with their spec-198 citation and do not
@@ -451,8 +472,9 @@ review note.
   in a directional-floor file (`workspace_id`, the extra `page_type` enum
   values present at `cc1139f`); and (c) divergence in an adapter-specialised
   section of `adapter-manifest.schema.yaml` (`directory_conventions`,
-  `dual_stack`, `commands`, …) — these are excluded from structural compare
-  per 197 FR-007.
+  `commands`, …) — these are excluded from structural compare per 197
+  FR-007. (`dual_stack` was in this excluded list until the 2026-06-12
+  second self-amend moved it into the compared scope.)
 - **AC-3.** A GoA-specific token (e.g. `Protected B`, or a service-catalogue
   identifier from spec 197 FR-005) introduced into either contract surface fails the
   guard naming file:line and the FR-005 clause.
@@ -511,3 +533,32 @@ to the two `extends:` units above (`ci.yml`, ci-parity-check `lib.rs`)
 fire the coupling gate against their existing authorities — this spec's
 edit in the same PR satisfies it via the extends edges (the spec-191
 precedent).
+
+## Implementation log
+
+- **2026-06-12 — Implementation landed (PR #342).** The
+  `factory-schema-lockstep` crate (three-mode structural compare + spec-197
+  FR-005 GoA guard, unit + integration test suite), both lanes
+  (`ci-factory-schema-lockstep.yml`, `ci-factory-schema-lockstep-cron.yml`),
+  the spec-177 orchestrator route, the `make factory-schema-lockstep` mirror
+  wired into `ci-strict`, and the `ENFORCING_WORKFLOWS` classification with
+  aligned/divergent fixtures (AC-7). First live PR-lane evidence: green on
+  PR #344 (run 27411230274, job "cross-repo contract parity"), a PR that
+  touched `standards/schemas/factory/**` and exercised the route, the
+  sparse fetch at the pin, and the compare end-to-end.
+- **2026-06-12 — Cron lane first live run (FR-004 mechanics).** Manual
+  `workflow_dispatch` of the cron lane (run 27412429070): authenticated
+  sparse fetch of `factory-encore@main`, full check green, no tracking
+  issue filed — the fetch-auth, compare, and quiet-when-aligned paths are
+  live-verified. The drift→issue path (AC-5) remains fixture/code-reviewed
+  only until upstream actually drifts; the lane is active on its schedule.
+- **2026-06-12 — dual_stack widening; implementation → complete.** With the
+  widened `include_top_keys` and OAP's mirror still on the legacy stack
+  model (pre-#344 main), the local gate run against the pinned tree
+  (`factory-encore@cc1139f`) failed naming exactly the live drift:
+  `dual_stack.audience_to_stack` and `dual_stack.stacks` present in OAP
+  only — the widened gate detects the drift class that caused the OPC
+  adapter-load failure. After PR #344's variant-model realignment the same
+  run is green, and the widened PR lane gates the very PR that lands this
+  amendment (its green lockstep check is the live widened-scope evidence,
+  enforced by the merge queue rather than asserted here).
