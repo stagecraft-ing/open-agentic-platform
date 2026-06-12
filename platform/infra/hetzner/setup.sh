@@ -347,6 +347,35 @@ else
   warn "  Flux's rauthy HelmRelease pins smtp.enabled=true; the StatefulSet will crash-loop until rauthy-smtp-secret exists."
 fi
 
+# ---------------------------------------------------------------------------
+# Spec 196 — Grafana OIDC client credentials (platform metrics stack).
+# When GRAFANA_OIDC_CLIENT_ID/_SECRET are set in .env (the operator has
+# created the `grafana` client manually in the Rauthy admin UI — the
+# documented [manual] OIDC-client convention; see .env.example),
+# materialise the `grafana-oidc` Secret the monitoring HelmRelease's
+# Grafana consumes via envFromSecret. Key names ARE the Grafana env
+# overrides (GF_AUTH_GENERIC_OAUTH_*). Imperative like rauthy-secrets /
+# rauthy-smtp-secret above, until spec 153 SOPS-migrates them.
+# ---------------------------------------------------------------------------
+if [ -n "${GRAFANA_OIDC_CLIENT_ID:-}" ] && [ -n "${GRAFANA_OIDC_CLIENT_SECRET:-}" ]; then
+  if kubectl get namespace monitoring >/dev/null 2>&1; then
+    info "Creating grafana-oidc secret..."
+    kubectl create secret generic grafana-oidc \
+      --namespace monitoring \
+      --from-literal=GF_AUTH_GENERIC_OAUTH_CLIENT_ID="$GRAFANA_OIDC_CLIENT_ID" \
+      --from-literal=GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET="$GRAFANA_OIDC_CLIENT_SECRET" \
+      --dry-run=client -o yaml | kubectl apply -f -
+    ok "grafana-oidc materialised — the Grafana pod starts on the next reconcile"
+  else
+    warn "monitoring namespace not found — Flux hasn't reconciled the metrics stack yet (spec 196)."
+    warn "  Re-run setup.sh after the monitoring HelmRelease lands; grafana-oidc is created then."
+  fi
+else
+  warn "GRAFANA_OIDC_CLIENT_ID/_SECRET not set in .env — Grafana login unavailable (spec 196 Phase 2)"
+  warn "  Create the 'grafana' client in Rauthy admin (redirect https://grafana.${DOMAIN:-<DOMAIN>}/login/generic_oauth,"
+  warn "  scopes: openid email profile oap), fill .env, re-run setup.sh. The Grafana pod blocks on this Secret."
+fi
+
 # Spec 151 Phase 4 — rauthy chart now reconciled by Flux via
 # `platform/gitops/clusters/hetzner-prod/infrastructure/rauthy.yaml`.
 # The previous `helm upgrade --install rauthy ...` invocation retired

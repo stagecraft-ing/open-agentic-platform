@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "d1ff393848367d4de897bf486e20d98c34e247b73c508fe1b8a5a43c5a096f14",
+    "contentHash": "63b7f285b9e97d14afe8ad3b37b76f7f7cc3be3fb044d01e0c7a09ff661c9fe5",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -14023,6 +14023,9 @@
               },
               {
                 "file": "platform/services/deployd-api-rs/src/main.rs"
+              },
+              {
+                "file": "platform/services/deployd-api-rs/src/metrics.rs"
               },
               {
                 "file": "platform/services/deployd-api-rs/src/routes.rs"
@@ -29446,8 +29449,8 @@
               {
                 "file": "platform/charts/deployd-api/values.yaml",
                 "span": {
-                  "endLine": 31,
-                  "startLine": 20
+                  "endLine": 39,
+                  "startLine": 28
                 }
               }
             ],
@@ -33353,6 +33356,9 @@
             "locations": [
               {
                 "file": "platform/k8s/policies/namespace-baseline/limitrange.yaml"
+              },
+              {
+                "file": "platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml"
               },
               {
                 "file": "platform/k8s/policies/namespace-baseline/networkpolicy-default-deny.yaml"
@@ -42295,6 +42301,9 @@
                 "file": "platform/k8s/policies/namespace-baseline/limitrange.yaml"
               },
               {
+                "file": "platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml"
+              },
+              {
                 "file": "platform/k8s/policies/namespace-baseline/networkpolicy-default-deny.yaml"
               },
               {
@@ -43628,9 +43637,171 @@
           {
             "path": "crates/featuregraph/tests/golden/features_graph.json",
             "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/templates/deployment.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/deployd-api/values.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-dr-stage2/kustomization.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure/monitoring-dashboards.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/infrastructure/monitoring.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/kustomization.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/gitops/clusters/hetzner-prod/policies-kustomization.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/.env.example",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/setup.sh",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/k8s/policies/kustomization.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/main.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/metrics.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/infra.config.hetzner.json",
+            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/gitops/clusters/hetzner-prod/infrastructure/monitoring-dashboards.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/gitops/clusters/hetzner-prod/infrastructure/monitoring-dashboards.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/gitops/clusters/hetzner-prod/infrastructure/monitoring.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/gitops/clusters/hetzner-prod/infrastructure/monitoring.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/gitops/clusters/hetzner-prod/policies-kustomization.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/gitops/clusters/hetzner-prod/policies-kustomization.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/k8s/policies/kustomization.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/k8s/policies/kustomization.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/deployd-api-rs/src/metrics.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/deployd-api-rs/src/metrics.rs"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -43643,6 +43814,132 @@
             "unit": {
               "kind": "file",
               "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/charts/deployd-api/templates/deployment.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/charts/deployd-api/templates/deployment.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/charts/deployd-api/values.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/charts/deployd-api/values.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/gitops/clusters/hetzner-dr-stage2/kustomization.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/gitops/clusters/hetzner-dr-stage2/kustomization.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/gitops/clusters/hetzner-prod/kustomization.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/gitops/clusters/hetzner-prod/kustomization.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/infra/hetzner/.env.example"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/infra/hetzner/.env.example"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/infra/hetzner/setup.sh"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/infra/hetzner/setup.sh"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/deployd-api-rs/src/main.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/deployd-api-rs/src/main.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/infra.config.hetzner.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/infra.config.hetzner.json"
             }
           }
         ],

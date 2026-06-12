@@ -65,6 +65,19 @@ spec:
         enabled: true
       service:
         type: ClusterIP
+      # Spec 196 FR-003 — the controller's Prometheus exporter was not
+      # enabled before the metrics stack existed to consume it
+      # (`controller.metrics` defaults off; the spec's filing-time
+      # "already exposes /metrics" claim held for the Flux controllers
+      # only). Annotation-based scrape: spec 196's Prometheus runs an
+      # annotation-keyed pod job over this namespace; inbound
+      # containment is the ingress←monitoring:10254 NetworkPolicy
+      # (networkpolicy-allow-metrics-egress.yaml).
+      metrics:
+        enabled: true
+      podAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "10254"
       config:
         # Quoted string values to match post-create.sh's
         # `--set controller.config.use-forwarded-headers='"true"'`

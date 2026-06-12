@@ -24,3 +24,4 @@ resources:
   # is inherited by reference, not copied.
   - ../hetzner-prod/infrastructure-kustomization.yaml
   - ../hetzner-prod/manifests-kustomization.yaml
+  - ../hetzner-prod/policies-kustomization.yaml

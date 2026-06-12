@@ -1,5 +1,10 @@
 {
   "$schema": "https://encore.dev/schemas/infra.schema.json",
+  "metrics": {
+    "type": "prometheus",
+    "collection_interval": 60,
+    "remote_write_url": "http://monitoring-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+  },
   "secrets": {
     "DOMAIN": { "$env": "DOMAIN" },
     "APP_BASE_URL": { "$env": "APP_BASE_URL" },

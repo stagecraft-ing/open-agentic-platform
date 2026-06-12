@@ -29,3 +29,7 @@ resources:
   # the bootstrap order F8 documented.
   - infrastructure-kustomization.yaml
   - manifests-kustomization.yaml
+  # Policy tier (spec 196): namespace-explicit NetworkPolicies under
+  # platform/k8s/policies/, reconciled declaratively. dependsOn
+  # infrastructure (the monitoring Namespace lands there).
+  - policies-kustomization.yaml
