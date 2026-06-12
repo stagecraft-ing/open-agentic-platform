@@ -3,7 +3,7 @@ id: "198-factory-governance-envelope"
 title: "Factory Governance Envelope (ASI Admission Contract)"
 feature_branch: "feat/198-factory-governance-envelope"
 status: draft
-implementation: in-progress
+implementation: complete
 kind: platform
 domain: platform
 created: "2026-06-09"
@@ -87,6 +87,11 @@ extends:
   - spec: "054-agent-frontmatter-schema"
     nature: additive
     unit: { kind: crate, id: agent-frontmatter }
+  # Spec adds/flips always bump the featuregraph golden (corpus
+  # convention — specs 190/194/195/200 carry the same edge).
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "admission-time-governance"
     unit: { kind: file, path: platform/services/stagecraft/api/factory/syncPipeline.ts }
@@ -698,3 +703,26 @@ the FRs:
   `{schema_version, governance}` only, so `dual_stack` drift was outside
   its coverage; widening that coverage is deferred (a spec-212 decision,
   not taken in this pass).
+- **2026-06-12 — `implementation: complete` flip.** The tasks.md
+  completion gate ("runtime AC verification after the GovAlta-side
+  envelope merge + org re-sync (first real ADMIT)") is discharged: the
+  GovAlta-side envelope merge is on `factory-encore` main
+  (`process/governance-envelope.yaml`, manifest 1.1.0 `governance:`
+  section, all 14 agents carrying `safety_tier`/`mutation` frontmatter),
+  and the first real ADMIT is the sealed admission `7cf82fae…` recorded
+  above (2026-06-11, 0 violations, JWS independently verified). All 26
+  tasks (T001–T026, phases A–F) are checked; every `establishes:` and
+  `refines:` path exists on main; CI is green; ASI09 flipped to "Solid"
+  via the spec-211 encore-test lane (PR #348). Two postures recorded
+  honestly rather than silently absorbed: (1) AC-5's agent-allowlist
+  refusal is satisfied at the admission-gated bundle boundary per T010's
+  recorded deviation — no per-invocation engine-side check was added;
+  factory content reaches the engine only through the admitted bundle,
+  and agent-key revocations propagate at every grant renewal. (2) A live
+  end-to-end run producing a countersigned certificate verified with
+  `verify-certificate --require-sealed` has not yet been recorded here;
+  per plan.md's verification table AC-4 maps to code phases (handler +
+  engine tests, all landed), so the live observation is follow-on
+  auditor evidence, not a completion gate. Status stays `draft`:
+  approval is a separate ratification act (corpus precedent: specs 199,
+  201, 211 are complete-but-draft).

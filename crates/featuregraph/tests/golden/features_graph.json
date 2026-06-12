@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:3f75870d08daa570de11826567771e2aee6121a1ea8ec5794d814aaaecfc69d8",
+  "graph_fingerprint": "sha256:292f06b07c482bf7bfda34e353a238c268cc928311cd54fe32637e4c3206ca60",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3746,7 +3746,7 @@
       "title": "Factory Governance Envelope (ASI Admission Contract)",
       "spec_path": "specs/198-factory-governance-envelope/spec.md",
       "status": "draft",
-      "implementation": "in-progress",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",
