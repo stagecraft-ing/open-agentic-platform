@@ -738,3 +738,12 @@ FR-010 hotfix note).
 **Verification residue:** V011/V012 in `tasks.md` close this addendum —
 public endpoints healthy after the policies tier reconciles the reduced
 set, and the Prometheus TSDB PVC Bound.
+
+**Comment alignment (2026-06-12, follow-up):** the egress policy's
+header comment in `networkpolicy-monitoring.yaml` still described the
+withdrawn `networkpolicy-allow-metrics-egress.yaml` as the live
+destination-side containment. Corrected to state the post-withdrawal
+truth: destination-side containment for pod-addressable targets does
+not currently exist and returns with each target namespace's own
+default-deny under its owning spec (per the corrected FR-006). No
+behavioral change — comment only.
