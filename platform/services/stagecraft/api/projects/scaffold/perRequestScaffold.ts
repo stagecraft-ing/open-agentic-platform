@@ -18,8 +18,14 @@ import { spawn } from "node:child_process";
 import { cp as cpAsync, mkdir, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import log from "encore.dev/log";
+import {
+  buildKernelVersionStamp,
+  resolveSpecSpinePin,
+  serializeKernelVersionStamp,
+} from "./kernelVersionStamp";
 import { extrasFor, type Profile } from "./moduleCatalog";
 import { prebuiltDir } from "./templateCache";
+import type { ScaffoldAdapterRef } from "./types";
 
 /**
  * Subprocess env shared with templateCache. Mirrors `tooledEnv` —
@@ -47,6 +53,10 @@ export interface PerRequestScaffoldOptions {
   destDir: string;
   /** L0 pipeline-state seed object to drop at `.factory/pipeline-state.json`. */
   pipelineStateSeed: Record<string, unknown>;
+  /** Adapter identity for the `.kernel-version` born-with stamp (spec 167). */
+  adapter: ScaffoldAdapterRef;
+  /** Adapter manifest — hashed into the `.kernel-version` stamp (spec 167). */
+  manifest: Record<string, unknown>;
   /** Optional progress sink, fed scaffold_jobs.step transitions. */
   log?: (line: string) => void;
 }
@@ -127,6 +137,25 @@ export async function scaffoldFromPrebuilt(
     "utf8"
   );
   sink("seed: .factory/pipeline-state.json");
+
+  // ── 5. Stamp `.kernel-version` (spec 167 §2.3). The born-with kernel ships
+  // inside the prebuilt template (the spec-spine npm devDependency + corpus);
+  // this is the one additive write the Create flow makes — recording the
+  // resolved pin + adapter identity so propagation/audit (spec 209) can see
+  // which toolchain the project was born under. The pin is read from the
+  // package.json we just copied; a missing pin is a hard error (never silent).
+  const specSpineVersion = await resolveSpecSpinePin(dest);
+  const kernelStamp = buildKernelVersionStamp({
+    adapter: opts.adapter,
+    manifest: opts.manifest,
+    specSpineVersion,
+  });
+  await writeFile(
+    join(dest, ".kernel-version"),
+    serializeKernelVersionStamp(kernelStamp),
+    "utf8"
+  );
+  sink(`stamp: .kernel-version (spec-spine ${specSpineVersion})`);
 
   log.info("per-request scaffold: complete", {
     profile: opts.profile,

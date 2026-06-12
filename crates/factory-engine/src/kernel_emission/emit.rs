@@ -2,24 +2,29 @@
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/167-born-with-spec-spine-kernel/spec.md
 
-//! Kernel emission writer (spec 167 §2.1, FR-001 / FR-002 / FR-009).
+//! Kernel emission writer for the adapter-determined fallback path
+//! (spec 167 §2.1, FR-001 / FR-002 / FR-009).
 //!
-//! `emit_kernel()` is the load-bearing entry point: given a tenant
-//! project root, an OAP kernel source, and adapter identity, it writes
-//! the kernel files, the tenant gate wiring, the adapter-seeded
-//! initial spec, and the `.kernel-version` marker. Emission is
-//! deterministic in the content-hash sense — two invocations on
-//! identical inputs produce hash-equal kernels.
+//! > **Distribution-shape note (spec 167 self-amend, 2026-06-11).** The
+//! > canonical born-with kernel is the published `spec-spine` npm
+//! > distribution, materialised by stagecraft's Create flow; this Rust path
+//! > is the fallback for non-npm adapters (OQ-6). The vendored-binary CI
+//! > workflow and the synthetic scaffold-claim spec it used to write are
+//! > retired — the npm shape ships CI from the prebuilt template and a
+//! > born-clean corpus.
+//!
+//! `emit_kernel()` writes the kernel files, the tenant Makefile + toolchain
+//! manifest (spec 168), and the `.kernel-version` marker. Emission is
+//! deterministic in the content-hash sense — two invocations on identical
+//! inputs produce hash-equal kernels.
 
 use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Utc};
 
-use super::adapter_specs::build_scaffold_claim_spec;
 use super::gather::{KernelContent, KernelSource, compute_kernel_hash, gather_kernel_content};
 use super::templates::{
-    TenantGateContext, TenantToolchainContext, render_tenant_makefile,
-    render_tenant_toolchain, render_tenant_workflow,
+    TenantGateContext, TenantToolchainContext, render_tenant_makefile, render_tenant_toolchain,
 };
 use super::version::{
     AdapterIdentity, CertificateToolchainRef, KernelOrigin, KernelVersion, ToolchainMode,
@@ -36,13 +41,15 @@ pub struct KernelEmissionConfig {
     pub source: KernelSource,
     pub target_root: PathBuf,
     pub adapter: AdapterIdentity,
-    /// Paths the adapter scaffolds. Recorded into the seed spec's
-    /// `establishes:` block (spec 154 grammar). May be empty when the
-    /// scaffold paths are not yet known; the seed spec falls back to a
-    /// repo-root unit.
+    /// Reserved for the corpus-less-adapter fallback (spec 167 OQ-1): the
+    /// synthetic scaffold-claim generator that consumed these is retired (the
+    /// npm shape ships a born-clean corpus), so `emit_kernel` no longer reads
+    /// them. Kept on the config so a future fallback generator can populate
+    /// the seed-spec `establishes:` block (spec 154) without an API break.
     pub scaffolded_paths: Vec<String>,
-    /// Optional URI for the adapter manifest the seed spec references
-    /// (spec 161 emission contract).
+    /// Reserved for the corpus-less-adapter fallback (spec 167 OQ-1); see
+    /// `scaffolded_paths`. Was the adapter-manifest URI a seed spec would
+    /// reference (spec 161).
     pub adapter_manifest_uri: Option<String>,
     /// Toolchain distribution mode (FR-005).
     pub toolchain_mode: ToolchainMode,
@@ -114,15 +121,10 @@ pub fn emit_kernel(
         .map_err(|e| KernelEmissionError::Serialization(e.to_string()))?;
     write_file(&cfg.target_root, Path::new(".kernel-version"), yaml.as_bytes(), &mut written)?;
 
-    // 5. Tenant-side gate wiring.
+    // 5. Tenant Makefile target. (The vendored-binary CI workflow template
+    //    was retired — the npm born-with kernel ships CI from the prebuilt
+    //    template's `spec-spine.yml`; spec 167 self-amend.)
     let gate_ctx = cfg.gate_context.clone().unwrap_or_default();
-    let workflow = render_tenant_workflow(&gate_ctx)?;
-    write_file(
-        &cfg.target_root,
-        Path::new(".github/workflows/ci-spec-code-coupling.yml"),
-        workflow.as_bytes(),
-        &mut written,
-    )?;
     let makefile = render_tenant_makefile(&gate_ctx)?;
     write_file(
         &cfg.target_root,
@@ -151,18 +153,9 @@ pub fn emit_kernel(
         &mut written,
     )?;
 
-    // 7. Adapter-seeded initial spec draft.
-    let seed = build_scaffold_claim_spec(
-        &cfg.adapter,
-        &cfg.scaffolded_paths,
-        cfg.adapter_manifest_uri.as_deref(),
-    );
-    write_file(
-        &cfg.target_root,
-        Path::new(&seed.relative_path()),
-        seed.markdown.as_bytes(),
-        &mut written,
-    )?;
+    // (The adapter-seeded scaffold-claim spec draft was retired — spec 167
+    //  OQ-1. The npm born-with kernel ships a born-clean corpus from the
+    //  prebuilt template; a corpus-less-adapter fallback is spec-text only.)
 
     written.sort();
 
@@ -283,14 +276,18 @@ mod tests {
             "standards/spec/templates/spec-template.md",
             ".derived/spec-registry/registry.json",
             ".kernel-version",
-            ".github/workflows/ci-spec-code-coupling.yml",
             "Makefile",
-            "specs/001-aim-vue-encore-scaffold-claim/spec.md",
+            ".factory/toolchain.yaml",
         ] {
             let abs = target.path().join(rel);
             assert!(abs.exists(), "missing emitted file: {rel}");
             assert!(report.written_paths.iter().any(|p| p == Path::new(rel)));
         }
+
+        // The retired surfaces are NOT emitted (spec 167 self-amend): the
+        // vendored-binary CI workflow and the synthetic scaffold-claim spec.
+        assert!(!target.path().join(".github/workflows/ci-spec-code-coupling.yml").exists());
+        assert!(!target.path().join("specs/001-aim-vue-encore-scaffold-claim/spec.md").exists());
 
         // `.kernel-version` round-trips back to the struct we wrote.
         let yaml = fs::read_to_string(target.path().join(".kernel-version")).unwrap();

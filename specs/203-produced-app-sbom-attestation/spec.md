@@ -42,8 +42,13 @@ refines:
     unit: { kind: file, path: crates/factory-engine/src/kernel_emission/emit.rs }
   - aspect: "sbom-artifact-binding"
     unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
+  # tenant-ci.yml.tmpl was retired by spec 167's PR-2 npm-kernel impl;
+  # repointed to the surviving tenant gate template. The lockfile-parity-gate
+  # premise now targets the npm tenant CI (the prebuilt template's
+  # `spec-spine.yml`, external to OAP) — placeholder repoint, full rewrite owed
+  # when 203 is implemented (still draft).
   - aspect: "lockfile-parity-gate"
-    unit: { kind: file, path: crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl }
+    unit: { kind: file, path: crates/factory-engine/templates/kernel/tenant.makefile.tmpl }
 references:
   - role: context
     unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }

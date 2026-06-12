@@ -193,29 +193,22 @@ fn factory_engine_emits_kernel_for_named_adapter() {
         "standards/spec/templates/spec-template.md",
         ".derived/spec-registry/registry.json",
         ".kernel-version",
-        ".github/workflows/ci-spec-code-coupling.yml",
         "Makefile",
-        "specs/001-aim-vue-encore-scaffold-claim/spec.md",
+        ".factory/toolchain.yaml",
     ] {
         assert!(target.path().join(rel).exists(), "missing {rel}");
     }
+
+    // The retired vendored-binary surfaces are NOT emitted (spec 167
+    // self-amend): the CI workflow template and the scaffold-claim generator.
+    assert!(!target.path().join(".github/workflows/ci-spec-code-coupling.yml").exists());
+    assert!(!target.path().join("specs/001-aim-vue-encore-scaffold-claim/spec.md").exists());
 
     // `.kernel-version` parses back to the same struct shape.
     let yaml = fs::read_to_string(target.path().join(".kernel-version")).unwrap();
     let parsed = KernelVersion::from_yaml(&yaml).unwrap();
     assert_eq!(parsed.adapter.id, "aim-vue-encore");
     assert!(!parsed.adapter.manifest_hash.is_empty());
-
-    // The adapter-seeded scaffold-claim spec carries the spec 147 / 154 grammars.
-    let seed_md = fs::read_to_string(
-        target
-            .path()
-            .join("specs/001-aim-vue-encore-scaffold-claim/spec.md"),
-    )
-    .unwrap();
-    assert!(seed_md.contains("kind: capability"));
-    assert!(seed_md.contains("kind: directory, path: apps/"));
-    assert!(seed_md.contains("role: knowledge-source"));
 }
 
 #[test]

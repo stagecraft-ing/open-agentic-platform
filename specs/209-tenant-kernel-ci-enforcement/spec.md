@@ -34,9 +34,16 @@ depends_on:
   - "168-per-project-governance-certificate"
   - "112-factory-project-lifecycle"
 extends:
+  # tenant-ci.yml.tmpl was retired by spec 167's PR-2 npm-kernel impl
+  # (the vendored-binary CI template); repointed to the surviving tenant gate
+  # template. NOTE (plan G3): 209's enforcement premise now targets the npm
+  # tenant CI — the prebuilt template's `spec-spine.yml` (`npx --no-install
+  # spec-spine couple`), which lives in template-encore, not OAP. This is a
+  # placeholder repoint; the full premise rewrite (advisory→blocking on the
+  # npm CI) is owed when 209 is implemented (still draft).
   - spec: "167-born-with-spec-spine-kernel"
     nature: additive
-    unit: { kind: file, path: crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl }
+    unit: { kind: file, path: crates/factory-engine/templates/kernel/tenant.makefile.tmpl }
   - spec: "168-per-project-governance-certificate"
     nature: additive
     unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }

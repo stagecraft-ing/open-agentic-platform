@@ -2,19 +2,20 @@
 // Copyright (C) 2026 Bartek Kus
 // Spec: specs/167-born-with-spec-spine-kernel/spec.md
 
-//! Tenant-side gate wiring templates (spec 167 §2.1.5, FR-003 + FR-008).
+//! Tenant-side gate wiring templates for the fallback emit path (spec 167
+//! §2.1.5, FR-008).
 //!
-//! The tenant project is emitted with a GitHub Actions workflow and a
-//! Makefile `pr-prep` target that invoke the coupling gate against the
-//! tenant's own spec spine. Default platform is GitHub Actions; the
-//! template strings here are stable enough that per-adapter overrides
-//! (GitLab CI, Azure Pipelines) can be added without restructuring.
+//! > **Distribution-shape note (spec 167 self-amend, 2026-06-11).** The
+//! > vendored-binary CI workflow template (`tenant-ci.yml.tmpl`) is retired:
+//! > the canonical npm born-with kernel ships its CI as the prebuilt
+//! > template's `spec-spine.yml` (`npx --no-install spec-spine {compile,lint,
+//! > index check,couple}`), not a Rust-rendered workflow that execs vendored
+//! > `tools/spec-spine/` binaries. The Makefile + toolchain templates below
+//! > remain for the adapter-determined fallback path (OQ-6).
 
 use super::KernelEmissionError;
 
 /// Embedded template text (built at compile time via include_str!).
-const TENANT_WORKFLOW_TMPL: &str =
-    include_str!("../../templates/kernel/tenant-ci.yml.tmpl");
 const TENANT_MAKEFILE_TMPL: &str =
     include_str!("../../templates/kernel/tenant.makefile.tmpl");
 const TENANT_TOOLCHAIN_TMPL: &str =
@@ -41,12 +42,6 @@ impl Default for TenantGateContext {
             registry_path: ".derived/spec-registry/registry.json".into(),
         }
     }
-}
-
-/// Render the tenant CI workflow (GitHub Actions). Substitutes
-/// `{{binaries_dir}}`, `{{index_path}}`, `{{registry_path}}`.
-pub fn render_tenant_workflow(ctx: &TenantGateContext) -> Result<String, KernelEmissionError> {
-    substitute(TENANT_WORKFLOW_TMPL, ctx)
 }
 
 /// Render the tenant Makefile `pr-prep` target.
@@ -125,15 +120,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn workflow_renders_with_defaults() {
-        let ctx = TenantGateContext::default();
-        let out = render_tenant_workflow(&ctx).unwrap();
-        assert!(out.contains("tools/spec-spine"));
-        assert!(out.contains("spec-code-coupling-check"));
-        assert!(!out.contains("@@"));
-    }
-
-    #[test]
     fn makefile_renders_with_defaults() {
         let ctx = TenantGateContext::default();
         let out = render_tenant_makefile(&ctx).unwrap();
@@ -142,17 +128,6 @@ mod tests {
         assert!(out.contains(".derived/codebase-index/index.json"));
         assert!(out.contains(".derived/spec-registry/registry.json"));
         assert!(!out.contains("@@"));
-    }
-
-    #[test]
-    fn workflow_honours_binaries_dir_override() {
-        let ctx = TenantGateContext {
-            binaries_dir: "vendor/spine".into(),
-            ..Default::default()
-        };
-        let out = render_tenant_workflow(&ctx).unwrap();
-        assert!(out.contains("vendor/spine"));
-        assert!(!out.contains("tools/spec-spine"));
     }
 
     #[test]
@@ -171,22 +146,15 @@ mod tests {
     #[test]
     fn unsubstituted_placeholder_is_rejected() {
         // Smuggle the placeholder syntax through a context value to
-        // simulate a future template carrying a typo'd `@@foo@@`.
+        // simulate a future template carrying a typo'd `@@foo@@`. Exercises
+        // the shared `substitute` rejection via the Makefile renderer (the
+        // workflow renderer was retired with the vendored-binary template).
         let ctx = TenantGateContext {
             binaries_dir: "@@lurking_placeholder@@".into(),
             ..Default::default()
         };
-        let err = render_tenant_workflow(&ctx).unwrap_err();
+        let err = render_tenant_makefile(&ctx).unwrap_err();
         assert!(matches!(err, KernelEmissionError::Template(_)));
-    }
-
-    #[test]
-    fn workflow_template_does_not_collide_with_github_actions_expressions() {
-        // GitHub Actions uses `${{ ... }}` expressions; our substitution
-        // syntax `@@NAME@@` must coexist with them.
-        let ctx = TenantGateContext::default();
-        let out = render_tenant_workflow(&ctx).unwrap();
-        assert!(out.contains("${{ github.event.pull_request.base.sha }}"));
     }
 
     // ── spec 168 toolchain template ──

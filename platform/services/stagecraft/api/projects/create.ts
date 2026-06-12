@@ -284,6 +284,10 @@ export const createFactoryProject = api(
         selectedModules,
         destDir: projectRoot,
         pipelineStateSeed: pipelineStateSeed as unknown as Record<string, unknown>,
+        // Spec 167 §2.3 — adapter identity + manifest feed the .kernel-version
+        // born-with stamp written into commit #1.
+        adapter: adapterRef,
+        manifest,
       });
 
       if (req.seedInputs && req.seedInputs.length > 0) {
