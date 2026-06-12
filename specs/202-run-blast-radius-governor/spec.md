@@ -198,8 +198,13 @@ distinct `RunBudget*` prefix to avoid collision.
 - **FR-003 — Fan-out and feedback-loop detection.** Beyond static
   ceilings, the governor detects the ASI08 propagation signatures, each
   with thresholds declared as `budgets:` fields, never hardcoded:
-  - *(a) Repeated near-identical intents* within a window, engine-side
-    (intent identity: the run's goal id plus step signature).
+  - *(a) Repeated near-identical intents* within a window, engine-side.
+    Intent identity is the run's goal id plus a step signature: a
+    content hash over the step's normalized instruction text, mirroring
+    the `goal_id` construction in
+    `crates/factory-engine/src/intent_capsule.rs`. The step id is
+    excluded from the hash so dynamically generated near-twin steps
+    collide; the normalization rule is fixed at implementation.
   - *(b) Oscillating retry/compensation loops between stages.* Inputs
     are the per-step `retry_count` and the step failure/retry sequence
     the orchestrator already records; the detector reuses the
@@ -265,7 +270,9 @@ distinct `RunBudget*` prefix to avoid collision.
   audited human override.
 - **AC-6.** No declared-but-unenforced ceiling remains in the engine
   configuration: `max_total_tokens` is enforced through the meter or
-  removed.
+  removed, and `FactoryPipelineState.total_tokens` is subsumed by the
+  meter's `tokens` axis or removed — no two independent token
+  accumulators coexist after implementation.
 - **AC-7.** The envelope schema 1.1.0 and its Rust twin land in the same
   PR; schema-parity (125/191) and the factory-schema-lockstep lane (212)
   are green.
