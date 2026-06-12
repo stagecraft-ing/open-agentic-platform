@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "194cd679719079f5e43834076676b73beeac84db423248a61a4e70ceb03600cd",
+    "contentHash": "4310d1b636aa683ccbf4f6b82d26c3b205dd1ad8698efbccfafce46cac78a783",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -44415,6 +44415,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
             "path": "crates/orchestrator/src/lib.rs",
             "source": "spec-implements"
           },
@@ -45015,6 +45019,20 @@
             "unit": {
               "id": "factory-contracts",
               "kind": "crate"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
             }
           },
           {

@@ -87,6 +87,11 @@ extends:
   - spec: "054-agent-frontmatter-schema"
     nature: additive
     unit: { kind: crate, id: agent-frontmatter }
+  # Spec adds/flips always bump the featuregraph golden (corpus
+  # convention — specs 190/194/195/200 carry the same edge).
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "admission-time-governance"
     unit: { kind: file, path: platform/services/stagecraft/api/factory/syncPipeline.ts }
