@@ -329,6 +329,23 @@ recorded here so nobody "optimises" it back. Verified: three
 consecutive runs (fresh database + two reused) all green, 126 tests,
 ~10–15s per run.
 
+### FR-004 as built: the lane runs unlinked from Encore Cloud
+
+The first CI execution failed before any test ran: `encore test` on an
+app linked to Encore Cloud (`encore.app` carries the app id) fetches
+development secret values from `api.encore.cloud` at startup and
+hard-fails unauthenticated. Authenticating CI to Encore's platform
+would violate this spec's own FR-004 (no external network reliance
+beyond pinned tool installs), so the lane strips the app id in the
+runner's checkout before running — an unlinked app stays fully local.
+Secrets resolve unset, which is sound for this lane: no DB-bound suite
+reads real secret values (the spec-198 signing suites inject throwaway
+keypairs via `process.env`; the S3-dependent paths are mocked or
+bare-lane). Verified locally: the full DB-bound set is green with the
+id stripped and no network access to the Encore platform. Local
+`make ci-stagecraft-encore` runs against the developer's own checkout,
+where an `encore auth` session (or the same unlink) covers the gap.
+
 ### FR-002 decision: strict-lane only
 
 Measured 2026-06-12 (M1 Pro, warm): the DB-bound set runs in well under

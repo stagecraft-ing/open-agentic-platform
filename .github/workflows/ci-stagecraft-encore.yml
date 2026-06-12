@@ -71,6 +71,22 @@ jobs:
         working-directory: platform/services/stagecraft
         run: cd web && npx react-router build
 
+      # `encore test` on an app linked to Encore Cloud fetches development
+      # secret values from api.encore.cloud at startup and hard-fails when
+      # unauthenticated. This lane must not depend on Encore's platform
+      # (FR-004: no external network reliance beyond pinned tool installs),
+      # so the runner's checkout is UNLINKED before the run: with no app id
+      # the CLI stays fully local, secrets resolve unset, and no DB-bound
+      # suite reads real secret values (the spec-198 suites inject throwaway
+      # signing keypairs via process.env). The grep keeps this fail-visible:
+      # if encore.app's shape changes and the strip stops matching, the job
+      # fails here, not with a misleading auth error downstream.
+      - name: Unlink app from Encore Cloud (keep the lane platform-free)
+        working-directory: platform/services/stagecraft
+        run: |
+          sed -i 's/"id":[[:space:]]*"[^"]*"/"id": ""/' encore.app
+          grep -q '"id": ""' encore.app
+
       - name: Resolve DB-bound lane (exclude-list derivation)
         working-directory: platform/services/stagecraft
         run: node scripts/encore-test-lane.mjs list > /tmp/encore-lane-files.txt
