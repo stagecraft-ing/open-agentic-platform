@@ -37,6 +37,9 @@ export interface KernelVersionStamp {
     emitted_at: string;
   };
   adapter: {
+    /** The adapter SLUG (e.g. "aim-vue-encore"), NOT the factory_adapters DB
+     *  FK. Matches the Rust `AdapterIdentity.id` semantics, which is also the
+     *  manifest's `adapter.name` (engine.rs sets `id: manifest.adapter.name`). */
     id: string;
     version: string;
     /** SHA-256 over the canonical (sorted-key) manifest JSON. */
@@ -69,8 +72,14 @@ async function readSpecSpinePinFrom(pkgPath: string): Promise<string | null> {
   let text: string;
   try {
     text = await readFile(pkgPath, "utf8");
-  } catch {
-    return null; // no package.json at this candidate
+  } catch (err) {
+    // A genuinely-absent candidate (ENOENT) is the expected "try the next
+    // location" path; any other I/O error (EACCES, EMFILE, …) is real and
+    // must surface, not be silently swallowed as "no package.json here".
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    throw err;
   }
   let pkg: { devDependencies?: Record<string, string>; dependencies?: Record<string, string> };
   try {
@@ -118,6 +127,8 @@ export function buildKernelVersionStamp(opts: {
       emitted_at: opts.now ?? new Date().toISOString(),
     },
     adapter: {
+      // .name is the adapter slug — the Rust AdapterIdentity.id value (see the
+      // KernelVersionStamp interface), not ScaffoldAdapterRef.id (the DB FK).
       id: opts.adapter.name,
       version: opts.adapter.version,
       manifest_hash: manifestHash(opts.manifest),

@@ -34,16 +34,6 @@ depends_on:
   - "168-per-project-governance-certificate"
   - "112-factory-project-lifecycle"
 extends:
-  # tenant-ci.yml.tmpl was retired by spec 167's PR-2 npm-kernel impl
-  # (the vendored-binary CI template); repointed to the surviving tenant gate
-  # template. NOTE (plan G3): 209's enforcement premise now targets the npm
-  # tenant CI — the prebuilt template's `spec-spine.yml` (`npx --no-install
-  # spec-spine couple`), which lives in template-encore, not OAP. This is a
-  # placeholder repoint; the full premise rewrite (advisory→blocking on the
-  # npm CI) is owed when 209 is implemented (still draft).
-  - spec: "167-born-with-spec-spine-kernel"
-    nature: additive
-    unit: { kind: file, path: crates/factory-engine/templates/kernel/tenant.makefile.tmpl }
   - spec: "168-per-project-governance-certificate"
     nature: additive
     unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
@@ -53,6 +43,15 @@ extends:
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
+  # NOTE: the prior `extends: 167 → tenant-ci.yml.tmpl` edge was dropped when
+  # spec 167's PR-2 retired that vendored-binary CI template. 209's enforcing-CI
+  # premise now targets the npm tenant CI — the prebuilt template's
+  # `spec-spine.yml` (`npx --no-install spec-spine couple`), which lives in
+  # template-encore, not OAP — so there is no in-OAP authority target to claim
+  # today. The kernel-emission relationship is preserved via the refines edges
+  # below; the full premise rewrite (advisory→blocking on the npm CI; the
+  # `vended-binary-integrity` aspect → npm-pin/lockfile/provenance) is owed
+  # when 209 leaves draft (plan G3).
   - aspect: "emission-auto-fire"
     unit: { kind: file, path: crates/factory-engine/src/kernel_emission/emit.rs }
   - aspect: "vended-binary-integrity"

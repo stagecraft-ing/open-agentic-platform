@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "cb9d3f4f2d29faeb4acb9c3826d6a76076b94b8f9f38ba3f0e0d85af8adb575e",
+    "contentHash": "155e92cfb86cab53034c32b99c9eddced2b321ebcca7f67b7e230211c8189cbf",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -46387,10 +46387,6 @@
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl",
-            "source": "spec-implements"
-          },
-          {
             "path": "crates/featuregraph/tests/golden/features_graph.json",
             "source": "spec-implements"
           }
@@ -46464,20 +46460,6 @@
             "unit": {
               "kind": "file",
               "path": "crates/factory-engine/src/kernel_emission/emit.rs"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "refines",
-            "unit": {
-              "kind": "file",
-              "path": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
             }
           }
         ],
@@ -47089,10 +47071,6 @@
             "source": "spec-implements"
           },
           {
-            "path": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl",
-            "source": "spec-implements"
-          },
-          {
             "path": "crates/featuregraph/tests/golden/features_graph.json",
             "source": "spec-implements"
           }
@@ -47110,20 +47088,6 @@
             "unit": {
               "kind": "file",
               "path": "crates/factory-engine/src/governance_certificate.rs"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "extends",
-            "unit": {
-              "kind": "file",
-              "path": "crates/factory-engine/templates/kernel/tenant.makefile.tmpl"
             }
           },
           {
