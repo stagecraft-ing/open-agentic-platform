@@ -124,7 +124,13 @@ fn key_string(v: &serde_yaml::Value) -> String {
 }
 
 /// Merge two shapes into the union shape (used to collapse a sequence of
-/// exemplar elements into one element shape). Maps union their keys.
+/// exemplar elements into one element shape). Maps union their keys;
+/// value-sets union their members.
+///
+/// Known limitation: a sequence-of-sequences (`Seq` merged with `Seq`) hits
+/// the catch-all and keeps only the first element's shape. The lockstep
+/// contract files contain no nested arrays today, so this is unreachable in
+/// practice; a future `oneOf`/`anyOf` array would need a `Seq+Seq` arm here.
 fn merge(a: Shape, b: Shape) -> Shape {
     match (a, b) {
         (Shape::Map(mut am), Shape::Map(bm)) => {
@@ -350,6 +356,31 @@ fn strip_yaml_comment(line: &str) -> &str {
     line
 }
 
+/// True when a line's key is one of [`PROSE_KEYS`] — its value is free-form
+/// documentation, scanned OUT of the guard the same way `#` comments are. A
+/// `description:` that mentions a rejected GoA concept to *document its
+/// rejection* must not trip the guard (AC-3): the guard asserts the forbidden
+/// vocabulary never entered the contract STRUCTURE (a key/enum value), not its
+/// prose. Handles single-line YAML (`description: ...`) and JSON
+/// (`"description": ...`); multi-line block scalars are not the shape these
+/// schemas use.
+fn is_prose_value_line(line: &str) -> bool {
+    let trimmed = line.trim_start().trim_start_matches('"');
+    PROSE_KEYS.iter().any(|k| match trimmed.strip_prefix(*k) {
+        Some(rest) => rest.trim_start().trim_start_matches('"').trim_start().starts_with(':'),
+        None => false,
+    })
+}
+
+/// Whether `guard_scan`'s `#`-comment strip applies: YAML has line comments,
+/// JSON does not. Derived from the extension so callers need no format table.
+fn strip_for(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|e| e.to_str()),
+        Some("yaml") | Some("yml")
+    )
+}
+
 /// Scan one contract file for spec-197 FR-005 forbidden vocabulary. `strip`
 /// controls YAML comment stripping (true for YAML, false for JSON).
 fn guard_scan(path: &Path, strip: bool, out: &mut Vec<GuardHit>) -> Result<(), OpError> {
@@ -358,6 +389,12 @@ fn guard_scan(path: &Path, strip: bool, out: &mut Vec<GuardHit>) -> Result<(), O
     let file = path.display().to_string();
     for (idx, raw) in text.lines().enumerate() {
         let line = if strip { strip_yaml_comment(raw) } else { raw };
+        // A documentation-prose value (description/$comment/examples) is not
+        // contract structure — skip it, so a description that names a rejected
+        // GoA concept to document the rejection does not false-fail (AC-3).
+        if is_prose_value_line(line) {
+            continue;
+        }
         let lower = line.to_lowercase();
         // Classification labels: Protected A/B/C (unambiguous).
         for c in ['a', 'b', 'c'] {
@@ -492,15 +529,17 @@ pub fn run_check(oap_dir: &Path, factory_dir: &Path) -> Result<Report, OpError> 
         }
     }
 
-    // Tier B — advisory gaps + guard scan on whatever is present.
+    // Tier B — advisory gaps + guard scan on whatever is present. The
+    // `#`-comment strip is YAML-only; derive it from the file extension rather
+    // than hardcoding, so a future JSON Tier-B file is scanned correctly.
     for tb in TIER_B_FILES {
         let oap_path = oap_dir.join(tb);
         let fac_path = factory_dir.join(tb);
         if oap_path.exists() {
-            guard_scan(&oap_path, true, &mut report.guard_hits)?;
+            guard_scan(&oap_path, strip_for(&oap_path), &mut report.guard_hits)?;
         }
         if fac_path.exists() {
-            guard_scan(&fac_path, true, &mut report.guard_hits)?;
+            guard_scan(&fac_path, strip_for(&fac_path), &mut report.guard_hits)?;
         }
         match (oap_path.exists(), fac_path.exists()) {
             (true, false) => report.tier_b_gaps.push(format!(
@@ -656,5 +695,31 @@ mod tests {
         std::fs::write(&p, "view_type:\n  enum: [public, public-authenticated, private-authenticated]\n").unwrap();
         guard_scan(&p, true, &mut out).unwrap();
         assert!(out.is_empty(), "lowercase public enum must not be flagged: {out:?}");
+    }
+    #[test]
+    fn guard_ignores_forbidden_token_in_description_value() {
+        // A description that NAMES a rejected GoA concept to document the
+        // rejection is prose, not contract structure — must not trip the guard
+        // (AC-3). Both YAML and JSON-Schema description shapes.
+        // JSON case is pretty-printed (one key per line) — the shape the real
+        // stage-output schemas use; the line-based prose skip assumes that.
+        for (name, body) in [
+            ("y.yaml", "classification:\n  description: \"Do NOT accept Protected B in this surface\"\n  type: string\n"),
+            ("j.json", "{\n  \"properties\": {\n    \"x\": {\n      \"description\": \"no Protected C / service catalogue here\"\n    }\n  }\n}\n"),
+        ] {
+            let mut out = Vec::new();
+            let dir = tempfile::tempdir().unwrap();
+            let p = dir.path().join(name);
+            std::fs::write(&p, body).unwrap();
+            guard_scan(&p, strip_for(&p), &mut out).unwrap();
+            assert!(out.is_empty(), "forbidden token in a description value must not be flagged ({name}): {out:?}");
+        }
+        // ...but the SAME token as an actual enum value still fails.
+        let mut out = Vec::new();
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("real.yaml");
+        std::fs::write(&p, "classification:\n  enum: [Protected B]\n").unwrap();
+        guard_scan(&p, true, &mut out).unwrap();
+        assert!(out.iter().any(|h| h.token == "Protected B"), "a real enum value must still fail: {out:?}");
     }
 }

@@ -75,7 +75,8 @@ jobs:
           git sparse-checkout init --cone
           git sparse-checkout set contract/schemas
           if ! git fetch --depth 1 origin main 2> fetch.err; then
-            cat fetch.err >&2
+            # Redact any leaked token before surfacing the error (defence-in-depth).
+            sed 's#x-access-token:[^@]*@#x-access-token:***@#g' fetch.err >&2
             echo "::error::cannot fetch factory-encore@main; check FACTORY_ENCORE_RO_TOKEN." >&2
             exit 1
           fi

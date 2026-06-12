@@ -642,6 +642,7 @@ factory-schema-lockstep:
 	    ./tools/oap/factory-schema-lockstep/target/release/factory-schema-lockstep --oap-dir standards/schemas/factory --factory-dir $(FE_SCHEMAS); \
 	  elif [ -n "$$FACTORY_ENCORE_RO_TOKEN" ]; then \
 	    pin=$$(grep -E '^pinned_ref:' specs/212-factory-schema-lockstep-ci/spec.md | head -1 | sed -E 's/^pinned_ref:[[:space:]]*"?([0-9a-fA-F]+)"?.*/\1/'); \
+	    [ -n "$$pin" ] || { echo "ERROR: could not read pinned_ref from specs/212-factory-schema-lockstep-ci/spec.md"; exit 1; }; \
 	    rm -rf .factory-encore && mkdir .factory-encore && cd .factory-encore && git init -q && \
 	    git remote add origin "https://x-access-token:$$FACTORY_ENCORE_RO_TOKEN@github.com/GovAlta-Pronghorn/factory-encore.git" && \
 	    git config core.sparseCheckout true && git sparse-checkout init --cone && git sparse-checkout set contract/schemas && \
