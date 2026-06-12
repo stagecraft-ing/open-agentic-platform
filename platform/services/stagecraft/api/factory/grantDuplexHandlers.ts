@@ -26,10 +26,11 @@
 
 import log from "encore.dev/log";
 import { createHash } from "node:crypto";
-import { and, asc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import {
   auditLog,
+  factoryArtifactSubstrate,
   factoryRevocations,
   factoryRunGrants,
   factoryRuns,
@@ -130,12 +131,31 @@ export async function sweepCompositionRevocations(
   state: AdmissionState,
 ): Promise<string | null> {
   const adapterNames = Object.keys(state.composed?.adapters ?? {});
+  // Spec 200 FR-003(b) — the admitted composition's hash set extends with
+  // the org's ACTIVE override content hashes for this origin: a scanner
+  // (or manual) content-hash quarantine propagates into in-flight runs
+  // within one stage boundary, per spec 198's renewal contract. Override
+  // hashes are runtime state (stamped by `applyOverrideCore`), not
+  // admission-pinned upstream bytes, so they are read here rather than
+  // from the admission record.
+  const overrideRows = await db
+    .select({ contentHash: factoryArtifactSubstrate.contentHash })
+    .from(factoryArtifactSubstrate)
+    .where(
+      and(
+        eq(factoryArtifactSubstrate.orgId, orgId),
+        eq(factoryArtifactSubstrate.origin, origin),
+        eq(factoryArtifactSubstrate.status, "active"),
+        isNotNull(factoryArtifactSubstrate.userBody),
+      ),
+    );
   const contentHashes = [
     ...(state.envelopeHash ? [state.envelopeHash] : []),
     ...Object.values(state.composed?.adapters ?? {}).map(
       (a) => a.manifestHash,
     ),
     ...Object.values(state.composed?.agentDigests ?? {}),
+    ...overrideRows.map((r) => r.contentHash),
   ];
   const agentIds = Object.values(state.composed?.agentIds ?? {});
 

@@ -29,6 +29,11 @@ import {
   assembleApprovalSummary,
   OVERRIDE_VERIFICATION_PREDICATE,
 } from "./approvalSummary";
+import {
+  publishOverrideScanRun,
+  recordOverrideScanIntent,
+  sweepContentHashRevocations,
+} from "./overrideScanCore";
 import { sha256Hex, type SubstrateRow } from "./substrate";
 
 // ---------------------------------------------------------------------------
@@ -226,7 +231,7 @@ export async function assertOverrideGate(
 export async function applyOverrideCore(
   args: ApplyOverrideArgs,
 ): Promise<SubstrateRow> {
-  return db.transaction(async (tx) => {
+  const { row, scanRunId } = await db.transaction(async (tx) => {
     const existingRows = await tx
       .select()
       .from(factoryArtifactSubstrate)
@@ -285,8 +290,22 @@ export async function applyOverrideCore(
       before: { userBody: existing.userBody },
       after: { userBody: args.userBody },
     });
-    return row;
+    // Spec 200 FR-001 — durable scan intent rides the write transaction;
+    // the publish happens after commit (below). The write path never
+    // waits on scanner judgment.
+    const intent = await recordOverrideScanIntent(tx as unknown as typeof db, {
+      orgId: args.orgId,
+      artifactId: row.id,
+      contentHash: row.contentHash,
+      reason: "override_applied",
+    });
+    return {
+      row,
+      scanRunId: intent.outcome === "recorded" ? intent.scanRunId : null,
+    };
   });
+  if (scanRunId) await publishOverrideScanRun(scanRunId);
+  return row;
 }
 
 export type ClearOverrideArgs = {
@@ -386,6 +405,20 @@ export async function verifyOverrideCore(
       // Idempotent — re-verifying an already-verified revision is a no-op,
       // not a fresh audit event.
       return mapStoredRowToSubstrate(existing);
+    }
+    // Spec 200 FR-006 — quarantine wins over the verified flag: verifying
+    // a revision under an unlifted content-hash revocation is refused
+    // until a human lifts the quarantine (FR-004).
+    const quarantine = await sweepContentHashRevocations(args.orgId, [
+      existing.contentHash,
+    ]);
+    if (quarantine) {
+      throw APIError.failedPrecondition(
+        `artifact ${args.artifactId} revision ${existing.contentHash} is ` +
+          `${quarantine.mode} by revocation ${quarantine.revocationId} — ` +
+          `verify-override is refused until the revocation lifts ` +
+          `(spec 200 FR-006)`,
+      );
     }
     // Spec 201 FR-004 — the verify act records the basis the verifier saw.
     // Scoped to admitted-factory origins; `user-authored` rows are spec

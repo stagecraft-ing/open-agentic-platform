@@ -17,6 +17,10 @@ import { factoryArtifactSubstrate, factoryArtifactSubstrateAudit } from "../db/s
 import { hasOrgPermission } from "../auth/membership";
 import { sha256Hex, type SubstrateRow } from "./substrate";
 import { assertOverrideGate, type ArtifactDetail } from "./artifacts";
+import {
+  publishOverrideScanRun,
+  recordOverrideScanIntent,
+} from "./overrideScanCore";
 
 // ---------------------------------------------------------------------------
 // Wire types
@@ -100,7 +104,7 @@ export type ResolveConflictArgs = {
 export async function resolveConflictCore(
   args: ResolveConflictArgs,
 ): Promise<SubstrateRow> {
-  return db.transaction(async (tx) => {
+  const { row, scanRunId } = await db.transaction(async (tx) => {
     const existingRows = await tx
       .select()
       .from(factoryArtifactSubstrate)
@@ -222,8 +226,28 @@ export async function resolveConflictCore(
       },
     });
 
-    return mapStoredRowToSubstrate(updated);
+    // Spec 200 FR-001 — `edit_and_accept` is an override revision by
+    // another door (the same write-path class as `applyOverrideCore`);
+    // the accepted body enqueues a scan with durable intent in this
+    // transaction, published after commit.
+    let scanRunId: string | null = null;
+    if (args.action === "edit_and_accept") {
+      const intent = await recordOverrideScanIntent(
+        tx as unknown as typeof db,
+        {
+          orgId: args.orgId,
+          artifactId: updated.id,
+          contentHash: updated.contentHash,
+          reason: "conflict_edit_accepted",
+        },
+      );
+      scanRunId = intent.outcome === "recorded" ? intent.scanRunId : null;
+    }
+
+    return { row: mapStoredRowToSubstrate(updated), scanRunId };
   });
+  if (scanRunId) await publishOverrideScanRun(scanRunId);
+  return row;
 }
 
 // ---------------------------------------------------------------------------

@@ -43,6 +43,7 @@ import {
   isFactoryAdmitted,
   loadLatestAdmission,
 } from "../factory/admission";
+import { sweepContentHashRevocations } from "../factory/overrideScanCore";
 import {
   buildOpcBundle,
   type BundleContractInput,
@@ -93,7 +94,7 @@ export const getProjectOpcBundle = api(
         : Promise.resolve(null),
       loadLatestContracts(project.orgId),
       loadLatestProcesses(project.orgId),
-      loadPublishedAgents(project.id),
+      loadPublishedAgents(project.id, project.orgId),
       loadAdmissionBlock(project.orgId),
     ]);
 
@@ -493,7 +494,7 @@ async function loadLatestProcesses(orgId: string): Promise<BundleProcessInput[]>
 // mirror + Phase 4's catalog.ts handlers). Retired-upstream bindings
 // (I-B3) stay readable but are excluded from the OPC active-agent
 // bundle so OPC doesn't invoke a retired prompt.
-async function loadPublishedAgents(projectId: string) {
+async function loadPublishedAgents(projectId: string, orgId: string) {
   const rows = await db
     .select({
       id: factoryArtifactSubstrate.id,
@@ -522,11 +523,30 @@ async function loadPublishedAgents(projectId: string) {
 
   // Filter to rows whose substrate frontmatter declares
   // publication_status='published'. Drafts are excluded by design.
-  return rows
-    .filter((r) => {
-      const fm = r.frontmatter as Record<string, unknown> | null;
-      return fm?.publication_status === "published";
-    })
+  const published = rows.filter((r) => {
+    const fm = r.frontmatter as Record<string, unknown> | null;
+    return fm?.publication_status === "published";
+  });
+
+  // Spec 200 FR-003(c) — user-authored agent content joins the
+  // content-hash revocation sweep at serve: a quarantined revision
+  // refuses the bundle fail-closed (FR-010-class) rather than shipping
+  // into OPC.
+  const quarantine = await sweepContentHashRevocations(
+    orgId,
+    published.map((r) => r.contentHash),
+  );
+  if (quarantine) {
+    const hit = published.find((r) => r.contentHash === quarantine.key);
+    throw APIError.failedPrecondition(
+      `agent '${hit?.path ?? "(unknown)"}' revision ${quarantine.key} is ` +
+        `${quarantine.mode} (revocation ${quarantine.revocationId}) — lift ` +
+        `the quarantine or publish a fixed revision ` +
+        `(spec 198 FR-010 / spec 200 FR-003)`,
+    );
+  }
+
+  return published
     .map((r) => {
       const fm = (r.frontmatter as Record<string, unknown> | null) ?? null;
       const stripped = fm ? { ...fm } : {};

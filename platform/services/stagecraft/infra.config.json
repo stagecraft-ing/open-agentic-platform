@@ -86,6 +86,14 @@
               "name": "knowledge-extraction-worker"
             }
           }
+        },
+        "factory-override-scan-request": {
+          "name": "factory-override-scan-request",
+          "subscriptions": {
+            "factory-override-scan-worker": {
+              "name": "factory-override-scan-worker"
+            }
+          }
         }
       }
     }

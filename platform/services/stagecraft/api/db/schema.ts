@@ -913,7 +913,14 @@ export type ArtifactAuditAction =
   // Spec 198 FR-013 — deterministic override-gate refusal (a) and the
   // privileged verified-flag transition (c).
   | "artifact.override_gate_rejected"
-  | "artifact.override_verified";
+  | "artifact.override_verified"
+  // Spec 200 FR-008 — async-scanner outcome vocabulary. Widened into the
+  // audit check constraint by migration 47 (the migration-46 lesson: the
+  // constraint rides the same migration as the writers).
+  | "artifact.scan_flagged"
+  | "artifact.scan_clean"
+  | "artifact.scan_skipped"
+  | "artifact.scan_failed";
 
 // SQL table is `factory_artifact_substrate` (NOT `factory_artifacts`) — the
 // shorter name was already taken by spec 082's per-run pipeline artifact
@@ -1040,6 +1047,53 @@ export const factoryRevocations = pgTable("factory_revocations", {
   liftedAt: timestamp("lifted_at", { withTimezone: true }),
   liftedBy: uuid("lifted_by"),
 });
+
+// Spec 200 FR-001 — durable scan intent for the substrate override async
+// scanner. Inserted inside the `user_body` write transaction; the publish
+// happens after commit; the staleness sweeper re-drives lost publishes and
+// fails stale `running` rows. `scanner_version` subsumes the prompt
+// registry version, so a prompt-only update produces fresh (non-deduped)
+// runs.
+export const factoryOverrideScanRuns = pgTable(
+  "factory_override_scan_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id").notNull(),
+    artifactId: uuid("artifact_id").notNull(),
+    contentHash: text("content_hash").notNull(),
+    scannerVersion: text("scanner_version").notNull(),
+    status: text("status")
+      .$type<"queued" | "running" | "completed" | "failed" | "skipped">()
+      .notNull()
+      .default("queued"),
+    verdict: text("verdict").$type<"clean" | "flagged">(),
+    // Untrusted model output — recorded evidence only, never parsed into
+    // further actions (FR-007).
+    rationale: text("rationale"),
+    costUsd: numeric("cost_usd", { precision: 10, scale: 6 }),
+    attempts: integer("attempts").notNull().default(0),
+    detail: jsonb("detail"),
+    queuedAt: timestamp("queued_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    runningAt: timestamp("running_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    lastEventAt: timestamp("last_event_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_override_scan_runs_dedupe").on(
+      t.orgId,
+      t.artifactId,
+      t.contentHash,
+      t.scannerVersion,
+      t.queuedAt,
+    ),
+    index("idx_override_scan_runs_status_event").on(t.status, t.lastEventAt),
+    index("idx_override_scan_runs_org_completed").on(t.orgId, t.completedAt),
+  ],
+);
 
 export const factoryArtifactSubstrateAudit = pgTable(
   "factory_artifact_substrate_audit",

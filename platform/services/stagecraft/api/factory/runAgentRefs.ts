@@ -26,6 +26,7 @@ import {
   walkForAgentRefs,
   type AgentRefVariant,
 } from "./agentRefWalker";
+import { sweepContentHashRevocations } from "./overrideScanCore";
 
 const AGENT_PATH_PREFIX = "user-authored/";
 const AGENT_PATH_SUFFIX = ".md";
@@ -102,6 +103,25 @@ export class AgentReferenceNotFoundError extends Error {
   constructor(public readonly summary: string) {
     super(`agent reference not resolvable: ${summary}`);
     this.name = "AgentReferenceNotFoundError";
+  }
+}
+
+/** Spec 200 FR-003(c) — thrown when a resolved agent revision's content
+ *  hash is under an unlifted content-hash revocation. Surfaced as
+ *  `APIError.failedPrecondition` (FR-010-class fail-closed refusal). */
+export class QuarantinedAgentError extends Error {
+  constructor(
+    public readonly orgAgentId: string,
+    public readonly contentHash: string,
+    public readonly mode: string,
+    public readonly revocationId: string,
+  ) {
+    super(
+      `agent ${orgAgentId} revision ${contentHash} is ${mode} ` +
+        `(revocation ${revocationId}) — lift the quarantine or publish a ` +
+        `fixed revision (spec 198 FR-010 / spec 200 FR-003)`,
+    );
+    this.name = "QuarantinedAgentError";
   }
 }
 
@@ -309,6 +329,23 @@ export async function resolveProcessAgentRefs(
       content_hash: top.contentHash,
     });
   }
+
+  // Spec 200 FR-003(c) — every resolved agent revision joins the
+  // content-hash revocation sweep before it can be served into a run.
+  const quarantine = await sweepContentHashRevocations(
+    ctx.orgId,
+    triples.map((t) => t.content_hash),
+  );
+  if (quarantine) {
+    const hit = triples.find((t) => t.content_hash === quarantine.key);
+    throw new QuarantinedAgentError(
+      hit?.org_agent_id ?? "(unknown)",
+      quarantine.key,
+      quarantine.mode,
+      quarantine.revocationId,
+    );
+  }
+
   return triples;
 }
 

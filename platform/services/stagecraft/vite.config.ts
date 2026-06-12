@@ -125,6 +125,14 @@ export default defineConfig({
       // Spec 201 — approval-summary endpoint assembly + AC-3 GET-purity
       // assertions against seeded substrate/admission rows; live DB.
       "**/factory/approvalSummaryEndpoint.test.ts",
+      // Spec 200 — override scan-run lifecycle (durable intent, dedupe,
+      // policy skip, injected-verdict quarantine, retry, sweeper,
+      // migration-47 constraint); live DB.
+      "**/factory/overrideScanRuns.test.ts",
+      // Spec 200 — quarantine enforcement sweeps (serve / grant /
+      // approval-summary parity / agent resolution) + mode-sensitive
+      // lift + verify interplay; live DB.
+      "**/factory/overrideQuarantineEnforcement.test.ts",
     ],
   },
 });

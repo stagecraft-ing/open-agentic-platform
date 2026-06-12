@@ -1313,6 +1313,78 @@ export namespace environments {
 }
 
 export namespace factory {
+    export interface ApprovalConsumedOverride {
+        artifactId: string
+        contentHash: string
+        path: string
+        verifiedBy: string | null
+        verifiedAt: string | null
+        requireVerifiedSatisfied: boolean
+    }
+
+    /**
+     * Interfaces (not type aliases): these cross the Encore wire boundary in
+     * `ArtifactApprovalSummaryResponse`, and Encore's static analysis accepts
+     * named interface types only.
+     */
+    export interface ApprovalProvenanceLink {
+        artifactId: string
+        contentHash: string
+        kind: string
+        path: string
+    }
+
+    export interface ApprovalSummary {
+        /**
+         * sha256 over the hashed field set — every field below except
+         * `summaryHash` itself and `assembledAt` (FR-001 rule 3: the timestamp
+         * is outside the hash so the FR-003 (b) replay guard can compare a
+         * fresh assembly across page loads and AC-4 can recompute from DB
+         * state alone).
+         */
+        summaryHash: string
+
+        gatePredicate: string
+        blastRadiusStatement: string
+        provenanceLinks: ApprovalProvenanceLink[]
+        consumedOverrides: ApprovalConsumedOverride[]
+        assembledAt: string
+        actorId: string
+    }
+
+    export interface ApproveRunGateRequest {
+        /**
+         * The summaryHash the client rendered. Re-assembly must produce the
+         * same hash or the approve is refused (FR-003 b replay guard). Because
+         * `actorId` is inside the hashed field set, a hash assembled for a
+         * different session user can never match — FR-003 (c) is subsumed.
+         */
+        summaryHash: string
+    }
+
+    export interface ApproveRunGateResponse {
+        approval: RunGateApproval
+        /**
+         * False when the (runId, stageId) pair was already approved — the
+         * recorded approval is returned unchanged (idempotent; no new audit).
+         */
+        created: boolean
+    }
+
+    /**
+     * Flat (Encore requires a named interface, not a union, at the wire
+     * boundary): `applicable: false` → spec 111 user-authored trust class, no
+     * envelope governs the row (FR-004 scoping amendment), other fields
+     * absent. Otherwise exactly one of `summary` (ok) or `reason` (refused)
+     * is present.
+     */
+    export interface ArtifactApprovalSummaryResponse {
+        applicable: boolean
+        ok?: boolean
+        reason?: string
+        summary?: ApprovalSummary
+    }
+
     export interface ArtifactConflictSummary {
         id: string
         origin: string
@@ -1890,6 +1962,27 @@ export namespace factory {
         liftedAt: string | null
     }
 
+    /**
+     * Flat wire shape (named interface; Encore rejects unions). When `ok` is
+     * false the approve control must not render — `reason` is the attributable
+     * error (FR-002). `blockingOverridePaths` carries the FR-002 withhold list:
+     * unverified overrides under a require_verified envelope block APPROVE
+     * (unlike the verify surface, where verify is the resolution path).
+     */
+    export interface RunApprovalContextResponse {
+        /**
+         * Stage ids requiring human sign-off (factory.ts policy, `sN` form).
+         */
+        requiredStageIds: string[]
+
+        approvals: RunGateApproval[]
+        ok: boolean
+        reason?: string
+        gatePredicate?: string
+        summary?: ApprovalSummary
+        blockingOverridePaths?: string[]
+    }
+
     export interface RunDetail {
         stageProgress: db.FactoryRunStageProgressEntry[]
         sourceShas: FactoryRunSourceShasResponse
@@ -1906,6 +1999,14 @@ export namespace factory {
         completedAt: string | null
         lastEventAt: string
         error: string | null
+    }
+
+    export interface RunGateApproval {
+        stageId: string
+        gatePredicate: string
+        summaryHash: string
+        approvedBy: string
+        approvedAt: string
     }
 
     export interface RunSummary {
@@ -2017,6 +2118,7 @@ export namespace factory {
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
             this.applyOverride = this.applyOverride.bind(this)
+            this.approveRunGate = this.approveRunGate.bind(this)
             this.cancelPipeline = this.cancelPipeline.bind(this)
             this.clearOverride = this.clearOverride.bind(this)
             this.confirmStage = this.confirmStage.bind(this)
@@ -2026,6 +2128,7 @@ export namespace factory {
             this.deleteUpstreamSource = this.deleteUpstreamSource.bind(this)
             this.factoryProjectStream = this.factoryProjectStream.bind(this)
             this.getAdapter = this.getAdapter.bind(this)
+            this.getArtifactApprovalSummary = this.getArtifactApprovalSummary.bind(this)
             this.getArtifactById = this.getArtifactById.bind(this)
             this.getArtifactByPath = this.getArtifactByPath.bind(this)
             this.getAudit = this.getAudit.bind(this)
@@ -2035,6 +2138,7 @@ export namespace factory {
             this.getFactoryUpstreamPat = this.getFactoryUpstreamPat.bind(this)
             this.getProcess = this.getProcess.bind(this)
             this.getRun = this.getRun.bind(this)
+            this.getRunApprovalContext = this.getRunApprovalContext.bind(this)
             this.getStatus = this.getStatus.bind(this)
             this.getUpstreams = this.getUpstreams.bind(this)
             this.ingestEvents = this.ingestEvents.bind(this)
@@ -2077,6 +2181,12 @@ export namespace factory {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("POST", `/api/factory/artifacts/${encodeURIComponent(id)}/override`, JSON.stringify(params))
             return await resp.json() as ArtifactDetail
+        }
+
+        public async approveRunGate(id: string, stageId: string, params: ApproveRunGateRequest): Promise<ApproveRunGateResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/factory/runs/${encodeURIComponent(id)}/gates/${encodeURIComponent(stageId)}/approve`, JSON.stringify(params))
+            return await resp.json() as ApproveRunGateResponse
         }
 
         public async cancelPipeline(id: string, params: CancelRequest): Promise<CancelResponse> {
@@ -2152,6 +2262,12 @@ export namespace factory {
             return await resp.json() as FactoryAdapterDetail
         }
 
+        public async getArtifactApprovalSummary(id: string): Promise<ArtifactApprovalSummaryResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/artifacts/${encodeURIComponent(id)}/approval-summary`)
+            return await resp.json() as ArtifactApprovalSummaryResponse
+        }
+
         public async getArtifactById(id: string): Promise<ArtifactDetail> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/artifacts/${encodeURIComponent(id)}`)
@@ -2224,6 +2340,12 @@ export namespace factory {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/runs/${encodeURIComponent(id)}`)
             return await resp.json() as RunDetail
+        }
+
+        public async getRunApprovalContext(id: string): Promise<RunApprovalContextResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/factory/runs/${encodeURIComponent(id)}/approval-context`)
+            return await resp.json() as RunApprovalContextResponse
         }
 
         public async getStatus(id: string, params: {

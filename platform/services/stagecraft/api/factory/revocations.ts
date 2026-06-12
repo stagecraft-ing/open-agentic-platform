@@ -9,18 +9,26 @@
  *
  * Lifting a quarantine is NOT an un-revoke: reintegration requires fresh
  * two-sided validation (a re-sync re-evaluates admission) plus this
- * explicit human approval (ASI10 m7). Content-hash revocations are never
- * lifted — fixed upstream bytes carry a new hash and re-enter via normal
- * admission.
+ * explicit human approval (ASI10 m7). Content-hash lifting is
+ * mode-sensitive (spec 200 FR-004): `revoked` rows are never lifted —
+ * fixed upstream bytes carry a new hash and re-enter via normal
+ * admission — while `quarantined` rows (the scanner's only mode) are
+ * liftable by a human with factory:configure after a deterministic gate
+ * re-run, with the affected rows reset to unverified.
  */
 
 import { api, APIError } from "encore.dev/api";
 import log from "encore.dev/log";
 import { getAuthData } from "~encore/auth";
-import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { db } from "../db/drizzle";
-import { auditLog, factoryRevocations } from "../db/schema";
+import {
+  auditLog,
+  factoryArtifactSubstrate,
+  factoryRevocations,
+} from "../db/schema";
 import { getUserOrgRole, hasOrgPermission } from "../auth/membership";
+import { assertOverrideGate } from "./artifacts";
 
 type ScopeKind = "factory" | "adapter" | "agent" | "content-hash";
 type Mode = "revoked" | "quarantined";
@@ -134,16 +142,19 @@ export const createRevocation = api(
   },
 );
 
-export const liftRevocation = api(
-  {
-    expose: true,
-    auth: true,
-    method: "POST",
-    path: "/api/factory/revocations/:id/lift",
-  },
-  async (req: { id: string }): Promise<{ lifted: boolean }> => {
-    const { orgId, userId } = await requireFactoryConfigure();
-    const [row] = await db
+/**
+ * Core lift logic (auth-explicit; tests call this directly). The HTTP
+ * endpoint below is the ONLY route in, and it requires an authenticated
+ * human with `factory:configure` — the scanner's service identity
+ * (`actor=NULL` provenance) has no session and no code path here
+ * (spec 200 FR-004 / AC-4).
+ */
+export async function liftRevocationCore(
+  auth: { orgId: string; userId: string },
+  req: { id: string },
+): Promise<{ lifted: boolean }> {
+  const { orgId, userId } = auth;
+  const [row] = await db
       .select()
       .from(factoryRevocations)
       .where(eq(factoryRevocations.id, req.id))
@@ -156,12 +167,75 @@ export const liftRevocation = api(
         "global advisories cannot be lifted org-side",
       );
     }
-    if (row.scopeKind === "content-hash") {
+    // Spec 200 FR-004 — content-hash lifting is mode-sensitive. `revoked`
+    // stays never-liftable: fixed upstream bytes carry a new hash and
+    // re-enter via normal admission. `quarantined` (the scanner's only
+    // mode, and manual quarantines alike) is liftable by an authenticated
+    // human with factory:configure — a false positive on an override would
+    // otherwise permanently brick that content for the org, because
+    // re-submitting the same desired bytes reproduces the same hash.
+    if (row.scopeKind === "content-hash" && row.mode === "revoked") {
       throw APIError.failedPrecondition(
-        "content-hash revocations are never lifted — fixed upstream bytes carry a new hash and re-enter via normal admission (spec 198 FR-010)",
+        "content-hash revocations in 'revoked' mode are never lifted — fixed upstream bytes carry a new hash and re-enter via normal admission (spec 198 FR-010)",
       );
     }
     if (row.liftedAt) return { lifted: true };
+
+    let gateRerunArtifacts: string[] = [];
+    if (row.scopeKind === "content-hash") {
+      // Fresh-validation leg (spec 198 FR-010's two-sided reintegration):
+      // re-run the deterministic gate over the CURRENT user_body of every
+      // active artifact carrying the quarantined hash. A gate refusal
+      // audits `artifact.override_gate_rejected` and aborts the lift. The
+      // rows remain/return unverified, so consumption under
+      // `overrides.require_verified` still demands the human verify step.
+      const artifacts = await db
+        .select({
+          id: factoryArtifactSubstrate.id,
+          kind: factoryArtifactSubstrate.kind,
+          path: factoryArtifactSubstrate.path,
+          userBody: factoryArtifactSubstrate.userBody,
+        })
+        .from(factoryArtifactSubstrate)
+        .where(
+          and(
+            eq(factoryArtifactSubstrate.orgId, orgId),
+            eq(factoryArtifactSubstrate.contentHash, row.key),
+            eq(factoryArtifactSubstrate.status, "active"),
+            isNotNull(factoryArtifactSubstrate.userBody),
+          ),
+        );
+      for (const artifact of artifacts) {
+        await assertOverrideGate(
+          {
+            orgId,
+            userId,
+            artifactId: artifact.id,
+            kind: artifact.kind,
+            path: artifact.path,
+          },
+          artifact.userBody as string,
+        );
+      }
+      if (artifacts.length > 0) {
+        await db
+          .update(factoryArtifactSubstrate)
+          .set({
+            userBodyVerified: false,
+            verifiedBy: null,
+            verifiedAt: null,
+            updatedAt: new Date(),
+          })
+          .where(
+            inArray(
+              factoryArtifactSubstrate.id,
+              artifacts.map((a) => a.id),
+            ),
+          );
+      }
+      gateRerunArtifacts = artifacts.map((a) => a.id);
+    }
+
     await db
       .update(factoryRevocations)
       .set({ liftedAt: new Date(), liftedBy: userId })
@@ -175,9 +249,29 @@ export const liftRevocation = api(
         orgId,
         scopeKind: row.scopeKind,
         key: row.key,
-        note: "reintegration requires a fresh sync (re-evaluated admission) — lifting alone does not re-admit",
+        ...(row.scopeKind === "content-hash"
+          ? {
+              mode: row.mode,
+              gateRerunArtifacts,
+              note: "quarantine lift: deterministic gate re-run passed; rows reset to unverified (spec 200 FR-004)",
+            }
+          : {
+              note: "reintegration requires a fresh sync (re-evaluated admission) — lifting alone does not re-admit",
+            }),
       },
     });
     return { lifted: true };
+}
+
+export const liftRevocation = api(
+  {
+    expose: true,
+    auth: true,
+    method: "POST",
+    path: "/api/factory/revocations/:id/lift",
+  },
+  async (req: { id: string }): Promise<{ lifted: boolean }> => {
+    const auth = await requireFactoryConfigure();
+    return liftRevocationCore(auth, req);
   },
 );
