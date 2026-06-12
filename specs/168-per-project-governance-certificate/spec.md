@@ -6,6 +6,22 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-05-22"
+amended: "2026-06-11"
+amendment_record: |
+  amended by spec 178 (2026-05-24): mechanical regeneration of
+  crates/featuregraph/tests/golden/features_graph.json reflecting the
+  product/apps/desktop/* → product/apps/opc/* path rename in spec
+  frontmatter. No semantic change to this spec's claims; fixture content
+  updated 1:1 with the rename per the atomicity contract encoded by spec
+  177. The body "Amendments received" section carries the authoritative
+  dated callout.
+  amended by spec 167 (2026-06-11), editorial cross-reference: §2.2/§2.3's
+  references to "spec 167's FR-005 decision" and to refreshing tenant
+  binaries now resolve to the pinned-toolchain (npm devDependency) mode —
+  spec 167's vendored tools/spec-spine/ binary arm was retired in its
+  2026-06-11 self-amendment. No change to spec 168's certificate emission
+  or verifier contract; the verifier still ships with the kernel, now via
+  the pinned spec-spine distribution rather than loose vendored binaries.
 kind: capability
 domain: platform
 risk: medium
@@ -348,3 +364,15 @@ content updated 1:1 with the rename per the atomicity contract
 encoded by spec 177 (ci-orchestrator-pr-gate) — featuregraph-golden
 is a required ci-gate check precisely so renames carry their fixture
 refresh inside the rename PR.
+
+**Amendment 2026-06-11 (record: 167-born-with-spec-spine-kernel), editorial.**
+Spec 167's 2026-06-11 self-amendment retired its vendored
+`tools/spec-spine/` binary distribution arm in favour of the published
+`spec-spine` npm distribution shape (a pinned devDependency carrying the
+prebuilt CLI). This spec's §2.2/§2.3 reference "spec 167's FR-005
+decision" and the refresh of tenant binaries; those references now
+resolve to the single `pinned-toolchain` mode. No change to spec 168's
+certificate emission, verifier contract, or its `establishes:`/`extends:`
+graph — the emitter and verifier still ship with the kernel, now obtained
+through the pinned spec-spine distribution rather than loose vendored
+binaries. Editorial cross-reference only.
