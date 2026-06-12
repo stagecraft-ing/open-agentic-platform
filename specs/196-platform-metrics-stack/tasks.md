@@ -74,12 +74,12 @@ the design; the design is implemented as specified):
 - [x] T014 NetworkPolicies (FR-006, establishes):
   `platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml`
   (default-deny + intra-ns + remote_write 9090 ← stagecraft-system
-  only + Grafana 3000 ← ingress-nginx + bounded egress) and
-  `platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml`
-  (stagecraft-system egress → monitoring:9090, dormant-additive;
-  deployd-system ingress ← monitoring:8080; ingress-nginx ingress ←
-  monitoring:10254. flux-system needs no new allow — Flux ships
-  `allow-scraping` permitting :8080 from any namespace).
+  only + Grafana 3000 ← ingress-nginx + bounded egress). ~~and
+  `namespace-baseline/networkpolicy-allow-metrics-egress.yaml`~~ —
+  the cross-namespace halves shipped here were WITHDRAWN the same day
+  after taking down all public ingress (spec.md §Incident addendum;
+  T040). flux-system needs no new allow — Flux ships `allow-scraping`
+  permitting :8080 from any namespace.
 - [x] T015 Declarative application path (FR-005; *not* post-create.sh —
   growing the imperative bootstrap would run against spec 151's
   thesis): `platform/k8s/policies/kustomization.yaml` (explicit
@@ -154,6 +154,28 @@ the design; the design is implemented as specified):
   conventional subject, no AI attribution; enqueue via
   `gh pr merge --auto` once green.
 
+## Phase 4 — Incident hotfix *(2026-06-12, spec.md §Incident addendum)*
+
+- [x] T040 Withdraw the cross-namespace allow halves: delete
+  `platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml`,
+  drop its line from `platform/k8s/policies/kustomization.yaml`, remove
+  its `establishes:` edge. The three objects isolated the service pods
+  they selected (ingress-nginx all-pods Ingress; stagecraft-system
+  all-pods Egress; deployd-api Ingress on the shared :8080) — all
+  public hosts returned Cloudflare 521. FR-006/SC-005 corrected: an
+  allow is never dormant; outside-`monitoring` halves land WITH their
+  namespace's default-deny under its own spec.
+- [x] T041 FR-010 TSDB PVC fix: `cleanPrometheusOperatorObjectNames:
+  true` in `monitoring.yaml` — the 71-char operator-default PVC name
+  overflowed hcloud's 63-char volume-label cap
+  (`invalid input in field 'labels'`; PVC stuck Pending). Service name
+  (FR-001 remote_write literal) unaffected.
+- [ ] T042 Post-merge: resume the `policies` Flux Kustomization
+  (suspended during mitigation), confirm the three deleted objects stay
+  pruned and the reduced apply set reconciles; rerun the failed
+  `CD stagecraft` deploy-hetzner job (and the `CD deployd-api-rs` run,
+  which failed on an unrelated GHA cache-export flake). → V011/V012.
+
 ## Deploy-time validation checklist *(post-merge; SC evidence lands as a spec.md amendment)*
 
 - [ ] V001 SC-001: stagecraft series queryable in Prometheus within
@@ -186,6 +208,14 @@ the design; the design is implemented as specified):
 - [ ] V010 SC-010: the SC-001-recorded series renders in the OAP
   Platform Overview panel; correct the provisional expr if Encore's
   name differs.
+- [ ] V011 Incident closure (T040): with the `policies` Kustomization
+  resumed on the reduced apply set, the three withdrawn NetworkPolicies
+  are absent and all four public hosts (`stagecraft.ing`, `auth.`,
+  `deploy.`, `minio.`) return non-5xx through Cloudflare; the
+  `seed-rauthy` job completes on the rerun deploy.
+- [ ] V012 Incident closure (T041): `kubectl get pvc -n monitoring`
+  shows the Prometheus TSDB PVC `Bound` on `hcloud-volumes` and
+  `prometheus-monitoring-0` Running.
 
 ## Deferred (per plan.md §Out of scope)
 

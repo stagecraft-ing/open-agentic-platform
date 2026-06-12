@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "27aa7d38f5e7b33a15f216188e9f8535dc2f21ca74d5b1f6ca2c5de2a075fa31",
+    "contentHash": "e5355766c3006586be7e5dd29c77bfb6b43690aeaaad15b600c03ac8ef40b654",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -33358,9 +33358,6 @@
                 "file": "platform/k8s/policies/namespace-baseline/limitrange.yaml"
               },
               {
-                "file": "platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml"
-              },
-              {
                 "file": "platform/k8s/policies/namespace-baseline/networkpolicy-default-deny.yaml"
               },
               {
@@ -42301,9 +42298,6 @@
                 "file": "platform/k8s/policies/namespace-baseline/limitrange.yaml"
               },
               {
-                "file": "platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml"
-              },
-              {
                 "file": "platform/k8s/policies/namespace-baseline/networkpolicy-default-deny.yaml"
               },
               {
@@ -43687,10 +43681,6 @@
             "source": "spec-implements"
           },
           {
-            "path": "platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml",
-            "source": "spec-implements"
-          },
-          {
             "path": "platform/services/deployd-api-rs/src/main.rs",
             "source": "spec-implements"
           },
@@ -43772,20 +43762,6 @@
             "unit": {
               "kind": "file",
               "path": "platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml"
-              }
-            ],
-            "ownership": true,
-            "sourceField": "establishes",
-            "unit": {
-              "kind": "file",
-              "path": "platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml"
             }
           },
           {

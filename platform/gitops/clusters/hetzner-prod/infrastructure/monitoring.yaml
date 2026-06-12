@@ -93,6 +93,16 @@ spec:
     # `monitoring-prometheus`, which is the literal DNS name stagecraft's
     # infra.config.hetzner.json remote_write_url points at (FR-001).
     fullnameOverride: monitoring
+    # Without clean names the operator-side objects double the suffix:
+    # PVC `prometheus-monitoring-prometheus-db-prometheus-monitoring-prometheus-0`
+    # (71 chars). hcloud caps volume-label values at 63 chars, and the
+    # CSI driver labels each volume with its PVC name, so volume creation
+    # is rejected (`invalid input in field 'labels'`) and the TSDB PVC
+    # never binds. Clean names shorten the PVC to
+    # `prometheus-monitoring-db-prometheus-monitoring-0` (48). Operator
+    # objects only — the chart-owned `monitoring-prometheus` Service
+    # (the FR-001 remote_write literal) is unaffected.
+    cleanPrometheusOperatorObjectNames: true
 
     # FR-008 — no silently-inherited alerting policy.
     defaultRules:

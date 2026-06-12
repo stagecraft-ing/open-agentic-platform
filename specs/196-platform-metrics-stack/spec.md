@@ -29,17 +29,19 @@ establishes:
   #    stagecraft-system ONLY + Grafana ingress ← ingress-nginx + bounded
   #    egress (FR-006 (a)/(b)/(c), SC-008/SC-009).
   - unit: { kind: file, path: platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml }
-  # 3. Cross-namespace flows: stagecraft-system egress (dormant-additive,
-  #    FR-006 (a)) + deployd-system / ingress-nginx ingress ← monitoring
-  #    (FR-006 (b) destination halves).
-  - unit: { kind: file, path: platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml }
-  # 4. Declarative application path for the policy tier (FR-005; not
+  # (withdrawn 2026-06-12) Cross-namespace flow halves
+  #    (namespace-baseline/networkpolicy-allow-metrics-egress.yaml) were
+  #    established here and WITHDRAWN the same day after taking down all
+  #    public ingress — the "dormant-additive" premise was false; see
+  #    §Incident addendum. The flows return WITH each namespace's
+  #    default-deny under its own spec.
+  # 3. Declarative application path for the policy tier (FR-005; not
   #    post-create.sh — spec 151 retires imperative cluster mutation).
   - unit: { kind: file, path: platform/k8s/policies/kustomization.yaml }
   - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/policies-kustomization.yaml }
-  # 5. Dashboard provisioning (SC-010 surface).
+  # 4. Dashboard provisioning (SC-010 surface).
   - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/infrastructure/monitoring-dashboards.yaml }
-  # 6. The deployd-api /metrics endpoint (FR-003 — created here; the
+  # 5. The deployd-api /metrics endpoint (FR-003 — created here; the
   #    filing-time "already exposes /metrics" claim was false).
   - unit: { kind: file, path: platform/services/deployd-api-rs/src/metrics.rs }
 refines:
@@ -343,6 +345,19 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   implementation creates **multiple NetworkPolicy objects across namespaces**
   (≥2 `establishes:` edges; see the deferred-establishes note in frontmatter).
 
+  **Corrected 2026-06-12 (§Incident addendum) — allow objects are isolating,
+  never dormant.** A NetworkPolicy isolates every pod its `podSelector`
+  matches for each listed `policyType`; only the named flows then pass.
+  There is no such thing as a "dormant-additive" allow in a namespace
+  without default-deny — applying one IS applying a deny-all-except for
+  the selected pods and direction. The halves of (a)/(b) that live
+  **outside `monitoring`** (stagecraft-system egress, deployd-system /
+  ingress-nginx ingress) therefore MUST NOT ship before their namespace
+  gains an enforced default-deny under its own spec; until then 196 ships
+  only the `monitoring`-namespace objects, whose source/destination halves
+  fully carry today's traffic (those namespaces are un-isolated, so the
+  monitoring-side allows suffice end-to-end).
+
 - **FR-007 (Operator CRDs as a governed dependency surface):** adopting
   kube-prometheus-stack introduces the Prometheus Operator CRDs
   (`ServiceMonitor`, `PodMonitor`, `PrometheusRule`, `Probe`, …) as a new
@@ -454,9 +469,13 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   allow names). The original wording probed egress from
   `stagecraft-system`, which presumed a default-deny that namespace has
   never had applied (post-create.sh skips it "for MVP") — unverifiable as
-  filed. The stagecraft-system egress allow this spec ships is
-  dormant-additive until that namespace gains default-deny under its own
-  spec (proves FR-006 did not globally weaken the policy).
+  filed. *(Corrected 2026-06-12: the first implementation also shipped
+  cross-namespace allow halves it called "dormant-additive" — a premise
+  FR-006's correction shows is false, and which the §Incident addendum
+  records as a production outage. SC-005 now reads: 196's only
+  NetworkPolicy objects live in `monitoring`; namespaces outside
+  `monitoring` are policy-untouched by this spec, which is what proves
+  FR-006 did not globally change the posture.)*
 - **SC-006 (Phase 1):** post-deploy, Alertmanager pods are **absent** and the
   `PrometheusRule`s **installed by the kube-prometheus-stack release** are
   absent/disabled (the phase-1 allowed set from this release is ∅; alerting is a
@@ -641,9 +660,12 @@ second code drop. What landed, by FR:
   post-create.sh path was deliberately NOT extended — spec 151 retires it).
   DR-stage2 bundle imports the new tier by reference (parity invariant).
 - **FR-006** — `monitoring` ships with the deployment's first enforced
-  default-deny + the named flows ((a) push, (b) pull with
-  destination-side containment, (c) Grafana UI); receiver inbound is
-  stagecraft-system-only (SC-008's probe set).
+  default-deny + the named flows ((a) push, (b) pull, (c) Grafana UI);
+  receiver inbound is stagecraft-system-only (SC-008's probe set). The
+  first landing also shipped cross-namespace halves outside `monitoring`
+  under the false "dormant-additive" premise; they were withdrawn the
+  same day (§Incident addendum) and FR-006 now forbids shipping them
+  ahead of their namespace's default-deny.
 - **FR-007** — CRDs ride the chart pin with explicit
   `install/upgrade.crds: CreateReplace` (helm-controller's upgrade default
   silently Skips — that would be exactly the unpinned drift FR-007 forbids).
@@ -655,7 +677,14 @@ second code drop. What landed, by FR:
   Grafana `2Gi` on the cluster default class (hcloud CSI's 10Gi floor —
   verified in deployd's values-hetzner T002 note — rules `hcloud-volumes`
   out for a 2Gi claim; local-path matches the rauthy persistence
-  precedent).
+  precedent). *(Hotfix 2026-06-12: the TSDB PVC never bound — the
+  operator's default PVC name is 71 chars, the hcloud CSI labels each
+  volume with its PVC name, and hcloud caps label values at 63 chars, so
+  volume creation failed with `invalid input in field 'labels'` while the
+  short-named Grafana PVC bound fine. `cleanPrometheusOperatorObjectNames:
+  true` shortens the PVC to 48 chars; the chart-owned
+  `monitoring-prometheus` Service — the FR-001 remote_write literal — is
+  unaffected.)*
 - **FR-011** — holds: zero stagecraft application-code change.
 
 **Deploy-gated evidence (open):** SC-001…SC-010 are live-cluster criteria;
@@ -663,3 +692,49 @@ second code drop. What landed, by FR:
 SC-001 must record the concrete Encore series name — the dashboard's
 stagecraft panel carries a provisional expression until then.
 `implementation:` stays `pending` until that checklist closes.
+
+## Incident addendum (2026-06-12) — cross-namespace allows withdrawn
+
+Within minutes of the implementation merge reconciling, **all four public
+hosts went down with Cloudflare 521 (origin connection refused)**:
+`stagecraft.ing`, `auth.`, `deploy.`, and `minio.stagecraft.ing`. The
+`CD stagecraft` deploy failed at its `seed-rauthy` job (Rauthy
+unreachable through the public URL) and the
+`knowledge-orphan-imported-sweeper` cron failed every cycle.
+
+**Root cause** — the three policies in
+`namespace-baseline/networkpolicy-allow-metrics-egress.yaml`, shipped
+under the "dormant-additive" premise the FR-006 correction now
+invalidates. A NetworkPolicy isolates every pod it selects, so:
+
+1. `ingress-nginx/allow-metrics-ingress-from-monitoring`
+   (`podSelector: {}`, Ingress) — the controller rejected everything
+   inbound except monitoring→10254, **including 80/443 from the Hetzner
+   LB**. k3s's embedded netpol controller REJECTs rather than drops,
+   hence 521 (refused) rather than 522 (timeout).
+2. `stagecraft-system/allow-remote-write-egress-to-monitoring`
+   (`podSelector: {}`, Egress) — every stagecraft pod lost all egress
+   except monitoring:9090: DNS, in-namespace Postgres, Rauthy, GitHub.
+   The seeder's `TypeError: fetch failed` was this object.
+3. `deployd-system/allow-metrics-ingress-from-monitoring`
+   (`app=deployd-api`, Ingress) — blocked ingress-nginx→deployd-api on
+   the shared :8080, breaking `deploy.stagecraft.ing` independently.
+
+**Mitigation** (operator, out-of-band): suspend the `policies` Flux
+Kustomization, delete the three objects, verify the public endpoints,
+resume after the durable fix merges.
+
+**Durable fix** (this amendment's PR): the file is deleted, its
+`establishes:` edge removed, and the `policies` apply set reduced to
+`monitoring/networkpolicy-monitoring.yaml` — the monitoring-namespace
+objects (default-deny + named flows) are correct and stay. The
+cross-namespace halves return WITH each namespace's enforced
+default-deny under its own spec, where the full legitimate flow set
+(DNS, LB ingress, in-namespace databases, admission webhooks) is
+enumerated together — per the corrected FR-006. The same PR fixes the
+FR-010 TSDB PVC that never bound (hcloud 63-char label limit; see the
+FR-010 hotfix note).
+
+**Verification residue:** V011/V012 in `tasks.md` close this addendum —
+public endpoints healthy after the policies tier reconciles the reduced
+set, and the Prometheus TSDB PVC Bound.
