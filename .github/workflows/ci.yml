@@ -52,6 +52,7 @@ jobs:
       crates: ${{ steps.f.outputs.crates == 'true' || github.event_name == 'merge_group' }}
       deployd_api_rs: ${{ steps.f.outputs.deployd_api_rs == 'true' || github.event_name == 'merge_group' }}
       desktop: ${{ steps.f.outputs.desktop == 'true' || github.event_name == 'merge_group' }}
+      factory_schema_lockstep: ${{ steps.f.outputs.factory_schema_lockstep == 'true' || github.event_name == 'merge_group' }}
       opc_bench: ${{ steps.f.outputs.opc_bench == 'true' || github.event_name == 'merge_group' }}
       featuregraph: ${{ steps.f.outputs.featuregraph == 'true' || github.event_name == 'merge_group' }}
       orchestrator: ${{ steps.f.outputs.orchestrator == 'true' || github.event_name == 'merge_group' }}
@@ -97,6 +98,13 @@ jobs:
             opc_bench:
               - 'product/apps/opc/src-tauri/**'
               - '.github/workflows/ci-opc-bench.yml'
+            factory_schema_lockstep:
+              # The lockstep surface (spec 212): the OAP contract schemas, the
+              # checker tool, this spec's pin (spec.md), and the lane itself.
+              - 'standards/schemas/factory/**'
+              - 'tools/oap/factory-schema-lockstep/**'
+              - 'specs/212-factory-schema-lockstep-ci/spec.md'
+              - '.github/workflows/ci-factory-schema-lockstep.yml'
             featuregraph:
               - 'specs/**'
               - 'tools/spec-spine/spec-compiler/**'
@@ -167,6 +175,14 @@ jobs:
     needs: changes
     if: needs.changes.outputs.opc_bench == 'true'
     uses: ./.github/workflows/ci-opc-bench.yml
+
+  factory-schema-lockstep:
+    needs: changes
+    if: github.event_name != 'push' && needs.changes.outputs.factory_schema_lockstep == 'true'
+    # secrets: inherit passes FACTORY_ENCORE_RO_TOKEN to the reusable lane (the
+    # private factory-encore fetch); the lane is fail-visible without it.
+    uses: ./.github/workflows/ci-factory-schema-lockstep.yml
+    secrets: inherit
 
   featuregraph-golden:
     needs: changes
@@ -254,6 +270,7 @@ jobs:
       - crates
       - deployd-api-rs
       - desktop
+      - factory-schema-lockstep
       - opc-bench
       - featuregraph-golden
       - orchestrator

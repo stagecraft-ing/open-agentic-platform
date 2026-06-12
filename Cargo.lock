@@ -5026,6 +5026,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "open_agentic_factory_schema_lockstep"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tempfile",
+]
+
+[[package]]
 name = "open_agentic_policy_compiler"
 version = "0.1.0"
 dependencies = [

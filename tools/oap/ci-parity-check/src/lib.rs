@@ -58,6 +58,11 @@ pub const ENFORCING_WORKFLOWS: &[&str] = &[
     "ci-crates.yml",
     "ci-deployd-api-rs.yml",
     "ci-desktop.yml",
+    // spec 212 — cross-repo factory contract lockstep; `make ci-strict`
+    // mirrors it via the `factory-schema-lockstep` target (cargo build + the
+    // checker invocation). The against-main cron lane
+    // (ci-factory-schema-lockstep-cron.yml) is advisory, NOT enforcing.
+    "ci-factory-schema-lockstep.yml",
     "ci-orchestrator.yml",
     "ci-policy-kernel.yml",
     // spec 191 — schema-parity gate; `make ci-strict` mirrors it via

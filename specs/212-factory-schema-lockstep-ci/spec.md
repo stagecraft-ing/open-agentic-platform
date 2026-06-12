@@ -3,10 +3,30 @@ id: "212-factory-schema-lockstep-ci"
 title: "Factory Schema Lockstep CI (cross-repo contract parity, automated)"
 feature_branch: "feat/212-factory-schema-lockstep-ci"
 status: draft
-implementation: pending
+implementation: in-progress
 kind: governance
 domain: tooling
 created: "2026-06-11"
+amended: "2026-06-12"
+amendment_record: |
+  self-amended (2026-06-12) — comparison-model correction, implementation PR.
+  A full file-by-file diff against the pinned ref (factory-encore@cc1139f)
+  falsified the original FIELD-LEVEL structural-parity premise for three of
+  the ten lockstep files: adapter-manifest.schema.yaml is adapter-specialised
+  by design (spec 197 FR-007 explicitly scoped its richer command/convention
+  set out), and build-spec.schema.yaml + stage-outputs/sitemap.schema.json
+  carry factory-side ADDITIVE evolution (workspace_id, the larger page_type
+  catalog). Spec 197 AC-8 only verified the narrow 1.1.0 delta
+  (provisioning_model + implementation_status), not whole-file parity.
+  §"Semantic diff", §"The lockstep set", FR-001, AC-1, AC-2 are rewritten to a
+  three-mode comparison (exact parity / directional floor / section-scoped
+  directional floor) that is true at the pin and still falsifiable. Adds
+  pinned_ref and the establishes: edges for the tool + two lanes + fixtures.
+  implementation flipped pending → in-progress.
+# The factory-encore contract ref the PR lane checks against. Bumping it is a
+# coupling-gated spec edit (FR-007). Verified in lockstep at this SHA
+# 2026-06-12 (spec 197 AC-8 / spec 198 admission).
+pinned_ref: "cc1139fc74dfa4c332e25f60cd8ee9840aa78ed0"
 authors: ["open-agentic-platform"]
 language: en
 summary: >
@@ -17,10 +37,13 @@ summary: >
   next factory-encore edit, or the next OAP schema bump, can silently
   diverge the two contract surfaces and nothing fails. This spec automates
   the lockstep: an OAP-side enforcing CI job that fetches factory-encore's
-  contract/schemas/** at a committed pin and asserts FIELD-LEVEL structural
-  parity against standards/schemas/factory/** (byte-equality is impossible —
-  the surfaces carry divergent comments and org-specific example values by
-  design), plus a spec-197 FR-005 guard that no GoA-specific concept entered either
+  contract/schemas/** at a committed pin and asserts structural agreement
+  against standards/schemas/factory/** under a three-mode comparison (exact
+  parity for the shared surface; a directional floor where OAP fields must
+  persist on the factory side but factory additions pass; a section-scoped
+  floor for the adapter-specialised manifest) — byte-equality is impossible,
+  the surfaces carry divergent comments, additive evolution, and
+  adapter-specific sections by design — plus a spec-197 FR-005 guard that no GoA-specific concept entered either
   contract surface. Two lanes: a PR-time check against the committed pin,
   and a scheduled check against factory-encore@main that catches upstream
   drift the pin hasn't yet absorbed. factory-encore stays gate-free
@@ -29,6 +52,18 @@ code_aliases: ["FACTORY_SCHEMA_LOCKSTEP_CI"]
 compliance:
   - framework: "owasp-asi-2026"
     controls: ["ASI07"]
+establishes:
+  # The cross-repo lockstep checker (FR-001/FR-002). A new Rust crate under
+  # tools/oap/, modelled on ci-parity-check (NOT the JS schema-parity-check).
+  - unit: { kind: directory, path: tools/oap/factory-schema-lockstep }
+  # The two CI lanes (FR-003 PR-time, FR-004 cron). Same establishes shape
+  # spec 191 used for ci-schema-parity.yml.
+  - unit: { kind: file, path: .github/workflows/ci-factory-schema-lockstep.yml }
+  - unit: { kind: file, path: .github/workflows/ci-factory-schema-lockstep-cron.yml }
+  # The ci-parity-check aligned/divergent fixtures proving the run-mirror
+  # detects drift (FR-006 / AC-7) — same precedent as spec 191's fixtures.
+  - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-factory-schema-lockstep.yml }
+  - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-factory-schema-lockstep.yml }
 extends:
   # The spec-177 orchestrator gains a route dispatching the new job, the
   # same shape spec 191 used for ci-schema-parity.
@@ -40,11 +75,26 @@ extends:
   - spec: "104-makefile-ci-parity-contract"
     nature: additive
     unit: { kind: file, path: tools/oap/ci-parity-check/src/lib.rs }
+  # The aligned ci-parity-check fixture Makefile gains a mirroring recipe so
+  # the new enforcing workflow's run-mirror fixture stays green (104 owns the
+  # ci-parity-check crate subtree via package metadata; this is additive).
+  - spec: "104-makefile-ci-parity-contract"
+    nature: additive
+    unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/aligned/Makefile }
   # Same precedent as specs 196, 194, 193, 187, 183 and the 202–211 batch:
   # a new spec adds a row to the featuregraph golden.
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+co_authority:
+  # The root Makefile gains a `factory-schema-lockstep` target group (the
+  # `## tag: factory-schema-lockstep` section) wired into the ci-strict family.
+  # 104 is the omnipresent Makefile-parity co-author (same shape spec 116 uses
+  # for its `supply-chain` anchor). This makes 212 a Makefile claimant so its
+  # own spec edit satisfies the coupling gate for the target + ci-strict wiring.
+  - with_specs:
+      - "104-makefile-ci-parity-contract"
+    unit: { kind: section, file: Makefile, anchor: factory-schema-lockstep }
 references:
   # The open-standard contract whose cross-repo mirror this gate makes
   # falsifiable. Spec 197 AC-8 is the manual check this automates; its FR-005 is
@@ -184,62 +234,110 @@ Only the cron lane needs the network every run; the PR lane needs it only
 when a lockstep-set file actually changed (the route below), bounding the
 secret's blast radius and the flake surface.
 
-### Semantic diff — field-level structural parity, not byte-equality
+> **Design correction (2026-06-12), self-amend.** The original §"Semantic
+> diff" + §"lockstep set" (below, as authored 2026-06-11) asserted the two
+> contract surfaces are in **field-level structural parity**, differing only
+> in comments and free-form example values, and that a single value-ignoring
+> rule covers the lot. A full file-by-file diff against the very pin this
+> spec names (`factory-encore@cc1139f`) falsifies that premise for three of
+> the ten files, and **spec 197 had already documented why**:
+>
+> - **`adapter-manifest.schema.yaml` is adapter-specialised by design**, not
+>   value-divergent. factory-encore's manifest carries Encore-shaped
+>   `directory_conventions` (`api_service_def`/`bff_proxy`/`db_definition` vs
+>   OAP's generic `api_controller`/`api_route`), a restructured `dual_stack`
+>   (`variants`/`audience_to_variant` vs `stacks`/`audience_to_stack`),
+>   object-valued `scaffold.source`, a `create_eligible` field, and extra
+>   `commands` (`gen_client`/`generate_keys`/`migrate`/`graph_check`/
+>   `pre_verify`/`post_verify`). These are different *field sets*, and
+>   **spec 197 FR-007 explicitly scoped them out**: "The reference adapter
+>   (`aim-vue-encore`) declares a richer command set … **not yet** in OAP's
+>   canonical manifest schema — explicitly out of this spec's scope."
+> - **`build-spec.schema.yaml` and `stage-outputs/sitemap.schema.json`** —
+>   factory-encore has **additively evolved** them: `project.workspace_id`
+>   and a larger `ui.pages[].page_type` enum (the 24-type service-design
+>   catalog). Both are factory-side *additions* over the OAP open standard.
+> - **What spec 197 AC-8 actually verified** at `cc1139f` is narrow:
+>   "`schema_version: "1.1.0"`, `provisioning_model` required with the
+>   identical enum, `implementation_status` optional with the identical
+>   enum." It did **not** assert whole-file structural parity, and AC-4 says
+>   bringing build-spec under an automated parity walker is future work.
+>
+> A gate built on the false premise is **red on arrival against its own
+> pin** — which is neither the green-on-arrival model this spec describes nor
+> honest about what 197 established. The correction below replaces the single
+> field-level rule with a **three-mode comparison** that is true at `cc1139f`
+> and still falsifiable (a removed/renamed open-standard field, a narrowed
+> enum, or a GoA concept entering the contract all still fail). The remaining
+> seven files **are** in parity (verified below) and stay hard-fail. FR-001,
+> AC-1, and AC-2 are rewritten to match; the lockstep-set classification
+> gains explicit per-file modes. This is a refinement of a draft spec before
+> implementation, recorded as a self-amend per history-by-construction.
 
-A live diff of the two surfaces at spec time shows they are **not**
-byte-equal and were never meant to be: comment blocks differ, and
-adapter-manifest example values are deliberately org-specific
-(`aim-vue-node`/`node-22`/`express-5` in OAP's stack-agnostic illustration
-vs `aim-vue-encore`/`node-24`/`encore-ts` in factory-encore's reference
-adapter). Byte-equality would fail on text that FR-001 *wants* to differ.
+### Semantic diff — three comparison modes, not one
 
-**Decision:** parse both YAML/JSON files and compare their **structural
-field set** — field names, requiredness, enum value sets, nesting — while
-ignoring comments and the values of free-form example/illustration scalars.
-This mirrors the existing tool's structural-only philosophy
-(`walk-descriptor.mjs`: "value-shape constraints are NOT carried through")
-applied to YAML. The comparison is the contract shape, not the prose around
-it. Where a real structural divergence exists (see the lockstep-set note
-below), the gate names the field path and the side that carries it, in the
-spec-191 diff-reporting style (`<path>: present in OAP only`).
+A full diff of the ten lockstep files against `factory-encore@cc1139f`
+(recorded above) shows three distinct relationships, not one. The tool
+parses each file (YAML or JSON), drops comments (YAML parsing discards them)
+and free-form prose values (JSON Schema `description` strings), and compares
+the **structural shape** — key paths, requiredness, enum value sets, nesting
+— under the mode the spec assigns that file:
 
-### The lockstep set (and a finding the gate must encode)
+1. **Exact structural parity (hard-fail on any divergence).** The genuinely
+   shared, org-agnostic, no-additive-evolution surface. Any field
+   added/removed/renamed, any enum changed, any requiredness change on
+   **either** side fails. These files are meant to stay identical.
+2. **Directional floor (OAP is the floor; factory may extend).** Every field
+   path and enum value present in the OAP surface MUST be present on the
+   factory side (no removal, rename, or enum-narrowing on the consumer);
+   factory-side **additions are permitted**. This is the open-standard
+   reading: OAP authors an extensible base, the owned adapter may carry more.
+   It catches the drift that matters (a dropped `provisioning_model`, a
+   renamed contract field, a narrowed enum) while tolerating the real,
+   benign additive evolution at the pin (`workspace_id`, the larger
+   page-type catalog).
+3. **Section-scoped directional floor.** For an **adapter-specialised** file,
+   compare only the contract-governed sections under the directional-floor
+   rule; declare the adapter-determined sections out of structural compare.
 
-The contract files under lockstep are the **org-agnostic contract surface**
-spec 197 governs:
+The comparison is the contract shape, not the prose around it. Where a real
+divergence exists the gate names the field path and the side that carries
+it, in the spec-191 diff-reporting style (`<path>: present in OAP only`).
 
-- `build-spec.schema.yaml` — the open-standard contract (spec 197 FR-006).
-- `adapter-manifest.schema.yaml` — the adapter contract **shape**; its
-  example *values* are org-specific (above) and are excluded from
-  structural compare by the value-ignoring rule.
-- `pipeline-state.schema.yaml`, `verification.schema.yaml` — currently
-  byte-identical across both repos (verified at spec time); cheap to keep
-  pinned.
-- `stage-outputs/**` (`audiences`, `business-rules`, `entity-model`,
-  `sitemap`, `use-cases`) — structurally identical at spec time
-  (`audiences` differs only in a description string).
+### The lockstep set — per-file modes (and the Tier-B gap)
 
-**Finding the gate encodes:** OAP carries
-`governance-envelope.schema.yaml`, and `factory-encore` does **not** mirror
-it yet, while spec 198 §AC states factory-encore "must file a conformant
-envelope". The lockstep set therefore distinguishes **two tiers**:
+The lockstep files and the mode each is compared under (the authored source
+of truth — Principle I; the tool mirrors this table as data validated by
+fixtures, and moving a file between modes is a coupling-gated edit to this
+spec, like the pin):
 
-- **Tier A — must match if present on both sides** (the contract surfaces
-  above). Divergence is a hard failure.
-- **Tier B — present-on-OAP, expected-but-absent on factory-encore**
-  (`governance-envelope.schema.yaml` today). The gate reports this as a
-  **named, expected gap** with the spec-198 obligation cited — advisory in
-  the PR lane (it is a known authoring debt, not a regression a PR
-  introduced), and the cron lane's signal that the gap has been closed when
-  the file appears and must then graduate to Tier A. The gate must not let
-  Tier B silently mask a *real* Tier-A divergence — gap classification is
-  per-file and explicit, never a catch-all.
+- **Exact parity:** `pipeline-state.schema.yaml`, `verification.schema.yaml`
+  (byte-identical at `cc1139f`); `stage-outputs/business-rules.schema.json`,
+  `entity-model.schema.json`, `use-cases.schema.json` (byte-identical); and
+  `stage-outputs/audiences.schema.json` (identical modulo one `description`
+  string, which the prose-ignoring rule drops).
+- **Directional floor:** `build-spec.schema.yaml` and
+  `stage-outputs/sitemap.schema.json` — every OAP field/enum-value must
+  persist on the factory side; factory additions (`workspace_id`, the extra
+  page types) pass.
+- **Section-scoped directional floor:** `adapter-manifest.schema.yaml` —
+  compare only `schema_version` and the **`governance:` sub-envelope**
+  (spec 198 FR-012: `max_tier`, `file_write_scope`, `file_write_denied`,
+  `allowed_commands_from`, `scaffold_execution{entry_points_from,
+  setup_commands_from, isolation}`, `agents_from`) under the floor rule —
+  these *do* match at `cc1139f`. The adapter-determined sections (`adapter`,
+  `stack`, `capabilities`, `supported_auth`, `commands`,
+  `directory_conventions`, `patterns`, `agents`, `scaffold`, `validation`,
+  `dual_stack`) are **excluded** from structural compare, per 197 FR-007.
 
-**Classification home (Principle I):** the tier assignment above — this
-section's file list — IS the authored source of truth; the tool mirrors it
-as data validated by fixtures, and moving a file between tiers (or adding
-one) is an edit to this spec, coupling-gated like the pin. No tool-resident
-or standalone-config classification.
+**Tier B — present-on-OAP, expected-but-absent on factory-encore**
+(`governance-envelope.schema.yaml` today). The gate reports this as a
+**named, expected gap** with the spec-198 obligation cited — advisory in the
+PR lane (it is a known authoring debt, not a regression a PR introduced), and
+the cron lane's signal that the gap has been closed when the file appears and
+must then graduate to an exact/floor mode. The gate must not let a Tier-B gap
+silently mask a *real* divergence in any of the modes above — gap
+classification is per-file and explicit, never a catch-all.
 
 ### The lockstep route (PR-lane trigger)
 
@@ -289,13 +387,21 @@ review note.
 ## Functional requirements (sketch — refine before implementation)
 
 - **FR-001 — Cross-repo lockstep check (the tool).** A small OAP-side
-  checker (working name `factory-schema-lockstep`, sibling to
-  `tools/oap/schema-parity-check`, **not** an extension of it per §4) that,
-  given a local factory-encore contract tree, parses each Tier-A file on
-  both sides and asserts field-level structural parity, ignoring comments
-  and free-form example values. Divergence exits non-zero naming the file
-  and field path; Tier-B gaps are reported with their spec-198 citation and
-  do not fail the PR lane.
+  checker (binary `factory-schema-lockstep`, a sibling Rust crate under
+  `tools/oap/`, **not** an extension of the JS `schema-parity-check` per §4)
+  that, given a local factory-encore contract tree, parses each lockstep file
+  on both sides and asserts structural agreement **under the per-file mode
+  the spec assigns** (§"The lockstep set"): *exact parity* for the shared
+  surface, *directional floor* for `build-spec`/`sitemap` (OAP fields must
+  persist on factory; factory additions pass), and *section-scoped
+  directional floor* for the adapter-specialised `adapter-manifest`
+  (`schema_version` + the `governance:` sub-envelope only). Comments and
+  free-form prose (`description`) values are ignored in every mode.
+  Divergence exits non-zero naming the file and field path and the mode it
+  violated; Tier-B gaps are reported with their spec-198 citation and do not
+  fail the PR lane. The per-file mode table is compiled into the tool as data
+  and asserted against fixtures, so a spec edit to the table is the only way
+  to move a file between modes.
 - **FR-002 — Spec-197-FR-005 GoA-concept guard.** The same tool scans both contract
   surfaces for the spec-197 FR-005 denylist vocabulary; a match fails
   naming file:line and the spec-197 FR-005 clause it violates.
@@ -303,7 +409,7 @@ review note.
   from the spec-177 orchestrator on the lockstep route (defined above)
   sparse-fetches ONLY `contract/schemas/**` from factory-encore at the pin
   in this spec's frontmatter (`pinned_ref`) — never a full clone,
-  runs FR-001/FR-002, and blocks the PR on a Tier-A divergence or a
+  runs FR-001/FR-002, and blocks the PR on any compare-mode divergence or a
   spec-197 FR-005 guard hit. Runs identically in `merge_group`. SHA-pinned action refs
   (spec 158). Fail-visible on fetch/auth failure (never skipped-green).
 - **FR-004 — Cron lane (against main, human-routed).** A scheduled
@@ -332,23 +438,30 @@ review note.
 
 ## Acceptance criteria (sketch)
 
-- **AC-1.** A PR that edits `standards/schemas/factory/build-spec.schema.yaml`
-  to add/remove/rename a field, or change an enum set, without the matching
-  edit landing in factory-encore at the pinned ref, fails the PR lane naming
-  the field path and the side that carries it.
-- **AC-2.** Comment-only or example-value-only differences between the two
-  surfaces (the `aim-vue-node` vs `aim-vue-encore` class of divergence) do
-  **not** fail — structural parity ignores prose and free-form example
-  scalars.
+- **AC-1.** A PR that **removes or renames** a field in
+  `standards/schemas/factory/build-spec.schema.yaml`, or **narrows** one of
+  its enums, such that an OAP open-standard field/value is no longer present
+  on the factory side at the pinned ref, fails the PR lane naming the field
+  path and the side that carries it (the directional-floor rule). Equally, a
+  PR that adds/removes/renames a field in an **exact-parity** file (e.g.
+  `pipeline-state.schema.yaml`) without the matching factory edit fails.
+- **AC-2.** Differences that the modes are designed to tolerate do **not**
+  fail: (a) comment-only or `description`-prose-only differences in any file
+  (the `audiences` description-string class); (b) factory-side **additions**
+  in a directional-floor file (`workspace_id`, the extra `page_type` enum
+  values present at `cc1139f`); and (c) divergence in an adapter-specialised
+  section of `adapter-manifest.schema.yaml` (`directory_conventions`,
+  `dual_stack`, `commands`, …) — these are excluded from structural compare
+  per 197 FR-007.
 - **AC-3.** A GoA-specific token (e.g. `Protected B`, or a service-catalogue
   identifier from spec 197 FR-005) introduced into either contract surface fails the
   guard naming file:line and the FR-005 clause.
 - **AC-4.** `governance-envelope.schema.yaml` present on OAP and absent on
   factory-encore is reported as a named Tier-B expected gap citing spec 198
-  — advisory in the PR lane — and does not mask a Tier-A divergence in the
-  same run (gap classification is per-file, proven by a fixture that pairs a
-  Tier-B gap with a Tier-A break and asserts the run still fails on the
-  break).
+  — advisory in the PR lane — and does not mask a real compare-mode
+  divergence in the same run (gap classification is per-file, proven by a
+  fixture that pairs a Tier-B gap with an exact/floor break and asserts the
+  run still fails on the break).
 - **AC-5.** The cron lane, run against a `factory-encore@main` that has
   drifted ahead of the pin, opens/annotates a tracking issue and does not
   fail an unrelated PR; bumping `pinned_ref` to the new ref turns the PR
