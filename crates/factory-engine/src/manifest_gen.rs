@@ -554,16 +554,16 @@ pub fn generate_scaffold_manifest(
         // Determine the target app (web-public vs web-internal) from view_type + dual_stack.
         let stack_block = match &adapter.dual_stack {
             Some(ds) => {
-                let (stack_name, web_app) = match page.view_type {
+                let (variant_name, web_app) = match page.view_type {
                     factory_contracts::build_spec::ViewType::Public
                     | factory_contracts::build_spec::ViewType::PublicAuthenticated => {
-                        ("public", &ds.stacks.public.web)
+                        ("public", &ds.variants.public.web)
                     }
                     factory_contracts::build_spec::ViewType::PrivateAuthenticated => {
-                        ("internal", &ds.stacks.internal.web)
+                        ("internal", &ds.variants.internal.web)
                     }
                 };
-                format!("\nStack: {stack_name} (app: {web_app})")
+                format!("\nVariant: {variant_name} (app: {web_app})")
             }
             None => String::new(),
         };

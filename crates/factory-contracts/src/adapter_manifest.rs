@@ -594,32 +594,52 @@ pub enum Severity {
     Warning,
 }
 
-// ── Dual Stack ────────────────────────────────────────────────────────
+// ── Dual Stack (variant model) ─────────────────────────────────────────
+//
+// A "variant" is a standalone top-level copy of the base scaffold (not an
+// in-tree stack). This mirrors the canonical factory-encore adapter-manifest
+// schema (`contract/schemas/adapter-manifest.schema.yaml`); the legacy
+// `audience_to_stack`/`stacks` naming was the pre-factory-encore shape.
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DualStack {
-    /// Maps audience name → stack name (e.g., "citizen" → "public")
-    pub audience_to_stack: HashMap<String, String>,
-    /// Named stacks with their API/web apps and ports
-    pub stacks: DualStackStacks,
-    /// Data flow constraints per stack name (e.g., "public" → "proxy-only")
+    /// Generator that emits the dual deployment (optional),
+    /// e.g. "scripts/setup-dual-app.ts".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub generator: Option<String>,
+    /// Maps audience name → variant name (e.g., "citizen" → "public").
+    pub audience_to_variant: HashMap<String, String>,
+    /// Named variants, each a standalone top-level copy with its own
+    /// apps, ports, and auth driver.
+    pub variants: DualStackVariants,
+    /// Data flow constraints per variant name (e.g., "public" → "proxy").
     pub data_access: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DualStackStacks {
-    pub public: StackEndpoint,
-    pub internal: StackEndpoint,
+pub struct DualStackVariants {
+    pub public: VariantEndpoint,
+    pub internal: VariantEndpoint,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StackEndpoint {
-    /// API application name used in the {stack} placeholder (e.g., "api-public")
+pub struct VariantEndpoint {
+    /// Top-level copy directory for this variant (e.g., "public").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dir: Option<String>,
+    /// Backend app path used in the {variant} placeholder (e.g., "apps/api").
     pub api: String,
-    /// Web application name used in the {stack} placeholder (e.g., "web-public")
+    /// Web app (SPA) served by this variant (e.g., "apps/web").
     pub web: String,
-    /// Port number for the API application
+    /// Port number for the API application.
     pub port_api: u16,
-    /// Port number for the web application
+    /// Port number for the web application.
     pub port_web: u16,
+    /// Auth driver wired into this variant's route guards (e.g., "saml",
+    /// "entra-id").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auth_driver: Option<String>,
+    /// Per-variant env example file (e.g., ".env.external.example").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub env_example: Option<String>,
 }

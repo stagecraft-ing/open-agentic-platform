@@ -679,3 +679,22 @@ the FRs:
   byte-identical. The interim hand-regenerated snapshot (spec 199 FR-007)
   is retired: OAP materialises the enforcement snapshot; it no longer
   authors the facts.
+- **2026-06-12 — adapter-manifest `dual_stack` realigned to the canonical
+  variant model.** The `adapter-manifest.schema.yaml` this spec refines
+  carried a legacy `dual_stack` section (`audience_to_stack` / `stacks`,
+  the pre-factory-encore "in-tree stack" shape) that diverged from the
+  owned upstream's canonical schema (`audience_to_variant` / `variants`,
+  where a variant is a standalone top-level copy with its own `dir`,
+  `auth_driver`, and `env_example`). OPC's live adapter fetch surfaced
+  the drift as a hard parse failure — `missing field 'audience_to_stack'`
+  at the fetched `aim-vue-encore/manifest.yaml` — because the Rust
+  `DualStack` deserializer (`crates/factory-contracts/src/adapter_manifest.rs`)
+  shared the stale naming. Realigned all three OAP-side artifacts (Rust
+  type, its sole consumer in `factory-engine/manifest_gen.rs`, and this
+  refined mirror schema) to the variant model. This is orthogonal to the
+  governance sub-envelope (FR-012) but lands on the schema path this spec
+  is authoritative over, so it is recorded here. Note: the spec-212
+  lockstep gate scopes the adapter-manifest comparison to
+  `{schema_version, governance}` only, so `dual_stack` drift was outside
+  its coverage; widening that coverage is deferred (a spec-212 decision,
+  not taken in this pass).
