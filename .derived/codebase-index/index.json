@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "404243dd55580ac4c328f5c7e9eb1dc32af6c28630cc2f8becd22e4064e88bed",
+    "contentHash": "27aa7d38f5e7b33a15f216188e9f8535dc2f21ca74d5b1f6ca2c5de2a075fa31",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -46014,7 +46014,31 @@
         ],
         "implementingPaths": [
           {
+            "path": "platform/services/stagecraft/api/agents/catalog.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/admission.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/approvalSummary.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/artifacts.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/conflicts.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/revocations.ts",
             "source": "spec-implements"
           }
         ],
@@ -46051,20 +46075,6 @@
             "kind": "file",
             "locations": [
               {
-                "file": "platform/services/stagecraft/api/factory/revocations.ts"
-              }
-            ],
-            "ownership": false,
-            "sourceField": "references",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/factory/revocations.ts"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
                 "file": "platform/services/stagecraft/api/knowledge/extractionCore.ts"
               }
             ],
@@ -46079,6 +46089,48 @@
             "kind": "file",
             "locations": [
               {
+                "file": "platform/services/stagecraft/api/agents/catalog.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/agents/catalog.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/admission.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/admission.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "platform/services/stagecraft/api/factory/artifacts.ts"
               }
             ],
@@ -46087,6 +46139,62 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/factory/artifacts.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/artifacts.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/artifacts.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/conflicts.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/conflicts.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/revocations.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/revocations.ts"
             }
           }
         ],
