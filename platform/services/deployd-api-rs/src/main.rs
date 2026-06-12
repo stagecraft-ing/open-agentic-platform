@@ -10,6 +10,7 @@ mod auth;
 mod config;
 mod helm;
 mod k8s;
+mod metrics;
 mod routes;
 mod store;
 
@@ -18,6 +19,8 @@ async fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive("deployd_api=info".parse()?))
         .init();
+
+    metrics::mark_start();
 
     let cfg = config::Config::from_env();
     tracing::info!("deployd-api starting on :{}", cfg.port);
@@ -47,6 +50,7 @@ async fn main() -> Result<()> {
 
     let app = Router::new()
         .route("/healthz", get(routes::healthz))
+        .route("/metrics", get(metrics::metrics))
         .route("/v1/deployments", post(routes::create_deployment))
         .route(
             "/v1/deployments/{releaseId}/status",

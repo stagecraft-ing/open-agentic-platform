@@ -14,32 +14,65 @@ depends_on:
   - "151"  # declarative-cluster-reconciliation — the Hetzner deploy mechanism (Flux HelmRelease) this rides on
   - "078"  # platform-completion-plan — stagecraft deployment + infra.config surface this refines
 code_aliases: ["METRICS_STACK", "PROMETHEUS_REMOTE_WRITE", "GRAFANA_OIDC"]
-# establishes: (deferred to the implementation PR — NOT declared in this draft)
-#   The implementation PR creates and `establishes:`-claims at least THREE files,
-#   all forward-described in the body but NOT listed here:
-#     1. gitops monitoring HelmRelease
-#        platform/gitops/clusters/hetzner-prod/infrastructure/monitoring.yaml
-#     2. monitoring-ns NetworkPolicy: Prometheus ingress ← stagecraft-system
-#        (remote_write) ONLY + Grafana ingress ← ingress-nginx; monitoring
-#        egress → scrape-target metrics ports (pull). See FR-006.
-#        platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml
-#     3. stagecraft-system egress NetworkPolicy (remote_write → monitoring),
-#        plus target-namespace ingress-from-monitoring allows (FR-006 (b)).
-#        platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml
-#   FR-006's flows span multiple namespaces, so the policy is ≥2 objects, not one. The spec-compiler existence-checks `kind: file` units
-#   (V-023 errors on a missing path) and CONST-005 forbids creating these before
-#   this body locks, so their `establishes:` edges land in the implementation PR
-#   that creates them — exactly when the coupling gate (spec 127) wants the
-#   spec↔code link.
-# refines: (also deferred to the implementation PR — same principle as the
-#   establishes edges above: an edge lands in the PR that touches the code, not
-#   this spec-only filing). 196 WILL refine the `metrics-export` aspect of
-#   platform/services/stagecraft/infra.config.hetzner.json (adding its `metrics`
-#   block, FR-001), but this filing PR does NOT edit that file — declaring the
-#   edge now would claim an untouched file. The edge is added at implementation,
-#   when the coupling gate wants the spec↔code link. (infra.config.json / Azure
-#   is never refined by 196 — FR-009 deferred-null.) The filing PR's only live
-#   code-path edge is the mechanical featuregraph-golden `extends` below.
+# Implementation PR (2026-06-12) — the deferred edges land here, exactly as
+# the filing PR's frontmatter comment staged: an edge lands in the PR that
+# creates/edits the code. The forward-described set grew beyond the minimum
+# three because the implementation survey falsified two "already exists"
+# current-state claims (see §Current state corrections): the deployd-api
+# /metrics endpoint and the ingress-nginx metrics enablement had to be
+# CREATED, and the declarative policy-application path (FR-005) needed its
+# Flux Kustomization pair.
+establishes:
+  # 1. The metrics stack HelmRelease (FR-001/002/004/005/007/008/010).
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/infrastructure/monitoring.yaml }
+  # 2. Monitoring-ns NetworkPolicies: default-deny + remote_write ingress ←
+  #    stagecraft-system ONLY + Grafana ingress ← ingress-nginx + bounded
+  #    egress (FR-006 (a)/(b)/(c), SC-008/SC-009).
+  - unit: { kind: file, path: platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml }
+  # 3. Cross-namespace flows: stagecraft-system egress (dormant-additive,
+  #    FR-006 (a)) + deployd-system / ingress-nginx ingress ← monitoring
+  #    (FR-006 (b) destination halves).
+  - unit: { kind: file, path: platform/k8s/policies/namespace-baseline/networkpolicy-allow-metrics-egress.yaml }
+  # 4. Declarative application path for the policy tier (FR-005; not
+  #    post-create.sh — spec 151 retires imperative cluster mutation).
+  - unit: { kind: file, path: platform/k8s/policies/kustomization.yaml }
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/policies-kustomization.yaml }
+  # 5. Dashboard provisioning (SC-010 surface).
+  - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/infrastructure/monitoring-dashboards.yaml }
+  # 6. The deployd-api /metrics endpoint (FR-003 — created here; the
+  #    filing-time "already exposes /metrics" claim was false).
+  - unit: { kind: file, path: platform/services/deployd-api-rs/src/metrics.rs }
+refines:
+  # FR-001 — the metrics block that makes the two infra configs diverge.
+  # (infra.config.json / Azure is never refined by 196 — FR-009
+  # deferred-null; SC-004 proves it untouched.)
+  - aspect: "metrics-export"
+    unit: { kind: file, path: platform/services/stagecraft/infra.config.hetzner.json }
+  # FR-003 — enable the controller's exporter + scrape annotations in the
+  # spec-151 HelmRelease (metrics were NOT enabled at filing time).
+  - aspect: "metrics-export"
+    unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml }
+  # FR-003 — route wiring for the new /metrics module.
+  - aspect: "metrics-export"
+    unit: { kind: file, path: platform/services/deployd-api-rs/src/main.rs }
+  # FR-003 — scrape-annotation declaration on the deployd-api pod.
+  - aspect: "metrics-export"
+    unit: { kind: file, path: platform/charts/deployd-api/templates/deployment.yaml }
+  - aspect: "metrics-export"
+    unit: { kind: file, path: platform/charts/deployd-api/values.yaml }
+  # FR-005 — register the policy tier in the root gitops bundle + the
+  # DR-stage2 bundle (parity invariant: DR reconciles the same content).
+  - aspect: "policy-tier-registration"
+    unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/kustomization.yaml }
+  - aspect: "policy-tier-registration"
+    unit: { kind: file, path: platform/gitops/clusters/hetzner-dr-stage2/kustomization.yaml }
+  # FR-004 — the [manual] Grafana OIDC client plumbing: .env stubs + the
+  # conditional grafana-oidc Secret materialisation (imperative like
+  # rauthy-smtp-secret until spec 153 SOPS-migrates the secret set).
+  - aspect: "grafana-oidc-client-plumbing"
+    unit: { kind: file, path: platform/infra/hetzner/.env.example }
+  - aspect: "grafana-oidc-client-plumbing"
+    unit: { kind: file, path: platform/infra/hetzner/setup.sh }
 extends:
   # Mechanical featuregraph-golden refresh: appending spec 196 to the corpus
   # shifts the golden fingerprint. No semantic change to spec 034's claims.
@@ -103,11 +136,51 @@ scope (§Out of scope) and left to later specs.
   controllers (`prometheus.io/scrape: "true"` in `gotk-components.yaml`), and
   ingress-nginx already expose `/metrics`. Nothing scrapes them — the
   annotations describe an intent with no collector behind it.
+  *(Corrected at implementation — see §Current-state corrections below:
+  this held only for the Flux controllers.)*
 - **The two stagecraft infra configs are byte-identical.** They sit on
   different deploy paths (`infra.config.json` → Azure/default
   `encore build docker`; `infra.config.hetzner.json` → the Hetzner build) and
   exist precisely so per-cloud infrastructure can diverge. They coincide only
   because no field has yet needed to differ.
+
+### Current-state corrections *(implementation findings, 2026-06-12)*
+
+The implementation survey falsified parts of the filing-time picture.
+Recorded here as correction-grade edits to this draft body — the *design*
+(hybrid ingestion, receiver isolation, OIDC-only Grafana, declarative
+deploy) is unchanged and implemented as specified; what changed is the
+honest description of the starting state and the work needed to reach it:
+
+1. **deployd-api-rs exposed no `/metrics` endpoint and carried no scrape
+   annotations** (no `metrics`/`prometheus` token anywhere in its sources,
+   manifest, or chart). The endpoint is *created by this spec* —
+   `src/metrics.rs`, a hand-rolled format-0.0.4 exposition
+   (`deployd_api_build_info`, `deployd_api_uptime_seconds`; zero new
+   crates), public at the router layer beside `/healthz` because
+   Prometheus cannot perform the OIDC client_credentials dance on a
+   scrape; inbound containment is FR-006 (b)'s
+   ingress←monitoring-only NetworkPolicy. The chart gains the
+   `prometheus.io/*` pod annotations.
+2. **ingress-nginx metrics were not enabled** — the spec-151 HelmRelease
+   set no `controller.metrics.*`, so the controller served nothing on
+   :10254. Enabled at implementation (with scrape annotations) in
+   `infrastructure/ingress-nginx.yaml`; 196 carries the `refines:` edge.
+3. **No namespace carried an applied default-deny.**
+   `post-create.sh` applies only resourcequota/limitrange and skips
+   default-deny "for MVP"; the in-tree
+   `namespace-baseline/networkpolicy-default-deny.yaml` was applied
+   nowhere. FR-006's "preserved" posture and SC-005's original negative
+   probe assumed otherwise. Resolution: the `monitoring` namespace ships
+   with the deployment's **first enforced default-deny** plus the named
+   flows; the stagecraft-system egress allow lands as a
+   **declared, dormant-additive** flow (it changes nothing until that
+   namespace gains default-deny under its own spec, at which point
+   remote_write keeps flowing instead of silently dropping). SC-005 is
+   rescoped accordingly. Bringing default-deny to `stagecraft-system`
+   itself — which requires enumerating that service's full legitimate
+   egress (DNS, Rauthy, postgres, NSQ, GitHub, S3, Slack, Anthropic) —
+   is explicitly **not** this spec's scope.
 
 **Intent:** a single Prometheus server that receives stagecraft's remote_write,
 scrapes the annotated targets, and serves Grafana; Grafana behind Rauthy OIDC;
@@ -200,10 +273,16 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   and TSDB compaction, a data-destruction surface reachable from `monitoring`;
   parallel to Grafana's `auth.basic_enabled` closure (FR-004).
 
-- **FR-003 (scrape the unconsumed targets):** Prometheus MUST scrape the
-  already-annotated pull targets — deployd-api-rs, the Flux controllers,
-  ingress-nginx — plus the stack-bundled node-exporter and kube-state-metrics.
-  This closes the emitted-but-unconsumed gap, not just the stagecraft gap.
+- **FR-003 (scrape the pull targets):** Prometheus MUST scrape the pull
+  targets — deployd-api-rs, the Flux controllers, ingress-nginx — plus the
+  stack-bundled node-exporter and kube-state-metrics. At filing time only
+  the Flux controllers were genuinely annotated-and-emitting (see
+  §Current-state corrections); implementation therefore also *creates* the
+  deployd-api `/metrics` endpoint + annotations and *enables* the
+  ingress-nginx exporter, then consumes all three via an
+  annotation-keyed pod scrape job over an enumerated namespace allowlist
+  (`flux-system`, `deployd-system`, `ingress-nginx`). This closes the
+  emitted-but-unconsumed gap, not just the stagecraft gap.
 
 - **FR-004 (Grafana auth via Rauthy OIDC):** Grafana MUST authenticate via
   **native generic OIDC against Rauthy** (spec 106), mapping the Rauthy
@@ -366,9 +445,18 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
   check is scoped to the whole service root, not `api/**` alone — `infra.config.*`
   and the seeder live at the service root, outside `api/**`, and an `api/**`-only
   glob would pass silently on a stray edit to any of them (proves FR-011).
-- **SC-005 (Phase 1):** an un-allowed egress from `stagecraft-system` is still dropped
-  after deploy — the default-deny posture is intact, only the named flows are
-  open (proves FR-006 did not globally weaken the policy).
+- **SC-005 (Phase 1, rescoped at implementation — see §Current-state
+  corrections):** no pre-existing NetworkPolicy is weakened or removed;
+  everything this spec adds is either `monitoring`'s own default-deny or a
+  strictly additive named allow; and a negative probe confirms
+  `monitoring`'s default-deny actually drops an un-allowed flow (e.g. a
+  generic-namespace pod cannot reach an arbitrary monitoring port that no
+  allow names). The original wording probed egress from
+  `stagecraft-system`, which presumed a default-deny that namespace has
+  never had applied (post-create.sh skips it "for MVP") — unverifiable as
+  filed. The stagecraft-system egress allow this spec ships is
+  dormant-additive until that namespace gains default-deny under its own
+  spec (proves FR-006 did not globally weaken the policy).
 - **SC-006 (Phase 1):** post-deploy, Alertmanager pods are **absent** and the
   `PrometheusRule`s **installed by the kube-prometheus-stack release** are
   absent/disabled (the phase-1 allowed set from this release is ∅; alerting is a
@@ -493,6 +581,13 @@ forbids the not-yet-existent gitops/NetworkPolicy paths; the existing
 infra.config is deferred for consistency, not because it must be.) The filing
 PR therefore changes no claimed code path except the golden.
 
+*(Resolved: the load-bearing choices went through the reviewer pass — the
+access-policy map locked 2026-06-04 in `plan.md`, FR-009 stayed
+deferred-null, FR-010 values pinned. The implementation PR (2026-06-12)
+created the staged files and landed their `establishes:`/`refines:` edges,
+exactly as this section scheduled. Status stays `draft` until the
+deploy-time SC evidence closes — see §Implementation record.)*
+
 ## Implementation scope — a plan-time decision
 
 - **Implemented now (Hetzner):** FR-001, FR-002, FR-003, FR-004, FR-005,
@@ -509,3 +604,62 @@ the Grafana HelmRelease OIDC config, and pins the FR-010 retention values. No
 `compliance:` mapping is asserted here: an OWASP-ASI detection/monitoring
 mapping may apply but is a plan-time determination, not a frontmatter claim
 made on faith.
+
+## Implementation record (2026-06-12)
+
+The implementation PR landed both plan phases as manifests in one change —
+the Phase-2 boundary is the *operator's manual Rauthy-client step* (the
+Grafana pod blocks on the `grafana-oidc` Secret until `.env` is filled and
+`setup.sh` re-run; same operator contract as `rauthy-smtp-secret`), not a
+second code drop. What landed, by FR:
+
+- **FR-001** — `infra.config.hetzner.json` `metrics` block:
+  `prometheus` / `collection_interval: 60` (declared explicitly so SC-007's
+  ≥15s guard checks a real value, not an Encore default) / literal
+  `http://monitoring-prometheus.monitoring.svc.cluster.local:9090/api/v1/write`.
+  The two infra configs now diverge for the first time, as §Current state
+  intended; SC-004's service-wide guard holds (this is the only
+  `platform/services/stagecraft/**` change).
+- **FR-002** — kube-prometheus-stack `86.2.2` (pinned), server mode,
+  `enableRemoteWriteReceiver: true`, `enableAdminAPI: false` explicit.
+- **FR-003** — per §Current-state corrections: deployd-api `/metrics`
+  *created* (`src/metrics.rs` + route + chart annotations), ingress-nginx
+  exporter *enabled*, Flux controllers consumed as-annotated; one
+  annotation-keyed scrape job over the enumerated namespace allowlist.
+- **FR-004** — Grafana OIDC-only against Rauthy: scopes
+  `openid email profile oap`, `role_attribute_path` on
+  `custom.platform_role` (Rauthy nests OAP claims under `custom.*` — spec
+  106 FR-002) with legacy top-level fallback and
+  `role_attribute_strict: true`; locked map `owner|admin→Admin`,
+  `member→Viewer`; `disable_login_form` + `basic_enabled: false` +
+  anonymous off + per-provider `auto_login` +
+  `disable_initial_admin_creation: true` (no local admin credential ever
+  exists). Client credentials ride `envFromSecret: grafana-oidc`, never git.
+- **FR-005** — Flux `HelmRelease` + `prometheus-community` `HelmRepository`
+  under the infrastructure tier, plus a new `policies` Flux Kustomization
+  for the namespace-explicit NetworkPolicies (the imperative
+  post-create.sh path was deliberately NOT extended — spec 151 retires it).
+  DR-stage2 bundle imports the new tier by reference (parity invariant).
+- **FR-006** — `monitoring` ships with the deployment's first enforced
+  default-deny + the named flows ((a) push, (b) pull with
+  destination-side containment, (c) Grafana UI); receiver inbound is
+  stagecraft-system-only (SC-008's probe set).
+- **FR-007** — CRDs ride the chart pin with explicit
+  `install/upgrade.crds: CreateReplace` (helm-controller's upgrade default
+  silently Skips — that would be exactly the unpinned drift FR-007 forbids).
+- **FR-008** — `alertmanager.enabled: false`, `defaultRules.create: false`;
+  Grafana's bundled kube-mixin dashboards also off (they lean on the
+  pruned recording rules); the OAP dashboard is provisioned explicitly.
+- **FR-009** — untouched, per contract (`infra.config.json` not in the diff).
+- **FR-010** — retention `15d`, TSDB PVC `20Gi` on `hcloud-volumes`;
+  Grafana `2Gi` on the cluster default class (hcloud CSI's 10Gi floor —
+  verified in deployd's values-hetzner T002 note — rules `hcloud-volumes`
+  out for a 2Gi claim; local-path matches the rauthy persistence
+  precedent).
+- **FR-011** — holds: zero stagecraft application-code change.
+
+**Deploy-gated evidence (open):** SC-001…SC-010 are live-cluster criteria;
+`tasks.md` §Deploy-time validation checklist (V001–V010) is the runbook.
+SC-001 must record the concrete Encore series name — the dashboard's
+stagecraft panel carries a provisional expression until then.
+`implementation:` stays `pending` until that checklist closes.

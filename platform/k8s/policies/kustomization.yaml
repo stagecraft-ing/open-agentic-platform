@@ -1,0 +1,16 @@
+# Spec 196 — explicit apply set for the `policies` Flux Kustomization
+# (platform/gitops/clusters/hetzner-prod/policies-kustomization.yaml).
+#
+# EXPLICIT list, not directory recursion, for the same reason the
+# gitops root kustomization is explicit (spec 151 Finding F8): the
+# namespace-baseline templates `networkpolicy-default-deny.yaml`,
+# `resourcequota.yaml`, and `limitrange.yaml` carry NO namespace in
+# their metadata — they are per-namespace templates applied with
+# `kubectl apply -n <ns>` by post-create.sh. Recursing over this
+# directory would dump them into `default`. Only namespace-explicit
+# policy manifests belong in this list.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - monitoring/networkpolicy-monitoring.yaml
+  - namespace-baseline/networkpolicy-allow-metrics-egress.yaml

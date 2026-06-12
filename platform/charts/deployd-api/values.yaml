@@ -17,6 +17,14 @@ serviceAccount:
 
 podLabels: {}
 
+# Spec 196 FR-003 — declare the /metrics endpoint for annotation-keyed
+# scraping by the platform metrics stack. Harmless where no collector
+# consumes the annotations (e.g. Azure until spec 196 FR-009 resolves).
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
 # region: resources
 # Spec 146: chart-default resources floor. cgroup limit is the load-bearing
 # memory cap (Rust runtime — no managed-heap env-var to set). 1Gi covers
