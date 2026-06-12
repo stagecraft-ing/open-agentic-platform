@@ -213,3 +213,9 @@ no dependency). Phases A–C = PR-A (`feat/198-seal-grants`); D–F = PR-B
 - ASI09 UI implementation (spec 201 stub only).
 - `implementation: complete` flip for 198 — gated on runtime AC verification
   after the GovAlta-side envelope merge + org re-sync (first real ADMIT).
+  **DONE 2026-06-12**: gate discharged by the first sealed admission
+  `7cf82fae…` (2026-06-11, 0 violations, JWS verified against the
+  published JWKS) following the GovAlta-side envelope merge; flip
+  executed — see the spec's implementation log entry of 2026-06-12 for
+  the recorded AC-5 (bundle-boundary posture per T010) and AC-4
+  (live-run evidence is follow-on) caveats.
