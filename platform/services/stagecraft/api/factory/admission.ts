@@ -26,6 +26,7 @@ import {
   factoryUpstreams,
 } from "../db/schema";
 import { signFactoryJws, signingConfigured } from "./signing";
+import { sweepContentHashRevocations } from "./overrideScanCore";
 
 // ---------------------------------------------------------------------------
 // Contract shapes (mirrors of the canonical YAML schema / Rust twin)
@@ -826,6 +827,24 @@ export async function collectConsumedOverrides(
       ),
     )
     .orderBy(factoryArtifactSubstrate.path);
+
+  // Spec 200 FR-003(a) — consumed-override content hashes join the
+  // revocation sweep. Checked BEFORE the verified predicate: quarantine
+  // wins regardless of `user_body_verified` (FR-006), and a hit refuses
+  // the whole serve fail-closed, mirroring the verified-predicate refusal.
+  const quarantine = await sweepContentHashRevocations(
+    orgId,
+    rows.map((r) => r.contentHash),
+  );
+  if (quarantine) {
+    const hitRow = rows.find((r) => r.contentHash === quarantine.key);
+    throw APIError.failedPrecondition(
+      `artifact '${hitRow?.path ?? "(unknown)"}' (${hitRow?.id ?? quarantine.key}) ` +
+        `carries an override whose content hash is ${quarantine.mode} ` +
+        `(revocation ${quarantine.revocationId}) — lift the quarantine or ` +
+        `revise the override (spec 198 FR-010 / spec 200 FR-003)`,
+    );
+  }
 
   const requireVerified =
     composed?.process?.overrides?.require_verified === true;

@@ -23,6 +23,10 @@ import { and, desc, eq, max, ne } from "drizzle-orm";
 import type { CatalogFrontmatter } from "./frontmatter";
 import { publishAgentCatalogUpdated } from "./relay";
 import { assertOverrideGate } from "../factory/artifacts";
+import {
+  publishOverrideScanRun,
+  recordOverrideScanIntent,
+} from "../factory/overrideScanCore";
 import { runOverrideGate } from "../factory/overrideGate";
 import {
   mapAgentCatalogAuditAction,
@@ -350,7 +354,7 @@ export const createAgent = api(
       "draft",
     );
 
-    const inserted = await db.transaction(async (tx) => {
+    const { inserted, scanRunId } = await db.transaction(async (tx) => {
       const version = await nextVersion(
         tx as unknown as typeof db,
         req.orgId,
@@ -382,8 +386,24 @@ export const createAgent = api(
         },
         tx as unknown as typeof db,
       );
-      return row;
+      // Spec 200 FR-001 — a user-authored agent body is a `user_body`
+      // write (the same class as assertOverrideGate above); durable scan
+      // intent rides this transaction, published after commit.
+      const intent = await recordOverrideScanIntent(
+        tx as unknown as typeof db,
+        {
+          orgId: req.orgId,
+          artifactId: row.id,
+          contentHash: row.contentHash,
+          reason: "agent_created",
+        },
+      );
+      return {
+        inserted: row,
+        scanRunId: intent.outcome === "recorded" ? intent.scanRunId : null,
+      };
     });
+    if (scanRunId) await publishOverrideScanRun(scanRunId);
 
     return { agent: toWire(inserted) };
   },
@@ -447,7 +467,7 @@ export const patchAgent = api(
     const { userId, orgId } = requireOrgAuth();
     await verifyOrgAccess(req.orgId, orgId);
 
-    const updated = await db.transaction(async (tx) => {
+    const { updated, scanRunId } = await db.transaction(async (tx) => {
       const existing = await loadAgent(
         tx as unknown as typeof db,
         req.id,
@@ -521,8 +541,25 @@ export const patchAgent = api(
         },
         tx as unknown as typeof db,
       );
-      return row;
+      // Spec 200 FR-001 — enqueue only on a `user_body` revision (the
+      // same condition the gate above runs under); a frontmatter-only
+      // patch changes no body content.
+      let scanRunId: string | null = null;
+      if (req.body_markdown !== undefined) {
+        const intent = await recordOverrideScanIntent(
+          tx as unknown as typeof db,
+          {
+            orgId: req.orgId,
+            artifactId: row.id,
+            contentHash: row.contentHash,
+            reason: "agent_patched",
+          },
+        );
+        scanRunId = intent.outcome === "recorded" ? intent.scanRunId : null;
+      }
+      return { updated: row, scanRunId };
     });
+    if (scanRunId) await publishOverrideScanRun(scanRunId);
 
     return { agent: toWire(updated) };
   },
@@ -894,6 +931,12 @@ function substrateActionToLegacy(
     // other override-lifecycle actions.
     case "artifact.override_gate_rejected":
     case "artifact.override_verified":
+    // Spec 200 FR-008 — scan outcomes are service events on the same
+    // override lifecycle; same fold.
+    case "artifact.scan_flagged":
+    case "artifact.scan_clean":
+    case "artifact.scan_skipped":
+    case "artifact.scan_failed":
       return "edit";
   }
 }

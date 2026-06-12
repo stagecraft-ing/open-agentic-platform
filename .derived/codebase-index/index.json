@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "4310d1b636aa683ccbf4f6b82d26c3b205dd1ad8698efbccfafce46cac78a783",
+    "contentHash": "98542afa6263c87c8f895ffa30fd607d8528dbe7afb3cf56b40db9557f2cf03a",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -15714,6 +15714,33 @@
                 "file": "platform/services/stagecraft/api/factory/overrideGate.ts"
               },
               {
+                "file": "platform/services/stagecraft/api/factory/overrideQuarantineEnforcement.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanCore.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanEvents.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanPolicy.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanPrompts.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanRuns.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanScheduler.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanStructure.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanWorker.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/api/factory/overrideTrustClass.test.ts"
               },
               {
@@ -22170,6 +22197,12 @@
               },
               {
                 "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.up.sql"
               },
               {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
@@ -31782,6 +31815,12 @@
                 "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql"
               },
               {
+                "file": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.up.sql"
+              },
+              {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
               },
               {
@@ -31927,6 +31966,33 @@
               },
               {
                 "file": "platform/services/stagecraft/api/factory/overrideGate.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideQuarantineEnforcement.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanCore.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanEvents.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanPolicy.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanPrompts.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanRuns.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanScheduler.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanStructure.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanWorker.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/factory/overrideTrustClass.test.ts"
@@ -46044,7 +46110,23 @@
         ],
         "implementingPaths": [
           {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/agents/catalog.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.up.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
             "source": "spec-implements"
           },
           {
@@ -46068,11 +46150,231 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/factory/overrideQuarantineEnforcement.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/overrideScanCore.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/overrideScanEvents.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/overrideScanPolicy.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/overrideScanPrompts.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/overrideScanRuns.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/overrideScanScheduler.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/overrideScanStructure.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/overrideScanWorker.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/revocations.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/runAgentRefs.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/factory/runs.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/opcBundle.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/vite.config.ts",
             "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.down.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.down.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.up.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.up.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideQuarantineEnforcement.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideQuarantineEnforcement.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanCore.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideScanCore.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanEvents.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideScanEvents.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanPolicy.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideScanPolicy.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanPrompts.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideScanPrompts.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanRuns.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideScanRuns.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanScheduler.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideScanScheduler.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanStructure.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideScanStructure.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/overrideScanWorker.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/overrideScanWorker.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -46127,6 +46429,20 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/agents/catalog.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/schema.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/schema.ts"
             }
           },
           {
@@ -46225,6 +46541,62 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/factory/revocations.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/runAgentRefs.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/runAgentRefs.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/factory/runs.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/runs.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/projects/opcBundle.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projects/opcBundle.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/vite.config.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/vite.config.ts"
             }
           }
         ],

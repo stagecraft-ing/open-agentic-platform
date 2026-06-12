@@ -29,6 +29,7 @@ import {
   buildSourceShas,
   RetiredAgentError,
   AgentReferenceNotFoundError,
+  QuarantinedAgentError,
 } from "./runAgentRefs";
 import { loadSubstrateForOrg } from "./substrateBrowser";
 import { findAdapterView, findEnvelopeProcess } from "./adapterView";
@@ -318,6 +319,11 @@ export async function reserveRunCore(
         throw APIError.failedPrecondition(e.message);
       }
       if (e instanceof AgentReferenceNotFoundError) {
+        throw APIError.failedPrecondition(e.message);
+      }
+      if (e instanceof QuarantinedAgentError) {
+        // Spec 200 FR-003(c) — FR-010-class fail-closed refusal: the run
+        // cannot consume a quarantined agent revision.
         throw APIError.failedPrecondition(e.message);
       }
       throw e;

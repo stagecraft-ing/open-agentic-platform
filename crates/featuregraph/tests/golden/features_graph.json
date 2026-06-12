@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:292f06b07c482bf7bfda34e353a238c268cc928311cd54fe32637e4c3206ca60",
+  "graph_fingerprint": "sha256:3b7571aeb91ee5ebb307592b42070dd1b67863446704cc687537b00fb43b786e",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3782,7 +3782,7 @@
       "title": "Substrate Override Async Scanner (ASI06 model-assisted detection)",
       "spec_path": "specs/200-substrate-override-async-scanner/spec.md",
       "status": "draft",
-      "implementation": "pending",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",

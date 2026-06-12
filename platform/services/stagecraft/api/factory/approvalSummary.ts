@@ -14,6 +14,7 @@ import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import { auditLog, factoryArtifactSubstrate, factoryRuns } from "../db/schema";
 import { isFactoryAdmitted, loadLatestAdmission } from "./admission";
+import { sweepContentHashRevocations } from "./overrideScanCore";
 import { FACTORY_RUN_GATE_APPROVED } from "./auditActions";
 import { DEFAULT_REQUIRE_STAGE_APPROVAL } from "./factory";
 import { resolveOriginsForOrg } from "./substrateBrowser";
@@ -162,6 +163,27 @@ export async function assembleApprovalSummary(
       ),
     )
     .orderBy(factoryArtifactSubstrate.path);
+
+  // Spec 200 FR-003(a) parity — this inline query replicates
+  // `collectConsumedOverrides` (cycle-avoidance keeps it from importing
+  // it), so the content-hash revocation sweep that refuses the serve MUST
+  // refuse the summary too: no approval basis exists while a consumed
+  // override is quarantined, exactly as the serve would refuse.
+  const quarantine = await sweepContentHashRevocations(
+    input.orgId,
+    overrideRows.map((r) => r.contentHash),
+  );
+  if (quarantine) {
+    const hitRow = overrideRows.find((r) => r.contentHash === quarantine.key);
+    return {
+      ok: false,
+      reason:
+        `artifact '${hitRow?.path ?? "(unknown)"}' carries an override whose ` +
+        `content hash is ${quarantine.mode} (revocation ` +
+        `${quarantine.revocationId}) — lift the quarantine or revise the ` +
+        `override (spec 198 FR-010 / spec 200 FR-003)`,
+    };
+  }
 
   return assembleApprovalSummaryFromFacts({
     gatePredicate: input.gatePredicate,

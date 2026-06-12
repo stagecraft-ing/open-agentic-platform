@@ -1,9 +1,9 @@
 ---
 id: "200-substrate-override-async-scanner"
 title: "Substrate Override Async Scanner (ASI06 model-assisted detection)"
-feature_branch: "feat/200-substrate-override-async-scanner"
+feature_branch: "200-override-async-scanner"
 status: draft
-implementation: pending
+implementation: complete
 kind: platform
 domain: platform
 created: "2026-06-10"
@@ -21,6 +21,24 @@ code_aliases: ["SUBSTRATE_OVERRIDE_ASYNC_SCANNER"]
 depends_on:
   - "198-factory-governance-envelope"
   - "139-factory-artifact-substrate"
+establishes:
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanCore.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanEvents.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanWorker.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanScheduler.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanPolicy.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanPrompts.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/47_override_scan_runs.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/47_override_scan_runs.down.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanRuns.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideQuarantineEnforcement.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanStructure.test.ts }
+extends:
+  # Spec adds always bump the featuregraph golden (corpus convention —
+  # specs 190/194/195 carry the same edge).
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   # The write-path class the FR-013(a) gate already covers — every accepted
   # revision enqueues a scan (FR-001):
@@ -47,6 +65,21 @@ refines:
   # FR-004 — mode-sensitive lift for content-hash quarantines:
   - aspect: "content-hash-quarantine-lift-mode"
     unit: { kind: file, path: platform/services/stagecraft/api/factory/revocations.ts }
+  # FR-003(c) — the exact read-path units serving user-authored agent
+  # content, named by the implementing PR as the FR prescribes:
+  - aspect: "consumed-override-revocation-sweep"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/runAgentRefs.ts }
+  - aspect: "consumed-override-revocation-sweep"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/runs.ts }
+  - aspect: "consumed-override-revocation-sweep"
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/opcBundle.ts }
+  # FR-008 — scan-run table + audit vocabulary ride the shared schema:
+  - aspect: "scan-run-records"
+    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+  # AC-8 — DB-bound suites join the spec 211 encore-test lane (the
+  # exclude list IS the lane assignment):
+  - aspect: "encore-test-lane-assignment"
+    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
 references:
   - role: context
     unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.ts }
@@ -278,6 +311,13 @@ the first two away.
   `build/policy/projects/`, or the org slice starts as a hand-deployed
   snapshot consumed by the FR-005 resolver. Resolve in plan.md; the
   resolver contract above is fixed either way.
+  **Resolved interim (2026-06-12, implementing PR):** the org slice starts
+  as a hand-deployed snapshot at `build/policy/orgs/{orgId}.json`
+  (`STAGECRAFT_OVERRIDE_SCAN_POLICY_DIR` override). The resolver's
+  fail-closed fallback makes the absent-snapshot state safe and audited
+  (`skipped` runs are the operator's worklist). Growing the policy
+  compiler an `orgs/` output remains open under spec 047's ownership —
+  the resolver contract is unchanged when it lands.
 
 ## Phasing (proposed; refine in plan.md)
 
@@ -306,3 +346,48 @@ recorded, and spec 198 remains `implementation: in-progress`. This
 refinement is the pre-implementation step the draft staged for itself
 ("refine before implementation"); phase 1's rule-layer work becomes
 eligible the moment the gate discharges.
+
+**Gate discharged (2026-06-12, later the same day):** spec 198 flipped
+`implementation: complete` (its tasks.md gate — GovAlta-side envelope
+merge + first real ADMIT — was met by the sealed admission above; the
+flip records AC-5's bundle-boundary posture and the live-run AC-4
+caveat honestly in its implementation log). Implementation proceeded in
+the same session; see §Implementation log.
+
+## Implementation log
+
+- **2026-06-12 — full implementation lands; `implementation: complete`.**
+  All four phases in one PR, in the spec's order:
+  *Rules first* — FR-003(a) `collectConsumedOverrides` sweeps consumed
+  override hashes (quarantine checked BEFORE the verified predicate;
+  quarantine wins per FR-006), with the same sweep added inline to the
+  spec 201 approval-summary parity replica; FR-003(b)
+  `sweepCompositionRevocations` extends its content-hash key set with the
+  org's active override hashes; FR-003(c) named the user-authored serve
+  paths — `runAgentRefs.ts` (run resolution; new `QuarantinedAgentError`
+  mapped to `failedPrecondition` in `runs.ts`) and
+  `opcBundle.ts::loadPublishedAgents` (bundle assembly) — and their
+  `refines:` edges ride this frontmatter; FR-004 `liftRevocation` is
+  mode-sensitive (core split out as `liftRevocationCore` for the
+  encore-test lane; `revoked` stays never-liftable, `quarantined` lifts
+  re-run `runOverrideGate` over the current body and reset the rows to
+  unverified); FR-006 `verifyOverrideCore` pre-flights the quarantine.
+  *Dispatch machinery* — migration 47 (run-row table + audit-constraint
+  widening in ONE migration, the migration-46 lesson), durable intent via
+  `recordOverrideScanIntent` inside all four write transactions
+  (`applyOverrideCore`, `edit_and_accept`, agent create + patch),
+  post-commit publish, staleness sweeper cron (re-drives lost publishes,
+  fails stale running rows).
+  *Model leg* — worker-only model client (`overrideScanWorker.ts` is the
+  single importer; the invoker is dependency-injected into
+  `runOverrideScanWork` so the core stays model-free), versioned prompt
+  registry with fingerprint, strict two-outcome `parseScanVerdict`,
+  org-scoped fail-closed policy resolver, soft day-ceiling on committed
+  costs, quarantine key sourced from the run row (AC-7).
+  *CI hardening* — both DB-bound suites registered in the vite.config.ts
+  exclude list (spec 211 lane derives coverage from it); structural AC-3
+  suite in the vitest lane. Evidence: encore-test lane 23 files / 140
+  tests green locally (`--fileParallelism=false`), bare-vitest lane 59
+  files / 606 tests green, `tsc --noEmit` clean. `scanner_version`
+  composes code + prompt versions (`1+prompt.1`). Status stays `draft`
+  pending ratification (corpus precedent: 199/201/211).
