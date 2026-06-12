@@ -80,6 +80,12 @@ refines:
   # exclude list IS the lane assignment):
   - aspect: "encore-test-lane-assignment"
     unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+  # FR-001 — the scan-request topic must be declared in the self-host
+  # infra configs (encore build fails closed on undeclared topics):
+  - aspect: "override-scan-topic-declaration"
+    unit: { kind: file, path: platform/services/stagecraft/infra.config.json }
+  - aspect: "override-scan-topic-declaration"
+    unit: { kind: file, path: platform/services/stagecraft/infra.config.hetzner.json }
 references:
   - role: context
     unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.ts }

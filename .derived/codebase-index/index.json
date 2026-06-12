@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "98542afa6263c87c8f895ffa30fd607d8528dbe7afb3cf56b40db9557f2cf03a",
+    "contentHash": "cf3bd7f3b8aeedc0d54180a39374787718a15ff60d1bed2d2de36cb9e525d734",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -46202,6 +46202,14 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/infra.config.hetzner.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/infra.config.json",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/vite.config.ts",
             "source": "spec-implements"
           }
@@ -46583,6 +46591,34 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/projects/opcBundle.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/infra.config.hetzner.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/infra.config.hetzner.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/infra.config.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/infra.config.json"
             }
           },
           {
