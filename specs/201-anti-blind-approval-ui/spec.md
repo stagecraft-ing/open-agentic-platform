@@ -3,7 +3,7 @@ id: "201-anti-blind-approval-ui"
 title: "Anti-Blind-Approval UI (ASI09 human-agent trust surfaces)"
 feature_branch: "feat/201-anti-blind-approval-ui"
 status: draft
-implementation: in-progress
+implementation: complete
 kind: platform
 domain: platform
 created: "2026-06-10"
@@ -573,3 +573,17 @@ renders).
     satisfied in spirit: the audit evidence landed in the phase 1 and
     phase 3 PRs (#330, #332), and this flip rides the immediately
     following closeout commit with that evidence cited.
+
+**2026-06-12 (named trigger discharged — `implementation: complete`).**
+
+11. **The CI gate this spec waited on exists and is green.** Spec 211's
+    enforcing encore-test lane merged to `main` in `a58755be` (PR
+    #347): `approvalSummaryEndpoint.test.ts` (10 tests) and
+    `overrideTrustClass.test.ts` (7 tests) now execute on every PR
+    touching stagecraft and in `merge_group`, gated by ci-gate, with a
+    lane-coverage guard that fails CI if either file ever stops
+    executing (skip-as-pass forbidden). Live evidence: PR-lane run
+    27419049946 and merge-queue run 27419855931, both green. AC-1–AC-5
+    are CI-verified; per item 10's staged plan, the spec 198 ASI09 row
+    flips to "Solid" and this spec's `implementation:` flips to
+    `complete` in the same commit, citing those runs.

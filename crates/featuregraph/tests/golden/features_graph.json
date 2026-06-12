@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:258618cc45ce87f55c721aff42bbedbb785a604fe737b07e28953b51ce3b9e48",
+  "graph_fingerprint": "sha256:3f75870d08daa570de11826567771e2aee6121a1ea8ec5794d814aaaecfc69d8",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3799,7 +3799,7 @@
       "title": "Anti-Blind-Approval UI (ASI09 human-agent trust surfaces)",
       "spec_path": "specs/201-anti-blind-approval-ui/spec.md",
       "status": "draft",
-      "implementation": "in-progress",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",
@@ -3981,7 +3981,7 @@
       "title": "Encore-Test CI Job (ASI09 verification integrity — the encore-test CI gap, closed)",
       "spec_path": "specs/211-encore-test-ci-job/spec.md",
       "status": "draft",
-      "implementation": "in-progress",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",
