@@ -3,7 +3,7 @@ id: "211-encore-test-ci-job"
 title: "Encore-Test CI Job (ASI09 verification integrity — the encore-test CI gap, closed)"
 feature_branch: "feat/211-encore-test-ci-job"
 status: draft
-implementation: in-progress
+implementation: complete
 kind: governance
 domain: tooling
 created: "2026-06-11"
@@ -23,7 +23,9 @@ amendment_record: |
   design). FR-002's fast-lane decision is recorded: strict-only. Adds
   establishes: edges for the lane, the coverage-guard script, and the
   parity fixtures; implementation flipped pending → in-progress. See
-  §Implementation log.
+  §Implementation log. Completion flip (in-progress → complete) rode the
+  follow-up commit after the lane went green on main — see
+  §Implementation log "FR-005 discharged".
 authors: ["open-agentic-platform"]
 language: en
 summary: >
@@ -364,3 +366,15 @@ lane. The spec 198 ASI09 "Solid" flip and spec 201
 `implementation: complete` flip fire once this lane is green on `main`
 — a follow-up edit to those specs citing the live run, not part of this
 PR.
+
+### FR-005 discharged (2026-06-12, completion flip)
+
+The lane merged to `main` in `a58755be` (PR #347). Live evidence: the
+PR-lane run 27419049946 and the merge-queue validation run 27419855931
+(`merge_group` — AC-5's posture, the encore lane executing against the
+exact speculative tree that became `main`) both green: 126 tests across
+the 21 DB-bound files, coverage guard confirming every file executed,
+the three named-trigger suites among them. Accordingly, in one commit
+citing this evidence and per the staged plan in all three texts: spec
+198's ASI09 row flips to "Solid", spec 201's `implementation:` flips to
+`complete`, and this spec's `implementation:` flips to `complete`.
