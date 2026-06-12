@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5fc9c403484bd2c011b081a2bae0109c5dd3943a7e4a4b80dcb588229169ac82",
+    "contentHash": "9509f2b4bfba7c3474d737ae44fdb7faaa81cf1c89c0c3bf5bba0b96e785b4cc",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -44169,6 +44169,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/factory/factory.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.test.ts",
             "source": "spec-implements"
           },
@@ -45085,6 +45089,20 @@
             "kind": "file",
             "locations": [
               {
+                "file": "platform/services/stagecraft/api/factory/factory.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/factory/factory.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": "platform/services/stagecraft/api/factory/runDuplexHandlers.ts"
               }
             ],
@@ -45301,6 +45319,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/factory/adapterView.ts",
             "source": "spec-implements"
           },
@@ -45398,6 +45420,20 @@
             "unit": {
               "id": "factory-contracts",
               "kind": "crate"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
             }
           },
           {

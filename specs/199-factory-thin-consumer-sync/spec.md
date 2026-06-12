@@ -3,7 +3,7 @@ id: "199-factory-thin-consumer-sync"
 title: "Thin-Consumer Factory Sync for Owned Sources"
 feature_branch: "feat/199-factory-thin-consumer-sync"
 status: draft
-implementation: in-progress
+implementation: complete
 kind: platform
 domain: platform
 created: "2026-06-09"
@@ -34,6 +34,13 @@ extends:
   - spec: "074-factory-ingestion"
     nature: additive
     unit: { kind: crate, id: factory-contracts }
+  # The featuregraph golden snapshots this spec's lifecycle row; the
+  # implementation: flip (2026-06-11) regenerates it. Same edge the
+  # 187/183/193/202-211 convention uses to keep golden regens
+  # coupling-clean without a waiver.
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "thin-consumer-substrate-reads"
     unit: { kind: file, path: platform/services/stagecraft/api/factory/browse.ts }
@@ -329,6 +336,21 @@ org-scoped id is org configuration and never enters the open contract (spec
 
 ## Implementation log
 
+- **2026-06-11 — FR-007 module-catalog cutover; implementation: complete.**
+  The last FR-007 hygiene item lands: stagecraft's `moduleCatalog.ts` (and
+  the Create form's inline mirror) now reflect template-encore's real
+  `modules/` catalog — five modules, manifest-truthful descriptions,
+  empty profile built-ins/presets (profiles select AUTH_DRIVER; modules
+  are opt-in `--with` composition), retired `auth-*`/`session-store-*`/
+  `service-auth`/`api-docs` ids rejected by `isKnownModule`. Riding the
+  same change, `factory.ts` retires the `DEFAULT_SCOPE` fallback: an
+  adapter absent from the adapter-scopes enforcement snapshot now refuses
+  pipeline init fail-closed (spec 198 FR-012 enforcement) instead of
+  inheriting a broader invented allowlist. With AC-1..AC-7 evidenced
+  in this log (sealed ADMIT + UI verification, entries below), AC-8
+  holding by this change's own gate run (`make pr-prep` coupling OK,
+  index regenerated), and FR-007 fully closed, `implementation:` flips
+  to `complete`.
 - **2026-06-11 — first real (and first sealed) ADMIT; runtime-AC evidence.**
   After the FR-014 signing cutover (spec 198 implementation log, same date),
   an org re-sync produced a sealed `admitted` record (0 violations) for
@@ -360,8 +382,8 @@ org-scoped id is org configuration and never enters the open contract (spec
   catalog has 5 (`api-gateway`, `data-postgres`, `data-redis`,
   `security-core`, `user-management`; auth is the `AUTH_DRIVER` profile
   axis, not a module). A Create selecting a phantom module would fail at
-  `add-module.ts`. `implementation:` stays `in-progress` until the
-  catalog cutover lands.
+  `add-module.ts`. (`implementation:` stayed `in-progress` until the
+  catalog cutover — landed same day, entry above.)
 - **2026-06-10 — AC-6 hygiene closure.** The live legacy remnants the
   AC-6 negative grep still caught after the main cutover PR (#313) are
   retired: `translator.ts::selectAdapter` no longer fabricates

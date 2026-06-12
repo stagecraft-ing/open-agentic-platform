@@ -233,6 +233,23 @@ Spec 112's overall design is unchanged:
 
 ## 5. Audit trail
 
+- 2026-06-11 — module-catalog cutover (spec 199 FR-007 hygiene). The
+  `moduleCatalog.ts` this spec's Create surface consumes — and the web
+  form's inline mirror in `app.projects.new.tsx` — stop describing the
+  retired template-distributor catalog (10 entries incl.
+  express-session-era `session-store-*` and module-shaped `auth-*` ids)
+  and mirror template-encore's real `modules/` directory: `security-core`,
+  `api-gateway` (requires security-core), `data-postgres`, `data-redis`,
+  `user-management`, with manifest-truthful descriptions. Two
+  template-encore facts reshape the helpers: profiles select AUTH_DRIVER
+  (auth is not a module) and no module ships by default — so
+  `PROFILE_MODULES`/`PRESETS` are empty by design, `detectProfile` (which
+  keyed on the retired `auth-*` ids) is removed, and
+  `pickProfileFromModules` maps variants only, falling back to `minimal`.
+  Previously, a Create selecting a phantom module failed at
+  `add-module.ts` (`Module "<id>" not found at <path>`); operator-observed
+  2026-06-11
+  during spec 199 AC-2/AC-3 verification.
 - 2026-05-04 — implementation lands (Phase 1-7 of the brief at
   `specs/138-stagecraft-create-realised-scaffold/`).
 - 2026-05-04 — this amendment lands; spec 112 frontmatter records

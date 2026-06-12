@@ -1312,6 +1312,15 @@ this tree reads them.
 
 ## Amendment record
 
+**Amendment 2026-06-11 (record: 138 audit trail, spec 199 FR-007).**
+The §5.3 module catalog this spec established was cut over from the
+retired template-distributor shape to template-encore's real `modules/`
+directory — five opt-in modules, empty profile built-ins/presets
+(profiles select AUTH_DRIVER; auth is not a module), `detectProfile`
+removed. Full rationale and the module descriptors live in spec 138's
+audit trail (2026-06-11 entry); the helper tests in
+`scaffold.test.ts` follow the new catalog.
+
 **Amendment 2026-05-04 (record: 138-stagecraft-create-realised-scaffold).**
 Four refinements to §5 settled when the absorbed scaffold subflow
 landed. None contradicts the original design — each is a load-bearing

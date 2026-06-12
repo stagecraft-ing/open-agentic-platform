@@ -1,13 +1,18 @@
-// Spec 112 §5.3 — module catalog ported from
-// template-distributor/src/server.ts (lines 108-232). Stagecraft Create's
-// web UI lets the user pick optional modules; this module captures the
-// closed set of modules + their dependencies + which preset templates
-// already include them.
+// Spec 112 §5.3 — module catalog; spec 138 realised-scaffold surface.
+// Cut over 2026-06-11 (spec 199 FR-007 hygiene) from the retired
+// template-distributor catalog to template-encore's real `modules/`
+// directory: descriptors mirror each module's `manifest.json` (the catalog
+// add-module.ts actually composes). Two template-encore facts shape this
+// file (scripts/setup-app.ts header):
 //
-// The catalog is template-repo-shaped, not adapter-shaped: profile names
-// match the directories `tsx scripts/setup-app.ts` / `setup-dual-app.ts`
-// emit (`_prebuilt-{profile}`) and the script names `tsx scripts/add-module.ts`
-// accepts.
+//   1. Profiles select the default AUTH_DRIVER — auth is NOT a module.
+//      setup-app.ts owns minimal/public/internal; the dual variant is the
+//      separate setup-dual-app.ts generator. The express-session-era
+//      `auth-*` / `session-store-*` ids are retired (auth is stateless
+//      RS256 JWT).
+//   2. NO modules ship by default; optional domain modules are composed
+//      via `--with <module>`, so the per-profile built-in sets and the
+//      pre-checked presets are empty by design.
 
 export interface ModuleDescriptor {
   id: string;
@@ -19,64 +24,15 @@ export interface ModuleDescriptor {
 }
 
 export const MODULE_CATALOG: ModuleDescriptor[] = [
-  // ── Authentication ──────────────────────────────────────────────────
-  {
-    id: "auth-saml",
-    displayName: "SAML 2.0",
-    category: "Authentication",
-    description: "Alberta.ca Account auth (public/citizen-facing apps)",
-    requires: [],
-    conflicts: [],
-  },
-  {
-    id: "auth-entra-id",
-    displayName: "Entra ID",
-    category: "Authentication",
-    description: "Microsoft Entra ID / Azure AD (staff-facing apps)",
-    requires: [],
-    conflicts: [],
-  },
-  // ── Data Access ─────────────────────────────────────────────────────
-  {
-    id: "data-redis",
-    displayName: "Redis",
-    category: "Data Access",
-    description: "Redis client with access-key and Entra ID auth modes",
-    requires: [],
-    conflicts: [],
-  },
-  {
-    id: "data-postgres",
-    displayName: "PostgreSQL",
-    category: "Data Access",
-    description: "PostgreSQL pool with Azure compliance (SSL, retry, metrics)",
-    requires: [],
-    conflicts: [],
-  },
-  // ── Session Store ───────────────────────────────────────────────────
-  {
-    id: "session-store-redis",
-    displayName: "Redis Sessions",
-    category: "Session Store",
-    description: "Redis session store for express-session",
-    requires: ["data-redis"],
-    conflicts: ["session-store-postgres"],
-  },
-  {
-    id: "session-store-postgres",
-    displayName: "PostgreSQL Sessions",
-    category: "Session Store",
-    description: "PostgreSQL session store for express-session",
-    requires: ["data-postgres"],
-    conflicts: ["session-store-redis"],
-  },
   // ── Infrastructure ──────────────────────────────────────────────────
   {
-    id: "service-auth",
-    displayName: "Service Auth",
+    id: "security-core",
+    displayName: "Security Core",
     category: "Infrastructure",
     description:
-      "Azure AD service-to-service JWT validation (Client Credentials flow)",
+      "Cross-cutting security overlay — documents the CORS origin knob " +
+      "(encore.app global_cors); Helmet/CSP, rate limiting, and structured " +
+      "logging already ship in the base app",
     requires: [],
     conflicts: [],
   },
@@ -85,15 +41,31 @@ export const MODULE_CATALOG: ModuleDescriptor[] = [
     displayName: "API Gateway",
     category: "Infrastructure",
     description:
-      "BFF gateway/proxy layer for routing requests to backend services",
+      "BFF gateway opt-in — documents the private-backend config knobs and " +
+      "adds the /connectivity test page; the gateway proxy service itself " +
+      "ships in the base app",
+    requires: ["security-core"],
+    conflicts: [],
+  },
+  // ── Data ────────────────────────────────────────────────────────────
+  {
+    id: "data-postgres",
+    displayName: "PostgreSQL",
+    category: "Data",
+    description:
+      "Declarative marker — persistence is the base app's " +
+      'SQLDatabase("app"); Encore owns pooling, health, and migrations',
     requires: [],
     conflicts: [],
   },
   {
-    id: "api-docs",
-    displayName: "API Docs",
-    category: "Infrastructure",
-    description: "OpenAPI/Swagger documentation UI served at /api-docs",
+    id: "data-redis",
+    displayName: "Redis",
+    category: "Data",
+    description:
+      "Optional rate-limit backend — when REDIS_URL is set, lib/rate-limit " +
+      "uses it instead of the in-memory limiter. Not a session store (auth " +
+      "is stateless RS256 JWT)",
     requires: [],
     conflicts: [],
   },
@@ -103,8 +75,10 @@ export const MODULE_CATALOG: ModuleDescriptor[] = [
     displayName: "User/Role Management",
     category: "Application",
     description:
-      "Admin UI for user and role management with IdP-to-DB sync on login",
-    requires: ["data-postgres"],
+      "User + role management as an Encore service — app-managed role " +
+      "catalog with admin CRUD behind auth + requireRole; the reference " +
+      "shape for feature modules",
+    requires: [],
     conflicts: [],
   },
 ];
@@ -118,95 +92,57 @@ export const PROFILES: ReadonlyArray<Profile> = [
   "dual",
 ];
 
-// Modules that setup-app.ts / setup-dual-app.ts install automatically per
-// profile. Mirrors the module arrays in the template setup scripts —
-// security-core and auth-core are always-on, hence not user-selectable.
+// Empty by design (template-encore fact 2): profiles select AUTH_DRIVER
+// only; no module ships as part of a profile. Kept as a map so `extrasFor`
+// keeps its shape if a future template version reintroduces built-ins.
 export const PROFILE_MODULES: Record<Profile, string[]> = {
   minimal: [],
-  public: [
-    "security-core",
-    "data-redis",
-    "auth-saml",
-    "session-store-redis",
-    "api-gateway",
-  ],
-  internal: [
-    "security-core",
-    "data-postgres",
-    "auth-entra-id",
-    "session-store-postgres",
-    "service-auth",
-  ],
-  dual: [
-    "security-core",
-    "data-redis",
-    "auth-saml",
-    "session-store-redis",
-    "api-gateway",
-    "data-postgres",
-    "auth-entra-id",
-    "session-store-postgres",
-    "service-auth",
-    "user-management",
-  ],
+  public: [],
+  internal: [],
+  dual: [],
 };
 
-// Order ensures user-selected dependencies are installed before dependents.
+// Order ensures user-selected dependencies are installed before dependents
+// (api-gateway requires security-core per its manifest).
 export const INSTALL_ORDER: string[] = [
-  "data-redis",
+  "security-core",
   "data-postgres",
-  "auth-saml",
-  "auth-entra-id",
-  "session-store-redis",
-  "session-store-postgres",
-  "service-auth",
+  "data-redis",
   "api-gateway",
-  "api-docs",
   "user-management",
 ];
 
-// User-selectable presets per profile. `dual` is empty because dual
-// modules are managed by setup-dual-app.ts.
+// User-selectable pre-checked presets per profile — empty by design
+// (template-encore fact 2): modules are opt-in composition, never implied
+// by the variant. The auth axis the old presets encoded lives in
+// AUTH_DRIVER now.
 export const PRESETS: Record<Profile, string[]> = {
   minimal: [],
-  public: ["data-redis", "auth-saml", "session-store-redis", "api-gateway"],
-  internal: [
-    "data-postgres",
-    "auth-entra-id",
-    "session-store-postgres",
-    "service-auth",
-  ],
+  public: [],
+  internal: [],
   dual: [],
 };
 
 /**
- * Detect the prebuild profile from the user's module selection. Auth driver
- * is the key signal: SAML → public, Entra ID → internal, otherwise minimal.
- */
-export function detectProfile(
-  modules: string[]
-): "public" | "internal" | "minimal" {
-  if (modules.includes("auth-saml")) return "public";
-  if (modules.includes("auth-entra-id")) return "internal";
-  return "minimal";
-}
-
-/**
- * Pick the prebuild profile from (variant, modules). Maps build-spec
- * variants to template-distributor profile names:
+ * Pick the prebuild profile from the build-spec variant. Maps variants to
+ * the `_prebuilt-{profile}` names the setup scripts emit:
  *   "dual"            → "dual"
  *   "single-public"   → "public"
  *   "single-internal" → "internal"
- *   any other value   → detectProfile(modules)
+ *   any other value   → "minimal"
+ *
+ * Modules no longer participate: the retired catalog inferred the profile
+ * from `auth-*` module ids, but auth is the AUTH_DRIVER profile axis, not
+ * a module (template-encore fact 1).
  */
 export function pickProfileFromModules(
   variant: string,
-  modules: string[]
+  _modules: string[]
 ): Profile {
   if (variant === "dual") return "dual";
   if (variant === "single-public") return "public";
   if (variant === "single-internal") return "internal";
-  return detectProfile(modules);
+  return "minimal";
 }
 
 /**

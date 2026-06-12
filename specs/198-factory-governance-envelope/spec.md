@@ -90,6 +90,11 @@ extends:
 refines:
   - aspect: "admission-time-governance"
     unit: { kind: file, path: platform/services/stagecraft/api/factory/syncPipeline.ts }
+  # FR-012 enforcement (2026-06-11) — a snapshot-absent adapter refuses
+  # pipeline init fail-closed; the DEFAULT_SCOPE invented-allowlist
+  # fallback is retired:
+  - aspect: "adapter-scopes-fail-closed"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/factory.ts }
   - aspect: "governance-sub-envelope-section"
     unit: { kind: file, path: standards/schemas/factory/adapter-manifest.schema.yaml }
   # Phase 4 — the run-grant trust fabric tightens these existing surfaces:
@@ -657,6 +662,14 @@ the FRs:
   scaffold resolution to `GovAlta-Pronghorn/template-encore @ main`. Three
   earlier admissions (2026-06-10/11) were admitted-but-UNSEALED — exactly
   the fail-closed posture this FR prescribes for the engine side.
+- **2026-06-11 — FR-012 enforcement: snapshot-absent adapters fail closed.**
+  `factory.ts::compileDefaultRules` retires the `DEFAULT_SCOPE` fallback
+  (`npm/npx/node` + `src/`): an adapter with no entry in the materialised
+  enforcement snapshot now refuses pipeline init with an actionable
+  `failedPrecondition` instead of inheriting a broader invented allowlist —
+  the PR-#338 review finding, fixed at its truthful home (this spec's
+  FR-012, via the `adapter-scopes-fail-closed` refines edge added to the
+  frontmatter).
 - **2026-06-11 — FR-012 first derivation ran (AC-10 closes).**
   `adapter-scopes-compiler` (spec 105, amended same date) now projects the
   manifest `governance:` sub-envelope verbatim; the committed snapshot
