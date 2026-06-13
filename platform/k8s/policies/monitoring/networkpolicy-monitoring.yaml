@@ -111,9 +111,12 @@ spec:
 #                 host-IP endpoints, so they cannot be namespace- or
 #                 pod-scoped; the port bound is the containment
 #   10254         ingress-nginx controller metrics
-# Destination-side containment for the pod-addressable targets lives in
-# the target namespaces (networkpolicy-allow-metrics-egress.yaml:
-# ingress ← monitoring only).
+# Destination-side containment for the pod-addressable targets does NOT
+# currently exist: networkpolicy-allow-metrics-egress.yaml was withdrawn
+# by the 2026-06-12 incident fix (corrected FR-006 — a lone cross-ns
+# allow policy isolates a namespace that declares no other posture).
+# It returns with each target namespace's own default-deny, under that
+# namespace's owning spec.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
