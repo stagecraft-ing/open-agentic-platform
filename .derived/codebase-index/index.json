@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "607ebf25b78684c7c1d3c60562603a4feaf2c76a1577f9a723f5cb94bc35881a",
+    "contentHash": "067e0f78087041d98ef57a71746e94feaccfae6b7b7e374e94f23240e068eb56",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -48683,6 +48683,825 @@
           }
         ],
         "specId": "212-factory-schema-lockstep-ci",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "112-factory-project-lifecycle",
+          "136-tenant-hello-demo-service",
+          "138-stagecraft-create-realised-scaffold"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/github/repoInit.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/github/webhook.ts",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/schema.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/schema.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/github/repoInit.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/github/repoInit.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/github/webhook.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/github/webhook.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/cd-tenant-hello.yml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/cd-tenant-hello.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/artifacts.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/artifacts.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/deploy/deploydClient.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/deploydClient.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/github/repoInit.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/github/repoInit.ts"
+            }
+          }
+        ],
+        "specId": "213-tenant-repo-image-build",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "119-project-as-unit-of-governance",
+          "136-tenant-hello-demo-service",
+          "137-tenant-environment-access-gates",
+          "138-stagecraft-create-realised-scaffold",
+          "199-factory-thin-consumer-sync"
+        ],
+        "implementingPaths": [
+          {
+            "path": ".github/workflows/cd-tenant-hello.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci-tenant-hello.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/charts/tenant-hello",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/helm.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/routes.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/deployd-api-rs/src/store.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/chartSelector.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/deploy.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/tenant-hello",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/deployd-api-rs/src/helm.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/deployd-api-rs/src/helm.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/deployd-api-rs/src/routes.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/deployd-api-rs/src/routes.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/deployd-api-rs/src/store.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/deployd-api-rs/src/store.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/deploy/chartSelector.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/chartSelector.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/deploy/deploy.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/deploy.ts"
+            }
+          },
+          {
+            "kind": "crate",
+            "locations": [
+              {
+                "file": "crates/factory-contracts/Cargo.toml"
+              },
+              {
+                "file": "crates/factory-contracts/src/adapter_manifest.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/adapter_registry.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/agent_loader.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/agent_reference.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/budget.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/build_spec.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/governance_envelope.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/knowledge.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/lib.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/namespace.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/pattern_resolver.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/pipeline_state.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/provenance.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/provenance_config.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/sandbox.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/stakeholder_docs.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/validation.rs"
+              },
+              {
+                "file": "crates/factory-contracts/src/verification.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "id": "factory-contracts",
+              "kind": "crate"
+            }
+          },
+          {
+            "kind": "directory",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "platform/charts/aim-vue-encore"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "platform/charts/tenant-hello/Chart.yaml"
+              },
+              {
+                "file": "platform/charts/tenant-hello/templates/_helpers.tpl"
+              },
+              {
+                "file": "platform/charts/tenant-hello/templates/deployment.yaml"
+              },
+              {
+                "file": "platform/charts/tenant-hello/templates/ingress.yaml"
+              },
+              {
+                "file": "platform/charts/tenant-hello/templates/service.yaml"
+              },
+              {
+                "file": "platform/charts/tenant-hello/templates/serviceaccount.yaml"
+              },
+              {
+                "file": "platform/charts/tenant-hello/values.yaml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "directory",
+              "path": "platform/charts/tenant-hello"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/cd-tenant-app.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-tenant-app.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/hostname.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/hostname.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/137-tenant-environment-access-gates/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/137-tenant-environment-access-gates/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/212-factory-schema-lockstep-ci/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/212-factory-schema-lockstep-ci/spec.md"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "platform/charts/tenant-hello/Chart.yaml"
+              },
+              {
+                "file": "platform/charts/tenant-hello/templates/_helpers.tpl"
+              },
+              {
+                "file": "platform/charts/tenant-hello/templates/deployment.yaml"
+              },
+              {
+                "file": "platform/charts/tenant-hello/templates/ingress.yaml"
+              },
+              {
+                "file": "platform/charts/tenant-hello/templates/service.yaml"
+              },
+              {
+                "file": "platform/charts/tenant-hello/templates/serviceaccount.yaml"
+              },
+              {
+                "file": "platform/charts/tenant-hello/values.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "supersedes",
+            "unit": {
+              "kind": "directory",
+              "path": "platform/charts/tenant-hello"
+            }
+          },
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "platform/services/tenant-hello/Dockerfile"
+              },
+              {
+                "file": "platform/services/tenant-hello/package.json"
+              },
+              {
+                "file": "platform/services/tenant-hello/src/index.js"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "supersedes",
+            "unit": {
+              "kind": "directory",
+              "path": "platform/services/tenant-hello"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/cd-tenant-hello.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "supersedes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/cd-tenant-hello.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-tenant-hello.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "supersedes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-tenant-hello.yml"
+            }
+          }
+        ],
+        "specId": "214-tenant-app-chart-supersession",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "112-factory-project-lifecycle",
+          "137-tenant-environment-access-gates",
+          "213-tenant-repo-image-build",
+          "214-tenant-app-chart-supersession"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/deploy.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/deploydClient.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/oidcM2m.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/github/webhook.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/schema.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/schema.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/deployments.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/deployments.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/087-unified-workspace-architecture/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/087-unified-workspace-architecture/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/112-factory-project-lifecycle/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/112-factory-project-lifecycle/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/deploy/deploy.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/deploy.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/deploy/deploydClient.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/deploydClient.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/deploy/oidcM2m.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/oidcM2m.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/github/webhook.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/github/webhook.ts"
+            }
+          }
+        ],
+        "specId": "215-stagecraft-deploy-trigger-ux",
         "specStatus": "draft"
       }
     ],

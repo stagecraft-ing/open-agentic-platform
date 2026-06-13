@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:3b7571aeb91ee5ebb307592b42070dd1b67863446704cc687537b00fb43b786e",
+  "graph_fingerprint": "sha256:000ea89be6415433142801c07e256def1635c5358e9ff1af4c1518e2fc741d00",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4006,6 +4006,63 @@
       "owner": "",
       "group": "",
       "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "213-tenant-repo-image-build",
+      "title": "Tenant Repo Image Build and Artifact-Ref Record",
+      "spec_path": "specs/213-tenant-repo-image-build/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "112-factory-project-lifecycle",
+        "136-tenant-hello-demo-service",
+        "138-stagecraft-create-realised-scaffold"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "214-tenant-app-chart-supersession",
+      "title": "Tenant App Chart Supersession (template-encore scaffold becomes the reference tenant)",
+      "spec_path": "specs/214-tenant-app-chart-supersession/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "136-tenant-hello-demo-service",
+        "137-tenant-environment-access-gates",
+        "138-stagecraft-create-realised-scaffold",
+        "119-project-as-unit-of-governance",
+        "199-factory-thin-consumer-sync"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "215-stagecraft-deploy-trigger-ux",
+      "title": "Stagecraft Deploy Trigger UX (Preview in Deployd / View Deployd)",
+      "spec_path": "specs/215-stagecraft-deploy-trigger-ux/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "213-tenant-repo-image-build",
+        "214-tenant-app-chart-supersession",
+        "112-factory-project-lifecycle",
+        "137-tenant-environment-access-gates"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []
