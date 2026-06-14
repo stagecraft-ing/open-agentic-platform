@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "067e0f78087041d98ef57a71746e94feaccfae6b7b7e374e94f23240e068eb56",
+    "contentHash": "ca17ccc092b655010add243175e1a31be08c23ee6b3a1cf483b7e25ffcdf14f9",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -25090,6 +25090,9 @@
         "specStatus": "approved"
       },
       {
+        "amends": [
+          "120-factory-extraction-stage"
+        ],
         "dependsOn": [
           "120",
           "121",
@@ -25114,7 +25117,7 @@
               }
             ],
             "ownership": true,
-            "sourceField": "amends",
+            "sourceField": "refines",
             "unit": {
               "kind": "file",
               "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts"
@@ -25128,7 +25131,7 @@
               }
             ],
             "ownership": true,
-            "sourceField": "amends",
+            "sourceField": "refines",
             "unit": {
               "kind": "file",
               "path": "tools/oap/schema-parity-check/index.mjs"
