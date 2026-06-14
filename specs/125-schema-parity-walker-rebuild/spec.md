@@ -25,9 +25,11 @@ depends_on:
   - "121"  # claim-provenance-enforcement (parity extension precedent)
   - "122"  # stakeholder-doc-inversion (third parity surface)
 amends:
-  - spec: "120-factory-extraction-stage"
+  - "120-factory-extraction-stage"
+refines:
+  - aspect: "schema-parity-walker"
     unit: { kind: file, path: tools/oap/schema-parity-check/index.mjs }
-  - spec: "120-factory-extraction-stage"
+  - aspect: "schema-parity-walker"
     unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionOutput.ts }
 ---
 
