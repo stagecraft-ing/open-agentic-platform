@@ -7,12 +7,14 @@ implementation: complete
 amended: "2026-06-14"
 amendment_record: |
   Amended 2026-05-20 by 153-invariant-freeze-additive-evolution.
-  Re-amended 2026-06-14 by 216-spec-spine-library-grammar-adoption: the
-  2026-06-14 bare-id `amends` clarification callout added to §2.5 (PR #358) is
-  formalised here as a spec-recorded amendment. Spec 216 Phase 1 converges the
-  spec-compiler onto the bare-id `amends` grammar this section documents; a
-  non-string `amends` entry is now a hard V-033 compile error rather than a
-  silent empty-list collapse.
+  Re-amended 2026-06-14 by 216-spec-spine-library-grammar-adoption on two
+  sections. §2.5: the 2026-06-14 bare-id `amends` clarification callout
+  (PR #358) is formalised as a spec-recorded amendment; Phase 1 converges the
+  spec-compiler onto the bare-id `amends` grammar, with a non-string `amends`
+  entry now a hard V-033 compile error rather than a silent empty-list
+  collapse. §2.4: Phase 2a reconciles the `supersedes` doc-template `paths:` to
+  the canonical `unit:` form (spec 154 §6), and converges the compiler to emit
+  the structured partial form with a malformed entry rejected by V-034.
 owner: bart
 created: "2026-05-02"
 approved: "2026-05-19"
@@ -134,17 +136,31 @@ because refinement aspects are inherently domain-specific.
 supersedes:
   - spec: <predecessor-id>
     scope: full | partial
-    paths: [<path>, ...]    # required for partial; omitted for full
+    unit: { kind: file|directory|crate|module|symbol|section, ... }  # partial: the unit whose authority transfers
+    note: <prose scope, when no single unit captures it>
     rationale: <one-line>
 ```
+
+> **Clarification (2026-06-14, reconciled by spec 216 Phase 2a): the
+> canonical partial-scope key is `unit:`, not `paths:`.** This template
+> originally showed `paths: [<path>, ...]`. Spec 154 §6 modernised the
+> relationship-field grammar to logical units; the standalone spec-spine
+> library and every live partial-supersession spec (114, 199, 214) use
+> `unit:` (or a prose `note:`). `paths:` is the pre-154 form and is used by
+> no live spec. Spec 216 Phase 2a converges OAP's spec-compiler on `unit:`,
+> emits the structured partial form into the registry, and rejects a
+> malformed `supersedes` entry with V-034 (the silent-drop was the
+> `supersedes` analogue of the spec 125 `amends` defect). A partial entry
+> may scope by `unit:` or by a prose `note:` with no unit; `unit:` is not
+> required.
 
 A spec **supersedes** a predecessor when it replaces the predecessor's
 authority. Supersession resolution is computed by the gate as part of
 authority derivation (spec 133 §3).
 
-- `scope: full` — predecessor is no longer authoritative on any path.
-- `scope: partial` — predecessor remains authoritative on its other
-  paths; this spec takes over the listed paths.
+- `scope: full`: predecessor is no longer authoritative on any path.
+- `scope: partial`: predecessor remains authoritative on its other units;
+  this spec takes over the named `unit:` (or the prose `note:` scope).
 
 Legacy shape (`supersedes: ["NNN", ...]`) is accepted and treated as
 `scope: full` for each id. Authoring new supersessions in the structured

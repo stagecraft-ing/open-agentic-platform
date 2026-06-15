@@ -149,8 +149,13 @@
         },
         "supersedes": {
           "type": "array",
-          "description": "Spec 147 — spec ids this spec replaces.",
-          "items": { "type": "string", "minLength": 1 }
+          "description": "Spec 147/130/216: specs this spec replaces. An item is a bare spec-id string (full-scope shorthand) or a `{spec, scope, unit?, note?, rationale?}` object (spec 216 Phase 2a). Full-scope objects normalise to bare strings at emission; partial-scope objects carry the per-unit (or prose `note:`) scope of the authority transfer.",
+          "items": {
+            "oneOf": [
+              { "type": "string", "minLength": 1 },
+              { "$ref": "#/$defs/supersedeScopedItem" }
+            ]
+          }
         },
         "supersededBy": {
           "type": "string",
@@ -427,6 +432,19 @@
       "required": ["unit"],
       "properties": {
         "unit": { "$ref": "#/$defs/logicalUnit" }
+      }
+    },
+    "supersedeScopedItem": {
+      "type": "object",
+      "description": "Spec 130/154/216 Phase 2a: a structured `supersedes:` entry. `scope: full` normalises to a bare spec-id string at emission, so only `scope: partial` entries persist as objects. A partial entry scopes the authority transfer by `unit:` (a logical unit) or by a prose `note:`; `unit:` is not required.",
+      "additionalProperties": false,
+      "required": ["spec"],
+      "properties": {
+        "spec": { "type": "string", "minLength": 1 },
+        "scope": { "enum": ["full", "partial"] },
+        "unit": { "$ref": "#/$defs/logicalUnit" },
+        "note": { "type": "string", "minLength": 1 },
+        "rationale": { "type": "string", "minLength": 1 }
       }
     },
     "referenceItem": {

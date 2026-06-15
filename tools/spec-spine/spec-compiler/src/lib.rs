@@ -281,7 +281,11 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
         // ── Spec 147 — universal dimensions + governance lifecycle ──
         let shape = optional_str(fm, "shape");
         let category = optional_string_list(fm, "category");
-        let supersedes = optional_string_list(fm, "supersedes");
+        // `supersedes` is typed (spec 216 Phase 2a): a bare id is full-scope
+        // shorthand; a `{spec, scope, unit?, note?, rationale?}` object carries
+        // partial scope. Full normalises to a bare id; partial emits structured.
+        // A malformed entry is a hard V-034 error, not the former silent drop.
+        let supersedes = parse_supersedes(fm, repo_root, spec_path, &mut violations);
         let superseded_by = optional_str(fm, "superseded_by");
         let retirement_rationale = fm.get("retirement_rationale").and_then(yaml_to_json);
         // ── Spec 147 — per-kind structural fields ──
@@ -1000,9 +1004,13 @@ struct FeatureRecord {
     /// Optional cross-cutting tags.
     #[serde(skip_serializing_if = "Option::is_none")]
     category: Option<Vec<String>>,
-    /// Optional list of spec ids this spec replaces.
+    /// Spec 147/130/216: supersedes edges. Bare spec-id strings for full
+    /// scope (the shorthand, plus full-scope objects normalised to ids);
+    /// `{spec, scope: "partial", unit?, note?, rationale?}` objects for
+    /// partial scope. Emitted by `parse_supersedes` (spec 216 Phase 2a),
+    /// which rejects malformed entries with V-034 rather than dropping them.
     #[serde(skip_serializing_if = "Option::is_none")]
-    supersedes: Option<Vec<String>>,
+    supersedes: Option<Value>,
     /// Optional successor id; required by V-019 when status=superseded.
     #[serde(rename = "supersededBy", skip_serializing_if = "Option::is_none")]
     superseded_by: Option<String>,
@@ -1429,6 +1437,126 @@ fn parse_amends(
         }
     }
     out
+}
+
+/// V-034 (spec 216 Phase 2a) remediation message. Names the accepted
+/// `supersedes` grammar and where partial scope lives. Appended to a
+/// per-case prefix describing the specific malformation.
+const V034_SUPERSEDES_MESSAGE: &str = "`supersedes` takes spec ids or `{spec, scope, unit?, note?, rationale?}` objects (allowed keys: spec, scope, unit, note, rationale; scope is `full` or `partial`). A full-scope entry normalises to a bare id; a partial entry scopes by `unit:` or a prose `note:`. See spec 130 §2.4.";
+
+/// Parse `supersedes` into the normalised structured emission (spec 216
+/// Phase 2a, V-034).
+///
+/// Accepts a bare spec-id string (full-scope shorthand) or a
+/// `{spec, scope: full|partial, unit?, note?, rationale?}` object, mirroring
+/// `spec-spine-types::edges::SupersedeItem` (untagged `Full(String) | Scoped`).
+/// Full-scope entries (bare string, `{spec}`, or `{spec, scope: full}`)
+/// normalise to a bare spec-id string; partial entries emit
+/// `{spec, scope: "partial", unit?, note?, rationale?}` with the unit
+/// re-canonicalised. This replaces the former `optional_string_list` site,
+/// which silently dropped every object entry to an empty list.
+///
+/// A malformed entry emits V-034 (envelope only: the `unit:` value's internal
+/// shape is validated separately by V-021..V-024 in `validate_relationship_units`)
+/// and the whole field is dropped from the registry so the artifact stays
+/// schema-conformant; V-034 is the source of truth for the rejection. Absent
+/// returns `None`.
+fn parse_supersedes(
+    fm: &serde_yaml::Mapping,
+    repo_root: &Path,
+    spec_path: &Path,
+    violations: &mut Vec<Violation>,
+) -> Option<Value> {
+    let raw = fm.get("supersedes")?;
+    let push_v034 = |violations: &mut Vec<Violation>, detail: &str| {
+        violations.push(Violation {
+            code: "V-034".to_string(),
+            severity: "error".to_string(),
+            message: format!("{detail} {V034_SUPERSEDES_MESSAGE}"),
+            path: Some(normalize_repo_path(repo_root, spec_path)),
+        });
+    };
+    let Some(seq) = raw.as_sequence() else {
+        push_v034(violations, "`supersedes` must be a list.");
+        return None;
+    };
+    let mut out: Vec<Value> = Vec::with_capacity(seq.len());
+    for item in seq {
+        // Bare string: full-scope shorthand.
+        if let Some(s) = item.as_str() {
+            out.push(Value::String(s.to_string()));
+            continue;
+        }
+        let Some(map) = item.as_mapping() else {
+            push_v034(
+                violations,
+                "a `supersedes` entry is neither a spec-id string nor an object.",
+            );
+            return None;
+        };
+        // Required `spec`.
+        let Some(spec_id) = map.get("spec").and_then(|v| v.as_str()) else {
+            push_v034(violations, "a `supersedes` object is missing required `spec`.");
+            return None;
+        };
+        // Unknown-key rejection (mirrors the library's deny_unknown_fields).
+        for k in map.keys() {
+            let key = k.as_str().unwrap_or_default();
+            if !matches!(key, "spec" | "scope" | "unit" | "note" | "rationale") {
+                push_v034(
+                    violations,
+                    &format!("a `supersedes` object has an unknown key {key:?}."),
+                );
+                return None;
+            }
+        }
+        // scope: defaults to full; must be full | partial.
+        let scope = match map.get("scope") {
+            None => "full",
+            Some(v) => match v.as_str() {
+                Some(s @ ("full" | "partial")) => s,
+                _ => {
+                    push_v034(
+                        violations,
+                        "a `supersedes` object has a `scope` outside {full, partial}.",
+                    );
+                    return None;
+                }
+            },
+        };
+        if scope == "full" {
+            // Full scope normalises to a bare id (library behaviour); unit /
+            // note / rationale carry no meaning for full supersession.
+            out.push(Value::String(spec_id.to_string()));
+            continue;
+        }
+        // Partial: emit the structured form, re-canonicalising the unit.
+        let mut obj = serde_json::Map::new();
+        obj.insert("spec".to_string(), Value::String(spec_id.to_string()));
+        obj.insert("scope".to_string(), Value::String("partial".to_string()));
+        if let Some(unit_v) = map.get("unit") {
+            // The unit's shape is validated by V-021..V-024; emit the canonical
+            // form when it parses, else carry the author's value through so the
+            // registry still records intent alongside the V-024 already fired.
+            if let Ok(u) = LogicalUnit::from_yaml(unit_v) {
+                obj.insert("unit".to_string(), u.to_json());
+            } else if let Some(j) = yaml_to_json(unit_v) {
+                obj.insert("unit".to_string(), j);
+            }
+        }
+        if let Some(note) = map.get("note").and_then(|v| v.as_str()) {
+            obj.insert("note".to_string(), Value::String(note.to_string()));
+        }
+        if let Some(rationale) = map.get("rationale").and_then(|v| v.as_str()) {
+            obj.insert("rationale".to_string(), Value::String(rationale.to_string()));
+        }
+        out.push(Value::Object(obj));
+    }
+    if out.is_empty() {
+        None
+    } else {
+        Some(Value::Array(out))
+    }
 }
 
 /// Token shape aligned with `featuregraph` / `registry.schema.json` `codeAliases` items.

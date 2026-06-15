@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:e2391608bd70ab649d7d6b2fd3236a75dc66136e9e6d0ebbd88f1aba222f6804",
+  "graph_fingerprint": "sha256:8f971a4437c1796399dee6dd341465c4211f965e166f2a916c4b4348e11dbd09",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4081,6 +4081,7 @@
         "130-spec-coupling-primary-owner",
         "132-constitutional-invariant-freeze",
         "133-amends-aware-coupling-gate",
+        "153-invariant-freeze-additive-evolution",
         "154-logical-unit-ownership-grammar"
       ],
       "impl_files": [],

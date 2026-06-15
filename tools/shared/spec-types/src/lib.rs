@@ -117,7 +117,7 @@ pub const KNOWN_KEYS: &[&str] = &[
     "establishes",
     "extends",
     "refines",
-    "supersedes",  // already valid as V147 list; rebound by spec 130 to relationship-graph semantics (object form: {spec, scope, paths?, rationale}). Backward-compatible: string-list form treated as scope=full.
+    "supersedes",  // bare id = full scope; `{spec, scope, unit?, note?, rationale?}` object carries partial scope (spec 216 Phase 2a). Full normalises to a bare id; malformed entries are rejected with V-034. Canonical partial key is `unit:` (spec 154 §6); the pre-154 `paths:` template is retired.
     "amends",      // bare-id list only (spec 216 Phase 1); a non-string/object entry is rejected with V-033. Section-scoping uses `amends_sections:` (spec 132); code authority uses `refines:`/`extends:`.
     "co_authority",
     "constrains",

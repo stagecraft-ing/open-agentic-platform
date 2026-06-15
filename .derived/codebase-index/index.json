@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5b8e0d1f83503840456e75d3beab6efe24e4ba41ee9962e06d053d323a4f4926",
+    "contentHash": "c20e5d1f050a68ba46313af36415123cf2c7ddf725bcaa7438130fea9335dd5f",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -25754,6 +25754,9 @@
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/v033_amends_bare_id.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v034_supersedes_typed.rs"
               }
             ],
             "ownership": true,
@@ -30439,6 +30442,9 @@
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/v033_amends_bare_id.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v034_supersedes_typed.rs"
               }
             ],
             "ownership": true,
@@ -30822,6 +30828,9 @@
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/v033_amends_bare_id.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v034_supersedes_typed.rs"
               }
             ],
             "ownership": false,
@@ -49524,11 +49533,16 @@
           "130-spec-coupling-primary-owner",
           "132-constitutional-invariant-freeze",
           "133-amends-aware-coupling-gate",
+          "153-invariant-freeze-additive-evolution",
           "154-logical-unit-ownership-grammar"
         ],
         "implementingPaths": [
           {
             "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "standards/schemas/spec-spine/registry.schema.json",
             "source": "spec-implements"
           },
           {
@@ -49538,9 +49552,75 @@
           {
             "path": "tools/spec-spine/spec-compiler/src/lib.rs",
             "source": "spec-implements"
+          },
+          {
+            "path": "tools/spec-spine/spec-compiler/tests",
+            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/code_aliases.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/exit_codes.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/github_yaml_excluded.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/golden.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/risk_validation.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/schema_conformance.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec154_unit_grammar.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec154_unit_grammar_negative.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec156_provenance_grammar.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v002_extra_frontmatter_truncation.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v004_consolidation_excludes.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v011_unamendable.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v014_implements_list_rejected.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v033_amends_bare_id.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v034_supersedes_typed.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "directory",
+              "path": "tools/spec-spine/spec-compiler/tests"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -49553,6 +49633,20 @@
             "unit": {
               "kind": "file",
               "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "standards/schemas/spec-spine/registry.schema.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "standards/schemas/spec-spine/registry.schema.json"
             }
           },
           {
