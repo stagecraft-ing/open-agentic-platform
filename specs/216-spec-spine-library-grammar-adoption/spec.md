@@ -3,7 +3,7 @@ id: "216-spec-spine-library-grammar-adoption"
 title: "Spec-Spine Library Grammar Adoption (amends bare-id; supersedes-partial reconciliation)"
 feature_branch: "feat/216-spec-spine-library-grammar-adoption"
 status: draft
-implementation: in-progress  # Phase 1 landed (V-033 bare-id `amends` parse + spec-types known-key comment + 130/154/216 amendment records, all six Phase-1 ACs satisfied); Phase 2 (`supersedes` partial-supersession reconciliation) is sequenced per §2.3 and stays as scope until its FRs are refined. Stays `draft` pending Phase 2 + approval.
+implementation: in-progress  # Phase 1 landed (V-033 bare-id `amends`, all six Phase-1 ACs). Phase 2a in progress (§2.3: typed `supersedes` parse + V-034 + structured emission + additive schema widen). Phase 2b (coupling-gate supersession filtering of `authorities(P)`) stays sequenced per §2.4 until its own review pass. Stays `draft` pending Phase 2b + approval.
 kind: governance
 domain: tooling
 created: "2026-06-14"
@@ -29,6 +29,7 @@ depends_on:
   - "130-spec-coupling-primary-owner"
   - "132-constitutional-invariant-freeze"
   - "133-amends-aware-coupling-gate"
+  - "153-invariant-freeze-additive-evolution"
   - "154-logical-unit-ownership-grammar"
 code_aliases: ["SPEC_SPINE_LIBRARY_GRAMMAR_ADOPTION"]
 extends:
@@ -37,6 +38,21 @@ extends:
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+  # Phase 2a additively widens the registry schema's `supersedes.items` to a
+  # string|object oneOf (FR-008). Strictly additive evolution of the
+  # spec-132-frozen schema, authorized by spec 153; mirrors spec 154's own
+  # `extends:` edge on this same file for the establishes/references grammar.
+  - spec: "130-spec-coupling-primary-owner"
+    nature: additive
+    unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
+  # This spec adds fixture tests (v033_amends_bare_id, v034_supersedes_typed)
+  # to the spec-compiler test suite; additively extend 001's tests directory,
+  # mirroring spec 154's own edge on this path. (Phase 1's v033 test was
+  # covered only incidentally by Phase 1's spec 154 edit; declaring the edge
+  # makes 216's authority over its own test files explicit.)
+  - spec: "001-spec-compiler-mvp"
+    nature: additive
+    unit: { kind: directory, path: tools/spec-spine/spec-compiler/tests }
 refines:
   # The narrowing itself. `amends` (Phase 1) and `supersedes` (Phase 2)
   # parse through the same `optional_string_list` site; this spec tightens
@@ -63,7 +79,7 @@ amends:
 
 **Feature Branch**: `feat/216-spec-spine-library-grammar-adoption`
 **Created**: 2026-06-14
-**Status**: Draft (Phase 1 implementable; Phase 2 sequenced)
+**Status**: Draft (Phase 1 landed; Phase 2a implementable; Phase 2b sequenced)
 **Input**: Follow-up to PR #358 (`fix(125): migrate structured amends to
 bare-id + refines`) and the 2026-06-14 clarification callouts added to
 spec 130 §2.5 and spec 154 §5.
@@ -236,25 +252,115 @@ than OAP does today. Reconciling it changes `authorities(P)` (spec 130 §
 fixture matrix and review pass; landing it under the same FR set as the
 cosmetic `amends` change would bury the risk.
 
-### 2.3 Scope (to be refined to implementable FRs before Phase 2 starts)
+Phase 2 splits into **Phase 2a** (the producer side: parse, validate, emit
+the structured form, plus the additive schema widen) and **Phase 2b** (the
+consumer side: carry the now-emitted partial scope through to
+`authorities(P)` and the coupling gate). 2a is implementable now and
+behaviour-preserving for *consumers* (the gate ignores `supersedes` today, so
+emitting the structured form changes no gating decision); 2b is the
+authority-semantics change that carries the review weight and is sequenced
+separately.
 
-Phase 2 will, at minimum:
+#### Grammar reconciliation (settled here)
 
-1. Parse structured `supersedes` (`scope: full | partial`, per-unit/path
-   targets) into the typed form the library and the relationship graph
-   already define, replacing the `optional_string_list` site at `lib.rs:282`
-   with a typed parse that distinguishes full from partial and rejects
-   malformed entries (a sibling V-code).
-2. Carry per-unit partial scope through to `authorities(P)` so the coupling
-   gate's supersession resolution matches the library and the documented
-   semantics.
-3. Add a fixture matrix proving full vs partial supersession resolve to the
-   correct authority sets, and prove the OAP corpus compiles under the
-   library with no `supersedes`-related rejection.
+§2.1 above referred to the partial form as `{spec, scope: partial,
+paths|units, rationale}`. The canonical partial-scope key is **`unit:`**, not
+`paths:`. Spec 154 §6 modernised the relationship-field grammar to logical
+units; the standalone library (`spec-spine-types::edges::SupersedeScoped`)
+and every live partial-supersession spec (114, 199, 214) use `unit:` (or a
+prose `note:`). `paths:` survives only in spec 130 §2.4's pre-154 doc
+template and is used by no live spec. Phase 2a converges on `unit:` and FR-009
+amends spec 130 §2.4's template to match. The accepted envelope keys are
+`{spec, scope, unit, note, rationale}` (mirroring the library's
+`deny_unknown_fields`); a partial entry may scope by `unit:` (114, 214) **or**
+by a prose `note:` with no unit (199 is the live precedent), so partial does
+**not** require `unit:`.
 
-Phase 2 FRs/ACs are intentionally left as scope here; this section is
-promoted from sketch to implementable FRs as a follow-up, the same way the
-ASI-gap batch (specs 200, 202) was refined before implementation.
+### 2.3 Phase 2a: typed `supersedes` parse + structured emission (implementable now)
+
+#### Functional Requirements (Phase 2a)
+
+- **FR-005 (typed parse).** Replace the `optional_string_list(fm,
+  "supersedes")` site at `lib.rs:282` with a typed parse accepting a bare
+  spec-id string (full-scope shorthand) or a `{spec, scope: full|partial,
+  unit?, note?, rationale?}` object, mirroring
+  `spec-spine-types::edges::SupersedeItem` (untagged `Full(String) | Scoped`).
+- **FR-006 (loud reject, V-034).** A malformed `supersedes` entry emits a new
+  error-severity **V-034** on the owning spec instead of the silent
+  empty-list collapse. Malformed = a non-string non-mapping entry; a mapping
+  missing `spec`; a `scope` value outside `{full, partial}`; or an unknown
+  envelope key (allowed: `spec, scope, unit, note, rationale`), mirroring the
+  library's `deny_unknown_fields`. The `unit:` value's internal shape is
+  already validated by V-021..V-024 (`validate_relationship_units`); V-034
+  covers the envelope only. Partial scope does **not** require `unit:` (a
+  prose `note:` suffices; spec 199 is the live precedent). (V-034 confirmed
+  free across spec-compiler + spec-lint as of 2026-06-15.)
+- **FR-007 (structured emission + full normalisation).** Emit the structured
+  form into `registry.json`: a full-scope entry (bare string, `{spec}`, or
+  `{spec, scope: full}`) normalises to a bare spec-id string; a partial-scope
+  entry emits `{spec, scope: "partial", unit?, note?, rationale?}` with the
+  unit re-canonicalised. Mirrors the library's `normalize_supersedes`. The
+  `Feature.supersedes` field widens from `Option<Vec<String>>` to
+  `Option<Value>` (the `establishes` precedent at `lib.rs:1045`).
+- **FR-008 (additive schema extension).** Widen `registry.schema.json`'s
+  `supersedes.items` from `{type: string}` to `oneOf: [{type: string},
+  {$ref: supersedeScopedItem}]`, adding the `supersedeScopedItem` `$def`
+  (`additionalProperties: false`, `required: [spec]`, the `unit` field
+  `$ref`-ing `logicalUnit`). Strictly additive per spec 153 (every prior
+  array-of-strings stays valid), authorised by this spec's `extends:
+  {nature: additive, unit: registry.schema.json}` edge (the spec 154
+  precedent on this same file). No `specVersion` bump (additive item-shape
+  widening, as 154's establishes extension was).
+- **FR-009 (comment + doc truth).** Correct the `supersedes` known-key comment
+  at `tools/shared/spec-types/src/lib.rs` to describe the typed grammar
+  (bare string = full; object = `{spec, scope, unit?, note?, rationale?}`;
+  malformed rejected with V-034). Amend spec 130 §2.4's doc-template `paths:`
+  to the canonical `unit:` form per the reconciliation above.
+
+#### Acceptance Criteria (Phase 2a)
+
+- **AC-007.** A fixture with `supersedes: [{spec, scope: partial, unit: {kind:
+  file, path: ...}}]` compiles and the registry records the structured
+  partial entry verbatim (previously: silently dropped to `null`).
+- **AC-008.** Fixtures `supersedes: ["001-x"]`, `[{spec: "001-x"}]`, and
+  `[{spec: "001-x", scope: full}]` all compile and emit the byte-identical
+  bare-string form `["001-x"]` (full normalisation).
+- **AC-009.** A fixture with a malformed entry (missing `spec`, bad `scope`,
+  unknown key, or non-string-non-map) fails compile with V-034 naming the
+  remediation. A partial entry with only a `note:` (no `unit:`) does **not**
+  trip V-034.
+- **AC-010.** The real OAP corpus compiles: spec 214's four partial entries
+  and spec 199's note-scoped partials appear structured in the registry (no
+  longer `null`); specs 073/108/154's full entries appear as bare strings.
+  `registry-consumer validate-graph` clean; `spec-lint --fail-on-warn` exit 0.
+- **AC-011.** The compiler's embedded-schema self-validation passes on the
+  structured registry. The widen is additive: a registry with only
+  bare-string `supersedes` still validates.
+- **AC-012.** The emitted grammar is structurally equivalent to the library's
+  `SupersedeItem` model (`Full(String) | Scoped{spec, scope, unit, note,
+  rationale}`), so OAP and the library accept/reject the same `supersedes`
+  documents (the SC-001 convergence goal for the parse/emit half).
+
+### 2.4 Phase 2b: coupling-gate supersession filtering (sequenced)
+
+The consumer half. With 2a emitting partial scope into the registry, 2b
+carries it through to `authorities(P)`:
+
+1. Align `registry-consumer`'s structured-`supersedes` reader (`lib.rs:1016`)
+   from `paths:` to `unit:` so `show-relationships` / `by-authority` see the
+   per-unit partial scope (today the reader extracts `paths`, absent on the
+   `unit:` form; the full item survives in `meta`, so 2a loses no data).
+2. Teach the coupling gate's `legitimate_owners()`
+   (`spec-code-coupling-check/src/lib.rs:794`) to exclude full- and
+   partially-superseded predecessors from the authority set. The gate does
+   **zero** supersession filtering today, so this is the load-bearing
+   `authorities(P)` change spec §2.2 flags.
+3. A fixture matrix proving full vs partial supersession resolve to the
+   correct authority sets, plus a corpus pass proving no spec loses
+   legitimate authority unexpectedly.
+
+Phase 2b FRs/ACs are promoted from this sketch in its own PR, the same way 2a
+was promoted here.
 
 ---
 
@@ -269,8 +375,14 @@ ASI-gap batch (specs 200, 202) was refined before implementation.
   with a named V-code and a remediation message, instead of being silently
   dropped. No future spec 125-class defect (authority that was never
   recorded) can pass compilation undetected.
-- **SC-003.** No previously-valid spec changes meaning: the registry is
-  byte-identical across Phase 1 for the real corpus.
+- **SC-003.** No previously-valid spec changes meaning. Phase 1 is
+  registry-byte-identical for the real corpus (zero live object-form
+  `amends`). Phase 2a is intentionally **not** byte-identical: it is an
+  authority-representation change, so specs that already author structured
+  partial `supersedes` (214, 199) move from `null` to the structured form
+  they always meant. No previously-*valid* `supersedes` document changes
+  meaning (the widen is additive; bare strings and full objects still
+  normalise to the same bare strings).
 
 ## Coupling and migration
 
@@ -281,5 +393,16 @@ comment), both declared under this spec's `refines:`
 bump (FR-004) is coupling-clean as each spec owns its own `spec.md`. The
 featuregraph golden gains this spec's row under the `extends: 034` edge.
 Regenerate the codebase index and the featuregraph golden in the
-implementing commit. Phase 2 extends the same `refines:` aspect to the
-`supersedes` parse site and is coupling-gated separately.
+implementing commit.
+
+Phase 2a extends the same `refines:` aspect to the `supersedes` parse site
+(V-034) in `lib.rs` and the known-key comment in `spec-types`, both already
+declared. It additionally edits `standards/schemas/spec-spine/registry.schema.json`
+(FR-008), authorised by the new `extends: {nature: additive, unit:
+registry.schema.json}` edge (the spec 154 precedent on this file), and amends
+spec 130 §2.4's doc-template (FR-009), coupling-clean via this spec's existing
+`amends: [130]` co-authority over 130's `spec.md`. Regenerate the codebase
+index and the featuregraph golden in the implementing commit (spec 214's and
+spec 199's `supersedes` now emit structured). Phase 2b (the coupling-gate
+`legitimate_owners()` filtering and the `registry-consumer` reader alignment)
+is coupling-gated separately in its own PR.
