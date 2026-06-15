@@ -16,6 +16,18 @@ auditConfig:
   ignoreGhsas:
     - "GHSA-gv7w-rqvm-qjhr"
 
+# GHSA-hmw2-7cc7-3qxx (form-data <4.0.6), GHSA-fx2h-pf6j-xcff (vite
+# <=6.4.2), GHSA-wcpc-wj8m-hjx6 (protobufjs <=7.6.0): the patched
+# releases are clean in-major bumps with no known regression against the
+# OPC build, so these are OVERRIDDEN to the fixed line rather than
+# ignored (contrast the esbuild ignore above, kept because its patch
+# regresses down-level transforms). Spec 116 supply-chain gate response
+# (advisory-response-overrides).
+overrides:
+  form-data: "^4.0.6"
+  vite: "^6.4.3"
+  protobufjs: "^7.6.1"
+
 onlyBuiltDependencies:
   - "@parcel/watcher"
   - "better-sqlite3"

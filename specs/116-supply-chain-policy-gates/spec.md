@@ -392,3 +392,16 @@ does not belong to this spec — open a follow-up if pursued.
   ships a transform fix, at which point the ignore drops in favour of
   the override. This entry is the triage record the gate design (§8)
   prescribes for advisory storms.
+
+- **2026-06-15: GHSA-hmw2-7cc7-3qxx (form-data <4.0.6),
+  GHSA-fx2h-pf6j-xcff (vite <=6.4.2), GHSA-wcpc-wj8m-hjx6 (protobufjs
+  <=7.6.0), all high.** A second advisory wave turned `pnpm audit
+  --audit-level=high` red on the product (pnpm) workspace. All three
+  patched releases are clean in-major bumps (form-data 4.0.5 to 4.0.6,
+  vite 6.4.2 to 6.4.3, protobufjs 7.5.6 to 7.6.4) with no known
+  regression against the OPC build, so each is taken via
+  `pnpm-workspace.yaml` `overrides` rather than ignored (contrast the
+  esbuild leg above, kept ignored because its patch regresses). `pnpm
+  audit --audit-level=high` returns to exit 0; the one remaining high is
+  the still-ignored esbuild GHSA. The lockfile is regenerated in the
+  same change.
