@@ -4,7 +4,7 @@ slug: adversarial-prompt-refusal-policy
 title: "CONST-005 — Adversarial-prompt refusal: spec/code coherence"
 status: approved
 implementation: complete
-amends: ["047"]
+amends: ["047-governance-control-plane"]
 owner: bart
 created: "2026-05-02"
 approved: "2026-05-02"

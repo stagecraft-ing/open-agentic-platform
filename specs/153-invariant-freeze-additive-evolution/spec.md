@@ -4,7 +4,7 @@ slug: invariant-freeze-additive-evolution
 title: "Invariant-freeze semantics — backward-compatibility framing"
 status: approved
 implementation: complete
-amends: ["130"]
+amends: ["130-spec-coupling-primary-owner"]
 amends_sections: ["constrains-meta-authority"]
 owner: bart
 created: "2026-05-20"

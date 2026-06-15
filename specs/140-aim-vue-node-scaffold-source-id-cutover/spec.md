@@ -13,7 +13,7 @@ amendment_record: "199"
 kind: amendment
 domain: platform
 risk: low
-amends: ["139"]
+amends: ["139-factory-artifact-substrate"]
 depends_on:
   - "112"  # factory-project-lifecycle (Create/Import flow consumes scaffold readiness)
   - "138"  # stagecraft-create-realised-scaffold (introduced template_remote, scaffoldReadiness)

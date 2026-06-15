@@ -12,7 +12,7 @@ amendment_record: "199"
 kind: amendment
 domain: platform
 risk: low
-amends: ["140"]
+amends: ["140-aim-vue-node-scaffold-source-id-cutover"]
 depends_on:
   - "140"  # aim-vue-node manifest cutover (introduces scaffold_source_id and migration 36)
 code_aliases: ["AIM_VUE_NODE_SOURCE_ID_TEMPLATE_NAME_ALIGNMENT"]

@@ -12,7 +12,7 @@ amendment_record: "199"
 kind: architecture
 domain: platform
 risk: high
-amends: ["108", "111", "123"]
+amends: ["108-factory-as-platform-feature", "111-org-agent-catalog-sync", "123-agent-catalog-org-rescope"]
 depends_on:
   - "082"  # artifact-integrity-platform-hardening (owns existing `factory_artifacts` SQL table; substrate uses `factory_artifact_substrate` to avoid collision)
   - "094"  # unified-artifact-store (extended spec 082's table with project/producer columns; orthogonal to substrate)

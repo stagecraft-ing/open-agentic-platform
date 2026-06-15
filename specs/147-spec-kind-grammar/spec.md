@@ -22,7 +22,7 @@ summary: |
   implements claims, resolving spec 130 OQ-1. Introduces governance-lifecycle
   fields (`supersedes`, `superseded_by`, `retirement_rationale`) that
   retire the prose-scan workarounds W-002 and W-003.
-amends: ["000", "128", "001", "006", "101", "132", "133"]
+amends: ["000-bootstrap-spec-system", "128-spec-lint-default-fail-on-warn", "001-spec-compiler-mvp", "006-conformance-lint-mvp", "101-codebase-index-mvp", "132-constitutional-invariant-freeze", "133-amends-aware-coupling-gate"]
 amends_sections: []
 extends:
   - spec: "001-spec-compiler-mvp"

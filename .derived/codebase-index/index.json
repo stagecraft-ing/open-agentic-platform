@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "f69d02013db8b2ba8bbfc05931fa36da168724a26fdbd312ad8892c1c3273f78",
+    "contentHash": "e189c9a56c09a72e5f46d273414050ebac1989c1c3ef6c94d32e0517d2e7bb0c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -25805,7 +25805,7 @@
               {
                 "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
                 "span": {
-                  "endLine": 995,
+                  "endLine": 1011,
                   "startLine": 778
                 }
               }
@@ -38169,7 +38169,7 @@
               {
                 "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
                 "span": {
-                  "endLine": 995,
+                  "endLine": 1011,
                   "startLine": 778
                 }
               }
@@ -49722,6 +49722,61 @@
           }
         ],
         "specId": "216-spec-spine-library-grammar-adoption",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "101-codebase-index-mvp",
+          "127-spec-code-coupling-gate",
+          "130-spec-coupling-primary-owner",
+          "133-amends-aware-coupling-gate",
+          "152-path-co-authority",
+          "154-logical-unit-ownership-grammar",
+          "155-logical-unit-resolution-semantics",
+          "181-registry-consumer-unit-grammar-authority",
+          "216-spec-spine-library-grammar-adoption"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          },
+          {
+            "path": "spec-spine.toml",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "spec-spine.toml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "spec-spine.toml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          }
+        ],
+        "specId": "217-spec-spine-engine-swap-collapse",
         "specStatus": "draft"
       }
     ],

@@ -4,7 +4,7 @@ slug: constitutional-invariant-freeze
 title: "Constitutional invariant freeze — `unamendable` anchors and V-011"
 status: approved
 implementation: complete
-amends: ["000"]
+amends: ["000-bootstrap-spec-system"]
 amended: "2026-05-13"
 amendment_record: "147-spec-kind-grammar"
 owner: bart

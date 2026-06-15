@@ -22,7 +22,7 @@ amendment_record: |
 kind: governance
 domain: tooling
 risk: medium
-amends: ["037", "086", "117"]
+amends: ["037-cross-platform-axiomregent", "086-open-source-launch", "117-release-artifact-attestations"]
 depends_on:
   - "037"  # cross-platform-axiomregent (axiomregent release matrix)
   - "086"  # open-source-launch (release-tools fitness baseline)

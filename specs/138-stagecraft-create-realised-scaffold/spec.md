@@ -11,7 +11,7 @@ closed: "2026-05-04"
 kind: amendment
 domain: platform
 risk: low
-amends: ["112"]
+amends: ["112-factory-project-lifecycle"]
 depends_on:
   - "112"  # factory-project-lifecycle (parent)
   - "108"  # factory-as-platform-feature (factory_adapters/manifest shape)

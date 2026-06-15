@@ -11,7 +11,7 @@ closed: "2026-05-22"
 kind: governance
 domain: tooling
 risk: low
-amends: ["116"]
+amends: ["116-supply-chain-policy-gates"]
 depends_on:
   - "116"  # supply-chain-policy-gates (parent contract being amended)
   - "104"  # makefile-ci-parity-contract (CI mirror requirement)

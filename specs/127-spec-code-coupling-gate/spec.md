@@ -27,7 +27,6 @@ co_authority:
   - with_specs:
       - "102-governed-excellence"
       - "104-makefile-ci-parity-contract"
-      - "105-axiomregent-sidecar"
       - "116-supply-chain-policy-gates"
       - "128-spec-lint-default-fail-on-warn"
       - "134-fast-local-ci-mode"

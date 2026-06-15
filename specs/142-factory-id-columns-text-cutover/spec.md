@@ -10,7 +10,7 @@ approved: "2026-05-06"
 kind: amendment
 domain: platform
 risk: low
-amends: ["139"]
+amends: ["139-factory-artifact-substrate"]
 depends_on:
   - "139"  # factory artifact substrate (introduces synthetic adapter/process IDs)
 code_aliases: ["FACTORY_ID_COLUMNS_TEXT_CUTOVER"]

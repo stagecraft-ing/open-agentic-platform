@@ -11,7 +11,7 @@ kind: amendment
 shape: mechanism-add
 risk: low
 domain: substrate
-amends: ["000"]
+amends: ["000-bootstrap-spec-system"]
 amends_sections: []
 depends_on:
   - "000"  # frontmatter contract being amended

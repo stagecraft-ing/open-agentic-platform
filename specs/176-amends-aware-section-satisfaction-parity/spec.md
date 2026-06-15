@@ -11,7 +11,7 @@ kind: amendment
 domain: substrate
 shape: bug-fix
 risk: low
-amends: ["133", "152"]
+amends: ["133-amends-aware-coupling-gate", "152-path-co-authority"]
 depends_on:
   - "133"
   - "152"

@@ -22,11 +22,11 @@ depends_on:
   - "114"  # async-project-clone-pipeline (clone runs as the displacing primitive)
   - "115"  # knowledge-extraction-pipeline (workspace-scoped today, project-scoped after)
 amends:
-  - "000"
-  - "087"
-  - "092"
-  - "094"
-  - "099"
+  - "000-bootstrap-spec-system"
+  - "087-unified-workspace-architecture"
+  - "092-workspace-runtime-threading"
+  - "094-unified-artifact-store"
+  - "099-workspace-scoped-persistence"
 code_aliases: ["PROJECT_AS_GOVERNANCE_UNIT"]
 establishes:
   - unit: { kind: directory, path: platform/services/stagecraft/api/db }

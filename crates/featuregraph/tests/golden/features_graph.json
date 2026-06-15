@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:8f971a4437c1796399dee6dd341465c4211f965e166f2a916c4b4348e11dbd09",
+  "graph_fingerprint": "sha256:ffde47755b31a041fc7bee32cdf6a3df98073873679cd9872fd3fc28134aaa29",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4083,6 +4083,30 @@
         "133-amends-aware-coupling-gate",
         "153-invariant-freeze-additive-evolution",
         "154-logical-unit-ownership-grammar"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "217-spec-spine-engine-swap-collapse",
+      "title": "Spec-Spine Engine Swap and Collapse: replace OAP's in-tree generic engine with the published spec-spine library",
+      "spec_path": "specs/217-spec-spine-engine-swap-collapse/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "216-spec-spine-library-grammar-adoption",
+        "130-spec-coupling-primary-owner",
+        "133-amends-aware-coupling-gate",
+        "154-logical-unit-ownership-grammar",
+        "155-logical-unit-resolution-semantics",
+        "101-codebase-index-mvp",
+        "127-spec-code-coupling-gate",
+        "152-path-co-authority",
+        "181-registry-consumer-unit-grammar-authority"
       ],
       "impl_files": [],
       "test_files": [],

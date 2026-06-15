@@ -4,7 +4,7 @@ slug: spec-lint-default-fail-on-warn
 title: "spec-lint default to fail-on-warn — repo opts into the strict posture"
 status: approved
 implementation: complete
-amends: ["006"]
+amends: ["006-conformance-lint-mvp"]
 owner: bart
 created: "2026-05-02"
 approved: "2026-05-02"
@@ -21,7 +21,6 @@ co_authority:
   - with_specs:
       - "102-governed-excellence"
       - "104-makefile-ci-parity-contract"
-      - "105-axiomregent-sidecar"
       - "116-supply-chain-policy-gates"
       - "127-spec-code-coupling-gate"
       - "134-fast-local-ci-mode"

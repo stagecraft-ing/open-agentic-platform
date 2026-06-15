@@ -24,7 +24,7 @@ depends_on:
   - "119"  # project-as-unit-of-governance (amended scope)
   - "122"  # stakeholder-doc-inversion (Stage CD comparator agent reference)
 amends:
-  - "119"
+  - "119-project-as-unit-of-governance"
 code_aliases: ["AGENT_CATALOG_ORG"]
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql }
