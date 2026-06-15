@@ -13,8 +13,8 @@ shape: bug-fix
 risk: low
 amends: ["133-amends-aware-coupling-gate", "152-path-co-authority"]
 depends_on:
-  - "133"
-  - "152"
+  - "133-amends-aware-coupling-gate"
+  - "152-path-co-authority"
 code_aliases: ["SECTION_AMENDER_PARITY"]
 extends:
   - spec: "133-amends-aware-coupling-gate"

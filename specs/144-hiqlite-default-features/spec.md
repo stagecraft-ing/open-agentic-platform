@@ -11,8 +11,8 @@ kind: tooling
 domain: platform
 risk: low
 depends_on:
-  - "073"  # axiomregent-unification (axiomregent's hiqlite usage)
-  - "052"  # state-persistence (orchestrator's hiqlite-backed distributed mode)
+  - "073-axiomregent-unification"  # axiomregent-unification (axiomregent's hiqlite usage)
+  - "052-state-persistence"  # state-persistence (orchestrator's hiqlite-backed distributed mode)
 code_aliases: ["HIQLITE_DEFAULT_FEATURES"]
 refines:
   - aspect: "cargo-manifest-hygiene"

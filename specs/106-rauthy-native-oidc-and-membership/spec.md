@@ -12,8 +12,8 @@ kind: platform
 domain: platform
 risk: high
 depends_on:
-  - "080"  # github-identity-onboarding (completes its FR-002/FR-003/FR-005 intent)
-  - "087"  # unified-workspace-architecture (Phase 5 session model)
+  - "080-github-identity-onboarding"  # github-identity-onboarding (completes its FR-002/FR-003/FR-005 intent)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (Phase 5 session model)
 code_aliases: ["RAUTHY_OIDC_NATIVE", "A2C_MEMBERSHIP"]
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/auth/membershipResolver.ts }

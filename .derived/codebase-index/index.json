@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "e189c9a56c09a72e5f46d273414050ebac1989c1c3ef6c94d32e0517d2e7bb0c",
+    "contentHash": "64cc4c0193186c0405bb988488d316a6c2d6b3082a043ee3a23c67f2b5c29798",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -9494,11 +9494,11 @@
       },
       {
         "dependsOn": [
-          "035",
-          "036",
-          "068",
-          "090",
-          "098"
+          "035-agent-governed-execution",
+          "036-safety-tier-governance",
+          "068-permission-runtime",
+          "090-governance-non-optionality",
+          "098-governance-enforcement-stitching"
         ],
         "implementingPaths": [
           {
@@ -17675,13 +17675,13 @@
       {
         "amendmentRecord": "183-opc-boot-precondition-gate",
         "dependsOn": [
-          "074",
-          "075",
-          "076",
-          "077",
-          "078",
-          "080",
-          "082"
+          "074-factory-ingestion",
+          "075-factory-workflow-engine",
+          "076-factory-desktop-panel",
+          "077-stagecraft-factory-api",
+          "078-platform-completion-plan",
+          "080-github-identity-onboarding",
+          "082-artifact-integrity-platform-hardening"
         ],
         "implementingPaths": [
           {
@@ -17819,8 +17819,8 @@
       },
       {
         "dependsOn": [
-          "033",
-          "068"
+          "033-axiomregent-activation",
+          "068-permission-runtime"
         ],
         "implementingPaths": [
           {
@@ -17903,7 +17903,7 @@
       },
       {
         "dependsOn": [
-          "039"
+          "039-feature-id-reconciliation"
         ],
         "implementingPaths": [
           {
@@ -17969,8 +17969,8 @@
       {
         "amendmentRecord": "119-project-as-unit-of-governance",
         "dependsOn": [
-          "087",
-          "090"
+          "087-unified-workspace-architecture",
+          "090-governance-non-optionality"
         ],
         "implementingPaths": [
           {
@@ -18089,8 +18089,8 @@
       },
       {
         "dependsOn": [
-          "091",
-          "092"
+          "091-registry-enrichment",
+          "092-workspace-runtime-threading"
         ],
         "implementingPaths": [
           {
@@ -18156,8 +18156,8 @@
       {
         "amendmentRecord": "119-project-as-unit-of-governance",
         "dependsOn": [
-          "082",
-          "092"
+          "082-artifact-integrity-platform-hardening",
+          "092-workspace-runtime-threading"
         ],
         "implementingPaths": [
           {
@@ -18240,8 +18240,8 @@
       },
       {
         "dependsOn": [
-          "092",
-          "094"
+          "092-workspace-runtime-threading",
+          "094-unified-artifact-store"
         ],
         "implementingPaths": [
           {
@@ -18342,8 +18342,8 @@
       },
       {
         "dependsOn": [
-          "091",
-          "093"
+          "091-registry-enrichment",
+          "093-spec-driven-preflight"
         ],
         "implementingPaths": [
           {
@@ -18498,10 +18498,10 @@
       },
       {
         "dependsOn": [
-          "080",
-          "082",
-          "092",
-          "094"
+          "080-github-identity-onboarding",
+          "082-artifact-integrity-platform-hardening",
+          "092-workspace-runtime-threading",
+          "094-unified-artifact-store"
         ],
         "implementingPaths": [
           {
@@ -18566,9 +18566,9 @@
       },
       {
         "dependsOn": [
-          "090",
-          "093",
-          "097"
+          "090-governance-non-optionality",
+          "093-spec-driven-preflight",
+          "097-promotion-grade-mirror"
         ],
         "implementingPaths": [
           {
@@ -18652,9 +18652,9 @@
       {
         "amendmentRecord": "119-project-as-unit-of-governance",
         "dependsOn": [
-          "092",
-          "094",
-          "097"
+          "092-workspace-runtime-threading",
+          "094-unified-artifact-store",
+          "097-promotion-grade-mirror"
         ],
         "implementingPaths": [
           {
@@ -18737,7 +18737,7 @@
       },
       {
         "dependsOn": [
-          "089"
+          "089-governed-convergence-plan"
         ],
         "implementingPaths": [
           {
@@ -18892,9 +18892,9 @@
       },
       {
         "dependsOn": [
-          "000",
-          "001",
-          "003"
+          "000-bootstrap-spec-system",
+          "001-spec-compiler-mvp",
+          "003-feature-lifecycle-mvp"
         ],
         "implementingPaths": [
           {
@@ -19015,9 +19015,9 @@
       },
       {
         "dependsOn": [
-          "089",
-          "100",
-          "101"
+          "089-governed-convergence-plan",
+          "100-post-convergence-remediation",
+          "101-codebase-index-mvp"
         ],
         "implementingPaths": [
           {
@@ -19255,10 +19255,10 @@
       },
       {
         "dependsOn": [
-          "000",
-          "001",
-          "002",
-          "101"
+          "000-bootstrap-spec-system",
+          "001-spec-compiler-mvp",
+          "002-registry-consumer-mvp",
+          "101-codebase-index-mvp"
         ],
         "implementingPaths": [
           {
@@ -19305,8 +19305,8 @@
       },
       {
         "dependsOn": [
-          "000",
-          "006"
+          "000-bootstrap-spec-system",
+          "006-conformance-lint-mvp"
         ],
         "implementingPaths": [
           {
@@ -19422,11 +19422,11 @@
       },
       {
         "dependsOn": [
-          "000",
-          "037",
-          "073",
-          "075",
-          "104"
+          "000-bootstrap-spec-system",
+          "037-cross-platform-axiomregent",
+          "073-axiomregent-unification",
+          "075-factory-workflow-engine",
+          "104-makefile-ci-parity-contract"
         ],
         "implementingPaths": [
           {
@@ -19501,8 +19501,8 @@
       },
       {
         "dependsOn": [
-          "080",
-          "087"
+          "080-github-identity-onboarding",
+          "087-unified-workspace-architecture"
         ],
         "implementingPaths": [
           {
@@ -19661,8 +19661,8 @@
       },
       {
         "dependsOn": [
-          "080",
-          "106"
+          "080-github-identity-onboarding",
+          "106-rauthy-native-oidc-and-membership"
         ],
         "implementingPaths": [
           {
@@ -19710,10 +19710,10 @@
       {
         "amendmentRecord": "139-factory-artifact-substrate",
         "dependsOn": [
-          "074",
-          "075",
-          "087",
-          "088"
+          "074-factory-ingestion",
+          "075-factory-workflow-engine",
+          "087-unified-workspace-architecture",
+          "088-factory-upstream-sync"
         ],
         "implementingPaths": [],
         "specId": "108-factory-as-platform-feature",
@@ -19721,9 +19721,9 @@
       },
       {
         "dependsOn": [
-          "080",
-          "106",
-          "108"
+          "080-github-identity-onboarding",
+          "106-rauthy-native-oidc-and-membership",
+          "108-factory-as-platform-feature"
         ],
         "implementingPaths": [
           {
@@ -19878,14 +19878,14 @@
       },
       {
         "dependsOn": [
-          "075",
-          "076",
-          "077",
-          "087",
-          "092",
-          "094",
-          "108",
-          "109"
+          "075-factory-workflow-engine",
+          "076-factory-desktop-panel",
+          "077-stagecraft-factory-api",
+          "087-unified-workspace-architecture",
+          "092-workspace-runtime-threading",
+          "094-unified-artifact-store",
+          "108-factory-as-platform-feature",
+          "109-factory-pat-and-pubsub-sync"
         ],
         "implementingPaths": [
           {
@@ -20005,12 +20005,12 @@
       {
         "amendmentRecord": "139-factory-artifact-substrate",
         "dependsOn": [
-          "042",
-          "054",
-          "068",
-          "087",
-          "090",
-          "110"
+          "042-multi-provider-agent-registry",
+          "054-agent-frontmatter-schema",
+          "068-permission-runtime",
+          "087-unified-workspace-architecture",
+          "090-governance-non-optionality",
+          "110-stagecraft-to-opc-factory-trigger"
         ],
         "implementingPaths": [
           {
@@ -20315,14 +20315,14 @@
       },
       {
         "dependsOn": [
-          "074",
-          "075",
-          "087",
-          "094",
-          "108",
-          "109",
-          "110",
-          "111"
+          "074-factory-ingestion",
+          "075-factory-workflow-engine",
+          "087-unified-workspace-architecture",
+          "094-unified-artifact-store",
+          "108-factory-as-platform-feature",
+          "109-factory-pat-and-pubsub-sync",
+          "110-stagecraft-to-opc-factory-trigger",
+          "111-org-agent-catalog-sync"
         ],
         "implementingPaths": [
           {
@@ -20708,10 +20708,10 @@
       },
       {
         "dependsOn": [
-          "087",
-          "108",
-          "109",
-          "112"
+          "087-unified-workspace-architecture",
+          "108-factory-as-platform-feature",
+          "109-factory-pat-and-pubsub-sync",
+          "112-factory-project-lifecycle"
         ],
         "implementingPaths": [
           {
@@ -20893,9 +20893,9 @@
       },
       {
         "dependsOn": [
-          "109",
-          "112",
-          "113"
+          "109-factory-pat-and-pubsub-sync",
+          "112-factory-project-lifecycle",
+          "113-stagecraft-projects-rename-and-clone"
         ],
         "implementingPaths": [
           {
@@ -21114,10 +21114,10 @@
       {
         "amendmentRecord": "143-presigned-upload-public-endpoint",
         "dependsOn": [
-          "036",
-          "047",
-          "087",
-          "114"
+          "036-safety-tier-governance",
+          "047-governance-control-plane",
+          "087-unified-workspace-architecture",
+          "114-async-project-clone-pipeline"
         ],
         "implementingPaths": [
           {
@@ -21529,9 +21529,9 @@
       {
         "amendmentRecord": "158-workflow-ref-sha-pinning-lint",
         "dependsOn": [
-          "000",
-          "047",
-          "104"
+          "000-bootstrap-spec-system",
+          "047-governance-control-plane",
+          "104-makefile-ci-parity-contract"
         ],
         "implementingPaths": [
           {
@@ -21637,10 +21637,10 @@
       },
       {
         "dependsOn": [
-          "000",
-          "037",
-          "086",
-          "104"
+          "000-bootstrap-spec-system",
+          "037-cross-platform-axiomregent",
+          "086-open-source-launch",
+          "104-makefile-ci-parity-contract"
         ],
         "implementingPaths": [
           {
@@ -21687,9 +21687,9 @@
       },
       {
         "dependsOn": [
-          "000",
-          "101",
-          "103"
+          "000-bootstrap-spec-system",
+          "101-codebase-index-mvp",
+          "103-init-protocol-governed-reads"
         ],
         "implementingPaths": [
           {
@@ -21941,14 +21941,14 @@
           "099-workspace-scoped-persistence"
         ],
         "dependsOn": [
-          "000",
-          "087",
-          "092",
-          "094",
-          "099",
-          "113",
-          "114",
-          "115"
+          "000-bootstrap-spec-system",
+          "087-unified-workspace-architecture",
+          "092-workspace-runtime-threading",
+          "094-unified-artifact-store",
+          "099-workspace-scoped-persistence",
+          "113-stagecraft-projects-rename-and-clone",
+          "114-async-project-clone-pipeline",
+          "115-knowledge-extraction-pipeline"
         ],
         "implementingPaths": [
           {
@@ -24092,12 +24092,12 @@
       },
       {
         "dependsOn": [
-          "074",
-          "075",
-          "077",
-          "094",
-          "110",
-          "115"
+          "074-factory-ingestion",
+          "075-factory-workflow-engine",
+          "077-stagecraft-factory-api",
+          "094-unified-artifact-store",
+          "110-stagecraft-to-opc-factory-trigger",
+          "115-knowledge-extraction-pipeline"
         ],
         "implementingPaths": [
           {
@@ -24313,10 +24313,10 @@
       },
       {
         "dependsOn": [
-          "075",
-          "091",
-          "118",
-          "120"
+          "075-factory-workflow-engine",
+          "091-registry-enrichment",
+          "118-workflow-spec-traceability",
+          "120-factory-extraction-stage"
         ],
         "implementingPaths": [
           {
@@ -24538,11 +24538,11 @@
       },
       {
         "dependsOn": [
-          "075",
-          "087",
-          "119",
-          "120",
-          "121"
+          "075-factory-workflow-engine",
+          "087-unified-workspace-architecture",
+          "119-project-as-unit-of-governance",
+          "120-factory-extraction-stage",
+          "121-claim-provenance-enforcement"
         ],
         "implementingPaths": [
           {
@@ -24702,17 +24702,17 @@
           "119-project-as-unit-of-governance"
         ],
         "dependsOn": [
-          "042",
-          "054",
-          "068",
-          "075",
-          "087",
-          "090",
-          "098",
-          "108",
-          "111",
-          "119",
-          "122"
+          "042-multi-provider-agent-registry",
+          "054-agent-frontmatter-schema",
+          "068-permission-runtime",
+          "075-factory-workflow-engine",
+          "087-unified-workspace-architecture",
+          "090-governance-non-optionality",
+          "098-governance-enforcement-stitching",
+          "108-factory-as-platform-feature",
+          "111-org-agent-catalog-sync",
+          "119-project-as-unit-of-governance",
+          "122-stakeholder-doc-inversion"
         ],
         "implementingPaths": [
           {
@@ -24997,12 +24997,12 @@
       },
       {
         "dependsOn": [
-          "087",
-          "106",
-          "107",
-          "108",
-          "109",
-          "123"
+          "087-unified-workspace-architecture",
+          "106-rauthy-native-oidc-and-membership",
+          "107-rauthy-client-redirect-convergence",
+          "108-factory-as-platform-feature",
+          "109-factory-pat-and-pubsub-sync",
+          "123-agent-catalog-org-rescope"
         ],
         "implementingPaths": [
           {
@@ -25103,9 +25103,9 @@
           "120-factory-extraction-stage"
         ],
         "dependsOn": [
-          "120",
-          "121",
-          "122"
+          "120-factory-extraction-stage",
+          "121-claim-provenance-enforcement",
+          "122-stakeholder-doc-inversion"
         ],
         "implementingPaths": [
           {
@@ -25152,9 +25152,9 @@
       },
       {
         "dependsOn": [
-          "111",
-          "123",
-          "124"
+          "111-org-agent-catalog-sync",
+          "123-agent-catalog-org-rescope",
+          "124-opc-factory-run-platform-integration"
         ],
         "implementingPaths": [
           {
@@ -25201,11 +25201,11 @@
       },
       {
         "dependsOn": [
-          "103",
-          "104",
-          "118",
-          "130",
-          "133"
+          "103-init-protocol-governed-reads",
+          "104-makefile-ci-parity-contract",
+          "118-workflow-spec-traceability",
+          "130-spec-coupling-primary-owner",
+          "133-amends-aware-coupling-gate"
         ],
         "implementingPaths": [
           {
@@ -25306,8 +25306,8 @@
           "006-conformance-lint-mvp"
         ],
         "dependsOn": [
-          "006",
-          "104"
+          "006-conformance-lint-mvp",
+          "104-makefile-ci-parity-contract"
         ],
         "implementingPaths": [
           {
@@ -25341,8 +25341,8 @@
       },
       {
         "dependsOn": [
-          "101",
-          "118"
+          "101-codebase-index-mvp",
+          "118-workflow-spec-traceability"
         ],
         "implementingPaths": [
           {
@@ -25488,9 +25488,9 @@
       },
       {
         "dependsOn": [
-          "000",
-          "001",
-          "101"
+          "000-bootstrap-spec-system",
+          "001-spec-compiler-mvp",
+          "101-codebase-index-mvp"
         ],
         "implementingPaths": [
           {
@@ -25590,9 +25590,9 @@
           "047-governance-control-plane"
         ],
         "dependsOn": [
-          "047",
-          "127",
-          "130"
+          "047-governance-control-plane",
+          "127-spec-code-coupling-gate",
+          "130-spec-coupling-primary-owner"
         ],
         "implementingPaths": [
           {
@@ -25670,8 +25670,8 @@
           "000-bootstrap-spec-system"
         ],
         "dependsOn": [
-          "000",
-          "001"
+          "000-bootstrap-spec-system",
+          "001-spec-compiler-mvp"
         ],
         "implementingPaths": [
           {
@@ -25781,8 +25781,8 @@
       },
       {
         "dependsOn": [
-          "101",
-          "130"
+          "101-codebase-index-mvp",
+          "130-spec-coupling-primary-owner"
         ],
         "implementingPaths": [
           {
@@ -25869,7 +25869,7 @@
           "104-makefile-ci-parity-contract"
         ],
         "dependsOn": [
-          "104"
+          "104-makefile-ci-parity-contract"
         ],
         "implementingPaths": [
           {
@@ -25942,9 +25942,9 @@
           "104-makefile-ci-parity-contract"
         ],
         "dependsOn": [
-          "104",
-          "130",
-          "134"
+          "104-makefile-ci-parity-contract",
+          "130-spec-coupling-primary-owner",
+          "134-fast-local-ci-mode"
         ],
         "implementingPaths": [
           {
@@ -26068,8 +26068,8 @@
       },
       {
         "dependsOn": [
-          "078",
-          "087"
+          "078-platform-completion-plan",
+          "087-unified-workspace-architecture"
         ],
         "implementingPaths": [
           {
@@ -26338,8 +26338,8 @@
       },
       {
         "dependsOn": [
-          "087",
-          "136"
+          "087-unified-workspace-architecture",
+          "136-tenant-hello-demo-service"
         ],
         "implementingPaths": [
           {
@@ -26898,9 +26898,9 @@
           "112-factory-project-lifecycle"
         ],
         "dependsOn": [
-          "108",
-          "109",
-          "112"
+          "108-factory-as-platform-feature",
+          "109-factory-pat-and-pubsub-sync",
+          "112-factory-project-lifecycle"
         ],
         "implementingPaths": [
           {
@@ -27187,13 +27187,13 @@
           "123-agent-catalog-org-rescope"
         ],
         "dependsOn": [
-          "082",
-          "094",
-          "108",
-          "111",
-          "112",
-          "123",
-          "124"
+          "082-artifact-integrity-platform-hardening",
+          "094-unified-artifact-store",
+          "108-factory-as-platform-feature",
+          "111-org-agent-catalog-sync",
+          "112-factory-project-lifecycle",
+          "123-agent-catalog-org-rescope",
+          "124-opc-factory-run-platform-integration"
         ],
         "implementingPaths": [
           {
@@ -27829,9 +27829,9 @@
           "139-factory-artifact-substrate"
         ],
         "dependsOn": [
-          "112",
-          "138",
-          "139"
+          "112-factory-project-lifecycle",
+          "138-stagecraft-create-realised-scaffold",
+          "139-factory-artifact-substrate"
         ],
         "implementingPaths": [
           {
@@ -28098,7 +28098,7 @@
           "140-aim-vue-node-scaffold-source-id-cutover"
         ],
         "dependsOn": [
-          "140"
+          "140-aim-vue-node-scaffold-source-id-cutover"
         ],
         "implementingPaths": [
           {
@@ -28310,7 +28310,7 @@
           "139-factory-artifact-substrate"
         ],
         "dependsOn": [
-          "139"
+          "139-factory-artifact-substrate"
         ],
         "implementingPaths": [
           {
@@ -28415,8 +28415,8 @@
           "115-knowledge-extraction-pipeline"
         ],
         "dependsOn": [
-          "087",
-          "115"
+          "087-unified-workspace-architecture",
+          "115-knowledge-extraction-pipeline"
         ],
         "implementingPaths": [
           {
@@ -29147,8 +29147,8 @@
       },
       {
         "dependsOn": [
-          "052",
-          "073"
+          "052-state-persistence",
+          "073-axiomregent-unification"
         ],
         "implementingPaths": [
           {
@@ -29213,9 +29213,9 @@
       },
       {
         "dependsOn": [
-          "073",
-          "086",
-          "144"
+          "073-axiomregent-unification",
+          "086-open-source-launch",
+          "144-hiqlite-default-features"
         ],
         "implementingPaths": [
           {
@@ -29514,8 +29514,8 @@
       },
       {
         "dependsOn": [
-          "073",
-          "143"
+          "073-axiomregent-unification",
+          "143-presigned-upload-public-endpoint"
         ],
         "implementingPaths": [
           {
@@ -29724,8 +29724,8 @@
       },
       {
         "dependsOn": [
-          "087",
-          "143"
+          "087-unified-workspace-architecture",
+          "143-presigned-upload-public-endpoint"
         ],
         "implementingPaths": [
           {
@@ -30194,8 +30194,8 @@
       {
         "amendmentRecord": "176-amends-aware-section-satisfaction-parity",
         "dependsOn": [
-          "130",
-          "133"
+          "130-spec-coupling-primary-owner",
+          "133-amends-aware-coupling-gate"
         ],
         "implementingPaths": [
           {
@@ -30264,7 +30264,7 @@
           "130-spec-coupling-primary-owner"
         ],
         "dependsOn": [
-          "130"
+          "130-spec-coupling-primary-owner"
         ],
         "implementingPaths": [],
         "specId": "153-invariant-freeze-additive-evolution",
@@ -30272,8 +30272,8 @@
       },
       {
         "dependsOn": [
-          "130",
-          "153"
+          "130-spec-coupling-primary-owner",
+          "153-invariant-freeze-additive-evolution"
         ],
         "implementingPaths": [
           {
@@ -30857,7 +30857,7 @@
           "154-logical-unit-ownership-grammar"
         ],
         "dependsOn": [
-          "154"
+          "154-logical-unit-ownership-grammar"
         ],
         "implementingPaths": [
           {
@@ -30918,7 +30918,7 @@
       },
       {
         "dependsOn": [
-          "154"
+          "154-logical-unit-ownership-grammar"
         ],
         "implementingPaths": [
           {
@@ -31274,8 +31274,8 @@
           "116-supply-chain-policy-gates"
         ],
         "dependsOn": [
-          "104",
-          "116"
+          "104-makefile-ci-parity-contract",
+          "116-supply-chain-policy-gates"
         ],
         "implementingPaths": [
           {
@@ -31397,9 +31397,9 @@
           "000-bootstrap-spec-system"
         ],
         "dependsOn": [
-          "000",
-          "001",
-          "158"
+          "000-bootstrap-spec-system",
+          "001-spec-compiler-mvp",
+          "158-workflow-ref-sha-pinning-lint"
         ],
         "implementingPaths": [
           {
@@ -31431,10 +31431,10 @@
           "101-codebase-index-mvp"
         ],
         "dependsOn": [
-          "074",
-          "075",
-          "077",
-          "108"
+          "074-factory-ingestion",
+          "075-factory-workflow-engine",
+          "077-stagecraft-factory-api",
+          "108-factory-as-platform-feature"
         ],
         "implementingPaths": [
           {
@@ -33072,9 +33072,9 @@
       },
       {
         "dependsOn": [
-          "120",
-          "154",
-          "156"
+          "120-factory-extraction-stage",
+          "154-logical-unit-ownership-grammar",
+          "156-references-edge-provenance-grammar"
         ],
         "implementingPaths": [
           {
@@ -33229,9 +33229,9 @@
           "074-factory-ingestion"
         ],
         "dependsOn": [
-          "075",
-          "102",
-          "108"
+          "075-factory-workflow-engine",
+          "102-governed-excellence",
+          "108-factory-as-platform-feature"
         ],
         "implementingPaths": [
           {
@@ -33552,14 +33552,14 @@
       },
       {
         "dependsOn": [
-          "087",
-          "103",
-          "130",
-          "147",
-          "152",
-          "154",
-          "156",
-          "161"
+          "087-unified-workspace-architecture",
+          "103-init-protocol-governed-reads",
+          "130-spec-coupling-primary-owner",
+          "147-spec-kind-grammar",
+          "152-path-co-authority",
+          "154-logical-unit-ownership-grammar",
+          "156-references-edge-provenance-grammar",
+          "161-knowledge-requirements-provenance-emission"
         ],
         "implementingPaths": [
           {
@@ -34003,13 +34003,13 @@
       },
       {
         "dependsOn": [
-          "075",
-          "077",
-          "102",
-          "127",
-          "133",
-          "147",
-          "163"
+          "075-factory-workflow-engine",
+          "077-stagecraft-factory-api",
+          "102-governed-excellence",
+          "127-spec-code-coupling-gate",
+          "133-amends-aware-coupling-gate",
+          "147-spec-kind-grammar",
+          "163-stagecraft-requirements-view"
         ],
         "implementingPaths": [
           {
@@ -34260,15 +34260,15 @@
       },
       {
         "dependsOn": [
-          "032",
-          "073",
-          "095",
-          "115",
-          "120",
-          "147",
-          "154",
-          "156",
-          "161"
+          "032-opc-inspect-governance-wiring-mvp",
+          "073-axiomregent-unification",
+          "095-checkpoint-branch-of-thought",
+          "115-knowledge-extraction-pipeline",
+          "120-factory-extraction-stage",
+          "147-spec-kind-grammar",
+          "154-logical-unit-ownership-grammar",
+          "156-references-edge-provenance-grammar",
+          "161-knowledge-requirements-provenance-emission"
         ],
         "implementingPaths": [
           {
@@ -34917,14 +34917,14 @@
       },
       {
         "dependsOn": [
-          "101",
-          "103",
-          "127",
-          "128",
-          "131",
-          "133",
-          "134",
-          "135"
+          "101-codebase-index-mvp",
+          "103-init-protocol-governed-reads",
+          "127-spec-code-coupling-gate",
+          "128-spec-lint-default-fail-on-warn",
+          "131-adversarial-prompt-refusal-policy",
+          "133-amends-aware-coupling-gate",
+          "134-fast-local-ci-mode",
+          "135-fast-ci-as-default"
         ],
         "implementingPaths": [
           {
@@ -35113,13 +35113,13 @@
       },
       {
         "dependsOn": [
-          "000",
-          "001",
-          "075",
-          "120",
-          "127",
-          "147",
-          "165"
+          "000-bootstrap-spec-system",
+          "001-spec-compiler-mvp",
+          "075-factory-workflow-engine",
+          "120-factory-extraction-stage",
+          "127-spec-code-coupling-gate",
+          "147-spec-kind-grammar",
+          "165-opc-decomposition-pipeline"
         ],
         "implementingPaths": [
           {
@@ -35646,9 +35646,9 @@
       },
       {
         "dependsOn": [
-          "075",
-          "102",
-          "167"
+          "075-factory-workflow-engine",
+          "102-governed-excellence",
+          "167-born-with-spec-spine-kernel"
         ],
         "implementingPaths": [
           {
@@ -35912,10 +35912,10 @@
       },
       {
         "dependsOn": [
-          "036",
-          "049",
-          "067",
-          "068"
+          "036-safety-tier-governance",
+          "049-permission-system",
+          "067-tool-definition-registry",
+          "068-permission-runtime"
         ],
         "implementingPaths": [
           {
@@ -36120,10 +36120,10 @@
       },
       {
         "dependsOn": [
-          "035",
-          "074",
-          "075",
-          "102"
+          "035-agent-governed-execution",
+          "074-factory-ingestion",
+          "075-factory-workflow-engine",
+          "102-governed-excellence"
         ],
         "implementingPaths": [
           {
@@ -36478,10 +36478,10 @@
       },
       {
         "dependsOn": [
-          "032",
-          "076",
-          "102",
-          "126"
+          "032-opc-inspect-governance-wiring-mvp",
+          "076-factory-desktop-panel",
+          "102-governed-excellence",
+          "126-desktop-agent-picker-ui"
         ],
         "implementingPaths": [
           {
@@ -36809,12 +36809,12 @@
       },
       {
         "dependsOn": [
-          "032",
-          "043",
-          "052",
-          "057",
-          "067",
-          "157"
+          "032-opc-inspect-governance-wiring-mvp",
+          "043-agent-organizer",
+          "052-state-persistence",
+          "057-notification-system",
+          "067-tool-definition-registry",
+          "157-opc-session-model"
         ],
         "implementingPaths": [
           {
@@ -37177,9 +37177,9 @@
       },
       {
         "dependsOn": [
-          "052",
-          "095",
-          "157"
+          "052-state-persistence",
+          "095-checkpoint-branch-of-thought",
+          "157-opc-session-model"
         ],
         "implementingPaths": [
           {
@@ -37323,12 +37323,12 @@
       },
       {
         "dependsOn": [
-          "033",
-          "047",
-          "073",
-          "121",
-          "127",
-          "166"
+          "033-axiomregent-activation",
+          "047-governance-control-plane",
+          "073-axiomregent-unification",
+          "121-claim-provenance-enforcement",
+          "127-spec-code-coupling-gate",
+          "166-opc-stop-hook-gate-chain"
         ],
         "implementingPaths": [
           {
@@ -37782,15 +37782,15 @@
       },
       {
         "dependsOn": [
-          "087",
-          "102",
-          "115",
-          "124",
-          "127",
-          "147",
-          "163",
-          "164",
-          "168"
+          "087-unified-workspace-architecture",
+          "102-governed-excellence",
+          "115-knowledge-extraction-pipeline",
+          "124-opc-factory-run-platform-integration",
+          "127-spec-code-coupling-gate",
+          "147-spec-kind-grammar",
+          "163-stagecraft-requirements-view",
+          "164-stagecraft-development-lifecycle-board",
+          "168-per-project-governance-certificate"
         ],
         "implementingPaths": [
           {
@@ -38153,8 +38153,8 @@
           "152-path-co-authority"
         ],
         "dependsOn": [
-          "133",
-          "152"
+          "133-amends-aware-coupling-gate",
+          "152-path-co-authority"
         ],
         "implementingPaths": [
           {
@@ -38210,13 +38210,13 @@
           "104-makefile-ci-parity-contract"
         ],
         "dependsOn": [
-          "104",
-          "116",
-          "118",
-          "127",
-          "135",
-          "152",
-          "158"
+          "104-makefile-ci-parity-contract",
+          "116-supply-chain-policy-gates",
+          "118-workflow-spec-traceability",
+          "127-spec-code-coupling-gate",
+          "135-fast-ci-as-default",
+          "152-path-co-authority",
+          "158-workflow-ref-sha-pinning-lint"
         ],
         "implementingPaths": [
           {
@@ -39680,11 +39680,11 @@
           "000-bootstrap-spec-system"
         ],
         "dependsOn": [
-          "000",
-          "001",
-          "002",
-          "006",
-          "147"
+          "000-bootstrap-spec-system",
+          "001-spec-compiler-mvp",
+          "002-registry-consumer-mvp",
+          "006-conformance-lint-mvp",
+          "147-spec-kind-grammar"
         ],
         "implementingPaths": [
           {
@@ -39888,18 +39888,18 @@
           "034-featuregraph-registry-scanner-fix"
         ],
         "dependsOn": [
-          "032",
-          "132",
-          "133",
-          "147",
-          "152",
-          "153",
-          "154",
-          "156",
-          "166",
-          "172",
-          "174",
-          "177"
+          "032-opc-inspect-governance-wiring-mvp",
+          "132-constitutional-invariant-freeze",
+          "133-amends-aware-coupling-gate",
+          "147-spec-kind-grammar",
+          "152-path-co-authority",
+          "153-invariant-freeze-additive-evolution",
+          "154-logical-unit-ownership-grammar",
+          "156-references-edge-provenance-grammar",
+          "166-opc-stop-hook-gate-chain",
+          "172-opc-live-agent-session-introspection",
+          "174-codification-gate",
+          "177-ci-orchestrator-pr-gate"
         ],
         "implementingPaths": [
           {
@@ -41328,12 +41328,12 @@
           "034-featuregraph-registry-scanner-fix"
         ],
         "dependsOn": [
-          "002",
-          "130",
-          "152",
-          "154",
-          "155",
-          "180"
+          "002-registry-consumer-mvp",
+          "130-spec-coupling-primary-owner",
+          "152-path-co-authority",
+          "154-logical-unit-ownership-grammar",
+          "155-logical-unit-resolution-semantics",
+          "180-opc-shell-codification"
         ],
         "implementingPaths": [
           {
@@ -41837,14 +41837,14 @@
       },
       {
         "dependsOn": [
-          "032",
-          "073",
-          "087",
-          "106",
-          "112",
-          "133",
-          "147",
-          "180"
+          "032-opc-inspect-governance-wiring-mvp",
+          "073-axiomregent-unification",
+          "087-unified-workspace-architecture",
+          "106-rauthy-native-oidc-and-membership",
+          "112-factory-project-lifecycle",
+          "133-amends-aware-coupling-gate",
+          "147-spec-kind-grammar",
+          "180-opc-shell-codification"
         ],
         "implementingPaths": [
           {
@@ -42196,9 +42196,9 @@
       },
       {
         "dependsOn": [
-          "075",
-          "102",
-          "162"
+          "075-factory-workflow-engine",
+          "102-governed-excellence",
+          "162-sandbox-execution-contract"
         ],
         "implementingPaths": [
           {
@@ -42330,9 +42330,9 @@
       },
       {
         "dependsOn": [
-          "075",
-          "102",
-          "162"
+          "075-factory-workflow-engine",
+          "102-governed-excellence",
+          "162-sandbox-execution-contract"
         ],
         "implementingPaths": [
           {
@@ -42512,13 +42512,13 @@
       },
       {
         "dependsOn": [
-          "032",
-          "073",
-          "087",
-          "134",
-          "147",
-          "177",
-          "183"
+          "032-opc-inspect-governance-wiring-mvp",
+          "073-axiomregent-unification",
+          "087-unified-workspace-architecture",
+          "134-fast-local-ci-mode",
+          "147-spec-kind-grammar",
+          "177-ci-orchestrator-pr-gate",
+          "183-opc-boot-precondition-gate"
         ],
         "implementingPaths": [
           {
@@ -43136,11 +43136,11 @@
       },
       {
         "dependsOn": [
-          "087",
-          "119",
-          "120",
-          "125",
-          "183"
+          "087-unified-workspace-architecture",
+          "119-project-as-unit-of-governance",
+          "120-factory-extraction-stage",
+          "125-schema-parity-walker-rebuild",
+          "183-opc-boot-precondition-gate"
         ],
         "implementingPaths": [
           {
@@ -43223,8 +43223,8 @@
       },
       {
         "dependsOn": [
-          "177",
-          "178"
+          "177-ci-orchestrator-pr-gate",
+          "178-opc-directory-rename"
         ],
         "implementingPaths": [
           {
@@ -43271,11 +43271,11 @@
       },
       {
         "dependsOn": [
-          "104",
-          "125",
-          "158",
-          "177",
-          "189"
+          "104-makefile-ci-parity-contract",
+          "125-schema-parity-walker-rebuild",
+          "158-workflow-ref-sha-pinning-lint",
+          "177-ci-orchestrator-pr-gate",
+          "189-duplex-envelope-version-parity"
         ],
         "implementingPaths": [
           {
@@ -43394,7 +43394,7 @@
       },
       {
         "dependsOn": [
-          "165"
+          "165-opc-decomposition-pipeline"
         ],
         "implementingPaths": [
           {
@@ -43460,11 +43460,11 @@
           "117-release-artifact-attestations"
         ],
         "dependsOn": [
-          "037",
-          "086",
-          "116",
-          "117",
-          "158"
+          "037-cross-platform-axiomregent",
+          "086-open-source-launch",
+          "116-supply-chain-policy-gates",
+          "117-release-artifact-attestations",
+          "158-workflow-ref-sha-pinning-lint"
         ],
         "implementingPaths": [
           {
@@ -43637,10 +43637,10 @@
       },
       {
         "dependsOn": [
-          "037",
-          "086",
-          "117",
-          "193"
+          "037-cross-platform-axiomregent",
+          "086-open-source-launch",
+          "117-release-artifact-attestations",
+          "193-paired-release-cadence"
         ],
         "implementingPaths": [
           {
@@ -43705,9 +43705,9 @@
       },
       {
         "dependsOn": [
-          "086",
-          "117",
-          "194"
+          "086-open-source-launch",
+          "117-release-artifact-attestations",
+          "194-release-publish-boundary-guard"
         ],
         "implementingPaths": [
           {
@@ -43754,9 +43754,9 @@
       },
       {
         "dependsOn": [
-          "078",
-          "106",
-          "151"
+          "078-platform-completion-plan",
+          "106-rauthy-native-oidc-and-membership",
+          "151-declarative-cluster-reconciliation"
         ],
         "implementingPaths": [
           {

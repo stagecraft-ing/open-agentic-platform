@@ -9,8 +9,8 @@ kind: platform
 domain: opc
 risk: high
 depends_on:
-  - "092"
-  - "094"
+  - "092-workspace-runtime-threading"
+  - "094-unified-artifact-store"
 summary: >
   Elevate checkpoints from safety snapshots to a navigable branch-of-thought DAG.
   Populate git HEAD SHA and repo fingerprint on create, add branch_name/run_id

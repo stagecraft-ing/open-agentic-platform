@@ -10,14 +10,14 @@ kind: platform
 domain: opc
 risk: medium
 depends_on:
-  - "101"  # codebase-index-mvp (codebase-indexer check)
-  - "103"  # init-protocol-governed-reads (consumer binaries)
-  - "127"  # spec-code-coupling-gate (the gate this spec extends)
-  - "128"  # spec-lint-default-fail-on-warn
-  - "131"  # adversarial-prompt-refusal-policy (Stop-time is the refusal seam)
-  - "133"  # amends-aware coupling gate
-  - "134"  # fast-local-ci-mode
-  - "135"  # fast-ci-as-default
+  - "101-codebase-index-mvp"  # codebase-index-mvp (codebase-indexer check)
+  - "103-init-protocol-governed-reads"  # init-protocol-governed-reads (consumer binaries)
+  - "127-spec-code-coupling-gate"  # spec-code-coupling-gate (the gate this spec extends)
+  - "128-spec-lint-default-fail-on-warn"  # spec-lint-default-fail-on-warn
+  - "131-adversarial-prompt-refusal-policy"  # adversarial-prompt-refusal-policy (Stop-time is the refusal seam)
+  - "133-amends-aware-coupling-gate"  # amends-aware coupling gate
+  - "134-fast-local-ci-mode"  # fast-local-ci-mode
+  - "135-fast-ci-as-default"  # fast-ci-as-default
 code_aliases: ["OPC_STOP_GATES", "CONVERSATION_TIME_GATES"]
 establishes:
   - unit: { kind: file, path: product/apps/opc/src-tauri/resources/claude-hooks.json }

@@ -18,14 +18,14 @@ summary: >
   workspace object store. Makes "click Initialize in stagecraft → run
   starts in OPC" a governed, type-safe flow.
 depends_on:
-  - "075"  # factory-workflow-engine (the engine that actually runs)
-  - "076"  # factory-desktop-panel (the UX surface this wires into)
-  - "077"  # stagecraft-factory-api (the initPipeline endpoint)
-  - "087"  # unified-workspace-architecture (duplex channel + authority invariant)
-  - "092"  # workspace-runtime-threading (workspace_id on all execution)
-  - "094"  # unified-artifact-store (where artifact hashes land)
-  - "108"  # factory-as-platform-feature (where the button lives)
-  - "109"  # factory-pat-and-pubsub-sync (PubSub pattern used here)
+  - "075-factory-workflow-engine"  # factory-workflow-engine (the engine that actually runs)
+  - "076-factory-desktop-panel"  # factory-desktop-panel (the UX surface this wires into)
+  - "077-stagecraft-factory-api"  # stagecraft-factory-api (the initPipeline endpoint)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (duplex channel + authority invariant)
+  - "092-workspace-runtime-threading"  # workspace-runtime-threading (workspace_id on all execution)
+  - "094-unified-artifact-store"  # unified-artifact-store (where artifact hashes land)
+  - "108-factory-as-platform-feature"  # factory-as-platform-feature (where the button lives)
+  - "109-factory-pat-and-pubsub-sync"  # factory-pat-and-pubsub-sync (PubSub pattern used here)
 establishes:
   - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/sync_client.rs }
 extends:

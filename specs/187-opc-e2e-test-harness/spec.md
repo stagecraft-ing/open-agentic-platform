@@ -10,13 +10,13 @@ kind: capability
 domain: opc
 risk: medium
 depends_on:
-  - "032"  # opc-inspect-governance-wiring-mvp (the cockpit surface under test)
-  - "073"  # axiomregent-unification (the sidecar e2e fixtures must spawn / kill)
-  - "087"  # unified-workspace-architecture (the duplex stream mock-stagecraft must emulate)
-  - "134"  # fast-local-ci-mode (the daily-dev cadence the harness must not erode)
-  - "147"  # spec-kind-grammar (`kind: capability`)
-  - "177"  # ci-orchestrator-pr-gate (the gate-orchestration contract a future nightly job will register against)
-  - "183"  # opc-boot-precondition-gate (the canonical first consumer — AC-7/8/9 were deferred to this harness)
+  - "032-opc-inspect-governance-wiring-mvp"  # opc-inspect-governance-wiring-mvp (the cockpit surface under test)
+  - "073-axiomregent-unification"  # axiomregent-unification (the sidecar e2e fixtures must spawn / kill)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (the duplex stream mock-stagecraft must emulate)
+  - "134-fast-local-ci-mode"  # fast-local-ci-mode (the daily-dev cadence the harness must not erode)
+  - "147-spec-kind-grammar"  # spec-kind-grammar (`kind: capability`)
+  - "177-ci-orchestrator-pr-gate"  # ci-orchestrator-pr-gate (the gate-orchestration contract a future nightly job will register against)
+  - "183-opc-boot-precondition-gate"  # opc-boot-precondition-gate (the canonical first consumer — AC-7/8/9 were deferred to this harness)
 code_aliases:
   - "OPC_E2E_HARNESS"
 establishes:

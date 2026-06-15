@@ -11,8 +11,8 @@ kind: platform
 domain: platform
 risk: low
 depends_on:
-  - "087"  # unified-workspace-architecture (stagecraft as the web governance plane)
-  - "078"  # platform-completion-plan (the broader platform-finishing context)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (stagecraft as the web governance plane)
+  - "078-platform-completion-plan"  # platform-completion-plan (the broader platform-finishing context)
 establishes:
   - unit: { kind: directory, path: platform/services/tenant-hello }
   - unit: { kind: directory, path: platform/charts/tenant-hello }

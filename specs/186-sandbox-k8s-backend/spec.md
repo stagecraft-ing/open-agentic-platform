@@ -10,9 +10,9 @@ kind: capability
 domain: platform
 risk: medium
 depends_on:
-  - "162"  # sandbox-execution-contract (the contract this backend satisfies)
-  - "075"  # factory-workflow-engine (the engine that calls SandboxClient)
-  - "102"  # governed-excellence (cert binds the resulting sandbox-execution record)
+  - "162-sandbox-execution-contract"  # sandbox-execution-contract (the contract this backend satisfies)
+  - "075-factory-workflow-engine"  # factory-workflow-engine (the engine that calls SandboxClient)
+  - "102-governed-excellence"  # governed-excellence (cert binds the resulting sandbox-execution record)
 code_aliases: ["SANDBOX_K8S_BACKEND", "K8S_SANDBOX_CLIENT"]
 establishes:
   - unit: { kind: directory, path: crates/sandbox-k8s }

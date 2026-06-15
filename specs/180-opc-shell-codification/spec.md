@@ -13,18 +13,18 @@ amends:
   - "034-featuregraph-registry-scanner-fix"
 amends_sections: []
 depends_on:
-  - "032"  # opc-inspect-governance-wiring-mvp (the MVP shell wiring this spec extends)
-  - "132"  # constitutional-invariant-freeze (invariant-freeze flavor precedent)
-  - "133"  # amends-aware-coupling-gate (satisfaction predicate this spec rides)
-  - "147"  # spec-kind-grammar (kind enum)
-  - "152"  # path-co-authority (future co-authority transition with 172)
-  - "153"  # invariant-freeze-additive-evolution (refined invariant-freeze semantics)
-  - "154"  # logical-unit-ownership-grammar (unit declarations)
-  - "156"  # references-edge-provenance-grammar (references shape)
-  - "166"  # opc-stop-hook-gate-chain (Tier 2 bench gate composes with chain semantics)
-  - "172"  # opc-live-agent-session-introspection (this spec refines its tab-system surface)
-  - "174"  # codification-gate (this spec is self-checked against 174 semantics)
-  - "177"  # ci-orchestrator-pr-gate (Tier 2 bench gate wires under ci-gate, not top-level)
+  - "032-opc-inspect-governance-wiring-mvp"  # opc-inspect-governance-wiring-mvp (the MVP shell wiring this spec extends)
+  - "132-constitutional-invariant-freeze"  # constitutional-invariant-freeze (invariant-freeze flavor precedent)
+  - "133-amends-aware-coupling-gate"  # amends-aware-coupling-gate (satisfaction predicate this spec rides)
+  - "147-spec-kind-grammar"  # spec-kind-grammar (kind enum)
+  - "152-path-co-authority"  # path-co-authority (future co-authority transition with 172)
+  - "153-invariant-freeze-additive-evolution"  # invariant-freeze-additive-evolution (refined invariant-freeze semantics)
+  - "154-logical-unit-ownership-grammar"  # logical-unit-ownership-grammar (unit declarations)
+  - "156-references-edge-provenance-grammar"  # references-edge-provenance-grammar (references shape)
+  - "166-opc-stop-hook-gate-chain"  # opc-stop-hook-gate-chain (Tier 2 bench gate composes with chain semantics)
+  - "172-opc-live-agent-session-introspection"  # opc-live-agent-session-introspection (this spec refines its tab-system surface)
+  - "174-codification-gate"  # codification-gate (this spec is self-checked against 174 semantics)
+  - "177-ci-orchestrator-pr-gate"  # ci-orchestrator-pr-gate (Tier 2 bench gate wires under ci-gate, not top-level)
 code_aliases:
   - "OPC_SHELL_CODIFICATION"
   - "OPC_TAB_RECONCILIATION_DISCIPLINE"

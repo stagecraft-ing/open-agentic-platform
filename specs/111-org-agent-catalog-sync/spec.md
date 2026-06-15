@@ -7,7 +7,7 @@ implementation: complete
 owner: bart
 created: "2026-04-21"
 amended: "2026-05-05"
-amendment_record: "139"
+amendment_record: "139-factory-artifact-substrate"
 kind: platform
 domain: platform
 summary: >
@@ -19,12 +19,12 @@ summary: >
   offline/personal agents; the authoritative catalog is remote. Documents
   the decision to keep model API keys on OPC machines.
 depends_on:
-  - "042"  # multi-provider-agent-registry (existing provider abstraction)
-  - "054"  # agent-frontmatter-schema (the UnifiedFrontmatter contract)
-  - "068"  # permission-runtime (how policies attach)
-  - "087"  # unified-workspace-architecture (duplex channel + authority)
-  - "090"  # governance-non-optionality (no bypass of policy bundle)
-  - "110"  # stagecraft-to-opc-factory-trigger (establishes the dispatcher pattern)
+  - "042-multi-provider-agent-registry"  # multi-provider-agent-registry (existing provider abstraction)
+  - "054-agent-frontmatter-schema"  # agent-frontmatter-schema (the UnifiedFrontmatter contract)
+  - "068-permission-runtime"  # permission-runtime (how policies attach)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (duplex channel + authority)
+  - "090-governance-non-optionality"  # governance-non-optionality (no bypass of policy bundle)
+  - "110-stagecraft-to-opc-factory-trigger"  # stagecraft-to-opc-factory-trigger (establishes the dispatcher pattern)
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql }
   - unit: { kind: directory, path: platform/services/stagecraft/api/agents }

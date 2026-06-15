@@ -24,10 +24,10 @@ summary: >
   buttons are retired in favour of observational status with a Retry action
   on failed objects.
 depends_on:
-  - "036"  # safety-tier-governance (governs extractor agent invocations)
-  - "047"  # governance-control-plane (policy bundle gating model calls)
-  - "087"  # unified-workspace-architecture (knowledge intake domain, lifecycle)
-  - "114"  # async-project-clone-pipeline (Topic + Subscription + run-row pattern reused here)
+  - "036-safety-tier-governance"  # safety-tier-governance (governs extractor agent invocations)
+  - "047-governance-control-plane"  # governance-control-plane (policy bundle gating model calls)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (knowledge intake domain, lifecycle)
+  - "114-async-project-clone-pipeline"  # async-project-clone-pipeline (Topic + Subscription + run-row pattern reused here)
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionEvents.ts }

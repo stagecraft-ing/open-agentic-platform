@@ -10,15 +10,15 @@ kind: platform
 domain: platform
 risk: medium
 depends_on:
-  - "087"  # unified-workspace-architecture (project surface; current _index)
-  - "102"  # governed-excellence (governance certificate surface)
-  - "115"  # knowledge-extraction-pipeline (extraction-run signals feed the risk banner)
-  - "124"  # opc-factory-run-platform-integration (factory_runs table feeds runs panel)
-  - "127"  # spec-code-coupling-gate (gate-fire signals feed the risk banner)
-  - "147"  # spec-kind-grammar (lifecycle counts use this grammar)
-  - "163"  # stagecraft-requirements-view (reuses specRegistry/registryReader)
-  - "164"  # stagecraft-development-lifecycle-board (pair surface; supplies lifecycle counts shape)
-  - "168"  # per-project-governance-certificate (the certificate this view surfaces)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (project surface; current _index)
+  - "102-governed-excellence"  # governed-excellence (governance certificate surface)
+  - "115-knowledge-extraction-pipeline"  # knowledge-extraction-pipeline (extraction-run signals feed the risk banner)
+  - "124-opc-factory-run-platform-integration"  # opc-factory-run-platform-integration (factory_runs table feeds runs panel)
+  - "127-spec-code-coupling-gate"  # spec-code-coupling-gate (gate-fire signals feed the risk banner)
+  - "147-spec-kind-grammar"  # spec-kind-grammar (lifecycle counts use this grammar)
+  - "163-stagecraft-requirements-view"  # stagecraft-requirements-view (reuses specRegistry/registryReader)
+  - "164-stagecraft-development-lifecycle-board"  # stagecraft-development-lifecycle-board (pair surface; supplies lifecycle counts shape)
+  - "168-per-project-governance-certificate"  # per-project-governance-certificate (the certificate this view surfaces)
 code_aliases: ["STAGECRAFT_PROJECT_DASHBOARD", "PROJECT_DETAIL_OBSERVABILITY"]
 amended: "2026-05-24"
 amendment_record: "175 (self) — implementation-time `establishes:` and `extends:` fill-in"

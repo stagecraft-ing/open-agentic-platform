@@ -29,10 +29,10 @@ summary: >
   Stage CD inversion lives in spec 122; this spec produces the
   validator and gate that spec 122 reuses.
 depends_on:
-  - "075"  # factory-workflow-engine (stage gate)
-  - "091"  # registry-enrichment (provenance lives in the enriched registry surface)
-  - "118"  # workflow-spec-traceability (claim records are traceable artifacts)
-  - "120"  # factory-extraction-stage (typed corpus to cite against)
+  - "075-factory-workflow-engine"  # factory-workflow-engine (stage gate)
+  - "091-registry-enrichment"  # registry-enrichment (provenance lives in the enriched registry surface)
+  - "118-workflow-spec-traceability"  # workflow-spec-traceability (claim records are traceable artifacts)
+  - "120-factory-extraction-stage"  # factory-extraction-stage (typed corpus to cite against)
 establishes:
   - unit: { kind: file, path: crates/provenance-validator/Cargo.toml }
   - unit: { kind: file, path: crates/provenance-validator/src/lib.rs }

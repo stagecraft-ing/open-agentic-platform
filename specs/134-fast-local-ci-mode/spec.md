@@ -21,7 +21,7 @@ risk: low
 amends:
   - "104-makefile-ci-parity-contract"
 depends_on:
-  - "104"
+  - "104-makefile-ci-parity-contract"
 co_authority:
   - with_specs:
       - "102-governed-excellence"

@@ -10,8 +10,8 @@ kind: platform
 domain: platform
 risk: medium
 depends_on:
-  - "080"  # github-identity-onboarding (desktop PKCE scheme, error codes)
-  - "106"  # rauthy-native-oidc-and-membership (seeder + client grants)
+  - "080-github-identity-onboarding"  # github-identity-onboarding (desktop PKCE scheme, error codes)
+  - "106-rauthy-native-oidc-and-membership"  # rauthy-native-oidc-and-membership (seeder + client grants)
 code_aliases: ["RAUTHY_CLIENT_REDIRECTS"]
 extends:
   - spec: "106-rauthy-native-oidc-and-membership"

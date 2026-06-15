@@ -18,7 +18,7 @@ kind: governance
 domain: substrate
 risk: low
 depends_on:
-  - "154"
+  - "154-logical-unit-ownership-grammar"
 code_aliases: ["UNIT_RESOLUTION_SEMANTICS"]
 extends:
   - spec: "001-spec-compiler-mvp"

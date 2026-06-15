@@ -14,8 +14,8 @@ kind: governance
 domain: substrate
 risk: medium
 depends_on:
-  - "000"  # bootstrap-spec-system (the constitutional baseline being frozen)
-  - "001"  # spec-compiler-mvp (where V-011 lives)
+  - "000-bootstrap-spec-system"  # bootstrap-spec-system (the constitutional baseline being frozen)
+  - "001-spec-compiler-mvp"  # spec-compiler-mvp (where V-011 lives)
 code_aliases: ["CONSTITUTIONAL_FREEZE"]
 extends:
   - spec: "001-spec-compiler-mvp"

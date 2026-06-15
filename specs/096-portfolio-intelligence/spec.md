@@ -9,8 +9,8 @@ kind: platform
 domain: tooling
 risk: medium
 depends_on:
-  - "091"
-  - "093"
+  - "091-registry-enrichment"
+  - "093-spec-driven-preflight"
 summary: >
   Bridge xray structural metrics and featuregraph feature attribution into a
   unified portfolio intelligence layer. Enables blast radius analysis, governance

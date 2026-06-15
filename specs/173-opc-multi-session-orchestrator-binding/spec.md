@@ -11,9 +11,9 @@ kind: governance
 domain: opc
 risk: low
 depends_on:
-  - "052"  # state-persistence (the spec this spec refines)
-  - "095"  # checkpoint-branch-of-thought
-  - "157"  # opc-session-model (the existing closure spec)
+  - "052-state-persistence"  # state-persistence (the spec this spec refines)
+  - "095-checkpoint-branch-of-thought"  # checkpoint-branch-of-thought
+  - "157-opc-session-model"  # opc-session-model (the existing closure spec)
 code_aliases: ["MULTI_SESSION_ORCHESTRATOR_BINDING"]
 refines:
   - aspect: "orchestrator-session-binding"

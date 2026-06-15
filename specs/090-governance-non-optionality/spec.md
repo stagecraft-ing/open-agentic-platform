@@ -9,8 +9,8 @@ kind: governance
 domain: opc
 risk: high
 depends_on:
-  - "033"
-  - "068"
+  - "033-axiomregent-activation"
+  - "068-permission-runtime"
 summary: >
   Eliminate all silent bypass surfaces so governance is the non-optional default.
   Four bypass paths (orchestrator inline, web_server env race, LeaseStore permissive

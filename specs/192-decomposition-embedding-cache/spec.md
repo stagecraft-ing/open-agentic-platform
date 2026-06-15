@@ -10,7 +10,7 @@ kind: capability
 domain: opc
 risk: low
 depends_on:
-  - "165"  # opc-decomposition-pipeline (the stage-3 clustering this caches)
+  - "165-opc-decomposition-pipeline"  # opc-decomposition-pipeline (the stage-3 clustering this caches)
 code_aliases:
   - "DECOMPOSITION_EMBEDDING_CACHE"
 establishes:

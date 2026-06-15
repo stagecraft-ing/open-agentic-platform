@@ -8,13 +8,13 @@ owner: bart
 created: "2026-05-06"
 approved: "2026-05-06"
 amended: "2026-06-09"
-amendment_record: "199"
+amendment_record: "199-factory-thin-consumer-sync"
 kind: amendment
 domain: platform
 risk: low
 amends: ["140-aim-vue-node-scaffold-source-id-cutover"]
 depends_on:
-  - "140"  # aim-vue-node manifest cutover (introduces scaffold_source_id and migration 36)
+  - "140-aim-vue-node-scaffold-source-id-cutover"  # aim-vue-node manifest cutover (introduces scaffold_source_id and migration 36)
 code_aliases: ["AIM_VUE_NODE_SOURCE_ID_TEMPLATE_NAME_ALIGNMENT"]
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.up.sql }

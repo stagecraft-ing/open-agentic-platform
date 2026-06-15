@@ -13,11 +13,11 @@ authors:
 language: en
 risk: medium
 depends_on:
-  - "035"
-  - "036"
-  - "068"
-  - "090"
-  - "098"
+  - "035-agent-governed-execution"
+  - "036-safety-tier-governance"
+  - "068-permission-runtime"
+  - "090-governance-non-optionality"
+  - "098-governance-enforcement-stitching"
 summary: >
   Rust crate providing a unified ProviderAdapter trait and ProviderRegistry that
   normalises multiple LLM backends (Anthropic, OpenAI, Gemini, Bedrock) behind a

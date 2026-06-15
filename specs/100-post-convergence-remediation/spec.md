@@ -9,7 +9,7 @@ kind: process
 domain: substrate
 risk: high
 depends_on:
-  - "089"
+  - "089-governed-convergence-plan"
 code_aliases: ["POST_CONVERGENCE_REMEDIATION"]
 refines:
   - aspect: "security-hardening"

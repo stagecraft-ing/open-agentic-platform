@@ -22,9 +22,9 @@ kind: governance
 domain: substrate
 risk: low
 depends_on:
-  - "000"
-  - "001"
-  - "101"
+  - "000-bootstrap-spec-system"
+  - "001-spec-compiler-mvp"
+  - "101-codebase-index-mvp"
 code_aliases: ["SPEC_RELATIONSHIP_GRAPH"]
 establishes:
   - unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }

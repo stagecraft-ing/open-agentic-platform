@@ -27,12 +27,12 @@ summary: >
   `resolve_factory_root()` walk-up-from-CARGO_MANIFEST_DIR with an
   authenticated platform fetch + on-disk run cache.
 depends_on:
-  - "087"  # unified-workspace-architecture (duplex substrate)
-  - "106"  # rauthy-native-oidc-and-membership (desktop OIDC)
-  - "107"  # rauthy-client-redirect-convergence
-  - "108"  # factory-as-platform-feature (provides /api/factory/*)
-  - "109"  # factory-pat-and-pubsub-sync (the platform-side sync model)
-  - "123"  # agent-catalog-org-rescope (agent_resolver + binding-aware run identity)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (duplex substrate)
+  - "106-rauthy-native-oidc-and-membership"  # rauthy-native-oidc-and-membership (desktop OIDC)
+  - "107-rauthy-client-redirect-convergence"  # rauthy-client-redirect-convergence
+  - "108-factory-as-platform-feature"  # factory-as-platform-feature (provides /api/factory/*)
+  - "109-factory-pat-and-pubsub-sync"  # factory-pat-and-pubsub-sync (the platform-side sync model)
+  - "123-agent-catalog-org-rescope"  # agent-catalog-org-rescope (agent_resolver + binding-aware run identity)
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/runs.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql }

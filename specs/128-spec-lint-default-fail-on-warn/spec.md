@@ -14,8 +14,8 @@ kind: governance
 domain: tooling
 risk: low
 depends_on:
-  - "006"  # conformance-lint-mvp (the surface being amended)
-  - "104"  # makefile-ci-parity-contract (the integration point)
+  - "006-conformance-lint-mvp"  # conformance-lint-mvp (the surface being amended)
+  - "104-makefile-ci-parity-contract"  # makefile-ci-parity-contract (the integration point)
 code_aliases: ["SPEC_LINT_STRICT"]
 co_authority:
   - with_specs:

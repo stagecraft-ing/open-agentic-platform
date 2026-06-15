@@ -16,9 +16,9 @@ summary: >
   that live outside the org and cannot be reached via the OAP GitHub App.
   Resolves the spec 108 §10 inline-vs-PubSub open question.
 depends_on:
-  - "080"  # github-identity-onboarding (installation token broker)
-  - "106"  # rauthy-native-oidc-and-membership (patCrypto, PAT primitives)
-  - "108"  # factory-as-platform-feature (tables, UI shell)
+  - "080-github-identity-onboarding"  # github-identity-onboarding (installation token broker)
+  - "106-rauthy-native-oidc-and-membership"  # rauthy-native-oidc-and-membership (patCrypto, PAT primitives)
+  - "108-factory-as-platform-feature"  # factory-as-platform-feature (tables, UI shell)
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/upstreamPat.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/syncWorker.ts }

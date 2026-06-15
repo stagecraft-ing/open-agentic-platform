@@ -9,7 +9,7 @@ kind: tooling
 domain: tooling
 risk: low
 depends_on:
-  - "039"
+  - "039-feature-id-reconciliation"
 summary: >
   Promote depends_on, owner, and risk from extra frontmatter to first-class spec
   compiler fields. Validate risk enum values. Update featuregraph to read enriched

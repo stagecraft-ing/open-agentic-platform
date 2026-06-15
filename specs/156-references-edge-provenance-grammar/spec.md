@@ -11,7 +11,7 @@ kind: governance
 domain: substrate
 risk: low
 depends_on:
-  - "154"
+  - "154-logical-unit-ownership-grammar"
 code_aliases: ["REFERENCES_EDGE_PROVENANCE", "PROVENANCE_GRAMMAR"]
 extends:
   - spec: "154-logical-unit-ownership-grammar"

@@ -10,10 +10,10 @@ kind: platform
 domain: platform
 risk: medium
 depends_on:
-  - "074"  # factory-ingestion (Rust contract types)
-  - "075"  # factory-workflow-engine (two-phase pipeline)
-  - "077"  # stagecraft-factory-api
-  - "108"  # factory-as-platform-feature
+  - "074-factory-ingestion"  # factory-ingestion (Rust contract types)
+  - "075-factory-workflow-engine"  # factory-workflow-engine (two-phase pipeline)
+  - "077-stagecraft-factory-api"  # stagecraft-factory-api
+  - "108-factory-as-platform-feature"  # factory-as-platform-feature
 code_aliases: ["FACTORY_STAGECRAFT_RELOCATION", "ADAPTERS_IN_STAGECRAFT"]
 amends:
   - "101-codebase-index-mvp"

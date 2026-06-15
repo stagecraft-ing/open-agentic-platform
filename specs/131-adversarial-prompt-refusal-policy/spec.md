@@ -12,9 +12,9 @@ kind: governance
 domain: substrate
 risk: medium
 depends_on:
-  - "047"  # governance-control-plane (policy-compiler is the integration point)
-  - "127"  # spec-code-coupling-gate (the surface this policy backs)
-  - "130"  # primary-owner heuristic (referenced in worked examples)
+  - "047-governance-control-plane"  # governance-control-plane (policy-compiler is the integration point)
+  - "127-spec-code-coupling-gate"  # spec-code-coupling-gate (the surface this policy backs)
+  - "130-spec-coupling-primary-owner"  # primary-owner heuristic (referenced in worked examples)
 code_aliases: ["CONST_005_SPEC_CODE_COHERENCE"]
 establishes:
   - unit: { kind: file, path: .claude/rules/adversarial-prompt-refusal.md }

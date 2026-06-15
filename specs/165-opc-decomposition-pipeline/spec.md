@@ -10,15 +10,15 @@ kind: capability
 domain: opc
 risk: high
 depends_on:
-  - "032"  # opc-inspect-governance-wiring-mvp (OPC integration substrate)
-  - "073"  # axiomregent-unification (semantic search + checkpoint substrate)
-  - "095"  # checkpoint-branch-of-thought
-  - "115"  # knowledge-extraction-pipeline
-  - "120"  # factory-extraction-stage
-  - "147"  # spec-kind-grammar
-  - "154"  # logical-unit-ownership-grammar
-  - "156"  # references-edge-provenance-grammar
-  - "161"  # knowledge-requirements-provenance-emission (emission contract this spec satisfies)
+  - "032-opc-inspect-governance-wiring-mvp"  # opc-inspect-governance-wiring-mvp (OPC integration substrate)
+  - "073-axiomregent-unification"  # axiomregent-unification (semantic search + checkpoint substrate)
+  - "095-checkpoint-branch-of-thought"  # checkpoint-branch-of-thought
+  - "115-knowledge-extraction-pipeline"  # knowledge-extraction-pipeline
+  - "120-factory-extraction-stage"  # factory-extraction-stage
+  - "147-spec-kind-grammar"  # spec-kind-grammar
+  - "154-logical-unit-ownership-grammar"  # logical-unit-ownership-grammar
+  - "156-references-edge-provenance-grammar"  # references-edge-provenance-grammar
+  - "161-knowledge-requirements-provenance-emission"  # knowledge-requirements-provenance-emission (emission contract this spec satisfies)
 code_aliases: ["OPC_DECOMPOSITION", "REVERSE_ENGINEERING_PIPELINE", "BORN_WITH_PIPELINE"]
 establishes:
   - unit: { kind: directory, path: crates/opc-decomposition-pipeline }

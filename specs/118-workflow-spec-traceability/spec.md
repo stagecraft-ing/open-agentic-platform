@@ -10,9 +10,9 @@ kind: governance
 domain: tooling
 risk: low
 depends_on:
-  - "000"  # bootstrap-spec-system
-  - "101"  # codebase-index-mvp (the structural index this extends)
-  - "103"  # init-protocol-governed-reads (governed read discipline)
+  - "000-bootstrap-spec-system"  # bootstrap-spec-system
+  - "101-codebase-index-mvp"  # codebase-index-mvp (the structural index this extends)
+  - "103-init-protocol-governed-reads"  # init-protocol-governed-reads (governed read discipline)
 code_aliases: ["WORKFLOW_TRACEABILITY"]
 extends:
   - spec: "101-codebase-index-mvp"

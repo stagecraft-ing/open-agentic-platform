@@ -11,7 +11,7 @@ kind: governance
 domain: opc
 risk: low
 depends_on:
-  - "045"
+  - "045-claude-code-sdk-bridge"
 code_aliases: ["OPC_SESSION_MODEL"]
 establishes:
   - unit: { kind: symbol, id: opc::commands::claude::list_projects }

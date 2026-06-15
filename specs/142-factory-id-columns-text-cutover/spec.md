@@ -12,7 +12,7 @@ domain: platform
 risk: low
 amends: ["139-factory-artifact-substrate"]
 depends_on:
-  - "139"  # factory artifact substrate (introduces synthetic adapter/process IDs)
+  - "139-factory-artifact-substrate"  # factory artifact substrate (introduces synthetic adapter/process IDs)
 code_aliases: ["FACTORY_ID_COLUMNS_TEXT_CUTOVER"]
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.up.sql }

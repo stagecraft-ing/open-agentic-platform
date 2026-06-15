@@ -9,9 +9,9 @@ kind: process
 domain: platform
 risk: high
 depends_on:
-  - "089"
-  - "100"
-  - "101"
+  - "089-governed-convergence-plan"
+  - "100-post-convergence-remediation"
+  - "101-codebase-index-mvp"
 code_aliases:
   - GOVERNED_EXCELLENCE
   - GOV_CERT

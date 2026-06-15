@@ -6,14 +6,14 @@ implementation: complete
 owner: bart
 created: "2026-04-11"
 amended: "2026-04-29"
-amendment_record: "119"
+amendment_record: "119-project-as-unit-of-governance"
 kind: platform
 domain: opc
 risk: medium
 depends_on:
-  - "092"
-  - "094"
-  - "097"
+  - "092-workspace-runtime-threading"
+  - "094-unified-artifact-store"
+  - "097-promotion-grade-mirror"
 code_aliases: ["PROJECT_SCOPED_PERSISTENCE"]
 extends:
   - spec: "052-state-persistence"

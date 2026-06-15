@@ -10,12 +10,12 @@ kind: governance
 domain: substrate
 risk: medium
 depends_on:
-  - "033"  # axiomregent-activation
-  - "047"  # governance-control-plane (policy-kernel)
-  - "073"  # axiomregent-unification
-  - "121"  # claim-provenance-enforcement (provenance-validator)
-  - "127"  # spec-code-coupling-gate
-  - "166"  # opc-stop-hook-gate-chain (this gate runs as a Stop hook entry)
+  - "033-axiomregent-activation"  # axiomregent-activation
+  - "047-governance-control-plane"  # governance-control-plane (policy-kernel)
+  - "073-axiomregent-unification"  # axiomregent-unification
+  - "121-claim-provenance-enforcement"  # claim-provenance-enforcement (provenance-validator)
+  - "127-spec-code-coupling-gate"  # spec-code-coupling-gate
+  - "166-opc-stop-hook-gate-chain"  # opc-stop-hook-gate-chain (this gate runs as a Stop hook entry)
 code_aliases: ["CODIFICATION_GATE", "FINDING_IN_SPEC_REQUIRED"]
 establishes:
   - unit: { kind: directory, path: tools/oap/codification-gate }

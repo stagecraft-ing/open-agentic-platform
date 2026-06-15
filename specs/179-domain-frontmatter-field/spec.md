@@ -14,11 +14,11 @@ domain: substrate
 amends: ["000-bootstrap-spec-system"]
 amends_sections: []
 depends_on:
-  - "000"  # frontmatter contract being amended
-  - "001"  # spec-compiler (parser + V-030 emission)
-  - "002"  # registry-consumer (--domain filter)
-  - "006"  # spec-lint (V-031 emission)
-  - "147"  # precedent — sibling amendment of 000's frontmatter grammar
+  - "000-bootstrap-spec-system"  # frontmatter contract being amended
+  - "001-spec-compiler-mvp"  # spec-compiler (parser + V-030 emission)
+  - "002-registry-consumer-mvp"  # registry-consumer (--domain filter)
+  - "006-conformance-lint-mvp"  # spec-lint (V-031 emission)
+  - "147-spec-kind-grammar"  # precedent — sibling amendment of 000's frontmatter grammar
 code_aliases: ["DOMAIN_FIELD"]
 establishes:
   - unit: { kind: file, path: tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs }

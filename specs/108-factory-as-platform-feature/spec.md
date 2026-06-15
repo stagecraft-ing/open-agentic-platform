@@ -8,7 +8,7 @@ owner: bart
 created: "2026-04-20"
 approved: "2026-05-01"
 amended: "2026-05-05"
-amendment_record: "139"
+amendment_record: "139-factory-artifact-substrate"
 kind: platform
 domain: platform
 summary: >
@@ -19,12 +19,12 @@ summary: >
   but are orchestrated by the platform. Supersedes spec 088 for the upstream
   sync flow.
 depends_on:
-  - "074"  # factory-ingestion
-  - "075"  # factory-workflow-engine
-  - "087"  # workspace-as-atom
-  - "088"  # factory-upstream-sync (superseded)
+  - "074-factory-ingestion"  # factory-ingestion
+  - "075-factory-workflow-engine"  # factory-workflow-engine
+  - "087-unified-workspace-architecture"  # workspace-as-atom
+  - "088-factory-upstream-sync"  # factory-upstream-sync (superseded)
 supersedes:
-  - "088"
+  - "088-factory-upstream-sync"
 ---
 
 # 108 — Factory as a First-Class Platform Feature

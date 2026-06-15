@@ -22,10 +22,10 @@ summary: >
   `project.cloned` audit event. Members and environments are not copied —
   they are governance state owned per project.
 depends_on:
-  - "087"  # unified-workspace-architecture (workspace as atom; current-org scope)
-  - "108"  # factory-as-platform-feature (factory_adapters binding)
-  - "109"  # factory-pat-and-pubsub-sync (resolveProjectToken, installation broker)
-  - "112"  # factory-project-lifecycle (import + scaffold reusable primitives)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (workspace as atom; current-org scope)
+  - "108-factory-as-platform-feature"  # factory-as-platform-feature (factory_adapters binding)
+  - "109-factory-pat-and-pubsub-sync"  # factory-pat-and-pubsub-sync (resolveProjectToken, installation broker)
+  - "112-factory-project-lifecycle"  # factory-project-lifecycle (import + scaffold reusable primitives)
 extends:
   - spec: "112-factory-project-lifecycle"
     nature: additive

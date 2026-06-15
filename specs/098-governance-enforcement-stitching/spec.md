@@ -9,9 +9,9 @@ kind: governance
 domain: opc
 risk: high
 depends_on:
-  - "090"
-  - "093"
-  - "097"
+  - "090-governance-non-optionality"
+  - "093-spec-driven-preflight"
+  - "097-promotion-grade-mirror"
 code_aliases: ["GOVERNANCE_ENFORCEMENT_STITCHING"]
 extends:
   - spec: "097-promotion-grade-mirror"

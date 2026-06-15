@@ -10,14 +10,14 @@ kind: platform
 domain: platform
 risk: medium
 depends_on:
-  - "087"  # unified-workspace-architecture (stagecraft project surface)
-  - "103"  # init-protocol-governed-reads (registry-consumer is the read surface)
-  - "130"  # spec-coupling-primary-owner (relationship graph projection)
-  - "147"  # spec-kind-grammar (kind / shape / category dimensions for filtering)
-  - "152"  # path-co-authority (section anchors)
-  - "154"  # logical-unit-ownership-grammar (the unit grammar the view renders)
-  - "156"  # references-edge-provenance-grammar (the provenance badges)
-  - "161"  # knowledge-requirements-provenance-emission (rendering contract)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (stagecraft project surface)
+  - "103-init-protocol-governed-reads"  # init-protocol-governed-reads (registry-consumer is the read surface)
+  - "130-spec-coupling-primary-owner"  # spec-coupling-primary-owner (relationship graph projection)
+  - "147-spec-kind-grammar"  # spec-kind-grammar (kind / shape / category dimensions for filtering)
+  - "152-path-co-authority"  # path-co-authority (section anchors)
+  - "154-logical-unit-ownership-grammar"  # logical-unit-ownership-grammar (the unit grammar the view renders)
+  - "156-references-edge-provenance-grammar"  # references-edge-provenance-grammar (the provenance badges)
+  - "161-knowledge-requirements-provenance-emission"  # knowledge-requirements-provenance-emission (rendering contract)
 code_aliases: ["STAGECRAFT_REQUIREMENTS_VIEW", "SPEC_SPINE_DASHBOARD"]
 establishes:
   - unit: { kind: directory, path: platform/services/stagecraft/api/specRegistry }

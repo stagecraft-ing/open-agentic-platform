@@ -24,11 +24,11 @@ domain: tooling
 risk: medium
 amends: ["037-cross-platform-axiomregent", "086-open-source-launch", "117-release-artifact-attestations"]
 depends_on:
-  - "037"  # cross-platform-axiomregent (axiomregent release matrix)
-  - "086"  # open-source-launch (release-tools fitness baseline)
-  - "117"  # release-artifact-attestations (SBOM + provenance the guard reads)
-  - "116"  # supply-chain-policy-gates (the lane the guard wires into)
-  - "158"  # workflow-ref-sha-pinning-lint (shell-lint-in-tools/lint precedent)
+  - "037-cross-platform-axiomregent"  # cross-platform-axiomregent (axiomregent release matrix)
+  - "086-open-source-launch"  # open-source-launch (release-tools fitness baseline)
+  - "117-release-artifact-attestations"  # release-artifact-attestations (SBOM + provenance the guard reads)
+  - "116-supply-chain-policy-gates"  # supply-chain-policy-gates (the lane the guard wires into)
+  - "158-workflow-ref-sha-pinning-lint"  # workflow-ref-sha-pinning-lint (shell-lint-in-tools/lint precedent)
 code_aliases: ["RELEASE_CADENCE", "RELEASE_VERSION_GUARD"]
 establishes:
   - unit: { kind: file, path: tools/lint/release-version-guard.sh }

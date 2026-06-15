@@ -29,9 +29,9 @@ risk: low
 amends:
   - "104-makefile-ci-parity-contract"
 depends_on:
-  - "104"  # makefile-ci-parity-contract (the contract being amended)
-  - "134"  # fast-local-ci-mode (the sibling target being promoted)
-  - "130"  # spec-coupling-primary-owner (claim resolution for shared paths)
+  - "104-makefile-ci-parity-contract"  # makefile-ci-parity-contract (the contract being amended)
+  - "134-fast-local-ci-mode"  # fast-local-ci-mode (the sibling target being promoted)
+  - "130-spec-coupling-primary-owner"  # spec-coupling-primary-owner (claim resolution for shared paths)
 co_authority:
   - with_specs:
       - "102-governed-excellence"

@@ -9,10 +9,10 @@ kind: platform
 domain: opc
 risk: high
 depends_on:
-  - "080"
-  - "082"
-  - "092"
-  - "094"
+  - "080-github-identity-onboarding"
+  - "082-artifact-integrity-platform-hardening"
+  - "092-workspace-runtime-threading"
+  - "094-unified-artifact-store"
 summary: >
   Elevate platform sync from fire-and-forget to promotion-grade. Define run
   promotion eligibility, add CompletedLocal status for local-only completions,

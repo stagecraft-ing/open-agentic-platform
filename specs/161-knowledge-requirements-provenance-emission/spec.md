@@ -10,9 +10,9 @@ kind: governance
 domain: substrate
 risk: medium
 depends_on:
-  - "154"  # logical-unit ownership grammar (the unit kinds)
-  - "156"  # references-edge provenance grammar (the typed external pointer)
-  - "120"  # factory extraction stage (the knowledge → ExtractionOutput substrate)
+  - "154-logical-unit-ownership-grammar"  # logical-unit ownership grammar (the unit kinds)
+  - "156-references-edge-provenance-grammar"  # references-edge provenance grammar (the typed external pointer)
+  - "120-factory-extraction-stage"  # factory extraction stage (the knowledge → ExtractionOutput substrate)
 code_aliases: ["KNOWLEDGE_REQUIREMENTS_PROVENANCE", "PROVENANCE_EMISSION_RENDERING"]
 extends:
   - spec: "006-conformance-lint-mvp"

@@ -21,9 +21,9 @@ summary: >
   introspection path so `extractionOutputSchema` is no longer required
   and the Rust↔TS fingerprint check resumes its job.
 depends_on:
-  - "120"  # factory-extraction-stage (originating spec for the parity check)
-  - "121"  # claim-provenance-enforcement (parity extension precedent)
-  - "122"  # stakeholder-doc-inversion (third parity surface)
+  - "120-factory-extraction-stage"  # factory-extraction-stage (originating spec for the parity check)
+  - "121-claim-provenance-enforcement"  # claim-provenance-enforcement (parity extension precedent)
+  - "122-stakeholder-doc-inversion"  # stakeholder-doc-inversion (third parity surface)
 amends:
   - "120-factory-extraction-stage"
 refines:

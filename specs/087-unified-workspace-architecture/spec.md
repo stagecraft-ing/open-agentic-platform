@@ -21,13 +21,13 @@ summary: >
   wedging the boot gate.
 code_aliases: ["UNIFIED_PROJECT"]
 depends_on:
-  - "074"  # factory-ingestion
-  - "075"  # factory-workflow-engine
-  - "076"  # factory-desktop-panel
-  - "077"  # stagecraft-factory-api
-  - "078"  # platform-completion-plan
-  - "080"  # github-identity-onboarding
-  - "082"  # artifact-integrity-platform-hardening
+  - "074-factory-ingestion"  # factory-ingestion
+  - "075-factory-workflow-engine"  # factory-workflow-engine
+  - "076-factory-desktop-panel"  # factory-desktop-panel
+  - "077-stagecraft-factory-api"  # stagecraft-factory-api
+  - "078-platform-completion-plan"  # platform-completion-plan
+  - "080-github-identity-onboarding"  # github-identity-onboarding
+  - "082-artifact-integrity-platform-hardening"  # artifact-integrity-platform-hardening
 kind: architecture
 domain: platform
 risk: high

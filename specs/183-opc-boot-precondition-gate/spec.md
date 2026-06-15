@@ -10,14 +10,14 @@ kind: governance
 domain: opc
 risk: medium
 depends_on:
-  - "032"  # opc-inspect-governance-wiring-mvp (the cockpit this spec gates entry to)
-  - "073"  # axiomregent-unification (the sidecar this spec asserts liveness of)
-  - "087"  # unified-workspace-architecture (the duplex stream whose `sync.hello` is the org-session verification anchor)
-  - "106"  # rauthy-native-oidc-and-membership (the OIDC identity layer whose org claim materialises into `StagecraftState.org_id`)
-  - "112"  # factory-project-lifecycle (the `project.catalog.snapshot.complete` envelope is one of the org-session-verified post-handshake snapshots)
-  - "133"  # amends-aware-coupling-gate (satisfaction predicate this spec rides under)
-  - "147"  # spec-kind-grammar (`kind: governance`)
-  - "180"  # opc-shell-codification (broad OPC shell authority; this spec sits on its Tier 1 invariant surface for a runtime-precondition concern)
+  - "032-opc-inspect-governance-wiring-mvp"  # opc-inspect-governance-wiring-mvp (the cockpit this spec gates entry to)
+  - "073-axiomregent-unification"  # axiomregent-unification (the sidecar this spec asserts liveness of)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (the duplex stream whose `sync.hello` is the org-session verification anchor)
+  - "106-rauthy-native-oidc-and-membership"  # rauthy-native-oidc-and-membership (the OIDC identity layer whose org claim materialises into `StagecraftState.org_id`)
+  - "112-factory-project-lifecycle"  # factory-project-lifecycle (the `project.catalog.snapshot.complete` envelope is one of the org-session-verified post-handshake snapshots)
+  - "133-amends-aware-coupling-gate"  # amends-aware-coupling-gate (satisfaction predicate this spec rides under)
+  - "147-spec-kind-grammar"  # spec-kind-grammar (`kind: governance`)
+  - "180-opc-shell-codification"  # opc-shell-codification (broad OPC shell authority; this spec sits on its Tier 1 invariant surface for a runtime-precondition concern)
 code_aliases:
   - "OPC_BOOT_PRECONDITION_GATE"
 extends:

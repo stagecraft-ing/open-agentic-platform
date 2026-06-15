@@ -10,8 +10,8 @@ kind: platform
 domain: platform
 risk: high
 depends_on:
-  - "087"  # unified-workspace-architecture (stagecraft is the operator surface; this defines how its operator actions reach the cluster)
-  - "143"  # presigned-upload-public-endpoint (FU-008 names the setup.sh-monolith seam this spec retires)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (stagecraft is the operator surface; this defines how its operator actions reach the cluster)
+  - "143-presigned-upload-public-endpoint"  # presigned-upload-public-endpoint (FU-008 names the setup.sh-monolith seam this spec retires)
 code_aliases: ["GITOPS_RECONCILIATION"]
 establishes:
   - unit: { kind: file, path: platform/gitops/clusters/hetzner-prod/README.md }

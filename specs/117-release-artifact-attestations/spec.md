@@ -44,10 +44,10 @@ amendment_record: |
   deliberately updater-scoped (dmg/nsis/appimage). See §2.2 desktop-scope
   correction, §4.2, AC-6 lesson #5, and the amended AC-2/AC-4/AC-6.
 depends_on:
-  - "000"  # bootstrap-spec-system
-  - "037"  # cross-platform-axiomregent (sidecar build + bundle; SBOM source)
-  - "086"  # open-source-launch (release-fitness baseline)
-  - "104"  # makefile-ci-parity-contract
+  - "000-bootstrap-spec-system"  # bootstrap-spec-system
+  - "037-cross-platform-axiomregent"  # cross-platform-axiomregent (sidecar build + bundle; SBOM source)
+  - "086-open-source-launch"  # open-source-launch (release-fitness baseline)
+  - "104-makefile-ci-parity-contract"  # makefile-ci-parity-contract
 code_aliases: ["RELEASE_ATTESTATIONS"]
 refines:
   - aspect: "artifact-attestation"
