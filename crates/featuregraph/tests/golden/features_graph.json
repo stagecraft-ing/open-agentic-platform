@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:000ea89be6415433142801c07e256def1635c5358e9ff1af4c1518e2fc741d00",
+  "graph_fingerprint": "sha256:230830c3e9ca994b98606ab8845f4a0105484ba15ca68fcc3e8707f1408c6966",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4062,6 +4062,26 @@
         "214-tenant-app-chart-supersession",
         "112-factory-project-lifecycle",
         "137-tenant-environment-access-gates"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "216-spec-spine-library-grammar-adoption",
+      "title": "Spec-Spine Library Grammar Adoption (amends bare-id; supersedes-partial reconciliation)",
+      "spec_path": "specs/216-spec-spine-library-grammar-adoption/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "001-spec-compiler-mvp",
+        "130-spec-coupling-primary-owner",
+        "132-constitutional-invariant-freeze",
+        "133-amends-aware-coupling-gate",
+        "154-logical-unit-ownership-grammar"
       ],
       "impl_files": [],
       "test_files": [],
