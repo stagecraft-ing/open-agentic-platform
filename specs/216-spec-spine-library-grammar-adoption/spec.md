@@ -3,7 +3,7 @@ id: "216-spec-spine-library-grammar-adoption"
 title: "Spec-Spine Library Grammar Adoption (amends bare-id; supersedes-partial reconciliation)"
 feature_branch: "feat/216-spec-spine-library-grammar-adoption"
 status: draft
-implementation: pending
+implementation: in-progress  # Phase 1 landed (V-033 bare-id `amends` parse + spec-types known-key comment + 130/154/216 amendment records, all six Phase-1 ACs satisfied); Phase 2 (`supersedes` partial-supersession reconciliation) is sequenced per §2.3 and stays as scope until its FRs are refined. Stays `draft` pending Phase 2 + approval.
 kind: governance
 domain: tooling
 created: "2026-06-14"
@@ -47,15 +47,16 @@ refines:
     unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
   - aspect: "amends-supersedes-frontmatter-grammar"
     unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
-references:
-  # The clarification callouts this spec formalises as a frontmatter
-  # amendment when Phase 1 lands (FR-004). Non-owning: this spec does not
-  # reshape 130/154's grammar; it records the decision they already
-  # describe and converges the compiler onto it.
-  - role: context
-    unit: { kind: file, path: specs/130-spec-coupling-primary-owner/spec.md }
-  - role: context
-    unit: { kind: file, path: specs/154-logical-unit-ownership-grammar/spec.md }
+amends:
+  # Phase 1 landed (FR-004): this spec formally amends the 2026-06-14 bare-id
+  # `amends` clarification callouts in spec 130 §2.5 and spec 154 §5, folding
+  # the PR-#358 clarification notes into a spec-recorded amendment. The amends
+  # edge confers co-authority over each predecessor's spec.md (named by id; no
+  # unit:/paths: is honoured) and no code authority; the compiler-convergence
+  # code authority lives on `refines:` above. (Replaces the draft-time
+  # `references: role: context` placeholder these ids previously carried.)
+  - "130-spec-coupling-primary-owner"
+  - "154-logical-unit-ownership-grammar"
 ---
 
 # Feature Specification: Spec-Spine Library Grammar Adoption

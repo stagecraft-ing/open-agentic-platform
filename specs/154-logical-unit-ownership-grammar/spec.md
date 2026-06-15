@@ -8,8 +8,15 @@ closed: "2026-05-22"
 owner: bart
 created: "2026-05-20"
 approved: "2026-05-20"
-amended: "2026-05-24"
-amendment_record: "155-logical-unit-resolution-semantics"
+amended: "2026-06-14"
+amendment_record: |
+  Amended 2026-05-24 by 155-logical-unit-resolution-semantics.
+  Re-amended 2026-06-14 by 216-spec-spine-library-grammar-adoption: the
+  2026-06-14 bare-id `amends` clarification callout added to §5 (PR #358) is
+  formalised here as a spec-recorded amendment. Spec 216 Phase 1 converges the
+  spec-compiler onto the bare-id `amends` grammar this section documents; a
+  non-string `amends` entry is now a hard V-033 compile error rather than a
+  silent empty-list collapse.
 kind: governance
 domain: substrate
 risk: medium
@@ -705,3 +712,12 @@ content updated 1:1 with the rename per the atomicity contract
 encoded by spec 177 (ci-orchestrator-pr-gate) — featuregraph-golden
 is a required ci-gate check precisely so renames carry their fixture
 refresh inside the rename PR.
+
+**Amendment 2026-06-14 (record: 216-spec-spine-library-grammar-adoption).**
+Spec 216 Phase 1 formalises the 2026-06-14 bare-id `amends` clarification
+callout in §5 (added by PR #358) as a spec-recorded amendment, and converges
+the OAP spec-compiler onto the bare-id grammar this section documents: a
+non-string `amends` entry is now a hard V-033 compile error rather than the
+former silent empty-list collapse. No change to this spec's `amends` shape
+(it already specified bare-id); the convergence is on the compiler's failure
+mode only.

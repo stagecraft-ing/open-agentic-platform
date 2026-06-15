@@ -272,7 +272,9 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, CompileError> {
 
         // Spec 132 fields (V-011 input). Stored separately from extra_frontmatter
         // so the V-011 check has typed access without re-parsing.
-        let amends = optional_string_list(fm, "amends").unwrap_or_default();
+        // `amends` is bare-id only (spec 216 Phase 1); a non-string entry is a
+        // hard V-033 error rather than the former silent empty-list collapse.
+        let amends = parse_amends(fm, repo_root, spec_path, &mut violations);
         let amends_sections = optional_string_list(fm, "amends_sections").unwrap_or_default();
         let unamendable = optional_string_list(fm, "unamendable").unwrap_or_default();
 
@@ -1375,6 +1377,58 @@ fn optional_string_list(m: &serde_yaml::Mapping, key: &str) -> Option<Vec<String
         out.push(x.as_str()?.to_string());
     }
     Some(out)
+}
+
+/// V-033 (spec 216 Phase 1) remediation message. Names the migration path
+/// verbatim per FR-002: bare-id grammar, plus where code authority and
+/// section-scoping actually belong.
+const V033_AMENDS_MESSAGE: &str = r#"`amends` takes spec ids only (`amends: ["NNN-slug", ...]`); an object entry confers no authority and is dropped. To claim code, use `refines:`/`extends:` units; to scope to sections of the amended spec, use `amends_sections:` (spec 132). See spec 130 §2.5."#;
+
+/// Parse `amends` as a list of bare spec-id strings (spec 216 Phase 1, V-033).
+///
+/// The standalone spec-spine library models `amends` as `Vec<String>` and
+/// rejects a non-string (object) entry at deserialization. OAP previously
+/// routed `amends` through [`optional_string_list`], which returns `None` on
+/// any non-string entry; the call site's `.unwrap_or_default()` then collapsed
+/// the field to an empty list silently, so an object-form `amends` recorded
+/// nothing and conferred no authority (the latent spec 125 defect PR #358
+/// corrected).
+///
+/// This parse distinguishes "absent" (empty, no violation) from "present but
+/// malformed" (V-033 error), mirroring the library's reject-on-object
+/// behaviour. On a malformed entry the field is dropped from the registry so
+/// the artifact stays schema-conformant; the V-033 violation is the source of
+/// truth for the rejection (the V-007 precedent at the risk-value site).
+fn parse_amends(
+    fm: &serde_yaml::Mapping,
+    repo_root: &Path,
+    spec_path: &Path,
+    violations: &mut Vec<Violation>,
+) -> Vec<String> {
+    let Some(raw) = fm.get("amends") else {
+        return Vec::new();
+    };
+    let malformed = || Violation {
+        code: "V-033".to_string(),
+        severity: "error".to_string(),
+        message: V033_AMENDS_MESSAGE.to_string(),
+        path: Some(normalize_repo_path(repo_root, spec_path)),
+    };
+    let Some(seq) = raw.as_sequence() else {
+        violations.push(malformed());
+        return Vec::new();
+    };
+    let mut out = Vec::with_capacity(seq.len());
+    for entry in seq {
+        match entry.as_str() {
+            Some(s) => out.push(s.to_string()),
+            None => {
+                violations.push(malformed());
+                return Vec::new();
+            }
+        }
+    }
+    out
 }
 
 /// Token shape aligned with `featuregraph` / `registry.schema.json` `codeAliases` items.

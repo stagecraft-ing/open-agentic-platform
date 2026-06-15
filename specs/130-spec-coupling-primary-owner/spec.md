@@ -4,8 +4,15 @@ slug: spec-relationship-graph
 title: "Spec Relationship Graph — eight first-class edges between specs and code"
 status: approved
 implementation: complete
-amended: "2026-05-20"
-amendment_record: "153-invariant-freeze-additive-evolution"
+amended: "2026-06-14"
+amendment_record: |
+  Amended 2026-05-20 by 153-invariant-freeze-additive-evolution.
+  Re-amended 2026-06-14 by 216-spec-spine-library-grammar-adoption: the
+  2026-06-14 bare-id `amends` clarification callout added to §2.5 (PR #358) is
+  formalised here as a spec-recorded amendment. Spec 216 Phase 1 converges the
+  spec-compiler onto the bare-id `amends` grammar this section documents; a
+  non-string `amends` entry is now a hard V-033 compile error rather than a
+  silent empty-list collapse.
 owner: bart
 created: "2026-05-02"
 approved: "2026-05-19"

@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "535e68694f6354657d15dc42bf03b64eb851dda9e323f9c5974f14121cd823eb",
+    "contentHash": "5b8e0d1f83503840456e75d3beab6efe24e4ba41ee9962e06d053d323a4f4926",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -25478,7 +25478,6 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "153-invariant-freeze-additive-evolution",
         "dependsOn": [
           "000",
           "001",
@@ -25752,6 +25751,9 @@
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/v014_implements_list_rejected.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v033_amends_bare_id.rs"
               }
             ],
             "ownership": true,
@@ -30258,7 +30260,6 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "155-logical-unit-resolution-semantics",
         "dependsOn": [
           "130",
           "153"
@@ -30435,6 +30436,9 @@
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/v014_implements_list_rejected.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v033_amends_bare_id.rs"
               }
             ],
             "ownership": true,
@@ -30815,6 +30819,9 @@
               },
               {
                 "file": "tools/spec-spine/spec-compiler/tests/v014_implements_list_rejected.rs"
+              },
+              {
+                "file": "tools/spec-spine/spec-compiler/tests/v033_amends_bare_id.rs"
               }
             ],
             "ownership": false,
@@ -49508,6 +49515,10 @@
         "specStatus": "draft"
       },
       {
+        "amends": [
+          "130-spec-coupling-primary-owner",
+          "154-logical-unit-ownership-grammar"
+        ],
         "dependsOn": [
           "001-spec-compiler-mvp",
           "130-spec-coupling-primary-owner",
@@ -49542,34 +49553,6 @@
             "unit": {
               "kind": "file",
               "path": "crates/featuregraph/tests/golden/features_graph.json"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "specs/130-spec-coupling-primary-owner/spec.md"
-              }
-            ],
-            "ownership": false,
-            "sourceField": "references",
-            "unit": {
-              "kind": "file",
-              "path": "specs/130-spec-coupling-primary-owner/spec.md"
-            }
-          },
-          {
-            "kind": "file",
-            "locations": [
-              {
-                "file": "specs/154-logical-unit-ownership-grammar/spec.md"
-              }
-            ],
-            "ownership": false,
-            "sourceField": "references",
-            "unit": {
-              "kind": "file",
-              "path": "specs/154-logical-unit-ownership-grammar/spec.md"
             }
           },
           {
