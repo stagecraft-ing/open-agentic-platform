@@ -113,17 +113,19 @@ fn compile_emits_64hex_claude_config_hash() {
 }
 
 #[test]
-fn index_is_3_0_0_and_carries_no_config_hash() {
-    // Spec 188 Phase 4: the broad index round-trips through the real 3.0.0
-    // schema (compile self-validates it) and must NOT carry the re-homed
-    // field — the cache holds nothing governed.
+fn index_is_3_1_0_and_carries_no_config_hash() {
+    // Spec 188 Phase 4: the broad index round-trips through the real schema
+    // (compile self-validates it) and must NOT carry the re-homed field (the
+    // cache holds nothing governed). Spec 216 Phase 2b bumped the schema
+    // 3.0.0 -> 3.1.0 (additive `traceMapping.supersedes`); the config-hash
+    // invariant this test guards is unchanged.
     let tmp = repo_with_config();
     compile(tmp.path());
     let doc = index_json(tmp.path());
     assert_eq!(
         doc["schemaVersion"].as_str(),
-        Some("3.0.0"),
-        "broad index bumped to 3.0.0 (claudeConfigHash removed)"
+        Some("3.1.0"),
+        "broad index at 3.1.0 (spec 216 Phase 2b additive supersedes field)"
     );
     assert!(
         doc["build"].get("claudeConfigHash").is_none(),

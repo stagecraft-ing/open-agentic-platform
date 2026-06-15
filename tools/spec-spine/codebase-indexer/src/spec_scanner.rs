@@ -34,6 +34,22 @@ pub struct SpecRecord {
     /// `ResolvedUnit { ownership: false, locations: [] }` per spec 156
     /// §6.3.
     pub provenance: Vec<ProvenanceEntry>,
+    /// Spec 216 Phase 2b: the spec's **partial**-scope `supersedes` edges,
+    /// each carrying the predecessor id (raw, resolved to a full id in
+    /// `xref::build_traceability`) and the physical path(s) its `unit:`
+    /// resolved to. Full-scope supersession is omitted (the gate filters it
+    /// by the predecessor's `spec_status`); note-only partials (no resolvable
+    /// path) are omitted (they transfer no path authority).
+    pub supersedes: Vec<SupersedesRecord>,
+}
+
+/// Spec 216 Phase 2b: a parsed partial-supersession edge before predecessor
+/// id resolution. `spec_raw` is the predecessor id as authored (short `NNN`
+/// or full `NNN-slug`); `paths` are the `unit:`'s resolved physical paths.
+pub struct SupersedesRecord {
+    pub spec_raw: String,
+    pub scope: String,
+    pub paths: Vec<String>,
 }
 
 /// A logical-unit declaration with the relationship field that carried
@@ -226,6 +242,7 @@ fn parse_spec(
         .map(|s| s.to_string());
     let units = parse_units(fm);
     let provenance = parse_provenance_entries(fm);
+    let supersedes = parse_supersedes_partial(fm, workspace_members);
 
     Some(SpecRecord {
         id,
@@ -237,7 +254,92 @@ fn parse_spec(
         amendment_record,
         units,
         provenance,
+        supersedes,
     })
+}
+
+/// Spec 216 Phase 2b: parse the **partial**-scope `supersedes` edges from
+/// frontmatter for the codebase index. Full-scope entries (bare strings,
+/// `{spec}`, `{spec, scope: full}`) are skipped: full supersession is
+/// represented by the predecessor's `spec_status`, which the coupling gate
+/// filters directly. A partial entry's `unit:` is resolved to its physical
+/// path; a note-only partial (no resolvable path) is skipped, as it transfers
+/// no path authority. The predecessor `spec` id is left raw and resolved to a
+/// full `NNN-slug` in `xref::build_traceability` (mirroring `amends`). The
+/// spec-compiler is the authoritative validator of the envelope (V-034); this
+/// reader stays permissive and consumes what parses cleanly.
+fn parse_supersedes_partial(
+    fm: &serde_yaml::Mapping,
+    workspace_members: &std::collections::BTreeMap<String, String>,
+) -> Vec<SupersedesRecord> {
+    let Some(seq) = fm.get("supersedes").and_then(|v| v.as_sequence()) else {
+        return vec![];
+    };
+    let mut out = Vec::new();
+    for item in seq {
+        // Bare string = full-scope shorthand; skip (full via spec_status).
+        let Some(map) = item.as_mapping() else {
+            continue;
+        };
+        let Some(spec_raw) = map.get("spec").and_then(|v| v.as_str()) else {
+            continue;
+        };
+        // Only partial scope is carried in the index.
+        let scope = map.get("scope").and_then(|v| v.as_str()).unwrap_or("full");
+        if scope != "partial" {
+            continue;
+        }
+        let mut paths = Vec::new();
+        if let Some(unit_val) = map.get("unit") {
+            if let Some(p) = unit_value_to_path(unit_val, workspace_members) {
+                paths.push(p);
+            }
+        }
+        // Note-only partial (no resolvable path) transfers no path authority.
+        if paths.is_empty() {
+            continue;
+        }
+        out.push(SupersedesRecord {
+            spec_raw: spec_raw.to_string(),
+            scope: scope.to_string(),
+            paths,
+        });
+    }
+    out
+}
+
+/// Spec 216 Phase 2b: resolve a single `unit:` YAML value to its physical
+/// path for partial-supersession edges. Mirrors the `unit_path` closure in
+/// `parse_implements` for the ownership-bearing kinds that map to a flat
+/// path: `crate:` resolves to its workspace-member directory; `file:` /
+/// `directory:` resolve to `path`; `section:` resolves to `file`. Sub-file
+/// kinds (`symbol`, `module`) carry no flat path and resolve through the
+/// indexer's typed surface, not here.
+fn unit_value_to_path(
+    unit: &serde_yaml::Value,
+    workspace_members: &std::collections::BTreeMap<String, String>,
+) -> Option<String> {
+    let map = unit.as_mapping()?;
+    let kind = map
+        .get(serde_yaml::Value::String("kind".to_string()))?
+        .as_str()?;
+    match kind {
+        "crate" => {
+            let id = map
+                .get(serde_yaml::Value::String("id".to_string()))?
+                .as_str()?;
+            workspace_members.get(id).cloned()
+        }
+        "directory" | "file" => map
+            .get(serde_yaml::Value::String("path".to_string()))?
+            .as_str()
+            .map(|s| s.to_string()),
+        "section" => map
+            .get(serde_yaml::Value::String("file".to_string()))?
+            .as_str()
+            .map(|s| s.to_string()),
+        _ => None,
+    }
 }
 
 /// Parse a list-of-strings frontmatter field (`amends`, `depends_on`-like).

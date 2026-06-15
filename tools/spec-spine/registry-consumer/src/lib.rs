@@ -862,6 +862,23 @@ fn co_authority_entry_matches(
     false
 }
 
+/// Spec 216 Phase 2b: true when a `supersedes[]` entry partially supersedes
+/// authority over `path` via its `unit:` (or legacy `paths:`). Only
+/// `scope: partial` entries carry per-unit authority; a bare-string or
+/// `scope: full` entry is whole-spec supersession (handled by the superseded
+/// predecessor's `status`, not a path claim). Reuses the same
+/// file/directory-kind unit matching as `extends`/`refines`.
+fn supersedes_partial_matches_path(entry: &Value, path: &str) -> bool {
+    // Bare-string entry = full-scope shorthand; no per-unit authority.
+    if entry.is_string() {
+        return false;
+    }
+    if entry.get("scope").and_then(|s| s.as_str()) != Some("partial") {
+        return false;
+    }
+    edge_entry_matches_path(entry, path)
+}
+
 /// Extract spec ids referenced in `refines[].refines_specs[]`.
 fn refines_spec_refs(raw: &Value) -> Vec<String> {
     raw.get("refines")
@@ -1024,7 +1041,7 @@ fn outgoing_edges(raw: &Value) -> Vec<OutgoingEdge> {
                 });
             } else {
                 let spec = item.get("spec").and_then(|s| s.as_str()).map(String::from);
-                let paths: Vec<String> = item
+                let mut paths: Vec<String> = item
                     .get("paths")
                     .and_then(|v| v.as_array())
                     .map(|arr| {
@@ -1034,6 +1051,24 @@ fn outgoing_edges(raw: &Value) -> Vec<OutgoingEdge> {
                             .collect()
                     })
                     .unwrap_or_default();
+                // Spec 216 Phase 2b: the structured partial form scopes by
+                // `unit:` (specs 154/216), not legacy `paths:`. Surface the
+                // unit's file/directory/section path so show-relationships and
+                // any paths consumer see the per-unit partial scope.
+                if let Some(unit) = item.get("unit") {
+                    let p = match unit.get("kind").and_then(|k| k.as_str()) {
+                        Some("file") | Some("directory") => {
+                            unit.get("path").and_then(|p| p.as_str())
+                        }
+                        Some("section") => unit.get("file").and_then(|f| f.as_str()),
+                        _ => None,
+                    };
+                    if let Some(p) = p {
+                        if !paths.iter().any(|x| x == p) {
+                            paths.push(p.to_string());
+                        }
+                    }
+                }
                 edges.push(OutgoingEdge {
                     kind: "supersedes".to_string(),
                     spec,
@@ -1536,10 +1571,37 @@ impl Registry {
         path: &str,
         section: Option<&str>,
     ) -> Vec<AuthorityEntry> {
+        // Spec 216 Phase 2b: predecessors partially superseded over `path` by
+        // a live successor are removed from the authority set, so by-authority
+        // reports the same authorities(P) the coupling gate enforces. (Full
+        // supersession is already excluded via the `status == superseded` skip
+        // below.)
+        let mut superseded_over_path: std::collections::BTreeSet<String> =
+            std::collections::BTreeSet::new();
+        for f in &self.features {
+            if f.status.as_deref() == Some("superseded") {
+                continue; // a dead successor transfers no authority
+            }
+            if let Some(arr) = f.raw.get("supersedes").and_then(|v| v.as_array()) {
+                for entry in arr {
+                    if supersedes_partial_matches_path(entry, path) {
+                        if let Some(pred) = entry.get("spec").and_then(|s| s.as_str()) {
+                            superseded_over_path.insert(pred.to_string());
+                        }
+                    }
+                }
+            }
+        }
+
         let mut result: Vec<AuthorityEntry> = Vec::new();
         for f in &self.features {
             // Exclude fully superseded specs.
             if f.status.as_deref() == Some("superseded") {
+                continue;
+            }
+            // Spec 216 Phase 2b: exclude a predecessor partially superseded
+            // over this path by a live successor.
+            if superseded_over_path.contains(&f.id) {
                 continue;
             }
             let raw = &f.raw;
@@ -1601,6 +1663,22 @@ impl Registry {
                     .unwrap_or(false);
                 if co_auth {
                     relationship = "co_authority".to_string();
+                }
+            }
+
+            // Check supersedes[] partial units (spec 216 Phase 2b): a live
+            // successor is authoritative over a unit it partially supersedes.
+            if relationship.is_empty() {
+                let superseding = raw
+                    .get("supersedes")
+                    .and_then(|v| v.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .any(|e| supersedes_partial_matches_path(e, path))
+                    })
+                    .unwrap_or(false);
+                if superseding {
+                    relationship = "supersedes".to_string();
                 }
             }
 
@@ -2671,6 +2749,97 @@ mod graph_tests {
         let ids: Vec<&str> = result.iter().map(|e| e.spec_id.as_str()).collect();
         assert!(!ids.contains(&"aaa-old"), "superseded spec must be excluded");
         assert!(ids.contains(&"bbb-new"));
+    }
+
+    #[test]
+    fn authority_for_path_supersedes_partial_unit() {
+        // Spec 216 Phase 2b: a live successor with a partial supersedes unit is
+        // authoritative over that path (relationship "supersedes"), and the
+        // partially-superseded predecessor is removed from the set.
+        let reg = make_registry(json!([
+            {
+                "id": "113-pred",
+                "status": "approved",
+                "establishes": [{"unit": {"kind": "file", "path": "api/clone.ts"}}]
+            },
+            {
+                "id": "114-succ",
+                "status": "approved",
+                "supersedes": [
+                    {"spec": "113-pred", "scope": "partial",
+                     "unit": {"kind": "file", "path": "api/clone.ts"}}
+                ]
+            }
+        ]));
+        let result = reg.authority_for_path("api/clone.ts", None);
+        let ids: Vec<&str> = result.iter().map(|e| e.spec_id.as_str()).collect();
+        assert_eq!(
+            ids,
+            vec!["114-succ"],
+            "live successor authoritative via supersedes; partial predecessor removed"
+        );
+        let rel = &result
+            .iter()
+            .find(|e| e.spec_id == "114-succ")
+            .unwrap()
+            .relationship;
+        assert_eq!(rel, "supersedes");
+    }
+
+    #[test]
+    fn authority_for_path_supersedes_partial_is_path_scoped() {
+        // Partial supersession is path-scoped: the predecessor keeps authority
+        // over a path the successor did not supersede.
+        let reg = make_registry(json!([
+            {
+                "id": "113-pred",
+                "status": "approved",
+                "establishes": [
+                    {"unit": {"kind": "file", "path": "api/clone.ts"}},
+                    {"unit": {"kind": "file", "path": "api/helpers.ts"}}
+                ]
+            },
+            {
+                "id": "114-succ",
+                "status": "approved",
+                "supersedes": [
+                    {"spec": "113-pred", "scope": "partial",
+                     "unit": {"kind": "file", "path": "api/clone.ts"}}
+                ]
+            }
+        ]));
+        let result = reg.authority_for_path("api/helpers.ts", None);
+        let ids: Vec<&str> = result.iter().map(|e| e.spec_id.as_str()).collect();
+        assert!(
+            ids.contains(&"113-pred"),
+            "predecessor retains authority over the non-superseded path; got {ids:?}"
+        );
+    }
+
+    #[test]
+    fn authority_for_path_supersedes_full_string_confers_nothing() {
+        // A bare-string (full-scope) supersedes entry transfers no per-unit
+        // authority and does not remove the predecessor here (full supersession
+        // is handled by the superseded predecessor's own status).
+        let reg = make_registry(json!([
+            {
+                "id": "010-base",
+                "status": "approved",
+                "establishes": [{"unit": {"kind": "file", "path": "api/x.ts"}}]
+            },
+            {
+                "id": "020-succ",
+                "status": "approved",
+                "supersedes": ["010-base"]
+            }
+        ]));
+        let result = reg.authority_for_path("api/x.ts", None);
+        let ids: Vec<&str> = result.iter().map(|e| e.spec_id.as_str()).collect();
+        assert_eq!(
+            ids,
+            vec!["010-base"],
+            "full-scope supersedes does not strip the predecessor over a path"
+        );
     }
 
     #[test]

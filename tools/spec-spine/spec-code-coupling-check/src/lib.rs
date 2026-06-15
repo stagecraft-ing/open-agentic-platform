@@ -369,6 +369,7 @@ pub fn check_coupling_with_bypass(
 ) -> Outcome {
     let waiver_reason = parse_waiver(pr_body);
     let claim_index = build_claim_index(index);
+    let supersession = SupersessionFilter::from_index(index);
 
     // Path-centric aggregation: for each non-bypass diff path, collect
     // every legitimate owner across the three source classes.
@@ -382,7 +383,7 @@ pub fn check_coupling_with_bypass(
         if is_bypass(path) || bypass.matches(path) {
             continue;
         }
-        let owners = legitimate_owners(path, &claim_index, index);
+        let owners = legitimate_owners(path, &claim_index, index, &supersession);
         if owners.is_empty() {
             continue;
         }
@@ -524,6 +525,7 @@ pub fn check_coupling_section_aware(
 ) -> Outcome {
     let waiver_reason = parse_waiver(pr_body);
     let claim_index = build_claim_index(index);
+    let supersession = SupersessionFilter::from_index(index);
 
     let mut violations: Vec<Violation> = Vec::new();
 
@@ -533,7 +535,7 @@ pub fn check_coupling_section_aware(
         }
 
         // Whole-file owners (spec 127 / 130 / 133 baseline).
-        let whole_file_owners = legitimate_owners(path, &claim_index, index);
+        let whole_file_owners = legitimate_owners(path, &claim_index, index, &supersession);
         if whole_file_owners.is_empty() {
             continue; // unclaimed path — not a coupling concern
         }
@@ -553,8 +555,12 @@ pub fn check_coupling_section_aware(
                         // amender and amendment-record substitutes clear
                         // a section identically to whole-file. Spec 133
                         // §4's `A` ranges uniformly over both branches.
-                        let section_owners =
-                            legitimate_owners_for_section(section_spec_ids, index);
+                        let section_owners = legitimate_owners_for_section(
+                            path,
+                            section_spec_ids,
+                            index,
+                            &supersession,
+                        );
                         if !section_owners.any_owner_in_diff(diff_paths) {
                             violations.push(Violation {
                                 path: path.clone(),
@@ -777,6 +783,89 @@ pub fn claimants_for_hunk(
 // path. Edits to this region's machinery require an edit to
 // specs/133-amends-aware-coupling-gate.
 
+/// Spec 216 Phase 2b: precomputed supersession filter, derived once per gate
+/// run from the codebase index. It carries `authorities(P)` from the raw claim
+/// union toward the spec-130/154 definition by removing superseded
+/// predecessors from a path's owner set.
+///
+/// - `fully_superseded`: spec ids whose `spec_status` is `superseded` (full
+///   supersession is exactly what flips the status). Removed from **every**
+///   path they claim.
+/// - `partial_over_path`: `path -> {predecessor ids}` partially superseded
+///   over that path by a **live** successor (the successor's
+///   `TraceMapping.supersedes` partial edges). Removed only from the listed
+///   path; the live successor stays an owner because it already claims the
+///   path via the folded supersedes unit.
+///
+/// Only the `implements` owner class is filtered: the `amends` /
+/// `amendment_record` classes fire only on `specs/<id>/spec.md` paths, which
+/// no spec supersedes. Edits here are governed by spec 133 (this region).
+#[derive(Debug, Clone, Default)]
+pub struct SupersessionFilter {
+    pub fully_superseded: BTreeSet<String>,
+    pub partial_over_path: BTreeMap<String, BTreeSet<String>>,
+}
+
+impl SupersessionFilter {
+    /// Derive the filter from the codebase index `traceability.mappings`.
+    pub fn from_index(index: &CodebaseIndex) -> Self {
+        let mut fully_superseded: BTreeSet<String> = BTreeSet::new();
+        for m in &index.traceability.mappings {
+            if m.spec_status.as_deref() == Some("superseded") {
+                fully_superseded.insert(m.spec_id.clone());
+            }
+        }
+        let mut partial_over_path: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+        for m in &index.traceability.mappings {
+            // Only a live successor transfers authority away from a
+            // predecessor; a superseded spec's own supersedes edges are dead.
+            if m.spec_status.as_deref() == Some("superseded") {
+                continue;
+            }
+            for edge in &m.supersedes {
+                if edge.scope != "partial" {
+                    continue;
+                }
+                for p in &edge.paths {
+                    partial_over_path
+                        .entry(p.clone())
+                        .or_default()
+                        .insert(edge.spec.clone());
+                }
+            }
+        }
+        SupersessionFilter {
+            fully_superseded,
+            partial_over_path,
+        }
+    }
+
+    /// Remove fully- and (over `path`) partially-superseded predecessors from
+    /// an `implements` owner set in place.
+    ///
+    /// Partial matching is **containment-aware** to mirror `claim_matches`:
+    /// authority over a directory unit extends to files under it, so a partial
+    /// supersedes declared over a directory removes the predecessor from every
+    /// path that directory claims, not just the exact directory path.
+    fn retain_live(&self, path: &str, owners: &mut BTreeSet<String>) {
+        if !self.fully_superseded.is_empty() {
+            owners.retain(|id| !self.fully_superseded.contains(id));
+        }
+        if self.partial_over_path.is_empty() {
+            return;
+        }
+        let mut superseded_here: BTreeSet<&str> = BTreeSet::new();
+        for (unit_path, preds) in &self.partial_over_path {
+            if claim_matches(unit_path, path) {
+                superseded_here.extend(preds.iter().map(String::as_str));
+            }
+        }
+        if !superseded_here.is_empty() {
+            owners.retain(|id| !superseded_here.contains(id.as_str()));
+        }
+    }
+}
+
 /// Spec 133: parse `specs/<id>/spec.md` into `<id>`. Returns `None` for
 /// paths that do not match the canonical spec.md location (e.g. crate
 /// paths, sub-files like `specs/<id>/plan.md`, or doc paths).
@@ -791,10 +880,16 @@ pub fn spec_id_for_spec_md_path(path: &str) -> Option<&str> {
 /// (FR-002). The two latter sources only fire when `path` itself names a
 /// spec's `spec.md`. Each source class is collected separately so the
 /// renderer (FR-004) can label owners by provenance.
+///
+/// Spec 216 Phase 2b: `supersession` removes superseded predecessors from the
+/// `implements` class so the returned set is `authorities(P)`, not the raw
+/// claim union (a fully superseded spec, or a predecessor partially superseded
+/// over `path` by a live successor, is dropped).
 pub fn legitimate_owners(
     path: &str,
     claim_index: &BTreeMap<String, BTreeSet<String>>,
     index: &CodebaseIndex,
+    supersession: &SupersessionFilter,
 ) -> OwnerSet {
     let mut owners = OwnerSet::default();
 
@@ -804,6 +899,12 @@ pub fn legitimate_owners(
             owners.implements.extend(claimants.iter().cloned());
         }
     }
+
+    // Spec 216 Phase 2b: drop superseded predecessors so the implements set is
+    // the live authority set. Done before the spec.md amend resolution and the
+    // strict-expansion guard below, so a path whose only owners were superseded
+    // collapses to empty (and is skipped by the caller) rather than firing.
+    supersession.retain_live(path, &mut owners.implements);
 
     // Paths 2 & 3 fire only for `specs/<id>/spec.md`.
     let Some(amended_id) = spec_id_for_spec_md_path(path) else {
@@ -859,8 +960,10 @@ pub fn legitimate_owners(
 /// branch that already located `section_spec_ids` for `(path,
 /// section)`, so empty section claims short-circuit upstream.
 pub fn legitimate_owners_for_section(
+    path: &str,
     section_spec_ids: &BTreeSet<String>,
     index: &CodebaseIndex,
+    supersession: &SupersessionFilter,
 ) -> OwnerSet {
     let mut owners = OwnerSet {
         implements: section_spec_ids.clone(),
@@ -869,6 +972,11 @@ pub fn legitimate_owners_for_section(
     if section_spec_ids.is_empty() {
         return owners;
     }
+
+    // Spec 216 Phase 2b: drop superseded predecessors from the section's
+    // implements authority (symmetry with whole-file `legitimate_owners`; no
+    // corpus section authority is superseded today).
+    supersession.retain_live(path, &mut owners.implements);
 
     // Amenders of any section authority (spec 133 FR-001 generalised
     // to the section-scoped authority set).
@@ -1008,7 +1116,8 @@ fn push_owner_class(buf: &mut String, label: &str, members: &BTreeSet<String>) {
 mod tests {
     use super::*;
     use open_agentic_codebase_indexer::types::{
-        BuildInfo, Diagnostics, ImplementingPath, TraceMapping, TraceSource, Traceability,
+        BuildInfo, Diagnostics, ImplementingPath, SupersedesEdge, TraceMapping, TraceSource,
+        Traceability,
     };
 
     fn empty_index() -> CodebaseIndex {
@@ -1045,6 +1154,7 @@ mod tests {
             depends_on: Vec::new(),
             amends: Vec::new(),
             amendment_record: None,
+            supersedes: Vec::new(),
             implementing_paths: paths
                 .iter()
                 .map(|p| ImplementingPath {
@@ -1061,6 +1171,246 @@ mod tests {
 
     fn diffset(paths: &[&str]) -> BTreeSet<String> {
         paths.iter().map(|s| s.to_string()).collect()
+    }
+
+    /// Spec 216 Phase 2b test helper: push a mapping with an explicit status,
+    /// supersedes edges, and claimed paths.
+    fn push_mapping(
+        idx: &mut CodebaseIndex,
+        spec_id: &str,
+        status: &str,
+        supersedes: Vec<SupersedesEdge>,
+        paths: &[&str],
+    ) {
+        idx.traceability.mappings.push(TraceMapping {
+            spec_id: spec_id.to_string(),
+            spec_status: Some(status.to_string()),
+            depends_on: Vec::new(),
+            amends: Vec::new(),
+            amendment_record: None,
+            supersedes,
+            implementing_paths: paths
+                .iter()
+                .map(|p| ImplementingPath {
+                    path: (*p).to_string(),
+                    name: None,
+                    source: Some(TraceSource::SpecImplements),
+                    primary: None,
+                })
+                .collect(),
+            resolved_units: Vec::new(),
+        });
+    }
+
+    // ── Spec 216 Phase 2b: supersession filtering ────────────────────────────
+
+    /// AC-013: a fully superseded predecessor (`spec_status: superseded`) is
+    /// dropped from the authority set of every path it claims; the live
+    /// claimant remains.
+    #[test]
+    fn supersession_full_predecessor_dropped() {
+        let p = "crates/orchestrator/src/lib.rs";
+        let mut idx = index_claiming("098-live-spec", &[p]);
+        push_mapping(&mut idx, "044-multi-agent-orchestration", "superseded", Vec::new(), &[p]);
+
+        let claim_index = build_claim_index(&idx);
+        let filter = SupersessionFilter::from_index(&idx);
+        let owners = legitimate_owners(p, &claim_index, &idx, &filter);
+
+        assert_eq!(
+            owners.all_unique_sorted(),
+            vec!["098-live-spec".to_string()],
+            "fully superseded 044 must be dropped; live 098 remains the owner"
+        );
+    }
+
+    /// AC-014: a partial-supersedes predecessor is dropped only over the
+    /// superseded unit path; the live successor (which claims that path via
+    /// the folded unit) remains, and the predecessor keeps authority over the
+    /// other paths it claims (partial supersession is path-scoped).
+    #[test]
+    fn supersession_partial_predecessor_dropped_over_unit_path_only() {
+        let p = "platform/services/stagecraft/api/projects/clone.ts";
+        let q = "platform/services/stagecraft/api/projects/cloneHelpers.ts";
+        // Predecessor 113 (still approved) claims both p and q.
+        let mut idx = index_claiming("113-stagecraft-projects-rename-and-clone", &[p, q]);
+        // Live successor 114 partially supersedes 113 over p, and claims p via
+        // the folded supersedes unit.
+        push_mapping(
+            &mut idx,
+            "114-async-project-clone-pipeline",
+            "approved",
+            vec![SupersedesEdge {
+                spec: "113-stagecraft-projects-rename-and-clone".to_string(),
+                scope: "partial".to_string(),
+                paths: vec![p.to_string()],
+            }],
+            &[p],
+        );
+
+        let claim_index = build_claim_index(&idx);
+        let filter = SupersessionFilter::from_index(&idx);
+
+        // p: predecessor 113 dropped, live successor 114 remains.
+        let owners_p = legitimate_owners(p, &claim_index, &idx, &filter);
+        assert_eq!(
+            owners_p.all_unique_sorted(),
+            vec!["114-async-project-clone-pipeline".to_string()],
+            "over the superseded unit, only the live successor remains"
+        );
+
+        // q: predecessor 113 retained (partial supersession is path-scoped).
+        let owners_q = legitimate_owners(q, &claim_index, &idx, &filter);
+        assert_eq!(
+            owners_q.all_unique_sorted(),
+            vec!["113-stagecraft-projects-rename-and-clone".to_string()],
+            "a path the successor did not supersede keeps its predecessor owner"
+        );
+    }
+
+    /// AC-015: a note-scoped partial supersedes (no unit, hence no resolved
+    /// path) transfers no path authority; the predecessor is retained. Models
+    /// the post-indexer shape: either no edge (note-only is dropped) or an
+    /// edge with empty `paths`. Both are no-ops for the filter.
+    #[test]
+    fn supersession_partial_note_only_is_noop() {
+        let p = "platform/services/stagecraft/api/factory/adapterView.ts";
+        let mut idx = index_claiming("108-factory-as-platform-feature", &[p]);
+        // Live successor 199 with a note-only partial edge (empty paths).
+        push_mapping(
+            &mut idx,
+            "199-factory-thin-consumer-sync",
+            "approved",
+            vec![SupersedesEdge {
+                spec: "108-factory-as-platform-feature".to_string(),
+                scope: "partial".to_string(),
+                paths: Vec::new(),
+            }],
+            &[],
+        );
+
+        let claim_index = build_claim_index(&idx);
+        let filter = SupersessionFilter::from_index(&idx);
+        let owners = legitimate_owners(p, &claim_index, &idx, &filter);
+
+        assert_eq!(
+            owners.all_unique_sorted(),
+            vec!["108-factory-as-platform-feature".to_string()],
+            "note-only partial transfers no path authority; predecessor retained"
+        );
+    }
+
+    /// A superseded successor's supersedes edges are dead: filtering is driven
+    /// only by LIVE successors, so a superseded spec cannot strip a live
+    /// predecessor's authority.
+    #[test]
+    fn supersession_partial_from_dead_successor_is_inert() {
+        let p = "crates/foo/src/lib.rs";
+        let mut idx = index_claiming("100-live-predecessor", &[p]);
+        push_mapping(
+            &mut idx,
+            "200-dead-successor",
+            "superseded",
+            vec![SupersedesEdge {
+                spec: "100-live-predecessor".to_string(),
+                scope: "partial".to_string(),
+                paths: vec![p.to_string()],
+            }],
+            &[p],
+        );
+
+        let claim_index = build_claim_index(&idx);
+        let filter = SupersessionFilter::from_index(&idx);
+        let owners = legitimate_owners(p, &claim_index, &idx, &filter);
+
+        assert_eq!(
+            owners.all_unique_sorted(),
+            vec!["100-live-predecessor".to_string()],
+            "a dead successor cannot strip authority; only its own status filters it"
+        );
+    }
+
+    /// A partial supersedes over a DIRECTORY unit removes the predecessor from
+    /// files under that directory (containment, mirroring `claim_matches`); the
+    /// live successor (which also claims the directory) remains the owner.
+    #[test]
+    fn supersession_partial_directory_unit_covers_subfiles() {
+        let dir = "platform/services/tenant-hello";
+        let subfile = "platform/services/tenant-hello/values.yaml";
+        // Predecessor 136 establishes the directory (claims sub-files via
+        // containment in `claim_matches`).
+        let mut idx = index_claiming("136-tenant-hello-demo-service", &[dir]);
+        // Live successor 214 partially supersedes 136 over the directory and
+        // claims it (folded supersedes unit).
+        push_mapping(
+            &mut idx,
+            "214-tenant-app-chart-supersession",
+            "approved",
+            vec![SupersedesEdge {
+                spec: "136-tenant-hello-demo-service".to_string(),
+                scope: "partial".to_string(),
+                paths: vec![dir.to_string()],
+            }],
+            &[dir],
+        );
+
+        let claim_index = build_claim_index(&idx);
+        let filter = SupersessionFilter::from_index(&idx);
+
+        // Editing a file UNDER the superseded directory drops 136, keeps 214.
+        let owners = legitimate_owners(subfile, &claim_index, &idx, &filter);
+        assert_eq!(
+            owners.all_unique_sorted(),
+            vec!["214-tenant-app-chart-supersession".to_string()],
+            "directory-scoped partial supersedes covers sub-files (containment)"
+        );
+    }
+
+    /// End-to-end gate behaviour for partial supersession: editing the
+    /// superseded unit is satisfied by the live successor's spec.md, and NOT
+    /// by the (now non-authoritative) predecessor's spec.md.
+    #[test]
+    fn supersession_partial_end_to_end_gate() {
+        let p = "platform/services/stagecraft/api/projects/clone.ts";
+        let mut idx = index_claiming("113-stagecraft-projects-rename-and-clone", &[p]);
+        push_mapping(
+            &mut idx,
+            "114-async-project-clone-pipeline",
+            "approved",
+            vec![SupersedesEdge {
+                spec: "113-stagecraft-projects-rename-and-clone".to_string(),
+                scope: "partial".to_string(),
+                paths: vec![p.to_string()],
+            }],
+            &[p],
+        );
+
+        // Editing p with the live successor's spec.md present clears the gate.
+        let with_successor = diffset(&[
+            p,
+            "specs/114-async-project-clone-pipeline/spec.md",
+        ]);
+        let outcome = check_coupling(&idx, &with_successor, "");
+        assert!(
+            outcome.violations.is_empty(),
+            "live successor's spec.md must clear the superseded unit; got {:?}",
+            outcome.violations
+        );
+
+        // Editing p with only the superseded predecessor's spec.md does NOT
+        // clear: 113 is no longer an authority over p.
+        let with_predecessor_only = diffset(&[
+            p,
+            "specs/113-stagecraft-projects-rename-and-clone/spec.md",
+        ]);
+        let outcome = check_coupling(&idx, &with_predecessor_only, "");
+        assert_eq!(outcome.violations.len(), 1, "predecessor no longer satisfies the unit");
+        assert_eq!(outcome.violations[0].path, p);
+        assert_eq!(
+            outcome.violations[0].owners.all_unique_sorted(),
+            vec!["114-async-project-clone-pipeline".to_string()],
+            "the violation names the live successor as the required owner"
+        );
     }
 
     #[test]
@@ -1191,6 +1541,7 @@ mod tests {
             depends_on: Vec::new(),
             amends: Vec::new(),
             amendment_record: None,
+            supersedes: Vec::new(),
             implementing_paths: vec![ImplementingPath {
                 path: "crates/tool-registry".to_string(),
                 name: None,
@@ -1226,6 +1577,7 @@ mod tests {
             depends_on: Vec::new(),
             amends: Vec::new(),
             amendment_record: None,
+            supersedes: Vec::new(),
             implementing_paths: vec![ImplementingPath {
                 path: "crates/orchestrator".to_string(),
                 name: None,
@@ -1261,6 +1613,7 @@ mod tests {
                 depends_on: Vec::new(),
                 amends: Vec::new(),
                 amendment_record: None,
+                supersedes: Vec::new(),
                 implementing_paths: vec![ImplementingPath {
                     path: "crates/orchestrator".to_string(),
                     name: None,
@@ -1354,6 +1707,7 @@ mod tests {
                 depends_on: Vec::new(),
                 amends: Vec::new(),
                 amendment_record: None,
+                supersedes: Vec::new(),
                 implementing_paths: vec![ImplementingPath {
                     path: "Makefile".to_string(),
                     name: None,
@@ -1410,6 +1764,7 @@ mod tests {
                 depends_on: Vec::new(),
                 amends: Vec::new(),
                 amendment_record: None,
+                supersedes: Vec::new(),
                 implementing_paths: vec![ImplementingPath {
                     path: "Makefile".to_string(),
                     name: None,
@@ -1463,6 +1818,7 @@ mod tests {
             depends_on: Vec::new(),
             amends: Vec::new(),
             amendment_record: None,
+            supersedes: Vec::new(),
             implementing_paths: vec![ImplementingPath {
                 path: "Makefile".to_string(),
                 name: None,
@@ -1584,6 +1940,7 @@ mod tests {
             depends_on: Vec::new(),
             amends: Vec::new(),
             amendment_record: None,
+            supersedes: Vec::new(),
             implementing_paths: vec![ImplementingPath {
                 path: "Makefile".to_string(),
                 name: None,
@@ -1642,6 +1999,7 @@ mod tests {
             depends_on: Vec::new(),
             amends: Vec::new(),
             amendment_record: None,
+            supersedes: Vec::new(),
             implementing_paths: vec![ImplementingPath {
                 path: "Makefile".to_string(),
                 name: None,
@@ -1693,6 +2051,7 @@ mod tests {
             depends_on: Vec::new(),
             amends: vec!["134-fast-local-ci-mode".to_string()],
             amendment_record: None,
+            supersedes: Vec::new(),
             implementing_paths: Vec::new(),
             resolved_units: Vec::new(),
         });
@@ -1738,6 +2097,7 @@ mod tests {
             depends_on: Vec::new(),
             amends: Vec::new(),
             amendment_record: Some("999-test-recorder".to_string()),
+            supersedes: Vec::new(),
             implementing_paths: vec![ImplementingPath {
                 path: "Makefile".to_string(),
                 name: None,
@@ -1753,6 +2113,7 @@ mod tests {
             depends_on: Vec::new(),
             amends: Vec::new(),
             amendment_record: None,
+            supersedes: Vec::new(),
             implementing_paths: Vec::new(),
             resolved_units: Vec::new(),
         });
@@ -1794,7 +2155,9 @@ mod tests {
         let mut section_ids = BTreeSet::new();
         section_ids.insert("134-fast-local-ci-mode".to_string());
 
-        let owners = legitimate_owners_for_section(&section_ids, &idx);
+        let supersession = SupersessionFilter::from_index(&idx);
+        let owners =
+            legitimate_owners_for_section("Makefile", &section_ids, &idx, &supersession);
         assert_eq!(owners.implements.len(), 1);
         assert!(owners.amends.is_empty(),
             "FR-005: no amender should be enrolled when none exists");
@@ -1875,6 +2238,7 @@ mod tests {
             depends_on: Vec::new(),
             amends: Vec::new(),
             amendment_record: None,
+            supersedes: Vec::new(),
             implementing_paths: Vec::new(),
             resolved_units: units,
         });
@@ -1950,6 +2314,7 @@ mod tests {
             depends_on: Vec::new(),
             amends: Vec::new(),
             amendment_record: None,
+            supersedes: Vec::new(),
             implementing_paths: Vec::new(),
             resolved_units: vec![resolved_unit(
                 "symbol",
@@ -1963,6 +2328,7 @@ mod tests {
             depends_on: Vec::new(),
             amends: Vec::new(),
             amendment_record: None,
+            supersedes: Vec::new(),
             implementing_paths: Vec::new(),
             resolved_units: vec![resolved_unit(
                 "symbol",
@@ -2079,6 +2445,7 @@ mod tests {
             depends_on: Vec::new(),
             amends: Vec::new(),
             amendment_record: None,
+            supersedes: Vec::new(),
             implementing_paths: vec![ImplementingPath {
                 path: path.to_string(),
                 name: None,

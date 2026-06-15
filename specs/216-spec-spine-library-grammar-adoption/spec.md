@@ -3,7 +3,7 @@ id: "216-spec-spine-library-grammar-adoption"
 title: "Spec-Spine Library Grammar Adoption (amends bare-id; supersedes-partial reconciliation)"
 feature_branch: "feat/216-spec-spine-library-grammar-adoption"
 status: draft
-implementation: in-progress  # Phase 1 landed (V-033 bare-id `amends`, all six Phase-1 ACs). Phase 2a in progress (§2.3: typed `supersedes` parse + V-034 + structured emission + additive schema widen). Phase 2b (coupling-gate supersession filtering of `authorities(P)`) stays sequenced per §2.4 until its own review pass. Stays `draft` pending Phase 2b + approval.
+implementation: in-progress  # Phase 1 landed (V-033 bare-id `amends`, all six Phase-1 ACs). Phase 2a landed (§2.3: typed `supersedes` parse + V-034 + structured emission + additive schema widen). Phase 2b landed (§2.4: codebase-index `TraceMapping.supersedes` field + SCHEMA_VERSION 3.1.0, gate full/partial-supersession filtering in `legitimate_owners`, registry-consumer `by-authority` parity; FR-010..FR-014, AC-013..AC-019). All three phases now coded; stays `draft` pending approval.
 kind: governance
 domain: tooling
 created: "2026-06-14"
@@ -73,6 +73,19 @@ amends:
   # `references: role: context` placeholder these ids previously carried.)
   - "130-spec-coupling-primary-owner"
   - "154-logical-unit-ownership-grammar"
+  # Phase 2b (FR-010..FR-014): this spec formally amends the contract owners of
+  # the three source surfaces Phase 2b edits, documenting the supersession-aware
+  # authority change in each owner's spec.md (the amends edge confers
+  # co-authority over the predecessor's spec.md and no code authority; the
+  # touched source files are coupling-cleared by their in-diff owner). 133 owns
+  # the gate's `authority-derivation` region (legitimate_owners); 181 owns the
+  # registry-consumer authority resolver (by-authority). 154 (above) additionally
+  # owns the codebase-indexer + index-schema surface FR-010 extends. 188 set the
+  # index schema to 3.0.0 (Phase 4a) and owns the `spec188_check_config.rs` test
+  # whose version assertion moves with the additive 3.0.0 -> 3.1.0 bump.
+  - "133-amends-aware-coupling-gate"
+  - "181-registry-consumer-unit-grammar-authority"
+  - "188-derived-index-merge-serialization"
 ---
 
 # Feature Specification: Spec-Spine Library Grammar Adoption
@@ -341,26 +354,161 @@ by a prose `note:` with no unit (199 is the live precedent), so partial does
   rationale}`), so OAP and the library accept/reject the same `supersedes`
   documents (the SC-001 convergence goal for the parse/emit half).
 
-### 2.4 Phase 2b: coupling-gate supersession filtering (sequenced)
+### 2.4 Phase 2b: coupling-gate supersession filtering (consumer side)
 
-The consumer half. With 2a emitting partial scope into the registry, 2b
-carries it through to `authorities(P)`:
+The consumer half, and the load-bearing one. Phase 2a emits the structured
+partial form into `registry.json` but changes **no** gating decision: the
+coupling gate ignores `supersedes` entirely today and confers authority on a
+superseded predecessor exactly as on any live claimant. Phase 2b carries the
+supersession through to `authorities(P)` (constitution § "Authority as a
+derived property"; spec 130 § "Authority as a derived property"; spec 154 §6),
+the gate's most load-bearing path.
 
-1. Align `registry-consumer`'s structured-`supersedes` reader (`lib.rs:1016`)
-   from `paths:` to `unit:` so `show-relationships` / `by-authority` see the
-   per-unit partial scope (today the reader extracts `paths`, absent on the
-   `unit:` form; the full item survives in `meta`, so 2a loses no data).
-2. Teach the coupling gate's `legitimate_owners()`
-   (`spec-code-coupling-check/src/lib.rs:794`) to exclude full- and
-   partially-superseded predecessors from the authority set. The gate does
-   **zero** supersession filtering today, so this is the load-bearing
-   `authorities(P)` change spec §2.2 flags.
-3. A fixture matrix proving full vs partial supersession resolve to the
-   correct authority sets, plus a corpus pass proving no spec loses
-   legitimate authority unexpectedly.
+#### Where the data lives (a prerequisite the §2.3-era sketch under-specified)
 
-Phase 2b FRs/ACs are promoted from this sketch in its own PR, the same way 2a
-was promoted here.
+The gate (`spec-code-coupling-check`) reads the **committed codebase index**
+(`open_agentic_codebase_indexer::types::CodebaseIndex`), not the gitignored
+registry (spec 103 consumer-binary boundary; the registry/index read
+divergence is a known crack). Its `build_claim_index` flattens each mapping's
+`implementing_paths` to a claimant set with no supersession awareness, and
+`legitimate_owners()` composes `implements` + `amends` + `amendment_record`.
+The index `TraceMapping` already carries `spec_status` and the resolved
+`amends` ids, **but not** the `supersedes` edges. So:
+
+- **Full supersession** is filterable from existing index data: a fully
+  superseded predecessor carries `spec_status: superseded` (full supersession
+  is exactly what flips the status), and the gate drops it.
+- **Partial supersession** needs a new, additive index field: the gate must
+  know which `(predecessor, path)` pairs a **live** successor has partially
+  superseded. That edge is not derivable from `implementing_paths` (which
+  loses the predecessor linkage) and is the prerequisite FR-010 adds.
+
+The successor already *claims* the partially-superseded unit in the index:
+the indexer folds `supersedes` units into the successor's `implementing_paths`
+(`parse_implements`), so e.g. spec 214 already claims
+`platform/services/tenant-hello` and spec 114 already claims
+`platform/services/stagecraft/api/projects/clone.ts`. Phase 2b's net effect on
+such a path is therefore a **tightening**: the predecessor stops satisfying
+the path; the live successor becomes the required owner. No path loses all
+owners (§ Blast radius below).
+
+#### Functional Requirements (Phase 2b)
+
+- **FR-010 (index carries partial supersession).** Add an additive
+  `supersedes` field to the codebase index `TraceMapping`, carrying the
+  spec's **partial**-scope supersedes edges as `{spec, scope: "partial",
+  paths}` with the predecessor id resolved to a full `NNN-slug` and the
+  `unit:` resolved to its physical path(s) by the indexer's existing unit
+  resolver. Full-scope entries are **not** emitted here (full supersession is
+  represented by the predecessor's `spec_status`, keeping the consumer-shaped
+  index minimal). The field is `#[serde(default, skip_serializing_if =
+  "Vec::is_empty")]`, so a spec with no partial supersedes (or a 3.0.0
+  consumer reading a 3.1.0 index) sees the same shape it always has. Bump the
+  index `SCHEMA_VERSION` from `3.0.0` to `3.1.0` (additive minor; the coupling
+  gate's compatibility check is major-only, so it is unaffected) and widen
+  `codebase-index.schema.json` additively to admit the new optional property.
+- **FR-011 (gate: full-supersession filtering).** `legitimate_owners()`
+  excludes from a path's owner set any `implements` claimant whose
+  `spec_status == "superseded"`. (In the live corpus this removes 044 from the
+  `crates/orchestrator/*` paths it established; 038/040/088 claim no code.)
+- **FR-012 (gate: partial-supersession filtering).** `legitimate_owners()`
+  excludes a claimant `C` from path `P`'s owner set when a **live** successor
+  (`spec_status != superseded`) declares a partial supersedes edge over `C`
+  whose resolved paths include `P` (FR-010's field). The live successor stays
+  an owner of `P` (it already claims `P` via the folded supersedes unit), so
+  editing `P` requires the successor, not the superseded predecessor.
+  Note-scoped partial entries (no `unit:`, e.g. spec 199's three edges) carry
+  no path and are a no-op. The filter applies identically to the section-aware
+  owner resolver (`legitimate_owners_for_section`), for symmetry, though no
+  corpus partial supersession is section-scoped today.
+- **FR-013 (registry-consumer: `by-authority` parity).** `authority_for_path`
+  (the `by-authority` engine, spec 181) gains a `supersedes` matcher so a
+  partial-supersedes `unit:` confers visible authority on the successor
+  (relationship `supersedes`), and removes the partially-superseded
+  predecessor over that unit, so `by-authority` reports the same
+  `authorities(P)` the gate enforces. Full supersession is already excluded
+  there (the existing `status == superseded` skip). The `show-relationships`
+  supersedes reader is aligned to read `unit:` (resolved to a path) alongside
+  legacy `paths:`. This closes the supersession slice of the
+  gate/`by-authority` read divergence; full unification behind one authority
+  library remains future work.
+- **FR-014 (determinism + regeneration).** The implementing commit
+  regenerates the registry, the codebase index (now emitting the
+  `TraceMapping.supersedes` field for the partial superseders), and the
+  featuregraph golden. The change is intentionally **not** index-byte-identical
+  (it adds the new field and tightens authority on superseded predecessors);
+  it introduces no nondeterminism (constitution Principle IV).
+
+#### Blast radius (verified 2026-06-15, governed reads + `codebase-indexer render`)
+
+No path loses all live owners:
+
+- **Full:** 038/040/088 claim no code; 044's three `crates/orchestrator/*`
+  paths each retain ≥1 live claimant (092/094/097/098/099/100/102/198/202).
+- **Partial, unit-scoped:** 114 over 113 (`clone.ts`) and 214 over 136 (the
+  four `tenant-hello` service/chart/workflow units) are each re-claimed by the
+  live successor in the index, so filtering the predecessor leaves the
+  successor as owner.
+- **Partial, note-scoped:** 199 over {108,140,141} carry no `unit:`; no path
+  authority transfers.
+
+A before/after `authorities(P)` corpus diff is the verification gate
+(FR-014); landing halts if any path unexpectedly loses all live owners.
+
+#### Acceptance Criteria (Phase 2b)
+
+- **AC-013.** Gate fixture: spec A establishes path P; spec B
+  (`spec_status: superseded`) also claims P. After the change,
+  `legitimate_owners(P)` excludes B; the path is satisfied by A's spec.md,
+  not B's.
+- **AC-014.** Gate fixture: spec A establishes P; **live** spec B declares
+  `supersedes: [{spec: A, scope: partial, unit: {kind: file, path: P}}]` and
+  claims P via the folded unit. `legitimate_owners(P) == {B}` (A removed);
+  editing P is satisfied by B's spec.md, not A's.
+- **AC-015.** Gate fixture: live spec B declares `supersedes: [{spec: A,
+  scope: partial, note: "..."}]` (no unit). `legitimate_owners` is unchanged
+  for every path A claims (note-scoped partial is a no-op).
+- **AC-016.** Index: `TraceMapping.supersedes` is emitted for the live partial
+  superseders (114, 214) with the predecessor id and resolved paths; full
+  superseders emit no entry. A 3.0.0 consumer deserialises a 3.1.0 index
+  unchanged (additive). The compiler's embedded-schema self-validation and the
+  widened `codebase-index.schema.json` both accept the regenerated index.
+- **AC-017.** `registry-consumer by-authority platform/services/tenant-hello`
+  reports `214 … via: supersedes` and **not** `136`; `by-authority` on a
+  `crates/orchestrator/*` path does not list 044;
+  `by-authority platform/services/stagecraft/api/projects/clone.ts` reports
+  `114`, not `113`.
+- **AC-018.** Corpus green: `spec-compiler compile`, `codebase-indexer
+  compile` + `check`, `registry-consumer validate-graph`, `spec-lint
+  --fail-on-warn`, and the coupling gate against `origin/main` all pass; the
+  before/after `authorities(P)` corpus diff shows zero paths losing all live
+  owners.
+- **AC-019.** SC-001/SC-002/SC-003 hold for `supersedes` end-to-end: the gate
+  and `by-authority` agree on the supersession authority set for the corpus,
+  and no previously-valid spec changes meaning except the intended authority
+  tightening on superseded predecessors.
+
+#### Coupling (Phase 2b)
+
+Phase 2b edits source owned by existing specs, satisfied by amending those
+owners' `spec.md` (spec.md paths are themselves uncoupled, with no
+`implements` claimant, so the amendments are coupling-free and the source
+files are cleared by their owner being in the diff):
+
+- `spec-code-coupling-check/src/lib.rs` (FR-011/FR-012): owned by spec 133,
+  whose `authority-derivation` region carries the durable commitment that
+  edits to it require a spec 133 edit. **Amend spec 133.**
+- `tools/spec-spine/codebase-indexer/src/{types,xref,spec_scanner}.rs` and
+  `standards/schemas/spec-spine/codebase-index.schema.json` (FR-010): all
+  owned by spec 154 (logical-unit ownership grammar, the index unit surface).
+  **Amend spec 154** (extending its existing 216 amendment record).
+- `tools/spec-spine/registry-consumer/src/lib.rs` (FR-013): owned by spec 181
+  (registry-consumer unit-grammar authority). **Amend spec 181.**
+
+This spec's `amends:` therefore gains 133 and 181 (154 already present from
+Phase 1). The featuregraph golden gains/keeps this spec's row under the
+existing `extends: 034` edge. No new `extends:`/`refines:` edge is required:
+each touched source file is already claimed by an in-diff owner.
 
 ---
 

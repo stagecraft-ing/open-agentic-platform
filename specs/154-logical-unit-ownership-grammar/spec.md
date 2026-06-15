@@ -8,7 +8,7 @@ closed: "2026-05-22"
 owner: bart
 created: "2026-05-20"
 approved: "2026-05-20"
-amended: "2026-06-14"
+amended: "2026-06-15"
 amendment_record: |
   Amended 2026-05-24 by 155-logical-unit-resolution-semantics.
   Re-amended 2026-06-14 by 216-spec-spine-library-grammar-adoption: the
@@ -17,6 +17,14 @@ amendment_record: |
   spec-compiler onto the bare-id `amends` grammar this section documents; a
   non-string `amends` entry is now a hard V-033 compile error rather than a
   silent empty-list collapse.
+  Re-amended 2026-06-15 by 216-spec-spine-library-grammar-adoption (Phase 2b):
+  the codebase-index `TraceMapping` (this spec's index unit surface) gains an
+  additive `supersedes` field carrying each spec's partial-supersession edges
+  with the `unit:` resolved to its physical path(s), so the coupling gate can
+  filter superseded predecessors from `authorities(P)`. Index schema bumped
+  3.0.0 -> 3.1.0 (additive; `codebase-index.schema.json` widened), and the
+  indexer's `unit:`-to-path resolution (spec_scanner) is reused for the new
+  field. FR-010 of spec 216.
 kind: governance
 domain: substrate
 risk: medium
