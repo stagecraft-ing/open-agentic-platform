@@ -36,19 +36,31 @@ extends:
   - spec: "112-factory-project-lifecycle"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+  # Additive extension of 119's project-create service: FR-008 retrofit
+  # endpoint (the create-time seed moved to the scaffold path, below).
+  - spec: "119-project-as-unit-of-governance"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/projects.ts }
+  # FR-001 seeds oap-build.yml into the scaffold tree at commit #1; the
+  # scaffold assembly is spec 112's, claimed here as an additive extension.
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts }
   # Same precedent as specs 202, 196, 194, 193, 187, 183: a new spec adds a
   # row to the featuregraph golden.
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+establishes:
+  # Owning edges for the files this spec brings into existence (FR-005 /
+  # FR-006). Converted from references: planned-establishes now that the
+  # implementation PR has landed them (spec 200 precedent, including the
+  # migration pair).
+  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/artifacts.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/artifacts.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/48_project_artifacts.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/48_project_artifacts.down.sql }
 references:
-  # Planned-establishes: the owning `establishes:` edges for these
-  # not-yet-existing files land with the implementation PR (drafts claim
-  # only existing paths; spec 200 precedent).
-  - role: planned-establishes
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/artifacts.ts }
-  - role: planned-establishes
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/artifacts.test.ts }
   # Precedent only while it lives: spec 214 supersedes and retires this
   # workflow; the seeded oap-build.yml below is the canonical tenant
   # build path going forward.
@@ -196,11 +208,19 @@ string.
 ### Functional Requirements
 
 - **FR-001**: Project creation MUST seed an active build workflow
-  (`.github/workflows/oap-build.yml`) into the new repo, in the same
-  `repoInit.ts` step that seeds `oap-verify.yml`. The workflow builds via
-  `encore build docker --base apps/api/Dockerfile.base`, authenticates to
-  GHCR with the workflow's `GITHUB_TOKEN` (`packages: write` permission),
-  and pushes. Seeding MUST NOT alter `oap-verify.yml` semantics.
+  (`.github/workflows/oap-build.yml`) into the new repo so the scaffolded
+  commit builds with no manual step in the new repo (SC-001). The seed is
+  written into the factory-create scaffold tree by
+  `scaffold/perRequestScaffold.ts` so it rides commit #1. (Mechanism
+  corrected at implementation, 2026-06-15: the original "same `repoInit.ts`
+  step that seeds `oap-verify.yml`" wording targeted `createProjectWithRepo`,
+  the README-only create path with no `apps/api` to build; the scaffold tree
+  is where the buildable app actually lands.) The workflow builds via
+  `encore build docker --base apps/api/Dockerfile.base`, preceded by the
+  canonical `npm ci` + `npm run build` (see `plan.md` "Build shape"),
+  authenticates to GHCR with the workflow's `GITHUB_TOKEN` (`packages:
+  write`) with the `GHCR_PUBLISH_TOKEN` PAT fallback of Clarification 2, and
+  pushes. Repos created before this spec are seeded via the FR-008 retrofit.
 - **FR-002**: Image naming convention (normative):
   `ghcr.io/{githubOrg}/{repoName}:sha-{shortSha}` for single-variant trees;
   `...:sha-{shortSha}-{variant}` per variant for dual-profile trees

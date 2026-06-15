@@ -8,6 +8,7 @@ import {
   organizations,
   projects,
   environments,
+  projectArtifacts,
   githubInstallations,
   orgMemberships,
   users,
@@ -19,7 +20,15 @@ import {
   destroyPreviewDeployment,
   isDeploydConfigured,
 } from "../deploy/deploydClient";
+import {
+  deriveArtifactRef,
+  derivePreviewRef,
+  type ArtifactVariant,
+} from "../deploy/artifacts";
+import { brokerInstallationToken, OAP_BUILD_WORKFLOW_NAME } from "./repoInit";
 import { revokeOrgMembership } from "./teamSync";
+
+const GITHUB_API = "https://api.github.com";
 
 const webhookSecret = secret("GITHUB_WEBHOOK_SECRET");
 
@@ -151,7 +160,15 @@ async function dispatchEvent(event: string, payload: unknown): Promise<void> {
                 app_id: repoRow.projectId,
                 env_id: previewEnv.id,
                 release_sha: p.pull_request.head.sha,
-                artifact_ref: `ghcr.io/${p.repository.full_name}:pr-${p.number}`,
+                // Shared ref convention (spec 213 FR-003/FR-005): the
+                // `oap-build` workflow publishes this `pr-{n}` tag on the
+                // head commit, so the dispatched image exists. Derived from
+                // the current project_repos row (handles repo rename).
+                artifact_ref: derivePreviewRef({
+                  githubOrg: repoRow.githubOrg,
+                  repoName: repoRow.repoName,
+                  prNumber: p.number,
+                }),
                 lane: "LANE_A",
               });
               log.info("Preview deploy triggered", { releaseId: result.release_id, pr: p.number });
@@ -199,6 +216,12 @@ async function dispatchEvent(event: string, payload: unknown): Promise<void> {
           // The actual check runner is crates/orchestrator/src/verify.rs invoked
           // via the factory pipeline. This emits the audit event for the trigger.
         }
+      }
+      break;
+
+    case "workflow_run":
+      if (p.action === "completed") {
+        await handleWorkflowRunCompleted(p);
       }
       break;
 
@@ -570,6 +593,126 @@ async function handleOrganizationEvent(p: any): Promise<void> {
       github_user_id: ghUserId,
     });
   }
+}
+
+// ---------------------------------------------------------------------------
+// FR-006: record built images on workflow_run.completed
+// ---------------------------------------------------------------------------
+
+/**
+ * On a successful `oap-build` run, upsert a `project_artifacts` row per
+ * built variant so the deploy path can resolve the image ref without a
+ * registry round trip (spec 213 FR-006). Best-effort: a missed or failed
+ * event degrades to the FR-005 derivation, never to a hard failure.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleWorkflowRunCompleted(p: any): Promise<void> {
+  const run = p.workflow_run;
+  if (
+    !run ||
+    run.name !== OAP_BUILD_WORKFLOW_NAME ||
+    run.conclusion !== "success"
+  ) {
+    return;
+  }
+
+  const fullName: string = p.repository?.full_name ?? "";
+  const repoRow = await findRepoRow(fullName);
+  if (!repoRow) {
+    log.debug("oap-build completed for unregistered repo", { repo: fullName });
+    return;
+  }
+
+  const sha: string = run.head_sha;
+  if (!sha) {
+    log.warn("oap-build completed without head_sha", { repo: fullName });
+    return;
+  }
+
+  const variants = await detectBuiltVariants(repoRow, sha);
+  for (const variant of variants) {
+    const imageRef = deriveArtifactRef({
+      githubOrg: repoRow.githubOrg,
+      repoName: repoRow.repoName,
+      sha,
+      variant,
+    });
+    await db
+      .insert(projectArtifacts)
+      .values({
+        projectId: repoRow.projectId,
+        releaseSha: sha,
+        variant,
+        imageRef,
+        workflowRunId: typeof run.id === "number" ? run.id : null,
+      })
+      .onConflictDoUpdate({
+        target: [
+          projectArtifacts.projectId,
+          projectArtifacts.releaseSha,
+          projectArtifacts.variant,
+        ],
+        set: {
+          imageRef,
+          workflowRunId: typeof run.id === "number" ? run.id : null,
+          builtAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+  }
+  log.info("Recorded built artifact(s)", { repo: fullName, sha, variants });
+}
+
+/**
+ * The `workflow_run` event does not carry the tree shape, so detect it the
+ * same way the build workflow does (spec 213 FR-004): a dual-profile tree
+ * has top-level `public/` and `internal/` directories, each containing
+ * `apps/api`. Best-effort: any failure (no installation, API error) falls
+ * back to the single-variant `root` record, and the deploy path can still
+ * derive variant refs on demand (FR-005).
+ */
+async function detectBuiltVariants(
+  repoRow: { githubOrg: string; repoName: string; githubInstallId: number | null },
+  sha: string
+): Promise<ArtifactVariant[]> {
+  if (!repoRow.githubInstallId) return ["root"];
+  const fullName = `${repoRow.githubOrg}/${repoRow.repoName}`;
+  try {
+    const { token } = await brokerInstallationToken(repoRow.githubInstallId, {
+      contents: "read",
+    });
+    const [hasPublic, hasInternal] = await Promise.all([
+      repoPathExists(token, fullName, "public/apps/api", sha),
+      repoPathExists(token, fullName, "internal/apps/api", sha),
+    ]);
+    if (hasPublic && hasInternal) return ["public", "internal"];
+    return ["root"];
+  } catch (err) {
+    log.warn("variant detection failed; recording root only", {
+      repo: fullName,
+      error: String(err),
+    });
+    return ["root"];
+  }
+}
+
+async function repoPathExists(
+  token: string,
+  fullName: string,
+  path: string,
+  ref: string
+): Promise<boolean> {
+  const resp = await fetch(
+    `${GITHUB_API}/repos/${fullName}/contents/${path}?ref=${encodeURIComponent(ref)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    }
+  );
+  return resp.ok;
 }
 
 async function findRepoRow(fullName: string) {
