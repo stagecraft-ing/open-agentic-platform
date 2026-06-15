@@ -109,6 +109,10 @@ pub fn emit_kernel(
             source_hash: kernel_hash.clone(),
             factory_engine_version: factory_engine_version.clone(),
             emitted_at,
+            // The non-npm engine fallback (OQ-6) carries no npm pin; the npm
+            // distribution path stamps spec_spine_version via stagecraft's TS
+            // Create flow (spec 209 FR-004 / kernelVersionStamp.ts).
+            spec_spine_version: None,
         },
         adapter: cfg.adapter.clone(),
         toolchain_mode: cfg.toolchain_mode,

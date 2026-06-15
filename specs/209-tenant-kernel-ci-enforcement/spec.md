@@ -3,7 +3,7 @@ id: "209-tenant-kernel-ci-enforcement"
 title: "Tenant Kernel CI Enforcement Activation (ASI04 continuous validation)"
 feature_branch: "feat/209-tenant-kernel-ci-enforcement"
 status: draft
-implementation: pending
+implementation: in-progress
 kind: capability
 domain: platform
 created: "2026-06-11"
@@ -43,19 +43,31 @@ extends:
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
-  # NOTE: the prior `extends: 167 → tenant-ci.yml.tmpl` edge was dropped when
-  # spec 167's PR-2 retired that vendored-binary CI template. 209's enforcing-CI
-  # premise now targets the npm tenant CI — the prebuilt template's
-  # `spec-spine.yml` (`npx --no-install spec-spine couple`), which lives in
-  # template-encore, not OAP — so there is no in-OAP authority target to claim
-  # today. The kernel-emission relationship is preserved via the refines edges
-  # below; the full premise rewrite (advisory→blocking on the npm CI; the
-  # `vended-binary-integrity` aspect → npm-pin/lockfile/provenance) is owed
-  # when 209 leaves draft (plan G3).
-  - aspect: "emission-auto-fire"
-    unit: { kind: file, path: crates/factory-engine/src/kernel_emission/emit.rs }
+  # The prior `extends: 167 -> tenant-ci.yml.tmpl` edge was dropped when spec
+  # 167's PR-2 retired the vendored-binary CI template. 209's enforcing-CI
+  # premise targets the npm tenant CI: the prebuilt template's `spec-spine.yml`
+  # (`npx --no-install spec-spine couple`), which lives in template-encore, not
+  # OAP. Those CI gates (FR-001/004/005 + spec 203's parity gate) are the
+  # cross-repo closing leg and carry no in-OAP authority target. The in-OAP
+  # anchors below are the live production surfaces this spec refines:
+  #   * born-with-kernel-completeness: the fail-closed assertion FR-002 adds to
+  #     the stagecraft TypeScript Create flow, honouring spec 167 §2.4/§7 (the
+  #     engine `emit_project_kernel` auto-fire stays deliberately unwired to
+  #     avoid double-emit).
+  #   * vended-binary-integrity: under the npm shape this is npm-pin
+  #     verification; the OAP half is the `spec_spine_version` field added to
+  #     `KernelVersion` so `.kernel-version` round-trips the pin the TS stamp
+  #     already writes (kernelVersionStamp.ts). The CI comparison step is the
+  #     template-encore closing leg.
+  #   * kernel-version-field-propagation: the engine-fallback construction in
+  #     emit.rs threads the new `spec_spine_version` field (set to None: the
+  #     non-npm path carries no npm pin).
+  - aspect: "born-with-kernel-completeness"
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts }
   - aspect: "vended-binary-integrity"
     unit: { kind: file, path: crates/factory-engine/src/kernel_emission/version.rs }
+  - aspect: "kernel-version-field-propagation"
+    unit: { kind: file, path: crates/factory-engine/src/kernel_emission/emit.rs }
 references:
   - role: context
     unit: { kind: file, path: crates/factory-engine/src/stages/quality_gates.rs }
@@ -102,10 +114,19 @@ itself.
   claims, and `verify-certificate` over the project's certificate. A
   red gate fails the tenant PR. Per-CI-platform templates beyond GitHub
   Actions remain the spec 167 deferral they already are.
-- **FR-002 — Kernel emission auto-fire.** The project-creation pipeline
-  transition invokes kernel emission; a project cannot complete creation
-  with a missing or partial kernel (fail-closed, attributable). Closes
-  the spec 167 "production pipeline auto-fire" deferral.
+- **FR-002: Born-with kernel completeness (fail-closed).** The live
+  project-creation flow (stagecraft's TypeScript Create path,
+  `perRequestScaffold.ts`) writes the `.kernel-version` stamp and then
+  asserts it is present and complete (parses, with a non-empty
+  `spec_spine_version` and adapter identity) before creation completes; a
+  missing or partial kernel fails creation with an attributable error,
+  never a silent skip (the spec 200 FR-004 posture). This honours spec
+  167 §2.4/§7: the live emission layer is the Create flow, not the
+  `FactoryEngine` transition, so wiring the engine `emit_project_kernel`
+  auto-fire would double-emit. The fail-closed *guarantee* the original
+  "production pipeline auto-fire" deferral named is delivered here against
+  the TypeScript path; the engine path stays the orthogonal non-npm
+  fallback (OQ-6) spec 167 designed it to be.
 - **FR-003 — Tenant-emit certificate auto-fire.** A tenant-side factory
   run emits its governance certificate at termination (success or halt)
   under `.factory/runs/<run-id>/` — the spec 168 FR-002 tenant-emit leg

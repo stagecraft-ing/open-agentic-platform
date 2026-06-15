@@ -15,9 +15,10 @@
 //      carries it atomically.
 
 import { spawn } from "node:child_process";
-import { cp as cpAsync, mkdir, writeFile } from "node:fs/promises";
+import { cp as cpAsync, mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import log from "encore.dev/log";
+import { parse as parseYaml } from "yaml";
 import {
   buildKernelVersionStamp,
   resolveSpecSpinePin,
@@ -158,6 +159,11 @@ export async function scaffoldFromPrebuilt(
   );
   sink(`stamp: .kernel-version (spec-spine ${specSpineVersion})`);
 
+  // Spec 209 FR-002: fail-closed born-with-kernel completeness check. A
+  // project cannot complete creation with a missing or partial kernel.
+  await assertBornWithKernelComplete(dest);
+  sink("verify: .kernel-version complete (spec 209 FR-002)");
+
   // ── 6. Seed the active container-build workflow (spec 213 FR-001). Written
   // into the scaffold tree so it rides commit #1 and the scaffolded commit
   // builds with no manual step in the new repo (SC-001). For the dual profile
@@ -180,6 +186,60 @@ export async function scaffoldFromPrebuilt(
   });
 
   return { destDir: dest, profile: opts.profile, extras };
+}
+
+/**
+ * Spec 209 FR-002 (born-with kernel completeness, fail-closed). After the
+ * `.kernel-version` stamp is written, re-read and validate it: the file must
+ * exist, parse as YAML, and carry a non-empty `spec_spine_version` plus a
+ * complete adapter identity. A missing or partial kernel fails creation with
+ * an attributable error rather than leaving a project that merely looks
+ * governed. This is the in-OAP, production-path delivery of the spec 167
+ * "auto-fire" guarantee; the engine `emit_project_kernel` transition stays
+ * deliberately unwired (spec 167 §2.4/§7) to avoid a double-emit.
+ */
+async function assertBornWithKernelComplete(dest: string): Promise<void> {
+  const path = join(dest, ".kernel-version");
+  let raw: string;
+  try {
+    raw = await readFile(path, "utf8");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `born-with kernel incomplete: .kernel-version missing at ${path} ` +
+        `(spec 209 FR-002): ${msg}`
+    );
+  }
+  let stamp: unknown;
+  try {
+    stamp = parseYaml(raw);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `born-with kernel incomplete: .kernel-version is not valid YAML ` +
+        `(spec 209 FR-002): ${msg}`
+    );
+  }
+  const s = stamp as {
+    kernel?: { spec_spine_version?: unknown };
+    adapter?: { id?: unknown; version?: unknown; manifest_hash?: unknown };
+  } | null;
+  const checks: Array<[string, unknown]> = [
+    ["kernel.spec_spine_version", s?.kernel?.spec_spine_version],
+    ["adapter.id", s?.adapter?.id],
+    ["adapter.version", s?.adapter?.version],
+    ["adapter.manifest_hash", s?.adapter?.manifest_hash],
+  ];
+  const missing = checks
+    .filter(([, v]) => typeof v !== "string" || v.length === 0)
+    .map(([k]) => k);
+  if (missing.length > 0) {
+    throw new Error(
+      `born-with kernel incomplete: .kernel-version missing or empty ` +
+        `[${missing.join(", ")}] (spec 209 FR-002); a project cannot complete ` +
+        `creation with a partial kernel`
+    );
+  }
 }
 
 function spawnAndCapture(
