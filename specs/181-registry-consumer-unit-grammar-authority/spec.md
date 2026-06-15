@@ -17,12 +17,12 @@ amends:
   - "034-featuregraph-registry-scanner-fix"
 amends_sections: []
 depends_on:
-  - "002"  # registry-consumer-mvp (the resolver this spec refines)
-  - "130"  # spec-relationship-graph (typed edges this spec must consume; canonical mixed-shape exemplar)
-  - "152"  # path-co-authority (section-anchor unit grammar)
-  - "154"  # logical-unit-ownership-grammar (the unit shape this spec adds support for)
-  - "155"  # logical-unit-resolution-semantics (path resolution rules the resolver must honor)
-  - "180"  # opc-shell-codification (the canonical regression case this spec unblocks)
+  - "002-registry-consumer-mvp"  # registry-consumer-mvp (the resolver this spec refines)
+  - "130-spec-coupling-primary-owner"  # spec-relationship-graph (typed edges this spec must consume; canonical mixed-shape exemplar)
+  - "152-path-co-authority"  # path-co-authority (section-anchor unit grammar)
+  - "154-logical-unit-ownership-grammar"  # logical-unit-ownership-grammar (the unit shape this spec adds support for)
+  - "155-logical-unit-resolution-semantics"  # logical-unit-resolution-semantics (path resolution rules the resolver must honor)
+  - "180-opc-shell-codification"  # opc-shell-codification (the canonical regression case this spec unblocks)
 code_aliases:
   - "AUTHORITY_RESOLVER_UNIT_GRAMMAR"
 refines:

@@ -26,12 +26,12 @@ summary: >
   spec 122 (stakeholder-doc inversion); it does NOT enforce per-claim
   citations or invert Stage CD.
 depends_on:
-  - "074"  # factory-ingestion (framework conventions)
-  - "075"  # factory-workflow-engine (Phase 1 stage list)
-  - "077"  # stagecraft-factory-api (endpoint surface)
-  - "094"  # unified-artifact-store (stage output destination)
-  - "110"  # stagecraft-to-opc-factory-trigger (KnowledgeBundle + duplex auth)
-  - "115"  # knowledge-extraction-pipeline (ExtractionOutput schema source)
+  - "074-factory-ingestion"  # factory-ingestion (framework conventions)
+  - "075-factory-workflow-engine"  # factory-workflow-engine (Phase 1 stage list)
+  - "077-stagecraft-factory-api"  # stagecraft-factory-api (endpoint surface)
+  - "094-unified-artifact-store"  # unified-artifact-store (stage output destination)
+  - "110-stagecraft-to-opc-factory-trigger"  # stagecraft-to-opc-factory-trigger (KnowledgeBundle + duplex auth)
+  - "115-knowledge-extraction-pipeline"  # knowledge-extraction-pipeline (ExtractionOutput schema source)
 establishes:
   - unit: { kind: file, path: crates/factory-contracts/src/knowledge.rs }
   - unit: { kind: file, path: crates/factory-engine/src/stages/s_minus_1_extract.rs }

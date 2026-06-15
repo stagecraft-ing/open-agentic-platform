@@ -10,8 +10,8 @@ summary: >
   featuregraph, and agent safety so that spec status, risk level, and
   dependency satisfaction gate execution before work starts.
 depends_on:
-  - "091"  # registry-enrichment (dependsOn, owner, risk fields)
-  - "092"  # workspace-runtime-threading (workspace_id everywhere)
+  - "091-registry-enrichment"  # registry-enrichment (dependsOn, owner, risk fields)
+  - "092-workspace-runtime-threading"  # workspace-runtime-threading (workspace_id everywhere)
 code_aliases: ["SPEC_PREFLIGHT"]
 kind: governance
 domain: opc

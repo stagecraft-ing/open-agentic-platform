@@ -11,9 +11,9 @@ kind: platform
 domain: platform
 risk: high
 depends_on:
-  - "075"  # factory-workflow-engine (the codegen producer)
-  - "102"  # governed-excellence (the certificate chain that records sandbox use)
-  - "108"  # factory-as-platform-feature
+  - "075-factory-workflow-engine"  # factory-workflow-engine (the codegen producer)
+  - "102-governed-excellence"  # governed-excellence (the certificate chain that records sandbox use)
+  - "108-factory-as-platform-feature"  # factory-as-platform-feature
 code_aliases: ["ASI05_SANDBOX", "SANDBOX_EXECUTION_CONTRACT", "FACTORY_CODEGEN_SANDBOX"]
 establishes:
   - unit: { kind: file, path: crates/factory-contracts/src/sandbox.rs }

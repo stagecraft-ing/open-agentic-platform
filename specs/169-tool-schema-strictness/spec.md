@@ -10,10 +10,10 @@ kind: governance
 domain: opc
 risk: medium
 depends_on:
-  - "036"  # safety-tier-governance
-  - "049"  # permission-system
-  - "067"  # tool-definition-registry (the spec this spec refines)
-  - "068"  # permission-runtime
+  - "036-safety-tier-governance"  # safety-tier-governance
+  - "049-permission-system"  # permission-system
+  - "067-tool-definition-registry"  # tool-definition-registry (the spec this spec refines)
+  - "068-permission-runtime"  # permission-runtime
 code_aliases: ["TOOL_SCHEMA_STRICTNESS", "PERMISSIVE_SCHEMA_REJECTION"]
 establishes:
   - unit: { kind: file, path: crates/tool-registry/src/strictness.rs }

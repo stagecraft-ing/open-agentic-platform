@@ -55,14 +55,14 @@ summary: >
   capability currently in the external `template-distributor` repo into
   stagecraft; template-distributor is discontinued as a separate service.
 depends_on:
-  - "074"  # factory-ingestion (ACP contracts — Build Spec, Adapter Manifest, Pipeline State, Verification)
-  - "075"  # factory-workflow-engine (engine that advances pipeline state)
-  - "087"  # unified-workspace-architecture (duplex channel, workspace-as-atom)
-  - "094"  # unified-artifact-store (where emitted artifacts land)
-  - "108"  # factory-as-platform-feature (translator, factory_adapters/contracts/processes tables)
-  - "109"  # factory-pat-and-pubsub-sync (resolveProjectToken, project_github_pats, installation broker)
-  - "110"  # stagecraft-to-opc-factory-trigger (run dispatch envelope)
-  - "111"  # org-agent-catalog-sync (establishes the workspace-scoped sync pattern reused here)
+  - "074-factory-ingestion"  # factory-ingestion (ACP contracts — Build Spec, Adapter Manifest, Pipeline State, Verification)
+  - "075-factory-workflow-engine"  # factory-workflow-engine (engine that advances pipeline state)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (duplex channel, workspace-as-atom)
+  - "094-unified-artifact-store"  # unified-artifact-store (where emitted artifacts land)
+  - "108-factory-as-platform-feature"  # factory-as-platform-feature (translator, factory_adapters/contracts/processes tables)
+  - "109-factory-pat-and-pubsub-sync"  # factory-pat-and-pubsub-sync (resolveProjectToken, project_github_pats, installation broker)
+  - "110-stagecraft-to-opc-factory-trigger"  # stagecraft-to-opc-factory-trigger (run dispatch envelope)
+  - "111-org-agent-catalog-sync"  # org-agent-catalog-sync (establishes the workspace-scoped sync pattern reused here)
 establishes:
   - unit: { kind: crate, id: factory-project-detect }
   - unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }

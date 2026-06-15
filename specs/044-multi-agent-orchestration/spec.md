@@ -4,7 +4,7 @@ title: "multi-agent orchestration with file-based artifact passing"
 feature_branch: "044-multi-agent-orchestration"
 status: superseded
 implementation: n/a
-superseded_by: "089"
+superseded_by: "089-governed-convergence-plan"
 kind: platform
 domain: opc
 created: "2026-03-29"

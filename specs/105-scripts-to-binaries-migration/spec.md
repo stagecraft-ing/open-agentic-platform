@@ -46,11 +46,11 @@ kind: migration
 domain: tooling
 risk: medium
 depends_on:
-  - "000"  # bootstrap-spec-system
-  - "037"  # cross-platform-axiomregent (originator of build-axiomregent.sh)
-  - "073"  # axiomregent-unification (owner of fetch-axiomregent.js surface)
-  - "075"  # factory-workflow-engine (consumer of adapter-scopes.json)
-  - "104"  # makefile-ci-parity-contract (the enforcement surface)
+  - "000-bootstrap-spec-system"  # bootstrap-spec-system
+  - "037-cross-platform-axiomregent"  # cross-platform-axiomregent (originator of build-axiomregent.sh)
+  - "073-axiomregent-unification"  # axiomregent-unification (owner of fetch-axiomregent.js surface)
+  - "075-factory-workflow-engine"  # factory-workflow-engine (consumer of adapter-scopes.json)
+  - "104-makefile-ci-parity-contract"  # makefile-ci-parity-contract (the enforcement surface)
 code_aliases: ["SCRIPTS_RETIRE"]
 establishes:
   - unit: { kind: file, path: tools/oap/adapter-scopes-compiler/src/main.rs }

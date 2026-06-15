@@ -1,0 +1,143 @@
+# spec-spine.toml: governs the open-agentic-platform repository.
+#
+# OAP is governed by the published `spec-spine` library (crates.io / npm):
+# the spec corpus under specs/ compiles to a deterministic registry, the
+# codebase index maps every spec to the code it owns, and the PR-time
+# coupling gate refuses code that drifts from its owning spec. The generic
+# governance engine is no longer vendored in-tree (spec 217 collapse); it
+# is the published `spec-spine` package. OAP keeps only its overlay: the
+# compliance/factory/OWASP machinery, the 16-value `kind` enum +
+# shape/category, capability/registry/profile, the `stagecraft://`
+# provenance scheme, and the domain lens.
+#
+# All keys are optional; this file writes out OAP's deviations from the
+# spec-spine defaults explicitly.
+
+[manifest]
+# Cargo `[package.metadata.oap].spec` / package.json `"oap".spec`.
+metadata_namespace = "oap"
+
+[domains]
+# Spec 179 universal tract-authority lens. Closed enum; L-002 / V-030
+# enforced via `lint --fail-on-warn`.
+allowed = ["opc", "platform", "substrate", "tooling"]
+
+[kind]
+# Spec 147 closed `kind` taxonomy (was VALID_KINDS in the vendored
+# spec-types). L-003 / V-012 enforced via `lint --fail-on-warn`.
+allowed = [
+  "platform",
+  "platform-delivery",
+  "governance",
+  "product",
+  "amendment",
+  "tooling",
+  "desktop",
+  "process",
+  "ui",
+  "architecture",
+  "constitutional-bootstrap",
+  "migration",
+  "product-consolidation",
+  "capability",
+  "registry",
+  "profile",
+]
+
+[layout]
+specs_dir     = "specs"
+derived_dir   = ".derived"
+standards_dir = "standards/spec"
+schemas_dir   = "standards/schemas"
+# The root Cargo workspace (22 library crates + the OAP overlay tools).
+cargo_workspace = "Cargo.toml"
+# Two crates are deliberately excluded from the root workspace (rusqlite /
+# libsqlite3-sys native-link isolation) and declared standalone for manifest
+# discovery: the OPC desktop crate and the deployd-api orchestrator.
+standalone_rust_workspaces = [
+  "product/apps/opc/src-tauri/Cargo.toml",
+  "platform/services/deployd-api-rs/Cargo.toml",
+]
+# The product/ npm + pnpm workspace root (apps/opc + product/packages/*).
+npm_workspaces = ["product/package.json", "product/pnpm-workspace.yaml"]
+# stagecraft is an Encore.ts service deliberately outside the pnpm workspace
+# (npm, not pnpm), declared standalone for manifest discovery.
+standalone_npm_packages = ["platform/services/stagecraft/package.json"]
+
+[index]
+# Hashed governance inputs beyond the always-hashed core (Cargo/npm
+# manifests, specs/*/spec.md, this file). Mirrors the in-tree indexer's
+# collect_input_files (specs 184/188): `.claude/**` + settings.json + .mcp.json
+# keep quiet edits to the agentic config visible in the staleness gate; the
+# adapter-scopes snapshot is a hashed factory input (spec 160).
+extra_hashed_inputs = [
+  "standards/schemas/**",
+  ".github/workflows/**",
+  ".claude/agents/**",
+  ".claude/commands/**",
+  ".claude/rules/**",
+  ".claude/skills/**",
+  ".claude/settings.json",
+  ".mcp.json",
+  "platform/services/stagecraft/api/factory/adapter-scopes.json",
+]
+resolver_exclusions = ["target", "node_modules", ".derived", "dist", "build", ".next"]
+
+[coupling]
+# Additions to the built-in bypass floor (which already covers .github/,
+# docs/, README.md, CODEOWNERS, lockfiles, .derived/, etc.).
+bypass_prefixes = []
+# Dependabot-class PRs (whose non-bypassed changes are only version strings
+# inside dependency tables) self-waive, fail-closed on anything else.
+auto_waive_dependency_only = true
+waiver_keyword = "Spec-Drift-Waiver:"
+
+[branding]
+compiler_id = "spec-spine"
+indexer_id  = "spec-spine"
+
+[provenance.uri_schemes]
+# Spec 156 references-edge provenance. OAP's knowledge URIs are
+# `stagecraft://project/<uuid>/knowledge/<uuid>`; code fingerprints are
+# `xray-fingerprint://<sha256>`.
+knowledge        = "stagecraft://"
+code-fingerprint = "xray-fingerprint://"
+
+[frontmatter]
+# OAP overlay frontmatter keys beyond the generic spec-spine grammar.
+# Declared so the compiler carries them in extra_frontmatter rather than
+# rejecting them as unknown (library spec 013). The OAP enrichers
+# (oap-registry-enrich / oap-code-index-enrich) are the canonical readers.
+extra_known_keys = [
+  # Spec 147 universal dimensions + per-kind structural fields.
+  "shape",
+  "category",
+  "retirement_rationale",
+  "provides",
+  "composition",
+  "selectable_by",
+  "selector",
+  "default",
+  "production_forbidden",
+  "member_contract",
+  "identity",
+  "selects",
+  "policy",
+  # Spec 132 invariant freeze.
+  "unamendable",
+  # OAP compliance overlay (nested map; read by oap-registry-enrich).
+  "compliance",
+  # Lifecycle / bookkeeping keys.
+  "owner",
+  "risk",
+  "amended",
+  "amendment_record",
+  "approved",
+  "completed",
+  "ratified",
+  "closed",
+  "consolidation_date",
+  "consolidated_from",
+  "language",
+  "slug",
+]

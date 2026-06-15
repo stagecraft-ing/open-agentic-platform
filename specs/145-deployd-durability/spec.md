@@ -11,9 +11,9 @@ kind: platform-delivery
 domain: platform
 risk: medium
 depends_on:
-  - "073"  # axiomregent-unification (deployd-api-rs runtime carrier)
-  - "086"  # open-source-launch (deployd-api role context)
-  - "144"  # hiqlite default-features hygiene (companion; manifest discipline this spec inherits)
+  - "073-axiomregent-unification"  # axiomregent-unification (deployd-api-rs runtime carrier)
+  - "086-open-source-launch"  # open-source-launch (deployd-api role context)
+  - "144-hiqlite-default-features"  # hiqlite default-features hygiene (companion; manifest discipline this spec inherits)
 code_aliases: ["DEPLOYD_DURABILITY"]
 extends:
   - spec: "073-axiomregent-unification"

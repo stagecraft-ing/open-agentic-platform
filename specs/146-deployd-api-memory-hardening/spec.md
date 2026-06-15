@@ -11,8 +11,8 @@ kind: platform-delivery
 domain: platform
 risk: low
 depends_on:
-  - "073"  # axiomregent-unification (deployd-api-rs runtime carrier)
-  - "143"  # presigned-upload-public-endpoint (FU-021 diagnostic chair)
+  - "073-axiomregent-unification"  # axiomregent-unification (deployd-api-rs runtime carrier)
+  - "143-presigned-upload-public-endpoint"  # presigned-upload-public-endpoint (FU-021 diagnostic chair)
 code_aliases: ["DEPLOYD_API_MEMORY_HARDENING"]
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/test/spec146-deployd-memory.config.test.ts }

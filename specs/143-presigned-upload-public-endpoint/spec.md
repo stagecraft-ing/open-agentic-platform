@@ -10,11 +10,11 @@ kind: platform
 domain: platform
 risk: medium
 depends_on:
-  - "087"  # unified-workspace-architecture (knowledge intake design)
-  - "115"  # knowledge-extraction-pipeline (downstream consumer of confirmed uploads)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (knowledge intake design)
+  - "115-knowledge-extraction-pipeline"  # knowledge-extraction-pipeline (downstream consumer of confirmed uploads)
 amends:
-  - "087"  # extends NF-002 with the browser-reachability requirement
-  - "115"  # annotates FR-003 as load-bearing for spec 143 FR-010 race contract
+  - "087-unified-workspace-architecture"  # extends NF-002 with the browser-reachability requirement
+  - "115-knowledge-extraction-pipeline"  # annotates FR-003 as load-bearing for spec 143 FR-010 race contract
 code_aliases: ["PRESIGNED_UPLOAD_PUBLIC_ENDPOINT"]
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/storage.ts }

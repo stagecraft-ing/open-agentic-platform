@@ -10,9 +10,9 @@ kind: platform
 domain: platform
 risk: medium
 depends_on:
-  - "109"  # factory-pat-and-pubsub-sync (PubSub run-row + worker pattern this spec mirrors)
-  - "112"  # factory-project-lifecycle (registerRawArtifactsFromRepo, OPC deep link)
-  - "113"  # stagecraft-projects-rename-and-clone (the synchronous endpoint this spec replaces)
+  - "109-factory-pat-and-pubsub-sync"  # factory-pat-and-pubsub-sync (PubSub run-row + worker pattern this spec mirrors)
+  - "112-factory-project-lifecycle"  # factory-project-lifecycle (registerRawArtifactsFromRepo, OPC deep link)
+  - "113-stagecraft-projects-rename-and-clone"  # stagecraft-projects-rename-and-clone (the synchronous endpoint this spec replaces)
 code_aliases: ["ASYNC_PROJECT_CLONE"]
 supersedes:
   - spec: "113-stagecraft-projects-rename-and-clone"

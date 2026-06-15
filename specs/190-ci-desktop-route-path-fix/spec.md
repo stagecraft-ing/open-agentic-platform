@@ -12,8 +12,8 @@ kind: governance
 domain: tooling
 risk: low
 depends_on:
-  - "177"  # ci-orchestrator-pr-gate (the router whose desktop filter this corrects)
-  - "178"  # opc-directory-rename (the rename that stranded the glob)
+  - "177-ci-orchestrator-pr-gate"  # ci-orchestrator-pr-gate (the router whose desktop filter this corrects)
+  - "178-opc-directory-rename"  # opc-directory-rename (the rename that stranded the glob)
 code_aliases:
   - "CI_DESKTOP_ROUTE_FIX"
 refines:

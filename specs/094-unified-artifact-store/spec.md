@@ -6,13 +6,13 @@ implementation: complete
 owner: bart
 created: "2026-04-11"
 amended: "2026-04-29"
-amendment_record: "119"
+amendment_record: "119-project-as-unit-of-governance"
 kind: platform
 domain: opc
 risk: high
 depends_on:
-  - "082"
-  - "092"
+  - "082-artifact-integrity-platform-hardening"
+  - "092-workspace-runtime-threading"
 summary: >
   Consolidate the two disconnected artifact stores (orchestrator ephemeral +
   factory CAS) into a unified content-addressed store with metadata, provenance

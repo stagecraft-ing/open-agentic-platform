@@ -11,9 +11,9 @@ summary: >
   branching, portfolio intelligence, and promotion-grade continuity — into the
   non-optional default path of the system across six implementation phases.
 depends_on:
-  - "082"  # artifact-integrity-platform-hardening
-  - "087"  # unified-workspace-architecture
-  - "080"  # github-identity-onboarding
+  - "082-artifact-integrity-platform-hardening"  # artifact-integrity-platform-hardening
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture
+  - "080-github-identity-onboarding"  # github-identity-onboarding
 code_aliases: ["GOVERNED_CONVERGENCE"]
 kind: process
 domain: substrate

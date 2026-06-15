@@ -10,9 +10,9 @@ kind: platform
 domain: platform
 risk: medium
 depends_on:
-  - "106"  # rauthy-native-oidc-and-membership — runtime dependency: Grafana authenticates via Rauthy OIDC (client created manually; see FR-004)
-  - "151"  # declarative-cluster-reconciliation — the Hetzner deploy mechanism (Flux HelmRelease) this rides on
-  - "078"  # platform-completion-plan — stagecraft deployment + infra.config surface this refines
+  - "106-rauthy-native-oidc-and-membership"  # rauthy-native-oidc-and-membership — runtime dependency: Grafana authenticates via Rauthy OIDC (client created manually; see FR-004)
+  - "151-declarative-cluster-reconciliation"  # declarative-cluster-reconciliation — the Hetzner deploy mechanism (Flux HelmRelease) this rides on
+  - "078-platform-completion-plan"  # platform-completion-plan — stagecraft deployment + infra.config surface this refines
 code_aliases: ["METRICS_STACK", "PROMETHEUS_REMOTE_WRITE", "GRAFANA_OIDC"]
 # Implementation PR (2026-06-12) — the deferred edges land here, exactly as
 # the filing PR's frontmatter comment staged: an edge lands in the PR that

@@ -23,7 +23,7 @@ summary: >
   (spec 198), which this spec consumes. No backward compatibility is preserved;
   factory-encore/template-encore are the baseline.
 code_aliases: ["FACTORY_THIN_CONSUMER_SYNC"]
-amends: ["075", "112", "124", "139", "140", "141"]
+amends: ["075-factory-workflow-engine", "112-factory-project-lifecycle", "124-opc-factory-run-platform-integration", "139-factory-artifact-substrate", "140-aim-vue-node-scaffold-source-id-cutover", "141-aim-vue-node-source-id-template-name-alignment"]
 depends_on:
   - "198-factory-governance-envelope"
   - "139-factory-artifact-substrate"

@@ -29,11 +29,11 @@ summary: >
   migration moves existing CFS-shaped projects' Stage CD outputs into
   the authored channel with provenance trail.
 depends_on:
-  - "075"  # factory-workflow-engine (Stage CD lifecycle)
-  - "087"  # unified-workspace-architecture (workspace plane = authored truth)
-  - "119"  # project-as-unit-of-governance (project = governance unit for the doc set)
-  - "120"  # factory-extraction-stage (typed corpus to cite stakeholder docs against)
-  - "121"  # claim-provenance-enforcement (validator + allowlist reused at Stage CD comparator)
+  - "075-factory-workflow-engine"  # factory-workflow-engine (Stage CD lifecycle)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (workspace plane = authored truth)
+  - "119-project-as-unit-of-governance"  # project-as-unit-of-governance (project = governance unit for the doc set)
+  - "120-factory-extraction-stage"  # factory-extraction-stage (typed corpus to cite stakeholder docs against)
+  - "121-claim-provenance-enforcement"  # claim-provenance-enforcement (validator + allowlist reused at Stage CD comparator)
 establishes:
   - unit: { kind: file, path: crates/factory-engine/src/stages/stage_cd_comparator.rs }
   - unit: { kind: file, path: tools/oap/stakeholder-doc-lint/Cargo.toml }

@@ -11,10 +11,10 @@ closed: "2026-05-22"
 kind: governance
 domain: tooling
 risk: low
-amends: ["116"]
+amends: ["116-supply-chain-policy-gates"]
 depends_on:
-  - "116"  # supply-chain-policy-gates (parent contract being amended)
-  - "104"  # makefile-ci-parity-contract (CI mirror requirement)
+  - "116-supply-chain-policy-gates"  # supply-chain-policy-gates (parent contract being amended)
+  - "104-makefile-ci-parity-contract"  # makefile-ci-parity-contract (CI mirror requirement)
 code_aliases: ["WORKFLOW_PINS"]
 establishes:
   - unit: { kind: file, path: tools/lint/workflow-pins.sh }

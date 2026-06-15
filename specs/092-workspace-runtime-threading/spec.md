@@ -6,13 +6,13 @@ implementation: complete
 owner: bart
 created: "2026-04-11"
 amended: "2026-04-29"
-amendment_record: "119"
+amendment_record: "119-project-as-unit-of-governance"
 kind: platform
 domain: opc
 risk: high
 depends_on:
-  - "087"
-  - "090"
+  - "087-unified-workspace-architecture"
+  - "090-governance-non-optionality"
 summary: >
   Make project_id flow as a first-class value through every execution path:
   desktop UI, ClaudeExecutionRequest, orchestrator manifests, checkpoints,

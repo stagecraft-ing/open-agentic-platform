@@ -10,12 +10,12 @@ kind: platform
 domain: opc
 risk: medium
 depends_on:
-  - "032"  # opc-inspect-governance-wiring-mvp
-  - "043"  # agent-organizer
-  - "052"  # state-persistence
-  - "057"  # notification-system
-  - "067"  # tool-definition-registry
-  - "157"  # opc-session-model
+  - "032-opc-inspect-governance-wiring-mvp"  # opc-inspect-governance-wiring-mvp
+  - "043-agent-organizer"  # agent-organizer
+  - "052-state-persistence"  # state-persistence
+  - "057-notification-system"  # notification-system
+  - "067-tool-definition-registry"  # tool-definition-registry
+  - "157-opc-session-model"  # opc-session-model
 code_aliases: ["OPC_AGENT_SESSION_PANEL", "FORCE_DISCONNECT"]
 establishes:
   - unit: { kind: file, path: product/apps/opc/src-tauri/src/process/activity.rs }

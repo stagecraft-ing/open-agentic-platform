@@ -5,7 +5,7 @@ title: "Logical-unit resolution semantics — precision fixes surfaced by Segmen
 status: approved
 implementation: complete  # Commit A (spec landing + spec 154 §§3.2/3.3/3.5/3.6 amendments + Segment 3 design doc OQ-1..OQ-4 closures) landed at b941bf60; Commit B (V-024 predicate rejecting `<` / `>` in `kind: symbol` id + regression tests v024_fires_on_symbol_id_with_generics, v024_fires_on_symbol_id_with_lifetime, v024_does_not_fire_on_clean_symbol_path, v024_does_not_fire_on_symbol_with_underscore_and_digit) landed at fda92edc. Merged via PR #185 (2eda5720, 2026-05-21). All §5 acceptance criteria verified verbatim 2026-05-22: amended language is in spec 154 (lines 195-322), `amended: "2026-05-22"` + `amendment_record: "155-logical-unit-resolution-semantics"` in 154's frontmatter, in-body callouts present in each amended section, V-024 fires on Foo<T> per LogicalUnitParseError::SymbolIdNotItemPath at tools/shared/spec-types/src/lib.rs:355+462, V-011 does not fire (spec 154 has no `unamendable:` list), Segment 3 design doc header line 5 records OQ-1..OQ-4 closure by spec 155, codebase-indexer check exit=0.
 closed: "2026-05-22"
-amends: ["154"]
+amends: ["154-logical-unit-ownership-grammar"]
 amends_sections:
   - "symbol-kind"
   - "module-kind"
@@ -18,7 +18,7 @@ kind: governance
 domain: substrate
 risk: low
 depends_on:
-  - "154"
+  - "154-logical-unit-ownership-grammar"
 code_aliases: ["UNIT_RESOLUTION_SEMANTICS"]
 extends:
   - spec: "001-spec-compiler-mvp"

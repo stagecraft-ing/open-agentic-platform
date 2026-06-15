@@ -22,8 +22,8 @@ kind: governance
 domain: substrate
 risk: low
 depends_on:
-  - "101"
-  - "130"
+  - "101-codebase-index-mvp"
+  - "130-spec-coupling-primary-owner"
 code_aliases: ["COUPLING_GATE"]
 establishes:
   - unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/lib.rs }

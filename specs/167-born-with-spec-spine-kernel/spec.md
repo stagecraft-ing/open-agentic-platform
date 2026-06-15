@@ -47,13 +47,13 @@ kind: capability
 domain: platform
 risk: high
 depends_on:
-  - "000"  # bootstrap-spec-system (the kernel content)
-  - "001"  # spec-compiler-mvp
-  - "075"  # factory-workflow-engine
-  - "120"  # factory-extraction-stage (the spec this spec extends per intent doc §9.8)
-  - "127"  # spec-code-coupling-gate (kernel includes coupling gate wiring)
-  - "147"  # spec-kind-grammar
-  - "165"  # opc-decomposition-pipeline (born-with case routes through this)
+  - "000-bootstrap-spec-system"  # bootstrap-spec-system (the kernel content)
+  - "001-spec-compiler-mvp"  # spec-compiler-mvp
+  - "075-factory-workflow-engine"  # factory-workflow-engine
+  - "120-factory-extraction-stage"  # factory-extraction-stage (the spec this spec extends per intent doc §9.8)
+  - "127-spec-code-coupling-gate"  # spec-code-coupling-gate (kernel includes coupling gate wiring)
+  - "147-spec-kind-grammar"  # spec-kind-grammar
+  - "165-opc-decomposition-pipeline"  # opc-decomposition-pipeline (born-with case routes through this)
 code_aliases: ["BORN_WITH_KERNEL", "SPEC_SPINE_KERNEL_EMISSION"]
 establishes:
   - unit: { kind: directory, path: crates/factory-engine/src/kernel_emission }

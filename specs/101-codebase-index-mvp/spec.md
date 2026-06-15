@@ -76,9 +76,9 @@ summary: >
   below is preserved as historical record; the live Layer 3 surface moved to
   `tools/oap/oap-code-index-enrich` in Cut D W-07c.
 depends_on:
-  - "000"  # bootstrap-spec-system (artifact pattern)
-  - "001"  # spec-compiler-mvp (registry pattern)
-  - "003"  # feature-lifecycle-mvp (status vocabulary)
+  - "000-bootstrap-spec-system"  # bootstrap-spec-system (artifact pattern)
+  - "001-spec-compiler-mvp"  # spec-compiler-mvp (registry pattern)
+  - "003-feature-lifecycle-mvp"  # feature-lifecycle-mvp (status vocabulary)
 code_aliases: ["CODEBASE_INDEX"]
 risk: low
 establishes:

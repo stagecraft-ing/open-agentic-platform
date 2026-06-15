@@ -23,7 +23,7 @@ identity:
 selects:
   "148-auth-driver-registry": "149-saml-auth-driver"
 depends_on:
-  - "147"
+  - "147-spec-kind-grammar"
 composition:
   requires:
     - "149-saml-auth-driver"

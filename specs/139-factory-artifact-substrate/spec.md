@@ -8,19 +8,19 @@ owner: bart
 created: "2026-05-05"
 closed: "2026-05-05"
 amended: "2026-06-09"
-amendment_record: "199"
+amendment_record: "199-factory-thin-consumer-sync"
 kind: architecture
 domain: platform
 risk: high
-amends: ["108", "111", "123"]
+amends: ["108-factory-as-platform-feature", "111-org-agent-catalog-sync", "123-agent-catalog-org-rescope"]
 depends_on:
-  - "082"  # artifact-integrity-platform-hardening (owns existing `factory_artifacts` SQL table; substrate uses `factory_artifact_substrate` to avoid collision)
-  - "094"  # unified-artifact-store (extended spec 082's table with project/producer columns; orthogonal to substrate)
-  - "108"  # factory-as-platform-feature (replaces §3 data model + §9 non-goals)
-  - "111"  # org-agent-catalog-sync (generalises agent_catalog into the substrate)
-  - "112"  # factory-project-lifecycle (Create/Import flow consumes the substrate)
-  - "123"  # agent-catalog-org-rescope (binding mechanism becomes universal)
-  - "124"  # opc-factory-run-platform-integration (closes spec 108 §7.1 punt)
+  - "082-artifact-integrity-platform-hardening"  # artifact-integrity-platform-hardening (owns existing `factory_artifacts` SQL table; substrate uses `factory_artifact_substrate` to avoid collision)
+  - "094-unified-artifact-store"  # unified-artifact-store (extended spec 082's table with project/producer columns; orthogonal to substrate)
+  - "108-factory-as-platform-feature"  # factory-as-platform-feature (replaces §3 data model + §9 non-goals)
+  - "111-org-agent-catalog-sync"  # org-agent-catalog-sync (generalises agent_catalog into the substrate)
+  - "112-factory-project-lifecycle"  # factory-project-lifecycle (Create/Import flow consumes the substrate)
+  - "123-agent-catalog-org-rescope"  # agent-catalog-org-rescope (binding mechanism becomes universal)
+  - "124-opc-factory-run-platform-integration"  # opc-factory-run-platform-integration (closes spec 108 §7.1 punt)
 code_aliases: ["FACTORY_ARTIFACT_SUBSTRATE"]
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/32_factory_artifact_substrate.up.sql }

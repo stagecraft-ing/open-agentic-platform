@@ -29,8 +29,8 @@ kind: governance
 domain: substrate
 risk: medium
 depends_on:
-  - "130"
-  - "153"
+  - "130-spec-coupling-primary-owner"
+  - "153-invariant-freeze-additive-evolution"
 code_aliases: ["LOGICAL_UNIT_OWNERSHIP", "UNIT_GRAMMAR"]
 extends:
   - spec: "130-spec-coupling-primary-owner"

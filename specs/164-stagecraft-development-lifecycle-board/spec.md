@@ -10,13 +10,13 @@ kind: platform
 domain: platform
 risk: medium
 depends_on:
-  - "075"  # factory-workflow-engine (pipeline runs surfaced as execution evidence)
-  - "077"  # stagecraft-factory-api (the existing pipelines surface)
-  - "102"  # governed-excellence (certificate emissions surfaced on cards)
-  - "127"  # spec-code-coupling-gate (gate fires surfaced as execution evidence)
-  - "133"  # amends-aware coupling gate
-  - "147"  # spec-kind-grammar (lifecycle / status fields)
-  - "163"  # stagecraft-requirements-view (the read-shaped pair)
+  - "075-factory-workflow-engine"  # factory-workflow-engine (pipeline runs surfaced as execution evidence)
+  - "077-stagecraft-factory-api"  # stagecraft-factory-api (the existing pipelines surface)
+  - "102-governed-excellence"  # governed-excellence (certificate emissions surfaced on cards)
+  - "127-spec-code-coupling-gate"  # spec-code-coupling-gate (gate fires surfaced as execution evidence)
+  - "133-amends-aware-coupling-gate"  # amends-aware coupling gate
+  - "147-spec-kind-grammar"  # spec-kind-grammar (lifecycle / status fields)
+  - "163-stagecraft-requirements-view"  # stagecraft-requirements-view (the read-shaped pair)
 code_aliases: ["STAGECRAFT_DEVELOPMENT_BOARD", "LIFECYCLE_STATE_BOARD"]
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.development.tsx }

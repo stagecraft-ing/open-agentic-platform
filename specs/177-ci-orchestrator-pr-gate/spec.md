@@ -12,13 +12,13 @@ kind: governance
 domain: tooling
 risk: medium
 depends_on:
-  - "104"  # makefile-ci-parity-contract — Makefile/CI run-block mirror
-  - "116"  # supply-chain-policy-gates — cron-driven advisory refresh preserved
-  - "118"  # workflow-spec-traceability — `# Spec:` headers on the new orchestrator
-  - "127"  # spec-code-coupling-gate — constitutional always-on contract
-  - "135"  # fast-ci-as-default — daily-loop / parity-mirror split unchanged
-  - "152"  # path-co-authority — empty-authority bypass for `.github/workflows/`
-  - "158"  # workflow-ref-sha-pinning-lint — `uses:` ref pin contract
+  - "104-makefile-ci-parity-contract"  # makefile-ci-parity-contract — Makefile/CI run-block mirror
+  - "116-supply-chain-policy-gates"  # supply-chain-policy-gates — cron-driven advisory refresh preserved
+  - "118-workflow-spec-traceability"  # workflow-spec-traceability — `# Spec:` headers on the new orchestrator
+  - "127-spec-code-coupling-gate"  # spec-code-coupling-gate — constitutional always-on contract
+  - "135-fast-ci-as-default"  # fast-ci-as-default — daily-loop / parity-mirror split unchanged
+  - "152-path-co-authority"  # path-co-authority — empty-authority bypass for `.github/workflows/`
+  - "158-workflow-ref-sha-pinning-lint"  # workflow-ref-sha-pinning-lint — `uses:` ref pin contract
 code_aliases: ["CI_GATE"]
 amended: "2026-05-31"
 amendment_record: |

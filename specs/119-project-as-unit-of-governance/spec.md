@@ -8,25 +8,25 @@ closed: "2026-05-05"
 owner: bart
 created: "2026-04-29"
 amended: "2026-05-01"
-amendment_record: "123"
+amendment_record: "123-agent-catalog-org-rescope"
 kind: governance
 domain: platform
 risk: high
 depends_on:
-  - "000"  # bootstrap-spec-system (frontmatter convention extension)
-  - "087"  # unified-workspace-architecture (the namesake being collapsed)
-  - "092"  # workspace-runtime-threading
-  - "094"  # unified-artifact-store
-  - "099"  # workspace-scoped-persistence
-  - "113"  # stagecraft-projects-rename-and-clone (clone copies knowledge)
-  - "114"  # async-project-clone-pipeline (clone runs as the displacing primitive)
-  - "115"  # knowledge-extraction-pipeline (workspace-scoped today, project-scoped after)
+  - "000-bootstrap-spec-system"  # bootstrap-spec-system (frontmatter convention extension)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (the namesake being collapsed)
+  - "092-workspace-runtime-threading"  # workspace-runtime-threading
+  - "094-unified-artifact-store"  # unified-artifact-store
+  - "099-workspace-scoped-persistence"  # workspace-scoped-persistence
+  - "113-stagecraft-projects-rename-and-clone"  # stagecraft-projects-rename-and-clone (clone copies knowledge)
+  - "114-async-project-clone-pipeline"  # async-project-clone-pipeline (clone runs as the displacing primitive)
+  - "115-knowledge-extraction-pipeline"  # knowledge-extraction-pipeline (workspace-scoped today, project-scoped after)
 amends:
-  - "000"
-  - "087"
-  - "092"
-  - "094"
-  - "099"
+  - "000-bootstrap-spec-system"
+  - "087-unified-workspace-architecture"
+  - "092-workspace-runtime-threading"
+  - "094-unified-artifact-store"
+  - "099-workspace-scoped-persistence"
 code_aliases: ["PROJECT_AS_GOVERNANCE_UNIT"]
 establishes:
   - unit: { kind: directory, path: platform/services/stagecraft/api/db }

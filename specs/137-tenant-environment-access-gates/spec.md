@@ -10,8 +10,8 @@ kind: platform
 domain: platform
 risk: medium
 depends_on:
-  - "136"  # tenant-hello as reference; gates are added per-environment
-  - "087"  # unified-workspace-architecture (environments are stagecraft entities)
+  - "136-tenant-hello-demo-service"  # tenant-hello as reference; gates are added per-environment
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (environments are stagecraft entities)
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql }

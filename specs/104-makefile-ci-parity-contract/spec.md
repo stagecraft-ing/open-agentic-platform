@@ -40,8 +40,8 @@ kind: governance
 domain: tooling
 risk: low
 depends_on:
-  - "000"  # bootstrap-spec-system (Principle II — compiler-owned JSON)
-  - "006"  # conformance-lint-mvp (precedent for static workflow linting)
+  - "000-bootstrap-spec-system"  # bootstrap-spec-system (Principle II — compiler-owned JSON)
+  - "006-conformance-lint-mvp"  # conformance-lint-mvp (precedent for static workflow linting)
 code_aliases: ["CI_PARITY_CONTRACT"]
 establishes:
   - unit: { kind: file, path: tools/oap/ci-parity-check/src/lib.rs }

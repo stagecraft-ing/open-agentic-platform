@@ -12,11 +12,11 @@ kind: governance
 domain: tooling
 risk: low
 depends_on:
-  - "104"  # makefile-ci-parity-contract (ENFORCING_WORKFLOWS classification + run-mirror)
-  - "125"  # schema-parity-walker-rebuild (the walker this job runs)
-  - "158"  # workflow-ref-sha-pinning-lint (the setup-bun ref is SHA-pinned)
-  - "177"  # ci-orchestrator-pr-gate (the router this adds a route to)
-  - "189"  # duplex-envelope-version-parity (restored the gate + added the envelope check)
+  - "104-makefile-ci-parity-contract"  # makefile-ci-parity-contract (ENFORCING_WORKFLOWS classification + run-mirror)
+  - "125-schema-parity-walker-rebuild"  # schema-parity-walker-rebuild (the walker this job runs)
+  - "158-workflow-ref-sha-pinning-lint"  # workflow-ref-sha-pinning-lint (the setup-bun ref is SHA-pinned)
+  - "177-ci-orchestrator-pr-gate"  # ci-orchestrator-pr-gate (the router this adds a route to)
+  - "189-duplex-envelope-version-parity"  # duplex-envelope-version-parity (restored the gate + added the envelope check)
 code_aliases:
   - "SCHEMA_PARITY_CI"
 establishes:

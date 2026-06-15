@@ -9,15 +9,15 @@ created: "2026-05-06"
 approved: "2026-05-06"
 closed: "2026-05-06"
 amended: "2026-06-09"
-amendment_record: "199"
+amendment_record: "199-factory-thin-consumer-sync"
 kind: amendment
 domain: platform
 risk: low
-amends: ["139"]
+amends: ["139-factory-artifact-substrate"]
 depends_on:
-  - "112"  # factory-project-lifecycle (Create/Import flow consumes scaffold readiness)
-  - "138"  # stagecraft-create-realised-scaffold (introduced template_remote, scaffoldReadiness)
-  - "139"  # factory-artifact-substrate (§7.2 declared scaffold_source_id replaces template_remote)
+  - "112-factory-project-lifecycle"  # factory-project-lifecycle (Create/Import flow consumes scaffold readiness)
+  - "138-stagecraft-create-realised-scaffold"  # stagecraft-create-realised-scaffold (introduced template_remote, scaffoldReadiness)
+  - "139-factory-artifact-substrate"  # factory-artifact-substrate (§7.2 declared scaffold_source_id replaces template_remote)
 code_aliases: ["AIM_VUE_NODE_SCAFFOLD_SOURCE_ID_CUTOVER"]
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql }

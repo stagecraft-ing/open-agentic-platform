@@ -11,8 +11,8 @@ kind: governance
 domain: tooling
 risk: medium
 depends_on:
-  - "101"  # codebase-index-mvp (the schema being extended)
-  - "118"  # workflow-spec-traceability (the `# Spec:` precedent)
+  - "101-codebase-index-mvp"  # codebase-index-mvp (the schema being extended)
+  - "118-workflow-spec-traceability"  # workflow-spec-traceability (the `# Spec:` precedent)
 code_aliases: ["GRANULAR_OAP_METADATA"]
 extends:
   - spec: "101-codebase-index-mvp"

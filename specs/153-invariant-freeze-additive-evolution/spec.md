@@ -4,7 +4,7 @@ slug: invariant-freeze-additive-evolution
 title: "Invariant-freeze semantics — backward-compatibility framing"
 status: approved
 implementation: complete
-amends: ["130"]
+amends: ["130-spec-coupling-primary-owner"]
 amends_sections: ["constrains-meta-authority"]
 owner: bart
 created: "2026-05-20"
@@ -13,7 +13,7 @@ kind: governance
 domain: substrate
 risk: low
 depends_on:
-  - "130"
+  - "130-spec-coupling-primary-owner"
 code_aliases: ["INVARIANT_FREEZE_BACKWARD_COMPAT"]
 summary: >
   Spec 130 §2.7 introduces `constrains: kind: invariant-freeze` with the

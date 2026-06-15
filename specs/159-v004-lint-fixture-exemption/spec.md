@@ -11,11 +11,11 @@ closed: "2026-05-22"
 kind: governance
 domain: substrate
 risk: low
-amends: ["000"]
+amends: ["000-bootstrap-spec-system"]
 depends_on:
-  - "000"  # bootstrap-spec-system (V-004 scan-policy is defined here)
-  - "001"  # spec-compiler-mvp (where V-004 is implemented)
-  - "158"  # workflow-ref-sha-pinning-lint (the motivating case)
+  - "000-bootstrap-spec-system"  # bootstrap-spec-system (V-004 scan-policy is defined here)
+  - "001-spec-compiler-mvp"  # spec-compiler-mvp (where V-004 is implemented)
+  - "158-workflow-ref-sha-pinning-lint"  # workflow-ref-sha-pinning-lint (the motivating case)
 code_aliases: ["V004_FIXTURE_EXEMPTION"]
 refines:
   - aspect: "v004-scan-path-policy"

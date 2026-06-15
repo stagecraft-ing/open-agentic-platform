@@ -11,11 +11,11 @@ kind: governance
 domain: tooling
 risk: low
 depends_on:
-  - "087"  # unified-workspace-architecture (FR-SYNC-003 — every envelope carries meta.v)
-  - "119"  # project-as-unit-of-governance (collapsed workspace→org; bumped the duplex wire to v2)
-  - "120"  # factory-extraction-stage (originating spec for the schema-parity tool)
-  - "125"  # schema-parity-walker-rebuild (the walker this spec extends)
-  - "183"  # opc-boot-precondition-gate (whose boot gate surfaced the silent v1↔v2 skew)
+  - "087-unified-workspace-architecture"  # unified-workspace-architecture (FR-SYNC-003 — every envelope carries meta.v)
+  - "119-project-as-unit-of-governance"  # project-as-unit-of-governance (collapsed workspace→org; bumped the duplex wire to v2)
+  - "120-factory-extraction-stage"  # factory-extraction-stage (originating spec for the schema-parity tool)
+  - "125-schema-parity-walker-rebuild"  # schema-parity-walker-rebuild (the walker this spec extends)
+  - "183-opc-boot-precondition-gate"  # opc-boot-precondition-gate (whose boot gate surfaced the silent v1↔v2 skew)
 code_aliases:
   - "ENVELOPE_VERSION_PARITY"
 establishes:

@@ -13,8 +13,8 @@ kind: governance
 domain: substrate
 risk: low
 depends_on:
-  - "130"
-  - "133"
+  - "130-spec-coupling-primary-owner"
+  - "133-amends-aware-coupling-gate"
 code_aliases: ["PATH_CO_AUTHORITY"]
 extends:
   - spec: "130-spec-coupling-primary-owner"

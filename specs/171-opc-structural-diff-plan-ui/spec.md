@@ -10,10 +10,10 @@ kind: platform
 domain: opc
 risk: medium
 depends_on:
-  - "032"  # opc-inspect-governance-wiring-mvp
-  - "076"  # factory-desktop-panel (spec 171 refines this)
-  - "102"  # governed-excellence (the certificate's structural-diff posture)
-  - "126"  # desktop-agent-picker-ui
+  - "032-opc-inspect-governance-wiring-mvp"  # opc-inspect-governance-wiring-mvp
+  - "076-factory-desktop-panel"  # factory-desktop-panel (spec 171 refines this)
+  - "102-governed-excellence"  # governed-excellence (the certificate's structural-diff posture)
+  - "126-desktop-agent-picker-ui"  # desktop-agent-picker-ui
 code_aliases: ["OPC_STRUCTURAL_DIFF_PLAN", "ANTI_ANTHROPOMORPHIC_PLAN_UI"]
 establishes:
   - unit: { kind: file, path: product/apps/opc/src/components/factory/planTypes.ts }

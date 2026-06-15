@@ -11,9 +11,9 @@ kind: governance
 domain: tooling
 risk: medium
 depends_on:
-  - "086"  # open-source-launch — established release-tools.yml (tool-archive attach)
-  - "117"  # release-artifact-attestations — SLSA provenance per archive; coherence requires the build commit
-  - "194"  # release-publish-boundary-guard — sibling refines on the same file; its publish-boundary guard is unchanged here
+  - "086-open-source-launch"  # open-source-launch — established release-tools.yml (tool-archive attach)
+  - "117-release-artifact-attestations"  # release-artifact-attestations — SLSA provenance per archive; coherence requires the build commit
+  - "194-release-publish-boundary-guard"  # release-publish-boundary-guard — sibling refines on the same file; its publish-boundary guard is unchanged here
 refines:
   - aspect: "release-tools-dispatch-build-ref"
     unit: { kind: file, path: .github/workflows/release-tools.yml }

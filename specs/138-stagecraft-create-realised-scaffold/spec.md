@@ -11,11 +11,11 @@ closed: "2026-05-04"
 kind: amendment
 domain: platform
 risk: low
-amends: ["112"]
+amends: ["112-factory-project-lifecycle"]
 depends_on:
-  - "112"  # factory-project-lifecycle (parent)
-  - "108"  # factory-as-platform-feature (factory_adapters/manifest shape)
-  - "109"  # factory-pat-and-pubsub-sync (factory_upstream_pats consumed by warmup)
+  - "112-factory-project-lifecycle"  # factory-project-lifecycle (parent)
+  - "108-factory-as-platform-feature"  # factory-as-platform-feature (factory_adapters/manifest shape)
+  - "109-factory-pat-and-pubsub-sync"  # factory-pat-and-pubsub-sync (factory_upstream_pats consumed by warmup)
 code_aliases: ["STAGECRAFT_CREATE_REALISED"]
 extends:
   - spec: "112-factory-project-lifecycle"

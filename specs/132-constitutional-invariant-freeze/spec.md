@@ -4,7 +4,7 @@ slug: constitutional-invariant-freeze
 title: "Constitutional invariant freeze — `unamendable` anchors and V-011"
 status: approved
 implementation: complete
-amends: ["000"]
+amends: ["000-bootstrap-spec-system"]
 amended: "2026-05-13"
 amendment_record: "147-spec-kind-grammar"
 owner: bart
@@ -14,8 +14,8 @@ kind: governance
 domain: substrate
 risk: medium
 depends_on:
-  - "000"  # bootstrap-spec-system (the constitutional baseline being frozen)
-  - "001"  # spec-compiler-mvp (where V-011 lives)
+  - "000-bootstrap-spec-system"  # bootstrap-spec-system (the constitutional baseline being frozen)
+  - "001-spec-compiler-mvp"  # spec-compiler-mvp (where V-011 lives)
 code_aliases: ["CONSTITUTIONAL_FREEZE"]
 extends:
   - spec: "001-spec-compiler-mvp"

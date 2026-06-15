@@ -11,10 +11,10 @@ kind: governance
 domain: tooling
 risk: medium
 depends_on:
-  - "193"  # paired-release-cadence — §7 deferred "control the publish path"; this resolves it
-  - "086"  # open-source-launch — established release-tools.yml (tool-archive attach)
-  - "117"  # release-artifact-attestations — established release-desktop.yml upload/attest steps
-  - "037"  # cross-platform-axiomregent — release matrix context
+  - "193-paired-release-cadence"  # paired-release-cadence — §7 deferred "control the publish path"; this resolves it
+  - "086-open-source-launch"  # open-source-launch — established release-tools.yml (tool-archive attach)
+  - "117-release-artifact-attestations"  # release-artifact-attestations — established release-desktop.yml upload/attest steps
+  - "037-cross-platform-axiomregent"  # cross-platform-axiomregent — release matrix context
 refines:
   - aspect: "release-publish-boundary"
     unit: { kind: file, path: .github/workflows/release-desktop.yml }

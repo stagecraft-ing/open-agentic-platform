@@ -4,7 +4,7 @@ title: "Blockoli semantic search — Tauri command wiring"
 feature_branch: "040-blockoli-semantic-search-wiring"
 status: superseded
 implementation: n/a
-superseded_by: "073"
+superseded_by: "073-axiomregent-unification"
 kind: product
 domain: opc
 created: "2026-03-29"

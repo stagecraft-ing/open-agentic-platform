@@ -10,10 +10,10 @@ kind: capability
 domain: platform
 risk: medium
 depends_on:
-  - "035"  # agent-governed-execution (agent ephemeral keys)
-  - "074"  # factory-ingestion (contract types)
-  - "075"  # factory-workflow-engine (the spec this spec refines)
-  - "102"  # governed-excellence (signature chain composes with certificate)
+  - "035-agent-governed-execution"  # agent-governed-execution (agent ephemeral keys)
+  - "074-factory-ingestion"  # factory-ingestion (contract types)
+  - "075-factory-workflow-engine"  # factory-workflow-engine (the spec this spec refines)
+  - "102-governed-excellence"  # governed-excellence (signature chain composes with certificate)
 code_aliases: ["INTER_STAGE_SIGNED_MANIFEST", "FACTORY_STAGE_SIGNATURE_CHAIN"]
 establishes:
   - unit: { kind: file, path: crates/factory-engine/src/inter_stage_manifest.rs }

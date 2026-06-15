@@ -7,24 +7,24 @@ implementation: complete
 owner: bart
 created: "2026-05-01"
 amended: "2026-05-05"
-amendment_record: "139"
+amendment_record: "139-factory-artifact-substrate"
 kind: governance
 domain: platform
 risk: high
 depends_on:
-  - "042"  # multi-provider-agent-registry
-  - "054"  # agent-frontmatter-schema (UnifiedFrontmatter)
-  - "068"  # permission-runtime
-  - "075"  # factory-workflow-engine (primary agent consumer)
-  - "087"  # unified-project-architecture (duplex sync substrate)
-  - "090"  # governance-non-optionality
-  - "098"  # governance-enforcement-stitching (audit trail composition)
-  - "108"  # factory-as-platform-feature (org-level Factory baseline)
-  - "111"  # org-agent-catalog-sync (the original org-level design)
-  - "119"  # project-as-unit-of-governance (amended scope)
-  - "122"  # stakeholder-doc-inversion (Stage CD comparator agent reference)
+  - "042-multi-provider-agent-registry"  # multi-provider-agent-registry
+  - "054-agent-frontmatter-schema"  # agent-frontmatter-schema (UnifiedFrontmatter)
+  - "068-permission-runtime"  # permission-runtime
+  - "075-factory-workflow-engine"  # factory-workflow-engine (primary agent consumer)
+  - "087-unified-workspace-architecture"  # unified-project-architecture (duplex sync substrate)
+  - "090-governance-non-optionality"  # governance-non-optionality
+  - "098-governance-enforcement-stitching"  # governance-enforcement-stitching (audit trail composition)
+  - "108-factory-as-platform-feature"  # factory-as-platform-feature (org-level Factory baseline)
+  - "111-org-agent-catalog-sync"  # org-agent-catalog-sync (the original org-level design)
+  - "119-project-as-unit-of-governance"  # project-as-unit-of-governance (amended scope)
+  - "122-stakeholder-doc-inversion"  # stakeholder-doc-inversion (Stage CD comparator agent reference)
 amends:
-  - "119"
+  - "119-project-as-unit-of-governance"
 code_aliases: ["AGENT_CATALOG_ORG"]
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql }

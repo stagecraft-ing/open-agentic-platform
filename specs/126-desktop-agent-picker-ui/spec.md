@@ -23,9 +23,9 @@ summary: >
   output is an `AgentReference` (spec 123 `factory-contracts`) that
   callers consume.
 depends_on:
-  - "111"  # original duplex-cached agent surface; UI plugs into the existing cache
-  - "123"  # source of bindings + retired_upstream invariant + desktop commands
-  - "124"  # primary consumer (Run reservation builds AgentReferences from picker output)
+  - "111-org-agent-catalog-sync"  # original duplex-cached agent surface; UI plugs into the existing cache
+  - "123-agent-catalog-org-rescope"  # source of bindings + retired_upstream invariant + desktop commands
+  - "124-opc-factory-run-platform-integration"  # primary consumer (Run reservation builds AgentReferences from picker output)
 extends:
   - spec: "123-agent-catalog-org-rescope"
     nature: additive

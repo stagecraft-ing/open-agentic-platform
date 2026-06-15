@@ -11,11 +11,11 @@ kind: governance
 domain: tooling
 risk: medium
 depends_on:
-  - "103"
-  - "104"
-  - "118"
-  - "130"
-  - "133"
+  - "103-init-protocol-governed-reads"
+  - "104-makefile-ci-parity-contract"
+  - "118-workflow-spec-traceability"
+  - "130-spec-coupling-primary-owner"
+  - "133-amends-aware-coupling-gate"
 code_aliases: ["SPEC_CODE_COUPLING_WORKFLOW"]
 establishes:
   - unit: { kind: file, path: .github/workflows/ci-spec-code-coupling.yml }
@@ -27,7 +27,6 @@ co_authority:
   - with_specs:
       - "102-governed-excellence"
       - "104-makefile-ci-parity-contract"
-      - "105-axiomregent-sidecar"
       - "116-supply-chain-policy-gates"
       - "128-spec-lint-default-fail-on-warn"
       - "134-fast-local-ci-mode"

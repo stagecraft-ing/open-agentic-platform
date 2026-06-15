@@ -16,7 +16,7 @@ member_contract: auth-driver
 default: rauthy-oidc
 production_forbidden: ["example-tenant-mock"]
 depends_on:
-  - "147"
+  - "147-spec-kind-grammar"
 references:
   - role: planned
     unit: { kind: directory, path: crates/auth-driver/ }

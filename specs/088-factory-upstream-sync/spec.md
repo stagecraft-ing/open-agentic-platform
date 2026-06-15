@@ -3,7 +3,7 @@ id: "088-factory-upstream-sync"
 slug: factory-upstream-sync
 title: Factory Upstream Sync Protocol
 status: superseded
-superseded_by: "108"
+superseded_by: "108-factory-as-platform-feature"
 implementation: complete
 owner: bart
 created: "2026-04-10"
@@ -17,8 +17,8 @@ summary: >
   storage moves from the on-disk factory/ tree to PostgreSQL and the trigger
   moves from the /factory-sync CLI command to the stagecraft UI.
 depends_on:
-  - "074"  # factory-ingestion
-  - "075"  # factory-workflow-engine
+  - "074-factory-ingestion"  # factory-ingestion
+  - "075-factory-workflow-engine"  # factory-workflow-engine
 ---
 
 # 088 — Factory Upstream Sync Protocol

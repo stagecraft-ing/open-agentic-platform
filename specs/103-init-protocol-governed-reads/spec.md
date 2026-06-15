@@ -9,10 +9,10 @@ kind: governance
 domain: substrate
 risk: low
 depends_on:
-  - "000"  # bootstrap-spec-system (Principle II — compiler-owned JSON)
-  - "001"  # spec-compiler-mvp
-  - "002"  # registry-consumer-mvp
-  - "101"  # codebase-index-mvp (render/check subcommands)
+  - "000-bootstrap-spec-system"  # bootstrap-spec-system (Principle II — compiler-owned JSON)
+  - "001-spec-compiler-mvp"  # spec-compiler-mvp
+  - "002-registry-consumer-mvp"  # registry-consumer-mvp
+  - "101-codebase-index-mvp"  # codebase-index-mvp (render/check subcommands)
 code_aliases: ["INIT_GOVERNED_READS"]
 establishes:
   - unit: { kind: file, path: .claude/rules/governed-artifact-reads.md }

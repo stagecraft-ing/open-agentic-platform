@@ -14,9 +14,9 @@ kind: governance
 domain: tooling
 risk: medium
 depends_on:
-  - "000"  # bootstrap-spec-system
-  - "047"  # governance-control-plane (policy posture precedent)
-  - "104"  # makefile-ci-parity-contract (Makefile mirror requirement)
+  - "000-bootstrap-spec-system"  # bootstrap-spec-system
+  - "047-governance-control-plane"  # governance-control-plane (policy posture precedent)
+  - "104-makefile-ci-parity-contract"  # makefile-ci-parity-contract (Makefile mirror requirement)
 code_aliases: ["SUPPLY_CHAIN_POLICY"]
 establishes:
   - unit: { kind: file, path: deny.toml }
