@@ -334,6 +334,10 @@ pub fn compile(repo_root: &Path) -> Result<CompileOutput, IndexError> {
                 depends_on: Vec::new(),
                 amends: Vec::new(),
                 amendment_record: None,
+                // A spec reaching this synthesised path has only sub-file
+                // (symbol/module) units and no path-resolving claims, so it
+                // carries no path-scoped partial supersession (spec 216 2b).
+                supersedes: Vec::new(),
                 implementing_paths: Vec::new(),
                 resolved_units: units,
             });

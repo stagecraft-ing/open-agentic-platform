@@ -6,6 +6,8 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-05-29"
+amended: "2026-06-15"
+amendment_record: "216-spec-spine-library-grammar-adoption"
 kind: governance
 shape: mechanism-add
 risk: medium
@@ -160,6 +162,16 @@ separable from 4a, is not required to dissolve the cache/contract tension (4a
 fully resolves it), and reverses spec 101 SC-06's present-on-clone decision —
 so it is tracked as its own future decision on SC-06's merits, not as a blocker
 on this spec's completion.
+
+> **Amendment 2026-06-15 (spec 216 Phase 2b).** Phase 4a set the broad index
+> schema to 3.0.0. Spec 216 Phase 2b bumps it 3.0.0 -> 3.1.0 (additive:
+> `traceMapping.supersedes`, an optional partial-supersession edge array the
+> coupling gate reads for `authorities(P)` filtering). This is a minor,
+> backward-compatible bump (the gate's compatibility check is major-only); the
+> version assertion in this spec's `spec188_check_config.rs` test moves to
+> 3.1.0 accordingly. The narrow `config-hash` gate and the "broad index carries
+> nothing governed" invariant this spec established are unchanged: the new
+> field is best-effort cache data, not a gated value.
 
 ## Problem
 

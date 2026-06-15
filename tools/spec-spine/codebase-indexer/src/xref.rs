@@ -3,7 +3,8 @@
 use crate::comment_scanner::CommentHeaderMap;
 use crate::spec_scanner::SpecRecord;
 use crate::types::{
-    Diagnostic, ImplementingPath, PackageRecord, TraceMapping, TraceSource, Traceability,
+    Diagnostic, ImplementingPath, PackageRecord, SupersedesEdge, TraceMapping, TraceSource,
+    Traceability,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -198,12 +199,32 @@ fn mapping_skeleton(
     let amendment_record = spec_rec
         .and_then(|s| s.amendment_record.as_ref())
         .and_then(|raw| resolve_spec_id(raw, all_spec_ids));
+    // Spec 216 Phase 2b: resolve each partial-supersession edge's predecessor
+    // id to a full `NNN-slug` (mirroring `amends`), preserving the
+    // already-resolved unit paths. A dangling predecessor reference is
+    // dropped here; the spec-compiler's V-034/graph validation is the
+    // authoritative check.
+    let supersedes = spec_rec
+        .map(|s| {
+            s.supersedes
+                .iter()
+                .filter_map(|edge| {
+                    resolve_spec_id(&edge.spec_raw, all_spec_ids).map(|spec| SupersedesEdge {
+                        spec,
+                        scope: edge.scope.clone(),
+                        paths: edge.paths.clone(),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
     TraceMapping {
         spec_id: spec_id.to_string(),
         spec_status: status,
         depends_on: deps,
         amends,
         amendment_record,
+        supersedes,
         implementing_paths: Vec::new(),
         resolved_units: Vec::new(),
     }

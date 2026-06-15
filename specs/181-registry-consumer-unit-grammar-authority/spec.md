@@ -8,6 +8,8 @@ owner: bart
 created: "2026-05-24"
 approved: "2026-05-24"
 completed: "2026-05-24"
+amended: "2026-06-15"
+amendment_record: "216-spec-spine-library-grammar-adoption"
 kind: governance
 domain: substrate
 risk: low
@@ -268,6 +270,30 @@ If parity work in those tools surfaces during implementation
 (e.g., the coupling-gate's own authority view is independently
 stale), that finding is **out of scope** and surfaced as a follow-up
 spec, not absorbed into this spec's diff.
+
+### FR-009: `supersedes:` parity (amended by spec 216 Phase 2b)
+
+This spec's original FR set covered `establishes` / `extends` / `refines`
+/ `co_authority`; `supersedes` was deliberately excluded. Spec 216 Phase 2b
+(FR-013) amends `authority_for_path` to recognise the `supersedes` edge so
+the query surface reports the same `authorities(P)` the coupling gate
+enforces (spec 133 §3.2):
+
+- A **partial**-scope `supersedes` entry confers visible authority on the
+  successor over its `unit:` (relationship `supersedes`), reusing the same
+  file/directory unit matching as `extends`/`refines`. A bare-string /
+  `scope: full` entry confers no per-unit authority.
+- The partially-superseded predecessor is **removed** from the path's
+  authority set when a live successor supersedes it over that path. Full
+  supersession is already excluded (the pre-existing `status == superseded`
+  skip in `authority_for_path`).
+- The `show-relationships` supersedes reader (`build_outgoing_edges`)
+  surfaces the `unit:`-resolved path alongside legacy `paths:`.
+
+This stays within FR-008's single-tool discipline (the change is confined
+to `registry-consumer`). The companion gate-side filtering and the
+codebase-index `supersedes` field that powers it live in spec 216 Phase 2b
+(FR-010..FR-012) and spec 133 §3.2.
 
 ## 4. Acceptance
 

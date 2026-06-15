@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "c20e5d1f050a68ba46313af36415123cf2c7ddf725bcaa7438130fea9335dd5f",
+    "contentHash": "f69d02013db8b2ba8bbfc05931fa36da168724a26fdbd312ad8892c1c3273f78",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -1545,7 +1545,7 @@
       "version": "0.1.0"
     }
   ],
-  "schemaVersion": "3.0.0",
+  "schemaVersion": "3.1.0",
   "traceability": {
     "mappings": [
       {
@@ -21100,7 +21100,16 @@
           }
         ],
         "specId": "114-async-project-clone-pipeline",
-        "specStatus": "approved"
+        "specStatus": "approved",
+        "supersedes": [
+          {
+            "paths": [
+              "platform/services/stagecraft/api/projects/clone.ts"
+            ],
+            "scope": "partial",
+            "spec": "113-stagecraft-projects-rename-and-clone"
+          }
+        ]
       },
       {
         "amendmentRecord": "143-presigned-upload-public-endpoint",
@@ -25771,7 +25780,6 @@
         "specStatus": "approved"
       },
       {
-        "amendmentRecord": "176-amends-aware-section-satisfaction-parity",
         "dependsOn": [
           "101",
           "130"
@@ -25797,8 +25805,8 @@
               {
                 "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
                 "span": {
-                  "endLine": 903,
-                  "startLine": 772
+                  "endLine": 995,
+                  "startLine": 778
                 }
               }
             ],
@@ -30206,8 +30214,8 @@
               {
                 "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
                 "span": {
-                  "endLine": 617,
-                  "startLine": 410
+                  "endLine": 623,
+                  "startLine": 411
                 }
               }
             ],
@@ -38161,8 +38169,8 @@
               {
                 "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
                 "span": {
-                  "endLine": 903,
-                  "startLine": 772
+                  "endLine": 995,
+                  "startLine": 778
                 }
               }
             ],
@@ -38180,8 +38188,8 @@
               {
                 "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
                 "span": {
-                  "endLine": 617,
-                  "startLine": 410
+                  "endLine": 623,
+                  "startLine": 411
                 }
               }
             ],
@@ -41315,6 +41323,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "216-spec-spine-library-grammar-adoption",
         "amends": [
           "034-featuregraph-registry-scanner-fix"
         ],
@@ -42722,6 +42731,7 @@
         "specStatus": "approved"
       },
       {
+        "amendmentRecord": "216-spec-spine-library-grammar-adoption",
         "amends": [
           "101-codebase-index-mvp",
           "177-ci-orchestrator-pr-gate",
@@ -49267,7 +49277,37 @@
           }
         ],
         "specId": "214-tenant-app-chart-supersession",
-        "specStatus": "draft"
+        "specStatus": "draft",
+        "supersedes": [
+          {
+            "paths": [
+              "platform/services/tenant-hello"
+            ],
+            "scope": "partial",
+            "spec": "136-tenant-hello-demo-service"
+          },
+          {
+            "paths": [
+              "platform/charts/tenant-hello"
+            ],
+            "scope": "partial",
+            "spec": "136-tenant-hello-demo-service"
+          },
+          {
+            "paths": [
+              ".github/workflows/ci-tenant-hello.yml"
+            ],
+            "scope": "partial",
+            "spec": "136-tenant-hello-demo-service"
+          },
+          {
+            "paths": [
+              ".github/workflows/cd-tenant-hello.yml"
+            ],
+            "scope": "partial",
+            "spec": "136-tenant-hello-demo-service"
+          }
+        ]
       },
       {
         "dependsOn": [
@@ -49526,7 +49566,10 @@
       {
         "amends": [
           "130-spec-coupling-primary-owner",
-          "154-logical-unit-ownership-grammar"
+          "154-logical-unit-ownership-grammar",
+          "133-amends-aware-coupling-gate",
+          "181-registry-consumer-unit-grammar-authority",
+          "188-derived-index-merge-serialization"
         ],
         "dependsOn": [
           "001-spec-compiler-mvp",

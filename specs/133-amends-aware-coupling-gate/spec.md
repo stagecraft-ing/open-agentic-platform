@@ -7,8 +7,17 @@ implementation: complete
 owner: bart
 created: "2026-05-03"
 approved: "2026-05-19"
-amended: "2026-05-24"
-amendment_record: "176-amends-aware-section-satisfaction-parity"
+amended: "2026-06-15"
+amendment_record: |
+  Amended 2026-05-24 by 176-amends-aware-section-satisfaction-parity.
+  Re-amended 2026-06-15 by 216-spec-spine-library-grammar-adoption (Phase 2b):
+  §3's supersession-exclusion clause is now implemented in the gate's
+  `legitimate_owners`, which previously composed only the
+  establishes/extends/refines/co_authority + amends classes and performed no
+  supersession filtering. Full supersession filters by the predecessor's
+  `spec_status`; partial supersession filters over the superseded unit's paths
+  via the new codebase-index `TraceMapping.supersedes` field (index schema
+  3.1.0). See §3.2.
 kind: governance
 domain: substrate
 risk: low
@@ -124,6 +133,36 @@ This is the bridge that lets the gate produce coherent output on a
 mixed corpus during migration. The end-state (post-curated annotation
 pass) is a corpus where every spec uses typed relationship fields and
 the synthesis is a no-op.
+
+### 3.2 Supersession exclusion (implemented spec 216 Phase 2b)
+
+The supersession-exclusion clause in the §3 `authorities(P)` definition
+(the `¬ ∃ later_spec` conjunct) was specified here from the start but was
+**not implemented** in the gate's `legitimate_owners` until spec 216
+Phase 2b: the resolver composed only the `implements`
+(establishes/extends/refines/co_authority) + `amends` source classes and
+conferred authority on a superseded predecessor exactly as on a live
+claimant. Phase 2b closes that gap so the runtime authority set matches
+the spec:
+
+- **Full supersession** is filtered by the predecessor's `spec_status ==
+  superseded` (the status flip that full supersession performs; carried in
+  the codebase-index `TraceMapping.spec_status`). This is operationally
+  equivalent to §3's `scope = full` clause for the corpus and is robust to
+  a successor that omits an explicit full `supersedes:` edge.
+- **Partial supersession** is filtered over the superseded unit's resolved
+  paths via the new codebase-index `TraceMapping.supersedes` field (index
+  schema 3.1.0, spec 216 FR-010), populated only from **live** successors.
+  The live successor remains an authority over the path because it already
+  claims the path through the supersedes unit folded into its
+  `implementing_paths`.
+
+The corpus has no supersession chains today, so this single-link resolution
+reproduces §3's transitively-resolved authority map exactly; a deep partial
+chain through a fully-superseded intermediate is not specially resolved (no
+corpus instance). `registry-consumer by-authority` applies the same
+exclusion (spec 181, amended by spec 216 Phase 2b) so the query surface and
+the gate agree on `authorities(P)`.
 
 ## 4. Satisfaction semantics
 

@@ -47,7 +47,12 @@ use serde::{Deserialize, Serialize};
 /// reads the re-homed file, and the broad index is a pure best-effort
 /// cache. Removing a required field under `additionalProperties:false` is a
 /// major bump, so [`load`](crate::load) gains a `"3."` arm).
-pub const SCHEMA_VERSION: &str = "3.0.0";
+/// Bumped to 3.1.0 in spec 216 Phase 2b (ADDITIVE: [`TraceMapping`] gains an
+/// optional `supersedes` field carrying partial-scope supersession edges for
+/// the coupling gate's authority filtering. `#[serde(default)]`, so 3.0.0
+/// consumers deserialize a 3.1.0 index unchanged; the gate's major-only
+/// compatibility check is unaffected).
+pub const SCHEMA_VERSION: &str = "3.1.0";
 pub const INDEXER_ID: &str = "codebase-indexer";
 
 /// Schema version of the re-homed config-hash file
@@ -158,6 +163,19 @@ pub struct TraceMapping {
     /// `NNN-slug` id at index-build time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub amendment_record: Option<String>,
+    /// Spec 216 Phase 2b: the **partial**-scope supersedes edges this
+    /// mapping's spec declares, with the predecessor id resolved to a full
+    /// `NNN-slug` and each `unit:` resolved to its physical path(s). The
+    /// coupling gate (an index consumer) reads this to drop a
+    /// partially-superseded predecessor from a path's authority set when a
+    /// live successor has superseded it over that path. Full-scope
+    /// supersession is **not** carried here: it is represented by the
+    /// predecessor's `spec_status: superseded`, which the gate filters
+    /// directly. Empty (and omitted) for the vast majority of specs.
+    /// Additive at index schema 3.1.0; `#[serde(default)]` keeps the 3.0.0
+    /// shape for specs with no partial supersession.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub supersedes: Vec<SupersedesEdge>,
     pub implementing_paths: Vec<ImplementingPath>,
     /// Spec 154 Segment 3: per-spec logical-unit declarations paired
     /// with the deterministic set of `(file, span)` physical locations
@@ -169,6 +187,22 @@ pub struct TraceMapping {
     /// diff-hunk → owning-spec reverse lookup.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub resolved_units: Vec<ResolvedUnit>,
+}
+
+/// Spec 216 Phase 2b: one partial-scope supersession edge, resolved for the
+/// coupling gate. `spec` is the superseded predecessor (full `NNN-slug`);
+/// `paths` are the physical paths the partial `unit:` resolved to. `scope`
+/// is always `"partial"` in the emitted index (full supersession is carried
+/// by the predecessor's `spec_status`, not here). Mirrors the registry's
+/// structured `supersedes` partial item, but with the unit pre-resolved to
+/// paths so the index stays a flat consumer-shaped artifact.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SupersedesEdge {
+    pub spec: String,
+    pub scope: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub paths: Vec<String>,
 }
 
 // ── Spec 154 Segment 3 — Resolved logical-unit graph ────────────────────────
