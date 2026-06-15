@@ -453,9 +453,7 @@ supersedes:
     # unit omitted for full supersession (replaces all of predecessor's units)
 
 amends:
-  - spec: "047-governance-control-plane"
-    flavor: clarification
-    # unit omitted for whole-spec amendments
+  - "047-governance-control-plane"   # bare id: owns the predecessor's spec.md, no code authority
 
 co_authority:
   - with_specs: ["104-makefile-ci-parity-contract"]
@@ -482,6 +480,13 @@ Naming notes:
   `section:` unit during the compatibility window.
 - The legacy bare-string form (`- "tools/foo/bar.rs"`) is accepted
   and parsed as `{ kind: file, path: "tools/foo/bar.rs" }`.
+- `amends:` is a **bare-id list** (`amends: ["NNN", ...]`): it owns the
+  amended spec's `spec.md` only and carries no code authority, so it takes
+  no `unit:`. The whole-spec object form (`{spec, flavor}`) still parses in
+  OAP but is deprecated in guidance, and a `unit:` on `amends` is inert at
+  the gate. Claim code via `refines:`/`extends:`, never via `amends`
+  (PR #358; the standalone spec-spine library accepts bare-id `amends`
+  only). See spec 130 §2.5.
 
 ## 6. Authority computation under unit ownership
 

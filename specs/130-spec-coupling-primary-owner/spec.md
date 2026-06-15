@@ -145,6 +145,21 @@ form is preferred.
 
 ### 2.5 `amends:` — non-replacing patch
 
+> **Clarification (2026-06-14, PR #358): bare-id is the canonical `amends`
+> shape; `amends` carries no code authority.** PR #358 standardized the
+> corpus on `amends: ["NNN-slug", ...]`, and the standalone spec-spine
+> library accepts bare-id `amends` only. An `amends` edge grants
+> co-authority over the predecessor's `spec.md` (the id names it; no
+> `unit:`/`paths:` is needed or honored) and confers no authority over
+> code. A `unit:`/`paths:` slot on `amends` is inert at the coupling gate:
+> parking code units on `amends` was the spec 125 defect PR #358 corrected
+> (those units cleared no ownership). When a spec needs authority over code
+> it changes, declare `refines:` or `extends:` units, which the gate honors
+> (the gate's amends-awareness, spec 133, keys only on the bare id). The
+> structured object form shown below still parses in OAP today but is
+> deprecated in guidance; its parser arm is slated for removal under the
+> spec-spine library-adoption work.
+
 ```yaml
 amends:
   - spec: <amended-id>
@@ -161,9 +176,11 @@ typically not its code surface.
 - `correction` — fixes a stated invariant that the code did not match.
 - `restriction` — narrows the predecessor's previously-broad license.
 
-Legacy shape (`amends: ["NNN", ...]`) is accepted and treated as
-`change_type: clarification` with `paths` left unspecified (the gate
-treats unspecified paths as the amended spec's full current surface).
+Canonical shape (`amends: ["NNN", ...]`): a bare id list, treated as
+`change_type: clarification`. The coupling gate (spec 133 amends-awareness)
+expands the owner set of `specs/<NNN>/spec.md` to include amenders; no code
+paths are claimed. For the structured object form and its deprecation, see
+the clarification callout above and spec 154 §5.
 
 ### 2.6 `co_authority:` — section-scoped shared resource
 
