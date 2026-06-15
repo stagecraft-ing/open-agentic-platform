@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "f69d02013db8b2ba8bbfc05931fa36da168724a26fdbd312ad8892c1c3273f78",
+    "contentHash": "0e9fd5d57ed9614d05fe84b42588278bba18e1f93bdbd4db564967b19ec24659",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -25805,7 +25805,7 @@
               {
                 "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
                 "span": {
-                  "endLine": 995,
+                  "endLine": 1011,
                   "startLine": 778
                 }
               }
@@ -38169,7 +38169,7 @@
               {
                 "file": "tools/spec-spine/spec-code-coupling-check/src/lib.rs",
                 "span": {
-                  "endLine": 995,
+                  "endLine": 1011,
                   "startLine": 778
                 }
               }
