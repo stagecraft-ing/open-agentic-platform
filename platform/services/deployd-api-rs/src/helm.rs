@@ -46,6 +46,27 @@ const TENANT_HELLO_INGRESS_YAML: &str =
 const TENANT_HELLO_SA_YAML: &str =
     include_str!("../../../charts/tenant-hello/templates/serviceaccount.yaml");
 
+// Spec 214: aim-vue-encore reference chart (the template-encore scaffold
+// shape). Embedded additively alongside tenant-hello for Stage 1; it becomes
+// the sole shape once tenant-hello retires (Stage 2). The eight consts mirror
+// the chart directory; the materialiser arm lives in `write_chart`.
+const AIM_VUE_ENCORE_CHART_YAML: &str =
+    include_str!("../../../charts/aim-vue-encore/Chart.yaml");
+const AIM_VUE_ENCORE_VALUES_YAML: &str =
+    include_str!("../../../charts/aim-vue-encore/values.yaml");
+const AIM_VUE_ENCORE_HELPERS_TPL: &str =
+    include_str!("../../../charts/aim-vue-encore/templates/_helpers.tpl");
+const AIM_VUE_ENCORE_DEPLOYMENT_YAML: &str =
+    include_str!("../../../charts/aim-vue-encore/templates/deployment.yaml");
+const AIM_VUE_ENCORE_SERVICE_YAML: &str =
+    include_str!("../../../charts/aim-vue-encore/templates/service.yaml");
+const AIM_VUE_ENCORE_INGRESS_YAML: &str =
+    include_str!("../../../charts/aim-vue-encore/templates/ingress.yaml");
+const AIM_VUE_ENCORE_SA_YAML: &str =
+    include_str!("../../../charts/aim-vue-encore/templates/serviceaccount.yaml");
+const AIM_VUE_ENCORE_POSTGRES_YAML: &str =
+    include_str!("../../../charts/aim-vue-encore/templates/postgres.yaml");
+
 // region: gate-overlay
 // Spec 137 — oauth2-proxy-gate chart (per-environment passwordless OIDC gate).
 const OAUTH2_PROXY_GATE_CHART_YAML: &str =
@@ -335,8 +356,29 @@ impl HelmRunner {
     }
 }
 
+/// Optional dispatch-contract inputs (spec 214) threaded into chart values
+/// beyond the core image/route/gate set. Every field defaults to "absent" so
+/// the tenant-hello path and tests that pass `&DeployExtras::default()` are
+/// unaffected.
+#[derive(Default)]
+pub struct DeployExtras<'a> {
+    /// FR-004: `config_refs` entries rendered as plain container env vars via
+    /// the chart's `extraEnv`. A `BTreeMap` so the rendered order is stable
+    /// (key-sorted) across dispatches. Reserved-prefix rejection
+    /// (`ENCORE_` / `KUBERNETES_`) happens at the stagecraft proxy, not here.
+    pub config_refs: Option<&'a std::collections::BTreeMap<String, String>>,
+    /// FR-005: name of the dockerconfigjson pull secret reflected into the
+    /// namespace (default `ghcr-pull`). Rendered as
+    /// `imagePullSecrets: [{name}]` when set and non-empty.
+    pub image_pull_secret_name: Option<&'a str>,
+    /// User Story 1: the reflected wildcard TLS secret name
+    /// (`tenants-wildcard-tls`). Enables `ingress.tls` when an ingress route
+    /// is also present.
+    pub tls_secret_name: Option<&'a str>,
+}
+
 /// Translate a DeploymentRequest's fields into a values JSON the chart
-/// understands. Pure function — no I/O, no helm dependency.
+/// understands. Pure function: no I/O, no helm dependency.
 ///
 /// Mapping:
 ///   * `image.repository` / `image.tag` derive from `artifact_ref`
@@ -346,6 +388,8 @@ impl HelmRunner {
 ///     get predictable, slug-driven names.
 ///   * `ingress` enables when at least one route is supplied, taking
 ///     the first route's host. The chart's path is hardcoded `/`.
+///     When `extras.tls_secret_name` is set, `ingress.tls` terminates
+///     with the reflected wildcard secret (spec 214 User Story 1).
 ///   * `gate.enabled` / `gate.proxyServiceName` are populated when a
 ///     non-`None` [`AccessGateDescriptor`] is supplied. The proxy
 ///     service name is derived deterministically from the tenant
@@ -353,11 +397,14 @@ impl HelmRunner {
 ///     and the gate Service resolve to a matching pair at install
 ///     time. The tenant `Ingress` template renders the
 ///     `nginx.ingress.kubernetes.io/auth-url` annotation accordingly.
+///   * `imagePullSecrets` / `extraEnv` come from [`DeployExtras`]
+///     (spec 214 FR-005 / FR-004).
 pub fn build_values(
     artifact_ref: &str,
     fullname_override: &str,
     routes: &[(String, String)],
     gate: Option<&AccessGateDescriptor>,
+    extras: &DeployExtras<'_>,
 ) -> Value {
     let (repository, tag) = split_artifact_ref(artifact_ref);
     let mut values = serde_json::json!({
@@ -368,10 +415,19 @@ pub fn build_values(
         "fullnameOverride": fullname_override,
     });
     if let Some((host, _path)) = routes.first() {
-        values["ingress"] = serde_json::json!({
+        let mut ingress = serde_json::json!({
             "enabled": true,
             "host": host,
         });
+        // Spec 214 User Story 1: terminate TLS with the reflected wildcard
+        // secret when the cluster has one configured for tenant ingresses.
+        if let Some(secret) = extras.tls_secret_name.filter(|s| !s.is_empty()) {
+            ingress["tls"] = serde_json::json!({
+                "enabled": true,
+                "secretName": secret,
+            });
+        }
+        values["ingress"] = ingress;
     }
     if let Some(g) = gate.filter(|g| g.enabled) {
         values["gate"] = serde_json::json!({
@@ -379,6 +435,19 @@ pub fn build_values(
             "proxyServiceName": gate_release_name(fullname_override),
             "proxyServicePort": g.proxy_service_port(),
         });
+    }
+    // Spec 214 FR-005: private-registry pull secret.
+    if let Some(secret) = extras.image_pull_secret_name.filter(|s| !s.is_empty()) {
+        values["imagePullSecrets"] = serde_json::json!([{ "name": secret }]);
+    }
+    // Spec 214 FR-004: config_refs become plain container env vars. BTreeMap
+    // iteration is key-sorted, so the rendered extraEnv order is deterministic.
+    if let Some(refs) = extras.config_refs.filter(|m| !m.is_empty()) {
+        let extra_env: Vec<Value> = refs
+            .iter()
+            .map(|(name, value)| serde_json::json!({ "name": name, "value": value }))
+            .collect();
+        values["extraEnv"] = Value::Array(extra_env);
     }
     values
 }
@@ -527,6 +596,16 @@ fn write_chart(name: &str, dir: &Path) -> Result<(), HelmError> {
             ("templates/configmap.yaml", OAUTH2_PROXY_GATE_CONFIGMAP_YAML),
             ("templates/serviceaccount.yaml", OAUTH2_PROXY_GATE_SA_YAML),
         ],
+        "aim-vue-encore" => &[
+            ("Chart.yaml", AIM_VUE_ENCORE_CHART_YAML),
+            ("values.yaml", AIM_VUE_ENCORE_VALUES_YAML),
+            ("templates/_helpers.tpl", AIM_VUE_ENCORE_HELPERS_TPL),
+            ("templates/deployment.yaml", AIM_VUE_ENCORE_DEPLOYMENT_YAML),
+            ("templates/service.yaml", AIM_VUE_ENCORE_SERVICE_YAML),
+            ("templates/ingress.yaml", AIM_VUE_ENCORE_INGRESS_YAML),
+            ("templates/serviceaccount.yaml", AIM_VUE_ENCORE_SA_YAML),
+            ("templates/postgres.yaml", AIM_VUE_ENCORE_POSTGRES_YAML),
+        ],
         other => return Err(HelmError::UnknownChart(other.to_string())),
     };
     fs::create_dir_all(dir.join("templates")).map_err(|e| HelmError::Io(e.to_string()))?;
@@ -557,6 +636,7 @@ mod tests {
             "myapp-prod",
             &[],
             None,
+            &DeployExtras::default(),
         );
         assert_eq!(v["image"]["repository"], "ghcr.io/org/tenant-hello");
         assert_eq!(v["image"]["tag"], "v1.2.3");
@@ -567,7 +647,13 @@ mod tests {
 
     #[test]
     fn build_values_handles_tagless_image_ref() {
-        let v = build_values("ghcr.io/org/tenant-hello", "myapp-prod", &[], None);
+        let v = build_values(
+            "ghcr.io/org/tenant-hello",
+            "myapp-prod",
+            &[],
+            None,
+            &DeployExtras::default(),
+        );
         assert_eq!(v["image"]["repository"], "ghcr.io/org/tenant-hello");
         assert_eq!(v["image"]["tag"], "latest");
     }
@@ -579,9 +665,101 @@ mod tests {
             "myapp-prod",
             &[("tenant-hello.example.com".into(), "/".into())],
             None,
+            &DeployExtras::default(),
         );
         assert_eq!(v["ingress"]["enabled"], true);
         assert_eq!(v["ingress"]["host"], "tenant-hello.example.com");
+    }
+
+    // ---------------------------------------------------------------------
+    // Spec 214: dispatch-contract extras (config_refs, image pull secret,
+    // tenant TLS) flow through build_values into chart values.
+    // ---------------------------------------------------------------------
+
+    #[test]
+    fn build_values_renders_extra_env_from_config_refs() {
+        // FR-004: config_refs become container env vars, key-sorted.
+        let mut refs = std::collections::BTreeMap::new();
+        refs.insert("FEATURE_FLAG".to_string(), "on".to_string());
+        refs.insert("API_BASE".to_string(), "https://api.example".to_string());
+        let extras = DeployExtras {
+            config_refs: Some(&refs),
+            ..Default::default()
+        };
+        let v = build_values("ghcr.io/org/app:v1", "app-prod", &[], None, &extras);
+        let env = v["extraEnv"].as_array().expect("extraEnv array present");
+        assert_eq!(env.len(), 2);
+        // BTreeMap iteration is key-sorted, so API_BASE precedes FEATURE_FLAG.
+        assert_eq!(env[0]["name"], "API_BASE");
+        assert_eq!(env[0]["value"], "https://api.example");
+        assert_eq!(env[1]["name"], "FEATURE_FLAG");
+        assert_eq!(env[1]["value"], "on");
+    }
+
+    #[test]
+    fn build_values_omits_extra_env_when_no_config_refs() {
+        let v = build_values(
+            "ghcr.io/org/app:v1",
+            "app-prod",
+            &[],
+            None,
+            &DeployExtras::default(),
+        );
+        assert!(v.get("extraEnv").is_none());
+    }
+
+    #[test]
+    fn build_values_renders_image_pull_secret() {
+        // FR-005: imagePullSecrets carries the named dockerconfigjson secret.
+        let extras = DeployExtras {
+            image_pull_secret_name: Some("ghcr-pull"),
+            ..Default::default()
+        };
+        let v = build_values("ghcr.io/org/app:v1", "app-prod", &[], None, &extras);
+        assert_eq!(v["imagePullSecrets"][0]["name"], "ghcr-pull");
+    }
+
+    #[test]
+    fn build_values_skips_image_pull_secret_when_empty() {
+        let extras = DeployExtras {
+            image_pull_secret_name: Some(""),
+            ..Default::default()
+        };
+        let v = build_values("ghcr.io/org/app:v1", "app-prod", &[], None, &extras);
+        assert!(v.get("imagePullSecrets").is_none());
+    }
+
+    #[test]
+    fn build_values_enables_tls_when_secret_and_route_present() {
+        // User Story 1: tenant ingress terminates TLS with the reflected
+        // wildcard secret.
+        let extras = DeployExtras {
+            tls_secret_name: Some("tenants-wildcard-tls"),
+            ..Default::default()
+        };
+        let v = build_values(
+            "ghcr.io/org/app:v1",
+            "acme-p-dev",
+            &[("acme--p--dev.tenants.test".into(), "/".into())],
+            None,
+            &extras,
+        );
+        assert_eq!(v["ingress"]["enabled"], true);
+        assert_eq!(v["ingress"]["tls"]["enabled"], true);
+        assert_eq!(v["ingress"]["tls"]["secretName"], "tenants-wildcard-tls");
+    }
+
+    #[test]
+    fn build_values_omits_tls_without_route_even_with_secret() {
+        let extras = DeployExtras {
+            tls_secret_name: Some("tenants-wildcard-tls"),
+            ..Default::default()
+        };
+        let v = build_values("ghcr.io/org/app:v1", "app-prod", &[], None, &extras);
+        assert!(
+            v.get("ingress").is_none(),
+            "no route means no ingress and therefore no tls block"
+        );
     }
 
     // ---------------------------------------------------------------------
@@ -621,6 +799,7 @@ mod tests {
             "myapp-prod",
             &[("acme.tenants.test".into(), "/".into())],
             Some(&d),
+            &DeployExtras::default(),
         );
         assert!(
             v.get("gate").is_none(),
@@ -636,6 +815,7 @@ mod tests {
             "myapp-prod",
             &[("acme.tenants.test".into(), "/".into())],
             Some(&d),
+            &DeployExtras::default(),
         );
         assert_eq!(v["gate"]["enabled"], true);
         assert_eq!(v["gate"]["proxyServiceName"], "myapp-prod-gate");
@@ -818,6 +998,7 @@ mod tests {
                 "myapp-prod",
                 &[],
                 None,
+                &DeployExtras::default(),
             ),
         };
         let rendered = runner.template(&req).expect("helm template should succeed");
@@ -862,6 +1043,7 @@ mod tests {
                 "myapp-prod",
                 &[("hello.example.com".into(), "/".into())],
                 None,
+                &DeployExtras::default(),
             ),
         };
         let rendered = runner.template(&req).expect("helm template should succeed");
@@ -881,5 +1063,125 @@ mod tests {
         };
         let err = runner.template(&req).unwrap_err();
         assert!(matches!(err, HelmError::UnknownChart(_)));
+    }
+
+    // ---------------------------------------------------------------------
+    // Spec 214: aim-vue-encore chart materialisation + render smokes.
+    // ---------------------------------------------------------------------
+
+    #[test]
+    fn prepare_chart_materialises_aim_vue_encore_files() {
+        let runner = HelmRunner::from_env();
+        let dir = runner.prepare_chart("aim-vue-encore").expect("prepare");
+        for rel in [
+            "Chart.yaml",
+            "values.yaml",
+            "templates/_helpers.tpl",
+            "templates/deployment.yaml",
+            "templates/service.yaml",
+            "templates/ingress.yaml",
+            "templates/serviceaccount.yaml",
+            "templates/postgres.yaml",
+        ] {
+            let p = dir.join(rel);
+            assert!(p.exists(), "missing materialised file: {rel}");
+            let bytes = fs::read(&p).unwrap();
+            assert!(!bytes.is_empty(), "empty materialised file: {rel}");
+        }
+    }
+
+    #[test]
+    fn template_renders_aim_vue_encore_with_tls_and_pull_secret() {
+        if !helm_available() {
+            eprintln!("skipping: helm binary not in PATH");
+            return;
+        }
+        let runner = HelmRunner::from_env();
+        let extras = DeployExtras {
+            tls_secret_name: Some("tenants-wildcard-tls"),
+            image_pull_secret_name: Some("ghcr-pull"),
+            ..Default::default()
+        };
+        let req = InstallRequest {
+            chart: "aim-vue-encore".into(),
+            namespace: "acme-dev".into(),
+            release: "acme-p-dev".into(),
+            values: build_values(
+                "ghcr.io/org/aim-vue-encore:sha-abc123",
+                "acme-p-dev",
+                &[("acme--p--dev.tenants.test".into(), "/".into())],
+                None,
+                &extras,
+            ),
+        };
+        let rendered = runner.template(&req).expect("helm template should succeed");
+        assert!(rendered.contains("kind: Deployment"), "Deployment present");
+        assert!(rendered.contains("kind: Service"), "Service present");
+        assert!(rendered.contains("kind: ServiceAccount"), "SA present");
+        assert!(
+            rendered.contains("kind: Ingress"),
+            "Ingress present (route supplied)"
+        );
+        assert!(
+            rendered.contains("containerPort: 4000"),
+            "Encore gateway port (FR-001)"
+        );
+        assert!(
+            rendered.contains("/health/liveness"),
+            "liveness probe on the scaffold's health surface (Clarification 1)"
+        );
+        assert!(
+            rendered.contains("/health/readiness"),
+            "readiness probe path"
+        );
+        assert!(rendered.contains("runAsNonRoot: true"), "non-root by policy");
+        assert!(
+            rendered.contains("name: ghcr-pull"),
+            "image pull secret wired (FR-005)"
+        );
+        assert!(
+            rendered.contains("secretName: \"tenants-wildcard-tls\""),
+            "tenant TLS terminates with the reflected wildcard secret (User Story 1)"
+        );
+        assert!(
+            rendered.contains("oap.spec: \"214-tenant-app-chart-supersession\""),
+            "spec 214 provenance label on rendered objects"
+        );
+    }
+
+    #[test]
+    fn template_renders_aim_vue_encore_preview_database_when_enabled() {
+        if !helm_available() {
+            eprintln!("skipping: helm binary not in PATH");
+            return;
+        }
+        let runner = HelmRunner::from_env();
+        let mut values = build_values(
+            "ghcr.io/org/aim-vue-encore:sha-abc123",
+            "acme-p-dev",
+            &[],
+            None,
+            &DeployExtras::default(),
+        );
+        // FR-006: opt-in preview Postgres renders a StatefulSet + headless
+        // Service + generated-credentials Secret in the same namespace and
+        // injects the DB connection env into the app container. helm deep-
+        // merges this onto the chart's previewDatabase defaults.
+        values["previewDatabase"] = serde_json::json!({ "enabled": true });
+        let req = InstallRequest {
+            chart: "aim-vue-encore".into(),
+            namespace: "acme-dev".into(),
+            release: "acme-p-dev".into(),
+            values,
+        };
+        let rendered = runner.template(&req).expect("helm template should succeed");
+        assert!(
+            rendered.contains("kind: StatefulSet"),
+            "preview Postgres StatefulSet rendered"
+        );
+        assert!(
+            rendered.contains("POSTGRES_PASSWORD"),
+            "DB credential wired into the app container env"
+        );
     }
 }

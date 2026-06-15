@@ -44,6 +44,22 @@ pub struct DeploymentRequest {
     #[serde(default)]
     pub access_gate: Option<AccessGateDescriptor>,
     // endregion gate-overlay
+    /// Spec 214 FR-004: opaque app config rendered as container env vars
+    /// (chart `extraEnv`). The stagecraft proxy rejects reserved
+    /// `ENCORE_` / `KUBERNETES_` prefixes before they reach deployd.
+    #[serde(default)]
+    pub config_refs: Option<std::collections::BTreeMap<String, String>>,
+    /// Spec 214 FR-005: dockerconfigjson pull secret reflected into the
+    /// namespace (default `ghcr-pull`, applied by the proxy). Rendered into
+    /// `imagePullSecrets` when present.
+    #[serde(default)]
+    pub image_pull_secret_name: Option<String>,
+    /// Spec 214 FR-008: effective K8s namespace forwarded from
+    /// `environments.k8sNamespace`. When present (and non-empty) it wins over
+    /// the computed `{app_id}-{env_id}` and is persisted on the deployment
+    /// row so DELETE and status operate on recorded truth.
+    #[serde(default)]
+    pub namespace: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -122,6 +138,15 @@ pub async fn create_deployment(
         .clone()
         .unwrap_or_else(|| "0.1.0".into());
 
+    // Spec 214 FR-008: the forwarded namespace (from environments.k8sNamespace)
+    // wins over the computed default and is persisted on the row so DELETE and
+    // status operate on recorded truth rather than recomputation.
+    let namespace = body
+        .namespace
+        .clone()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| format!("{}-{}", body.app_id, body.env_id));
+
     let deployment = Deployment {
         deployment_id: deployment_id.clone(),
         deployment_key,
@@ -134,6 +159,7 @@ pub async fn create_deployment(
         status: "PENDING".to_string(),
         app_slug: body.app_slug.clone(),
         env_slug: body.env_slug.clone(),
+        namespace: Some(namespace.clone()),
         desired_routes: body
             .desired_routes
             .as_ref()
@@ -172,7 +198,6 @@ pub async fn create_deployment(
         .app_slug
         .clone()
         .unwrap_or_else(|| body.app_id.clone());
-    let namespace = format!("{}-{}", body.app_id, body.env_id);
 
     // Probe the cluster first. When no cluster is reachable (local dev,
     // record-only deployments), short-circuit to ROLLED_OUT without
@@ -197,11 +222,24 @@ pub async fn create_deployment(
                 .as_ref()
                 .map(|g| g.enabled)
                 .unwrap_or(false);
+            // Spec 214: thread config_refs (FR-004), the pull secret (FR-005),
+            // and the reflected wildcard TLS secret (User Story 1) into the
+            // chart values. The TLS secret name is deployd operational config
+            // (the cluster-reflected `tenants-wildcard-tls`), overridable via
+            // DEPLOYD_TENANT_TLS_SECRET.
+            let tenant_tls_secret = std::env::var("DEPLOYD_TENANT_TLS_SECRET")
+                .unwrap_or_else(|_| "tenants-wildcard-tls".to_string());
+            let extras = helm::DeployExtras {
+                config_refs: body.config_refs.as_ref(),
+                image_pull_secret_name: body.image_pull_secret_name.as_deref(),
+                tls_secret_name: Some(tenant_tls_secret.as_str()).filter(|s| !s.is_empty()),
+            };
             let values = helm::build_values(
                 &body.artifact_ref,
                 &release_name,
                 &route_pairs,
                 body.access_gate.as_ref(),
+                &extras,
             );
             let tenant_req = InstallRequest {
                 chart: chart.clone(),
@@ -431,7 +469,13 @@ pub async fn delete_deployment(
     // as success, so the call is correct whether the deployment had a gate or
     // not — no per-deployment branch needed.
     if k8s::probe_cluster().await.is_ok() {
-        let namespace = format!("{}-{}", deployment.app_id, deployment.env_id);
+        // Spec 214 FR-008: tear down using the recorded namespace; fall back
+        // to the computed form for legacy rows written before the column.
+        let namespace = deployment
+            .namespace
+            .clone()
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| format!("{}-{}", deployment.app_id, deployment.env_id));
         let release = deployment
             .app_slug
             .clone()
