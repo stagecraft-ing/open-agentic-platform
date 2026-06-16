@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:202dd7dda6c4c0b26d078ad56cc6a6ee81e32fae15346d4b7ae80d183c7e4797",
+  "graph_fingerprint": "sha256:a953df16253513e9a3ee5c86b79d1cdd4a2352c6df8eaa2ee64ca376e7689cd0",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4107,6 +4107,43 @@
         "127-spec-code-coupling-gate",
         "152-path-co-authority",
         "181-registry-consumer-unit-grammar-authority"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "218-run-cert-corpus-binding",
+      "title": "Run Certificate Corpus Binding (chain edge to the ledger seal)",
+      "spec_path": "specs/218-run-cert-corpus-binding/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "102-governed-excellence",
+        "168-per-project-governance-certificate"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "219-tenant-tail-verifier-toolkit",
+      "title": "Tenant-Tail Verifier Toolkit (the vended tenant verification surface)",
+      "spec_path": "specs/219-tenant-tail-verifier-toolkit/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "102-governed-excellence",
+        "168-per-project-governance-certificate",
+        "198-factory-governance-envelope",
+        "170-signed-inter-stage-manifests",
+        "121-claim-provenance-enforcement"
       ],
       "impl_files": [],
       "test_files": [],
