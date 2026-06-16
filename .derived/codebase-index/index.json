@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "57797cdcfe1c66501839dc9c562b8fedae1cea59109a21037f2e3dac71bff03a",
+    "contentHash": "150df2b8266564d85dfbad77c03a1c28e7a70249e218e243335dc92604ff9d02",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -13806,6 +13806,9 @@
                 "file": "platform/infra/hetzner/cluster.yaml"
               },
               {
+                "file": "platform/infra/hetzner/manifests/ghcr-pull-secret.yaml"
+              },
+              {
                 "file": "platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml"
               },
               {
@@ -21902,6 +21905,9 @@
                 "file": ".github/workflows/ci-supply-chain.yml"
               },
               {
+                "file": ".github/workflows/ci-tenant-app.yml"
+              },
+              {
                 "file": ".github/workflows/ci-tenant-hello.yml"
               },
               {
@@ -26496,8 +26502,8 @@
               {
                 "file": "platform/services/stagecraft/api/deploy/deploy.ts",
                 "span": {
-                  "endLine": 319,
-                  "startLine": 250
+                  "endLine": 420,
+                  "startLine": 313
                 }
               }
             ],
@@ -26515,8 +26521,8 @@
               {
                 "file": "platform/services/deployd-api-rs/src/helm.rs",
                 "span": {
-                  "endLine": 69,
-                  "startLine": 49
+                  "endLine": 90,
+                  "startLine": 70
                 }
               }
             ],
@@ -31887,10 +31893,22 @@
                 "file": "platform/services/stagecraft/api/deploy/deploy.ts"
               },
               {
+                "file": "platform/services/stagecraft/api/deploy/deployResolve.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/deploy/deployResolve.ts"
+              },
+              {
                 "file": "platform/services/stagecraft/api/deploy/deploydClient.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/deploy/encore.service.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/deploy/hostname.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/deploy/hostname.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/deploy/oidcM2m.ts"
@@ -48873,7 +48891,15 @@
             "source": "spec-implements"
           },
           {
+            "path": ".github/workflows/ci-tenant-app.yml",
+            "source": "spec-implements"
+          },
+          {
             "path": ".github/workflows/ci-tenant-hello.yml",
+            "source": "spec-implements"
+          },
+          {
+            "path": ".github/workflows/ci.yml",
             "source": "spec-implements"
           },
           {
@@ -48881,7 +48907,15 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/charts/aim-vue-encore",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/charts/tenant-hello",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/infra/hetzner/manifests/ghcr-pull-secret.yaml",
             "source": "spec-implements"
           },
           {
@@ -48897,6 +48931,10 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/deploy/chartSelector.test.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/deploy/chartSelector.ts",
             "source": "spec-implements"
           },
@@ -48905,11 +48943,160 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/deploy/deployResolve.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/deployResolve.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/hostname.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/hostname.ts",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/tenant-hello",
             "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "platform/charts/aim-vue-encore/Chart.yaml"
+              },
+              {
+                "file": "platform/charts/aim-vue-encore/templates/_helpers.tpl"
+              },
+              {
+                "file": "platform/charts/aim-vue-encore/templates/deployment.yaml"
+              },
+              {
+                "file": "platform/charts/aim-vue-encore/templates/ingress.yaml"
+              },
+              {
+                "file": "platform/charts/aim-vue-encore/templates/postgres.yaml"
+              },
+              {
+                "file": "platform/charts/aim-vue-encore/templates/service.yaml"
+              },
+              {
+                "file": "platform/charts/aim-vue-encore/templates/serviceaccount.yaml"
+              },
+              {
+                "file": "platform/charts/aim-vue-encore/values.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "platform/charts/aim-vue-encore"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci-tenant-app.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci-tenant-app.yml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/infra/hetzner/manifests/ghcr-pull-secret.yaml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/infra/hetzner/manifests/ghcr-pull-secret.yaml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/deploy/deployResolve.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/deployResolve.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/deploy/deployResolve.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/deployResolve.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/deploy/hostname.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/hostname.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/deploy/hostname.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/hostname.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": ".github/workflows/ci.yml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": ".github/workflows/ci.yml"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -48964,6 +49151,20 @@
             "unit": {
               "kind": "file",
               "path": "platform/services/deployd-api-rs/src/store.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/deploy/chartSelector.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/chartSelector.test.ts"
             }
           },
           {
@@ -49064,15 +49265,6 @@
           },
           {
             "kind": "directory",
-            "ownership": false,
-            "sourceField": "references",
-            "unit": {
-              "kind": "directory",
-              "path": "platform/charts/aim-vue-encore"
-            }
-          },
-          {
-            "kind": "directory",
             "locations": [
               {
                 "file": "platform/charts/tenant-hello/Chart.yaml"
@@ -49114,15 +49306,6 @@
           },
           {
             "kind": "file",
-            "ownership": false,
-            "sourceField": "references",
-            "unit": {
-              "kind": "file",
-              "path": ".github/workflows/ci-tenant-app.yml"
-            }
-          },
-          {
-            "kind": "file",
             "locations": [
               {
                 "file": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml"
@@ -49133,24 +49316,6 @@
             "unit": {
               "kind": "file",
               "path": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": false,
-            "sourceField": "references",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/deploy/hostname.test.ts"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": false,
-            "sourceField": "references",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/deploy/hostname.ts"
             }
           },
           {

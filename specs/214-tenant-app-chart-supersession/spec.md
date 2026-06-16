@@ -52,6 +52,12 @@ extends:
   - spec: "136-tenant-hello-demo-service"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/deploy/chartSelector.ts }
+  # The chartSelector test gains the aim-vue-encore listShapes case alongside
+  # the selector change; claimed additively so this path carries a 214
+  # authority (spec 160's full-id migration now resolves the test's authority).
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/deploy/chartSelector.test.ts }
   - spec: "136-tenant-hello-demo-service"
     nature: additive
     unit: { kind: file, path: platform/services/deployd-api-rs/src/helm.rs }
