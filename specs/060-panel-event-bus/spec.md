@@ -21,6 +21,8 @@ code_aliases:
   - PANEL_EVENT_BUS
 sources:
   - crystal
+establishes:
+  - unit: { kind: directory, path: product/packages/panel-event-bus }
 references:
   - role: historical
     unit: { kind: file, path: product/apps/opc/src/lib/panelEventBus.ts }

@@ -18,6 +18,10 @@ summary: >
   (Feature 046) for bounded-context long sessions.
 code_aliases: ["PROMPT_ASSEMBLY_CACHE"]
 sources: ["claude-code"]
+extends:
+  - spec: "046-context-compaction"
+    nature: additive
+    unit: { kind: directory, path: product/packages/prompt-assembly }
 references:
   - role: historical
     unit: { kind: file, path: crates/agent/src/prompt_assembly.rs }

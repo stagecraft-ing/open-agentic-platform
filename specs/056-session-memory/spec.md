@@ -18,6 +18,8 @@ summary: >
   policies, and project scoping.
 code_aliases:
   - SESSION_MEMORY
+establishes:
+  - unit: { kind: directory, path: product/packages/session-memory }
 references:
   - role: historical
     unit: { kind: directory, path: product/packages/memory-mcp }

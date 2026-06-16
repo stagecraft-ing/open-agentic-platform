@@ -18,6 +18,8 @@ summary: >
   to the selected agent.
 code_aliases:
   - FILE_MENTION
+establishes:
+  - unit: { kind: directory, path: product/packages/file-mention }
 references:
   - role: historical
     unit: { kind: file, path: product/apps/opc/src/components/FileMentionAutocomplete.tsx }

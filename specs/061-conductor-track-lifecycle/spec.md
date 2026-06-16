@@ -31,6 +31,8 @@ sources:
   - agents/conductor
   - skills/plan-implementer
   - developer-cc-commands
+establishes:
+  - unit: { kind: directory, path: product/packages/conductor-track }
 references:
   - role: historical
     unit: { kind: file, path: .claude/skills/implement-plan/SKILL.md }

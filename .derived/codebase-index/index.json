@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "57797cdcfe1c66501839dc9c562b8fedae1cea59109a21037f2e3dac71bff03a",
+    "contentHash": "df75ae87bb96eb8d5911658f3889339a5c50277b4511428bd927efdd8f969b39",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -10701,12 +10701,91 @@
       {
         "implementingPaths": [
           {
-            "name": "@opc/session-memory",
             "path": "product/packages/session-memory",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/packages/session-memory/package.json"
+              },
+              {
+                "file": "product/packages/session-memory/src/expiry/expiry.test.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/expiry/promotion.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/expiry/sweeper.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/harvesting/engine.test.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/harvesting/engine.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/harvesting/rules-loader.test.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/harvesting/rules-loader.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/harvesting/rules.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/index.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/integration.test.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/integration.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/server.test.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/server.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/storage/migrations.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/storage/sqlite.test.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/storage/sqlite.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/tools/delete.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/tools/list.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/tools/query.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/tools/store.ts"
+              },
+              {
+                "file": "product/packages/session-memory/src/types.ts"
+              },
+              {
+                "file": "product/packages/session-memory/tsconfig.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/packages/session-memory"
+            }
+          },
           {
             "kind": "directory",
             "ownership": false,
@@ -10723,12 +10802,97 @@
       {
         "implementingPaths": [
           {
-            "name": "@opc/notification-orchestrator",
             "path": "product/packages/notification-orchestrator",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/packages/notification-orchestrator/package.json"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/channels/native.test.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/channels/native.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/channels/toast.test.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/channels/toast.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/channels/web-push.test.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/channels/web-push.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/deduplication/dedup-index.test.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/deduplication/dedup-index.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/index.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/integration.test.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/integration.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/log/event-log.test.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/log/event-log.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/log/pruner.test.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/log/pruner.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/orchestrator.test.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/orchestrator.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/preferences/preference-engine.test.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/preferences/preference-engine.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/preferences/store.test.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/preferences/store.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/types.test.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/src/types.ts"
+              },
+              {
+                "file": "product/packages/notification-orchestrator/tsconfig.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/packages/notification-orchestrator"
+            }
+          },
           {
             "kind": "file",
             "ownership": false,
@@ -10754,12 +10918,88 @@
       {
         "implementingPaths": [
           {
-            "name": "@opc/file-mention",
             "path": "product/packages/file-mention",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/packages/file-mention/package.json"
+              },
+              {
+                "file": "product/packages/file-mention/src/file-tree/scanner.test.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/file-tree/scanner.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/file-tree/watcher.test.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/file-tree/watcher.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/fuzzy/engine.test.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/fuzzy/engine.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/fuzzy/scoring.test.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/fuzzy/scoring.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/index.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/mention/routing.test.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/mention/routing.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/mention/token.test.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/mention/token.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/mention/trigger.test.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/mention/trigger.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/types.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/ui/dropdown.test.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/ui/dropdown.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/ui/highlight.test.ts"
+              },
+              {
+                "file": "product/packages/file-mention/src/ui/highlight.ts"
+              },
+              {
+                "file": "product/packages/file-mention/tsconfig.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/packages/file-mention"
+            }
+          },
           {
             "kind": "file",
             "ownership": false,
@@ -10825,12 +11065,76 @@
       {
         "implementingPaths": [
           {
-            "name": "@opc/panel-event-bus",
             "path": "product/packages/panel-event-bus",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/packages/panel-event-bus/package-lock.json"
+              },
+              {
+                "file": "product/packages/panel-event-bus/package.json"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/contracts.test.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/contracts.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/core-events.test.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/core-events.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/event-bus.test.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/event-bus.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/index.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/lifecycle.test.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/lifecycle.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/ring-buffer.test.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/ring-buffer.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/types.test.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/types.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/wildcards.test.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/src/wildcards.ts"
+              },
+              {
+                "file": "product/packages/panel-event-bus/tsconfig.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/packages/panel-event-bus"
+            }
+          },
           {
             "kind": "file",
             "ownership": false,
@@ -10847,12 +11151,82 @@
       {
         "implementingPaths": [
           {
-            "name": "@opc/conductor-track",
             "path": "product/packages/conductor-track",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/packages/conductor-track/package-lock.json"
+              },
+              {
+                "file": "product/packages/conductor-track/package.json"
+              },
+              {
+                "file": "product/packages/conductor-track/src/checkpoints.test.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/checkpoints.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/commands.test.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/commands.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/conductor.test.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/conductor.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/git.test.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/git.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/index.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/plan-implementer.test.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/plan-implementer.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/state-machine.test.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/state-machine.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/storage.test.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/storage.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/types.test.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/src/types.ts"
+              },
+              {
+                "file": "product/packages/conductor-track/tsconfig.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/packages/conductor-track"
+            }
+          },
           {
             "kind": "file",
             "ownership": false,
@@ -10883,12 +11257,67 @@
       {
         "implementingPaths": [
           {
-            "name": "@opc/multi-model-chaining",
             "path": "product/packages/multi-model-chaining",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/packages/multi-model-chaining/package.json"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/src/engine.test.ts"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/src/engine.ts"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/src/index.ts"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/src/pricing.test.ts"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/src/pricing.ts"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/src/streaming.test.ts"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/src/streaming.ts"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/src/transforms.test.ts"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/src/transforms.ts"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/src/types.test.ts"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/src/types.ts"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/src/usage.test.ts"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/src/usage.ts"
+              },
+              {
+                "file": "product/packages/multi-model-chaining/tsconfig.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "directory",
+              "path": "product/packages/multi-model-chaining"
+            }
+          },
           {
             "kind": "file",
             "ownership": false,
@@ -13713,12 +14142,52 @@
             "source": "comment-header"
           },
           {
-            "name": "@opc/prompt-assembly",
             "path": "product/packages/prompt-assembly",
-            "source": "cargo-metadata-crate"
+            "source": "multiple"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "directory",
+            "locations": [
+              {
+                "file": "product/packages/prompt-assembly/package.json"
+              },
+              {
+                "file": "product/packages/prompt-assembly/src/assembler.test.ts"
+              },
+              {
+                "file": "product/packages/prompt-assembly/src/assembler.ts"
+              },
+              {
+                "file": "product/packages/prompt-assembly/src/compaction.test.ts"
+              },
+              {
+                "file": "product/packages/prompt-assembly/src/compaction.ts"
+              },
+              {
+                "file": "product/packages/prompt-assembly/src/defaults.test.ts"
+              },
+              {
+                "file": "product/packages/prompt-assembly/src/defaults.ts"
+              },
+              {
+                "file": "product/packages/prompt-assembly/src/index.ts"
+              },
+              {
+                "file": "product/packages/prompt-assembly/src/types.ts"
+              },
+              {
+                "file": "product/packages/prompt-assembly/tsconfig.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "directory",
+              "path": "product/packages/prompt-assembly"
+            }
+          },
           {
             "kind": "file",
             "ownership": false,

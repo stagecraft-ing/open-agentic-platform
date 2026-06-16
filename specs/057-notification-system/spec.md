@@ -17,6 +17,8 @@ summary: >
   provider, session, kind, severity, and deduplication key.
 code_aliases:
   - NOTIFICATION_SYSTEM
+establishes:
+  - unit: { kind: directory, path: product/packages/notification-orchestrator }
 references:
   - role: historical
     unit: { kind: file, path: product/apps/opc/src/lib/notificationOrchestrator.ts }
