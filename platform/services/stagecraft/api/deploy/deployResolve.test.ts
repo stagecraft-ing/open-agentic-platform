@@ -1,0 +1,79 @@
+import { describe, expect, it } from "vitest";
+import {
+  isReservedConfigRefKey,
+  resolveChartSelection,
+  resolveTenantShape,
+  RESERVED_CONFIG_REF_PREFIXES,
+} from "./deployResolve";
+
+describe("isReservedConfigRefKey (spec 214 FR-004)", () => {
+  it("rejects ENCORE_ and KUBERNETES_ prefixed keys", () => {
+    expect(isReservedConfigRefKey("ENCORE_RUNTIME_CONFIG")).toBe(true);
+    expect(isReservedConfigRefKey("KUBERNETES_SERVICE_HOST")).toBe(true);
+  });
+
+  it("rejects reserved prefixes case-insensitively (same process env var)", () => {
+    expect(isReservedConfigRefKey("encore_foo")).toBe(true);
+    expect(isReservedConfigRefKey("Kubernetes_Foo")).toBe(true);
+  });
+
+  it("allows ordinary app config keys, including near-miss prefixes", () => {
+    expect(isReservedConfigRefKey("API_BASE_URL")).toBe(false);
+    expect(isReservedConfigRefKey("FEATURE_FLAG")).toBe(false);
+    // ENCODER_ is not ENCORE_; must not be a false positive.
+    expect(isReservedConfigRefKey("ENCODER_PRESET")).toBe(false);
+  });
+
+  it("exposes the reserved prefix list for the proxy diagnostic", () => {
+    expect(RESERVED_CONFIG_REF_PREFIXES).toContain("ENCORE_");
+    expect(RESERVED_CONFIG_REF_PREFIXES).toContain("KUBERNETES_");
+  });
+});
+
+describe("resolveTenantShape (spec 214 FR-002, sole-shape mapping)", () => {
+  it("maps any factory-created project (synthetic adapter id) to aim-vue-encore", () => {
+    expect(resolveTenantShape("synthetic-adapter-abcd1234-my-app")).toBe(
+      "aim-vue-encore",
+    );
+  });
+
+  it("returns null when the project has no factory adapter", () => {
+    expect(resolveTenantShape(null)).toBeNull();
+    expect(resolveTenantShape(undefined)).toBeNull();
+    expect(resolveTenantShape("")).toBeNull();
+  });
+
+  it("lets an explicit registered chart name win over the adapter", () => {
+    expect(resolveTenantShape("synthetic-adapter-x", "tenant-hello")).toBe(
+      "tenant-hello",
+    );
+    expect(resolveTenantShape(null, "aim-vue-encore")).toBe("aim-vue-encore");
+  });
+
+  it("ignores an unknown explicit chart and falls back to the adapter", () => {
+    expect(resolveTenantShape("synthetic-adapter-x", "not-a-real-chart")).toBe(
+      "aim-vue-encore",
+    );
+    expect(resolveTenantShape(null, "not-a-real-chart")).toBeNull();
+  });
+});
+
+describe("resolveChartSelection (spec 214 FR-002)", () => {
+  it("resolves a factory project to the aim-vue-encore chart selection", () => {
+    expect(resolveChartSelection("synthetic-adapter-x")).toEqual({
+      chart: "aim-vue-encore",
+      version: "0.1.0",
+    });
+  });
+
+  it("resolves an explicit tenant-hello override", () => {
+    expect(resolveChartSelection(null, "tenant-hello")).toEqual({
+      chart: "tenant-hello",
+      version: "0.1.0",
+    });
+  });
+
+  it("returns null when no shape is derivable (deployd applies its default)", () => {
+    expect(resolveChartSelection(null)).toBeNull();
+  });
+});

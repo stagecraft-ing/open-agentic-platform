@@ -1,8 +1,18 @@
 import { api } from "encore.dev/api";
 import log from "encore.dev/log";
+import { eq } from "drizzle-orm";
+import { db } from "../db/drizzle";
+import { environments, projects, organizations } from "../db/schema";
 import { readSecretFromDir } from "./secrets";
 import { getCachedDeploydAuthHeader } from "./oidcM2m";
 import { loadDeployDescriptorForEnv } from "../environments/accessGatesDeploy";
+import {
+  resolveChartSelection,
+  isReservedConfigRefKey,
+  RESERVED_CONFIG_REF_PREFIXES,
+} from "./deployResolve";
+import { deriveHost } from "./hostname";
+import type { HostVariant } from "./hostname";
 
 // Hand-rolled validator for the `/v1/deployments` raw body. zod is
 // avoided here because Encore.ts's TS parser walks zod 4's `.d.cts`
@@ -18,6 +28,12 @@ const DEPLOYD_SCOPE = process.env.DEPLOYD_SCOPE ?? "";
 // rendered oauth2-proxy points at our identity provider. Distinct from
 // OIDC_ENDPOINT (which is the M2M token endpoint used to call deployd-api).
 const RAUTHY_ISSUER_URL = process.env.RAUTHY_ISSUER_URL ?? "";
+// Spec 214 FR-007 / Clarification 3: the apex the tenant wildcard cert covers
+// (`*.tenants.${TENANTS_BASE_DOMAIN}`). Operational config surfaced to the
+// deploy service; the host is derived as a single label below `tenants.`.
+// When unset, route derivation is skipped and the caller's desired_routes (if
+// any) flow through unchanged.
+const TENANTS_BASE_DOMAIN = process.env.TENANTS_BASE_DOMAIN ?? "";
 
 interface DesiredRoute {
   host?: string;
@@ -35,6 +51,15 @@ interface CreateDeploymentBody {
   lane: "LANE_A" | "LANE_B";
   desired_routes: DesiredRoute[];
   config_refs: Record<string, string>;
+  // Spec 214 optional dispatch fields. All default-derivable: chart from the
+  // project's adapter (FR-002), namespace from the environment (FR-008), host
+  // from slugs (FR-007). A caller may still supply them explicitly and they
+  // take precedence over the derived values.
+  chart?: string;
+  chart_version?: string;
+  image_pull_secret_name?: string;
+  namespace?: string;
+  variant?: HostVariant;
 }
 
 interface FieldIssue {
@@ -123,8 +148,41 @@ function parseCreateDeployment(
           });
           continue;
         }
+        // Spec 214 FR-004: ENCORE_/KUBERNETES_ are runtime/platform-owned.
+        if (isReservedConfigRefKey(k)) {
+          issues.push({
+            field: `config_refs.${k}`,
+            message: `reserved prefix: keys starting with ${RESERVED_CONFIG_REF_PREFIXES.join(" or ")} are platform-managed and cannot be set via config_refs`,
+          });
+          continue;
+        }
         config_refs[k] = v;
       }
+    }
+  }
+
+  // Spec 214 optional dispatch fields. Absent fields stay undefined and are
+  // derived (or defaulted) downstream; present non-strings are a field error.
+  const optStr = (key: string): string | undefined => {
+    const v = raw[key];
+    if (v === undefined || v === null) return undefined;
+    if (typeof v !== "string") {
+      issues.push({ field: key, message: "expected string" });
+      return undefined;
+    }
+    return v;
+  };
+  const chart = optStr("chart");
+  const chart_version = optStr("chart_version");
+  const image_pull_secret_name = optStr("image_pull_secret_name");
+  const namespace = optStr("namespace");
+
+  let variant: HostVariant | undefined;
+  if (raw.variant !== undefined && raw.variant !== null) {
+    if (raw.variant === "public" || raw.variant === "internal") {
+      variant = raw.variant;
+    } else {
+      issues.push({ field: "variant", message: "expected 'public' or 'internal'" });
     }
   }
 
@@ -144,6 +202,11 @@ function parseCreateDeployment(
       lane,
       desired_routes,
       config_refs,
+      chart,
+      chart_version,
+      image_pull_secret_name,
+      namespace,
+      variant,
     },
   };
 }
@@ -294,6 +357,68 @@ export const createDeployment = api.raw(
       return;
     }
 
+    // region: shape-and-routing
+    // Spec 214: enrich the dispatch from stagecraft's own records. Resolve the
+    // chart shape from the project's factory adapter (FR-002), forward the
+    // stored namespace (FR-008), and derive the tenant host from
+    // org/project/env slugs when the caller supplied no routes (FR-007).
+    // Best-effort: any lookup miss or DB error falls back to caller-supplied
+    // values so existing /v1/deployments callers keep working unchanged.
+    let chartSelection = resolveChartSelection(undefined, data.chart);
+    let forwardedNamespace: string | undefined = data.namespace || undefined;
+    let desiredRoutes = data.desired_routes;
+    try {
+      const [env] = await db
+        .select({
+          projectId: environments.projectId,
+          k8sNamespace: environments.k8sNamespace,
+        })
+        .from(environments)
+        .where(eq(environments.id, data.env_id))
+        .limit(1);
+      if (env) {
+        if (!forwardedNamespace && env.k8sNamespace) {
+          forwardedNamespace = env.k8sNamespace;
+        }
+        const [project] = await db
+          .select({
+            slug: projects.slug,
+            orgId: projects.orgId,
+            factoryAdapterId: projects.factoryAdapterId,
+          })
+          .from(projects)
+          .where(eq(projects.id, env.projectId))
+          .limit(1);
+        if (project) {
+          chartSelection = resolveChartSelection(project.factoryAdapterId, data.chart);
+          if (desiredRoutes.length === 0 && TENANTS_BASE_DOMAIN) {
+            const [org] = await db
+              .select({ slug: organizations.slug })
+              .from(organizations)
+              .where(eq(organizations.id, project.orgId))
+              .limit(1);
+            if (org) {
+              const host = deriveHost({
+                orgSlug: org.slug,
+                projectSlug: project.slug,
+                envSlug: data.env_slug,
+                variant: data.variant,
+                baseDomain: TENANTS_BASE_DOMAIN,
+              });
+              desiredRoutes = [{ host, path: "/" }];
+            }
+          }
+        }
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      log.warn("deploy.enrichment.lookup_failed", { envId: data.env_id, error: msg });
+      // Fall through with caller-supplied chart/namespace/routes.
+    }
+    // FR-005: default the pull secret to the reflected `ghcr-pull` dockerconfig.
+    const imagePullSecretName = data.image_pull_secret_name || "ghcr-pull";
+    // endregion shape-and-routing
+
     try {
       const authHeader = await getDeploydAuthHeader();
       const resp = await fetch(`${DEPLOYD_URL}/v1/deployments`, {
@@ -312,8 +437,15 @@ export const createDeployment = api.raw(
           artifact_ref: data.artifact_ref,
           lane: data.lane,
           config_refs: data.config_refs,
-          desired_routes: data.desired_routes,
+          desired_routes: desiredRoutes,
           access_gate,
+          // Spec 214: chart (FR-002), namespace (FR-008), pull secret (FR-005).
+          // Undefined fields are omitted by JSON.stringify, so deployd-api's
+          // Option<_> defaults apply (chart falls back to its own default).
+          chart: chartSelection?.chart,
+          chart_version: data.chart_version || chartSelection?.version,
+          image_pull_secret_name: imagePullSecretName,
+          namespace: forwardedNamespace,
         }),
       });
     // endregion access-gate-wire

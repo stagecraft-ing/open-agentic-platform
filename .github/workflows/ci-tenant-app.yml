@@ -1,0 +1,107 @@
+# Spec: 214-tenant-app-chart-supersession
+# Spec: 177-ci-orchestrator-pr-gate
+#
+# CI for the aim-vue-encore reference chart (the factory's template-encore
+# scaffold shape). PR-time helm lint + render gates plus the FR-011 gate-seam
+# render-parity check that gates the Stage 2 tenant-hello retirement: it proves
+# the access-gate seam carries over to the new chart byte-for-byte before the
+# synthetic tenant is removed.
+#
+# Dispatched from `.github/workflows/ci.yml` on PRs touching the aim-vue-encore
+# chart, the tenant-hello / oauth2-proxy-gate charts (the parity inputs), or
+# this workflow (spec 177); manual via workflow_dispatch.
+#
+# FR-010 fixture-image build (SC-006 lockstep): building the reference image
+# from a materialised template-encore profile is a cross-repo step that needs
+# the per-org template-encore source (repo + pinned SHA + read token), which is
+# operational config resolved at runtime from org admission, not in-repo. It
+# lands with the cd-tenant-app.yml image build (Stage 2) once that source is
+# wired as a repo variable; it is deliberately not stubbed here with guessed
+# coordinates (a SHA-pinned cross-repo checkout per spec 158 needs a real SHA).
+
+name: CI tenant-app
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chart-lint:
+    runs-on: ubuntu-latest
+    name: helm lint + render
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Install Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5
+
+      - name: helm lint
+        run: helm lint platform/charts/aim-vue-encore/
+
+      - name: helm template (default values)
+        run: helm template aim-vue-encore-ci platform/charts/aim-vue-encore/ > /tmp/render-default.yaml
+
+      - name: helm template (gate + ingress + tls)
+        run: |
+          helm template aim-vue-encore-ci platform/charts/aim-vue-encore/ \
+            --set ingress.enabled=true --set ingress.host=app.tenants.test \
+            --set ingress.tls.enabled=true --set ingress.tls.secretName=tenants-wildcard-tls \
+            --set gate.enabled=true --set gate.proxyServiceName=app-gate --set gate.proxyServicePort=4180 \
+            > /tmp/render-gate.yaml
+
+      - name: helm template (preview database) renders the StatefulSet
+        run: |
+          helm template aim-vue-encore-ci platform/charts/aim-vue-encore/ \
+            --set previewDatabase.enabled=true > /tmp/render-db.yaml
+          grep -q "kind: StatefulSet" /tmp/render-db.yaml
+
+  gate-parity:
+    runs-on: ubuntu-latest
+    name: FR-011 gate-seam render parity
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Install Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5
+
+      - name: FR-011 render parity (tenant-hello vs aim-vue-encore)
+        run: |
+          # Render both charts against identical gate + ingress + tls values
+          # and assert the gate-relevant objects (3 auth-* annotations + the
+          # TLS secretName) are byte-identical. helm failures fail the step
+          # under the default -eo pipefail; the grep is guarded so an empty
+          # extraction surfaces its own diagnostic rather than a pipefail.
+          render() {
+            helm template parity "platform/charts/$1/" -n parity-ns \
+              --set ingress.enabled=true --set ingress.host=parity.tenants.test \
+              --set ingress.tls.enabled=true --set ingress.tls.secretName=tenants-wildcard-tls \
+              --set gate.enabled=true --set gate.proxyServiceName=parity-gate --set gate.proxyServicePort=4180 \
+              > "/tmp/full-$1.yaml"
+          }
+          extract() {
+            { grep -E 'auth-url:|auth-signin:|auth-response-headers:|secretName:' "$1" || true; } \
+              | sed 's/^[[:space:]]*//' | sort
+          }
+          render tenant-hello
+          render aim-vue-encore
+          extract /tmp/full-tenant-hello.yaml > /tmp/gate-hello.txt
+          extract /tmp/full-aim-vue-encore.yaml > /tmp/gate-app.txt
+
+          if [ ! -s /tmp/gate-hello.txt ]; then
+            echo "::error::gate-relevant extraction is empty: the render produced no auth/tls lines, so parity would pass vacuously"
+            exit 1
+          fi
+          echo "tenant-hello gate seam:"; cat /tmp/gate-hello.txt
+          echo "aim-vue-encore gate seam:"; cat /tmp/gate-app.txt
+          if ! diff -u /tmp/gate-hello.txt /tmp/gate-app.txt; then
+            echo "::error::FR-011 gate-seam render parity failed: aim-vue-encore drifted from tenant-hello"
+            exit 1
+          fi
+          echo "FR-011 gate-seam render parity OK ($(wc -l < /tmp/gate-hello.txt) gate-relevant lines, byte-identical)"
