@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "5313c74455a9e5352fc4b00ab511da1e91c41c01585cb09efc728a2dd9ab9c58",
+    "contentHash": "dcdad02a1a59eb0361e31770fd313fd03ed55c4e264a9126bda17a73988be762",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -22220,6 +22220,12 @@
                 "file": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.up.sql"
               },
               {
+                "file": "platform/services/stagecraft/api/db/migrations/48_project_artifacts.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/48_project_artifacts.up.sql"
+              },
+              {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
               },
               {
@@ -31854,6 +31860,12 @@
                 "file": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.up.sql"
               },
               {
+                "file": "platform/services/stagecraft/api/db/migrations/48_project_artifacts.down.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/48_project_artifacts.up.sql"
+              },
+              {
                 "file": "platform/services/stagecraft/api/db/migrations/4_create_agent_policies.up.sql"
               },
               {
@@ -31882,6 +31894,12 @@
               },
               {
                 "file": "platform/services/stagecraft/api/db/test-fixtures/30_test_divergence.sql"
+              },
+              {
+                "file": "platform/services/stagecraft/api/deploy/artifacts.test.ts"
+              },
+              {
+                "file": "platform/services/stagecraft/api/deploy/artifacts.ts"
               },
               {
                 "file": "platform/services/stagecraft/api/deploy/chartSelector.test.ts"
@@ -48744,7 +48762,23 @@
             "source": "spec-implements"
           },
           {
+            "path": "platform/services/stagecraft/api/db/migrations/48_project_artifacts.down.sql",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/db/migrations/48_project_artifacts.up.sql",
+            "source": "spec-implements"
+          },
+          {
             "path": "platform/services/stagecraft/api/db/schema.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/artifacts.test.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/deploy/artifacts.ts",
             "source": "spec-implements"
           },
           {
@@ -48754,9 +48788,73 @@
           {
             "path": "platform/services/stagecraft/api/github/webhook.ts",
             "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/projects.ts",
+            "source": "spec-implements"
+          },
+          {
+            "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts",
+            "source": "spec-implements"
           }
         ],
         "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/48_project_artifacts.down.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/48_project_artifacts.down.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/db/migrations/48_project_artifacts.up.sql"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/db/migrations/48_project_artifacts.up.sql"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/deploy/artifacts.test.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/artifacts.test.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/deploy/artifacts.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "establishes",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/deploy/artifacts.ts"
+            }
+          },
           {
             "kind": "file",
             "locations": [
@@ -48817,6 +48915,34 @@
             "kind": "file",
             "locations": [
               {
+                "file": "platform/services/stagecraft/api/projects/projects.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projects/projects.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
                 "file": ".github/workflows/cd-tenant-hello.yml"
               }
             ],
@@ -48825,24 +48951,6 @@
             "unit": {
               "kind": "file",
               "path": ".github/workflows/cd-tenant-hello.yml"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": false,
-            "sourceField": "references",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/deploy/artifacts.test.ts"
-            }
-          },
-          {
-            "kind": "file",
-            "ownership": false,
-            "sourceField": "references",
-            "unit": {
-              "kind": "file",
-              "path": "platform/services/stagecraft/api/deploy/artifacts.ts"
             }
           },
           {

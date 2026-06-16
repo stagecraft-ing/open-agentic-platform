@@ -322,3 +322,194 @@ export async function createOapWorkflow(
 
   log.info("OAP workflow created", { fullName });
 }
+
+// ---------------------------------------------------------------------------
+// Spec 213: container-build workflow (oap-build.yml)
+// ---------------------------------------------------------------------------
+
+/**
+ * The workflow's `name:` value, matched by the GitHub webhook on
+ * `workflow_run.completed` (spec 213 FR-006). Single source of truth so the
+ * seeded YAML and the webhook recorder stay in lockstep.
+ */
+export const OAP_BUILD_WORKFLOW_NAME = "oap-build";
+
+// The active container-build workflow seeded into created repos (spec 213
+// FR-001/FR-002/FR-003/FR-004). It mirrors template-encore's real build
+// (npm ci -> npm run build -> encore CLI -> encore build docker --base),
+// detects single vs dual-profile trees at runtime and builds from the
+// variant root, tags `sha-{short12}[-variant]` on every push and adds the
+// `pr-{n}[-variant]` alias on pull_request, and publishes no `latest` tag.
+// `${...}` GitHub/bash expressions are backslash-escaped so this template
+// literal is not interpreted by JS. Third-party actions are SHA-pinned to
+// the same refs this repo trusts (cd-tenant-hello.yml precedent). Exported
+// so the factory-create scaffold flow can write it into commit #1 of the
+// scaffolded tree (spec 213 FR-001 / SC-001); the Contents-API seed below
+// is the retrofit path for repos created before this spec (FR-008).
+export const OAP_BUILD_WORKFLOW_YAML = `name: ${OAP_BUILD_WORKFLOW_NAME}
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: oap-build-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    name: detect tree layout
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: \${{ steps.detect.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - id: detect
+        shell: bash
+        run: |
+          # Spec 213 FR-004: a dual-profile tree carries top-level public/ and
+          # internal/ each with apps/api; otherwise build the repo root.
+          if [ -d public/apps/api ] && [ -d internal/apps/api ]; then
+            echo 'matrix={"include":[{"variant":"public","dir":"public"},{"variant":"internal","dir":"internal"}]}' >> "\$GITHUB_OUTPUT"
+          else
+            echo 'matrix={"include":[{"variant":"root","dir":"."}]}' >> "\$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: build \${{ matrix.variant }}
+    needs: detect
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: \${{ fromJSON(needs.detect.outputs.matrix) }}
+    defaults:
+      run:
+        working-directory: \${{ matrix.dir }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: \${{ matrix.dir }}/package-lock.json
+
+      - name: Compute image ref (spec 213 FR-002)
+        id: meta
+        shell: bash
+        run: |
+          SHORT_SHA="\$(git rev-parse --short=12 HEAD)"
+          SUFFIX=""
+          if [ "\${{ matrix.variant }}" != "root" ]; then SUFFIX="-\${{ matrix.variant }}"; fi
+          IMAGE="ghcr.io/\${GITHUB_REPOSITORY,,}"
+          {
+            echo "image=\${IMAGE}"
+            echo "sha_tag=sha-\${SHORT_SHA}\${SUFFIX}"
+            echo "pr_tag=pr-\${{ github.event.pull_request.number }}\${SUFFIX}"
+          } >> "\$GITHUB_OUTPUT"
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Build shared packages + SPA
+        run: npm run build
+
+      - name: Install Encore CLI
+        shell: bash
+        run: |
+          curl -fsSL https://encore.dev/install.sh | bash
+          echo "\$HOME/.encore/bin" >> "\$GITHUB_PATH"
+
+      - name: Install API dependencies
+        working-directory: \${{ matrix.dir }}/apps/api
+        run: npm ci
+
+      - name: Log in to GHCR
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
+        with:
+          registry: ghcr.io
+          username: \${{ github.actor }}
+          # GITHUB_TOKEN with packages:write covers the common case; the
+          # org-level PAT secret GHCR_PUBLISH_TOKEN is the documented fallback
+          # for orgs that restrict first-publish package creation (spec 213
+          # Clarification 2). The PAT widens blast radius and is review-flagged.
+          password: \${{ secrets.GHCR_PUBLISH_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Build base image
+        run: docker build -f apps/api/Dockerfile.base -t oap-api-base:\${{ github.sha }}-\${{ matrix.variant }} apps/api
+
+      - name: Build Encore image (spec 213 FR-001)
+        working-directory: \${{ matrix.dir }}/apps/api
+        run: |
+          encore build docker \\
+            --config ./infra.config.json \\
+            --base oap-api-base:\${{ github.sha }}-\${{ matrix.variant }} \\
+            "\${{ steps.meta.outputs.image }}:\${{ steps.meta.outputs.sha_tag }}"
+
+      - name: Push sha tag
+        run: docker push "\${{ steps.meta.outputs.image }}:\${{ steps.meta.outputs.sha_tag }}"
+
+      - name: Tag and push PR alias (spec 213 FR-003)
+        if: github.event_name == 'pull_request'
+        run: |
+          docker tag "\${{ steps.meta.outputs.image }}:\${{ steps.meta.outputs.sha_tag }}" "\${{ steps.meta.outputs.image }}:\${{ steps.meta.outputs.pr_tag }}"
+          docker push "\${{ steps.meta.outputs.image }}:\${{ steps.meta.outputs.pr_tag }}"
+`;
+
+/**
+ * Seed (or update) the `oap-build.yml` container-build workflow in a repo
+ * via the GitHub Contents API. Idempotent (FR-008): fetches the existing
+ * file SHA so a retrofit updates in place rather than 422-ing on an
+ * existing path. Used at project-create time (FR-001) and by the retrofit
+ * admin endpoint for repos created before this spec. Throws on a hard
+ * failure so the admin caller can surface it; the create-time caller wraps
+ * it best-effort.
+ */
+export async function seedOapBuildWorkflow(
+  token: string,
+  fullName: string
+): Promise<{ action: "created" | "updated" }> {
+  const path = ".github/workflows/oap-build.yml";
+  const content = Buffer.from(OAP_BUILD_WORKFLOW_YAML).toString("base64");
+
+  const getResp = await fetch(
+    `${GITHUB_API}/repos/${fullName}/contents/${path}`,
+    { headers: githubHeaders(token) }
+  );
+  let sha: string | undefined;
+  if (getResp.ok) {
+    const existing = (await getResp.json()) as { sha: string };
+    sha = existing.sha;
+  }
+
+  const putResp = await fetch(
+    `${GITHUB_API}/repos/${fullName}/contents/${path}`,
+    {
+      method: "PUT",
+      headers: githubHeaders(token),
+      body: JSON.stringify({
+        message: sha
+          ? "ci: update OAP container build workflow (spec 213)"
+          : "ci: add OAP container build workflow (spec 213)",
+        content,
+        ...(sha && { sha }),
+      }),
+    }
+  );
+
+  if (!putResp.ok) {
+    const body = await putResp.text();
+    throw new Error(
+      `Failed to seed oap-build.yml into ${fullName}: ${putResp.status} ${body}`
+    );
+  }
+
+  const action = sha ? "updated" : "created";
+  log.info("OAP build workflow seeded", { fullName, action });
+  return { action };
+}
