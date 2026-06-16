@@ -167,35 +167,49 @@ amends spec 137 (clarification): `amended:` frontmatter + callout on 137.
   gate-seam render-parity vs tenant-hello PROVEN** (4 gate-relevant lines
   byte-identical: 3 `auth-*` annotations + TLS `secretName`).
 
+**DONE + verified (2026-06-15 continuation, committed on `feat/214`):**
+
+- `helm.rs` (commit `d382b875`): 8-file aim-vue-encore chart embedded
+  (`include_str!` + `write_chart` arm); `build_values` extended via a
+  `DeployExtras` struct that renders `ingress.tls.*` (the reflected
+  `tenants-wildcard-tls` secret), `imagePullSecrets` (FR-005), and `extraEnv`
+  from `config_refs` (FR-004, key-sorted). Net-new TLS wiring.
+- `routes.rs`/`store.rs` (commit `d382b875`): `config_refs`,
+  `image_pull_secret_name`, `namespace` on `DeploymentRequest`; forwarded
+  namespace wins + is persisted (FR-008); `namespace` column with an
+  idempotent ALTER migration; DELETE tears down using the recorded namespace.
+  TLS secret from `DEPLOYD_TENANT_TLS_SECRET` (default `tenants-wildcard-tls`).
+  Verified: `cargo check` + `clippy -D warnings` + 37 tests (helm rendered the
+  chart for real against helm v4.1.1).
+- `deploy.ts` + new `deployResolve.ts` (+ test) (commit `ad5dc422`):
+  reserved-prefix rejection (FR-004); sole-shape mapping `factoryAdapterId ->
+  aim-vue-encore` (FR-002, user-confirmed); env->project->org lookup forwards
+  `namespace` (FR-008) and derives `desired_routes` via `hostname.ts` (FR-007)
+  using `TENANTS_BASE_DOMAIN` (Clarification 3 resolved: that env var name);
+  `image_pull_secret_name` defaults to `ghcr-pull` (FR-005). All optional with
+  caller-supplied fallback (back-compat). Verified: `npx tsc --noEmit` (0
+  errors) + vitest (24 pass). DB-bound end-to-end dispatch is deploy-time.
+
 **PENDING (resume here):**
 
-- `helm.rs`: `include_str!` embed the 8 chart files + `write_chart` arm +
-  `build_values` (set `ingress.tls.*`, `extraEnv`, `imagePullSecretName`,
-  forwarded `namespace`). The TLS wiring is net-new (build_values never set
-  `ingress.tls.*` before, per the survey).
-- `routes.rs`/`store.rs`: add `config_refs`, `image_pull_secret_name`
-  (default `ghcr-pull`), `namespace` to `DeploymentRequest`; use + persist
-  the forwarded namespace + migration. `cargo check` + `cargo test`.
-- `deploy.ts`: forward `chart`/`chart_version` from `selectChart` (keyed on
-  `factoryAdapterId`); reject reserved `ENCORE_`/`KUBERNETES_` `config_refs`
-  prefixes; `image_pull_secret_name`; `namespace`; derive `desired_routes`
-  from `hostname.ts` when the caller omits them. Confirm the `{base}` domain
-  env var name in `deploy.ts` (Clarification 3).
 - `ci-tenant-app.yml` (CI-time SHA-pinned template-encore fetch + `helm lint`
   + template renders + the FR-011 parity check) and a `ghcr-pull` reflector
   secret manifest under `infra/hetzner/manifests/`.
 - Spec 214 frontmatter: convert `references: planned-establishes` to
   `establishes:` for `platform/charts/aim-vue-encore` (directory),
-  `hostname.ts`/`.test.ts`, `ci-tenant-app.yml`; run coupling / spec-lint /
-  featuregraph golden / codebase-index gates.
+  `hostname.ts`/`.test.ts`, `ci-tenant-app.yml`; ADD the new
+  `deployResolve.ts`/`.test.ts` to `establishes`; run coupling / spec-lint /
+  featuregraph golden (UPDATE_GOLDEN=1) / codebase-index gates.
 
 Then **checkpoint before Stage 2** (destructive: delete tenant-hello, flip the
 registry to sole-shape, amend 136/137).
 
-**Branch note:** all 214 Stage 1 changes are currently on
-`feat/213-tenant-repo-image-build` (uncommitted), intermingled with the
-completed spec 213 work. On resume, decide whether to commit 213 first and
-split 214 onto `feat/214-tenant-app-chart-supersession`.
+**Branch note:** branches were split 2026-06-15. Spec 213 is on
+`feat/213-tenant-repo-image-build` (commit `271147e6`, PR-ready). All 214 work
+is on `feat/214-tenant-app-chart-supersession` (commits `16507b39` chart +
+hostname + chartSelector, `d382b875` deployd backend, `ad5dc422` deploy proxy).
+Both branched from `57c5bedb`; `origin/main` is ahead at `9ac5f886` (rebase
+before PR). Neither pushed.
 
 ## Verification split
 
