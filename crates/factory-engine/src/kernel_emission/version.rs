@@ -70,6 +70,15 @@ pub struct KernelOrigin {
     /// ISO-8601 UTC timestamp. Excluded from determinism comparisons —
     /// callers verifying FR-009 must compare `source_hash` instead.
     pub emitted_at: DateTime<Utc>,
+    /// The exact-pinned `spec-spine` npm devDependency version the project
+    /// was born under (spec 209 FR-004: npm-pin verification). The stagecraft
+    /// Create flow's `.kernel-version` stamp (kernelVersionStamp.ts) writes
+    /// this under the npm distribution shape. Optional in serde so pre-spec-209
+    /// `.kernel-version` fixtures and the non-npm engine fallback (which has no
+    /// npm pin) still round-trip, and so a Rust read no longer silently drops
+    /// the field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spec_spine_version: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -115,6 +124,7 @@ mod tests {
                 source_hash: "abc123".into(),
                 factory_engine_version: "0.1.0".into(),
                 emitted_at: Utc.with_ymd_and_hms(2026, 5, 23, 12, 0, 0).unwrap(),
+                spec_spine_version: Some("0.2.0".into()),
             },
             adapter: AdapterIdentity {
                 id: "aim-vue-encore".into(),
@@ -169,5 +179,56 @@ mod tests {
         assert_eq!(r.emitter, "build-certificate");
         assert_eq!(r.verifier, "verify-certificate");
         assert_eq!(r.factory_engine_version, "1.2.3");
+    }
+
+    #[test]
+    fn spec_spine_version_round_trips_and_omits_when_absent() {
+        // Spec 209 FR-004: the npm pin the TS `.kernel-version` stamp writes
+        // round-trips through the Rust struct instead of being dropped.
+        let v = sample();
+        let yaml = v.to_yaml().unwrap();
+        assert!(yaml.contains("spec_spine_version: 0.2.0"));
+        let parsed = KernelVersion::from_yaml(&yaml).unwrap();
+        assert_eq!(parsed.kernel.spec_spine_version.as_deref(), Some("0.2.0"));
+
+        // A pre-spec-209 stamp without the field deserialises to None and the
+        // field is omitted on re-serialisation (no churn for legacy fixtures).
+        let mut legacy = sample();
+        legacy.kernel.spec_spine_version = None;
+        let legacy_yaml = legacy.to_yaml().unwrap();
+        assert!(!legacy_yaml.contains("spec_spine_version"));
+        let parsed_legacy = KernelVersion::from_yaml(&legacy_yaml).unwrap();
+        assert!(parsed_legacy.kernel.spec_spine_version.is_none());
+    }
+
+    #[test]
+    fn ts_stamp_shape_does_not_yet_round_trip_through_rust() {
+        // Spec 209 finding: the stagecraft TS `.kernel-version` stamp
+        // (kernelVersionStamp.ts) writes a reduced `kernel` shape
+        // (source_commit, spec_spine_version, emitted_at) and omits the
+        // `source_hash` + `factory_engine_version` this struct requires.
+        // Adding `spec_spine_version` lets Rust recognise the pin, but a full
+        // Rust read of the TS stamp still fails on the missing required fields.
+        // FR-004's vended-tool npm-pin check therefore reads the pin in the
+        // tenant CI (template-encore), NOT via this struct, until a TS<->Rust
+        // `.kernel-version` schema reconciliation lands. This test pins that
+        // boundary so the residual stays visible, not silent.
+        let ts_stamp = r#"
+schema_version: "1.0.0"
+toolchain_mode: pinned-toolchain
+kernel:
+  source_commit: "abc1234"
+  spec_spine_version: "0.2.0"
+  emitted_at: "2026-06-15T12:00:00Z"
+adapter:
+  id: "aim-vue-encore"
+  version: "0.1.0"
+  manifest_hash: "def456"
+"#;
+        assert!(
+            KernelVersion::from_yaml(ts_stamp).is_err(),
+            "TS stamp unexpectedly round-trips; if the struct was reconciled, \
+             update FR-004's read path and this test"
+        );
     }
 }
