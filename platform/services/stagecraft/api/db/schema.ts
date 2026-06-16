@@ -302,6 +302,44 @@ export type EnvironmentAccessGateAllowlistEmailInsert =
   typeof environmentAccessGateAllowlistEmails.$inferInsert;
 
 // ---------------------------------------------------------------------------
+// Project Artifacts (spec 213)
+// ---------------------------------------------------------------------------
+//
+// One row per successfully published OCI image for a project commit; the
+// deploy path's first lookup for "what image does this commit have?"
+// (FR-006). Populated by the GitHub webhook on `workflow_run.completed`
+// (workflow `oap-build`, conclusion `success`). A missed event degrades to
+// the deterministic `deriveArtifactRef` convention (FR-005), never to a
+// hard failure. `variant` is `root` for single-variant trees and
+// `public`/`internal` for dual-profile trees (spec 214 FR-009).
+
+export const projectArtifacts = pgTable(
+  "project_artifacts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    releaseSha: text("release_sha").notNull(),
+    variant: text("variant").notNull().default("root"),
+    imageRef: text("image_ref").notNull(),
+    workflowRunId: bigint("workflow_run_id", { mode: "number" }),
+    builtAt: timestamp("built_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  // Idempotent upsert key (FR-006; re-run/race on the same SHA).
+  (t) => [unique().on(t.projectId, t.releaseSha, t.variant)]
+);
+
+export type ProjectArtifact = typeof projectArtifacts.$inferSelect;
+export type ProjectArtifactInsert = typeof projectArtifacts.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // Project Members
 // ---------------------------------------------------------------------------
 
