@@ -240,12 +240,12 @@ fn strip_cifast_region(makefile: &str) -> String {
 // and Makefile. It does NOT guarantee that running those commands on a
 // fresh clone yields the same result as running them in a dev workspace.
 //
-// The concrete case that prompted this: `spec-conformance.yml` runs
-// `codebase-indexer check` as step 11, BEFORE `codebase-indexer compile`
-// at step 12. The tool reads `build/codebase-index/index.json`. On a dev
-// machine that file exists as a residue of prior runs; on CI's fresh
-// clone it doesn't. The step fails with ENOENT on CI while `make ci-tools`
-// passes locally.
+// The concrete case that prompted this: a `spec-conformance.yml` step ran
+// `codebase-indexer check` BEFORE `codebase-indexer compile`. The tool read
+// `.derived/codebase-index/index.json`; on CI's fresh clone it did not exist,
+// so the step failed with ENOENT while `make ci-tools` passed locally.
+// (That broad `check` was retired by spec 188 Phase 4b, which gitignores the
+// broad index; the narrow `check-config` reads the tracked `config-hash.json`.)
 //
 // The rule: any step that invokes a "consumer" of a governed artifact
 // under `build/` MUST be preceded (in the same job) by a "producer" of
@@ -266,9 +266,17 @@ struct ProducerRule {
 /// Commands known to READ a governed artifact under `build/`.
 /// Extend as new tools are added to the governed-read surface.
 const CONSUMERS: &[ConsumerRule] = &[
+    // The broad `codebase-indexer check` (whole-index staleness) was retired by
+    // spec 188 Phase 4b: the broad index is gitignored and rebuilt on demand,
+    // never committed, so there is no committed artifact to gate on and no
+    // workflow invokes it. The narrow `check-config` reads the tracked
+    // `config-hash.json` (re-homed in spec 188 Phase 4a), which is committed, so
+    // its precondition is satisfied. Modeling it explicitly (rather than letting
+    // the old broad `codebase-indexer check` substring shadow it) keeps the
+    // fresh-clone guarantee honest for the config gate.
     ConsumerRule {
-        pattern: "codebase-indexer check",
-        artifact: ".derived/codebase-index/index.json",
+        pattern: "codebase-indexer check-config",
+        artifact: ".derived/codebase-index/config-hash.json",
     },
     ConsumerRule {
         pattern: "codebase-indexer render",
@@ -650,7 +658,10 @@ mod tests {
         // artifact under build/. If a new consumer is added without a rule,
         // this is the test that should fail.
         let lines = [
-            "./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check",
+            // The broad `codebase-indexer check` was retired by spec 188 Phase 4b
+            // (gitignored, rebuilt-on-demand index); the narrow `check-config`
+            // (reads the tracked config-hash.json) is the current governed read.
+            "./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check-config",
             "./tools/spec-spine/codebase-indexer/target/release/codebase-indexer render",
             "./tools/spec-spine/registry-consumer/target/release/registry-consumer list",
             "./tools/spec-spine/registry-consumer/target/release/registry-consumer status-report --json",
