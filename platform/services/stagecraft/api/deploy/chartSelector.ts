@@ -17,19 +17,20 @@
 //   via Helm` half).
 
 /**
- * Tenant codebase shapes recognised by the chartSelector. tenant-hello
- * is the canonical reference shape; other shapes will land alongside
- * future tenant-* charts.
+ * Tenant codebase shapes recognised by the chartSelector. `aim-vue-encore`
+ * is the factory's real reference shape (the template-encore scaffold);
+ * `tenant-hello` is the synthetic reference being superseded by spec 214
+ * (dropped in the Stage 2 retirement once gate-seam render parity is proven,
+ * FR-011).
  */
-export type TenantShape = "tenant-hello";
+export type TenantShape = "tenant-hello" | "aim-vue-encore";
 
 /**
- * Minimal per-project descriptor for chart resolution. Future shape
- * detection (multi-service, Rust tenant, Python tenant, etc.) layers
- * additional fields onto this.
+ * Minimal per-project descriptor for chart resolution. The shape derives
+ * from the project's `factoryAdapterId` at dispatch time (spec 214 FR-002).
  */
 export type ChartSelectorInput = {
-  /** The project's recognised shape, today always "tenant-hello". */
+  /** The project's recognised deployable shape. */
   shape: TenantShape;
 };
 
@@ -42,6 +43,7 @@ export type ChartSelection = {
 
 const CHART_REGISTRY: Record<TenantShape, ChartSelection> = {
   "tenant-hello": { chart: "tenant-hello", version: "0.1.0" },
+  "aim-vue-encore": { chart: "aim-vue-encore", version: "0.1.0" },
 };
 
 /**

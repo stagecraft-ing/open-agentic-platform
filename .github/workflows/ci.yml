@@ -61,6 +61,7 @@ jobs:
       schema_parity: ${{ steps.f.outputs.schema_parity == 'true' || github.event_name == 'merge_group' }}
       stagecraft: ${{ steps.f.outputs.stagecraft == 'true' || github.event_name == 'merge_group' }}
       stagecraft_encore: ${{ steps.f.outputs.stagecraft_encore == 'true' || github.event_name == 'merge_group' }}
+      tenant_app: ${{ steps.f.outputs.tenant_app == 'true' || github.event_name == 'merge_group' }}
       tenant_hello: ${{ steps.f.outputs.tenant_hello == 'true' || github.event_name == 'merge_group' }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
@@ -139,6 +140,12 @@ jobs:
               # surface as `stagecraft`, plus its own workflow file.
               - 'platform/services/stagecraft/**'
               - '.github/workflows/ci-stagecraft-encore.yml'
+            tenant_app:
+              - 'platform/charts/aim-vue-encore/**'
+              # The FR-011 parity job renders the tenant-hello chart too, so a
+              # tenant-hello chart change must re-run the parity gate.
+              - 'platform/charts/tenant-hello/**'
+              - '.github/workflows/ci-tenant-app.yml'
             tenant_hello:
               - 'platform/services/tenant-hello/**'
               - 'platform/charts/tenant-hello/**'
@@ -225,6 +232,11 @@ jobs:
     if: github.event_name != 'push' && needs.changes.outputs.stagecraft_encore == 'true'
     uses: ./.github/workflows/ci-stagecraft-encore.yml
 
+  tenant-app:
+    needs: changes
+    if: github.event_name != 'push' && needs.changes.outputs.tenant_app == 'true'
+    uses: ./.github/workflows/ci-tenant-app.yml
+
   tenant-hello:
     needs: changes
     if: github.event_name != 'push' && needs.changes.outputs.tenant_hello == 'true'
@@ -290,6 +302,7 @@ jobs:
       - schema-parity
       - stagecraft
       - stagecraft-encore
+      - tenant-app
       - tenant-hello
       - spec-conformance
       - spec-code-coupling

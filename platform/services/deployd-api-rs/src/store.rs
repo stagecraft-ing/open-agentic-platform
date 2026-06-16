@@ -95,6 +95,7 @@ async fn migrate(client: &Client) -> Result<()> {
                     status TEXT NOT NULL,
                     app_slug TEXT,
                     env_slug TEXT,
+                    namespace TEXT,
                     desired_routes TEXT,
                     endpoints TEXT,
                     created_at TEXT NOT NULL,
@@ -104,6 +105,23 @@ async fn migrate(client: &Client) -> Result<()> {
             vec![],
         )
         .await?;
+
+    // Spec 214 FR-008: backfill the namespace column on pre-existing databases.
+    // The CREATE TABLE above carries it for fresh installs; this ALTER adds it
+    // to databases created before the column existed. SQLite has no
+    // `ADD COLUMN IF NOT EXISTS`, so a "duplicate column" error means it is
+    // already present (fresh install) and is tolerated; any other error
+    // propagates loudly rather than masking a real migration failure.
+    if let Err(e) = client
+        .execute(
+            Cow::Borrowed("ALTER TABLE deployments ADD COLUMN namespace TEXT"),
+            vec![],
+        )
+        .await
+        && !e.to_string().contains("duplicate column")
+    {
+        return Err(e.into());
+    }
 
     client
         .execute(
@@ -136,6 +154,10 @@ pub struct Deployment {
     pub status: String,
     pub app_slug: Option<String>,
     pub env_slug: Option<String>,
+    /// Spec 214 FR-008: the effective K8s namespace the release was installed
+    /// into (forwarded `environments.k8sNamespace` or the computed default).
+    /// `None` for legacy rows written before the column existed.
+    pub namespace: Option<String>,
     pub desired_routes: Option<String>,
     pub endpoints: Option<String>,
     pub created_at: String,
@@ -176,9 +198,9 @@ pub async fn insert_deployment(client: &Client, d: &Deployment) -> Result<()> {
         .execute(
             Cow::Borrowed(
                 "INSERT INTO deployments (deployment_id, deployment_key, tenant_id, app_id, env_id, \
-                 release_sha, artifact_ref, lane, status, app_slug, env_slug, desired_routes, \
-                 endpoints, created_at, updated_at) \
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
+                 release_sha, artifact_ref, lane, status, app_slug, env_slug, namespace, \
+                 desired_routes, endpoints, created_at, updated_at) \
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)",
             ),
             vec![
                 Param::Text(d.deployment_id.clone()),
@@ -192,6 +214,7 @@ pub async fn insert_deployment(client: &Client, d: &Deployment) -> Result<()> {
                 Param::Text(d.status.clone()),
                 d.app_slug.clone().map(Param::Text).unwrap_or(Param::Null),
                 d.env_slug.clone().map(Param::Text).unwrap_or(Param::Null),
+                d.namespace.clone().map(Param::Text).unwrap_or(Param::Null),
                 d.desired_routes
                     .clone()
                     .map(Param::Text)
