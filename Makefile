@@ -221,12 +221,7 @@ oap-code-index-enrich:
 ##   normally edit in a non-trivial PR.
 pr-prep: index ci-fast-spec-coupling
 	@echo ""
-	@echo "==> pr-prep: codebase-index refreshed, coupling gate clean."
-	@if ! git diff --quiet .derived/codebase-index/index.json 2>/dev/null; then \
-	  echo ""; \
-	  echo "  ⚠  .derived/codebase-index/index.json drifted — stage it:"; \
-	  echo "       git add .derived/codebase-index/index.json"; \
-	fi
+	@echo "==> pr-prep: codebase-index regenerated (gitignored, not committed per spec 188 Phase 4b), coupling gate clean."
 
 spec-compile:
 	./tools/spec-spine/spec-compiler/target/release/spec-compiler compile
@@ -535,9 +530,8 @@ ci-tools:
 	cargo test --manifest-path tools/oap/stakeholder-doc-lint/Cargo.toml
 	./tools/oap/stakeholder-doc-lint/target/release/stakeholder-doc-lint --project . || true   # warnings non-blocking by default (FR-035)
 	@echo ""
-	@echo "==> ci-tools: codebase-indexer (+ staleness gate)"
+	@echo "==> ci-tools: codebase-indexer (compile + tests; broad staleness gate retired per spec 188 Phase 4b)"
 	cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
-	./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check
 	./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
 	cargo test --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml
 	@echo ""
@@ -885,11 +879,11 @@ ci-fast-tools:
 	    }; \
 	 done; \
 	 rm -f $$TESTS; exit $$status
-	@# Spec-lint smoke + codebase-indexer staleness gate (mirrors ci-tools).
+	@# Spec-lint smoke + codebase-indexer compile smoke (mirrors ci-tools; broad staleness gate retired per spec 188 Phase 4b).
 	@CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) \
 	  cargo run --release --manifest-path tools/spec-spine/spec-lint/Cargo.toml -- --fail-on-warn
 	@CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) \
-	  cargo run --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml -- check
+	  cargo run --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml -- compile
 
 ci-fast-desktop:
 	@test -f product/apps/opc/dist/index.html || { mkdir -p product/apps/opc/dist; \

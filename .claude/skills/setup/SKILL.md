@@ -27,12 +27,12 @@ Halt on non-zero exit and surface the failing step verbatim. `make check-deps` (
 Smoke-test the same calls `/init` makes. Passing here means `/init` will work on this clone:
 
 ```bash
-./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check
+./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
 ./tools/spec-spine/registry-consumer/target/release/registry-consumer status-report --json --nonzero-only
 ./tools/spec-spine/registry-consumer/target/release/registry-consumer list --ids-only | wc -l
 ```
 
-If `codebase-indexer check` exits non-zero the index is stale — run `./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile` and re-check. Do **not** parse `build/**/*.json` directly to "verify" success; that violates spec 103 governed reads.
+`codebase-indexer compile` (re)generates the gitignored structural index (spec 188 Phase 4b: the broad index is a rebuilt-on-demand artifact, never committed). Do **not** parse `build/**/*.json` directly to "verify" success; that violates spec 103 governed reads.
 
 ### 3. Emit summary
 
@@ -43,7 +43,7 @@ Report exactly:
 
 **make setup:** {ok / failed at <step>}
 **Governed reads verified:**
-  - codebase-indexer check: {fresh / stale}
+  - codebase-indexer compile: {ok}
   - registry-consumer status-report: {N specs across <statuses>}
   - registry-consumer list --ids-only: {N spec ids}
 

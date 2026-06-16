@@ -94,9 +94,9 @@ extends:
 establishes:
   - unit: { kind: file, path: .githooks/merge-derived-index.sh }
   - unit: { kind: file, path: .githooks/enable-merge-driver.sh }
-  # Phase 3 — the narrow PR gate and the post-merge staleness-report job
-  # (the latter replaced the retired cd-index-heal.yml; see FR-007).
-  - unit: { kind: file, path: .github/workflows/cd-index-staleness-report.yml }
+  # Phase 4b (2026-06-16) retired the post-merge staleness-report job
+  # (cd-index-staleness-report.yml): with the broad index now gitignored,
+  # nothing committed remains to report staleness on. Establishes edge removed.
   # Phase 3 — ci-parity-check fixture stubs for the new enforcing workflow
   # (renamed from the retired ci-codebase-index.yml stubs). Mirrors spec
   # 191's establishes of its ci-schema-parity.yml fixture pair.
@@ -156,12 +156,13 @@ The Phase 2 **merge-queue ops action** — enabling the GitHub merge queue and
 requiring `ci-gate` on `merge_group` — is **done** (enabled in branch
 protection 2026-05-31; FR-006's "Phase 2 strictly after Phase 3" ordering was
 satisfied once Phase 3 landed, so the previously-inert `merge_group:` trigger is
-now live). **Phase 4b** (`.gitignore` the broad `index.json`) is the single
-remaining item and is **explicitly deferred / out-of-scope-for-done**: it is
-separable from 4a, is not required to dissolve the cache/contract tension (4a
-fully resolves it), and reverses spec 101 SC-06's present-on-clone decision —
-so it is tracked as its own future decision on SC-06's merits, not as a blocker
-on this spec's completion.
+now live). **Phase 4b** (`.gitignore` the broad `index.json`) was the single
+remaining item and is now **implemented (2026-06-16)**: the broad `index.json`
+is gitignored and rebuilt on demand, never committed. The motivating driver was
+clean merge-queue auto-merge (a committed monolithic index is a per-PR
+merge-conflict point that ejects sibling PRs from the queue); it also reverses
+spec 101 SC-06's present-on-clone decision (101 carries the amendment) and
+retires `cd-index-staleness-report.yml` (nothing committed to report on).
 
 > **Amendment 2026-06-15 (spec 216 Phase 2b).** Phase 4a set the broad index
 > schema to 3.0.0. Spec 216 Phase 2b bumps it 3.0.0 -> 3.1.0 (additive:
@@ -534,11 +535,11 @@ the codebase-index schema, which lives in a separate validation system.
   regenerate that file). The byte-fresh-on-`main` invariant was dropped with
   the direct-push heal (FR-007); the SC-06 agent-orientation cost of a stale
   cache is recovered as *visibility* via `cd-index-staleness-report.yml`,
-  not as an enforced invariant. **Phase 4a (re-home, implemented) does NOT
-  restore this invariant** — the broad index stays committed and may lag, so
-  the staleness-report job remains. Only Phase 4b (`.gitignore` the broad
-  index, **deferred**) would restore it structurally by making the index a
-  pure rebuilt-on-demand artifact. *(Phase 3 / 4a.)*
+  not as an enforced invariant. **Phase 4a (re-home) did not by itself restore
+  this invariant.** Phase 4b (2026-06-16) does: the broad `index.json` is now
+  gitignored and rebuilt on demand, so it cannot be stale-on-disk, the
+  staleness-report job is retired, and concurrent PRs no longer collide on it
+  (clean merge-queue auto-merge). *(Phase 3 / 4a / 4b.)*
 - **SC-005**: The PR-time guarantee that a `.claude/settings.json` /
   `.mcp.json` edit cannot merge unacknowledged is preserved (or
   explicitly and documentedly re-homed). *(Phase 3 / FR-009 — satisfied:
@@ -554,7 +555,7 @@ the codebase-index schema, which lives in a separate validation system.
 | 2 | GitHub merge queue (`merge_group:` trigger) + duplicate-id lint (V-032) | **Complete** — code landed 2026-05-30; merge-queue *enablement* done in branch protection 2026-05-31 | low–medium |
 | 3 | Broad staleness → best-effort cache + narrow `check-config` PR gate; staleness-report job (heal retired) | **Implemented 2026-05-30** (re-homing, path 1; FR-007/008/009) | medium |
 | 4a | Re-home `claudeConfigHash` to its own tracked `config-hash.json` (index schema 2.3.0 → 3.0.0); `check-config` reads it | **Implemented 2026-05-30** — dissolves the cache/contract tension (the cache now carries nothing governed) | low |
-| 4b | `.gitignore` the broad `index.json` (pure rebuilt-on-demand artifact) | **Deferred** — separable; reverses spec 101 SC-06 (present-on-clone); not needed to dissolve the tension | low–medium |
+| 4b | `.gitignore` the broad `index.json` (pure rebuilt-on-demand artifact) | **Implemented (2026-06-16)**: clean merge-queue auto-merge; reverses spec 101 SC-06 (present-on-clone, amended); retires cd-index-staleness-report.yml | low-medium |
 
 Phase 1 landed first. Phase 3 (and Phase 2, code-safe alongside it) landed
 in PR #262. The direct-push heal originally specified for Phase 3 was
@@ -588,18 +589,21 @@ independently-landable steps:
   one-line `config-hash.json` diff rather than carrying the whole
   regenerated index.
 
-- **4b — `.gitignore` the broad `index.json` (DEFERRED).** Making the broad
-  index a pure rebuilt-on-demand artifact (never committed) would *also*
-  restore SC-004's freshness invariant structurally (it can't be
-  stale-on-disk if it's always rebuilt). But this is **separable from 4a and
-  not required to dissolve the tension** — and it **reverses spec 101 SC-06**
-  (the deliberate present-on-clone decision) with a wider blast radius: the
-  `/init` read path (`AGENTS.md`, spec 103), the README "Try it" render, and
-  the Makefile `index`/`pr-prep` consumers all assume a committed index.
-  Held as its own decision, to be made on SC-06's merits rather than bundled
-  in because 4a happens to make it possible. Until 4b lands, the broad index
-  stays a committed best-effort cache and `cd-index-staleness-report.yml`
-  remains the visibility mechanism for its drift.
+- **4b: `.gitignore` the broad `index.json` (IMPLEMENTED 2026-06-16).** The
+  broad index is now a pure rebuilt-on-demand artifact (never committed), which
+  restores SC-004's freshness invariant structurally (it cannot be
+  stale-on-disk if it is always rebuilt). The motivating driver was clean
+  merge-queue auto-merge: a committed monolithic index was a per-PR
+  merge-conflict point that ejected sibling PRs from the queue, so de-committing
+  it lets the queue form clean speculative stacks. It **reverses spec 101
+  SC-06** (the present-on-clone decision; 101 carries the amendment) with the
+  blast radius noted: the `/init` read path degrades gracefully (reports "not
+  built" when absent; recompiles via `make setup`/`registry`/`ci`), the README
+  "Try it" and Makefile `index`/`pr-prep` consumers regenerate on demand, and
+  `cd-index-staleness-report.yml` is retired (nothing committed to report on).
+  The committed-but-conflict-free successor is per-spec index sharding
+  (spec-spine, planned), which restores present-on-clone and supersedes this
+  reversal.
 
 So after 4a the only governed, tracked artifact that needs a gate is the
 tiny `config-hash.json`; the broad index is an ungoverned cache. That is the
