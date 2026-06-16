@@ -64,23 +64,31 @@ extends:
   - spec: "077-stagecraft-factory-api"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/deploy/deploy.ts }
+  # The spec-177 orchestrator gains a route dispatching the new ci-tenant-app
+  # job (spec 191 / 211 precedent: a new CI job additively extends ci.yml).
+  - spec: "177-ci-orchestrator-pr-gate"
+    nature: additive
+    unit: { kind: file, path: .github/workflows/ci.yml }
   # Same precedent as specs 202, 196, 194, 193, 187, 183: a new spec adds a
   # row to the featuregraph golden.
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+establishes:
+  # Converted from references:planned-establishes now that the Stage 1
+  # implementation has landed these paths (spec 200 precedent). The new
+  # deployResolve.* helpers and the ghcr-pull reflector secret are net-new
+  # here. cd-tenant-app.yml stays planned-establishes (Stage 2 build+push).
+  - unit: { kind: directory, path: platform/charts/aim-vue-encore }
+  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/hostname.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/hostname.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/deployResolve.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/deployResolve.test.ts }
+  - unit: { kind: file, path: .github/workflows/ci-tenant-app.yml }
+  - unit: { kind: file, path: platform/infra/hetzner/manifests/ghcr-pull-secret.yaml }
 references:
-  # Planned-establishes: the owning `establishes:` edges for these
-  # not-yet-existing paths land with the implementation PR (drafts claim
-  # only existing paths; spec 200 precedent).
-  - role: planned-establishes
-    unit: { kind: directory, path: platform/charts/aim-vue-encore }
-  - role: planned-establishes
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/hostname.ts }
-  - role: planned-establishes
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/hostname.test.ts }
-  - role: planned-establishes
-    unit: { kind: file, path: .github/workflows/ci-tenant-app.yml }
+  # Planned-establishes: the owning `establishes:` edge lands with the Stage 2
+  # PR (cd-tenant-app.yml is the build+push workflow; spec 200 precedent).
   - role: planned-establishes
     unit: { kind: file, path: .github/workflows/cd-tenant-app.yml }
   - role: chart-precedent
