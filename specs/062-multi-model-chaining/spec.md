@@ -22,6 +22,8 @@ code_aliases:
 sources:
   - deepreasoning
   - ruflo
+establishes:
+  - unit: { kind: directory, path: product/packages/multi-model-chaining }
 references:
   - role: historical
     unit: { kind: file, path: crates/agent/src/chain.rs }
