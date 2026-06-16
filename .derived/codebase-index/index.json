@@ -1,6 +1,6 @@
 {
   "build": {
-    "contentHash": "a1de4766bc907ba2e9d829c4c8af19e84718a353310851f90177d288d6dd8700",
+    "contentHash": "13278e0ccf04a096e1d992508c8eb1edf1186c917e6fd8e1f7d00d08278a827c",
     "indexerId": "codebase-indexer",
     "indexerVersion": "0.1.0",
     "repoRoot": "."
@@ -50519,6 +50519,211 @@
           }
         ],
         "specId": "217-spec-spine-engine-swap-collapse",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "102-governed-excellence",
+          "168-per-project-governance-certificate"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-engine/Cargo.toml",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/bin/verify_certificate.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/factory-engine/src/governance_certificate.rs",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/governance_certificate.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/adr/0002-governance-certificate-vended-distributable.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/adr/0002-governance-certificate-vended-distributable.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/Cargo.toml"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/Cargo.toml"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/bin/verify_certificate.rs"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/bin/verify_certificate.rs"
+            }
+          }
+        ],
+        "specId": "218-run-cert-corpus-binding",
+        "specStatus": "draft"
+      },
+      {
+        "dependsOn": [
+          "102-governed-excellence",
+          "121-claim-provenance-enforcement",
+          "168-per-project-governance-certificate",
+          "170-signed-inter-stage-manifests",
+          "198-factory-governance-envelope"
+        ],
+        "implementingPaths": [
+          {
+            "path": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl",
+            "source": "spec-implements"
+          },
+          {
+            "path": "crates/featuregraph/tests/golden/features_graph.json",
+            "source": "spec-implements"
+          }
+        ],
+        "resolvedUnits": [
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/featuregraph/tests/golden/features_graph.json"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "extends",
+            "unit": {
+              "kind": "file",
+              "path": "crates/featuregraph/tests/golden/features_graph.json"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/src/governance_certificate.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/src/governance_certificate.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/provenance-validator/src/validator.rs"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "crates/provenance-validator/src/validator.rs"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "docs/adr/0002-governance-certificate-vended-distributable.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "docs/adr/0002-governance-certificate-vended-distributable.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "specs/209-tenant-kernel-ci-enforcement/spec.md"
+              }
+            ],
+            "ownership": false,
+            "sourceField": "references",
+            "unit": {
+              "kind": "file",
+              "path": "specs/209-tenant-kernel-ci-enforcement/spec.md"
+            }
+          },
+          {
+            "kind": "file",
+            "locations": [
+              {
+                "file": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+              }
+            ],
+            "ownership": true,
+            "sourceField": "refines",
+            "unit": {
+              "kind": "file",
+              "path": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+            }
+          }
+        ],
+        "specId": "219-tenant-tail-verifier-toolkit",
         "specStatus": "draft"
       }
     ],
