@@ -571,6 +571,16 @@ removed from the frontmatter — the indexer flags dangling
 are the record of their creation and removal, matching how prior
 retirements kept the index diagnostics clean.
 
+### 2026-06-16: setup + validate-and-fix skills updated for spec 188 Phase 4b
+
+Spec 188 Phase 4b de-committed the broad codebase index (`.gitignore`-d, rebuilt
+on demand) and retired the broad `codebase-indexer check` staleness gate. The two
+skills this spec establishes that referenced that gate are updated accordingly:
+`setup/SKILL.md` and `validate-and-fix/SKILL.md` now run `codebase-indexer
+compile` (regenerate) rather than `check` (verify a committed artifact). No skill
+contract changes; only the governed-read command each skill documents. Recorded
+here because this spec owns those skill files.
+
 ## References
 
 - Modern `.claude/` directory docs:

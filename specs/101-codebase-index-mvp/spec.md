@@ -20,8 +20,10 @@ amendment_record: |
   same hash, same PR-time blocking gate — only the storage location moved.
   This leaves the broad `index.json` carrying nothing governed, dissolving
   the cache/contract tension Phase 3 surfaced. Phase 4b (`.gitignore` the
-  broad index) is DEFERRED — it would reverse SC-06 (below) and is not
-  needed to dissolve the tension. See FR-12 and spec 188 §Phase 4.
+  broad index) is now IMPLEMENTED (spec 188, 2026-06-16): the broad
+  `index.json` is gitignored and rebuilt on demand, never committed, so
+  concurrent PRs never collide on it (clean merge-queue auto-merge). This
+  reverses SC-06 (below). See FR-12 and spec 188 §Phase 4.
 
   amended by spec 188 (2026-05-30, Phase 3) — index freshness enforcement
   is re-homed. The broad `codebase-indexer check` (whole-index staleness,
@@ -497,16 +499,30 @@ A PR that adds a new crate without updating `index.json` MUST fail the CI check.
 > MUST fail `ci-config-hash` (preserving spec 184's guarantee). Spec 188
 > **Phase 4a (done)** re-homed the gated `claudeConfigHash` slice to its own
 > tracked `config-hash.json` — but this does **not** restore the
-> broad-freshness invariant: the broad `index.json` stays committed and MAY
-> lag on `main`, so `cd-index-staleness-report.yml` remains the visibility
-> mechanism. Only **Phase 4b (deferred)** — `.gitignore`-ing the broad index
-> so it is a pure rebuilt-on-demand artifact — would restore that invariant
-> structurally, and it is held as a separable decision (it reverses SC-06).
+> broad-freshness invariant. **Phase 4b is now implemented** (spec 188,
+> 2026-06-16): the broad `index.json` is `.gitignore`-d and rebuilt on demand,
+> a pure regenerable artifact, never committed. This restores the freshness
+> invariant structurally (a never-committed file cannot be stale on disk),
+> retires `cd-index-staleness-report.yml` (nothing committed to report on),
+> and reverses SC-06 (see the amendment under SC-06 below). The motivating
+> driver was clean merge-queue auto-merge: a committed monolithic index was a
+> per-PR merge-conflict point that ejected sibling PRs from the queue.
 
 ### SC-06: Agent Startup Acceleration
 
 After index exists, the `/init` command MUST be able to load structural context from
 `index.json` instead of walking the tree, reducing init token cost.
+
+> **Amended by spec 188 Phase 4b (2026-06-16): present-on-clone reversed.**
+> The broad `index.json` is now gitignored (a rebuilt-on-demand artifact), so
+> it is NOT guaranteed present on a brand-fresh clone before the first
+> `codebase-indexer compile` (run by `make setup` / `make registry` / `make
+> ci`). When absent, `/init` reports "structural index: not built" and
+> continues (the graceful-degradation path AGENTS.md already specifies). Once
+> compiled, the index persists on disk (untracked), so the startup
+> acceleration holds locally; only a brand-fresh pre-build clone pays the
+> one-time cost. Per-spec index sharding (spec-spine, planned) will restore a
+> committed-but-conflict-free present-on-clone form, superseding this reversal.
 
 ## 5. Out of Scope (MVP)
 
