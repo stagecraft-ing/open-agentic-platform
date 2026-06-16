@@ -190,19 +190,43 @@ amends spec 137 (clarification): `amended:` frontmatter + callout on 137.
   caller-supplied fallback (back-compat). Verified: `npx tsc --noEmit` (0
   errors) + vitest (24 pass). DB-bound end-to-end dispatch is deploy-time.
 
-**PENDING (resume here):**
+**STAGE 1 COMPLETE (2026-06-16), all gates green.** Final closeout commit
+`dd92a66e`:
 
-- `ci-tenant-app.yml` (CI-time SHA-pinned template-encore fetch + `helm lint`
-  + template renders + the FR-011 parity check) and a `ghcr-pull` reflector
-  secret manifest under `infra/hetzner/manifests/`.
-- Spec 214 frontmatter: convert `references: planned-establishes` to
-  `establishes:` for `platform/charts/aim-vue-encore` (directory),
-  `hostname.ts`/`.test.ts`, `ci-tenant-app.yml`; ADD the new
-  `deployResolve.ts`/`.test.ts` to `establishes`; run coupling / spec-lint /
-  featuregraph golden (UPDATE_GOLDEN=1) / codebase-index gates.
+- `ci-tenant-app.yml` (commit `dd92a66e`): `helm lint` + renders (default /
+  gate+tls / preview-db) and the FR-011 gate-seam render-parity check
+  (tenant-hello vs aim-vue-encore: 3 auth-* annotations + TLS secretName
+  byte-identical, with an empty-extraction guard). Wired into `ci.yml`
+  (tenant_app filter + routed job + ci-gate need; additive `extends` of spec
+  177, the 191/211 precedent). Validated under helm v4.1.1 + bash -eo pipefail.
+- `ghcr-pull-secret.yaml` (commit `dd92a66e`): kubernetes-reflector source
+  Secret mirroring the wildcard-TLS pattern; dockerconfigjson injected
+  out-of-band by setup.sh (no credential committed).
+- Spec 214 frontmatter (commit `dd92a66e`): planned-establishes converted to
+  establishes for the chart dir, `hostname.*`, `ci-tenant-app.yml`; net-new
+  `deployResolve.*` + `ghcr-pull-secret.yaml` added to establishes; `ci.yml`
+  claimed via extends-177. Only `cd-tenant-app.yml` remains planned-establishes
+  (Stage 2).
 
-Then **checkpoint before Stage 2** (destructive: delete tenant-hello, flip the
-registry to sole-shape, amend 136/137).
+Gates run and green: `spec-lint --fail-on-warn`, featuregraph golden,
+codebase-index `check`, `make ci-spec-code-coupling` (OK, 139 paths),
+actionlint + YAML, deployd-api `cargo check`/`clippy`/37 tests, stagecraft
+`tsc` 0 errors + 24 vitest.
+
+**DEFERRED within Stage 1**: the FR-010 cross-repo fixture-image build
+(SC-006 lockstep) lands with `cd-tenant-app.yml` in Stage 2; it needs the
+per-org template-encore source (repo + pinned SHA + read token), operational
+config not resolvable in-repo (documented in the ci-tenant-app.yml header).
+
+**NEXT: Stage 2 (destructive, user-gated).** Delete `platform/services/
+tenant-hello/`, `platform/charts/tenant-hello/`, `ci-tenant-hello.yml`,
+`cd-tenant-hello.yml`; remove the tenant-hello `include_str!` block + write_chart
+arm from `helm.rs`; drop `tenant-hello` from `CHART_REGISTRY`/`TenantShape`
+(sole shape becomes aim-vue-encore); add `cd-tenant-app.yml`; amend specs 136
+(supersession callout + FR-012 statelessness refinement) and 137 (gate-anchor
+co_authority units move to aim-vue-encore). The 214 `supersedes:` frontmatter
+already declares the partial supersedes. Requires explicit user go-ahead
+(CONST-001 destructive ops).
 
 **Branch note:** branches were split 2026-06-15. Spec 213 is on
 `feat/213-tenant-repo-image-build` (commit `271147e6`, PR-ready). All 214 work
