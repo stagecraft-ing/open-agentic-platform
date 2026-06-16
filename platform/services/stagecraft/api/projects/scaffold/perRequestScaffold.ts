@@ -26,6 +26,7 @@ import {
 import { extrasFor, type Profile } from "./moduleCatalog";
 import { prebuiltDir } from "./templateCache";
 import type { ScaffoldAdapterRef } from "./types";
+import { OAP_BUILD_WORKFLOW_YAML } from "../../github/repoInit";
 
 /**
  * Subprocess env shared with templateCache. Mirrors `tooledEnv` —
@@ -156,6 +157,21 @@ export async function scaffoldFromPrebuilt(
     "utf8"
   );
   sink(`stamp: .kernel-version (spec-spine ${specSpineVersion})`);
+
+  // ── 6. Seed the active container-build workflow (spec 213 FR-001). Written
+  // into the scaffold tree so it rides commit #1 and the scaffolded commit
+  // builds with no manual step in the new repo (SC-001). For the dual profile
+  // the tree root carries no `.github` (each variant has its own), so create
+  // it; the workflow detects the public/internal layout at runtime and builds
+  // the matrix from the root (FR-004).
+  const workflowsDir = join(dest, ".github", "workflows");
+  await mkdir(workflowsDir, { recursive: true });
+  await writeFile(
+    join(workflowsDir, "oap-build.yml"),
+    OAP_BUILD_WORKFLOW_YAML,
+    "utf8"
+  );
+  sink("seed: .github/workflows/oap-build.yml");
 
   log.info("per-request scaffold: complete", {
     profile: opts.profile,

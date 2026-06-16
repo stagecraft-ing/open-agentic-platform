@@ -22,6 +22,7 @@ import {
   seedRepoFromAdapter,
   configureBranchProtection,
   createOapWorkflow,
+  seedOapBuildWorkflow,
 } from "../github/repoInit";
 import { publishProjectCatalogUpsert } from "../sync/projectCatalogRelay";
 import { deleteObject } from "../knowledge/storage";
@@ -599,6 +600,11 @@ export const createProjectWithRepo = api(
     await seedRepoFromAdapter(installToken, repoResult.fullName, req.adapter);
     await configureBranchProtection(installToken, repoResult.fullName, repoResult.defaultBranch);
     await createOapWorkflow(installToken, repoResult.fullName);
+    // Spec 213: oap-build.yml is NOT seeded here. This create path produces a
+    // README-only repo (seedRepoFromAdapter) with no apps/api to build; the
+    // active build workflow rides commit #1 of the factory-create scaffold
+    // tree instead (scaffold/perRequestScaffold.ts, FR-001). Repos created
+    // before this spec are covered by the retrofit endpoint below (FR-008).
 
     // FR-006: Create DB records atomically within a transaction.
     // Note: GitHub repo creation (above) cannot be rolled back. If the DB
@@ -742,6 +748,79 @@ async function verifyProjectOwnership(
     throw APIError.notFound("project not found");
   }
 }
+
+// ---------------------------------------------------------------------------
+// Build Workflow Retrofit (spec 213 FR-008)
+// ---------------------------------------------------------------------------
+
+/**
+ * Idempotently seed (or update) the `oap-build.yml` container-build
+ * workflow into a project's repo that was created before spec 213. Admin
+ * API surface; UI exposure is spec 215's concern. Requires the same
+ * org-level permission as project creation.
+ */
+export const retrofitBuildWorkflow = api(
+  {
+    expose: true,
+    auth: true,
+    method: "POST",
+    path: "/api/projects/:projectId/retrofit-build-workflow",
+  },
+  async (req: {
+    projectId: string;
+  }): Promise<{ action: "created" | "updated"; repo: string }> => {
+    const auth = getAuthData()!;
+    await verifyProjectOwnership(req.projectId, auth.orgId);
+
+    if (!hasOrgPermission(auth.platformRole, "project:create")) {
+      throw APIError.permissionDenied(
+        "Insufficient permissions to retrofit the build workflow"
+      );
+    }
+
+    // Prefer the primary repo; fall back to the most recently linked.
+    const [repo] = await db
+      .select()
+      .from(projectRepos)
+      .where(eq(projectRepos.projectId, req.projectId))
+      .orderBy(desc(projectRepos.isPrimary), desc(projectRepos.createdAt))
+      .limit(1);
+
+    if (!repo) {
+      throw APIError.failedPrecondition("project has no linked GitHub repo");
+    }
+    if (!repo.githubInstallId) {
+      throw APIError.failedPrecondition(
+        "repo has no active GitHub App installation"
+      );
+    }
+
+    let token: string;
+    try {
+      ({ token } = await brokerInstallationToken(repo.githubInstallId, {
+        contents: "write",
+        workflows: "write",
+      }));
+    } catch (err) {
+      throw APIError.internal(
+        `Failed to obtain installation token: ${String(err)}`
+      );
+    }
+
+    const fullName = `${repo.githubOrg}/${repo.repoName}`;
+    const result = await seedOapBuildWorkflow(token, fullName);
+
+    await db.insert(auditLog).values({
+      actorUserId: auth.userID,
+      action: "project.build_workflow_retrofit",
+      targetType: "project",
+      targetId: req.projectId,
+      metadata: { repo: fullName, action: result.action },
+    });
+
+    return { action: result.action, repo: fullName };
+  }
+);
 
 // ---------------------------------------------------------------------------
 // Project Repos
