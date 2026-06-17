@@ -29,27 +29,15 @@ use std::process::Command;
 use std::sync::OnceLock;
 
 // ---------------------------------------------------------------------------
-// Embedded chart bytes — spec 136 ships tenant-hello. New charts register
-// here by mirroring the const block + the materialiser arm in `write_chart`.
+// Embedded chart bytes. New charts register here by mirroring the const
+// block + the materialiser arm in `write_chart`.
 // ---------------------------------------------------------------------------
 
-const TENANT_HELLO_CHART_YAML: &str = include_str!("../../../charts/tenant-hello/Chart.yaml");
-const TENANT_HELLO_VALUES_YAML: &str = include_str!("../../../charts/tenant-hello/values.yaml");
-const TENANT_HELLO_HELPERS_TPL: &str =
-    include_str!("../../../charts/tenant-hello/templates/_helpers.tpl");
-const TENANT_HELLO_DEPLOYMENT_YAML: &str =
-    include_str!("../../../charts/tenant-hello/templates/deployment.yaml");
-const TENANT_HELLO_SERVICE_YAML: &str =
-    include_str!("../../../charts/tenant-hello/templates/service.yaml");
-const TENANT_HELLO_INGRESS_YAML: &str =
-    include_str!("../../../charts/tenant-hello/templates/ingress.yaml");
-const TENANT_HELLO_SA_YAML: &str =
-    include_str!("../../../charts/tenant-hello/templates/serviceaccount.yaml");
-
 // Spec 214: aim-vue-encore reference chart (the template-encore scaffold
-// shape). Embedded additively alongside tenant-hello for Stage 1; it becomes
-// the sole shape once tenant-hello retires (Stage 2). The eight consts mirror
-// the chart directory; the materialiser arm lives in `write_chart`.
+// shape) is the sole tenant shape. Spec 214 Stage 2 retired the synthetic
+// reference that spec 136 shipped, leaving this as the only registered
+// tenant chart. The eight consts mirror the chart directory; the materialiser
+// arm lives in `write_chart`.
 const AIM_VUE_ENCORE_CHART_YAML: &str =
     include_str!("../../../charts/aim-vue-encore/Chart.yaml");
 const AIM_VUE_ENCORE_VALUES_YAML: &str =
@@ -358,7 +346,7 @@ impl HelmRunner {
 
 /// Optional dispatch-contract inputs (spec 214) threaded into chart values
 /// beyond the core image/route/gate set. Every field defaults to "absent" so
-/// the tenant-hello path and tests that pass `&DeployExtras::default()` are
+/// the base deploy path and tests that pass `&DeployExtras::default()` are
 /// unaffected.
 #[derive(Default)]
 pub struct DeployExtras<'a> {
@@ -576,15 +564,6 @@ fn write_values_file(values: &Value) -> Result<PathBuf, HelmError> {
 
 fn write_chart(name: &str, dir: &Path) -> Result<(), HelmError> {
     let files: &[(&str, &str)] = match name {
-        "tenant-hello" => &[
-            ("Chart.yaml", TENANT_HELLO_CHART_YAML),
-            ("values.yaml", TENANT_HELLO_VALUES_YAML),
-            ("templates/_helpers.tpl", TENANT_HELLO_HELPERS_TPL),
-            ("templates/deployment.yaml", TENANT_HELLO_DEPLOYMENT_YAML),
-            ("templates/service.yaml", TENANT_HELLO_SERVICE_YAML),
-            ("templates/ingress.yaml", TENANT_HELLO_INGRESS_YAML),
-            ("templates/serviceaccount.yaml", TENANT_HELLO_SA_YAML),
-        ],
         "oauth2-proxy-gate" => &[
             ("Chart.yaml", OAUTH2_PROXY_GATE_CHART_YAML),
             ("values.yaml", OAUTH2_PROXY_GATE_VALUES_YAML),
@@ -632,13 +611,13 @@ mod tests {
     #[test]
     fn build_values_splits_image_ref_at_colon() {
         let v = build_values(
-            "ghcr.io/org/tenant-hello:v1.2.3",
+            "ghcr.io/org/aim-vue-encore:v1.2.3",
             "myapp-prod",
             &[],
             None,
             &DeployExtras::default(),
         );
-        assert_eq!(v["image"]["repository"], "ghcr.io/org/tenant-hello");
+        assert_eq!(v["image"]["repository"], "ghcr.io/org/aim-vue-encore");
         assert_eq!(v["image"]["tag"], "v1.2.3");
         assert_eq!(v["fullnameOverride"], "myapp-prod");
         assert!(v.get("ingress").is_none(), "no routes ⇒ no ingress block");
@@ -648,27 +627,27 @@ mod tests {
     #[test]
     fn build_values_handles_tagless_image_ref() {
         let v = build_values(
-            "ghcr.io/org/tenant-hello",
+            "ghcr.io/org/aim-vue-encore",
             "myapp-prod",
             &[],
             None,
             &DeployExtras::default(),
         );
-        assert_eq!(v["image"]["repository"], "ghcr.io/org/tenant-hello");
+        assert_eq!(v["image"]["repository"], "ghcr.io/org/aim-vue-encore");
         assert_eq!(v["image"]["tag"], "latest");
     }
 
     #[test]
     fn build_values_enables_ingress_when_route_present() {
         let v = build_values(
-            "ghcr.io/org/tenant-hello:v1",
+            "ghcr.io/org/aim-vue-encore:v1",
             "myapp-prod",
-            &[("tenant-hello.example.com".into(), "/".into())],
+            &[("app.example.com".into(), "/".into())],
             None,
             &DeployExtras::default(),
         );
         assert_eq!(v["ingress"]["enabled"], true);
-        assert_eq!(v["ingress"]["host"], "tenant-hello.example.com");
+        assert_eq!(v["ingress"]["host"], "app.example.com");
     }
 
     // ---------------------------------------------------------------------
@@ -795,7 +774,7 @@ mod tests {
     fn build_values_skips_gate_block_when_descriptor_disabled() {
         let d = sample_descriptor(false);
         let v = build_values(
-            "ghcr.io/org/tenant-hello:v1",
+            "ghcr.io/org/aim-vue-encore:v1",
             "myapp-prod",
             &[("acme.tenants.test".into(), "/".into())],
             Some(&d),
@@ -811,7 +790,7 @@ mod tests {
     fn build_values_emits_gate_block_when_descriptor_enabled() {
         let d = sample_descriptor(true);
         let v = build_values(
-            "ghcr.io/org/tenant-hello:v1",
+            "ghcr.io/org/aim-vue-encore:v1",
             "myapp-prod",
             &[("acme.tenants.test".into(), "/".into())],
             Some(&d),
@@ -953,26 +932,6 @@ mod tests {
     }
 
     #[test]
-    fn prepare_chart_materialises_all_files() {
-        let runner = HelmRunner::from_env();
-        let dir = runner.prepare_chart("tenant-hello").expect("prepare");
-        for rel in [
-            "Chart.yaml",
-            "values.yaml",
-            "templates/_helpers.tpl",
-            "templates/deployment.yaml",
-            "templates/service.yaml",
-            "templates/ingress.yaml",
-            "templates/serviceaccount.yaml",
-        ] {
-            let p = dir.join(rel);
-            assert!(p.exists(), "missing materialised file: {rel}");
-            let bytes = fs::read(&p).unwrap();
-            assert!(!bytes.is_empty(), "empty materialised file: {rel}");
-        }
-    }
-
-    #[test]
     fn prepare_chart_rejects_unknown_chart() {
         let runner = HelmRunner::from_env();
         let err = runner.prepare_chart("not-a-chart").unwrap_err();
@@ -983,18 +942,18 @@ mod tests {
     }
 
     #[test]
-    fn template_renders_tenant_hello_without_ingress() {
+    fn template_renders_aim_vue_encore_without_ingress() {
         if !helm_available() {
             eprintln!("skipping: helm binary not in PATH");
             return;
         }
         let runner = HelmRunner::from_env();
         let req = InstallRequest {
-            chart: "tenant-hello".into(),
+            chart: "aim-vue-encore".into(),
             namespace: "myapp-prod".into(),
             release: "myapp".into(),
             values: build_values(
-                "ghcr.io/org/tenant-hello:v1.2.3",
+                "ghcr.io/org/aim-vue-encore:v1.2.3",
                 "myapp-prod",
                 &[],
                 None,
@@ -1002,53 +961,31 @@ mod tests {
             ),
         };
         let rendered = runner.template(&req).expect("helm template should succeed");
-        // C-clause assertions: chart enforces the contract.
+        // No route means the core workload objects render but no Ingress.
         assert!(rendered.contains("kind: Deployment"), "Deployment present");
         assert!(rendered.contains("kind: Service"), "Service present");
         assert!(rendered.contains("kind: ServiceAccount"), "SA present");
         assert!(
             !rendered.contains("kind: Ingress"),
-            "Ingress should be absent when ingress disabled"
+            "Ingress should be absent when no route is supplied"
         );
         assert!(
-            rendered.contains("ghcr.io/org/tenant-hello"),
+            rendered.contains("ghcr.io/org/aim-vue-encore"),
             "image repo flowed through"
         );
         assert!(rendered.contains("v1.2.3"), "image tag flowed through");
-        assert!(rendered.contains("/healthz"), "readiness/liveness probe on /healthz (C-002)");
-        assert!(rendered.contains("name: PORT"), "PORT env injected (C-003)");
+        assert!(
+            rendered.contains("containerPort: 4000"),
+            "Encore gateway port (FR-001)"
+        );
         assert!(
             rendered.contains("runAsNonRoot: true"),
-            "non-root by-policy (C-001)"
+            "non-root by policy (FR-001)"
         );
         assert!(
-            rendered.contains("oap.spec: \"136-tenant-hello-demo-service\""),
+            rendered.contains("oap.spec: \"214-tenant-app-chart-supersession\""),
             "oap.spec label asserts spec provenance"
         );
-    }
-
-    #[test]
-    fn template_renders_ingress_when_route_supplied() {
-        if !helm_available() {
-            eprintln!("skipping: helm binary not in PATH");
-            return;
-        }
-        let runner = HelmRunner::from_env();
-        let req = InstallRequest {
-            chart: "tenant-hello".into(),
-            namespace: "myapp-prod".into(),
-            release: "myapp".into(),
-            values: build_values(
-                "ghcr.io/org/tenant-hello:v1",
-                "myapp-prod",
-                &[("hello.example.com".into(), "/".into())],
-                None,
-                &DeployExtras::default(),
-            ),
-        };
-        let rendered = runner.template(&req).expect("helm template should succeed");
-        assert!(rendered.contains("kind: Ingress"));
-        assert!(rendered.contains("hello.example.com"));
     }
 
     #[test]

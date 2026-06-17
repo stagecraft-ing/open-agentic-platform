@@ -10,7 +10,6 @@ The platform layer is the organisational control plane for OAP. It provides iden
 |---------|-------|------|---------|
 | **stagecraft** | Encore.ts, Drizzle ORM, React Router v7 | 4000 | SaaS platform: auth, admin, uptime monitoring, Slack integration; `api/github/` handles webhook ingestion and token brokering (absorbed from github-app) |
 | **deployd-api-rs** | Rust (axum, hiqlite) | 8080 | K8s deployment orchestration with Helm, OIDC JWT auth |
-| **tenant-hello** | Express.js | 8080 | Example tenant service |
 
 > **github-app** (Probot) has been absorbed into stagecraft. Webhook handling and PR preview deployment logic now lives in `services/stagecraft/api/github/`.
 

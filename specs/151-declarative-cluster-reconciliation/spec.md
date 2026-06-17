@@ -3,6 +3,12 @@ id: "151-declarative-cluster-reconciliation"
 title: "Declarative cluster reconciliation — GitOps for cluster-side state via Flux v2"
 status: approved
 approved: "2026-05-18"
+amended: "2026-06-16"
+amendment_record: |
+  Amended 2026-06-16 by 214-tenant-app-chart-supersession (Stage 2): the
+  example GitOps READMEs drop tenant-hello from their illustrative
+  application-HelmRelease lists, since 214 retired the synthetic tenant-hello
+  service. Documentation-only; no manifest or reconciliation change.
 implementation: pending
 owner: bart
 created: "2026-05-17"

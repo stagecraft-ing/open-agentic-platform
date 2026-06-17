@@ -142,14 +142,7 @@ jobs:
               - '.github/workflows/ci-stagecraft-encore.yml'
             tenant_app:
               - 'platform/charts/aim-vue-encore/**'
-              # The FR-011 parity job renders the tenant-hello chart too, so a
-              # tenant-hello chart change must re-run the parity gate.
-              - 'platform/charts/tenant-hello/**'
               - '.github/workflows/ci-tenant-app.yml'
-            tenant_hello:
-              - 'platform/services/tenant-hello/**'
-              - 'platform/charts/tenant-hello/**'
-              - '.github/workflows/ci-tenant-hello.yml'
 
   # ─── routed by paths-filter ────────────────────────────────────────────
   # Push-to-main trim (2026-06-10, spec 177 amendment): branch protection
@@ -237,11 +230,6 @@ jobs:
     if: github.event_name != 'push' && needs.changes.outputs.tenant_app == 'true'
     uses: ./.github/workflows/ci-tenant-app.yml
 
-  tenant-hello:
-    needs: changes
-    if: github.event_name != 'push' && needs.changes.outputs.tenant_hello == 'true'
-    uses: ./.github/workflows/ci-tenant-hello.yml
-
   # ─── constitutional (always-run, spec 177 §2.2) ────────────────────────
   spec-conformance:
     uses: ./.github/workflows/spec-conformance.yml
@@ -303,7 +291,6 @@ jobs:
       - stagecraft
       - stagecraft-encore
       - tenant-app
-      - tenant-hello
       - spec-conformance
       - spec-code-coupling
       - supply-chain

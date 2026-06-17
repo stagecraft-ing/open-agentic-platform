@@ -9,8 +9,8 @@ metadata:
   {{- if or .Values.gate.enabled .Values.ingress.annotations }}
   annotations:
     {{- /* Spec 137: chain to the per-env oauth2-proxy gate when enabled.
-           Ported verbatim from the tenant-hello chart so the FR-011
-           render-parity check produces equivalent gate-relevant output.
+           Ported from the prior chart's gate seam so the Stage 1 FR-011
+           render-parity check produced equivalent gate-relevant output.
            Rendered first so user-supplied .Values.ingress.annotations can
            override. */ -}}
     {{- if .Values.gate.enabled }}

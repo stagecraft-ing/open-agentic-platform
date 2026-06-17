@@ -7,6 +7,15 @@ owner: bart
 created: "2026-05-04"
 approved: "2026-05-06"
 completed: "2026-05-17"
+amended: "2026-06-16"
+amendment_record: |
+  Amended 2026-06-16 by 214-tenant-app-chart-supersession (Stage 2): records
+  the partial supersession of the tenant-hello service, chart, and CI/CD
+  workflows (declared in 214's supersedes) now that aim-vue-encore is the sole
+  tenant shape, and refines the C-004 statelessness clause to "stateless pods;
+  durable state lives only in the declared database" (FR-012) so the contract
+  matches the real database-backed template shape. The C-001..C-005 contract
+  text otherwise stands as the tenant-codebase reference.
 kind: platform
 domain: platform
 risk: low
@@ -14,12 +23,23 @@ depends_on:
   - "087-unified-workspace-architecture"  # unified-workspace-architecture (stagecraft as the web governance plane)
   - "078-platform-completion-plan"  # platform-completion-plan (the broader platform-finishing context)
 establishes:
-  - unit: { kind: directory, path: platform/services/tenant-hello }
-  - unit: { kind: directory, path: platform/charts/tenant-hello }
   - unit: { kind: file, path: platform/services/stagecraft/api/deploy/chartSelector.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/deploy/chartSelector.test.ts }
-  - unit: { kind: file, path: .github/workflows/cd-tenant-hello.yml }
-  - unit: { kind: file, path: .github/workflows/ci-tenant-hello.yml }
+# The tenant-hello service, chart, and CI/CD workflows 136 established were
+# superseded and removed by spec 214 Stage 2. They move from establishes to
+# references (existence-exempt) since they no longer exist in the worktree; the
+# spec-compiler's V-022/V-023 forbid non-existent units on establishes/extends/
+# supersedes/co_authority (deletion handling is its Tier 2 Segment 3 work). The
+# supersession is documented in the amendment callout below and in spec 214.
+references:
+  - role: superseded-removed
+    unit: { kind: directory, path: platform/services/tenant-hello }
+  - role: superseded-removed
+    unit: { kind: directory, path: platform/charts/tenant-hello }
+  - role: superseded-removed
+    unit: { kind: file, path: .github/workflows/cd-tenant-hello.yml }
+  - role: superseded-removed
+    unit: { kind: file, path: .github/workflows/ci-tenant-hello.yml }
 extends:
   - spec: "073-axiomregent-unification"
     nature: additive
@@ -62,6 +82,15 @@ service from "an example tenant" into a governed reference: this is the
 codebase shape that stagecraft deployment is meant to handle, and
 tenant-hello is the always-green fixture used to demonstrate (and
 regression-test) the tenant-deploy pipeline.
+
+> **Amended by spec 214 (2026-06-16, Stage 2).** The tenant-hello service,
+> Helm chart, and `ci-tenant-hello.yml` / `cd-tenant-hello.yml` workflows are
+> superseded (partial) by spec 214: the factory's own template-encore scaffold
+> (`aim-vue-encore`) is now the reference tenant, so the surface CI proves and
+> the surface tenants run are the same artifact. The C-001..C-005 tenant
+> codebase contract below remains the authoritative reference; spec 214 FR-012
+> refines C-004 (see the note on that clause). The deleted directories live on
+> only in git history and in 214's `supersedes:` edges.
 
 ## Purpose and charter
 
@@ -139,6 +168,10 @@ Any tenant codebase that wants to deploy through stagecraft MUST present:
   treated as ephemeral. Any persistent state lives in
   platform-managed backing services (PostgreSQL / object store /
   rauthy session store), not on the pod's local disk.
+  *(Refined by spec 214 FR-012, 2026-06-16: stateless pods; durable state
+  lives only in the declared database. The real template shape is
+  database-backed, so the honest contract is statelessness at the pod, not
+  the absence of a database.)*
 - **C-005 (declared dependencies):** Every runtime dependency must be
   installable via the codebase's package manifest (`package.json`,
   `Cargo.toml`, `pyproject.toml`, etc.). Vendored binaries and out-of-band

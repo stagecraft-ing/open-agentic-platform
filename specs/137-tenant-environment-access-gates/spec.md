@@ -4,6 +4,17 @@ title: "Tenant environment access gates — passwordless OIDC via Rauthy"
 status: approved
 implementation: in-progress  # Phase 0 closed 2026-05-15 (5/6 clarifications locked + T003 Rauthy admin smoke). Phase 1 (schema migration: tables environmentAccessGates + environmentAccessGateAllowlistEmails with 3 CHECK constraints and FIPS-safe lower(value) uniqueness), Phase 2 (CRUD endpoints + audit hooks + assertNoPasswordFields guard), Phase 3 (Rauthy admin client wrapper + provisionTenantGateClient + idempotent deprovision; flows_enabled mechanism replaces non-existent password_login_enabled scalar) all landed 2026-05-15. Phase 4 (deployd-api Helm overlay) landed 2026-05-17 — new oauth2-proxy-gate chart embedded via include_str! per spec 136 Phase 2.b pattern; AccessGateDescriptor wire shape on DeploymentRequest; install_with_gate / uninstall_with_gate orchestration with FR-003 atomicity (tenant rolls back if gate install fails); tenant chart Ingress renders nginx auth-url/auth-signin annotations conditionally on gate.enabled; reconcile-on-off-transition cleans up stale gate releases. Phase 5 (stagecraft UI) landed 2026-05-17 — new per-env detail route hosts the gate card + allowlist editor + login-method picker + end-user preview + empty-state CTA, wired to Phase 2's PUT/POST/DELETE endpoints via new server-side fetch helpers. Phase 4↔5 integration landed 2026-05-17 (T070–T076) — migration 41 adds deploy-descriptor secret columns (rauthy_client_secret + cookie_secret + tls_secret_name) with CHECK enabled_requires_secrets; provisionTenantGateClient now captures the Rauthy client secret from POST response (fail-loud if absent — Rauthy 0.35 admin GET never returns it per T003); putAccessGate generates cookie_secret on first enable + persists secrets; new accessGatesDeploy.ts assembles the deployd-api wire shape from descriptor row + sibling allowlist; deploy.ts caller forwards access_gate on POST /v1/deployments; kubernetes-reflector installed via setup.sh (chart 9.1.6) replicates the wildcard cert Secret into tenant namespaces via reflector annotations on the Certificate's secretTemplate. Phase 6 (E1–E6 evidence + lifecycle flip) remains.
 approved: "2026-05-15"
+amended: "2026-06-16"
+amendment_record: |
+  Amended 2026-06-16 by 214-tenant-app-chart-supersession (Stage 2): the two
+  access-gate co_authority units that pointed at the retired tenant-hello
+  chart files are relocated to the aim-vue-encore chart equivalents
+  (values.yaml + templates/ingress.yaml, anchor access-gate), co-authored with
+  214 (the new chart owner) instead of 136. The gate seam semantics are
+  unchanged (FR-011 render parity was proven before the retirement). 214 also
+  locks the tenant hostname convention (FR-007), resolving this spec's
+  Clarification 4 sketch: a single DNS label {org}--{project}--{env} under
+  tenants.{base}, the single-level wildcard cert being the binding constraint.
 owner: bart
 created: "2026-05-04"
 kind: platform
@@ -44,11 +55,11 @@ extends:
     unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
 co_authority:
   - with_specs:
-      - "136-tenant-hello-demo-service"
-    unit: { kind: section, file: platform/charts/tenant-hello/values.yaml, anchor: access-gate }
+      - "214-tenant-app-chart-supersession"
+    unit: { kind: section, file: platform/charts/aim-vue-encore/values.yaml, anchor: access-gate }
   - with_specs:
-      - "136-tenant-hello-demo-service"
-    unit: { kind: section, file: platform/charts/tenant-hello/templates/ingress.yaml, anchor: access-gate }
+      - "214-tenant-app-chart-supersession"
+    unit: { kind: section, file: platform/charts/aim-vue-encore/templates/ingress.yaml, anchor: access-gate }
   - with_specs:
       - "073-axiomregent-unification"
       - "136-tenant-hello-demo-service"

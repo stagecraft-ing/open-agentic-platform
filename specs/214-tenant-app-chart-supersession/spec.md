@@ -3,7 +3,7 @@ id: "214-tenant-app-chart-supersession"
 title: "Tenant App Chart Supersession (template-encore scaffold becomes the reference tenant)"
 feature_branch: "feat/214-tenant-app-chart-supersession"
 status: draft
-implementation: pending
+implementation: complete  # Stage 1 (additive aim-vue-encore deploy path) landed via #365; Stage 2 (tenant-hello retirement) landed 2026-06-16: chart-registry cutover to the sole aim-vue-encore shape, deployd default flip, ci.yml/ci-tenant-app.yml rewire, specs 136/137 amended; all locally-verifiable gates green (coupling, spec-lint, deployd cargo 35 tests + clippy, stagecraft tsc + vitest, helm lint + renders, FR-011 gate-seam parity proven in Stage 1, featuregraph golden). DEFERRED (deploy-time / operational, not resolvable in-repo): FR-010's cd-tenant-app.yml reference-image build is workflow_dispatch-gated and fails loud until the cross-repo template-encore source (vars.TENANT_APP_TEMPLATE_REPO/REF + read token) is wired; SC-001/SC-003/SC-005 need a live cluster (TLS endpoint, DB write round-trip, private-image pull) per the plan's Verification split.
 kind: platform
 domain: platform
 created: "2026-06-12"
@@ -35,19 +35,14 @@ depends_on:
   - "138-stagecraft-create-realised-scaffold"
   - "119-project-as-unit-of-governance"
   - "199-factory-thin-consumer-sync"
-supersedes:
-  - spec: "136-tenant-hello-demo-service"
-    scope: partial
-    unit: { kind: directory, path: platform/services/tenant-hello }
-  - spec: "136-tenant-hello-demo-service"
-    scope: partial
-    unit: { kind: directory, path: platform/charts/tenant-hello }
-  - spec: "136-tenant-hello-demo-service"
-    scope: partial
-    unit: { kind: file, path: .github/workflows/ci-tenant-hello.yml }
-  - spec: "136-tenant-hello-demo-service"
-    scope: partial
-    unit: { kind: file, path: .github/workflows/cd-tenant-hello.yml }
+amends: ["136-tenant-hello-demo-service", "137-tenant-environment-access-gates", "213-tenant-repo-image-build", "151-declarative-cluster-reconciliation"]
+# Supersession of spec 136's tenant-hello units is recorded under references
+# (role: superseded-removed) rather than as `supersedes:` units: this PR deletes
+# those paths, and the spec-compiler's V-022/V-023 require relationship units in
+# establishes/extends/supersedes/co_authority to exist in the worktree (deletion
+# and rename handling is the spec-compiler's Tier 2 Segment 3 work). The partial
+# supersession of 136 is documented in 136's amendment callout, this spec's User
+# Story 4 / FR-011, and the `amends: 136` edge above.
 extends:
   - spec: "136-tenant-hello-demo-service"
     nature: additive
@@ -80,11 +75,19 @@ extends:
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+  # Stage 2 SC-002 doc scrub: 214 co-authors the "Chart selection and deploy
+  # wire contract" section of stagecraft's CLAUDE.md (the sole-shape reality
+  # after the tenant-hello retirement), additively extending 138's file claim
+  # the same way 138/140 extend it.
+  - spec: "138-stagecraft-create-realised-scaffold"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/CLAUDE.md }
 establishes:
-  # Converted from references:planned-establishes now that the Stage 1
-  # implementation has landed these paths (spec 200 precedent). The new
-  # deployResolve.* helpers and the ghcr-pull reflector secret are net-new
-  # here. cd-tenant-app.yml stays planned-establishes (Stage 2 build+push).
+  # Converted from references:planned-establishes as the implementation landed
+  # these paths (spec 200 precedent). The deployResolve.* helpers and the
+  # ghcr-pull reflector secret are net-new in Stage 1; cd-tenant-app.yml is
+  # net-new in Stage 2 (the build+push workflow).
+  - unit: { kind: file, path: .github/workflows/cd-tenant-app.yml }
   - unit: { kind: directory, path: platform/charts/aim-vue-encore }
   - unit: { kind: file, path: platform/services/stagecraft/api/deploy/hostname.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/deploy/hostname.test.ts }
@@ -93,12 +96,19 @@ establishes:
   - unit: { kind: file, path: .github/workflows/ci-tenant-app.yml }
   - unit: { kind: file, path: platform/infra/hetzner/manifests/ghcr-pull-secret.yaml }
 references:
-  # Planned-establishes: the owning `establishes:` edge lands with the Stage 2
-  # PR (cd-tenant-app.yml is the build+push workflow; spec 200 precedent).
-  - role: planned-establishes
-    unit: { kind: file, path: .github/workflows/cd-tenant-app.yml }
-  - role: chart-precedent
+  # cd-tenant-app.yml graduated to establishes (Stage 2). The tenant-hello
+  # service, chart, and CI/CD workflows that 136 established are superseded and
+  # removed by this PR; recorded here as existence-exempt references (the units
+  # no longer exist in the worktree) rather than `supersedes:` units. See the
+  # note above the `extends:` block.
+  - role: superseded-removed
+    unit: { kind: directory, path: platform/services/tenant-hello }
+  - role: superseded-removed
     unit: { kind: directory, path: platform/charts/tenant-hello }
+  - role: superseded-removed
+    unit: { kind: file, path: .github/workflows/ci-tenant-hello.yml }
+  - role: superseded-removed
+    unit: { kind: file, path: .github/workflows/cd-tenant-hello.yml }
   - role: scaffold-fixture-source
     unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/templateCache.ts }
   - role: variant-model-authority
