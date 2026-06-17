@@ -25,7 +25,7 @@ path = "src/bin/audit.rs"
 factory-contracts = { path = "../factory-contracts" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sha2 = "0.10"
+sha2 = "0.11"
 unicode-normalization = "0.1"
 
 # Test-only deps. `chrono` is needed for fixture timestamps; `tempfile`

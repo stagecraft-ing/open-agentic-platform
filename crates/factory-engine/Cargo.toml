@@ -31,7 +31,7 @@ reqwest = { version = "0.13", default-features = false, features = ["json", "rus
 urlencoding = "2"
 infer = "0.19"
 uuid = { version = "1", features = ["v4", "serde"] }
-sha2 = "0.10"
+sha2 = "0.11"
 # Spec 102 FR-008.1 — Ed25519 signing for governance certificates.
 # Keygen seeds a 32-byte buffer straight from the OS CSPRNG via
 # `getrandom::fill` and hands it to `SigningKey::from_bytes` — the exact
