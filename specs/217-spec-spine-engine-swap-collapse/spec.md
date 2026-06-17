@@ -76,6 +76,17 @@ been converging grammar onto the library since spec 216, and a
 OAP's full 217-spec corpus with zero errors or warnings using the
 `spec-spine.toml` config already at the repo root.
 
+**Correction (2026-06-17 Phase 0 dry run on 0.5.0).** The 2026-06-15
+result validated `compile` (the registry) ONLY; it never ran the index.
+On the sharded 0.5.0 release, `spec-spine index` emits 116 error
+diagnostics that the in-tree indexer never produced, because the in-tree
+indexer never validated unit existence at all. The "mechanical,
+zero-error" premise holds for the registry, not the index. The 116 split
+into three independent tracks documented in section 1.5: a
+`spec-spine.toml` config correction, a corpus-cleanup prerequisite, and a
+spec-spine 0.5.1 library fix. This does NOT relax FR-000; the zero-error
+bar stands, and the work to reach it is now scoped honestly.
+
 This spec governs the deletion of the in-tree generic engine and the
 migration of all consumers to the library. OAP retains an overlay: the
 16-kind enum, shape/category, compliance, factory/OWASP machinery,
@@ -121,32 +132,117 @@ serialization point; shard them too if committed.
 
 ---
 
+## 1.5 Phase 0 dry-run findings: the three-track split (2026-06-17)
+
+The 0.5.0 Phase 0 dry run (config = committed `spec-spine.toml`) produced
+116 index error diagnostics where the in-tree indexer produced zero. A
+root-cause investigation (a config experiment applied, measured, and
+reverted) split them into three independent tracks.
+
+**Track 1: OAP `spec-spine.toml` config correction (16 diagnostics; in
+this spec's scope).** The config this spec establishes carries two wrong
+path conventions. (a) `standalone_rust_workspaces` lists `Cargo.toml`
+FILES; the library joins `member + "Cargo.toml"`, producing
+`.../Cargo.toml/Cargo.toml`, so the `opc` and `deployd-api-rs` crates are
+undiscovered and their symbols never resolve (I-005 x4). They must be
+DIRECTORIES. (b) `npm_workspaces` points at `product/pnpm-workspace.yaml`,
+whose `["apps/*","packages/*"]` globs the library resolves against
+repo-root rather than `product/`, so ALL 25 npm packages are undiscovered
+(I-003 x12). Workaround without a library release: enumerate via
+`standalone_npm_packages = ["product/packages/*", "product/apps/*", ...]`
+(repo-root-relative globs resolve correctly). Measured: both corrections
+take 116 -> 101 and clear I-003 and I-005 entirely (packages discovered
+38 -> 63). This is a CONST-005-clean correction of config this spec owns;
+it lands in Phase 1.
+
+**Track 2: corpus cleanup (95 diagnostics: I-004 x80, I-007 x15;
+prerequisite).** Genuine dangling unit declarations accumulated across
+refactors because the in-tree indexer never validated unit existence.
+Sub-buckets: OPC package-extraction repoints (code moved from
+`product/apps/opc/src` into `@opc/*` packages); references-edge doc drift
+(policy P1 below); retirement drift (tenant-hello, `factory/`);
+draft/pending future units (policy P2 below); stagecraft and crate
+renames; strays (spec 178 `/tmp/...`, spec 001 sharding-obsolete
+`registry.json`). This is the migration's hidden prerequisite: OAP's
+corpus is first held to unit-existence validation here. CONST-005
+discipline governs the lifecycle (retirement) sub-bucket: honest repoints
+and supersessions only.
+
+**Track 3: spec-spine 0.5.1 library fixes (6 diagnostics plus hardening;
+upstream).** I-006 section resolution: non-workflow YAML `# region:`
+markers are dispatched to `ci_job_sections` instead of `region_sections`
+(5: specs 137/146/151), and a Makefile `## tag:` overwrite bug drops the
+`ci-fast` section (1: spec 134). Targets exist; the library misses them.
+Plus the npm-glob base-resolution defect underlying Track 1 (OAP works
+around it via config). Owned by a spec-spine-rooted agent per
+`handoff-spec-spine-release.md`; OAP does not write into spec-spine.
+
+**Command-name correction.** `spec-spine index compile` is not a 0.5.0
+subcommand. Building the index is bare `spec-spine index`; the `index`
+subcommands are `check` / `render` / `orphans`. Every `index compile`
+reference in this spec and its execution plan repoints to `spec-spine
+index`.
+
+### Policy decisions (resolve the cross-repo boundary)
+
+**P1: references-edge truth lives in the spec, not the doc.** A
+`references:` edge (spec 156) MUST resolve to a committed doc, but the
+spec MUST carry the relevant extract inline so its meaning survives doc
+transience. The reference is supplementary context for the broader rest,
+never load-bearing. Material that cannot be committed is a prose citation,
+not a `references:` edge. The ~20 OWASP-doc references are cleaned this
+way: inline the relevant extract, repoint surviving edges to
+`docs/owasp-agentic-top-10-2026.md`, drop edges to never-committed docs.
+
+**P2: draft/pending units warn, never skip.** The indexer MUST surface
+unbuilt units declared by `draft` / `implementation: pending` specs as
+WARNINGS; it MUST NOT silently skip them. Skipping is an
+authority-laundering and invisible-drift vector: a perpetual-draft spec
+could `establishes:` a path whose units are never validated and whose
+authority the coupling gate never sees. Two corollaries: (a) the
+coupling/authority layer still treats a draft spec's `establishes:`
+claims as LIVE for gating, so draft status creates no authority hole; (b)
+FR-000's zero-warning bar is read as "zero errors plus zero un-accepted
+warnings", where the enumerated draft-unit warnings are accepted, not
+silenced. P2's warn-not-error behaviour is a Track 3 library change: the
+library currently hard-errors, and the in-tree indexer silently tolerated
+(which P2 forbids).
+
+---
+
 ## 2. Phased Delivery Plan
 
 The implementation follows the phase sequence proven by the WS-B plan.
 Each phase is independently deployable (CI stays green at each phase
 boundary).
 
-### Phase 0: Prerequisites (already satisfied)
+### Phase 0: Prerequisites and the config gate
 
 - Spec 216 implementation complete (grammar-convergence prerequisite).
-- `spec-spine.toml` config at repo root (namespace=oap, 4 domains,
-  16 kinds, dual standalone Rust crates, product/ pnpm workspace,
-  stagecraft standalone-npm).
-- A spec-spine release that includes per-spec sharding (spec-spine spec 024)
-  is published and pinned. NOTE: the 2026-06-15 dry run used 0.4.0, which is
-  monolithic; sharding landed post-0.4.0 and is not yet released. This swap
-  pins the SHARDED release (a tagged 0.5.0 / 1.0.0, not 0.4.0), so the prior
-  dry run is re-run against it (see FR-000).
+- `spec-spine.toml` config at repo root. CORRECTION (2026-06-17): the
+  committed config mis-declares manifest paths (section 1.5 Track 1).
+  Phase 1 lands the fix (`standalone_rust_workspaces` as directories;
+  npm packages via `standalone_npm_packages` globs).
+- spec-spine 0.5.0 (sharded per spec-spine spec 024, plus the spec 023
+  ledger seal) published and pinned via the `spec-spine` CLI and the
+  crates.io `spec-spine-core` / `spec-spine-types` deps. Confirmed
+  published to crates.io and npm on 2026-06-17. The earlier 0.4.0 dry run
+  was monolithic and registry-only.
 
-**FR-000 (gate).** Before Phase 1 begins, `spec-spine compile` AND `spec-spine
-index` run against the repo root with the committed `spec-spine.toml`, on the
-pinned SHARDED release, exit 0 with zero errors and zero warnings on the full
-corpus and emit a sane shard set (one `by-spec/<id>.json` per spec, plus
-`by-package/<slug>.json`).
+**FR-000 (gate), revised 2026-06-17.** Before Phase 1's deletion work,
+`spec-spine compile` AND `spec-spine index` (bare, not `index compile`)
+run against the repo root with the committed `spec-spine.toml`, on the
+pinned SHARDED release, and exit 0 with zero ERRORS and zero UN-ACCEPTED
+warnings (per P2, the enumerated draft-unit warnings are accepted) on the
+full corpus, emitting a sane shard set (one `by-spec/<id>.json` per spec,
+plus `by-package/<slug>.json`). The 2026-06-17 dry run did NOT pass (116
+diagnostics, section 1.5); FR-000 passes only after Track 1 (config),
+Track 2 (corpus cleanup), and Track 3 (0.5.1) land. The zero-error bar is
+not relaxed.
 
-**AC-000.** CI job (or local equivalent) confirms FR-000. The
-spec-spine.toml config matches the validated dry-run candidate.
+**AC-000.** CI job (or local equivalent) confirms FR-000 at zero net
+errors. The committed `spec-spine.toml` is the corrected (Track 1) config,
+not the original mis-declared one.
 
 ### Phase 1: Build the OAP overlay layer (no deletion yet)
 
@@ -438,7 +534,7 @@ Full CI pass on the combined deletion + wave PR:
 
 | ID | Phase | Requirement |
 |---|---|---|
-| FR-000 | 0 | Library 0.4.0 compiles full corpus, zero errors |
+| FR-000 | 0 | Library 0.5.0 compile + index, zero net errors (revised 2026-06-17; see section 1.5) |
 | FR-101 | 1 | Overlay types crate compiles against spec-spine-types |
 | FR-102 | 1 | Overlay lint compiles; OAP-domain codes preserved |
 | FR-201 | 2 | All 8 consumer crates compile against library seam |
