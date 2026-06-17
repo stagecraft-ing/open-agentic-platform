@@ -340,6 +340,57 @@ export type ProjectArtifact = typeof projectArtifacts.$inferSelect;
 export type ProjectArtifactInsert = typeof projectArtifacts.$inferInsert;
 
 // ---------------------------------------------------------------------------
+// Environment Deployments (spec 215 FR-003)
+// ---------------------------------------------------------------------------
+//
+// Stagecraft's durable record of every deploy dispatch (UI trigger or PR
+// webhook), keyed to deployd-api's release id. Source of truth for the env
+// page (FR-004) and the destroy path's release-id lookup (FR-005). Migration
+// 49 owns the table; the status / variant CHECK constraints live in SQL.
+export const deploymentStatusValues = [
+  "REQUESTED",
+  "PENDING",
+  "ROLLED_OUT",
+  "FAILED",
+  "REQUEST_FAILED",
+  "DESTROYED",
+] as const;
+export type DeploymentStatus = (typeof deploymentStatusValues)[number];
+
+export const environmentDeployments = pgTable(
+  "environment_deployments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    environmentId: uuid("environment_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    releaseId: text("release_id"),
+    releaseSha: text("release_sha").notNull(),
+    artifactRef: text("artifact_ref").notNull(),
+    variant: text("variant").notNull().default("public"),
+    status: text("status").$type<DeploymentStatus>().notNull(),
+    endpoints: jsonb("endpoints").$type<string[]>().notNull().default([]),
+    dispatchedBy: text("dispatched_by").notNull(),
+    diagnostic: text("diagnostic"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_environment_deployments_env_created").on(
+      t.environmentId,
+      t.createdAt,
+    ),
+  ],
+);
+
+export type EnvironmentDeployment = typeof environmentDeployments.$inferSelect;
+export type EnvironmentDeploymentInsert =
+  typeof environmentDeployments.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // Project Members
 // ---------------------------------------------------------------------------
 
