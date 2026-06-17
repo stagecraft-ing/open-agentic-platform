@@ -100,6 +100,25 @@ claim-precedence (spec 216 FR-002 validation). The CI workflow
 (`.github/workflows/ci-spec-code-coupling.yml`) survives with its
 binary invocation changed.
 
+**Index storage is sharded, and this swap supersedes spec 188 Phase 4b.** Two
+things changed since this spec was drafted, and they retarget its index
+handling. (1) OAP spec 188 Phase 4b de-committed the broad monolithic
+`index.json` (gitignored, rebuilt on demand) to get clean merge-queue
+auto-merge, trading away present-on-clone (spec 101 SC-06). (2) spec-spine
+landed per-spec index sharding (its spec 024): `compile` and `index` emit
+disjoint per-unit shards (`.derived/spec-registry/by-spec/`,
+`.derived/codebase-index/by-spec/` + `by-package/`), schema MAJOR 1.0.0, with
+the aggregate computed on read; the `spec-spine-core` loaders
+(`load_committed_index`, `load_committed_registry`, `couple_with`) assemble
+from the shards transparently, with unchanged signatures and exit codes. So
+this swap MUST target a spec-spine release that includes sharding (NOT 0.4.0,
+which is monolithic), and it COMMITS the sharded trees: that re-commit restores
+present-on-clone in a conflict-free form (disjoint per-spec files cannot
+collide), superseding Phase 4b's de-commit. Open item for implementation:
+confirm OAP's overlay artifacts (`oap-code-index-enrich` / `oap-registry-enrich`
+output) are gitignored and regenerated, not a new committed monolithic
+serialization point; shard them too if committed.
+
 ---
 
 ## 2. Phased Delivery Plan
@@ -114,12 +133,17 @@ boundary).
 - `spec-spine.toml` config at repo root (namespace=oap, 4 domains,
   16 kinds, dual standalone Rust crates, product/ pnpm workspace,
   stagecraft standalone-npm).
-- Library 0.4.0 published to crates.io (or pinned via git tag per the
-  WS-B D1 dependency-mode decision).
+- A spec-spine release that includes per-spec sharding (spec-spine spec 024)
+  is published and pinned. NOTE: the 2026-06-15 dry run used 0.4.0, which is
+  monolithic; sharding landed post-0.4.0 and is not yet released. This swap
+  pins the SHARDED release (a tagged 0.5.0 / 1.0.0, not 0.4.0), so the prior
+  dry run is re-run against it (see FR-000).
 
-**FR-000 (gate).** Before Phase 1 begins, `spec-spine compile` run
-against the repo root with the committed `spec-spine.toml` exits 0 with
-zero errors and zero warnings on the full corpus.
+**FR-000 (gate).** Before Phase 1 begins, `spec-spine compile` AND `spec-spine
+index` run against the repo root with the committed `spec-spine.toml`, on the
+pinned SHARDED release, exit 0 with zero errors and zero warnings on the full
+corpus and emit a sane shard set (one `by-spec/<id>.json` per spec, plus
+`by-package/<slug>.json`).
 
 **AC-000.** CI job (or local equivalent) confirms FR-000. The
 spec-spine.toml config matches the validated dry-run candidate.
@@ -230,9 +254,13 @@ spec-lint crate:
   to the library in Phase 1).
 
 Drop each from `[workspace] members` in the root `Cargo.toml`. The
-`.derived/codebase-index/` artifact, `codebase-index.schema.json`, and
-the CI workflow `ci-spec-code-coupling.yml` **survive** (only the
-producing and enforcing binaries change).
+`.derived/codebase-index/` and `.derived/spec-registry/` artifacts (now the
+SHARDED per-unit trees, spec-spine spec 024) and the CI workflow
+`ci-spec-code-coupling.yml` **survive** (only the producing and enforcing
+binaries change). OAP's overlay
+`standards/schemas/spec-spine/codebase-index.schema.json` (monolithic, 3.1.0)
+is DROPPED in favour of spec-spine's shard schemas (1.0.0); the OAP overlay
+enrich reads via `load_committed_index`.
 
 `oap-registry-enrich` absorbs the OAP-specific authority-resolver verbs
 previously in `registry-consumer`. The `by-authority`, `validate-graph`,
@@ -251,11 +279,17 @@ authority logic from spec 181 is re-implemented here, reading the
 registry via `spec-spine-core::load_registry`. Exit codes and output
 format are preserved (callers are unaffected).
 
-**FR-303 (codebase-index artifact survives).** The
-`.derived/codebase-index/` artifact (produced by `spec-spine index
-compile`) is byte-identical in shape to the in-tree indexer's output
-(same schema version). The committed `index.json` is regenerated in
-this phase's commit.
+**FR-303 (codebase-index artifact is the committed shard tree).** `spec-spine
+index` emits the per-unit index shard tree (`by-spec/<id>.json` +
+`by-package/<slug>.json`, schema 1.0.0) and `spec-spine compile` emits the
+registry shard tree (`by-spec/<id>.json`). This phase COMMITS those shard trees
+and re-includes them in `.gitignore` (the monolithic `index.json` /
+`registry.json` are never emitted again). Committing the shards restores
+present-on-clone (spec 101 SC-06) in a conflict-free form, superseding spec 188
+Phase 4b's de-commit: disjoint per-spec files cannot textually collide, so the
+merge queue forms clean speculative stacks. The implementation PR carries the
+`amends: 188` edge and the spec 101 SC-06 restoration (effected, not merely
+declared).
 
 **AC-301.** `cargo build --workspace` succeeds with the deleted crates
 absent. No dangling `path` or `crate` dependencies remain.
@@ -295,8 +329,12 @@ Every invocation of the deleted binaries is replaced:
   examples are updated.
 - **`.claude/skills/`** (init, setup, cleanup): tool invocations
   referencing the deleted binaries are updated.
-- **`.githooks/pre-commit`** and the merge driver: hardcoded binary
-  paths referencing the in-tree indexer are updated.
+- **`.githooks/pre-commit`** and the `oap-index-regen` merge driver: the
+  hardcoded in-tree-indexer binary paths are updated, AND the merge-driver
+  `.gitattributes` globs re-point from `index.json` / `registry.json` to the
+  shard paths (`.derived/**/by-spec/*.json`, `by-package/*.json`), mirroring
+  spec-spine's `.gitattributes`. With disjoint shards the driver becomes a rare
+  same-shard fallback rather than the common path.
 - **`platform/services/stagecraft/`**: `REGISTRY_CONSUMER_BIN` and
   its fallback logic repoints to `spec-spine registry` or
   `oap-registry-enrich` as appropriate (WS-B risk item R5).
