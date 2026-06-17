@@ -18,7 +18,7 @@ hiqlite = { version = "~0.13", default-features = false, features = ["sqlite", "
 anyhow = "1"
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
-tower-http = { version = "0.6", features = ["cors"] }
+tower-http = { version = "0.7", features = ["cors"] }
 jsonwebtoken = { version = "10", features = ["aws_lc_rs"] }
 reqwest = { version = "0.13", features = ["json"] }
 tracing = "0.1"
