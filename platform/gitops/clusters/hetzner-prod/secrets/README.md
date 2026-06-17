@@ -12,7 +12,7 @@ This directory is the per-purpose-Secret surface that **spec 153** will fill in.
 Per [spec 151 plan.md](../../../../../specs/151-declarative-cluster-reconciliation/plan.md) §"Sequencing and gates", spec 153 cannot start until:
 
 1. **Spec 151 is operational** — Flux reconciling ≥1 HelmRelease in production with `flux-system/sops-age` Secret present.
-2. **Spec 152 has 14 days of clean operation** — CD git-write to gitops tree stable, no manual `helm upgrade --set` or `kubectl set image` against any of stagecraft / deployd-api / tenant-hello.
+2. **Spec 152 has 14 days of clean operation** — CD git-write to gitops tree stable, no manual `helm upgrade --set` or `kubectl set image` against any of stagecraft / deployd-api.
 
 Either gate failing pushes 153 out, not 153's contents.
 

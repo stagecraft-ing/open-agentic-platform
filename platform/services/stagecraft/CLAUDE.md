@@ -47,7 +47,7 @@ SQL files live in `api/db/migrations/`, run by `scripts/migrate.mjs` as a Helm `
 
 For full Encore.ts API reference (APIs, databases, PubSub, streaming, auth, middleware, validation, etc.), see [`docs/encore-ts-reference.md`](docs/encore-ts-reference.md).
 
-## Chart selection and deploy wire contract (spec 136)
+## Chart selection and deploy wire contract (spec 136 / 214)
 
 Tenant deploys go through stagecraft → `deployd-api-rs`, which since spec 136
 Phase 2.b drives Kubernetes via `helm upgrade --install` rather than raw
@@ -56,9 +56,10 @@ stagecraft side by a pure selector and passed across the wire by name.
 
 - `api/deploy/chartSelector.ts` — pure function `selectChart({shape})` returns
   `{chart, version}` from `CHART_REGISTRY`. Unknown shapes throw — there is no
-  silent fallback chart. Today the only registered shape is `"tenant-hello"`
-  → `{ chart: "tenant-hello", version: "0.1.0" }`, which corresponds to the
-  Helm chart at `platform/charts/tenant-hello/`. Adding a shape means landing
+  silent fallback chart. After the spec 214 retirement the sole registered
+  shape is `"aim-vue-encore"` → `{ chart: "aim-vue-encore", version: "0.1.0" }`,
+  which corresponds to the Helm chart at `platform/charts/aim-vue-encore/`.
+  Adding a shape means landing
   a chart under `platform/charts/<shape>/`, embedding its files in
   `platform/services/deployd-api-rs/src/helm.rs` via `include_str!`, and
   appending the registry entry here.
@@ -73,7 +74,7 @@ accepts two optional fields that flow directly from `selectChart`:
 ```jsonc
 {
   // ...existing fields (tenant_id, app_id, env_id, release_sha, artifact_ref, lane, ...)
-  "chart": "tenant-hello",        // optional; default "tenant-hello"
+  "chart": "aim-vue-encore",      // optional; default "aim-vue-encore"
   "chart_version": "0.1.0"        // optional; advisory — bundled chart is image-pinned
 }
 ```

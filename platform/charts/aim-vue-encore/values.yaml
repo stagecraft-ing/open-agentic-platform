@@ -45,8 +45,8 @@ ingress:
     secretName: ""
 
 # region: access-gate
-# Spec 137: per-environment access gate. Ported verbatim from tenant-hello
-# so the FR-011 render-parity check passes: when `gate.enabled` is true the
+# Spec 137: per-environment access gate. Ported from the prior chart's gate
+# seam so the FR-011 render-parity check passed: when `gate.enabled` is true the
 # Ingress emits the same auth-url / auth-signin / auth-response-headers
 # annotations chaining to the per-environment oauth2-proxy rendered by the
 # `oauth2-proxy-gate` chart in the same namespace (a separate,

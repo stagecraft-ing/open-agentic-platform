@@ -9,6 +9,13 @@ domain: platform
 created: "2026-06-12"
 authors: ["open-agentic-platform"]
 language: en
+amended: "2026-06-16"
+amendment_record: |
+  Amended 2026-06-16 by 214-tenant-app-chart-supersession (Stage 2): the
+  cd-tenant-hello.yml precedent reference in repoInit.ts's OAP_BUILD_WORKFLOW
+  comment is updated to cd-tenant-app.yml, the workflow that replaced it when
+  214 retired the synthetic tenant-hello reference. Documentation-only; no
+  behavior change.
 summary: >
   Close the deferral spec 137 recorded as "CI / container-build for tenant
   repos (separate spec)". Today a factory-created project repo receives only

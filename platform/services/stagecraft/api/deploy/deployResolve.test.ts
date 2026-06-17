@@ -43,9 +43,9 @@ describe("resolveTenantShape (spec 214 FR-002, sole-shape mapping)", () => {
     expect(resolveTenantShape("")).toBeNull();
   });
 
-  it("lets an explicit registered chart name win over the adapter", () => {
-    expect(resolveTenantShape("synthetic-adapter-x", "tenant-hello")).toBe(
-      "tenant-hello",
+  it("honours an explicit registered chart name", () => {
+    expect(resolveTenantShape("synthetic-adapter-x", "aim-vue-encore")).toBe(
+      "aim-vue-encore",
     );
     expect(resolveTenantShape(null, "aim-vue-encore")).toBe("aim-vue-encore");
   });
@@ -66,9 +66,9 @@ describe("resolveChartSelection (spec 214 FR-002)", () => {
     });
   });
 
-  it("resolves an explicit tenant-hello override", () => {
-    expect(resolveChartSelection(null, "tenant-hello")).toEqual({
-      chart: "tenant-hello",
+  it("resolves an explicit registered chart override", () => {
+    expect(resolveChartSelection(null, "aim-vue-encore")).toEqual({
+      chart: "aim-vue-encore",
       version: "0.1.0",
     });
   });

@@ -17,7 +17,7 @@ Cluster-wide infrastructure charts. Each file is a Flux `HelmRepository` + `Helm
 3. **ingress-nginx** (Phase 3) — ingress controller, LoadBalancer Service preserved from current setup.sh.
 4. **rauthy** (Phase 4) — OIDC identity provider, in-tree chart at `platform/charts/rauthy/`. Identity-critical; lands in a maintenance window per T-020.
 
-Application HelmReleases (stagecraft, deployd-api, tenant-hello) defer to spec 152 — a sibling `apps/` subtree, not `infrastructure/`.
+Application HelmReleases (stagecraft, deployd-api) defer to spec 152 — a sibling `apps/` subtree, not `infrastructure/`.
 
 ## Ordering and dependencies
 

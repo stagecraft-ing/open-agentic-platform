@@ -10,7 +10,6 @@ The platform layer is the organisational control plane for Open Agentic Platform
 |---------|-------|------|---------|
 | **stagecraft** | Encore.ts, Drizzle ORM | `services/stagecraft/` | SaaS platform: auth, admin, monitoring, Slack, GitHub webhooks, Factory lifecycle API |
 | **deployd-api-rs** | Rust (axum, hiqlite) | `services/deployd-api-rs/` | K8s deployment orchestration with Helm, OIDC JWT auth |
-| **tenant-hello** | Express.js | `services/tenant-hello/` | Example tenant service |
 
 > GitHub webhook handling was absorbed into stagecraft (`services/stagecraft/api/github/`).
 

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:dccf1d1f02f879722fe9d17ce8a0704066a0d8ff5db3538e9c36c725a1c0f1e7",
+  "graph_fingerprint": "sha256:132f9b05f3d83463e42593e0956b94ea79960cbe79af3ecee758c5eb0a488068",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4033,7 +4033,7 @@
       "title": "Tenant App Chart Supersession (template-encore scaffold becomes the reference tenant)",
       "spec_path": "specs/214-tenant-app-chart-supersession/spec.md",
       "status": "draft",
-      "implementation": "pending",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",

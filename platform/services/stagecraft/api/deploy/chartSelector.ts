@@ -1,7 +1,8 @@
-// Spec 136 Phase 2 — chartSelector resolves a Helm chart for a tenant
-// project's deployment. tenant-hello is the first (and currently only)
-// registered shape; the selector exists as a building block so future
-// shapes can be added without rewriting the deployd-api wire contract.
+// Spec 136 Phase 2 / spec 214: chartSelector resolves a Helm chart for a
+// tenant project's deployment. aim-vue-encore (the factory's template-encore
+// scaffold) is the sole registered shape after the spec 214 retirement; the
+// selector exists as a building block so future shapes can be added without
+// rewriting the deployd-api wire contract.
 //
 // Input: a minimal descriptor of the project's deployable shape
 // (factory adapter id + a shape hint that future codepaths can derive
@@ -18,12 +19,11 @@
 
 /**
  * Tenant codebase shapes recognised by the chartSelector. `aim-vue-encore`
- * is the factory's real reference shape (the template-encore scaffold);
- * `tenant-hello` is the synthetic reference being superseded by spec 214
- * (dropped in the Stage 2 retirement once gate-seam render parity is proven,
- * FR-011).
+ * (the factory's template-encore scaffold) is the sole shape after the
+ * spec 214 Stage 2 retirement of the synthetic reference; gate-seam render
+ * parity was proven before the retirement (FR-011).
  */
-export type TenantShape = "tenant-hello" | "aim-vue-encore";
+export type TenantShape = "aim-vue-encore";
 
 /**
  * Minimal per-project descriptor for chart resolution. The shape derives
@@ -42,7 +42,6 @@ export type ChartSelection = {
 };
 
 const CHART_REGISTRY: Record<TenantShape, ChartSelection> = {
-  "tenant-hello": { chart: "tenant-hello", version: "0.1.0" },
   "aim-vue-encore": { chart: "aim-vue-encore", version: "0.1.0" },
 };
 

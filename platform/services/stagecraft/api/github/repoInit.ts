@@ -342,7 +342,7 @@ export const OAP_BUILD_WORKFLOW_NAME = "oap-build";
 // `pr-{n}[-variant]` alias on pull_request, and publishes no `latest` tag.
 // `${...}` GitHub/bash expressions are backslash-escaped so this template
 // literal is not interpreted by JS. Third-party actions are SHA-pinned to
-// the same refs this repo trusts (cd-tenant-hello.yml precedent). Exported
+// the same refs this repo trusts (cd-tenant-app.yml precedent). Exported
 // so the factory-create scaffold flow can write it into commit #1 of the
 // scaffolded tree (spec 213 FR-001 / SC-001); the Contents-API seed below
 // is the retrofit path for repos created before this spec (FR-008).

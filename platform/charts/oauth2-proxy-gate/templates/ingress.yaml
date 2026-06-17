@@ -5,8 +5,8 @@ tenant chart's own Ingress claims `/` for the same hostname; ingress-nginx
 routes by path prefix.
 
 The tenant Ingress chains here via auth-url / auth-signin annotations
-(rendered conditionally by the tenant-hello chart when `gate.enabled`
-is true — see `platform/charts/tenant-hello/templates/ingress.yaml`).
+(rendered conditionally by the aim-vue-encore chart when `gate.enabled`
+is true; see `platform/charts/aim-vue-encore/templates/ingress.yaml`).
 */}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
