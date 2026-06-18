@@ -24,6 +24,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
+pub mod authority;
+
 #[derive(Debug)]
 pub enum EnrichError {
     Io(std::io::Error),
@@ -116,6 +118,13 @@ fn load_spec_spine_config(repo_root: &Path) -> spec_spine_types::Config {
         .ok()
         .and_then(|src| spec_spine_types::load_config(&src).ok())
         .unwrap_or_default()
+}
+
+/// Load the committed registry for `repo_root` via the published library
+/// (spec 217 FR-302 surface, shared by the `by-authority` verb).
+pub fn load_registry(repo_root: &Path) -> Result<Registry, EnrichError> {
+    let cfg = load_spec_spine_config(repo_root);
+    load_committed_registry(&cfg, repo_root).map_err(|e| EnrichError::Registry(e.to_string()))
 }
 
 /// Convenience: compute + write `registry-oap.json` to

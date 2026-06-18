@@ -7,8 +7,10 @@
 //! were redirected here in the same PR.
 
 use crate::types::{AdapterRecord, Infrastructure, WorkflowTrace, WorkflowTraceSource};
-use open_agentic_codebase_indexer::types::{
-    BuildInfo, Diagnostic, Diagnostics, PackageKind, PackageRecord, TraceMapping, TraceSource,
+// Spec 217 engine swap: decode the Layer 1-2 portion with the published
+// library's codebase-index types (the in-tree codebase-indexer is retired).
+use spec_spine_types::codebase::{
+    Diagnostic, Diagnostics, IndexBuild, PackageKind, PackageRecord, TraceMapping, TraceSource,
     Traceability,
 };
 use serde::Deserialize;
@@ -28,8 +30,8 @@ use std::path::Path;
 struct EnrichedView {
     #[allow(dead_code)]
     schema_version: String,
-    build: BuildInfo,
-    inventory: Vec<PackageRecord>,
+    build: IndexBuild,
+    packages: Vec<PackageRecord>,
     traceability: Traceability,
     factory: Vec<AdapterRecord>,
     infrastructure: Infrastructure,
@@ -66,7 +68,7 @@ fn render_markdown(index: &EnrichedView) -> String {
 
     // Layer 1: Inventory
     let rust_pkgs: Vec<_> = index
-        .inventory
+        .packages
         .iter()
         .filter(|p| {
             matches!(
@@ -76,7 +78,7 @@ fn render_markdown(index: &EnrichedView) -> String {
         })
         .collect();
     let npm_pkgs: Vec<_> = index
-        .inventory
+        .packages
         .iter()
         .filter(|p| {
             matches!(
@@ -88,28 +90,26 @@ fn render_markdown(index: &EnrichedView) -> String {
 
     out.push_str(&format!(
         "## Layer 1: Crate & Package Inventory ({} total)\n\n",
-        index.inventory.len()
+        index.packages.len()
     ));
 
     if !rust_pkgs.is_empty() {
         out.push_str(&format!("### Rust Crates ({})\n\n", rust_pkgs.len()));
-        out.push_str("| Name | Path | Kind | Version | Spec | Internal Deps |\n");
-        out.push_str("|------|------|------|---------|------|---------------|\n");
+        // Spec 217 engine swap: the library `PackageRecord` carries no
+        // inter-crate dependency edges, so the former "Internal Deps" column is
+        // dropped (the in-tree indexer that computed it is retired).
+        out.push_str("| Name | Path | Kind | Version | Spec |\n");
+        out.push_str("|------|------|------|---------|------|\n");
         for p in &rust_pkgs {
             let version = p.version.as_deref().unwrap_or("-");
             let spec = render_spec_link(p.spec_ref.as_deref());
-            let deps = match &p.internal_deps {
-                Some(d) if !d.is_empty() => d.join(", "),
-                _ => "-".to_string(),
-            };
             out.push_str(&format!(
-                "| {} | `{}` | {} | {} | {} | {} |\n",
+                "| {} | `{}` | {} | {} | {} |\n",
                 p.name,
                 p.path,
                 kind_label(&p.kind),
                 version,
-                spec,
-                deps
+                spec
             ));
         }
         out.push('\n');
@@ -163,16 +163,13 @@ fn render_markdown(index: &EnrichedView) -> String {
             let status = m.spec_status.as_deref().unwrap_or("-");
             let mut paths = Vec::new();
             for p in &m.implementing_paths {
-                let source = match &p.source {
-                    Some(TraceSource::SpecImplements) => "spec",
-                    Some(TraceSource::CargoMetadataCrate) => "cargo-metadata-crate",
-                    Some(TraceSource::CargoMetadataModule) => "cargo-metadata-module",
-                    Some(TraceSource::CommentHeader) => "comment-header",
-                    Some(TraceSource::Multiple) => "multiple",
-                    None => "-",
+                let source = match p.source {
+                    TraceSource::SpecEdge => "spec-edge",
+                    TraceSource::ManifestMetadata => "manifest-metadata",
+                    TraceSource::CommentHeader => "comment-header",
+                    TraceSource::Multiple => "multiple",
                 };
-                let primary = if p.primary == Some(true) { " ★" } else { "" };
-                paths.push(format!("`{}` ({}){}", p.path, source, primary));
+                paths.push(format!("`{}` ({})", p.path, source));
             }
             out.push_str(&format!(
                 "| `{}` | {} | {} |\n",

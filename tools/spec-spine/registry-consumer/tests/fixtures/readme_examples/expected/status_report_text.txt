@@ -1,4 +1,0 @@
-draft      1
-approved   1
-superseded 1
-retired    1

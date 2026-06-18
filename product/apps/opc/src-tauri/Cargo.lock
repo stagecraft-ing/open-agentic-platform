@@ -5002,11 +5002,12 @@ dependencies = [
  "factory-contracts",
  "factory-engine",
  "hex",
- "open_agentic_spec_compiler",
  "serde",
  "serde_json",
  "serde_yaml",
  "sha2 0.10.9",
+ "spec-spine-core",
+ "spec-spine-types",
  "thiserror 2.0.18",
  "walkdir",
  "xray",
@@ -5040,31 +5041,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
-]
-
-[[package]]
-name = "open_agentic_spec_compiler"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "clap",
- "jsonschema",
- "open_agentic_spec_types",
- "serde",
- "serde_json",
- "serde_yaml",
- "sha2 0.11.0",
- "toml 1.1.2+spec-1.1.0",
- "walkdir",
-]
-
-[[package]]
-name = "open_agentic_spec_types"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "serde_yaml",
 ]
 
 [[package]]
@@ -7210,9 +7186,9 @@ dependencies = [
 
 [[package]]
 name = "spec-spine-core"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa69219c9411a87df2bcc97dfd3f4d112fb522ed736e87058070b8890b548f2a"
+checksum = "ba9d432546e08c02a5f862f4377ae4c2f3e6cb63316689a70b6d6e17d06f7519"
 dependencies = [
  "glob",
  "serde",
@@ -7226,9 +7202,9 @@ dependencies = [
 
 [[package]]
 name = "spec-spine-types"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b22ffb3341846caa3a1fe0c75a28df7fddba13a510ad9ad875cb1690f9c6dfeb"
+checksum = "5734dd1e4adea668c2c9d1762cf5d01e64040737215f9adbd4ca30ff089c50ec"
 dependencies = [
  "serde",
  "serde_json",

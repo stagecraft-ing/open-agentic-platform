@@ -25,11 +25,10 @@ members = [
     "crates/tool-registry",
     "crates/xray",
 
-    # 5 spec-spine tools.
-    "tools/spec-spine/codebase-indexer",
-    "tools/spec-spine/registry-consumer",
-    "tools/spec-spine/spec-code-coupling-check",
-    "tools/spec-spine/spec-compiler",
+    # 1 spec-spine tool: the 4 generic engine crates (spec-compiler,
+    # registry-consumer, codebase-indexer, spec-code-coupling-check) were
+    # deleted by spec 217 Phase 3 (the published spec-spine library replaces
+    # them); spec-lint survives as the OAP overlay lint.
     "tools/spec-spine/spec-lint",
 
     # 9 OAP-specific Rust tools (schema-parity-check is JS-only;

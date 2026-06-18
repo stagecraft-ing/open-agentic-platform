@@ -1,1 +1,0 @@
-registry-consumer: tests/fixtures/error_contract/does_not_exist.json: No such file or directory (os error 2)

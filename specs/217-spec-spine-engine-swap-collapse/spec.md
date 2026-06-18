@@ -339,7 +339,7 @@ amendment itself: the reality-aligned plan plus the FR-000 green result.
 
 ---
 
-## 1.8 Phase-2 dependency-resolution reality and the 0.7.0 pin (2026-06-18)
+## 1.8 Phase-2 dependency-resolution reality and the library pin (2026-06-18)
 
 Three facts emerged from the first executed consumer repoint (featuregraph,
 consumer 1 of the 8 in Phase 2) that refine, but do not change, the plan.
@@ -387,8 +387,40 @@ passes 22/22, `cargo build -p axiomregent` (a downstream consumer) is clean,
 and `cargo tree -i tree-sitter` shows only xray's 0.26 (spec-spine-core
 contributes none). The Phase 2 seam is confirmed on real code, not just the
 2026-06-15 compile dry run. The remaining 7 consumers follow the same
-template; the enrichers (`oap-registry-enrich`, `oap-code-index-enrich`) keep
-their raw-JSON overlay passthrough and need no library change.
+template; the enrichers (`oap-registry-enrich`, `oap-code-index-enrich`) need
+no library API change. (Repoint reality, verified: they cannot keep a raw-JSON
+passthrough, because the library emits no monolithic registry/index to read
+back. Each instead serializes the typed library DTO (`Registry` / `CodebaseIndex`)
+as the base layer and overlays the OAP-specific layers on top.)
+
+**The pin advances to 0.8.0 (provenance `derived_at`).** The
+`opc-decomposition-pipeline` compile-path repoint (a Phase-3 prerequisite,
+since Phase 3 deletes the in-tree `spec-compiler`) surfaced a second
+consumer-driven reality. Its stage-6 synthesizer emits a `references:` edge
+whose `provenance:` block carries `kind: code-fingerprint`, `ref`, and
+`derived_at` (`crates/opc-decomposition-pipeline/src/stages/synthesis.rs`),
+because spec 161 FR-007 requires `provenance.derived_at` on every
+`decomposition-origin` reference; the `code-fingerprint` scheme itself is
+already configured in the repo-root `spec-spine.toml`. The 0.7.0 library
+`Provenance` type (`spec-spine-types`, `deny_unknown_fields`, fields
+`kind`/`ref` only) rejected the unknown `derived_at` field, so an in-process
+`spec_spine_core::compile` of a freshly-staged spec failed validation
+(V-002) and wrote zero shards. spec-spine 0.8.0 (crates.io) adds optional
+`derived_at` to `Provenance`, so the generated spec's `{ kind, ref,
+derived_at }` provenance now parses, the project-registry shards are
+written, and validation passes; the target test
+`promotes_staged_spec_and_recompiles_registry` is green on 0.8.0. The
+repointed consumers (`featuregraph`, `factory-engine`, `oap-registry-enrich`,
+`oap-code-index-enrich`, `opc/src-tauri`, `opc-decomposition-pipeline`)
+therefore pin `0.8.0`, still
+`default-features = false` (the symbol-resolution / tree-sitter-`links`
+constraint above is unchanged); the remaining Phase-2 consumers pin the same
+when repointed. FR-000 remains met: the registry and index schema MAJOR
+versions are unchanged, so OAP's committed shards read identically under
+0.8.0 (the green `featuregraph` and `factory-engine` committed-shard reader
+tests confirm it). (Boundary note: the `derived_at` provenance extension was
+requested of, and shipped by, the spec-spine-rooted CC; OAP does not write
+into spec-spine.)
 
 ---
 
