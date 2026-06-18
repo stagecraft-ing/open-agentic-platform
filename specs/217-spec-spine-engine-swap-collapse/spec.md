@@ -232,6 +232,113 @@ single call site.
 
 ---
 
+## 1.6 Phase-1 seam correction (2026-06-18): the overlay keeps OAP types, it does not re-export library primitives
+
+The original Phase 1 plan (FR-101 below, as first drafted) said the
+generic primitives (`split_frontmatter_*`, `LogicalUnit`, `ProvenanceKind`,
+`RESOLVER_EXCLUSIONS`, `FrontmatterError`) "move to `spec-spine-types`
+imports" via re-export, and that downstream crates "recompile without
+call-site changes." A 2026-06-18 empirical comparison of the published
+`spec-spine-types` 0.6.0 public API against OAP's `open_agentic_spec_types`
+falsified that premise for four of the five named primitives. The library
+models specs differently (typed `Frontmatter` / `Unit` via serde) than
+OAP's in-tree types (`serde_yaml::Value`-based helpers plus a hand-rolled
+`LogicalUnit`), so a `pub use ... as ...` re-export does not compile OAP's
+call sites.
+
+| OAP type | Library reality | Verdict |
+|---|---|---|
+| `LogicalUnit` | `unit::Unit` has the SAME six variants/fields but NONE of `kind_str` / `from_yaml` / `from_json` / `to_json`, and `LogicalUnitParseError` does not exist | INCOMPATIBLE |
+| `split_frontmatter_required` / `_optional` | `frontmatter::split_frontmatter` returns `(String, String)` (raw YAML text), not `(serde_yaml::Value, String)`; no `_optional`; different error type | INCOMPATIBLE |
+| `ProvenanceKind` / `ProvenanceParseError` | library has only the raw `edges::Provenance{kind,ref}` struct; URI schemes are config-driven (`[provenance.uri_schemes]`), not a compiled typed enum | INCOMPATIBLE (genuinely OAP-specific) |
+| `RESOLVER_EXCLUSIONS` | no exported const; `IndexConfig` default is bare dir-names (`"target"`) not globs (`"target/**"`) | INCOMPATIBLE |
+| `Severity` | `registry::Severity` is identical except it lacks the `Hash` derive | ALIASABLE (but OAP's own `Severity` has zero external consumers) |
+
+`ViolationCode` (the `&'static str` newtype) and its ~30 `V_` / `W_` / `L_`
+const instances have no library equivalent (the library's `Violation.code`
+is a `String`) and are dead in OAP: zero external consumers, and spec-lint
+emits string-literal codes.
+
+**Corrected seam.** `open_agentic_spec_types` survives as the OAP overlay
+types crate. It does NOT re-export generic primitives from the library. It
+KEEPS the OAP-specific types its surviving consumers use (the vocabularies
+`VALID_KINDS`, `SHAPE_TABLE`, `VALID_DOMAINS`, `CONVENTIONAL_CATEGORIES`,
+`KNOWN_KEYS`, plus `split_frontmatter_*`), and deletes verified-dead code
+(`ViolationCode` and the `V_` / `W_` / `L_` const registry, the unused
+`Severity`, and `LogicalUnit` / `RESOLVER_EXCLUSIONS` once the in-tree
+engine crates that are their only consumers are deleted in Phase 3). The
+`spec-spine-core` / `spec-spine-types` dependency is added to the Phase-2
+CONSUMER crates (where they read `Registry` / `CodebaseIndex` via
+`load_committed_registry` / `load_committed_index`), not to the types crate
+for re-export.
+
+This correction does not relax the engine swap: the four generic engine
+binaries are still deleted (Phase 3) and consumers still repoint to the
+library engine (Phase 2). It corrects only the mechanism by which
+`spec-types` becomes the overlay (deletion of dead generics plus retention
+of OAP-specific types, instead of re-export of incompatible library types).
+Under the corrected seam, AC-101's "downstream crates compile without
+modification" HOLDS precisely because the OAP types are kept, not swapped.
+
+---
+
+## 1.7 Phase-1 lint seam correction (2026-06-18): library-lint gating defers to the wave
+
+FR-102 (as first drafted) said the OAP overlay lint would "invoke
+`spec-spine-core::lint` for the generic pass and append its own OAP codes,"
+with the generic codes (`W-001..007`, `V-020`, `L-001..004`) "removed from
+the in-tree crate." A 2026-06-18 empirical comparison of the library lint
+against OAP's `spec-lint` falsified that split.
+
+**Library lint emits a different code namespace.** `spec_spine_core::lint`
+emits exactly five codes, `L-001..L-005`, not OAP's `W-`/`V-` scheme:
+`L-001` (no ownership edge, warn), `L-002` (`domains.allowed` set + no
+`domain`, warn), `L-003` (`kind.allowed` set + no `kind`, warn), `L-004`
+(relationship names a non-existent target, warn), `L-005` (stub spec, no
+body sections, INFO). OAP's lint emits `W-001..007` (workflow + lifecycle
+enums; OAP-specific; no library equivalent), `W-130/131/132`, `V-030/031`,
+`W-161` (OAP-domain; no library equivalent), `V-020`, and its own `L-005`.
+
+**Three findings break the FR-102 split:**
+1. Most of OAP's "generic" `W-001..007` are OAP-specific (the `tasks.md` /
+   `verification.md` / `changeset.md` Spec-Kit workflow and the OAP status /
+   implementation enums); the library does not emit them. Removing them
+   would lose checks, not delegate them.
+2. Only `V-020` is close to `L-001` and `V-031` is close to `L-002`. OAP's
+   `L-005` (workspace-migration, error) COLLIDES on the string with the
+   library's `L-005` (stub-spec, info).
+3. **The library's `L-001` is stricter than OAP's `V-020`.** `V-020` is
+   satisfied by the 7 owning edges plus `references:`, `superseded_by:`,
+   `composition.requires:`, `selects:`, or `origin: retroactive`; `L-001`
+   accepts only the 7 owning edges plus `origin: retroactive`. As a result
+   `spec-spine lint --fail-on-warn` fails (exit 1) on 8 legitimately
+   non-owning specs (superseded 038/040/088; profile 150; reference /
+   plan-only / approved-unbuilt 066/081/148/149). Annotating them to pass
+   would be CONST-005 drift (making the spine claim ownership it does not
+   have to satisfy a gate), which this spec refuses.
+
+**Decision (2026-06-18): library-lint gating defers to the Phase 3+5
+bundle.** No `spec-spine lint` step is wired in Phase 1. The integration
+lands with the wave, where: (a) spec 006 (which establishes `spec-lint`)
+is superseded, making the overlay edit coupling-clean; (b) the `V-020` /
+`L-001` semantic gap is reconciled (library config-driven exemptions, or a
+deliberate corpus annotation pass that is honest per spec); and (c) OAP's
+obsolete `L-005` workspace-migration advisory is retired (its migration is
+complete) so the library's `L-005` string is unambiguous. Until then OAP's
+existing `spec-lint --fail-on-warn` remains the lint gate (AC-102 holds: it
+exits 0 on the current corpus, unchanged).
+
+**Consequence for the phase model.** This is the third Phase-1 element
+(after the spec-types re-export and the lint code-split) whose clean
+standalone landing dissolved on contact with the library's stricter or
+different semantics and OAP's coupling governance. The realistic landing is
+therefore a consolidated Phase 2-5 bundle (consumer repoints, engine
+deletion, and the supersession / amendment wave together), not a series of
+thin per-phase PRs. Phase 1's coupling-clean deliverable is this spec
+amendment itself: the reality-aligned plan plus the FR-000 green result.
+
+---
+
 ## 2. Phased Delivery Plan
 
 The implementation follows the phase sequence proven by the WS-B plan.
@@ -266,22 +373,36 @@ warnings; the three defects clear the 6 I-006), FR-000 reaches zero net
 errors. Track 2 references hygiene is opportunistic, NOT a gating
 condition. The zero-error bar is not relaxed.
 
+**VERIFIED GREEN (2026-06-18).** With `spec-spine-cli` 0.6.0 installed from
+crates.io and the committed `spec-spine.toml`, run from the OAP repo root:
+`spec-spine compile` exits 0 (220 specs, 0 warnings) and `spec-spine index`
+exits 0 with 0 ERROR diagnostics. `spec-spine index render` surfaces 94
+`W-002` unresolved-file-unit warnings (accepted under the unified rule:
+surfaced not skipped per P2, downgraded to warnings not errors per P1). The
+count is 94 (not the predicted 95) and the code is a single `W-002` (not
+0.5.0's `I-004`/`I-007` split) because the corpus grew to 220 specs since
+2026-06-17 and 0.6.0 consolidated the diagnostic codes; the gate contract
+(zero errors, warnings surfaced) holds. FR-000 is met.
+
 **AC-000.** CI job (or local equivalent) confirms FR-000 at zero net
 errors. The committed `spec-spine.toml` is the corrected (Track 1) config,
 not the original mis-declared one.
 
 ### Phase 1: Build the OAP overlay layer (no deletion yet)
 
-Slim `tools/shared/spec-types` from the full in-tree types crate to an
-OAP overlay types crate that re-exports and extends `spec-spine-types`.
-Generic primitives (`split_frontmatter_*`, `LogicalUnit`,
-`ProvenanceKind`, `RESOLVER_EXCLUSIONS`, `FrontmatterError`) move to
-`spec-spine-types` imports; OAP-specific typed modelling (the 16-value
-`kind` enum, `VALID_KINDS`, `shape`/`SHAPE_TABLE`, `category`/
+Slim `tools/shared/spec-types` to the OAP overlay types crate. CORRECTION
+(2026-06-18, section 1.6): the overlay does NOT re-export generic
+primitives from `spec-spine-types` (their shapes are incompatible). It
+KEEPS the OAP-specific typed modelling its surviving consumers use (the
+16-value `kind` enum, `VALID_KINDS`, `shape`/`SHAPE_TABLE`, `category`/
 `CONVENTIONAL_CATEGORIES`, `VALID_DOMAINS`, capability/registry/profile
-fields, `stagecraft://` provenance, legacy `implements`) stays in the
-overlay crate. The Cargo.toml for `open_agentic_spec_types` gains
-`spec-spine-types` as a direct dependency.
+fields, `stagecraft://` provenance via `ProvenanceKind`, legacy
+`implements`, and `split_frontmatter_*`), and deletes verified-dead code
+(`ViolationCode` plus the `V_`/`W_`/`L_` const registry, the unused
+`Severity`, and `LogicalUnit`/`RESOLVER_EXCLUSIONS` once their only
+consumers, the in-tree engine crates, are deleted in Phase 3). The
+`spec-spine-core`/`spec-spine-types` dependency is added to the Phase-2
+consumer crates (registry/index reads), NOT to the types crate.
 
 Slim `tools/spec-spine/spec-lint` to the OAP-domain lint codes only
 (W-130/131/132 category/kind/shape, V-030/031 domain, W-161
@@ -294,22 +415,32 @@ Neither the producing binary (spec-compiler) nor the consuming binaries
 (registry-consumer, codebase-indexer, spec-code-coupling-check) are
 deleted in this phase. Build remains green.
 
-**FR-101 (overlay types).** `open_agentic_spec_types` compiles against
-`spec-spine-types`; its public API for OAP-specific types is unchanged
-(downstream crates recompile without call-site changes).
+**FR-101 (overlay types).** `open_agentic_spec_types` survives as the OAP
+overlay types crate (section 1.6): its public API for OAP-specific types is
+unchanged and downstream crates recompile without call-site changes. It
+retains the OAP-specific types its surviving consumers use and drops only
+verified-dead code; it does not re-export generic `spec-spine-types`
+primitives (whose shapes are incompatible). The library dependency lands in
+the Phase-2 consumer crates, not here.
 
-**FR-102 (overlay lint).** `tools/spec-spine/spec-lint` compiles as an
-OAP overlay: it re-exports or calls the library lint for the generic
-pass and appends OAP-domain codes. The `spec-lint --fail-on-warn` CI
-invocation exits 0 against the current corpus.
+**FR-102 (overlay lint).** CORRECTION (section 1.7): library-lint
+integration defers to the Phase 3+5 bundle. The library lint's `L-001` is
+stricter than OAP's `V-020`, so `spec-spine lint --fail-on-warn` cannot
+gate the current corpus without CONST-005 drift, and `spec-lint` is
+established by spec 006, which the wave supersedes. OAP's existing
+`spec-lint --fail-on-warn` remains the Phase 1 lint gate and exits 0
+against the current corpus, unchanged. The merge of the library's generic
+`L-001..L-004` pass, the dropping of the now-redundant `V-020`/`V-031`, and
+the retirement of OAP's obsolete `L-005` all land in the wave.
 
 **AC-101.** `cargo build --manifest-path tools/shared/spec-types/Cargo.toml`
 succeeds. All downstream crates that `path`-depend on spec-types compile
 without modification.
 
-**AC-102.** `spec-lint --fail-on-warn` exits 0. The OAP-domain codes
-(W-130/131/132, V-030/031, W-161, L-005) are still exercised by their
-existing fixture tests.
+**AC-102.** OAP's existing in-tree `spec-lint --fail-on-warn` exits 0 (the
+library-lint integration defers to the wave per section 1.7). The
+OAP-domain codes (W-130/131/132, V-030/031, W-161, L-005) are still
+exercised by their existing fixture tests.
 
 ### Phase 2: Repoint the 8 consumer crates to the library
 
