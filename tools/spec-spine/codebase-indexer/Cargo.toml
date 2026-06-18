@@ -29,7 +29,7 @@ toml = "0.8"
 # `tools/vendor/grammars/tree-sitter-rust`; mirror xray's pattern
 # (`crates/xray/Cargo.toml:37`) but without the feature gate — the
 # resolver is non-optional here.
-tree-sitter = "0.25"
+tree-sitter = "0.26"
 tree-sitter-rust = { path = "../../vendor/grammars/tree-sitter-rust" }
 walkdir = "2"
 # Spec 154 §3.7 (amended 2026-05-24) — resolver honors committed
