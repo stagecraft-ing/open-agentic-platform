@@ -19,8 +19,8 @@
     "build:frontend": "cd web && react-router build"
   },
   "devDependencies": {
-    "@react-router/dev": "7.17.0",
-    "@tailwindcss/vite": "^4.3.0",
+    "@react-router/dev": "8.0.0",
+    "@tailwindcss/vite": "^4.3.1",
     "@types/luxon": "^3.7.1",
     "@types/node": "^25.9.2",
     "@types/pdf-parse": "^1.1.5",
@@ -28,21 +28,21 @@
     "@types/react-dom": "^19.2.3",
     "drizzle-kit": "^0.31.10",
     "prettier": "^3.8.4",
-    "tailwindcss": "^4.1.13",
+    "tailwindcss": "^4.3.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.16",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1066.0",
-    "@aws-sdk/s3-request-presigner": "^3.1066.0",
-    "@react-router/node": "7.17.0",
-    "@react-router/serve": "7.17.0",
+    "@aws-sdk/client-s3": "^3.1071.0",
+    "@aws-sdk/s3-request-presigner": "^3.1071.0",
+    "@react-router/node": "8.0.0",
+    "@react-router/serve": "8.0.0",
     "@tanstack/react-query": "^5.101.0",
     "drizzle-orm": "^0.45.2",
     "encore.dev": "^1.57.8",
-    "isbot": "^5.1.42",
+    "isbot": "^5.1.43",
     "knex": "^3.2.9",
     "luxon": "^3.7.2",
     "mammoth": "^1.12.0",
@@ -51,12 +51,12 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0",
-    "react-router": "7.17.0",
+    "react-router": "8.0.0",
     "remark-gfm": "^4.0.1",
     "yaml": "^2.9.0",
     "zod": "^4.3.6"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.61.0"
+    "@rollup/rollup-linux-x64-gnu": "^4.62.0"
   }
 }
