@@ -31,6 +31,7 @@ import {
   exchangeCodeForTokens,
   generatePkcePair,
   provisionRauthyUser,
+  resolveUpstreamProviderId,
   validateJwt,
   type RauthyTokens,
 } from "./rauthy";
@@ -180,21 +181,22 @@ export const oidcLogin = api.raw(
       codeVerifier,
     });
 
-    // Build Rauthy authorization URL with upstream provider hint
+    // Build Rauthy authorization URL with the upstream-provider direct-login
+    // hint. Rauthy's `idp_hint` takes the provider *id* (random string), not
+    // its name, so resolve the configured name to its Rauthy id first.
     const redirectUri = `${appBaseUrl()}/auth/oidc/callback`;
     const authUrl = buildAuthorizationUrl({
       redirectUri,
       state,
       scopes: providerRow.scopes.split(" ").filter(Boolean),
+      idpHint: (await resolveUpstreamProviderId(providerRow.name)) ?? undefined,
       codeChallenge,
       codeChallengeMethod: "S256",
     });
 
-    // Append login_hint (email) and upstream_provider hint if available
+    // Append login_hint (email) to pre-fill the upstream provider's form.
     const authUrlObj = new URL(authUrl);
     if (email) authUrlObj.searchParams.set("login_hint", email);
-    // Rauthy uses upstream_auth_provider_id to route to the configured IdP
-    authUrlObj.searchParams.set("upstream_auth_provider_id", providerRow.name);
 
     resp.writeHead(302, { Location: authUrlObj.toString() });
     resp.end();
