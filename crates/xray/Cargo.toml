@@ -20,7 +20,7 @@ anyhow = "1.0" # For error handling convenience
 thiserror = "2"
 walkdir = "2.4"
 tempfile = "3.8"
-tree-sitter = { version = "0.25", optional = true }
+tree-sitter = { version = "0.26", optional = true }
 toml = { version = "0.9", optional = true }
 fastembed = { version = "5", optional = true }
 kd-tree = { version = "0.5", features = ["rayon"], optional = true }
