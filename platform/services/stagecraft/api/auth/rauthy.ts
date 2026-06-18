@@ -464,6 +464,13 @@ export function generatePkcePair(): { codeVerifier: string; codeChallenge: strin
 
 /**
  * Build the Rauthy authorization URL for initiating login.
+ *
+ * `opts.idpHint`, when set, MUST be a Rauthy upstream-provider **id** (the
+ * random 24-char value assigned at provider creation), not its name. It is
+ * emitted as `idp_hint`, the query param Rauthy's authorize page consumes to
+ * skip its own provider-selection screen and forward straight to that
+ * upstream provider (Rauthy Book: "Direct Login with idp_hint"). Resolve a
+ * provider name to its id with `resolveUpstreamProviderId` before calling.
  */
 export function buildAuthorizationUrl(opts: {
   redirectUri: string;
@@ -484,13 +491,80 @@ export function buildAuthorizationUrl(opts: {
     state: opts.state,
   });
 
-  if (opts.idpHint) params.set("upstream_auth_provider_id", opts.idpHint);
+  if (opts.idpHint) params.set("idp_hint", opts.idpHint);
   if (opts.codeChallenge) {
     params.set("code_challenge", opts.codeChallenge);
     params.set("code_challenge_method", opts.codeChallengeMethod ?? "S256");
   }
 
   return `${baseUrl}/auth/v1/oidc/authorize?${params.toString()}`;
+}
+
+// ---------------------------------------------------------------------------
+// Upstream auth-provider id resolution
+// ---------------------------------------------------------------------------
+
+interface ProviderIdCache {
+  byName: Map<string, string>;
+  fetchedAt: number;
+}
+
+let providerIdCache: ProviderIdCache | null = null;
+const PROVIDER_CACHE_TTL_MS = 3600_000; // 1 hour, mirrors the JWKS cache
+
+/**
+ * List Rauthy's configured upstream auth providers and return a name->id map.
+ * Rauthy 0.35 serves the provider list at `POST /auth/v1/providers` (not GET),
+ * under admin API-Key auth; this mirrors `scripts/seed-rauthy.mjs`.
+ */
+async function fetchUpstreamProviders(): Promise<Map<string, string>> {
+  const baseUrl = rauthyUrl().replace(/\/+$/, "");
+  const adminAuth = buildRauthyAdminAuth();
+
+  const resp = await fetch(`${baseUrl}/auth/v1/providers`, {
+    method: "POST",
+    headers: {
+      Authorization: adminAuth,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: "{}",
+  });
+  if (!resp.ok) {
+    throw new Error(`Failed to list Rauthy upstream providers: ${resp.status}`);
+  }
+
+  const list = (await resp.json()) as Array<{ id?: string; name?: string }>;
+  const byName = new Map<string, string>();
+  for (const p of Array.isArray(list) ? list : []) {
+    if (p?.name && p?.id) byName.set(p.name, p.id);
+  }
+  return byName;
+}
+
+/**
+ * Resolve an upstream auth-provider *name* (e.g. "github") to its Rauthy
+ * provider *id*. The authorize-endpoint direct-login hint is
+ * `idp_hint=<provider id>`; the provider name does not match (the id is a
+ * random string assigned at creation). Result is cached for an hour.
+ *
+ * Returns null when the provider is unknown or the lookup fails. Callers then
+ * omit the hint, so Rauthy renders its normal provider-selection page: the
+ * pre-fix behaviour, never worse.
+ */
+export async function resolveUpstreamProviderId(name: string): Promise<string | null> {
+  try {
+    if (!providerIdCache || Date.now() - providerIdCache.fetchedAt >= PROVIDER_CACHE_TTL_MS) {
+      providerIdCache = { byName: await fetchUpstreamProviders(), fetchedAt: Date.now() };
+    }
+    return providerIdCache.byName.get(name) ?? null;
+  } catch (err) {
+    log.warn("Upstream provider id resolution failed; omitting idp_hint", {
+      name,
+      error: errorForLog(err),
+    });
+    return null;
+  }
 }
 
 /**

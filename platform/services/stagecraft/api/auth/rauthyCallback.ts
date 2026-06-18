@@ -30,6 +30,7 @@ import {
   exchangeCodeForTokens,
   generatePkcePair,
   provisionRauthyUser,
+  resolveUpstreamProviderId,
   type RauthyTokens,
 } from "./rauthy";
 import { mintSessionForOrg } from "./sessionMint";
@@ -118,7 +119,7 @@ export const rauthyLogin = api.raw(
       redirectUri: `${appBaseUrl()}/auth/rauthy/callback`,
       state,
       scopes: ["openid", "profile", "email", "oap"],
-      idpHint: "github",
+      idpHint: (await resolveUpstreamProviderId("github")) ?? undefined,
       codeChallenge,
       codeChallengeMethod: "S256",
     });

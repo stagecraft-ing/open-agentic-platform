@@ -24,7 +24,7 @@ import { applyRateLimit, checkRateLimit } from "./rate-limit";
 import { db } from "../db/drizzle";
 import { oidcProviders } from "../db/schema";
 import { eq, and } from "drizzle-orm";
-import { buildAuthorizationUrl, generatePkcePair, refreshTokens } from "./rauthy";
+import { buildAuthorizationUrl, generatePkcePair, refreshTokens, resolveUpstreamProviderId } from "./rauthy";
 import {
   pendingDesktopFlows,
   pendingDesktopSessions,
@@ -155,13 +155,13 @@ export const desktopAuthorize = api.raw(
           redirectUri: `${appBaseUrl()}/auth/oidc/callback`,
           state: rauthyState,
           scopes: providerRow.scopes.split(" ").filter(Boolean),
+          idpHint: (await resolveUpstreamProviderId(providerRow.name)) ?? undefined,
           codeChallenge: rauthyPkce.codeChallenge,
           codeChallengeMethod: "S256",
         });
 
         const authUrlObj = new URL(authUrl);
         if (idpHint.includes("@")) authUrlObj.searchParams.set("login_hint", idpHint);
-        authUrlObj.searchParams.set("upstream_auth_provider_id", providerRow.name);
 
         resp.writeHead(302, { Location: authUrlObj.toString() });
         resp.end();
@@ -192,7 +192,7 @@ export const desktopAuthorize = api.raw(
       redirectUri: `${appBaseUrl()}/auth/rauthy/callback`,
       state: rauthyState,
       scopes: ["openid", "profile", "email", "oap"],
-      idpHint: "github",
+      idpHint: (await resolveUpstreamProviderId("github")) ?? undefined,
       codeChallenge: rauthyPkce.codeChallenge,
       codeChallengeMethod: "S256",
     });
