@@ -339,6 +339,59 @@ amendment itself: the reality-aligned plan plus the FR-000 green result.
 
 ---
 
+## 1.8 Phase-2 dependency-resolution reality and the 0.7.0 pin (2026-06-18)
+
+Three facts emerged from the first executed consumer repoint (featuregraph,
+consumer 1 of the 8 in Phase 2) that refine, but do not change, the plan.
+
+**The pin is spec-spine 0.7.0, not 0.6.0.** spec-spine shipped 0.7.0
+(crates.io) carrying its spec 027: a default-on `symbol-resolution` Cargo
+feature that gates tree-sitter symbol/module resolution behind an optional
+dependency. 0.6.0 (the FR-000 pin in Phase 0) pulled tree-sitter
+unconditionally; 0.7.0 makes it opt-out. The engine swap pins 0.7.0. FR-000
+remains met: the schema versions are unchanged (registry 1.0.0, index 1.1.0),
+so the 0.6.0-generated committed shards read identically under 0.7.0.
+
+**Why the feature gate is load-bearing: the tree-sitter `links` conflict.**
+`spec-spine-core`'s `symbol-resolution` pins `tree-sitter = "=0.25.10"`. OAP's
+`xray` crate pins `tree-sitter = "0.26"` (Dependabot, behind its
+`analysis-structure` feature), activated workspace-wide by `axiomregent` and
+`opc-decomposition-pipeline` (`analysis-call-graph`). `tree-sitter` declares
+`links = "tree-sitter"`, so cargo permits exactly one version per dependency
+graph, and `=0.25.10` and `^0.26` are disjoint. Because cargo resolves the
+workspace as one lockfile, adding `spec-spine-core` anywhere makes resolution
+fail before compilation. The resolution: **every consumer crate deps
+`spec-spine-core` with `default-features = false`.** The committed-shard read
+path (`load_committed_registry` / `load_committed_index`), `compile`, and
+`couple` are all symbol-resolution-free: tree-sitter is used only by the
+`index()` symbol resolver, whose resolved-unit line-spans are computed once
+when `spec-spine index` runs (via the CLI, which keeps the feature) and read
+back from the committed shards. This constraint is added to FR-201: no
+consumer enables `symbol-resolution`. (Boundary note: the feature gate was
+requested of, and shipped by, the spec-spine-rooted CC; OAP does not write
+into spec-spine.)
+
+**Function-name correction to the Phase 2 / overview tables.** The
+committed-shard readers are `spec-spine-core::load_committed_registry` and
+`load_committed_index` (they assemble the `by-spec` / `by-package` shard
+trees). The `load_registry` / `load_index` names used in section 1 and the
+Phase 2 table are the in-memory bytes-parsers, not the path loaders; read
+those entries as `load_committed_registry` / `load_committed_index`. The gate
+uses `couple` (IO + freshness-guarded) or `couple_with` (pure).
+
+**Consumer 1 of 8 is verified green.** featuregraph was repointed end to end
+on 0.7.0: `registry_source` to `load_committed_registry`, `index_bridge` to
+`load_committed_index` (deleting its hand-rolled mirror structs, FR-203
+satisfied), with `default-features = false`. `cargo test -p featuregraph`
+passes 22/22, `cargo build -p axiomregent` (a downstream consumer) is clean,
+and `cargo tree -i tree-sitter` shows only xray's 0.26 (spec-spine-core
+contributes none). The Phase 2 seam is confirmed on real code, not just the
+2026-06-15 compile dry run. The remaining 7 consumers follow the same
+template; the enrichers (`oap-registry-enrich`, `oap-code-index-enrich`) keep
+their raw-JSON overlay passthrough and need no library change.
+
+---
+
 ## 2. Phased Delivery Plan
 
 The implementation follows the phase sequence proven by the WS-B plan.
