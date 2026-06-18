@@ -1277,7 +1277,7 @@ pub async fn start_factory_pipeline(
                 hasher.update(&bytes);
             }
         }
-        format!("{:x}", hasher.finalize())
+        hex::encode(hasher.finalize())
     };
     let _ = std::fs::write(
         artifact_dir.join(run_id.to_string()).join("requirements-hash.txt"),
@@ -2545,7 +2545,7 @@ pub async fn resume_factory_pipeline(
                 )
                 .map(|s| s.trim().to_string())
                 .unwrap_or_else(|_| {
-                    format!("{:x}", Sha256::new().finalize())
+                    hex::encode(Sha256::new().finalize())
                 });
                 let binding = governance.as_ref().map(|g| g.capsule_binding());
                 let cert = factory_engine::governance_certificate::generate_certificate_bound(
