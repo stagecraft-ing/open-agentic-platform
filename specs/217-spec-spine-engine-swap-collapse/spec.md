@@ -82,10 +82,12 @@ On the sharded 0.5.0 release, `spec-spine index` emits 116 error
 diagnostics that the in-tree indexer never produced, because the in-tree
 indexer never validated unit existence at all. The "mechanical,
 zero-error" premise holds for the registry, not the index. The 116 split
-into three independent tracks documented in section 1.5: a
-`spec-spine.toml` config correction, a corpus-cleanup prerequisite, and a
-spec-spine 0.5.1 library fix. This does NOT relax FR-000; the zero-error
-bar stands, and the work to reach it is now scoped honestly.
+into three tracks documented in section 1.5: a `spec-spine.toml` config
+correction (Track 1, landed; clears 16), a spec-spine 0.6.0 library change
+(Track 3; the unified severity rule plus three resolver defects), and
+opportunistic references-edge hygiene (Track 2; non-blocking under
+decision A). FR-000 is not relaxed; its zero-ERROR bar stands, and the
+path to it is Track 1 (done) plus pinning 0.6.0.
 
 This spec governs the deletion of the in-tree generic engine and the
 migration of all consumers to the library. OAP retains an overlay: the
@@ -155,27 +157,34 @@ take 116 -> 101 and clear I-003 and I-005 entirely (packages discovered
 38 -> 63). This is a CONST-005-clean correction of config this spec owns;
 it lands in Phase 1.
 
-**Track 2: corpus cleanup (95 diagnostics: I-004 x80, I-007 x15;
-prerequisite).** Genuine dangling unit declarations accumulated across
-refactors because the in-tree indexer never validated unit existence.
-Sub-buckets: OPC package-extraction repoints (code moved from
-`product/apps/opc/src` into `@opc/*` packages); references-edge doc drift
-(policy P1 below); retirement drift (tenant-hello, `factory/`);
-draft/pending future units (policy P2 below); stagecraft and crate
-renames; strays (spec 178 `/tmp/...`, spec 001 sharding-obsolete
-`registry.json`). This is the migration's hidden prerequisite: OAP's
-corpus is first held to unit-existence validation here. CONST-005
-discipline governs the lifecycle (retirement) sub-bucket: honest repoints
-and supersessions only.
+**Track 2: references-edge hygiene (95 diagnostics: I-004 x80, I-007 x15;
+OPPORTUNISTIC, not blocking).** A falsification pass confirmed all 95 are
+`references:` edges, and that every one of the 984 owning-edge units
+(establishes/extends/refines/co_authority) across the corpus resolves:
+zero authority drift. The code-authority graph is intact; only provenance
+pointers drifted (code absorbed into `@opc/*` packages, retired
+`tenant-hello` / `factory/` paths, moved docs, the spec 178 `/tmp/...`
+stray). Under decision A (below), spec-spine 0.6.0 downgrades unresolved
+`references:` units to counted `W-0xx` warnings, which FR-000 accepts. So
+this is NOT a blocking prerequisite and requires NO supersessions or
+authority changes (correcting this section's first draft, which
+over-framed it as lifecycle surgery): it is opportunistic hygiene (inline
+the relevant extract, repoint, or drop the stale pointer) done as the
+owning specs are next touched, not a gating 55-spec edit.
 
-**Track 3: spec-spine 0.5.1 library fixes (6 diagnostics plus hardening;
-upstream).** I-006 section resolution: non-workflow YAML `# region:`
-markers are dispatched to `ci_job_sections` instead of `region_sections`
-(5: specs 137/146/151), and a Makefile `## tag:` overwrite bug drops the
-`ci-fast` section (1: spec 134). Targets exist; the library misses them.
-Plus the npm-glob base-resolution defect underlying Track 1 (OAP works
-around it via config). Owned by a spec-spine-rooted agent per
-`handoff-spec-spine-release.md`; OAP does not write into spec-spine.
+**Track 3: spec-spine 0.6.0 library changes (upstream; owned by a
+spec-spine-rooted agent, not OAP).** Two specs, confirmed against current
+spec-spine `main`: (i) a severity-policy spec (amends spec-spine 004)
+implementing the unified severity tier (decision A + P2 below); (ii) a
+defects spec covering Defect 1 foreign-YAML `# region:` dispatch routed to
+`ci_job_sections` instead of `region_sections` (`sections.rs:42-46`;
+amends spec-spine 022 and retires its stale "D4 deferred" note; clears the
+5 I-006 on specs 137/146/151), Defect 2 the Makefile `## tag:` overwrite
+(`sections.rs:142`; clears the 1 I-006 on spec 134), and Defect 3 the
+npm/Cargo glob base-resolution underlying Track 1 (OAP already works
+around it via config). The release is 0.6.0 (not 0.5.1) to signal the new
+severity behaviour; the on-disk schema is unchanged (stays 1.0.0). OAP
+re-pins 0.6.0 and re-runs FR-000.
 
 **Command-name correction.** `spec-spine index compile` is not a 0.5.0
 subcommand. Building the index is bare `spec-spine index`; the `index`
@@ -185,14 +194,19 @@ index`.
 
 ### Policy decisions (resolve the cross-repo boundary)
 
-**P1: references-edge truth lives in the spec, not the doc.** A
-`references:` edge (spec 156) MUST resolve to a committed doc, but the
-spec MUST carry the relevant extract inline so its meaning survives doc
-transience. The reference is supplementary context for the broader rest,
-never load-bearing. Material that cannot be committed is a prose citation,
-not a `references:` edge. The ~20 OWASP-doc references are cleaned this
-way: inline the relevant extract, repoint surviving edges to
-`docs/owasp-agentic-top-10-2026.md`, drop edges to never-committed docs.
+**P1 (decision A): severity follows authority.** An unresolved
+`references:` unit (spec 156, the one non-owning edge the coupling gate
+already ignores) is a counted `W-0xx` warning, never a hard error. The
+0.5.0 resolver hard-errored on it exactly as hard as a broken
+`establishes:` claim; that is a coherence bug independent of OAP, since
+authority cannot flow through a non-owning edge (no laundering vector:
+you cannot hide an owning-grade claim behind `references:`). Truth still
+lives inline in the spec and the reference stays supplementary; cleaning a
+stale reference (inline the extract, repoint, or drop) is opportunistic
+hygiene, not a blocking gate. Strictness is preserved as an opt-in policy:
+an adopter (or spec-spine on its own corpus) may choose to fail on the
+references `W-code` via its self-governance gate (spec-spine's own
+references all resolve today, so nothing breaks now).
 
 **P2: draft/pending units warn, never skip.** The indexer MUST surface
 unbuilt units declared by `draft` / `implementation: pending` specs as
@@ -203,10 +217,18 @@ authority the coupling gate never sees. Two corollaries: (a) the
 coupling/authority layer still treats a draft spec's `establishes:`
 claims as LIVE for gating, so draft status creates no authority hole; (b)
 FR-000's zero-warning bar is read as "zero errors plus zero un-accepted
-warnings", where the enumerated draft-unit warnings are accepted, not
-silenced. P2's warn-not-error behaviour is a Track 3 library change: the
-library currently hard-errors, and the in-tree indexer silently tolerated
+warnings", where the enumerated draft-unit and references warnings are
+accepted, not silenced. P2's warn-not-error behaviour ships in spec-spine
+0.6.0 (Track 3); the in-tree indexer silently tolerated unresolved units
 (which P2 forbids).
+
+**Unified rule (P1 + P2, one mechanism).** An unresolved unit is a hard
+`I-0xx` error only if it is an OWNING edge
+(establishes/extends/refines/co_authority) AND its owning spec is
+`approved` and implemented; otherwise it is a counted `W-0xx` warning.
+Two axes (edge-ownership and lifecycle), keyed off the owning flag already
+threaded into the resolver's units list, so it is a one-branch change at a
+single call site.
 
 ---
 
@@ -224,21 +246,25 @@ boundary).
   Phase 1 lands the fix (`standalone_rust_workspaces` as directories;
   npm packages via `standalone_npm_packages` globs).
 - spec-spine 0.5.0 (sharded per spec-spine spec 024, plus the spec 023
-  ledger seal) published and pinned via the `spec-spine` CLI and the
-  crates.io `spec-spine-core` / `spec-spine-types` deps. Confirmed
-  published to crates.io and npm on 2026-06-17. The earlier 0.4.0 dry run
-  was monolithic and registry-only.
+  ledger seal) confirmed published to crates.io and npm on 2026-06-17 and
+  used for the Phase 0 dry run. The engine swap ultimately pins 0.6.0
+  (Track 3), which carries the unified severity rule and the resolver
+  defect fixes that take FR-000 to zero net errors. The earlier 0.4.0 dry
+  run was monolithic and registry-only.
 
 **FR-000 (gate), revised 2026-06-17.** Before Phase 1's deletion work,
 `spec-spine compile` AND `spec-spine index` (bare, not `index compile`)
 run against the repo root with the committed `spec-spine.toml`, on the
 pinned SHARDED release, and exit 0 with zero ERRORS and zero UN-ACCEPTED
-warnings (per P2, the enumerated draft-unit warnings are accepted) on the
-full corpus, emitting a sane shard set (one `by-spec/<id>.json` per spec,
-plus `by-package/<slug>.json`). The 2026-06-17 dry run did NOT pass (116
-diagnostics, section 1.5); FR-000 passes only after Track 1 (config),
-Track 2 (corpus cleanup), and Track 3 (0.5.1) land. The zero-error bar is
-not relaxed.
+warnings (per the unified rule, the enumerated draft-unit and references
+warnings are accepted) on the full corpus, emitting a sane shard set (one
+`by-spec/<id>.json` per spec, plus `by-package/<slug>.json`). The
+2026-06-17 dry run did NOT pass (116 diagnostics, section 1.5). With
+Track 1 landed (116 -> 101) and spec-spine 0.6.0 pinned (the unified
+severity rule downgrades the 95 `references:` units to accepted `W-0xx`
+warnings; the three defects clear the 6 I-006), FR-000 reaches zero net
+errors. Track 2 references hygiene is opportunistic, NOT a gating
+condition. The zero-error bar is not relaxed.
 
 **AC-000.** CI job (or local equivalent) confirms FR-000 at zero net
 errors. The committed `spec-spine.toml` is the corrected (Track 1) config,
