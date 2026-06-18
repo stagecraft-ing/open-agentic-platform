@@ -104,7 +104,7 @@ opc-decomposition-pipeline = { path = "../../../../crates/opc-decomposition-pipe
 
 
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
-git2 = { version = "0.20", default-features = false }
+git2 = { version = "0.21", default-features = false }
 tauri-plugin-deep-link = "2"
 tauri-plugin-persisted-scope = "2"
 tauri-plugin-opener = "2"

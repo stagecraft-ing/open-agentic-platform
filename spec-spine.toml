@@ -53,16 +53,29 @@ schemas_dir   = "standards/schemas"
 cargo_workspace = "Cargo.toml"
 # Two crates are deliberately excluded from the root workspace (rusqlite /
 # libsqlite3-sys native-link isolation) and declared standalone for manifest
-# discovery: the OPC desktop crate and the deployd-api orchestrator.
+# discovery: the OPC desktop crate and the deployd-api orchestrator. These are
+# DIRECTORY paths: the library joins `<member>/Cargo.toml`, so a Cargo.toml
+# suffix here would yield `.../Cargo.toml/Cargo.toml` and discover nothing
+# (spec 217 section 1.5 Track 1).
 standalone_rust_workspaces = [
-  "product/apps/opc/src-tauri/Cargo.toml",
-  "platform/services/deployd-api-rs/Cargo.toml",
+  "product/apps/opc/src-tauri",
+  "platform/services/deployd-api-rs",
 ]
-# The product/ npm + pnpm workspace root (apps/opc + product/packages/*).
-npm_workspaces = ["product/package.json", "product/pnpm-workspace.yaml"]
+# npm packages under product/ are enumerated directly via repo-root-relative
+# globs in standalone_npm_packages below, NOT via product/pnpm-workspace.yaml:
+# the library resolves a workspace file's globs against repo-root rather than the
+# file's own directory, so pnpm-workspace.yaml's ["apps/*","packages/*"] would
+# expand to /apps/* and /packages/* and discover nothing (spec 217 section 1.5
+# Track 1; upstream library fix tracked for spec-spine 0.5.1).
+npm_workspaces = ["product/package.json"]
 # stagecraft is an Encore.ts service deliberately outside the pnpm workspace
-# (npm, not pnpm), declared standalone for manifest discovery.
-standalone_npm_packages = ["platform/services/stagecraft/package.json"]
+# (npm, not pnpm). product/packages/* and product/apps/* enumerate the @opc/*
+# packages and the OPC desktop app.
+standalone_npm_packages = [
+  "product/packages/*",
+  "product/apps/*",
+  "platform/services/stagecraft/package.json",
+]
 
 [index]
 # Hashed governance inputs beyond the always-hashed core (Cargo/npm

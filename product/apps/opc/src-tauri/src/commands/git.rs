@@ -240,7 +240,11 @@ pub fn git_current_branch(repo_path: String) -> Result<String, GitError> {
     })?;
 
     if head.is_branch() {
+        // git2 0.21: Reference::shorthand returns Result<&str, Error> (was
+        // Option<&str> in 0.20). A UTF-8 error is treated as the prior None
+        // case (DetachedHead); is_branch already gates the detached-HEAD path.
         head.shorthand()
+            .ok()
             .map(|s| s.to_string())
             .ok_or(GitError::DetachedHead)
     } else {
@@ -267,8 +271,13 @@ pub fn git_last_commit(repo_path: String) -> Result<GitHeadCommit, GitError> {
     })?;
 
     let hash = oid.to_string();
+    // git2 0.21: Commit::summary returns Result<Option<&str>, Error> (was
+    // Option<&str> in 0.20); Ok(None) when there is no summary. Fall back to
+    // an empty string on error or no-summary, preserving prior behaviour.
     let message = commit
         .summary()
+        .ok()
+        .flatten()
         .map(|s| s.to_string())
         .unwrap_or_else(|| "".to_string());
 
