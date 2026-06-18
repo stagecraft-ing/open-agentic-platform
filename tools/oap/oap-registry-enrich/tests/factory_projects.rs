@@ -13,21 +13,11 @@ use serde_json::Value;
 use std::fs;
 
 fn write_minimal_registry(repo: &std::path::Path) {
-    // Spec-compiler 2.0.0 baseline: features list (possibly empty),
-    // validation block, build block, specVersion. The enricher reads
-    // this and overlays its own walks on top.
-    let dir = repo.join(".derived/spec-registry");
-    fs::create_dir_all(&dir).unwrap();
-    fs::write(
-        dir.join("registry.json"),
-        r#"{
-            "specVersion":"2.0.0",
-            "build":{"compilerId":"open-agentic-spec-compiler","compilerVersion":"0.1.0","inputRoot":".","contentHash":"0"},
-            "features":[],
-            "validation":{"passed":true,"violations":[]}
-        }"#,
-    )
-    .unwrap();
+    // Spec 217 engine swap: the committed registry is the sharded `by-spec` tree,
+    // not a monolithic registry.json. These tests exercise the factoryProjects
+    // walk with an empty feature set, so an empty `by-spec` dir suffices (the
+    // library reader requires only that the directory exists).
+    fs::create_dir_all(repo.join(".derived/spec-registry/by-spec")).unwrap();
 }
 
 /// When a `.factory/build-spec.yaml` exists, the enricher emits a

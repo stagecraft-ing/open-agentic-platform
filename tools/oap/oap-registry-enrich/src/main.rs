@@ -1,6 +1,5 @@
 use clap::{Parser, Subcommand};
 use open_agentic_registry_enrich::{EnrichError, enrich_and_write};
-use open_agentic_spec_registry_reader as srr;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -70,16 +69,35 @@ fn main() -> ExitCode {
         } => {
             let path = registry_path
                 .unwrap_or_else(|| repo_root.join(".derived/spec-registry/registry-oap.json"));
-            let registry = match srr::load(&path) {
+            // Spec 217 engine swap: registry-oap.json is the OAP overlay artifact
+            // this binary itself emits. Read it directly into the minimal shape the
+            // report needs, rather than via the (deleted) in-tree registry reader.
+            #[derive(serde::Deserialize)]
+            struct OapRegistry {
+                #[serde(default)]
+                features: Vec<OapFeature>,
+            }
+            #[derive(serde::Deserialize)]
+            struct OapFeature {
+                id: String,
+                #[serde(default)]
+                compliance: Option<serde_json::Value>,
+            }
+            let registry: OapRegistry = match std::fs::read_to_string(&path)
+                .map_err(|e| e.to_string())
+                .and_then(|s| serde_json::from_str(&s).map_err(|e| e.to_string()))
+            {
                 Ok(r) => r,
                 Err(e) => {
                     eprintln!("oap-registry-enrich: {}: {e}", path.display());
                     return ExitCode::from(3);
                 }
             };
+            let mut features = registry.features;
+            features.sort_by(|a, b| a.id.cmp(&b.id));
             let mut control_map: std::collections::BTreeMap<String, Vec<String>> =
                 std::collections::BTreeMap::new();
-            for f in registry.features_sorted() {
+            for f in &features {
                 let Some(compliance) = f.compliance.as_ref().and_then(|v| v.as_array()) else {
                     continue;
                 };

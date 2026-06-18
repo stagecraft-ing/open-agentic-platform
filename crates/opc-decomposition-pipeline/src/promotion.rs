@@ -109,16 +109,14 @@ pub fn promote_spec(
 
     let promoted_relpath = format!("specs/{}/spec.md", req.target_slug);
 
-    // FR-008: invoke the project's spec-compiler (in-process).
-    let compile = match open_agentic_spec_compiler::compile_and_write(&req.project_root) {
-        Ok(out) => StepResult {
+    // FR-008: recompile the project's spec corpus in-process. Spec 217 engine
+    // swap: via the spec-spine library `compile`, writing the committed registry
+    // shard tree (the library returns a CompileOutcome and does not write).
+    let compile = match recompile_project_registry(&req.project_root) {
+        Ok((validation_passed, detail)) => StepResult {
             ran: true,
-            ok: out.validation_passed,
-            detail: if out.validation_passed {
-                "registry recompiled; validation passed".to_string()
-            } else {
-                "registry recompiled; validation failures present".to_string()
-            },
+            ok: validation_passed,
+            detail,
         },
         Err(e) => StepResult {
             ran: true,
@@ -135,6 +133,50 @@ pub fn promote_spec(
         compile,
         coupling,
     })
+}
+
+/// Recompile the project's spec corpus via the spec-spine library and write the
+/// committed registry shard tree under `.derived/spec-registry/by-spec/` (spec
+/// 217 engine swap). Returns whether validation passed. Replaces the in-tree
+/// `spec_compiler::compile_and_write`; the library `compile` does not write, so
+/// the caller projects `outcome.shards` to per-spec files.
+fn recompile_project_registry(project_root: &Path) -> Result<(bool, String), String> {
+    let cfg = load_spec_spine_config(project_root);
+    let outcome = spec_spine_core::compile(&cfg, project_root).map_err(|e| e.to_string())?;
+    let by_spec = spec_spine_core::registry_dir(&cfg, project_root).join("by-spec");
+    fs::create_dir_all(&by_spec).map_err(|e| format!("create {}: {e}", by_spec.display()))?;
+    for (name, content) in
+        spec_spine_core::registry_shard_files(&outcome.shards).map_err(|e| e.to_string())?
+    {
+        let path = by_spec.join(&name);
+        fs::write(&path, content).map_err(|e| format!("write {}: {e}", path.display()))?;
+    }
+    let detail = if outcome.validation_passed {
+        "registry recompiled; validation passed".to_string()
+    } else {
+        // Surface the blocking violations so the gate signal is actionable
+        // (e.g. the library's stricter grammar rejecting an OAP-overlay field).
+        let msgs: Vec<String> = outcome
+            .registry
+            .validation
+            .violations
+            .iter()
+            .filter(|v| v.severity == spec_spine_types::Severity::Error)
+            .take(3)
+            .map(|v| format!("{}: {}", v.code, v.message))
+            .collect();
+        format!("registry recompiled; validation failures: {}", msgs.join("; "))
+    };
+    Ok((outcome.validation_passed, detail))
+}
+
+/// Load the spec-spine config for `repo_root` (spec 217 engine swap): the
+/// committed `spec-spine.toml` when present, else `Config::default()`.
+fn load_spec_spine_config(repo_root: &Path) -> spec_spine_types::Config {
+    std::fs::read_to_string(repo_root.join("spec-spine.toml"))
+        .ok()
+        .and_then(|src| spec_spine_types::load_config(&src).ok())
+        .unwrap_or_default()
 }
 
 /// Rewrite the first `id:` and `slug:` lines inside the YAML frontmatter to
@@ -269,11 +311,16 @@ mod tests {
         assert!(body.contains("slug: 001-promoted-demo"), "slug not rewritten");
         assert_eq!(outcome.promoted_relpath, "specs/001-promoted-demo/spec.md");
 
-        // FR-008: the project's registry was recompiled and now exists.
+        // FR-008: the project's registry was recompiled. Spec 217: the committed
+        // form is the sharded `by-spec` tree, not a monolithic registry.json.
         assert!(outcome.compile.ran);
+        let by_spec = project.path().join(".derived/spec-registry/by-spec");
+        let has_shards = fs::read_dir(&by_spec)
+            .map(|mut d| d.next().is_some())
+            .unwrap_or(false);
         assert!(
-            project.path().join(".derived/spec-registry/registry.json").is_file(),
-            "compile step should have written the project registry; compile detail: {}",
+            has_shards,
+            "compile step should have written the project registry shards; compile detail: {}",
             outcome.compile.detail
         );
         // SC-005: the promoted spec is valid (no error-severity violations;

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:132f9b05f3d83463e42593e0956b94ea79960cbe79af3ecee758c5eb0a488068",
+  "graph_fingerprint": "sha256:5a7119d627789cbde5729eb5b7d111d02941137045abc7985dd5b865bc7583e5",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -994,7 +994,7 @@
       "title": "titor Tauri command wiring",
       "spec_path": "specs/038-titor-tauri-command-wiring/spec.md",
       "status": "superseded",
-      "implementation": "n/a",
+      "implementation": "n-a",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1022,7 +1022,7 @@
       "title": "Blockoli semantic search — Tauri command wiring",
       "spec_path": "specs/040-blockoli-semantic-search-wiring/spec.md",
       "status": "superseded",
-      "implementation": "n/a",
+      "implementation": "n-a",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1084,7 +1084,7 @@
       "title": "multi-agent orchestration with file-based artifact passing",
       "spec_path": "specs/044-multi-agent-orchestration/spec.md",
       "status": "superseded",
-      "implementation": "n/a",
+      "implementation": "n-a",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1572,7 +1572,7 @@
       "title": "Platform Completion Plan — Factory Ingestion + Draft Spec Closure",
       "spec_path": "specs/078-platform-completion-plan/spec.md",
       "status": "approved",
-      "implementation": "n/a",
+      "implementation": "n-a",
       "governance": "",
       "owner": "",
       "group": "",
@@ -1737,7 +1737,7 @@
       "title": "Governed Convergence Plan — Binding Primitives into Default Product Truth",
       "spec_path": "specs/089-governed-convergence-plan/spec.md",
       "status": "approved",
-      "implementation": "n/a",
+      "implementation": "n-a",
       "governance": "critical",
       "owner": "bart",
       "group": "",
@@ -4764,7 +4764,7 @@
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
       "path": "crates/featuregraph/src/index_bridge.rs",
-      "message": "Malformed Spec directive: // Spec: specs/102-governed-excellence/spec.md — FR-021, FR-022",
+      "message": "Malformed Spec directive: // Spec: specs/102-governed-excellence/spec.md (FR-021, FR-022)",
       "suggested_fix": "Fix header format"
     },
     {

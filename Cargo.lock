@@ -2557,7 +2557,6 @@ dependencies = [
  "infer",
  "jsonschema 0.46.5",
  "open_agentic_policy_kernel",
- "open_agentic_spec_registry_reader",
  "orchestrator",
  "provenance-validator",
  "regex",
@@ -2566,6 +2565,8 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2 0.10.9",
+ "spec-spine-core",
+ "spec-spine-types",
  "standards-loader",
  "tempfile",
  "thiserror 2.0.18",
@@ -2727,12 +2728,13 @@ dependencies = [
  "anyhow",
  "hex",
  "ignore",
- "open_agentic_spec_registry_reader",
  "regex",
  "serde",
  "serde_json",
  "serde_yaml",
  "sha2 0.10.9",
+ "spec-spine-core",
+ "spec-spine-types",
  "tempfile",
  "thiserror 2.0.18",
  "xray",
@@ -4934,13 +4936,14 @@ dependencies = [
  "futures-core",
  "futures-util",
  "hex",
- "open_agentic_spec_compiler",
  "open_agentic_spec_lint",
  "provider-registry",
  "serde",
  "serde_json",
  "serde_yaml",
  "sha2 0.10.9",
+ "spec-spine-core",
+ "spec-spine-types",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
@@ -5080,12 +5083,13 @@ name = "open_agentic_registry_enrich"
 version = "0.1.0"
 dependencies = [
  "clap",
- "open_agentic_spec_registry_reader",
  "open_agentic_spec_types",
  "serde",
  "serde_json",
  "serde_yaml",
  "sha2 0.11.0",
+ "spec-spine-core",
+ "spec-spine-types",
  "tempfile",
  "walkdir",
 ]
@@ -7201,6 +7205,34 @@ dependencies = [
  "byteorder",
  "libc",
  "winapi",
+]
+
+[[package]]
+name = "spec-spine-core"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa69219c9411a87df2bcc97dfd3f4d112fb522ed736e87058070b8890b548f2a"
+dependencies = [
+ "glob",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2 0.10.9",
+ "spec-spine-types",
+ "toml 0.8.23",
+ "toml_edit 0.22.27",
+]
+
+[[package]]
+name = "spec-spine-types"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b22ffb3341846caa3a1fe0c75a28df7fddba13a510ad9ad875cb1690f9c6dfeb"
+dependencies = [
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "toml 0.8.23",
 ]
 
 [[package]]
