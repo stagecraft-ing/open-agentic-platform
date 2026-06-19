@@ -1,0 +1,33 @@
+{
+  "diagnostics": {
+    "errors": [],
+    "warnings": [
+      {
+        "code": "W-002",
+        "message": "spec '148-auth-driver-registry' directory unit 'crates/auth-driver/' is not a directory",
+        "path": "crates/auth-driver/"
+      }
+    ]
+  },
+  "mapping": {
+    "dependsOn": [
+      "147-spec-kind-grammar"
+    ],
+    "implementingPaths": [],
+    "resolvedUnits": [
+      {
+        "locations": [],
+        "ownership": false,
+        "sourceField": "references",
+        "unit": {
+          "kind": "directory",
+          "path": "crates/auth-driver/"
+        }
+      }
+    ],
+    "specId": "148-auth-driver-registry",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "acaf27ac75acb70275f6cae6fff57acb0b0534ac7aefaf74cac0b6e619fda327"
+}

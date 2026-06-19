@@ -1,0 +1,11 @@
+{
+  "package": {
+    "kind": "npm-package",
+    "name": "@opc/workspace-sdk",
+    "path": "product/packages/workspace-sdk",
+    "specRef": "087-unified-workspace-architecture",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "36ba7bd0a30489e24ffa0b9c15004ff90d6381ac3c6f5a629c5107cf8f5d28bf"
+}

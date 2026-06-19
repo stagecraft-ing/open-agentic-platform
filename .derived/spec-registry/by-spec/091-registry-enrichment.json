@@ -1,0 +1,54 @@
+{
+  "record": {
+    "codeAliases": [
+      "REGISTRY_ENRICHMENT"
+    ],
+    "created": "2026-04-11",
+    "dependsOn": [
+      "039-feature-id-reconciliation"
+    ],
+    "domain": "tooling",
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "034-featuregraph-registry-scanner-fix",
+        "unit": {
+          "kind": "file",
+          "path": "crates/featuregraph/src/registry_source.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "034-featuregraph-registry-scanner-fix",
+        "unit": {
+          "kind": "file",
+          "path": "crates/featuregraph/src/scanner.rs"
+        }
+      }
+    ],
+    "id": "091-registry-enrichment",
+    "implementation": "complete",
+    "kind": "tooling",
+    "owner": "bart",
+    "risk": "low",
+    "sectionHeadings": [
+      "091 — Spec Registry Enrichment",
+      "Problem",
+      "Implementation Slices",
+      "1. Promote depends_on to first-class compiler field (1 day)",
+      "2. Promote owner to first-class compiler field (0.5 day)",
+      "3. Add risk as a new frontmatter field (0.5 day)",
+      "4. Featuregraph reads enriched fields (1 day)",
+      "5. Recompile registry and validate (0.5 day)",
+      "Acceptance Criteria",
+      "Maintenance Notes",
+      "Dependencies"
+    ],
+    "specPath": "specs/091-registry-enrichment/spec.md",
+    "status": "approved",
+    "summary": "Promote depends_on, owner, and risk from extra frontmatter to first-class spec compiler fields. Validate risk enum values. Update featuregraph to read enriched fields from the compiled registry, enabling downstream spec-driven gating.\n",
+    "title": "Spec Registry Enrichment"
+  },
+  "shardHash": "0b78ab817fb2507ec777a2a5f80e883856ca8ecf181609cbbac7bb76ee0b409c",
+  "specVersion": "1.1.0"
+}

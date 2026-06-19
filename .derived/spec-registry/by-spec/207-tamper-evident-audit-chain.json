@@ -1,0 +1,97 @@
+{
+  "record": {
+    "authors": [
+      "open-agentic-platform"
+    ],
+    "codeAliases": [
+      "TAMPER_EVIDENT_AUDIT_CHAIN"
+    ],
+    "created": "2026-06-11",
+    "dependsOn": [
+      "047-governance-control-plane",
+      "068-permission-runtime",
+      "102-governed-excellence",
+      "198-factory-governance-envelope"
+    ],
+    "domain": "tooling",
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "034-featuregraph-registry-scanner-fix",
+        "unit": {
+          "kind": "file",
+          "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      }
+    ],
+    "extraFrontmatter": {
+      "compliance": [
+        {
+          "controls": [
+            "ASI08",
+            "ASI10"
+          ],
+          "framework": "owasp-asi-2026"
+        }
+      ],
+      "language": "en"
+    },
+    "featureBranch": "feat/207-tamper-evident-audit-chain",
+    "id": "207-tamper-evident-audit-chain",
+    "implementation": "pending",
+    "kind": "governance",
+    "references": [
+      {
+        "role": "machinery",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/signing.ts"
+        }
+      },
+      {
+        "role": "context",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+        }
+      },
+      {
+        "role": "context",
+        "unit": {
+          "kind": "file",
+          "path": "docs/owasp-agentic-top-10-2026.md"
+        }
+      }
+    ],
+    "refines": [
+      {
+        "aspect": "hash-chained-audit-records",
+        "unit": {
+          "kind": "file",
+          "path": "crates/policy-kernel/src/audit.rs"
+        }
+      },
+      {
+        "aspect": "chain-reuse-for-audit",
+        "unit": {
+          "kind": "file",
+          "path": "crates/policy-kernel/src/proof_chain.rs"
+        }
+      }
+    ],
+    "sectionHeadings": [
+      "Feature Specification: Tamper-Evident Audit Log Chain",
+      "Purpose",
+      "Functional requirements (sketch — refine before implementation)",
+      "Acceptance criteria (sketch)",
+      "Out of scope",
+      "Sequencing"
+    ],
+    "specPath": "specs/207-tamper-evident-audit-chain/spec.md",
+    "status": "draft",
+    "summary": "Extend the proof-chain discipline from policy decisions to the audit surfaces themselves. Spec 047 hash-chains policy decision proofs, but the JSONL audit logs the platform actually accumulates (permission decisions per spec 068 NF-003, session activity, factory run logs) are plain append-only files: deletable, editable, and unanchored — failing the cross-cutting ASI 2026 observability principle (\"immutable, signed, tamper-evident logs\") and the ASI08/ASI10 logging mitigations that every incident reconstruction depends on. This spec chains audit records (each record carries the previous record's hash), anchors segment heads at rotation — run-scoped logs into the governance certificate's artifact list, session-scoped logs via the spec 198 FR-014 platform countersign when connected, locally chained when offline — and ships an independent verifier that does not trust the producer. Honest scope: a chain makes tampering EVIDENT, not impossible; anchoring bounds (not eliminates) silent-truncation.\n",
+    "title": "Tamper-Evident Audit Log Chain (ASI observability principle)"
+  },
+  "shardHash": "03db1609948681fa146bd68ef98e6018abcbbdc66dc85c28dff57075c78898ac",
+  "specVersion": "1.1.0"
+}

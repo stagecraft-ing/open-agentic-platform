@@ -1,0 +1,15 @@
+{
+  "mapping": {
+    "amends": [
+      "130-spec-coupling-primary-owner"
+    ],
+    "dependsOn": [
+      "130-spec-coupling-primary-owner"
+    ],
+    "implementingPaths": [],
+    "specId": "153-invariant-freeze-additive-evolution",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "477a93e2a450c6e5d7019a329e2c63daaa89ff5856d73ddfe77fd69836df4417"
+}

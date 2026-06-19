@@ -1,0 +1,37 @@
+{
+  "mapping": {
+    "implementingPaths": [
+      {
+        "path": "crates/axiomregent/src/skill_provider.rs",
+        "source": "comment-header"
+      },
+      {
+        "path": "crates/skill-factory",
+        "source": "multiple"
+      },
+      {
+        "path": "product/packages/skill-command-factory",
+        "source": "manifest-metadata"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "crates/skill-factory"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "id": "skill-factory",
+          "kind": "crate"
+        }
+      }
+    ],
+    "specId": "071-skill-command-factory",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "6bca3a729076a99bbd478d290dad612fa152e1a3d651d365798e9b119a3e2d7a"
+}

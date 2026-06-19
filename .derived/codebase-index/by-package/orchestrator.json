@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib",
+    "name": "orchestrator",
+    "path": "crates/orchestrator",
+    "specRef": "052-state-persistence",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "976c91d67725dbb06030c10ca0dd45323a336868bfbb6defff3632e7f210f3ea"
+}

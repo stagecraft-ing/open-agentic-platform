@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib-bin",
+    "name": "axiomregent",
+    "path": "crates/axiomregent",
+    "specRef": "073-axiomregent-unification",
+    "version": "0.4.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "c3057483fcc3b14b9f3fccfbd84f52e04016e6d4fd20de83c269c8abd48067ad"
+}

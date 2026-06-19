@@ -15,13 +15,14 @@ depends_on:
   - "118-workflow-spec-traceability"  # workflow-spec-traceability (the `# Spec:` precedent)
 code_aliases: ["GRANULAR_OAP_METADATA"]
 # 217 deleted the in-tree codebase-indexer; file-level `// Spec:` header parsing is
-# now in spec-spine-core. The codebase_indexer crate-unit is stripped (deleted); the
-# codebase-index.schema.json edge (the TraceSource grammar this spec extended) is
-# retained. Amended by 217.
+# now in spec-spine-core. The codebase_indexer crate-unit is stripped (deleted).
+# Workstream D dropped the in-tree codebase-index.schema.json (the TraceSource grammar
+# this spec extended now lives in the library shard schemas), so this edge re-anchors
+# onto the surviving OAP overlay schema codebase-index-oap.schema.json. Amended by 217.
 extends:
   - spec: "101-codebase-index-mvp"
     nature: additive
-    unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
+    unit: { kind: file, path: standards/schemas/spec-spine/codebase-index-oap.schema.json }
 summary: >
   Crate-level `[package.metadata.oap].spec` is too coarse — adding a 500-
   line module to an already-tagged crate carries no traceability friction.

@@ -1,0 +1,53 @@
+{
+  "record": {
+    "amendmentRecord": "amended by spec 199 (2026-06-11), editorial: the engine's live test\nfixtures, doc comments, and the factory_run CLI help no longer name\nthe upstream-retired example adapters (aim-vue-node, next-prisma,\nrust-axum, encore-react); they use the manifest-declared\naim-vue-encore (spec 199 FR-007 Rust-fixture hygiene). No contract\nor behavior change: the engine remains adapter-agnostic; adapter\nidentity always came from the manifest. Dead tests guarded on the\nspec-108-retired repo-root factory/ directory keep their historical\nfixture names.\n",
+    "authors": [
+      "open-agentic-platform"
+    ],
+    "codeAliases": [
+      "FACTORY_WORKFLOW",
+      "FACTORY_FANOUT"
+    ],
+    "created": "2026-04-04",
+    "domain": "platform",
+    "extraFrontmatter": {
+      "amended": "2026-06-11",
+      "language": "en"
+    },
+    "featureBranch": "feat/075-factory-workflow-engine",
+    "id": "075-factory-workflow-engine",
+    "implementation": "complete",
+    "kind": "platform",
+    "origin": {
+      "retroactive": true
+    },
+    "sectionHeadings": [
+      "Feature Specification: Factory Workflow Engine",
+      "Purpose",
+      "Scope",
+      "In scope",
+      "Out of scope",
+      "Requirements",
+      "Functional Requirements",
+      "Non-Functional Requirements",
+      "Architecture",
+      "Execution Flow",
+      "New Tauri Commands",
+      "Implementation Approach",
+      "Phase 1: Post-Step Verification Hooks (3 days)",
+      "Phase 2: Manifest Generation (4 days)",
+      "Phase 3: Two-Phase Execution (3 days)",
+      "Phase 4: Verification Harness Integration (2 days)",
+      "Phase 5: Agent Bridge & Policy (2 days)",
+      "Success Criteria",
+      "Dependencies",
+      "Risks"
+    ],
+    "specPath": "specs/075-factory-workflow-engine/spec.md",
+    "status": "approved",
+    "summary": "Extends the OAP orchestrator to natively support Factory pipeline workflows including two-phase manifest execution (process stages + dynamic scaffold fan-out), Build Spec to manifest generation, post-step verification hooks, and Rust-native verification harness integration.\n",
+    "title": "Factory Workflow Engine — Orchestrator Fan-Out, Manifest Generation, and Verification"
+  },
+  "shardHash": "ed0fa2901d96609e239f324fa9e820c0d3a5e23b19ba2edcf74b53c018c00e63",
+  "specVersion": "1.1.0"
+}

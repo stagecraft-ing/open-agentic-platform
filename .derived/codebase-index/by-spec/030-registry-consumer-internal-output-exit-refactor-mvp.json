@@ -1,0 +1,9 @@
+{
+  "mapping": {
+    "implementingPaths": [],
+    "specId": "030-registry-consumer-internal-output-exit-refactor-mvp",
+    "specStatus": "superseded"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "612366c1d2175756fdb84480434b509c28301c43b1345e821de656974b35e776"
+}

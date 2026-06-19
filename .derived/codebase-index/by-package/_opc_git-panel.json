@@ -1,0 +1,11 @@
+{
+  "package": {
+    "kind": "npm-package",
+    "name": "@opc/git-panel",
+    "path": "product/packages/git-panel",
+    "specRef": "059-git-panel",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "c417a7b29b4d07e89c8fc282501b122bf04dbedd078669f7891e87b3ba9809cb"
+}

@@ -1,0 +1,38 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "000-bootstrap-spec-system",
+      "001-spec-compiler-mvp",
+      "003-feature-lifecycle-mvp"
+    ],
+    "implementingPaths": [
+      {
+        "path": "standards/schemas/spec-spine/codebase-index-oap.schema.json",
+        "source": "spec-edge"
+      },
+      {
+        "path": "tools/oap/oap-code-index-enrich",
+        "source": "manifest-metadata"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "standards/schemas/spec-spine/codebase-index-oap.schema.json"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "standards/schemas/spec-spine/codebase-index-oap.schema.json"
+        }
+      }
+    ],
+    "specId": "101-codebase-index-mvp",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "21a9d7ed4b6a3777e2d6e4836f0d9a95b4bebdd5ff33bfb79b279c412b482aa2"
+}

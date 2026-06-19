@@ -1,0 +1,13 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "074-factory-ingestion",
+      "075-factory-workflow-engine"
+    ],
+    "implementingPaths": [],
+    "specId": "088-factory-upstream-sync",
+    "specStatus": "superseded"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "7959ac4fc2313141ab761580075225bf763e727db58de1ffd62da53cb823d824"
+}

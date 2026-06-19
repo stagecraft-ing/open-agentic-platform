@@ -1,0 +1,50 @@
+{
+  "mapping": {
+    "implementingPaths": [
+      {
+        "path": "crates/agent",
+        "source": "manifest-metadata"
+      },
+      {
+        "path": "product/apps/opc/src-tauri/src/commands/agents.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/src-tauri/src/commands/claude.rs",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/src-tauri/src/commands/agents.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/agents.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/src-tauri/src/commands/claude.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/claude.rs"
+        }
+      }
+    ],
+    "specId": "035-agent-governed-execution",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "2929cf7fe0c6ac902818e226c411f944216b2dcbc6e3af879e30c22ae50ed60c"
+}

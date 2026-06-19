@@ -1,0 +1,153 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "080-github-identity-onboarding",
+      "106-rauthy-native-oidc-and-membership",
+      "108-factory-as-platform-feature"
+    ],
+    "implementingPaths": [
+      {
+        "path": "platform/services/stagecraft/api/factory/factory.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/syncRuns.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/syncWorker.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/tokenResolver.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/upstreamPat.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/projectPat.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/web/app/routes/app.factory.upstreams.tsx",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/syncRuns.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/syncRuns.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/syncWorker.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/syncWorker.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/tokenResolver.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/tokenResolver.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/upstreamPat.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/upstreamPat.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/projectPat.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/projectPat.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/factory.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/factory.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/app/routes/app.factory.upstreams.tsx"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/routes/app.factory.upstreams.tsx"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.settings.github-pat.tsx"
+        }
+      }
+    ],
+    "specId": "109-factory-pat-and-pubsub-sync",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "63d45b1afe26c17e0d7cfaeba0812ae835e0192e22adfafad70595fbdbed31f0"
+}

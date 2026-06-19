@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib",
+    "name": "sandbox-k8s",
+    "path": "crates/sandbox-k8s",
+    "specRef": "186-sandbox-k8s-backend",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "4312a989e5eb70f37285d4b29bb53cbed24babb5d886b1ac153440602ab4cb84"
+}

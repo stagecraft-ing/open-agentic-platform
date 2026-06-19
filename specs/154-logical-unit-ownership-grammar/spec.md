@@ -36,16 +36,14 @@ code_aliases: ["LOGICAL_UNIT_OWNERSHIP", "UNIT_GRAMMAR"]
 # the unit-grammar resolution they implemented is now in spec-spine-core. All edges on
 # those deleted paths (codebase-indexer Cargo.toml/lib/spec_scanner/types/xref/resolver/
 # tests/benches, coupling-check lib, spec-compiler lib + tests) plus the two deleted
-# crate-unit references are stripped. The surviving edges (registry + codebase-index
-# schemas, the spec-lint overlay, the featuregraph golden) carry this spec's live
-# authority over the unit grammar. Amended by 217.
+# crate-unit references are stripped. The surviving edges (registry schema, the
+# spec-lint overlay, the featuregraph golden) carry this spec's live authority over
+# the unit grammar; the codebase-index schema edge is dropped with the in-tree
+# codebase-index.schema.json (Workstream D, now the library shard schemas). Amended by 217.
 extends:
   - spec: "130-spec-coupling-primary-owner"
     nature: additive
     unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
   - spec: "006-conformance-lint-mvp"
     nature: additive
     unit: { kind: file, path: tools/spec-spine/spec-lint/src/lib.rs }

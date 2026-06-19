@@ -1,0 +1,154 @@
+{
+  "record": {
+    "codeAliases": [
+      "METRICS_STACK",
+      "PROMETHEUS_REMOTE_WRITE",
+      "GRAFANA_OIDC"
+    ],
+    "created": "2026-06-02",
+    "dependsOn": [
+      "106-rauthy-native-oidc-and-membership",
+      "151-declarative-cluster-reconciliation",
+      "078-platform-completion-plan"
+    ],
+    "domain": "platform",
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "platform/gitops/clusters/hetzner-prod/infrastructure/monitoring.yaml"
+      },
+      {
+        "kind": "file",
+        "path": "platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml"
+      },
+      {
+        "kind": "file",
+        "path": "platform/k8s/policies/kustomization.yaml"
+      },
+      {
+        "kind": "file",
+        "path": "platform/gitops/clusters/hetzner-prod/policies-kustomization.yaml"
+      },
+      {
+        "kind": "file",
+        "path": "platform/gitops/clusters/hetzner-prod/infrastructure/monitoring-dashboards.yaml"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/deployd-api-rs/src/metrics.rs"
+      }
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "034-featuregraph-registry-scanner-fix",
+        "unit": {
+          "kind": "file",
+          "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      }
+    ],
+    "extraFrontmatter": {
+      "slug": "platform-metrics-stack"
+    },
+    "id": "196-platform-metrics-stack",
+    "implementation": "pending",
+    "kind": "platform",
+    "owner": "bart",
+    "refines": [
+      {
+        "aspect": "metrics-export",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/infra.config.hetzner.json"
+        }
+      },
+      {
+        "aspect": "metrics-export",
+        "unit": {
+          "kind": "file",
+          "path": "platform/gitops/clusters/hetzner-prod/infrastructure/ingress-nginx.yaml"
+        }
+      },
+      {
+        "aspect": "metrics-export",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/deployd-api-rs/src/main.rs"
+        }
+      },
+      {
+        "aspect": "metrics-export",
+        "unit": {
+          "kind": "file",
+          "path": "platform/charts/deployd-api/templates/deployment.yaml"
+        }
+      },
+      {
+        "aspect": "metrics-export",
+        "unit": {
+          "kind": "file",
+          "path": "platform/charts/deployd-api/values.yaml"
+        }
+      },
+      {
+        "aspect": "policy-tier-registration",
+        "unit": {
+          "kind": "file",
+          "path": "platform/gitops/clusters/hetzner-prod/kustomization.yaml"
+        }
+      },
+      {
+        "aspect": "policy-tier-registration",
+        "unit": {
+          "kind": "file",
+          "path": "platform/gitops/clusters/hetzner-dr-stage2/kustomization.yaml"
+        }
+      },
+      {
+        "aspect": "grafana-oidc-client-plumbing",
+        "unit": {
+          "kind": "file",
+          "path": "platform/infra/hetzner/.env.example"
+        }
+      },
+      {
+        "aspect": "grafana-oidc-client-plumbing",
+        "unit": {
+          "kind": "file",
+          "path": "platform/infra/hetzner/setup.sh"
+        }
+      }
+    ],
+    "risk": "medium",
+    "sectionHeadings": [
+      "Feature Specification: Platform metrics stack (Prometheus + Grafana)",
+      "Purpose and charter",
+      "Current state vs intent",
+      "Current-state corrections *(implementation findings, 2026-06-12)*",
+      "Architecture — hybrid ingestion *(normative)*",
+      "User Scenarios & Testing",
+      "User Story 1 — Operator sees stagecraft health (Priority: P1)",
+      "User Story 2 — Previously-unconsumed scrape targets become visible (Priority: P1)",
+      "User Story 3 — Identity-scoped Grafana access (Priority: P2)",
+      "Edge Cases",
+      "Requirements *(mandatory)*",
+      "Functional Requirements",
+      "Key Entities",
+      "Success Criteria *(mandatory)*",
+      "Out of scope (MVP)",
+      "Relationships",
+      "Risks",
+      "Why this spec is filed as `draft`",
+      "Implementation scope — a plan-time decision",
+      "Implementation record (2026-06-12)",
+      "Incident addendum (2026-06-12) — cross-namespace allows withdrawn"
+    ],
+    "specPath": "specs/196-platform-metrics-stack/spec.md",
+    "status": "draft",
+    "summary": "Stand up a Prometheus + Grafana metrics stack for the platform control plane. Stagecraft (Encore.ts) already auto-instruments every API, PubSub, cron, and DB call but emits nowhere; deployd-api, Flux, and ingress-nginx already carry scrape annotations nobody consumes. This spec wires a full kube-prometheus-stack (Prometheus server + Grafana + node-exporter + kube-state-metrics) that RECEIVES stagecraft's Prometheus remote_write, SCRAPES the annotated pull targets, and SERVES Grafana — with Grafana fronted by native Rauthy OIDC. Metrics only: logs and distributed tracing (Encore's other two pillars) are out of scope and owned by later specs. Hetzner is implemented; the Azure binding is declared-but-deferred. Zero stagecraft application-code change.\n",
+    "title": "Platform metrics stack — Prometheus + Grafana for the platform control plane"
+  },
+  "shardHash": "1d26f0f272005d34e8016fca70c83ffebd1e1e94287ab20e58dcc5d8fa707363",
+  "specVersion": "1.1.0"
+}

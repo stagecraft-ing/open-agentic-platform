@@ -1,0 +1,9 @@
+{
+  "mapping": {
+    "implementingPaths": [],
+    "specId": "022-registry-consumer-help-usage-contract-mvp",
+    "specStatus": "superseded"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "140279391f359426e9f30a5c5e75eaa90c7f8167ac2fbade074fe1b5e5bd9a75"
+}

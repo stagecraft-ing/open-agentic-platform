@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib-bin",
+    "name": "open_agentic_spec_lint",
+    "path": "tools/spec-spine/spec-lint",
+    "specRef": "006-conformance-lint-mvp",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "42c01411897e1321c0a06bcb03751c1e3730fbf57ff00d6f9378a9f0701c63b1"
+}

@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib-bin",
+    "name": "provenance-validator",
+    "path": "crates/provenance-validator",
+    "specRef": "121-claim-provenance-enforcement",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "fdc3a3ed55c43c4941f8e0eb137b162aab512c62003b6151a76f197619612c1b"
+}

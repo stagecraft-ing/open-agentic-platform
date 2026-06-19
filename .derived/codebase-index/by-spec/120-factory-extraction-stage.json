@@ -1,0 +1,194 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "074-factory-ingestion",
+      "075-factory-workflow-engine",
+      "077-stagecraft-factory-api",
+      "094-unified-artifact-store",
+      "110-stagecraft-to-opc-factory-trigger",
+      "115-knowledge-extraction-pipeline"
+    ],
+    "implementingPaths": [
+      {
+        "path": "crates/artifact-extract",
+        "source": "manifest-metadata"
+      },
+      {
+        "path": "crates/artifact-extract/Cargo.toml",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/artifact-extract/src/lib.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-contracts/src/knowledge.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/src/manifest_gen.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/src/stages/s_minus_1_extract.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/knowledge/extractionExternal.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/src-tauri/src/commands/factory.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/src/components/factory/ArtifactInspector.tsx",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "crates/factory-contracts/src/knowledge.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-contracts/src/knowledge.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/stages/s_minus_1_extract.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/stages/s_minus_1_extract.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/knowledge/extractionExternal.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/knowledge/extractionExternal.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/src/components/factory/ArtifactInspector.tsx"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src/components/factory/ArtifactInspector.tsx"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/artifact-extract/Cargo.toml"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/artifact-extract/Cargo.toml"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/artifact-extract/src/lib.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/artifact-extract/src/lib.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/manifest_gen.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/manifest_gen.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/knowledge/extractionOutput.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/knowledge/extractionOutput.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/src-tauri/src/commands/factory.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/factory.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/stagecraft_client.rs"
+        }
+      }
+    ],
+    "specId": "120-factory-extraction-stage",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "560c96c77c51ab4db305e99afb4556f4cd3e51986a5a800b82856f4282bf34da"
+}

@@ -1,0 +1,50 @@
+{
+  "mapping": {
+    "implementingPaths": [
+      {
+        "path": "crates/policy-kernel",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/policy-kernel/src/coherence.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/coherence-scoring",
+        "source": "manifest-metadata"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "crates/policy-kernel/src/coherence.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/policy-kernel/src/coherence.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/policy-kernel"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "id": "open_agentic_policy_kernel",
+          "kind": "crate"
+        }
+      }
+    ],
+    "specId": "063-coherence-scoring",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "436642a1b9fd05f2386087eebc2095bc7ac7602ea61ba74be89f1e128d343339"
+}

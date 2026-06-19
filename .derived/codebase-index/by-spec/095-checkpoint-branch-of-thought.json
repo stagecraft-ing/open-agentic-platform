@@ -1,0 +1,101 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "092-workspace-runtime-threading",
+      "094-unified-artifact-store"
+    ],
+    "implementingPaths": [
+      {
+        "path": "crates/axiomregent/src/checkpoint/provider.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/axiomregent/src/checkpoint/store.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/axiomregent/src/checkpoint/types.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/orchestrator/src/gates.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/orchestrator/src/manifest.rs",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "crates/axiomregent/src/checkpoint/provider.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/axiomregent/src/checkpoint/provider.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/axiomregent/src/checkpoint/store.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/axiomregent/src/checkpoint/store.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/axiomregent/src/checkpoint/types.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/axiomregent/src/checkpoint/types.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/orchestrator/src/gates.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/orchestrator/src/gates.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/orchestrator/src/manifest.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/orchestrator/src/manifest.rs"
+        }
+      }
+    ],
+    "specId": "095-checkpoint-branch-of-thought",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "25432a60e6a00e19ebd7947214fcd6dd56607abcb74d18b6d33df495ff07b0ab"
+}

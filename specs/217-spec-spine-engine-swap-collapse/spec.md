@@ -142,6 +142,7 @@ amends:
   - "179-domain-frontmatter-field"
   - "182-claude-skills-migration"
   - "184-claude-shared-config-governance"
+  - "188-derived-index-merge-serialization"
 ---
 
 # Feature Specification: Spec-Spine Engine Swap and Collapse
@@ -1067,11 +1068,24 @@ the diagnostic truth rather than the prose enumeration:
    003 (lifecycle model), 039 (codeAliases; keeps registry.schema.json), 091 (enrichment;
    keeps featuregraph readers), 102 (governed-excellence; keeps factory-engine,
    tool-registry, policy-kernel, orchestrator), 118 (workflow traceability; keeps the
-   `.github/workflows` refines), 129 (granular metadata; keeps the codebase-index schema),
-   156 (references-edge provenance; keeps spec-types, schemas, golden), 159 (V-004 fixture
+   `.github/workflows` refines), 129 (granular metadata; codebase-index schema edge
+   re-anchored to the overlay schema by Workstream D), 156 (references-edge provenance;
+   keeps spec-types, registry schema, golden), 159 (V-004 fixture
    exemption; authority is its amends-000 refinement), 182 (claude-skills; keeps the
    `.claude/skills` establishes), 188 (index merge serialization; keeps githooks,
    ci-parity, config-hash).
+
+4. **Workstream D: monolithic schema drop (FR-301/FR-303).** D drops the in-tree
+   `standards/schemas/spec-spine/codebase-index.schema.json` (monolithic 3.1.0) in
+   favour of the spec-spine library's per-unit shard schemas (1.0.0). Five specs claimed
+   it on owning edges and are reconciled: 101 (establishes) and 129 (extends-101)
+   re-anchor onto the surviving OAP overlay schema `codebase-index-oap.schema.json`
+   (the L1-5 enriched superset emitted by `oap-code-index-enrich`, itself tagged spec
+   101); 154, 156, and 188 strip the schema edge and retain their other owning units.
+   The drop produced exactly five I-004 file-unit errors before reconciliation (verified
+   empirically); after, `spec-spine index` reports zero. Honest per FR-502: the generic
+   schema genuinely moved to the library, so each stripped or re-anchored edge points at
+   a genuinely-absent or genuinely-relocated file.
 
 **Residuals (Workstream D/G; not blocking this wave's index + lint gates):**
 - The surviving `tools/spec-spine/spec-lint` crate's `[package.metadata.oap] spec`

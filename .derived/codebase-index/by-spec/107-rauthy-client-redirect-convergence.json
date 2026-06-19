@@ -1,0 +1,50 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "080-github-identity-onboarding",
+      "106-rauthy-native-oidc-and-membership"
+    ],
+    "implementingPaths": [
+      {
+        "path": "platform/services/stagecraft/scripts/seed-rauthy.mjs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/web/README.md",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/scripts/seed-rauthy.mjs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/scripts/seed-rauthy.mjs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/README.md"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/README.md"
+        }
+      }
+    ],
+    "specId": "107-rauthy-client-redirect-convergence",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "9f60ef08cdecebc4de0a2d112167d009cb6246fdbaedcda620bc621a774997fa"
+}

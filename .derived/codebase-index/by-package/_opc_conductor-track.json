@@ -1,0 +1,11 @@
+{
+  "package": {
+    "kind": "npm-package",
+    "name": "@opc/conductor-track",
+    "path": "product/packages/conductor-track",
+    "specRef": "061-conductor-track-lifecycle",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "e77d0c6e935df9d09f8aec3f7390f329e236378ebbd8f5433cf4a8656ac9f76c"
+}

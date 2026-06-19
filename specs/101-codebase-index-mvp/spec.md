@@ -87,11 +87,13 @@ risk: low
 # is now spec-spine-core (`spec-spine index`), emitting per-unit shards. The
 # codebase-indexer source units and the monolithic index.json reference are stripped
 # (paths deleted / no longer emitted). Spec 101 continues to govern the codebase-index
-# contract, now expressed by establishing the schema (promoted from a reference).
-# (Workstream D migrates the monolithic schema to the library shard schemas; until
-# then 101 owns it.) Amended by 217.
+# contract: the generic L1-2 schema is now the spec-spine library's per-unit shard
+# schemas (1.0.0), so Workstream D dropped the in-tree monolithic
+# codebase-index.schema.json and re-anchored 101 onto the surviving OAP overlay schema
+# codebase-index-oap.schema.json (the L1-5 enriched superset emitted by
+# oap-code-index-enrich, which is itself tagged spec 101). Amended by 217.
 establishes:
-  - unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
+  - unit: { kind: file, path: standards/schemas/spec-spine/codebase-index-oap.schema.json }
 ---
 
 # 101 — Codebase Index MVP
@@ -132,11 +134,13 @@ A new Rust tool `tools/spec-spine/codebase-indexer/` reads the repository tree a
 the spec-compiler:
 
 ```
-repo tree  →  codebase-indexer compile  →  .derived/codebase-index/index.json
-                                        →  .derived/codebase-index/build-meta.json
+repo tree  →  spec-spine index  →  .derived/codebase-index/by-spec/<id>.json
+                                →  .derived/codebase-index/by-package/<slug>.json
 ```
 
-The JSON schema lives at `standards/schemas/spec-spine/codebase-index.schema.json` and is itself a
+The generic L1-2 schema is now the spec-spine library's per-unit shard schemas
+(1.0.0); the OAP overlay superset lives at
+`standards/schemas/spec-spine/codebase-index-oap.schema.json` and is itself a
 governed contract.
 
 A markdown renderer mode emits `.derived/codebase-index/CODEBASE-INDEX.md` from the
@@ -413,8 +417,10 @@ extraction; the hash-input contribution is separate.
 
 ### FR-09: JSON Schema Validation
 
-The emitted `index.json` MUST validate against `standards/schemas/spec-spine/codebase-index.schema.json`.
-The indexer MUST validate its own output before writing.
+The emitted index shards MUST validate against the spec-spine library's per-unit
+shard schemas (1.0.0); the OAP overlay enrichment additionally validates against
+`standards/schemas/spec-spine/codebase-index-oap.schema.json`. `spec-spine index`
+validates its own output before writing.
 
 ### FR-10: Staleness Check
 

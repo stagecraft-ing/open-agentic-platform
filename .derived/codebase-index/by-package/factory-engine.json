@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib-bin",
+    "name": "factory-engine",
+    "path": "crates/factory-engine",
+    "specRef": "075-factory-workflow-engine",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "bf1b2df824230cc8879fbc41a086728eb1c2d9e6aef884c06939539a2f6d7860"
+}

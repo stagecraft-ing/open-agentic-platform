@@ -1,0 +1,26 @@
+{
+  "mapping": {
+    "implementingPaths": [
+      {
+        "path": "crates/xray",
+        "source": "manifest-metadata"
+      },
+      {
+        "path": "product/apps/opc",
+        "source": "manifest-metadata"
+      },
+      {
+        "path": "product/apps/opc/src-tauri",
+        "source": "manifest-metadata"
+      },
+      {
+        "path": "product/packages/ui",
+        "source": "manifest-metadata"
+      }
+    ],
+    "specId": "032-opc-inspect-governance-wiring-mvp",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "232c700318b91aac275783dd5de32ea5374ba14fb29b4554f4e5c8179c183b7e"
+}

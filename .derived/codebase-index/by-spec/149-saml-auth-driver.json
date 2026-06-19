@@ -1,0 +1,30 @@
+{
+  "diagnostics": {
+    "errors": [],
+    "warnings": [
+      {
+        "code": "W-002",
+        "message": "spec '149-saml-auth-driver' directory unit 'crates/auth-driver-saml/' is not a directory",
+        "path": "crates/auth-driver-saml/"
+      }
+    ]
+  },
+  "mapping": {
+    "implementingPaths": [],
+    "resolvedUnits": [
+      {
+        "locations": [],
+        "ownership": false,
+        "sourceField": "references",
+        "unit": {
+          "kind": "directory",
+          "path": "crates/auth-driver-saml/"
+        }
+      }
+    ],
+    "specId": "149-saml-auth-driver",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "7865d5e1578d438d25fa9c02b863998b1b21df88ce74452054b221d80671e4ef"
+}

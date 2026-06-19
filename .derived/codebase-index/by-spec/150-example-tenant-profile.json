@@ -1,0 +1,12 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "147-spec-kind-grammar"
+    ],
+    "implementingPaths": [],
+    "specId": "150-example-tenant-profile",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "7101e85967d3aedd26306f7eaece633e5a806b1e7d9a624c84f10817b90f64f4"
+}

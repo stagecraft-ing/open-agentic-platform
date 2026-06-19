@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib-bin",
+    "name": "open_agentic_assumption_cascade_check",
+    "path": "tools/oap/assumption-cascade-check",
+    "specRef": "121-claim-provenance-enforcement",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "2fa5978fb2bf878ce79eae231789d53284d0c4caacd8f58d8e98e9ea93305a08"
+}

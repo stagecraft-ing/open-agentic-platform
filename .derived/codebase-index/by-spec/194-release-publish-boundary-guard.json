@@ -1,0 +1,69 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "193-paired-release-cadence",
+      "086-open-source-launch",
+      "117-release-artifact-attestations",
+      "037-cross-platform-axiomregent"
+    ],
+    "implementingPaths": [
+      {
+        "path": ".github/workflows/release-desktop.yml",
+        "source": "spec-edge"
+      },
+      {
+        "path": ".github/workflows/release-tools.yml",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/featuregraph/tests/golden/features_graph.json",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "crates/featuregraph/tests/golden/features_graph.json"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": ".github/workflows/release-desktop.yml"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": ".github/workflows/release-desktop.yml"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": ".github/workflows/release-tools.yml"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": ".github/workflows/release-tools.yml"
+        }
+      }
+    ],
+    "specId": "194-release-publish-boundary-guard",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "006cd9fce812d11bf6a3601807fa153cf6fb21b45f9ea673efb0774baebfd659"
+}

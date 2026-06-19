@@ -1,0 +1,11 @@
+{
+  "package": {
+    "kind": "npm-package",
+    "name": "@opc/hookify-rule-engine",
+    "path": "product/packages/hookify-rule-engine",
+    "specRef": "048-hookify-rule-engine",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "318df9e0cb1665f1e3e32feac271f14ef55d4c82b9057cbcd2d38abac24dfb1d"
+}

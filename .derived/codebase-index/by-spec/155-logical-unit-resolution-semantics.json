@@ -1,0 +1,52 @@
+{
+  "mapping": {
+    "amends": [
+      "154-logical-unit-ownership-grammar"
+    ],
+    "dependsOn": [
+      "154-logical-unit-ownership-grammar"
+    ],
+    "implementingPaths": [
+      {
+        "path": "specs/154-logical-unit-ownership-grammar/segment-3-design.md",
+        "source": "spec-edge"
+      },
+      {
+        "path": "tools/shared/spec-types/src/lib.rs",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "tools/shared/spec-types/src/lib.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "tools/shared/spec-types/src/lib.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "specs/154-logical-unit-ownership-grammar/segment-3-design.md"
+          }
+        ],
+        "ownership": false,
+        "sourceField": "references",
+        "unit": {
+          "kind": "file",
+          "path": "specs/154-logical-unit-ownership-grammar/segment-3-design.md"
+        }
+      }
+    ],
+    "specId": "155-logical-unit-resolution-semantics",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "affa8bb0d128bd47e5cc78cdf0bc5d072c3a0ab3cc868e0fe091b2ac16829268"
+}

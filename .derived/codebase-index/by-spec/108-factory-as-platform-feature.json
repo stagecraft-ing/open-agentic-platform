@@ -1,0 +1,15 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "074-factory-ingestion",
+      "075-factory-workflow-engine",
+      "087-unified-workspace-architecture",
+      "088-factory-upstream-sync"
+    ],
+    "implementingPaths": [],
+    "specId": "108-factory-as-platform-feature",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "7ef097cd7183c57e7507e58901aa9548352c4a26eb164ef2665fd183b8f6b533"
+}

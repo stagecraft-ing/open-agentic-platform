@@ -1,0 +1,9 @@
+{
+  "mapping": {
+    "implementingPaths": [],
+    "specId": "002-registry-consumer-mvp",
+    "specStatus": "superseded"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "6784188e4cdaa9f71f8a726912b25dbbcc140ee9e4077b562f64a969d4358037"
+}

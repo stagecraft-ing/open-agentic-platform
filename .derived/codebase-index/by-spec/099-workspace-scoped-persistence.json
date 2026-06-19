@@ -1,0 +1,85 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "092-workspace-runtime-threading",
+      "094-unified-artifact-store",
+      "097-promotion-grade-mirror"
+    ],
+    "implementingPaths": [
+      {
+        "path": "crates/orchestrator/src/hiqlite_store.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/orchestrator/src/lib.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/orchestrator/src/promotion.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/orchestrator/src/sqlite_state.rs",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "crates/orchestrator/src/hiqlite_store.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/orchestrator/src/hiqlite_store.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/orchestrator/src/lib.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/orchestrator/src/lib.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/orchestrator/src/promotion.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/orchestrator/src/promotion.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/orchestrator/src/sqlite_state.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/orchestrator/src/sqlite_state.rs"
+        }
+      }
+    ],
+    "specId": "099-workspace-scoped-persistence",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "d5aec67adf3f5282cd8d85196d6c957f561c81712a72c01cf01288af5acef64a"
+}

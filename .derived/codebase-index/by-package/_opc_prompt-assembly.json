@@ -1,0 +1,11 @@
+{
+  "package": {
+    "kind": "npm-package",
+    "name": "@opc/prompt-assembly",
+    "path": "product/packages/prompt-assembly",
+    "specRef": "070-prompt-assembly-cache",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "f7411252bed22ef817fd114e7fdb037166067f2327c69627f48f80c4eaac3d8f"
+}

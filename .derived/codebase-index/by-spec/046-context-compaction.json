@@ -1,0 +1,29 @@
+{
+  "mapping": {
+    "implementingPaths": [
+      {
+        "path": "product/packages/prompt-assembly",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "product/packages/prompt-assembly"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "id": "@opc/prompt-assembly",
+          "kind": "crate"
+        }
+      }
+    ],
+    "specId": "046-context-compaction",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "bfb5ed90f13ffa8921b868b984f223abbfa45765d409276dabdd53790273489c"
+}

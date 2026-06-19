@@ -45,9 +45,11 @@ extends:
   # by-package output; no monolithic index.json). The edges on those deleted paths
   # (codebase-indexer lib + types, spec-compiler lib, coupling-check lib + cli test)
   # are stripped. The surviving edges below carry this spec's live authority.
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
+  # Workstream D additionally dropped the in-tree codebase-index.schema.json, so this
+  # spec's extends-101 schema edge is stripped (the schema is now the library shard
+  # schemas). 217 adds an amends-188 edge: D re-commits the sharded index/registry
+  # trees (conflict-free per-spec form), restoring present-on-clone (spec 101 SC-06)
+  # and superseding this spec's Phase 4b de-commit of the monolithic index.json.
   - spec: "104-makefile-ci-parity-contract"
     nature: additive
     unit: { kind: file, path: tools/oap/ci-parity-check/src/lib.rs }
@@ -63,7 +65,7 @@ establishes:
   # ci-parity-check fixture stubs for the ci-config-hash enforcing workflow.
   - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-config-hash.yml }
   - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-config-hash.yml }
-  # The re-homed config-hash schema (sibling to spec 101's codebase-index.schema.json).
+  # The re-homed config-hash schema (the config-slice hash the ci-config-hash gate verifies).
   # 217 note: the V-032 duplicate-id test and the check-config test this spec
   # established lived inside the deleted spec-compiler / codebase-indexer crates;
   # those two establishes units are stripped (paths deleted).
