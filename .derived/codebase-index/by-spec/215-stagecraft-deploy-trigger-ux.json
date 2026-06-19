@@ -1,19 +1,4 @@
 {
-  "diagnostics": {
-    "errors": [],
-    "warnings": [
-      {
-        "code": "W-002",
-        "message": "spec '215-stagecraft-deploy-trigger-ux' file unit 'platform/services/stagecraft/api/deploy/deployments.ts' does not exist",
-        "path": "platform/services/stagecraft/api/deploy/deployments.ts"
-      },
-      {
-        "code": "W-002",
-        "message": "spec '215-stagecraft-deploy-trigger-ux' file unit 'platform/services/stagecraft/api/deploy/deployments.test.ts' does not exist",
-        "path": "platform/services/stagecraft/api/deploy/deployments.test.ts"
-      }
-    ]
-  },
   "mapping": {
     "dependsOn": [
       "213-tenant-repo-image-build",
@@ -24,6 +9,14 @@
     "implementingPaths": [
       {
         "path": "crates/featuregraph/tests/golden/features_graph.json",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/db/migrations/49_environment_deployments.down.sql",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/db/migrations/49_environment_deployments.up.sql",
         "source": "spec-edge"
       },
       {
@@ -39,11 +32,23 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/deploy/deployments.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/deploy/deployments.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/deploy/oidcM2m.ts",
         "source": "spec-edge"
       },
       {
         "path": "platform/services/stagecraft/api/github/webhook.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/vite.config.ts",
         "source": "spec-edge"
       },
       {
@@ -76,6 +81,58 @@
       }
     ],
     "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/db/migrations/49_environment_deployments.down.sql"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/migrations/49_environment_deployments.down.sql"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/db/migrations/49_environment_deployments.up.sql"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/migrations/49_environment_deployments.up.sql"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/deploy/deployments.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/deploy/deployments.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/deploy/deployments.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/deploy/deployments.ts"
+        }
+      },
       {
         "locations": [
           {
@@ -207,21 +264,16 @@
         }
       },
       {
-        "locations": [],
-        "ownership": false,
-        "sourceField": "references",
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/vite.config.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deployments.test.ts"
-        }
-      },
-      {
-        "locations": [],
-        "ownership": false,
-        "sourceField": "references",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deployments.ts"
+          "path": "platform/services/stagecraft/vite.config.ts"
         }
       },
       {
@@ -268,5 +320,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "84e2de7cf5834a55162352ee7c8828f0ab6521d796196083b4fdd374d6462a90"
+  "shardHash": "7b3c1ca0e9d5b7508b5238a540ed54abaa7a02b11f62352a82bd7861b4a04357"
 }
