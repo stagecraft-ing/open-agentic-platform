@@ -89,6 +89,25 @@ prior receipt note for spec 181's row inclusion; no semantic change to
 this spec's claims. The flip lands in the resolver-implementation PR
 (separate from the spec-authoring PR per the Phase 1 firewall).
 
+**Amendment 2026-06-19 (record: self, golden-guard-sharded-registry-repoint).**
+The golden test's repo-detection guard in
+`crates/featuregraph/tests/golden.rs` checked only the singular
+`.derived/spec-registry/registry.json` (or legacy `spec/features.yaml`).
+After spec 217 (engine swap and collapse) the registry is emitted ONLY as
+the sharded `.derived/spec-registry/by-spec/` tree, which the scanner
+already reads; the singular file is no longer produced. The guard therefore
+silently SKIPPED the golden test (an early return that the test harness
+counts as a pass) everywhere `spec-spine compile` runs, leaving the
+featuregraph-golden ci-gate dormant while the committed fixture accrued
+uncaught drift. This amendment repoints the guard to also accept the sharded
+`by-spec/` directory (FR-001's intent: read the compiled registry, in its
+current physical form), restoring the live gate, and re-syncs the golden to
+the current registry. The re-sync is honest registry state, not new claims:
+31 `status: approved -> superseded` updates, two `implementation` flips, the
+derived `graph_fingerprint`, and one diagnostic-message text change (a source
+`# Spec:` directive de-em-dashed elsewhere). Both the guard fix and the
+fixture re-sync land in this PR; both paths are owned by this spec.
+
 **Amendment 2026-05-24 (record: 180-opc-shell-codification).**
 Spec 180 (opc-shell-codification, 2026-05-24): mechanical regeneration
 of `crates/featuregraph/tests/golden/features_graph.json` to include
