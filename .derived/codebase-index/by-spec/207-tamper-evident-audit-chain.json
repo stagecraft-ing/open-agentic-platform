@@ -8,6 +8,22 @@
     ],
     "implementingPaths": [
       {
+        "path": "crates/factory-engine/src/bin/factory_run.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/src/lib.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/src/run_audit_chain.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/tests/run_audit_anchoring.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/featuregraph/tests/golden/features_graph.json",
         "source": "spec-edge"
       },
@@ -45,6 +61,32 @@
       }
     ],
     "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/run_audit_chain.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/run_audit_chain.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/tests/run_audit_anchoring.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/tests/run_audit_anchoring.rs"
+        }
+      },
       {
         "locations": [
           {
@@ -95,6 +137,32 @@
         "unit": {
           "kind": "file",
           "path": "crates/policy-kernel/Cargo.toml"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/bin/factory_run.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/bin/factory_run.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/lib.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/lib.rs"
         }
       },
       {
@@ -167,5 +235,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "4c1b2c03f34fde9f94850178a660a42a3b4ac81e4103eced81626580e3d512d9"
+  "shardHash": "ee221315260081cb64cce57ac1425eea0ab23dcbaf7e0d54622e10697a686f78"
 }

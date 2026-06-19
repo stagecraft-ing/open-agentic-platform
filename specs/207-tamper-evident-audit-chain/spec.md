@@ -42,6 +42,11 @@ establishes:
   # FR-003 end-to-end coverage: the verifier CLI exit-code contract (clean
   # exits 0, tampered exits non-zero naming the record, no-arg exits usage).
   - unit: { kind: file, path: crates/policy-kernel/tests/verify_audit_chain_cli.rs }
+  # FR-002 (Phase 2a, AC-3): the run-audit chain writer (factory run audit
+  # serialized as a hash-chained segment, reusing the policy-kernel primitive).
+  - unit: { kind: file, path: crates/factory-engine/src/run_audit_chain.rs }
+  # AC-3 end-to-end: anchored segment is tamper-evident under verify_certificate.
+  - unit: { kind: file, path: crates/factory-engine/tests/run_audit_anchoring.rs }
 extends:
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
@@ -58,6 +63,13 @@ refines:
     unit: { kind: file, path: crates/policy-kernel/src/audit.rs }
   - aspect: "chain-reuse-for-audit"
     unit: { kind: file, path: crates/policy-kernel/src/proof_chain.rs }
+  # Phase 2a (AC-3): emit_certificate writes + anchors the run-audit segment,
+  # and the run accrues phase confirmations into a local audit trail.
+  - aspect: "run-audit-emission-and-anchoring"
+    unit: { kind: file, path: crates/factory-engine/src/bin/factory_run.rs }
+  # Module registration for the run-audit chain writer.
+  - aspect: "run-audit-module-registration"
+    unit: { kind: file, path: crates/factory-engine/src/lib.rs }
 references:
   - role: machinery
     unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.ts }
@@ -220,3 +232,35 @@ Coupling note: the implementation PR adds `establishes:` edges for the new
 verifier binary and its CLI test, and an additive `extends:` edge on the
 spec-047-owned `crates/policy-kernel/Cargo.toml` for the new `[[bin]]`
 target, per the spec-196 "edge lands with the code" precedent.
+
+**Phase 2a (2026-06-19, PR A): run-certificate anchoring (AC-3).** Factory
+runs now emit a hash-chained run-audit segment, anchored into the run
+governance certificate so `verify-certificate` catches tampering.
+
+- **Chain (FR-001).** `crates/factory-engine/src/run_audit_chain.rs`
+  serializes the run's audit trail to `<run_dir>/run-audit/run-audit.jsonl`,
+  each record carrying `previous_record_hash` + `record_hash` via the SAME
+  `policy_kernel::proof_chain::link_record_hash` primitive (genesis link
+  `genesis:<run_id>`). `verify_audit_chain` (content-agnostic) validates it.
+- **Anchor (FR-002, AC-3).** `factory-run`'s `emit_certificate` writes the
+  segment then builds the certificate with stage list `OAP_STAGE_IDS +
+  "run-audit"`, so the existing `stage_record_for` scan binds the segment
+  file's SHA-256 into the cert and the existing `verify_certificate`
+  artifact-hash loop catches any tamper. No bespoke certificate code: the
+  segment is a stage artifact. Proven end-to-end by
+  `tests/run_audit_anchoring.rs` (clean verifies; tampered segment fails,
+  diagnostic names the segment).
+- **Population.** The CLI's `FactoryPipelineState` is distinct from the
+  harness `PipelineState` that carries the OPC-side audit vec (which is why
+  `record_audit` was never wired), so the run audit is a binary-local
+  `Vec<AuditEntry>` accruing a `StageConfirmed` per phase boundary
+  (phase-1 / transition / phase-2). Per-gate recording inside the dispatch
+  path is a deliberate follow-up; the mechanism is complete and anchored.
+- **Coupling:** `establishes:` the new writer + anchoring test; `refines:`
+  `factory_run.rs` + the factory-engine `lib.rs` module registration. No
+  `governance_certificate.rs` change (the stage-scan is reused as-is).
+
+**Phase 2b (PR B, deferred): platform countersign (AC-4).** Session-scoped
+segments countersigned by stagecraft (spec 198 FR-014), offline-first with
+retroactive anchoring. Cross-repo; sequenced after the active stagecraft
+deploy settles. Design in `plan.md` (Phase 2b).

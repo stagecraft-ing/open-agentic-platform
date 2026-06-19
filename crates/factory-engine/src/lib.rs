@@ -28,6 +28,7 @@ pub mod platform_jws;
 pub mod policy_shard;
 pub mod preflight;
 pub mod project_config;
+pub mod run_audit_chain;
 pub mod sandbox;
 pub mod stagecraft_client;
 pub mod stages;
