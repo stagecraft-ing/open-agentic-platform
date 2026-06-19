@@ -56,6 +56,10 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/web/app/routes.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId._index.tsx",
         "source": "spec-edge"
       },
@@ -170,6 +174,19 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/app/routes.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/routes.ts"
         }
       },
       {
@@ -320,5 +337,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "7b3c1ca0e9d5b7508b5238a540ed54abaa7a02b11f62352a82bd7861b4a04357"
+  "shardHash": "1dc24c005271db25e3b7e476f83a796e65e2e801c07d806e1eb6d1518a7825c3"
 }

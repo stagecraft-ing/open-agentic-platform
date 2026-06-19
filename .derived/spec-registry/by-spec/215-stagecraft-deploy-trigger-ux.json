@@ -75,6 +75,14 @@
       },
       {
         "nature": "additive",
+        "spec": "087-unified-workspace-architecture",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/routes.ts"
+        }
+      },
+      {
+        "nature": "additive",
         "spec": "034-featuregraph-registry-scanner-fix",
         "unit": {
           "kind": "file",
@@ -172,6 +180,6 @@
     "summary": "Give the project-created page its deployment row: \"Preview in Deployd\" dispatches the scaffolded commit to the auto-provisioned development environment, and \"View Deployd\" lands on an environment page that shows real deployment state and the live URL. Underneath the buttons: a createDeployment client path, a stagecraft-side record of every dispatch (fixing the preview-destroy release-id bug, where the webhook deletes a release id it never stored), authorization on the deploy proxy (today auth: false), and one consolidated deployd client replacing the two parallel M2M implementations. This is the manual precursor of the factory pipeline's automated terminal deploy stage, which remains the deferral recorded in spec 112 §11.\n",
     "title": "Stagecraft Deploy Trigger UX (Preview in Deployd / View Deployd)"
   },
-  "shardHash": "839dafa503574332d0c2ca6eb72610ceea17bf10e5153a37280a5223dd2b286e",
+  "shardHash": "4f80c7490902b36ea4649ef466b7bfab494f72d1d2ea4b97f68575c19e3e7d72",
   "specVersion": "1.1.0"
 }

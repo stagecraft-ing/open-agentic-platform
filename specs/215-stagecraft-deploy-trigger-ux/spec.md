@@ -51,6 +51,13 @@ extends:
   - spec: "137-tenant-environment-access-gates"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx }
+  # Post-merge fix: register the env-detail route so FR-004 (deployment card)
+  # and FR-006 (trigger), plus spec 137's access-gate UI, are reachable. The
+  # detail file existed since 137 but was never wired into the route table, so
+  # /deploys/:envId 404'd. Extends the app route table established by spec 087.
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes.ts }
   # Same precedent as specs 202, 196, 194, 193, 187, 183: a new spec adds a
   # row to the featuregraph golden.
   - spec: "034-featuregraph-registry-scanner-fix"
