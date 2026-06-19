@@ -134,3 +134,71 @@ cargo test --manifest-path crates/policy-kernel/Cargo.toml
 cargo build --release --manifest-path crates/policy-kernel/Cargo.toml --bin verify_audit_chain
 make pr-prep   # regenerate codebase index + coupling gate vs origin/main
 ```
+
+## Phase 2: cross-repo anchoring (FR-002, AC-3 + AC-4)
+
+Phase 2 closes the open-segment residual by giving the chain an external
+trust root. It ships as TWO PRs so the self-contained half lands first.
+
+### Phase 2a (PR A): run-certificate anchoring (AC-3)
+
+Factory runs gain a hash-chained run-audit segment, anchored into the run
+governance certificate so `verify-certificate` catches tampering.
+
+- **Run audit content.** `crates/factory-engine/src/harness_state.rs`
+  `record_audit` exists but is never called. Wire it at the run lifecycle
+  points in `crates/factory-engine/src/bin/factory_run.rs` (run start, each
+  phase dispatch, transition, completion/halt) so the run accrues a real
+  audit trail in `pipeline_state.audit` (factory_contracts `AuditEntry`:
+  `{timestamp, event, stage, details}`).
+- **Chain + write.** At run end, serialize `pipeline_state.audit` into a
+  hash-chained JSONL segment at `<run_dir>/run-audit/run-audit.jsonl`. Each
+  record is the `AuditEntry` JSON plus `previous_record_hash` +
+  `record_hash`, computed through `policy_kernel::proof_chain::link_record_hash`
+  (the SAME primitive the permission chain uses, FR-001). Genesis link is
+  `genesis:<run_id>`. A new helper in factory-engine (e.g.
+  `run_audit_chain.rs`) owns this; `verify_audit_chain` (content-agnostic)
+  validates it.
+- **Anchor.** Add a `run-audit` stage record to the certificate with
+  `artifact_hashes = {"run-audit.jsonl": sha256(file)}` BEFORE the cert is
+  hashed/signed. The existing `verify_certificate` artifact loop
+  (`governance_certificate.rs`) reads `<run_dir>/run-audit/run-audit.jsonl`,
+  re-hashes, and fails on any tamper (AC-3) with the existing artifact-hash
+  diagnostic. Whole-file anchoring is the literal FR-002 reading ("segments
+  anchor by entering the artifact list"); the per-record chain supplies the
+  granular + offline story.
+- **Coupling (PR A):** 207 `refines:` `factory_run.rs` (run-audit wiring),
+  `harness_state.rs` (record_audit activation), `governance_certificate.rs`
+  (the run-audit stage); `establishes:` the new `run_audit_chain.rs`. The
+  cert crate already depends on policy-kernel.
+- **Tests:** a run produces a verifying segment; tampering the segment file
+  fails `verify-certificate`; `verify_audit_chain` passes on the segment.
+
+### Phase 2b (PR B): platform countersign (AC-4)
+
+Session-scoped segments are countersigned by stagecraft (spec 198 FR-014:
+stagecraft seals, the local side is keyless), with offline-first retroactive
+anchoring. Cross-repo; lands after 2a.
+
+- **New duplex message** `audit.segment.countersign_request` /
+  `audit.segment.countersign` in `sync/types.ts` carrying
+  `{sessionId, segmentId, segmentHeadHash, segmentRecordCount, first/lastRecordAt}`.
+- **New handler** `factory/auditSegmentHandlers.ts` (counterpart to the
+  spec-198-owned `grantDuplexHandlers.ts`), signing with a NEW domain typ
+  `oap-audit-segment-countersign+jws` via the existing `signFactoryJws`.
+- **New table** `factory_session_audit_seals` (migration 45+): per
+  `(org_id, session_id, segment_id)`, head hash, record_count, `unanchored`
+  flag, `countersign_jws`, `countersigned_at`. Distinct from
+  `factory_run_grants` (session scope, no seq/expiry, durability not expiry).
+- **Offline-first.** The local side accumulates unanchored segment heads and
+  submits them at next connection; the `unanchored` flag + the gap between
+  local `last_record_at` and platform `countersigned_at` is the queryable
+  window (FR-004 bound).
+- **Coupling (PR B):** the `FactoryJwsTyp` union lives in spec-198-owned
+  `signing-pure.ts`; 207 takes an additive `extends:` edge on it for the new
+  typ (does not evolve 198's authority). 207 `establishes:`
+  `auditSegmentHandlers.ts` + the migration; `refines:` `sync/service.ts`
+  + `sync/types.ts` (dispatch + message shapes). Verify the coupling gate's
+  candidate-owner list at PR time.
+- **Risk:** touches the duplex/sync surface. PR B is sequenced after the
+  `~/Dev` lane's 215 deploy/verify settles to avoid runtime ambiguity.
