@@ -109,7 +109,7 @@ jobs:
               - '.github/workflows/ci-factory-schema-lockstep.yml'
             featuregraph:
               - 'specs/**'
-              - 'tools/spec-spine/spec-compiler/**'
+              - 'spec-spine.toml'
               - 'crates/featuregraph/**'
               - '.github/workflows/ci-featuregraph-golden.yml'
             orchestrator:
@@ -242,14 +242,15 @@ jobs:
   supply-chain:
     uses: ./.github/workflows/ci-supply-chain.yml
 
-  # Spec 188 Phase 3's NARROW config-hash gate (check-config over
+  # Spec 188 Phase 3's NARROW config-hash gate (the claude-config slice over
   # .claude/settings.json + .mcp.json, spec 184) is re-homed into the
-  # spec-conformance job (2026-06-10): conformance already builds the
-  # codebase-indexer, so the standalone ci-config-hash.yml job paid ~3 min
-  # of runner spin-up for a 50ms check. The guarantee is unchanged — same
-  # binary, same `check-config` subcommand, still constitutional/always-on
-  # (including push), and it runs BEFORE conformance's `compile` step so it
-  # validates the COMMITTED config-hash.json, not a freshly regenerated one.
+  # spec-conformance job (2026-06-10): conformance already runs the spec-spine
+  # engine smokes, so the standalone ci-config-hash.yml job paid ~3 min of
+  # runner spin-up for a 50ms check. The guarantee is unchanged (spec 217
+  # swapped the in-tree config-hash check for `spec-spine index check --slice
+  # claude-config`), still constitutional/always-on (including push), and it
+  # runs BEFORE conformance's index build so it validates the COMMITTED slice
+  # sidecar, not a freshly regenerated one.
 
   # Spec 177 + 085 — AI PR review folded into the gate. It was a standalone
   # workflow that was green-but-dead on every PR back to ~#220 (auth failure

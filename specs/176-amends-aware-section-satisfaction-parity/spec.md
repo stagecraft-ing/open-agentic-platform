@@ -2,7 +2,8 @@
 id: "176-amends-aware-section-satisfaction-parity"
 slug: amends-aware-section-satisfaction-parity
 title: "Amends-aware satisfaction parity between whole-file and section-scoped authority checks"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 owner: bart
 created: "2026-05-24"
@@ -16,13 +17,13 @@ depends_on:
   - "133-amends-aware-coupling-gate"
   - "152-path-co-authority"
 code_aliases: ["SECTION_AMENDER_PARITY"]
+# 217 deleted the in-tree spec-code-coupling-check crate; the section-satisfaction
+# parity this spec fixed is now in spec-spine-core. Both extends-133 section units
+# are removed (path deleted) and collapsed to a single 133 lineage edge.
+# Superseded by 217.
 extends:
   - spec: "133-amends-aware-coupling-gate"
     nature: additive
-    unit: { kind: section, file: tools/spec-spine/spec-code-coupling-check/src/lib.rs, anchor: section-matching }
-  - spec: "133-amends-aware-coupling-gate"
-    nature: additive
-    unit: { kind: section, file: tools/spec-spine/spec-code-coupling-check/src/lib.rs, anchor: authority-derivation }
 summary: >
   Closes the implementation gap between spec 133 §4's satisfaction contract
   and the section-scoped code path in tools/spec-spine/spec-code-coupling-check/src/lib.rs.

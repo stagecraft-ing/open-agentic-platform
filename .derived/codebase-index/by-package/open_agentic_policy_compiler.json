@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib-bin",
+    "name": "open_agentic_policy_compiler",
+    "path": "tools/oap/policy-compiler",
+    "specRef": "047-governance-control-plane",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "67663755408833621abadc71fb6c6ce0d1677c19a17ce549a78ee64ef031458a"
+}

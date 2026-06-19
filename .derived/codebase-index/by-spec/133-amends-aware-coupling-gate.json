@@ -1,0 +1,13 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "101-codebase-index-mvp",
+      "130-spec-coupling-primary-owner"
+    ],
+    "implementingPaths": [],
+    "specId": "133-amends-aware-coupling-gate",
+    "specStatus": "superseded"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "fd94d127ad43bb6839c87cf20ffab83987406f2c5bd2f9bf3aa96ea3c075998b"
+}

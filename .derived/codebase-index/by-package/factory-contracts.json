@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib",
+    "name": "factory-contracts",
+    "path": "crates/factory-contracts",
+    "specRef": "074-factory-ingestion",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "e9bbc3118d9d4c375e1058a8200c22b3c5eca83c92edf1a02f6de8b2ee8fcce9"
+}

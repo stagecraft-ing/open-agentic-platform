@@ -1,0 +1,40 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "035-agent-governed-execution",
+      "036-safety-tier-governance",
+      "068-permission-runtime",
+      "090-governance-non-optionality",
+      "098-governance-enforcement-stitching"
+    ],
+    "implementingPaths": [
+      {
+        "path": "crates/provider-registry",
+        "source": "multiple"
+      },
+      {
+        "path": "product/packages/provider-registry",
+        "source": "manifest-metadata"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "crates/provider-registry"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "id": "provider-registry",
+          "kind": "crate"
+        }
+      }
+    ],
+    "specId": "042-multi-provider-agent-registry",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "3855a8e228eab2ff3a0371b21b683065a82280df716b6dde0fc0a4fb87ec1442"
+}

@@ -2,7 +2,8 @@
 id: "017-registry-consumer-shared-json-serialization-helper-mvp"
 title: "Registry consumer shared JSON serialization helper"
 feature_branch: "017-registry-consumer-shared-json-serialization-helper-mvp"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 kind: platform-delivery
 domain: tooling
@@ -16,10 +17,10 @@ summary: >
 extends:
   - spec: "002-registry-consumer-mvp"
     nature: additive
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
+
 refines:
   - aspect: "json-serialization"
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
+
 ---
 
 # Feature Specification: Shared JSON serialization helper

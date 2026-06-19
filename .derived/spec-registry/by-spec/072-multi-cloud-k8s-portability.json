@@ -1,0 +1,56 @@
+{
+  "record": {
+    "authors": [
+      "open-agentic-platform"
+    ],
+    "codeAliases": [
+      "MULTI_CLOUD_K8S"
+    ],
+    "created": "2026-04-01",
+    "domain": "platform",
+    "establishes": [
+      {
+        "kind": "directory",
+        "path": "platform/infra"
+      }
+    ],
+    "extraFrontmatter": {
+      "language": "en",
+      "sources": [
+        "platform-infra"
+      ]
+    },
+    "featureBranch": "072-multi-cloud-k8s-portability",
+    "id": "072-multi-cloud-k8s-portability",
+    "implementation": "complete",
+    "kind": "platform",
+    "sectionHeadings": [
+      "Feature Specification: Multi-Cloud Kubernetes Portability",
+      "Purpose",
+      "Deployment Targets",
+      "Tier 1: Managed Cloud Kubernetes",
+      "Tier 2: Bare Kubernetes",
+      "Architecture",
+      "Provider-Agnostic Output Contract",
+      "Secrets Strategy: External Secrets Operator (ESO)",
+      "Helm Chart Parameterization",
+      "Removed from templates",
+      "Added to templates",
+      "Values overlay structure",
+      "Cluster Addons Refactoring",
+      "Terraform Environment Structure",
+      "Hetzner K3s Provisioning",
+      "Local Development Provisioning",
+      "Makefile Multi-Target Support",
+      "Invariants",
+      "Migration Path",
+      "Dependencies"
+    ],
+    "specPath": "specs/072-multi-cloud-k8s-portability/spec.md",
+    "status": "approved",
+    "summary": "Generalizes the platform's Kubernetes infrastructure from Azure-only to a portable two-tier model supporting managed cloud K8s (Azure AKS, AWS EKS, GCP GKE, DigitalOcean DOKS), bare K8s (Hetzner K3s via hetzner-k3s), and local development (k3d). Introduces a provider-agnostic output contract for Terraform modules, replaces Azure CSI secrets + workload identity with external-secrets-operator, and parameterizes Helm charts with per-environment values overlays.\n",
+    "title": "Multi-Cloud Kubernetes Portability"
+  },
+  "shardHash": "2e6ebdad52d289d67811533fa292bc93a7052ae67338d04e3dda263977adb348",
+  "specVersion": "1.1.0"
+}

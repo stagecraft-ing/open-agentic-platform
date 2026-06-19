@@ -1,0 +1,54 @@
+{
+  "record": {
+    "authors": [
+      "open-agentic-platform"
+    ],
+    "created": "2026-05-17",
+    "dependsOn": [
+      "147-spec-kind-grammar"
+    ],
+    "domain": "platform",
+    "extraFrontmatter": {
+      "approved": "2026-05-22",
+      "category": [
+        "auth",
+        "identity"
+      ],
+      "default": "rauthy-oidc",
+      "member_contract": "auth-driver",
+      "production_forbidden": [
+        "example-tenant-mock"
+      ],
+      "selector": "AUTH_DRIVER"
+    },
+    "id": "148-auth-driver-registry",
+    "implementation": "complete",
+    "kind": "registry",
+    "owner": "open-agentic-platform",
+    "references": [
+      {
+        "role": "planned",
+        "unit": {
+          "kind": "directory",
+          "path": "crates/auth-driver/"
+        }
+      }
+    ],
+    "risk": "medium",
+    "sectionHeadings": [
+      "148 — Auth driver registry",
+      "§1 Motivation",
+      "§2 Mechanism",
+      "§3 Defaults and forbidden production members",
+      "§4 Why a registry spec, not a configuration table",
+      "§5 Acceptance criteria",
+      "§6 Out of scope"
+    ],
+    "specPath": "specs/148-auth-driver-registry/spec.md",
+    "status": "approved",
+    "summary": "Registry kind: defines the pluggable identity-provider integration point. Members are `kind: capability` specs implementing the auth-driver contract (token exchange, session validation, scope projection). The `AUTH_DRIVER` env var selects one member at runtime; the default is `rauthy-oidc` (spec 106). The proving-ground capability member is spec 149-saml-auth-driver. Profile specs (e.g. 150) select AUTH_DRIVER members per tenant via the `selects:` map.\nAuthored as part of spec 147 §Migration Phase 3 — the proving-ground spec triplet exercising V-013/V-014/V-015/V-017 against the new `registry` / `capability` / `profile` kinds.\n",
+    "title": "Auth driver registry — pluggable identity-provider integration contract"
+  },
+  "shardHash": "02e482bdda139090b634d901633c08f729031ef4536ef53ead511056a664c8da",
+  "specVersion": "1.1.0"
+}

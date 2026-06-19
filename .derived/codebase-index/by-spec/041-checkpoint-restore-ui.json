@@ -1,0 +1,63 @@
+{
+  "mapping": {
+    "implementingPaths": [
+      {
+        "path": "product/apps/opc/src/features/checkpoint/CheckpointSurface.tsx",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/src/features/checkpoint/types.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/src/features/checkpoint/useCheckpointFlow.ts",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/src/features/checkpoint/CheckpointSurface.tsx"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src/features/checkpoint/CheckpointSurface.tsx"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/src/features/checkpoint/types.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src/features/checkpoint/types.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/src/features/checkpoint/useCheckpointFlow.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src/features/checkpoint/useCheckpointFlow.ts"
+        }
+      }
+    ],
+    "specId": "041-checkpoint-restore-ui",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "dec95ca7adeb8b1f91467b13d7c714e3a6801ec7beebb520a4ee3ea6b509f5bf"
+}

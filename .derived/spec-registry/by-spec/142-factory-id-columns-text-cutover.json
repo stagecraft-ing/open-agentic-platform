@@ -1,0 +1,74 @@
+{
+  "record": {
+    "amends": [
+      "139-factory-artifact-substrate"
+    ],
+    "codeAliases": [
+      "FACTORY_ID_COLUMNS_TEXT_CUTOVER"
+    ],
+    "created": "2026-05-06",
+    "dependsOn": [
+      "139-factory-artifact-substrate"
+    ],
+    "domain": "platform",
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.up.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.down.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/38_factory_id_columns_to_text.test.ts"
+      }
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "139-factory-artifact-substrate",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/schema.ts"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "139-factory-artifact-substrate",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/vite.config.ts"
+        }
+      }
+    ],
+    "extraFrontmatter": {
+      "approved": "2026-05-06",
+      "slug": "factory-id-columns-text-cutover"
+    },
+    "id": "142-factory-id-columns-text-cutover",
+    "implementation": "complete",
+    "kind": "amendment",
+    "owner": "bart",
+    "risk": "low",
+    "sectionHeadings": [
+      "142 — Factory ID columns: `uuid` → `text` cutover",
+      "1. Background",
+      "2. Resolution",
+      "2.1 Migration 38 — ALTER COLUMN TYPE",
+      "2.2 Schema.ts alignment",
+      "2.3 Down-migration (best-effort, dev only)",
+      "2.4 Migration test",
+      "3. Acceptance criteria",
+      "4. Out of scope",
+      "5. Provenance"
+    ],
+    "specPath": "specs/142-factory-id-columns-text-cutover/spec.md",
+    "status": "approved",
+    "summary": "Spec 139 Phase 4 cut over to substrate-projected adapter/process records whose runtime IDs are deterministic synthetic strings of the form `synthetic-adapter-<orgId8>-<name>` and `synthetic-process-<orgId8>-<name>-<version>`. Migration 34 dropped the legacy FK constraints on `projects.factory_adapter_id`, `scaffold_jobs.factory_adapter_id`, `factory_runs.adapter_id`, and `factory_runs.process_id`, but left the columns typed as `uuid`. Every Create attempt against the live cluster therefore fails the `scaffold_jobs` insert with `invalid input syntax for type uuid: \"synthetic-adapter-…\"`, surfaced to the UI as Encore's generic \"an internal error occurred\" 500. This spec ships migration 38 to ALTER the four columns to `text` and switches the Drizzle schema to match, completing the substrate cutover.\n",
+    "title": "Align factory adapter/process ID column types with substrate-projected synthetic IDs"
+  },
+  "shardHash": "82b3d410280691abfdec3b6bcea0aab27f31f0f404f7679e64c01feba6da8322",
+  "specVersion": "1.1.0"
+}

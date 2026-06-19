@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib",
+    "name": "sandbox-local-container",
+    "path": "crates/sandbox-local-container",
+    "specRef": "185-sandbox-local-container-backend",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "a82d2eab54e8f5531542e4b8aead929bd168b83ac9fa2b9597d7aad0b718bd21"
+}

@@ -1,0 +1,104 @@
+{
+  "record": {
+    "authors": [
+      "open-agentic-platform"
+    ],
+    "codeAliases": [
+      "ORG_AGENT_KILL_SWITCH"
+    ],
+    "created": "2026-06-11",
+    "dependsOn": [
+      "198-factory-governance-envelope",
+      "172-opc-live-agent-session-introspection",
+      "106-rauthy-native-oidc-and-membership"
+    ],
+    "domain": "platform",
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "198-factory-governance-envelope",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/revocations.ts"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "034-featuregraph-registry-scanner-fix",
+        "unit": {
+          "kind": "file",
+          "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      }
+    ],
+    "extraFrontmatter": {
+      "compliance": [
+        {
+          "controls": [
+            "ASI10",
+            "ASI08"
+          ],
+          "framework": "owasp-asi-2026"
+        }
+      ],
+      "language": "en"
+    },
+    "featureBranch": "feat/208-org-agent-kill-switch",
+    "id": "208-org-agent-kill-switch",
+    "implementation": "pending",
+    "kind": "governance",
+    "references": [
+      {
+        "role": "machinery",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+        }
+      },
+      {
+        "role": "context",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+        }
+      },
+      {
+        "role": "context",
+        "unit": {
+          "kind": "file",
+          "path": "docs/owasp-agentic-top-10-2026.md"
+        }
+      }
+    ],
+    "refines": [
+      {
+        "aspect": "org-halt-propagation",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/sync/service.ts"
+        }
+      },
+      {
+        "aspect": "halt-aware-session-termination",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/live_sessions.rs"
+        }
+      }
+    ],
+    "sectionHeadings": [
+      "Feature Specification: Org-Wide Agent Kill Switch and Quarantine",
+      "Purpose",
+      "Functional requirements (sketch — refine before implementation)",
+      "Acceptance criteria (sketch)",
+      "Out of scope",
+      "Sequencing"
+    ],
+    "specPath": "specs/208-org-agent-kill-switch/spec.md",
+    "status": "draft",
+    "summary": "Containment today is precise but narrow: an operator can force-disconnect one session (spec 172), the four-key revocation lattice quarantines factory content (spec 198 FR-010), and Rauthy sessions can be revoked one principal at a time. What does not exist is the emergency stop ASI10 m4 and ASI04 m8 require: one admin-gated action that halts agent execution org-wide — pausing in-flight runs at the next boundary, refusing new sessions and grant issuance, revoking agent credentials — with propagation inside a stated bound, a quarantine record, and reintegration that requires fresh validation plus human approval. The switch composes the levers that already exist (grant renewal, duplex channels, revocation rows, session force-disconnect) rather than adding a parallel mechanism, and it is drilled: a kill switch that has never been pulled is decoration, so exercising it is an acceptance criterion, not an operational afterthought.\n",
+    "title": "Org-Wide Agent Kill Switch and Quarantine (ASI10 containment)"
+  },
+  "shardHash": "0239e6bfa1cfdf51d6f10336eccab84a8ccb09b2ad3e2b6942ebf3151a9a60dc",
+  "specVersion": "1.1.0"
+}

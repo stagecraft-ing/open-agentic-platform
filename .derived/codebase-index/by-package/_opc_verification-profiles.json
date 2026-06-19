@@ -1,0 +1,11 @@
+{
+  "package": {
+    "kind": "npm-package",
+    "name": "@opc/verification-profiles",
+    "path": "product/packages/verification-profiles",
+    "specRef": "053-verification-profiles",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "dd5ff0de817da62b76d3f630aa45c5773db7a7e89e20af3c04e33be45ec041c8"
+}

@@ -1,0 +1,9 @@
+{
+  "mapping": {
+    "implementingPaths": [],
+    "specId": "017-registry-consumer-shared-json-serialization-helper-mvp",
+    "specStatus": "superseded"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "20d00d74c504ec938b72ef6f4afa2562d187d07d247a68b9a843397f1c16764c"
+}

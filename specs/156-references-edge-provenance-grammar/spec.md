@@ -13,34 +13,16 @@ risk: low
 depends_on:
   - "154-logical-unit-ownership-grammar"
 code_aliases: ["REFERENCES_EDGE_PROVENANCE", "PROVENANCE_GRAMMAR"]
+# 217 deleted the in-tree spec-compiler + codebase-indexer; the references-edge
+# provenance grammar they parsed/resolved is now in spec-spine-core. The spec-compiler
+# (lib + 2 tests) and codebase-indexer (spec_scanner, types, resolver/mod, test) edges
+# are stripped (paths deleted). The surviving edges (spec-types overlay, registry
+# schema, featuregraph golden) carry this spec's authority; the codebase-index schema
+# edge is dropped with the in-tree codebase-index.schema.json (Workstream D). Amended by 217.
 extends:
   - spec: "154-logical-unit-ownership-grammar"
     nature: additive
     unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
-  - spec: "154-logical-unit-ownership-grammar"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
-  - spec: "154-logical-unit-ownership-grammar"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/tests/spec156_provenance_grammar.rs }
-  - spec: "154-logical-unit-ownership-grammar"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/tests/code_aliases.rs }
-  - spec: "154-logical-unit-ownership-grammar"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/spec_scanner.rs }
-  - spec: "154-logical-unit-ownership-grammar"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/types.rs }
-  - spec: "154-logical-unit-ownership-grammar"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/resolver/mod.rs }
-  - spec: "154-logical-unit-ownership-grammar"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/tests/spec156_provenance.rs }
-  - spec: "154-logical-unit-ownership-grammar"
-    nature: additive
-    unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
   - spec: "154-logical-unit-ownership-grammar"
     nature: additive
     unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }

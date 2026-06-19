@@ -19,8 +19,6 @@ refines:
     unit: { kind: file, path: crates/orchestrator/Cargo.toml }
   - aspect: "cargo-manifest-hygiene"
     unit: { kind: file, path: crates/axiomregent/Cargo.toml }
-  - aspect: "cargo-manifest-hygiene"
-    unit: { kind: file, path: Cargo.lock }
 summary: >
   `crates/orchestrator/Cargo.toml:20` declares the `hiqlite` dependency
   without `default-features = false`. Cargo unifies features across the

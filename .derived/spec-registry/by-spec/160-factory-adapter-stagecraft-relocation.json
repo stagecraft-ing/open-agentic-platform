@@ -1,0 +1,111 @@
+{
+  "record": {
+    "amends": [
+      "101-codebase-index-mvp"
+    ],
+    "coAuthority": [
+      {
+        "unit": {
+          "anchor": "registry",
+          "file": "Makefile",
+          "kind": "section"
+        },
+        "with_specs": [
+          "102-governed-excellence",
+          "104-makefile-ci-parity-contract",
+          "127-spec-code-coupling-gate",
+          "134-fast-local-ci-mode",
+          "135-fast-ci-as-default"
+        ]
+      }
+    ],
+    "codeAliases": [
+      "FACTORY_STAGECRAFT_RELOCATION",
+      "ADAPTERS_IN_STAGECRAFT"
+    ],
+    "created": "2026-05-22",
+    "dependsOn": [
+      "074-factory-ingestion",
+      "075-factory-workflow-engine",
+      "077-stagecraft-factory-api",
+      "108-factory-as-platform-feature"
+    ],
+    "domain": "platform",
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "108-factory-as-platform-feature",
+        "unit": {
+          "kind": "directory",
+          "path": "platform/services/stagecraft"
+        }
+      }
+    ],
+    "extraFrontmatter": {
+      "slug": "factory-adapter-stagecraft-relocation"
+    },
+    "id": "160-factory-adapter-stagecraft-relocation",
+    "implementation": "complete",
+    "kind": "platform",
+    "owner": "bart",
+    "references": [
+      {
+        "role": "decomposition-source",
+        "unit": {
+          "kind": "file",
+          "path": "docs/owasp/factory/AIDE-VELOCITY-OAP-INTENT.md"
+        }
+      },
+      {
+        "role": "precedent",
+        "unit": {
+          "kind": "file",
+          "path": "specs/108-factory-as-platform-feature/spec.md"
+        }
+      },
+      {
+        "role": "precedent",
+        "unit": {
+          "kind": "file",
+          "path": "specs/077-stagecraft-factory-api/spec.md"
+        }
+      },
+      {
+        "role": "precedent",
+        "unit": {
+          "kind": "file",
+          "path": "specs/074-factory-ingestion/spec.md"
+        }
+      },
+      {
+        "role": "load-bearing-fossil",
+        "unit": {
+          "kind": "file",
+          "path": "tools/spec-spine/codebase-indexer/src/lib.rs"
+        }
+      }
+    ],
+    "risk": "medium",
+    "sectionHeadings": [
+      "160 — Factory / adapter relocation into stagecraft",
+      "1. Problem",
+      "2. Decision",
+      "3. Functional Requirements",
+      "4. Success Criteria",
+      "5. Scope",
+      "In scope (this spec)",
+      "Out of scope (and intentionally so)",
+      "6. Relationship to existing factory specs",
+      "7. Acceptance posture",
+      "8. Cross-references",
+      "Amendments received",
+      "9. Amendment to spec 101 (codebase-index-mvp)"
+    ],
+    "specPath": "specs/160-factory-adapter-stagecraft-relocation/spec.md",
+    "status": "approved",
+    "summary": "Closes out the in-flight migration named in `AIDE-VELOCITY-OAP-INTENT.md` §8.1: the canonical `factory/` directory (which carried per-adapter `manifest.yaml` files plus `factory/process/stages/*`) has been removed from this repo as part of relocating factory/adapter machinery into stagecraft as a first-class feature. The relocation is partial — the former directory is gone, but no stagecraft-resident replacement has been declared. The `codebase-indexer` still lists `factory/adapters/*/manifest.yaml` and `factory/process/stages/*` in its `collect_input_files` hash set, which is a fossil that fails closed in staleness checks any time those paths are mentioned by a hash signature even though they no longer exist.\nThis spec establishes the stagecraft-resident location contract for adapter manifests and process stage templates, repoints the codebase-indexer input list at the new location, and excises the legacy `factory/` references from CLAUDE.md / README.md / Makefile / CI workflows. It is a closure spec for an in-flight migration, not a redesign of factory primitives — the factory contract types (spec 074), the two-phase workflow engine (spec 075), and stagecraft's factory-bridge API (spec 077) remain authoritative on their own surfaces; this spec only relocates where adapter-manifest authority *lives*.\n",
+    "title": "Factory / adapter relocation into stagecraft"
+  },
+  "shardHash": "3ac4254a7ac536c3ba9004196c2a71c26c4ad8427f8c24554b7debb89c02744a",
+  "specVersion": "1.1.0"
+}

@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib-bin",
+    "name": "open_agentic_stakeholder_doc_lint",
+    "path": "tools/oap/stakeholder-doc-lint",
+    "specRef": "122-stakeholder-doc-inversion",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "7163f4db46463ae805550eba0878a16e9669873d6249a1fd819090a248ca6b00"
+}

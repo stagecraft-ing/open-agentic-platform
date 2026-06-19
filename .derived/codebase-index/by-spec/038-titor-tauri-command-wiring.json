@@ -1,0 +1,9 @@
+{
+  "mapping": {
+    "implementingPaths": [],
+    "specId": "038-titor-tauri-command-wiring",
+    "specStatus": "superseded"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "f6ca0d75cc59cc03eaef3ab3d8b8cd0e31533d295140d2530cc2bcf2cc8370cf"
+}

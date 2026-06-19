@@ -1,0 +1,9 @@
+{
+  "mapping": {
+    "implementingPaths": [],
+    "specId": "026-registry-consumer-allow-invalid-contract-mvp",
+    "specStatus": "superseded"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "cbb91370cddddd70424168020f04f6d3c10ced949d0aeae41b32e7e49bb36543"
+}

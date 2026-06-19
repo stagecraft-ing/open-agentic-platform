@@ -13,15 +13,17 @@ use tempfile::TempDir;
 mod test_helpers;
 use test_helpers::make_router;
 
-/// Create a self-contained test workspace with a minimal spec registry so the
-/// featuregraph scanner can initialise without requiring `spec-compiler compile`.
+/// Create a self-contained test workspace with a minimal sharded spec registry so
+/// the featuregraph scanner can initialise without requiring `spec-spine compile`.
+/// Spec 217: the scanner reads the per-unit `by-spec/<id>.json` shards via
+/// `load_committed_registry`, not the retired monolithic `registry.json`.
 fn create_test_workspace() -> TempDir {
     let dir = TempDir::new().expect("failed to create temp dir");
-    let registry_dir = dir.path().join(".derived/spec-registry");
-    std::fs::create_dir_all(&registry_dir).unwrap();
+    let by_spec = dir.path().join(".derived/spec-registry/by-spec");
+    std::fs::create_dir_all(&by_spec).unwrap();
     std::fs::write(
-        registry_dir.join("registry.json"),
-        r#"{"specVersion":"1.5.0","features":[{"id":"test-feature","title":"Test Feature","specPath":"specs/test/spec.md","status":"active","codeAliases":[]}]}"#,
+        by_spec.join("test-feature.json"),
+        r#"{"specVersion":"1.1.0","shardHash":"0","record":{"authors":["open-agentic-platform"],"created":"2026-01-01","domain":"tooling","extraFrontmatter":{"language":"en"},"featureBranch":"test-feature","id":"test-feature","implementation":"complete","kind":"platform-delivery","sectionHeadings":["Test Feature"],"specPath":"specs/test-feature/spec.md","status":"approved","summary":"Test feature for the featuregraph scanner.","title":"Test Feature"}}"#,
     )
     .unwrap();
     // Create a dummy source file so features.impact has something to scan

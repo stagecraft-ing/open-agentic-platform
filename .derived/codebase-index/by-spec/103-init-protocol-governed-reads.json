@@ -1,0 +1,52 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "000-bootstrap-spec-system",
+      "001-spec-compiler-mvp",
+      "002-registry-consumer-mvp",
+      "101-codebase-index-mvp"
+    ],
+    "implementingPaths": [
+      {
+        "path": ".claude/rules/governed-artifact-reads.md",
+        "source": "spec-edge"
+      },
+      {
+        "path": "AGENTS.md",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": ".claude/rules/governed-artifact-reads.md"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": ".claude/rules/governed-artifact-reads.md"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "AGENTS.md"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "AGENTS.md"
+        }
+      }
+    ],
+    "specId": "103-init-protocol-governed-reads",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "b20254db23a9915855fc0a6668f221e22be475e1046f8417eed12f0c67357a5c"
+}

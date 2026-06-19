@@ -2,7 +2,8 @@
 id: "007-registry-consumer-status-report-mvp"
 title: "Registry consumer status reporting UX"
 feature_branch: "007-registry-consumer-status-report-mvp"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 kind: platform-delivery
 domain: tooling
@@ -17,7 +18,9 @@ summary: >
 extends:
   - spec: "002-registry-consumer-mvp"
     nature: additive
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
+# 217 deleted the in-tree registry-consumer crate (open_agentic_spec_registry_reader).
+# The crate-unit is stripped (its contracted verbs now live in spec-spine registry /
+# oap-registry-enrich); the 002 spec-lineage is retained. Superseded by 217.
 ---
 
 # Feature Specification: Registry consumer status reporting UX

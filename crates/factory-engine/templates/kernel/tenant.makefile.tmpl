@@ -1,23 +1,22 @@
-# Tenant Makefile (emitted by OAP spec 167 — born-with spec-spine kernel).
+# Tenant Makefile (emitted by OAP spec 167: born-with spec-spine kernel).
 #
 # `pr-prep` is the single entry point tenants run before a PR. It rebuilds
 # the codebase index and runs the coupling gate against the tenant's own
 # spec spine. See `.kernel-version` for the OAP kernel source.
 
-SPEC_BINS := @@binaries_dir@@
 INDEX := @@index_path@@
 REGISTRY := @@registry_path@@
 
 .PHONY: pr-prep registry index lint
 
 pr-prep: index
-	./$(SPEC_BINS)/spec-code-coupling-check --base origin/main --head HEAD
+	spec-spine couple --base origin/main --head HEAD
 
 registry:
-	./$(SPEC_BINS)/spec-compiler compile
+	spec-spine compile
 
 index: registry
-	./$(SPEC_BINS)/codebase-indexer compile
+	spec-spine index
 
 lint:
-	./$(SPEC_BINS)/spec-lint
+	spec-lint

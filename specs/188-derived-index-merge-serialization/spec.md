@@ -39,78 +39,37 @@ extends:
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
-  # Phase 3 — additive extension of the codebase-indexer (spec 101): the
-  # `claude_config_hash` slice + `check-config` subcommand + schema 2.3.0.
-  # Phase 4 re-touches both: it re-homes the slice out of the broad index
-  # (`check_config` reads config-hash.json; `compile_and_write` writes it)
-  # and bumps the index schema 2.3.0 → 3.0.0 (removes `claudeConfigHash`).
-  # Mirrors how spec 184 declared `extends: 101` for its `collect_input_files`
-  # change.
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
-  # Phase 4 — the `BuildInfo`/`ConfigHash` struct definitions live in
-  # types.rs, which spec 101 established the indexer over but did not
-  # enumerate. Phase 3 edited types.rs untraced; Phase 4 declares the edge
-  # honestly (removing `BuildInfo.claude_config_hash`, adding `ConfigHash`).
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/types.rs }
-  # Phase 3 — adding ci-config-hash.yml to ci-parity-check's
-  # ENFORCING_WORKFLOWS (replacing ci-codebase-index.yml) is exactly the
-  # action spec 104 FR-01 prescribes when a gating workflow changes.
-  # Mirrors how spec 191 declared `extends: 104` for the same edit.
+  # 217 deleted the in-tree spec-compiler, codebase-indexer, and
+  # spec-code-coupling-check; the index serialization / merge / check-config
+  # behaviour this spec extended is now in spec-spine-core (sharded by-spec /
+  # by-package output; no monolithic index.json). The edges on those deleted paths
+  # (codebase-indexer lib + types, spec-compiler lib, coupling-check lib + cli test)
+  # are stripped. The surviving edges below carry this spec's live authority.
+  # Workstream D additionally dropped the in-tree codebase-index.schema.json, so this
+  # spec's extends-101 schema edge is stripped (the schema is now the library shard
+  # schemas). 217 adds an amends-188 edge: D re-commits the sharded index/registry
+  # trees (conflict-free per-spec form), restoring present-on-clone (spec 101 SC-06)
+  # and superseding this spec's Phase 4b de-commit of the monolithic index.json.
   - spec: "104-makefile-ci-parity-contract"
     nature: additive
     unit: { kind: file, path: tools/oap/ci-parity-check/src/lib.rs }
-  # Phase 2 — the duplicate-numeric-id lint (V-032) is an additive
-  # cross-corpus check in spec-compiler's compile loop (spec 001), plus the
-  # V_032 code constant in the shared spec-vocabulary crate. No change to
-  # spec 001's existing validation contracts.
-  - spec: "001-spec-compiler-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
   - spec: "001-spec-compiler-mvp"
     nature: additive
     unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
-  # Phase 3 ripple — the additive `BuildInfo.claude_config_hash` field
-  # (extends 101) requires the coupling-gate crate (spec 127), which
-  # constructs a `BuildInfo` test fixture, to set the new field. Phase 4
-  # re-touches the same fixture to DROP the field. A one-line touch of
-  # 127's consumer, not a behaviour change.
-  - spec: "127-spec-code-coupling-gate"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/lib.rs }
-  # Phase 4 ripple — the index schema major bump (2.x → 3.x) trips the
-  # coupling gate's own post-load major-version guard, so its CLI test
-  # fixture (`cli.rs`) must bump the synthetic index's `schemaVersion`
-  # 2.0.0 → 3.0.0 to match. A test-fixture-only touch of 127's consumer.
-  - spec: "127-spec-code-coupling-gate"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/tests/cli.rs }
 establishes:
   - unit: { kind: file, path: .githooks/merge-derived-index.sh }
   - unit: { kind: file, path: .githooks/enable-merge-driver.sh }
   # Phase 4b (2026-06-16) retired the post-merge staleness-report job
   # (cd-index-staleness-report.yml): with the broad index now gitignored,
   # nothing committed remains to report staleness on. Establishes edge removed.
-  # Phase 3 — ci-parity-check fixture stubs for the new enforcing workflow
-  # (renamed from the retired ci-codebase-index.yml stubs). Mirrors spec
-  # 191's establishes of its ci-schema-parity.yml fixture pair.
+  # ci-parity-check fixture stubs for the ci-config-hash enforcing workflow.
   - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/aligned/.github/workflows/ci-config-hash.yml }
   - unit: { kind: file, path: tools/oap/ci-parity-check/tests/fixtures/divergent/.github/workflows/ci-config-hash.yml }
-  # Phase 2 — the V-032 duplicate-numeric-id-prefix test (new file inside
-  # spec 001's crate; same precedent as 191 establishing fixtures in 104's).
-  - unit: { kind: file, path: tools/spec-spine/spec-compiler/tests/spec188_duplicate_id_prefix.rs }
-  # Phase 4 — the re-homed config-hash file's schema (new, sibling to spec
-  # 101's codebase-index.schema.json) and the narrow check-config test
-  # (created by Phase 3 but never declared; Phase 4 corrects the omission
-  # as it edits the file to read config-hash.json).
+  # The re-homed config-hash schema (the config-slice hash the ci-config-hash gate verifies).
+  # 217 note: the V-032 duplicate-id test and the check-config test this spec
+  # established lived inside the deleted spec-compiler / codebase-indexer crates;
+  # those two establishes units are stripped (paths deleted).
   - unit: { kind: file, path: standards/schemas/spec-spine/config-hash.schema.json }
-  - unit: { kind: file, path: tools/spec-spine/codebase-indexer/tests/spec188_check_config.rs }
 co_authority:
   # `make setup` runs the merge-driver registration (FR-003). This claims
   # the dedicated `merge-driver` target group of the shared Makefile.

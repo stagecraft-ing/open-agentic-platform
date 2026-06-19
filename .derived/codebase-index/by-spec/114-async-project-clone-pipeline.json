@@ -1,0 +1,204 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "109-factory-pat-and-pubsub-sync",
+      "112-factory-project-lifecycle",
+      "113-stagecraft-projects-rename-and-clone"
+    ],
+    "implementingPaths": [
+      {
+        "path": "platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/db/schema.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/clone.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/cloneCore.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/cloneEvents.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/cloneRunStatus.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/cloneWorker.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/db/schema.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/schema.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/cloneCore.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/cloneCore.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/cloneEvents.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/cloneEvents.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/cloneRunStatus.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/cloneRunStatus.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/cloneWorker.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/cloneWorker.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/routes/app.projects.$sourceProjectId.clone.tsx"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/routes/app.projects.clone-runs.$cloneJobId.tsx"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/components/CloneProjectDialog.tsx"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/clone.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "supersedes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/clone.ts"
+        }
+      }
+    ],
+    "specId": "114-async-project-clone-pipeline",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "306098aad1d87077cdcb3e7cb44eae8e7c6f976ccd3c484a5e6a252867eed54c"
+}

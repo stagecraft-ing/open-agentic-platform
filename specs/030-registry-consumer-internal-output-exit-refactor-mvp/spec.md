@@ -2,7 +2,8 @@
 id: "030-registry-consumer-internal-output-exit-refactor-mvp"
 title: "Registry consumer internal output/exit refactor MVP"
 feature_branch: "030-registry-consumer-internal-output-exit-refactor-mvp"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 kind: platform-delivery
 domain: tooling
@@ -16,7 +17,6 @@ summary: >
 extends:
   - spec: "002-registry-consumer-mvp"
     nature: additive
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Internal output/exit refactor

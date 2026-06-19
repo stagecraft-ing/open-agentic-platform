@@ -16,18 +16,14 @@ depends_on:
   - "130-spec-coupling-primary-owner"
   - "133-amends-aware-coupling-gate"
 code_aliases: ["PATH_CO_AUTHORITY"]
+# 217 deleted the in-tree spec-code-coupling-check; section-matching is now in
+# spec-spine-core. The extends-133 coupling-check edge and the co_authority section
+# unit (both on the deleted path) are stripped. This spec's surviving authority is the
+# spec-types overlay (extends-130, the named-anchor grammar). Amended by 217.
 extends:
   - spec: "130-spec-coupling-primary-owner"
     nature: additive
     unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
-  - spec: "133-amends-aware-coupling-gate"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/lib.rs }
-co_authority:
-  - with_specs:
-      - "130-spec-coupling-primary-owner"
-      - "133-amends-aware-coupling-gate"
-    unit: { kind: section, file: tools/spec-spine/spec-code-coupling-check/src/lib.rs, anchor: section-matching }
 summary: >
   Named-anchor sectioning, diff-to-section matching, and the
   empty-authority-by-rule mechanism. The substrate that lets one path be

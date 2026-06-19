@@ -1,0 +1,62 @@
+{
+  "record": {
+    "codeAliases": [
+      "WORKFLOW_TRACEABILITY"
+    ],
+    "created": "2026-04-28",
+    "dependsOn": [
+      "000-bootstrap-spec-system",
+      "101-codebase-index-mvp",
+      "103-init-protocol-governed-reads"
+    ],
+    "domain": "tooling",
+    "extraFrontmatter": {
+      "slug": "workflow-spec-traceability"
+    },
+    "id": "118-workflow-spec-traceability",
+    "implementation": "complete",
+    "kind": "governance",
+    "owner": "bart",
+    "references": [
+      {
+        "role": "artifact",
+        "unit": {
+          "kind": "file",
+          "path": ".derived/codebase-index/CODEBASE-INDEX.md"
+        }
+      }
+    ],
+    "refines": [
+      {
+        "aspect": "spec-header-convention",
+        "unit": {
+          "kind": "directory",
+          "path": ".github/workflows"
+        }
+      }
+    ],
+    "risk": "low",
+    "sectionHeadings": [
+      "118 — Workflow-to-Spec Traceability",
+      "1. Problem Statement",
+      "2. Goals",
+      "3. Scope",
+      "In scope",
+      "Out of scope",
+      "4. Header Convention",
+      "5. Index Schema",
+      "6. Renderer Output",
+      "7. Acceptance Criteria",
+      "8. Backfill Plan",
+      "9. Why this isn't a CLAUDE.md addendum",
+      "Cross-references",
+      "Amendments received"
+    ],
+    "specPath": "specs/118-workflow-spec-traceability/spec.md",
+    "status": "approved",
+    "summary": "Adopt a header-line convention `# Spec: NNN-slug` in every .github/workflows/*.yml. Extend tools/spec-spine/codebase-indexer to scan workflow files for the convention and emit a `workflow_traceability` block in index.json, rendered as a new \"Layer 5: CI Workflow Traceability\" section of CODEBASE-INDEX.md. Closes the gap where Rust crates trace to specs via `[package.metadata.oap]` but workflows have no equivalent.\n",
+    "title": "Workflow-to-Spec Traceability — surface \"# Spec:\" headers in the codebase index"
+  },
+  "shardHash": "ff5ecf07d9e62ba8a7d39113248eb4847851808ec1f0aaafffb211d944943a63",
+  "specVersion": "1.1.0"
+}

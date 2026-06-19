@@ -1,0 +1,33 @@
+{
+  "mapping": {
+    "dependsOn": [
+      "130-spec-coupling-primary-owner",
+      "133-amends-aware-coupling-gate"
+    ],
+    "implementingPaths": [
+      {
+        "path": "tools/shared/spec-types/src/lib.rs",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "tools/shared/spec-types/src/lib.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "tools/shared/spec-types/src/lib.rs"
+        }
+      }
+    ],
+    "specId": "152-path-co-authority",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "96c7ca5413ebfc561396ec4813a2783f79230a39231eb105d4b3f48648d4f449"
+}

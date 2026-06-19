@@ -134,12 +134,12 @@ tractable. Co-authority is **section-scoped**, not file-scoped.
 
 ### Two registries, two directions
 
-- **`.derived/spec-registry/registry.json`** — the spec-as-source view:
-  what does each spec say? Read through `registry-consumer` (`list`,
+- **`.derived/spec-registry/by-spec/*.json`**: the spec-as-source view
+  (what does each spec say?). Read through `spec-spine registry` (`list`,
   `show`, `status-report`).
-- **`.derived/codebase-index/index.json`** — the code-as-source view: for
+- **`.derived/codebase-index/by-spec/*.json` and `by-package/*.json`**: the code-as-source view (for
   each path/section/symbol in the repo, which spec(s) currently claim
-  authority? Read through `codebase-indexer` (`check`, `render`,
+  authority?). Read through `spec-spine index` (`check`, `render`,
   `orphans`).
 
 They are inverses. The coupling gate joins them at PR time and refuses the
@@ -149,24 +149,24 @@ merge if they disagree.
 
 Each Rust crate declares `[package.metadata.oap] spec = "<id>"` in its
 `Cargo.toml`; each npm package declares a top-level
-`"oap": { "spec": "<id>" }` in its `package.json`. The **`codebase-indexer`**
-walks the tree, hashes those manifests along with the spec files, and
+`"oap": { "spec": "<id>" }` in its `package.json`. The **`spec-spine index`**
+command walks the tree, hashes those manifests along with the spec files, and
 builds the inverse map. The **`featuregraph`** crate is the in-memory
-query layer that backs `authorities(P)` — the function `who currently owns
-this path?` — for both the coupling gate and any future consumer that
+query layer that backs `authorities(P)` (the function "who currently owns
+this path?") for both the coupling gate and any future consumer that
 needs the same answer.
 
-### Consumer binaries — typed reads or nothing (spec 103)
+### Consumer binaries: typed reads or nothing (spec 103)
 
 Spec 103 (`init-protocol-governed-reads`) makes it a workflow violation
 for any orchestrated tool to parse `.derived/**/*.json` directly. Every
-read goes through `registry-consumer`, `oap-registry-enrich`, or
-`codebase-indexer`. The point isn't aesthetics: ad-hoc `jq` over compiled
+read goes through `spec-spine registry`, `oap-registry-enrich`, or
+`spec-spine index`. The point is not aesthetics: ad-hoc `jq` over compiled
 JSON would let an agent silently encode schema assumptions, and schema
-drift would then fail loudly *somewhere else*, not at the read. Typed
+drift would then fail loudly somewhere else, not at the read. Typed
 binaries make drift fail at the deserializer, with a clean error. Schema
-versions are embedded as compile-time constants — mismatches fail at
-`cargo build`, not at runtime.
+versions are embedded as compile-time constants (mismatches fail at
+`cargo build`, not at runtime).
 
 ### The rules layer — binding agents to the spine at prompt time
 
@@ -197,8 +197,8 @@ Not a single check — a chain:
 - **CI: spec-lint** (spec 128 made fail-on-warn the default).
 - **CI: schema parity walker** (spec 125) — Rust ↔ TypeScript contract
   drift fails CI.
-- **CI: `cargo test --test exit_codes` in codebase-indexer** — stricter
-  than the staleness check, *not* caught by `make pr-prep`; matters for
+- **CI: `cargo test --test exit_codes` in the `spec-spine index` crate** (spec 217: previously in `codebase-indexer`): stricter
+  than the staleness check, not caught by `make pr-prep`; matters for
   specs adding `kind: symbol` units.
 
 ### The waiver mechanism — the gate's escape valve, itself governed
@@ -241,7 +241,7 @@ Put the named pieces together and the corpus stops behaving like
 documentation and starts behaving like a **typed, hash-verifiable,
 append-only ledger of who-owns-what**:
 
-- Agents query the ledger (`registry-consumer`, `codebase-indexer`) to
+- Agents query the ledger (`spec-spine registry`, `spec-spine index`) to
   find their territory.
 - Agents edit code and specs; the compiler re-mints the ledger.
 - Agents open a PR; the coupling gate verifies code and ledger agree.

@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib-bin",
+    "name": "open_agentic_codification_gate",
+    "path": "tools/oap/codification-gate",
+    "specRef": "174-codification-gate",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "0a26f896994b0188bb2a9d0c42a9490fd634ad0202a56639ef6f3b963d8101ed"
+}

@@ -2159,7 +2159,6 @@ dependencies = [
  "infer",
  "jsonschema",
  "open_agentic_policy_kernel",
- "open_agentic_spec_registry_reader",
  "orchestrator",
  "provenance-validator",
  "regex",
@@ -2168,6 +2167,8 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2 0.10.9",
+ "spec-spine-core",
+ "spec-spine-types",
  "standards-loader",
  "thiserror 2.0.18",
  "tokio",
@@ -2259,12 +2260,13 @@ dependencies = [
  "anyhow",
  "hex",
  "ignore",
- "open_agentic_spec_registry_reader",
  "regex",
  "serde",
  "serde_json",
  "serde_yaml",
  "sha2 0.10.9",
+ "spec-spine-core",
+ "spec-spine-types",
  "thiserror 2.0.18",
  "xray",
 ]
@@ -2810,7 +2812,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0bb0228f477c0900c880fd78c8759b95c7636dbd7842707f49e132378aa2acdc"
 dependencies = [
  "heck 0.4.1",
- "proc-macro-crate 2.0.2",
+ "proc-macro-crate 2.0.0",
  "proc-macro-error",
  "proc-macro2",
  "quote",
@@ -4936,7 +4938,6 @@ dependencies = [
  "objc",
  "opc-decomposition-pipeline",
  "open_agentic_policy_kernel",
- "open_agentic_spec_registry_reader",
  "orchestrator",
  "provenance-validator",
  "provider-registry",
@@ -4949,6 +4950,8 @@ dependencies = [
  "serde_yaml",
  "sha2 0.11.0",
  "similar",
+ "spec-spine-core",
+ "spec-spine-types",
  "specta",
  "specta-typescript",
  "sysinfo",
@@ -4999,11 +5002,12 @@ dependencies = [
  "factory-contracts",
  "factory-engine",
  "hex",
- "open_agentic_spec_compiler",
  "serde",
  "serde_json",
  "serde_yaml",
  "sha2 0.10.9",
+ "spec-spine-core",
+ "spec-spine-types",
  "thiserror 2.0.18",
  "walkdir",
  "xray",
@@ -5037,42 +5041,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
-]
-
-[[package]]
-name = "open_agentic_spec_compiler"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "clap",
- "jsonschema",
- "open_agentic_spec_types",
- "serde",
- "serde_json",
- "serde_yaml",
- "sha2 0.11.0",
- "toml 1.1.2+spec-1.1.0",
- "walkdir",
-]
-
-[[package]]
-name = "open_agentic_spec_registry_reader"
-version = "0.1.0"
-dependencies = [
- "canonical-json",
- "clap",
- "open_agentic_spec_types",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "open_agentic_spec_types"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "serde_yaml",
 ]
 
 [[package]]
@@ -5716,11 +5684,10 @@ dependencies = [
 
 [[package]]
 name = "proc-macro-crate"
-version = "2.0.2"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b00f26d3400549137f92511a46ac1cd8ce37cb5598a96d382381458b992a5d24"
+checksum = "7e8366a6159044a37876a2b9817124296703c586a5c92e2c53751fa06d8d43e8"
 dependencies = [
- "toml_datetime 0.6.3",
  "toml_edit 0.20.2",
 ]
 
@@ -7218,6 +7185,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "spec-spine-core"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba9d432546e08c02a5f862f4377ae4c2f3e6cb63316689a70b6d6e17d06f7519"
+dependencies = [
+ "glob",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2 0.10.9",
+ "spec-spine-types",
+ "toml 0.8.2",
+ "toml_edit 0.22.27",
+]
+
+[[package]]
+name = "spec-spine-types"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5734dd1e4adea668c2c9d1762cf5d01e64040737215f9adbd4ca30ff089c50ec"
+dependencies = [
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "toml 0.8.2",
+]
+
+[[package]]
 name = "specta"
 version = "2.0.0-rc.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8182,7 +8177,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
@@ -8445,7 +8440,7 @@ checksum = "185d8ab0dfbb35cf1399a6344d8484209c088f75f8f68230da55d48d95d43e3d"
 dependencies = [
  "serde",
  "serde_spanned 0.6.9",
- "toml_datetime 0.6.3",
+ "toml_datetime 0.6.11",
  "toml_edit 0.20.2",
 ]
 
@@ -8481,9 +8476,9 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "0.6.3"
+version = "0.6.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cda73e2f1397b1262d6dfdcef8aafae14d1de7748d66822d3bfeeb6d03e5e4b"
+checksum = "22cddaf88f4fbc13c51aebbf5f8eceb5c7c5a9da2ac40a13519eb5b0a0e8f11c"
 dependencies = [
  "serde",
 ]
@@ -8513,7 +8508,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b5bb770da30e5cbfde35a2d7b9b8a2c4b8ef89548a7a6aeab5c9a576e3e7421"
 dependencies = [
  "indexmap 2.14.0",
- "toml_datetime 0.6.3",
+ "toml_datetime 0.6.11",
  "winnow 0.5.40",
 ]
 
@@ -8526,8 +8521,20 @@ dependencies = [
  "indexmap 2.14.0",
  "serde",
  "serde_spanned 0.6.9",
- "toml_datetime 0.6.3",
+ "toml_datetime 0.6.11",
  "winnow 0.5.40",
+]
+
+[[package]]
+name = "toml_edit"
+version = "0.22.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41fe8c660ae4257887cf66394862d21dbca4a6ddd26f04a3560410406a2f819a"
+dependencies = [
+ "indexmap 2.14.0",
+ "toml_datetime 0.6.11",
+ "toml_write",
+ "winnow 0.7.15",
 ]
 
 [[package]]
@@ -8550,6 +8557,12 @@ checksum = "a2abe9b86193656635d2411dc43050282ca48aa31c2451210f4202550afb7526"
 dependencies = [
  "winnow 1.0.2",
 ]
+
+[[package]]
+name = "toml_write"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
 
 [[package]]
 name = "toml_writer"

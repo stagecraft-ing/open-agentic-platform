@@ -32,46 +32,18 @@ depends_on:
   - "130-spec-coupling-primary-owner"
   - "153-invariant-freeze-additive-evolution"
 code_aliases: ["LOGICAL_UNIT_OWNERSHIP", "UNIT_GRAMMAR"]
+# 217 deleted the in-tree spec-compiler, codebase-indexer, and spec-code-coupling-check;
+# the unit-grammar resolution they implemented is now in spec-spine-core. All edges on
+# those deleted paths (codebase-indexer Cargo.toml/lib/spec_scanner/types/xref/resolver/
+# tests/benches, coupling-check lib, spec-compiler lib + tests) plus the two deleted
+# crate-unit references are stripped. The surviving edges (registry schema, the
+# spec-lint overlay, the featuregraph golden) carry this spec's live authority over
+# the unit grammar; the codebase-index schema edge is dropped with the in-tree
+# codebase-index.schema.json (Workstream D, now the library shard schemas). Amended by 217.
 extends:
   - spec: "130-spec-coupling-primary-owner"
     nature: additive
     unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/Cargo.toml }
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/spec_scanner.rs }
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/types.rs }
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/xref.rs }
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: directory, path: tools/spec-spine/codebase-indexer/src/resolver }
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/tests/resolver.rs }
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/benches/resolver.rs }
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
-  - spec: "127-spec-code-coupling-gate"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/lib.rs }
-  - spec: "001-spec-compiler-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
-  - spec: "001-spec-compiler-mvp"
-    nature: additive
-    unit: { kind: directory, path: tools/spec-spine/spec-compiler/tests }
   - spec: "006-conformance-lint-mvp"
     nature: additive
     unit: { kind: file, path: tools/spec-spine/spec-lint/src/lib.rs }
@@ -81,9 +53,6 @@ extends:
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
-references:
-  - unit: { kind: crate, id: open_agentic_spec_compiler }
-  - unit: { kind: crate, id: open_agentic_codebase_indexer }
 summary: >
   Spec 130 §2 defines eight relationship fields (establishes, extends,
   refines, supersedes, amends, co_authority, constrains, origin) that

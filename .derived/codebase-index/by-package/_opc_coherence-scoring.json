@@ -1,0 +1,11 @@
+{
+  "package": {
+    "kind": "npm-package",
+    "name": "@opc/coherence-scoring",
+    "path": "product/packages/coherence-scoring",
+    "specRef": "063-coherence-scoring",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "503743a45f4e77e417d8e97f411accc1b1759c00e05916e402016a45abaa3742"
+}

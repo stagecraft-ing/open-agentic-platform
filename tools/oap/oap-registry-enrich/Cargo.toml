@@ -16,7 +16,11 @@ path = "src/lib.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-open_agentic_spec_registry_reader = { path = "../../spec-spine/registry-consumer" }
+# Spec 217 engine swap: read the committed registry shards via the published
+# spec-spine library. default-features=false drops the symbol-resolution
+# tree-sitter dep (not needed for the read path).
+spec-spine-core = { version = "0.8.0", default-features = false }
+spec-spine-types = "0.8.0"
 open_agentic_spec_types = { path = "../../shared/spec-types" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

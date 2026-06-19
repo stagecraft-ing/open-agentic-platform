@@ -2,7 +2,8 @@
 id: "013-registry-consumer-show-json-mvp"
 title: "Registry consumer show JSON contract"
 feature_branch: "013-registry-consumer-show-json-mvp"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 kind: platform-delivery
 domain: tooling
@@ -16,7 +17,6 @@ summary: >
 extends:
   - spec: "002-registry-consumer-mvp"
     nature: additive
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Registry consumer show JSON contract

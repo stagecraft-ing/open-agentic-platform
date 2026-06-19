@@ -1,0 +1,9 @@
+{
+  "mapping": {
+    "implementingPaths": [],
+    "specId": "021-registry-consumer-field-shape-invariants-contract-mvp",
+    "specStatus": "superseded"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "d3f7a95d996bc31660d4ad618d2045165d2546c343cd35c91b046895719589f6"
+}

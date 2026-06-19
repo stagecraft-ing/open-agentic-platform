@@ -51,9 +51,8 @@ around three concrete components that already exist in this tree:
 
 The **spec spine** (`specs/`) is the authoritative design record. Every
 feature is a markdown file with YAML frontmatter, compiled by
-[`spec-compiler`](tools/spec-spine/spec-compiler/) into a deterministic `registry.json`.
-Specs are read through the consumer binary
-[`registry-consumer`](tools/spec-spine/registry-consumer/) — never by ad-hoc parsing —
+[`spec-spine compile`](https://crates.io/crates/spec-spine-cli) into shards under `.derived/spec-registry/by-spec/`.
+Specs are read through `spec-spine registry` subcommands (never by ad-hoc parsing),
 which makes the spec corpus a typed, query-able surface
 ([spec 103](specs/103-init-protocol-governed-reads/spec.md)).
 
@@ -142,7 +141,7 @@ retired that directory and moved the canonical store into stagecraft's
 `factory_adapters` table, then spec 139 absorbed those rows into the
 universal `factory_artifact_substrate` table. The file-backed scope
 snapshot at `platform/services/stagecraft/api/factory/adapter-scopes.json`
-is the static fallback the codebase-indexer hashes per spec 160; per-org
+is the static fallback that `spec-spine index` hashes per spec 160; per-org
 content is materialised at runtime via the substrate.
 
 - **`aim-vue-encore`** — the manifest-declared adapter of the owned
@@ -196,9 +195,9 @@ sha256sum -c opc_0.3.2_aarch64.dmg.sha256
 Per-target CycloneDX SBOMs (`sbom-desktop-<triple>.cdx.json`) and the
 aggregate `open-agentic-platform-release.cyclonedx.json` are release
 assets — verify the bill of materials before the binary runs in your
-environment. The `oap-tools-<triple>.tar.gz` archive ships the spec
-toolchain (`registry-consumer`, `spec-compiler`, `codebase-indexer`) for
-the quickstart below without a Rust toolchain.
+environment. The `oap-tools-<triple>.tar.gz` archive ships `spec-lint` plus OAP-specific
+overlay tools. The generic spec engine is `spec-spine` from crates.io (install
+via `cargo install spec-spine-cli --version 0.8.0 --locked` or `make setup`).
 
 ## Try it
 
@@ -209,8 +208,8 @@ through compiled consumer binaries.
 
 ```bash
 make setup
-# Builds spec compiler + codebase indexer, compiles the registry,
-# fetches the axiomregent sidecar binary.
+# Installs spec-spine CLI (0.8.0), builds OAP overlay tools,
+# compiles the registry, fetches the axiomregent sidecar binary.
 
 ./tools/oap/oap-registry-enrich/target/release/oap-registry-enrich \
     compliance-report --framework owasp-asi-2026 --json
@@ -220,12 +219,11 @@ make setup
 # compliance is an OAP-specific overlay rather than a generic
 # spec-spine concept.)
 
-./tools/spec-spine/registry-consumer/target/release/registry-consumer \
-    status-report --json --nonzero-only
+spec-spine registry status-report --json --nonzero-only
 # Lifecycle inventory across the 212-spec corpus.
 # 192 approved, 16 draft, 4 superseded.
 
-./tools/oap/oap-code-index-enrich/target/release/oap-code-index-enrich render
+spec-spine index render
 cat .derived/codebase-index/CODEBASE-INDEX.md
 # Renders the spec-to-code map. The 'Spec' column is the
 # traceability surface for every Rust crate and npm package.
@@ -284,15 +282,15 @@ today vs. what is staged and what is roadmap, by spec ID.
 
 ### Works today
 
-- **Spec compilation and querying** — 212 specs compile deterministically.
-  `registry-consumer` is a typed read-only CLI; ad-hoc JSON parsing is a
+- **Spec compilation and querying:** 212 specs compile deterministically.
+  `spec-spine registry` is a typed read-only CLI; ad-hoc JSON parsing is a
   workflow violation ([spec 103](specs/103-init-protocol-governed-reads/spec.md)).
-- **Spec/code coupling gate** — every code path claimed by a spec's
+- **Spec/code coupling gate:** every code path claimed by a spec's
   `implements:` list must change with the spec
   ([spec 127](specs/127-spec-code-coupling-gate/spec.md)).
-- **Codebase index** — spec-to-code traceability for every crate and
+- **Codebase index:** spec-to-code traceability for every crate and
   package ([spec 101](specs/101-codebase-index-mvp/spec.md)).
-- **OWASP ASI 2026 compliance map** — all ten controls (ASI01–ASI10) map
+- **OWASP ASI 2026 compliance map:** all ten controls (ASI01–ASI10) map
   to declaring approved specs via `oap-registry-enrich compliance-report`
   (moved from `registry-consumer` in Cut D W-06b; the spec-spine
   `registry-consumer` no longer carries OAP-specific overlays). Each
@@ -361,7 +359,7 @@ today vs. what is staged and what is roadmap, by spec ID.
 | Path | What lives there |
 |---|---|
 | `specs/` | The authoritative spec spine. 212 specs as of 2026-06-11. |
-| `tools/` | Rust CLIs: `spec-compiler`, `registry-consumer`, `spec-lint`, `codebase-indexer`, `policy-compiler`, `spec-code-coupling-check`, others. |
+| `tools/` | Rust CLIs: `spec-lint` (OAP-specific), OAP overlay tools (`oap-registry-enrich`, `oap-code-index-enrich`, `policy-compiler`, others). The generic spec engine is the published `spec-spine` CLI (crates.io). |
 | `crates/` | Library crates: `factory-engine`, `factory-contracts`, `policy-kernel`, `orchestrator`, `agent`, `tool-registry`, `axiomregent`, `xray`, others. |
 | `product/apps/opc/` | OPC desktop (Tauri v2 + React + TypeScript). |
 | `platform/` | Identity, deployd-api, stagecraft, Helm charts, Terraform infra. |

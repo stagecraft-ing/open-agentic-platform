@@ -2,7 +2,8 @@
 id: "020-registry-consumer-error-contract-mvp"
 title: "Registry consumer error contract MVP"
 feature_branch: "020-registry-consumer-error-contract-mvp"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 kind: platform-delivery
 domain: tooling
@@ -16,10 +17,10 @@ summary: >
 extends:
   - spec: "002-registry-consumer-mvp"
     nature: additive
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
+
 refines:
   - aspect: "error-shape"
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
+
 ---
 
 # Feature Specification: Error contract tests

@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib",
+    "name": "skill-factory",
+    "path": "crates/skill-factory",
+    "specRef": "071-skill-command-factory",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "ec7c5dbe38cb87e3484e447ae7b3d0f5783109fe399fbfe2984b9e751da26514"
+}

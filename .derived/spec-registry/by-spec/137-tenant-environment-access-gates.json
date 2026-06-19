@@ -1,0 +1,214 @@
+{
+  "record": {
+    "amendmentRecord": "Amended 2026-06-16 by 214-tenant-app-chart-supersession (Stage 2): the two\naccess-gate co_authority units that pointed at the retired tenant-hello\nchart files are relocated to the aim-vue-encore chart equivalents\n(values.yaml + templates/ingress.yaml, anchor access-gate), co-authored with\n214 (the new chart owner) instead of 136. The gate seam semantics are\nunchanged (FR-011 render parity was proven before the retirement). 214 also\nlocks the tenant hostname convention (FR-007), resolving this spec's\nClarification 4 sketch: a single DNS label {org}--{project}--{env} under\ntenants.{base}, the single-level wildcard cert being the binding constraint.\n",
+    "coAuthority": [
+      {
+        "unit": {
+          "anchor": "access-gate",
+          "file": "platform/charts/aim-vue-encore/values.yaml",
+          "kind": "section"
+        },
+        "with_specs": [
+          "214-tenant-app-chart-supersession"
+        ]
+      },
+      {
+        "unit": {
+          "anchor": "access-gate",
+          "file": "platform/charts/aim-vue-encore/templates/ingress.yaml",
+          "kind": "section"
+        },
+        "with_specs": [
+          "214-tenant-app-chart-supersession"
+        ]
+      },
+      {
+        "unit": {
+          "anchor": "gate-overlay",
+          "file": "platform/services/deployd-api-rs/src/helm.rs",
+          "kind": "section"
+        },
+        "with_specs": [
+          "073-axiomregent-unification",
+          "136-tenant-hello-demo-service"
+        ]
+      },
+      {
+        "unit": {
+          "anchor": "gate-overlay",
+          "file": "platform/services/deployd-api-rs/src/routes.rs",
+          "kind": "section"
+        },
+        "with_specs": [
+          "073-axiomregent-unification",
+          "136-tenant-hello-demo-service"
+        ]
+      },
+      {
+        "unit": {
+          "anchor": "access-gate-wire",
+          "file": "platform/services/stagecraft/api/deploy/deploy.ts",
+          "kind": "section"
+        },
+        "with_specs": [
+          "077-stagecraft-factory-api"
+        ]
+      },
+      {
+        "unit": {
+          "anchor": "reflector-install",
+          "file": "platform/infra/hetzner/setup.sh",
+          "kind": "section"
+        },
+        "with_specs": [
+          "072-multi-cloud-k8s-portability",
+          "106-rauthy-native-oidc-and-membership",
+          "143-presigned-upload-public-endpoint"
+        ]
+      },
+      {
+        "unit": {
+          "anchor": "reflector-annotations",
+          "file": "platform/infra/hetzner/manifests/tenants-wildcard-certificate.yaml",
+          "kind": "section"
+        },
+        "with_specs": [
+          "106-rauthy-native-oidc-and-membership"
+        ]
+      }
+    ],
+    "created": "2026-05-04",
+    "dependsOn": [
+      "136-tenant-hello-demo-service",
+      "087-unified-workspace-architecture"
+    ],
+    "domain": "platform",
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/environments/accessGates.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/environments/accessGatesHelpers.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/environments/accessGates.test.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/environments/encore.service.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/auth/rauthyAdminClients.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts"
+      },
+      {
+        "kind": "directory",
+        "path": "platform/charts/oauth2-proxy-gate"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.down.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/environments/accessGatesDeploy.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx"
+      }
+    ],
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "136-tenant-hello-demo-service",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/schema.ts"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "136-tenant-hello-demo-service",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/vite.config.ts"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "136-tenant-hello-demo-service",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "136-tenant-hello-demo-service",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+        }
+      }
+    ],
+    "extraFrontmatter": {
+      "amended": "2026-06-16",
+      "approved": "2026-05-15"
+    },
+    "id": "137-tenant-environment-access-gates",
+    "implementation": "in-progress",
+    "kind": "platform",
+    "owner": "bart",
+    "risk": "medium",
+    "sectionHeadings": [
+      "Feature Specification: Tenant environment access gates",
+      "Purpose and charter",
+      "Current state vs intent",
+      "Access-gate contract *(normative)*",
+      "Functional Requirements *(MVP)*",
+      "Success Criteria",
+      "Clarifications",
+      "Outstanding decisions",
+      "What this spec does NOT decide",
+      "Open question — dual-renderer for Phase 4? *(filed 2026-05-15)*"
+    ],
+    "specPath": "specs/137-tenant-environment-access-gates/spec.md",
+    "status": "approved",
+    "summary": "Per-environment access gating for projects deployed via deployd-api, applied above the tenant app so tenant codebases carry no auth logic. Passwordless OIDC via our existing Rauthy instance is the only mode — users authenticate by magic link or federated upstream IdP (Google, Microsoft Entra, GitHub, generic OIDC). Stagecraft and Rauthy clients for tenant gates are configured to refuse password login outright; the platform never sees, stores, or relays a password.\n",
+    "title": "Tenant environment access gates — passwordless OIDC via Rauthy"
+  },
+  "shardHash": "445f1063ab0d119f6ff8fc3ad5aeee858209b90bbe3d15f0cd1e4490dd8ba255",
+  "specVersion": "1.1.0"
+}

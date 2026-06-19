@@ -19,7 +19,7 @@ establishes:
 refines:
   - aspect: "governed-reads"
     unit: { kind: file, path: AGENTS.md }
-amended: "2026-06-01"
+amended: "2026-06-18"
 amendment_record: |
   self-amends — Consumer Binaries table (2026-05-23) refreshed to
   advertise the new `codebase-indexer orphans` subcommand landed in
@@ -33,6 +33,15 @@ amendment_record: |
   path correction only; 103's governed-reads aspect (FR-01) and the
   `AGENTS.md § New Sessions` protocol body are unchanged. AGENTS.md
   remains the canonical cross-agent protocol authority.
+
+  amended by spec 217 (2026-06-18, engine-swap collapse): the Consumer
+  Binaries table in `.claude/rules/governed-artifact-reads.md` and the
+  `AGENTS.md § New Sessions` init protocol were repointed from the four
+  deleted in-tree engine binaries (spec-compiler, registry-consumer,
+  codebase-indexer, spec-code-coupling-check) to the published spec-spine
+  CLI (`spec-spine compile|index|registry|couple`) plus the OAP overlay
+  (`oap-registry-enrich by-authority`). 103's governed-reads principle is
+  unchanged; only the binary names in the consumer table moved.
 
   self-amends (2026-06-01) — added FR-06 (registry freshness) to the
   `AGENTS.md § New Sessions` protocol. The spec registry

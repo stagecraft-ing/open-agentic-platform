@@ -2,7 +2,8 @@
 id: "181-registry-consumer-unit-grammar-authority"
 slug: registry-consumer-unit-grammar-authority
 title: "registry-consumer authority resolver — unit-grammar parity with spec 154"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 owner: bart
 created: "2026-05-24"
@@ -25,9 +26,12 @@ depends_on:
   - "180-opc-shell-codification"  # opc-shell-codification (the canonical regression case this spec unblocks)
 code_aliases:
   - "AUTHORITY_RESOLVER_UNIT_GRAMMAR"
+# 217 deleted the in-tree registry-consumer crate; the authority-resolver unit-grammar
+# this spec refined is re-implemented in oap-registry-enrich (the by-authority verb).
+# The refines code-unit is removed (path deleted); the 002 lineage (refines_specs) is
+# retained. Superseded by 217.
 refines:
   - aspect: "authority-resolver-unit-grammar-parity"
-    unit: { kind: file, path: tools/spec-spine/registry-consumer/src/lib.rs }
     refines_specs: ["002-registry-consumer-mvp"]
 references:
   - role: forcing-function

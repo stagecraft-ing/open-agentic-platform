@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-bin",
+    "name": "open_agentic_spec_unit_migrate",
+    "path": "tools/oap/spec-unit-migrate",
+    "specRef": "154-logical-unit-ownership-grammar",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "2df31eef707ab126fcb1289470a2dd85f1e64c7add32dc8269e4c98117a2f381"
+}

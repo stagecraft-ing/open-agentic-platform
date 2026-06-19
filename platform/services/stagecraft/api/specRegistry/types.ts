@@ -1,12 +1,12 @@
-// Spec 163 — typed shapes for the spec-registry API surface.
+// Spec 163 / spec 217: typed shapes for the spec-registry API surface.
 //
-// These types mirror the registry-consumer JSON output. registry-consumer
-// is the only allowed reader of .derived/spec-registry/registry.json per
-// spec 103; downstream code (Encore handlers, Remix loaders) consumes
-// these typed shapes rather than re-parsing the registry JSON.
+// These types mirror the `spec-spine registry` JSON output. The spec-spine
+// CLI is the only allowed reader of the committed .derived/spec-registry
+// shards per spec 103; downstream code (Encore handlers, Remix loaders)
+// consumes these typed shapes rather than re-parsing the registry JSON.
 
 /**
- * One row from `registry-consumer list --json`. Only fields the
+ * One row from `spec-spine registry list --json`. Only fields the
  * Requirements view consumes are typed; unknown frontmatter falls
  * into `extraFrontmatter`.
  */
@@ -39,7 +39,7 @@ export interface SpecListRow {
 }
 
 /**
- * One row from `registry-consumer show <id> --json` plus an authored
+ * One row from `spec-spine registry show <id> --json` plus an authored
  * markdown body (read directly from the on-disk spec.md file — the
  * body is not a compiled artifact, so the spec 103 governed-read
  * discipline does not apply to it).

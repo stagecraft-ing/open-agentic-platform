@@ -1,3 +1,0 @@
-id                                           status     title
-001-a                                        approved   First
-002-b                                        draft      Second

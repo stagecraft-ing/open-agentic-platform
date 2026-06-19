@@ -1,0 +1,62 @@
+{
+  "record": {
+    "authors": [
+      "open-agentic-platform"
+    ],
+    "codeAliases": [
+      "FACTORY_HYDRATION",
+      "TEST_SEED"
+    ],
+    "created": "2026-04-07",
+    "domain": "platform",
+    "extraFrontmatter": {
+      "language": "en"
+    },
+    "featureBranch": "feat/081-factory-test-hydration",
+    "id": "081-factory-test-hydration",
+    "implementation": "complete",
+    "kind": "platform",
+    "references": [
+      {
+        "role": "historical",
+        "unit": {
+          "kind": "directory",
+          "path": "factory"
+        }
+      }
+    ],
+    "sectionHeadings": [
+      "081 — Factory Test Data Hydration",
+      "Purpose",
+      "Scope",
+      "In Scope",
+      "Out of Scope",
+      "Requirements",
+      "Functional Requirements",
+      "Build Spec Extension",
+      "Seed Data Generation",
+      "Development Fixture Generation",
+      "Shared Test Fixture Module",
+      "Pipeline Integration",
+      "Non-Functional Requirements",
+      "Architecture",
+      "Data Flow",
+      "Agent Responsibilities",
+      "Adapter Manifest Changes",
+      "Implementation Approach",
+      "Phase 1: Contract & Pattern Foundation (~3 days)",
+      "Phase 2: Pipeline Integration (~2 days)",
+      "Phase 3: Fixture Module & Test Pattern (~2 days)",
+      "Phase 4: Validation (~1 day)",
+      "Success Criteria",
+      "Dependencies",
+      "Risks"
+    ],
+    "specPath": "specs/081-factory-test-hydration/spec.md",
+    "status": "approved",
+    "summary": "Adds a test data hydration layer to the Factory pipeline, enabling adapters to generate seed SQL for reference/lookup tables, realistic development fixtures for all domain entities, and a shared test fixture module consumed by both unit and integration tests. Closes the gap between schema-only DDL output and a runnable application with meaningful data.\n",
+    "title": "Factory Test Data Hydration"
+  },
+  "shardHash": "41ad7b48b8657d8477812da8531c50fdb08be2959e7e8f95b5b72371db1815b6",
+  "specVersion": "1.1.0"
+}

@@ -1,0 +1,9 @@
+{
+  "mapping": {
+    "implementingPaths": [],
+    "specId": "009-registry-consumer-status-report-nonzero-mvp",
+    "specStatus": "superseded"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "4c84377ecd03fd47b350162aa8fd042a6f98e42a9f3b1fb17c1ef9a21bfcbe79"
+}

@@ -1,0 +1,51 @@
+{
+  "record": {
+    "authors": [
+      "open-agentic-platform"
+    ],
+    "created": "2026-03-29",
+    "domain": "tooling",
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "001-spec-compiler-mvp",
+        "unit": {
+          "kind": "file",
+          "path": "standards/schemas/spec-spine/registry.schema.json"
+        }
+      }
+    ],
+    "extraFrontmatter": {
+      "language": "en"
+    },
+    "featureBranch": "039-feature-id-reconciliation",
+    "id": "039-feature-id-reconciliation",
+    "implementation": "complete",
+    "kind": "platform",
+    "sectionHeadings": [
+      "Feature Specification: Feature ID reconciliation (codeAliases)",
+      "Purpose",
+      "Scope",
+      "In scope",
+      "Out of scope",
+      "Requirements",
+      "Functional",
+      "Non-functional",
+      "Architecture",
+      "Schema change",
+      "Compiler change",
+      "Scanner change",
+      "Population ordering",
+      "Key integration points",
+      "Success criteria",
+      "Contract notes",
+      "Risk"
+    ],
+    "specPath": "specs/039-feature-id-reconciliation/spec.md",
+    "status": "approved",
+    "summary": "Bridge the dual identity system — kebab spec IDs and UPPERCASE code attribution tokens — by adding an optional codeAliases field to the compiled registry schema, spec-compiler, and featuregraph scanner. Implements ADR 0001.\n",
+    "title": "Feature ID reconciliation (codeAliases)"
+  },
+  "shardHash": "d0ed2010a5b15ba29099011c93577a8f7c7179f7bf9272c04d05df477d8d13fc",
+  "specVersion": "1.1.0"
+}

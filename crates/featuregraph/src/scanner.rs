@@ -154,18 +154,31 @@ struct FeatureEntry {
     aliases: Vec<String>,
 }
 
+/// Serialize a spec-spine enum (`Status`, `Risk`, `Implementation`) to its
+/// lowercase/kebab string form. These were plain strings in the in-tree
+/// registry; the library models them as typed enums, so we round-trip through
+/// serde to recover the exact string featuregraph stored (spec 217 engine swap).
+fn enum_str<T: serde::Serialize>(value: &T) -> String {
+    serde_json::to_value(value)
+        .ok()
+        .and_then(|v| v.as_str().map(str::to_owned))
+        .unwrap_or_default()
+}
+
 impl FeatureEntry {
     fn from_registry_record(r: &crate::registry_source::RegistryFeatureRecord) -> Self {
         Self {
             id: r.id.clone(),
-            title: r.title.clone().unwrap_or_default(),
-            spec: r.spec_path.clone().unwrap_or_default(),
-            governance: r.risk.clone().unwrap_or_default(),
+            // `title` and `spec_path` are required `String` on the library
+            // record (were `Option` in the in-tree reader).
+            title: r.title.clone(),
+            spec: r.spec_path.clone(),
+            governance: r.risk.map(|risk| enum_str(&risk)).unwrap_or_default(),
             owner: r.owner.clone().unwrap_or_default(),
             group: String::new(),
             depends_on: r.depends_on.clone(),
-            status: r.status.clone().unwrap_or_default(),
-            implementation: r.implementation.clone(),
+            status: enum_str(&r.status),
+            implementation: r.implementation.map(|impl_kind| enum_str(&impl_kind)),
             aliases: r.code_aliases.clone(),
         }
     }
@@ -173,21 +186,19 @@ impl FeatureEntry {
 
 /// Prefer **`build/spec-registry/registry.json`** (spec-compiler); fall back to **`spec/features.yaml`**.
 fn load_feature_entries(root: &Path) -> Result<(Vec<FeatureEntry>, String), anyhow::Error> {
-    let registry_json = root.join(".derived/spec-registry/registry.json");
+    // Spec 217 engine swap: the committed registry is sharded
+    // (`.derived/spec-registry/by-spec/*.json`); the library assembles it from
+    // `repo_root` rather than from a monolithic `registry.json` path.
+    let registry_shards = root.join(".derived/spec-registry/by-spec");
     let features_yaml = root.join("spec/features.yaml");
 
-    if registry_json.is_file() {
-        let records = crate::registry_source::load_registry_records(&registry_json)?;
+    if registry_shards.is_dir() {
+        let records = crate::registry_source::load_registry_records(root)?;
         let features: Vec<FeatureEntry> = records
             .iter()
             .map(FeatureEntry::from_registry_record)
             .collect();
-        let rel = registry_json
-            .strip_prefix(root)
-            .unwrap_or(&registry_json)
-            .to_string_lossy()
-            .replace('\\', "/");
-        return Ok((features, rel));
+        return Ok((features, ".derived/spec-registry/by-spec".to_string()));
     }
 
     if features_yaml.is_file() {
@@ -202,8 +213,8 @@ fn load_feature_entries(root: &Path) -> Result<(Vec<FeatureEntry>, String), anyh
     }
 
     anyhow::bail!(
-        "Feature manifest not found: need {} (run `spec-compiler compile`) or {}",
-        registry_json.display(),
+        "Feature manifest not found: need {} (run `spec-spine compile`) or {}",
+        registry_shards.display(),
         features_yaml.display()
     );
 }
@@ -474,15 +485,17 @@ mod tests {
 
     #[test]
     fn registry_code_aliases_populate_feature_entry() {
-        // RegistryFeatureRecord is now srr::Feature (W-05); construct
-        // via JSON parse so the literal stays compact across the
-        // larger field set.
+        // RegistryFeatureRecord is now spec_spine_types::SpecRecord (spec 217);
+        // construct via JSON parse so the literal stays compact across the
+        // larger field set. `created` + `summary` are required on SpecRecord.
         let r: crate::registry_source::RegistryFeatureRecord = serde_json::from_value(
             serde_json::json!({
                 "id": "034-featuregraph-registry-scanner-fix",
                 "title": "t",
                 "specPath": "specs/034-featuregraph-registry-scanner-fix/spec.md",
                 "status": "approved",
+                "created": "2026-03-29",
+                "summary": "x",
                 "implementation": "complete",
                 "codeAliases": ["FEATUREGRAPH_REGISTRY"]
             }),
@@ -490,6 +503,9 @@ mod tests {
         .expect("decode feature record");
         let e = FeatureEntry::from_registry_record(&r);
         assert_eq!(e.aliases, vec!["FEATUREGRAPH_REGISTRY"]);
+        // Typed enums round-trip to their string form.
+        assert_eq!(e.status, "approved");
+        assert_eq!(e.implementation.as_deref(), Some("complete"));
     }
 
     #[test]
@@ -500,6 +516,8 @@ mod tests {
                 "title": "Unified Workspace Architecture",
                 "specPath": "specs/087-unified-workspace-architecture/spec.md",
                 "status": "approved",
+                "created": "2026-05-01",
+                "summary": "x",
                 "implementation": "in-progress",
                 "dependsOn": ["033", "068"],
                 "owner": "bart",
@@ -511,5 +529,6 @@ mod tests {
         assert_eq!(e.depends_on, vec!["033", "068"]);
         assert_eq!(e.owner, "bart");
         assert_eq!(e.governance, "high");
+        assert_eq!(e.implementation.as_deref(), Some("in-progress"));
     }
 }

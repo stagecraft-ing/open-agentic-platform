@@ -89,7 +89,11 @@ sysinfo = "0.38"
 # Opc additions
 xray         = { path = "../../../../crates/xray" }
 featuregraph = { path = "../../../../crates/featuregraph" }
-open_agentic_spec_registry_reader = { path = "../../../../tools/spec-spine/registry-consumer" }
+# Spec 217 engine swap: read the committed registry shards via the published
+# spec-spine library. default-features=false drops the symbol-resolution
+# tree-sitter dep (clashes with xray 0.26 under the `links` rule).
+spec-spine-core = { version = "0.8.0", default-features = false }
+spec-spine-types = "0.8.0"
 agent        = { path = "../../../../crates/agent" }
 run          = { path = "../../../../crates/run" }
 orchestrator = { path = "../../../../crates/orchestrator" }

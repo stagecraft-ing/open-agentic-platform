@@ -1,0 +1,42 @@
+{
+  "record": {
+    "authors": [
+      "open-agentic-platform"
+    ],
+    "created": "2026-03-22",
+    "domain": "substrate",
+    "extraFrontmatter": {
+      "language": "en"
+    },
+    "featureBranch": "003-feature-lifecycle-mvp",
+    "id": "003-feature-lifecycle-mvp",
+    "implementation": "complete",
+    "kind": "platform",
+    "refines": [
+      {
+        "aspect": "status-semantics"
+      }
+    ],
+    "sectionHeadings": [
+      "Feature Specification: Feature lifecycle & status semantics",
+      "Purpose and charter",
+      "Normative dependency",
+      "Definitions *(mandatory)*",
+      "Recommended transitions *(non-blocking for tooling)*",
+      "Requirements *(mandatory)*",
+      "Functional Requirements",
+      "Key Entities",
+      "Success Criteria *(mandatory)*",
+      "Examples *(non-normative)*",
+      "`superseded` — replacement pointer",
+      "`retired` — short rationale",
+      "Clarifications"
+    ],
+    "specPath": "specs/003-feature-lifecycle-mvp/spec.md",
+    "status": "approved",
+    "summary": "Normative definitions and allowed transitions for feature status (draft, active, superseded, retired) in authored specs and compiled registry; consumer guarantees and explicit non-goals so 004+ can build on stable lifecycle language without reopening 000/001 unless a constitutional amendment is required.\n",
+    "title": "Feature lifecycle & status semantics (registry status model)"
+  },
+  "shardHash": "49bb49bb789c418c94bc345b8ad1dae2563264b04d3e5a203a756b2ae2ca470d",
+  "specVersion": "1.1.0"
+}

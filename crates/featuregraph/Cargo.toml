@@ -18,7 +18,14 @@ hex = "0.4"
 thiserror = "2"
 anyhow = "1.0"
 xray = { path = "../xray" }
-open_agentic_spec_registry_reader = { path = "../../tools/spec-spine/registry-consumer" }
+# Spec 217 engine swap: read the committed spec registry + codebase index
+# through the published spec-spine library instead of the in-tree reader.
+# `default-features = false` drops the (default-on) `symbol-resolution` feature
+# and its tree-sitter native dep tree (spec-spine 027), which would otherwise
+# clash with xray's tree-sitter 0.26 via the `links = "tree-sitter"` rule. The
+# committed-shard readers we use need no symbol resolution.
+spec-spine-core = { version = "0.8.0", default-features = false }
+spec-spine-types = "0.8.0"
 
 [dev-dependencies]
 tempfile = "3.10"

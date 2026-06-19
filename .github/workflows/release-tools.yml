@@ -2,9 +2,10 @@
 # Spec: 117-release-artifact-attestations
 #
 # Release standalone CLI tools alongside the desktop app.
-# Attaches spec-compiler, registry-consumer, spec-lint, and
-# codebase-indexer binaries to the same GitHub Release created by
-# release-desktop.yml.
+# Attaches the surviving OAP overlay binary spec-lint to the same GitHub
+# Release created by release-desktop.yml. The generic governance engine is
+# the published spec-spine CLI (crates.io: cargo install spec-spine-cli),
+# not bundled here, after spec 217 deleted the in-tree engine crates.
 #
 # M8 sequencing fix: triggered by `workflow_run` on Release Desktop's
 # successful completion (rather than by tag push) so the release object
@@ -120,23 +121,13 @@ jobs:
         with:
           shared-key: tools-${{ matrix.target }}
 
-      - name: Build spec-compiler
-        run: cargo build --release --target ${{ matrix.target }} --manifest-path tools/spec-spine/spec-compiler/Cargo.toml
-
-      - name: Build registry-consumer
-        run: cargo build --release --target ${{ matrix.target }} --manifest-path tools/spec-spine/registry-consumer/Cargo.toml
-
       - name: Build spec-lint
         run: cargo build --release --target ${{ matrix.target }} --manifest-path tools/spec-spine/spec-lint/Cargo.toml
 
-      # Cut D W-09: policy-compiler dropped from the release bundle.
-      # It remains an OAP-internal tool built+tested in
-      # spec-conformance.yml; external consumers should build it from
-      # source via `cargo build --release --manifest-path
-      # tools/oap/policy-compiler/Cargo.toml`.
-
-      - name: Build codebase-indexer
-        run: cargo build --release --target ${{ matrix.target }} --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml
+      # The generic engine binaries were dropped from the release bundle in
+      # spec 217 (deleted in-tree; published as the spec-spine CLI on
+      # crates.io). policy-compiler was dropped earlier in Cut D W-09; both
+      # it and the spec-spine CLI are obtained via cargo install / source.
 
       - name: Determine extension
         id: ext
@@ -155,11 +146,9 @@ jobs:
           EXT="${{ steps.ext.outputs.ext }}"
           TARGET="${{ matrix.target }}"
 
-          # Binary-name → artifact-name invariant: release artifacts are
-          # named after each tool's [[bin]] name (which is preserved
-          # across Cut D W-04's crate rename), not its [package] name.
-          # `registry-consumer` ships from crate `open_agentic_spec_registry_reader`.
-          for tool in spec-compiler registry-consumer spec-lint codebase-indexer; do
+          # Binary-name to artifact-name invariant: release artifacts are
+          # named after each tool's [[bin]] name, not its [package] name.
+          for tool in spec-lint; do
             # Workspace root target dir (post-Epic-2 root Cargo.toml).
             SRC="target/${TARGET}/release/${tool}${EXT}"
             DEST="dist/${tool}-${TARGET}${EXT}"

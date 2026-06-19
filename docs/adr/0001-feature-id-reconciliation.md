@@ -19,7 +19,7 @@ There is no stable bridge in compiled registry JSON between these systems, so go
 
 - **Canonical feature identity** remains the **kebab-case `id`** in `registry.json` (and spec frontmatter). No change to directory layout, compiler primary key, or `specPath` rules.
 - **Code-side tokens** are treated as **aliases** of that canonical id. The compiled registry gains an optional, deterministic field on each feature record — **`codeAliases`**: a JSON array of unique strings matching the existing scanner token shape (`[A-Z][A-Z0-9_]{2,63}`), sorted lexicographically for stable output.
-- **Population strategy (implemented):** aliases are declared in **spec frontmatter** (`code_aliases` in each `specs/<id>/spec.md`) as the **sole compile-time source**. The spec-compiler validates pattern and cross-feature uniqueness, then emits `codeAliases` in `registry.json`. The featuregraph scanner **does not** enrich aliases at compile time; it **loads** `codeAliases` from the compiled registry and populates `FeatureEntry.aliases` so existing `alias_map` resolution applies. At scan time, the scanner attributes files to features; policy for orphan or mismatched headers is unchanged.
+- **Population strategy (implemented):** aliases are declared in **spec frontmatter** (`code_aliases` in each `specs/<id>/spec.md`) as the **sole compile-time source**. `spec-spine compile` validates pattern and cross-feature uniqueness, then emits `codeAliases` in the compiled shards. The featuregraph scanner **does not** enrich aliases at compile time; it **loads** `codeAliases` from the compiled registry and populates `FeatureEntry.aliases` so existing `alias_map` resolution applies. At scan time, the scanner attributes files to features; policy for orphan or mismatched headers is unchanged.
 
 This corresponds to **option (a)** in the next-slice plan: extend the compiled registry so both human/spec ids and code tokens are first-class for matching.
 
@@ -40,9 +40,9 @@ This corresponds to **option (a)** in the next-slice plan: extend the compiled r
 
 ### Negative / follow-up
 
-- **Schema and compiler** were extended (`registry.schema.json`, `tools/spec-spine/spec-compiler`, validation rules) — Feature 039.
+- **Schema and compiler** were extended (`registry.schema.json`, the spec-spine compiler, validation rules) for Feature 039. (spec 217: the in-tree `tools/spec-spine/spec-compiler` is now the published `spec-spine` CLI.)
 - **Content maintenance:** new or renamed code tokens require updates to spec frontmatter `code_aliases` until optional automation exists; see Feature 039 tasks.
-- **Consumers** (`registry-consumer`, featuregraph, desktop) treat **`id` as canonical** and use `codeAliases` only for lookup; optional field preserves backward compatibility until consumers opt in.
+- **Consumers** (`spec-spine registry` subcommands, featuregraph, desktop; spec 217: previously `registry-consumer`) treat **`id` as canonical** and use `codeAliases` only for lookup; optional field preserves backward compatibility until consumers opt in.
 
 ## Schema versioning
 
@@ -50,7 +50,7 @@ This corresponds to **option (a)** in the next-slice plan: extend the compiled r
 - **`codeAliases`** is optional and **omitted when empty** (not `null` or `[]`).
 - Schema and compiler changes that emit `codeAliases` **ship in the same commit** so `additionalProperties: false` on `featureRecord` stays satisfied and schema conformance tests do not break.
 
-## Validation rules (spec-compiler)
+## Validation rules (spec-spine compile; spec 217: previously spec-compiler)
 
 | Code | Severity | Meaning |
 |------|----------|---------|
@@ -59,7 +59,7 @@ This corresponds to **option (a)** in the next-slice plan: extend the compiled r
 
 ## Consumer contract
 
-- **featuregraph** (registry path): when loading `.derived/spec-registry/registry.json`, **`RegistryFeatureRecord` MUST deserialize `codeAliases`** (optional). **`FeatureEntry::from_registry_record()` MUST copy them into `FeatureEntry.aliases`** so `Scanner::scan()` builds `alias_map` and resolves `// Feature: TOKEN` lines to the canonical kebab `id`.
+- **featuregraph** (registry path): when loading shards under `.derived/spec-registry/by-spec/` (spec 217: previously the monolithic `.derived/spec-registry/registry.json`), **`RegistryFeatureRecord` MUST deserialize `codeAliases`** (optional). **`FeatureEntry::from_registry_record()` MUST copy them into `FeatureEntry.aliases`** so `Scanner::scan()` builds `alias_map` and resolves `// Feature: TOKEN` lines to the canonical kebab `id`.
 
 ## Population ordering
 

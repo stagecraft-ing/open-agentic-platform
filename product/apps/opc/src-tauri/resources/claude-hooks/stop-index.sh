@@ -18,18 +18,18 @@ if ! oap_is_project "$root"; then
   exit 0
 fi
 
-bin=$(oap_locate_binary "$root" codebase-indexer || true)
+bin=$(oap_locate_binary "$root" spec-spine || true)
 if [ -z "$bin" ]; then
-  oap_emit_diagnostic stop-index codebase-indexer 127 "codebase-indexer binary not found; cannot validate staleness at Stop"
+  oap_emit_diagnostic stop-index spec-spine 127 "spec-spine binary not found; cannot validate staleness at Stop"
   exit 2
 fi
 
 cd "$root" || exit 2
-stderr=$("$bin" check 2>&1)
+stderr=$("$bin" index check 2>&1)
 rc=$?
 if [ $rc -ne 0 ]; then
   summary=$(printf '%s' "$stderr" | head -n3 | tr '\n' ' ' | sed 's/  */ /g')
-  oap_emit_diagnostic stop-index codebase-indexer "$rc" "${summary:-codebase-index is stale; run codebase-indexer compile and commit before closing}"
+  oap_emit_diagnostic stop-index spec-spine "$rc" "${summary:-codebase-index is stale; run spec-spine index and commit before closing}"
   exit 2
 fi
 exit 0

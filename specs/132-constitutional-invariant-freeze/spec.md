@@ -17,10 +17,9 @@ depends_on:
   - "000-bootstrap-spec-system"  # bootstrap-spec-system (the constitutional baseline being frozen)
   - "001-spec-compiler-mvp"  # spec-compiler-mvp (where V-011 lives)
 code_aliases: ["CONSTITUTIONAL_FREEZE"]
-extends:
-  - spec: "001-spec-compiler-mvp"
-    nature: additive
-    unit: { kind: crate, id: open_agentic_spec_compiler }
+# 217 deleted the in-tree spec-compiler; V-011 (unamendable-anchor enforcement) is
+# now in spec-spine-core. The spec_compiler crate-unit is stripped (deleted); this
+# spec's frozen-schema invariant (constrains, below) survives unchanged. Amended by 217.
 constrains:
   - flavor: invariant-freeze
     unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }

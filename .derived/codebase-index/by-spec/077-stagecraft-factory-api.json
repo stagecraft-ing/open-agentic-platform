@@ -1,0 +1,29 @@
+{
+  "mapping": {
+    "implementingPaths": [
+      {
+        "path": "platform/services/stagecraft/api/factory",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "directory",
+          "path": "platform/services/stagecraft/api/factory"
+        }
+      }
+    ],
+    "specId": "077-stagecraft-factory-api",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "8713fdcfe49aa4d2ebab0e1cf58ff0c122cafbfd195b59ae2a1eda3ff8f00584"
+}

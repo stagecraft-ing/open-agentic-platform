@@ -1,0 +1,18 @@
+{
+  "mapping": {
+    "implementingPaths": [
+      {
+        "path": "crates/featuregraph",
+        "source": "manifest-metadata"
+      },
+      {
+        "path": "crates/featuregraph/src/scanner.rs",
+        "source": "comment-header"
+      }
+    ],
+    "specId": "034-featuregraph-registry-scanner-fix",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "2cf8a89bb75b0c7163c63c802d1ef9ba5aa7ecfa16b4044f0981977681aacb21"
+}

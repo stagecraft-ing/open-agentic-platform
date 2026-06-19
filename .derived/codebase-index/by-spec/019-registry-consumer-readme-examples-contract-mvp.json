@@ -1,0 +1,9 @@
+{
+  "mapping": {
+    "implementingPaths": [],
+    "specId": "019-registry-consumer-readme-examples-contract-mvp",
+    "specStatus": "superseded"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "3f0a39a548ee2b40173878c2a82b0c9a9bcf6a694a33bb49506eac03ab06479d"
+}

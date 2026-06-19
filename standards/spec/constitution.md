@@ -71,16 +71,16 @@ Every spec declares its relationships explicitly. A spec with no relationship fi
 
 `origin: retroactive: true` is reserved for genuine foundational bootstrap (spec 000 and a small set of analogous instances). Specs the first surgery marked retroactive purely as a stopgap have been migrated to honest annotations during the corpus-maturity pass; a future commit will reduce the retroactive set to its irreducible bootstrap core.
 
-`implements:` is preserved in registry output as a derived view (union of paths from `establishes`, `extends.paths`, `refines.paths`, `co_authority.paths`). Authors no longer write `implements:` directly; the spec-compiler emits it for compatibility. Removal of the derived view is the final step of the relationship-graph excision pass.
+`implements:` is preserved in registry output as a derived view (union of paths from `establishes`, `extends.paths`, `refines.paths`, `co_authority.paths`). Authors no longer write `implements:` directly; `spec-spine compile` emits it for compatibility. Removal of the derived view is the final step of the relationship-graph excision pass.
 
 ### Migration posture
 
-The relationship-graph landing is staged. Side quest I (2026-05-19) installed the model: schema, parser, and gate accept both legacy `implements:` and typed relationship fields. Side quest II (2026-05-20) populated the model corpus-wide: 117 specs newly annotated, V-020 emission live, the graph queryable through `registry-consumer` (new verbs: `show-relationships`, `show-supersession-chain`, `show-constraints-on`, `by-authority`, `validate-graph`). The remaining stages — section-matching runtime activation (spec 152 §3) and full `implements:` excision (Concern 1 case (a)) — land in subsequent commits without revisiting the eight relationship fields, which are now locked.
+The relationship-graph landing is staged. Side quest I (2026-05-19) installed the model: schema, parser, and gate accept both legacy `implements:` and typed relationship fields. Side quest II (2026-05-20) populated the model corpus-wide: 117 specs newly annotated, V-020 emission live, the graph queryable through `spec-spine registry` (new verbs: `show-relationships`, `show-supersession-chain`, `show-constraints-on`, `validate-graph`) and `oap-registry-enrich` (`by-authority`). The remaining stages — section-matching runtime activation (spec 152 §3) and full `implements:` excision (Concern 1 case (a)) — land in subsequent commits without revisiting the eight relationship fields, which are now locked.
 
 ## Additional Constraints
 
 - Feature directories use the pattern `specs/NNN-kebab-case/` with matching `id` in frontmatter. Authoritative specs live under **repo-root `specs/`**, not under `standards/spec/`.
-- The compiled registry format is versioned (`specVersion`) and described by JSON Schema in Feature 000. Deterministic output is **`registry.json`**; **`build-meta.json`** holds non-deterministic wall-clock metadata only.
+- The compiled registry format is versioned (`specVersion`) and described by JSON Schema in Feature 000. Deterministic output is sharded under **`.derived/spec-registry/by-spec/`**; **`build-meta.json`** holds non-deterministic wall-clock metadata only.
 
 ## Development Workflow
 

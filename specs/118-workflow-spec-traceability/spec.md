@@ -14,10 +14,10 @@ depends_on:
   - "101-codebase-index-mvp"  # codebase-index-mvp (the structural index this extends)
   - "103-init-protocol-governed-reads"  # init-protocol-governed-reads (governed read discipline)
 code_aliases: ["WORKFLOW_TRACEABILITY"]
-extends:
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: crate, id: open_agentic_codebase_indexer }
+# 217 deleted the in-tree codebase-indexer; workflow scanning is now in
+# spec-spine-core (spec-spine index). The codebase_indexer crate-unit is stripped
+# (deleted); this spec's authority over the `# Spec:` workflow-header convention
+# (.github/workflows) survives below. Amended by 217.
 refines:
   - aspect: "spec-header-convention"
     unit: { kind: directory, path: .github/workflows }

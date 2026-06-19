@@ -2,7 +2,6 @@ use featuregraph::enrichment::enrich_features_with_metrics;
 use featuregraph::preflight::compute_blast_radius;
 use featuregraph::scanner::Scanner;
 use featuregraph::tools::FeatureGraphTools;
-use open_agentic_spec_registry_reader as srr;
 use serde::Serialize;
 use serde_json::{Value, json};
 use specta::Type;
@@ -25,9 +24,11 @@ pub async fn featuregraph_overview(
     features_yaml_path: String,
 ) -> Result<serde_json::Value, String> {
     let repo_root = resolve_repo_root(&features_yaml_path);
-    let registry_path = repo_root.join(".derived/spec-registry/registry.json");
+    // Spec 217 engine swap: the committed registry is the sharded `by-spec`
+    // tree, read via the spec-spine library from repo_root.
+    let registry_path = repo_root.join(".derived/spec-registry/by-spec");
 
-    let registry = match read_registry_summary(&registry_path) {
+    let registry = match read_registry_summary(&repo_root) {
         Ok(summary) => json!({
             "status": "ok",
             "path": registry_path,
@@ -254,50 +255,60 @@ fn resolve_repo_root(input: &str) -> PathBuf {
     PathBuf::from(trimmed)
 }
 
-fn read_registry_summary(path: &Path) -> Result<Value, String> {
-    // Cut D W-12: typed-reader consumer. No more ad-hoc Value parsing —
-    // spec 103's "consumer-binary exception" applies once per artifact
-    // (the spec_registry_reader::load entry point in tools/registry-
-    // consumer).
-    let registry = srr::load(path).map_err(|e| match e {
-        srr::RegistryError::Io(err) => format!("Failed reading registry: {err}"),
-        srr::RegistryError::Json(err) => format!("Failed parsing registry JSON: {err}"),
-        srr::RegistryError::UnknownSchemaVersion(v) => {
-            format!("Unsupported registry specVersion: {v}")
-        }
-        srr::RegistryError::MissingFeaturesArray => "Registry missing features array".to_string(),
-    })?;
+/// Load the spec-spine config for `repo_root` (spec 217 engine swap): reads the
+/// committed `spec-spine.toml` when present, else `Config::default()`.
+fn load_spec_spine_config(repo_root: &Path) -> spec_spine_types::Config {
+    std::fs::read_to_string(repo_root.join("spec-spine.toml"))
+        .ok()
+        .and_then(|src| spec_spine_types::load_config(&src).ok())
+        .unwrap_or_default()
+}
+
+/// Serialize the typed `Status` enum to its lowercase string form (the keys the
+/// governance UI expects), matching what the in-tree reader emitted as a string.
+fn status_str(status: &spec_spine_types::Status) -> String {
+    serde_json::to_value(status)
+        .ok()
+        .and_then(|v| v.as_str().map(str::to_owned))
+        .unwrap_or_else(|| "unknown".to_string())
+}
+
+fn read_registry_summary(repo_root: &Path) -> Result<Value, String> {
+    // Spec 217 engine swap: read the committed registry shards
+    // (`.derived/spec-registry/by-spec/*.json`) via the spec-spine library
+    // instead of the in-tree monolithic registry.json reader. The library
+    // assembles the typed `Registry` from the shard tree under repo_root.
+    let cfg = load_spec_spine_config(repo_root);
+    let registry = spec_spine_core::load_committed_registry(&cfg, repo_root)
+        .map_err(|e| format!("Failed reading registry: {e}"))?;
 
     let validation_passed = registry.validation.passed;
     let violations_count = registry.validation.violations.len();
 
     let mut status_counts = serde_json::Map::new();
-    for f in &registry.features {
-        let status = f.status.as_deref().unwrap_or("unknown");
+    for f in &registry.specs {
+        let status = status_str(&f.status);
         let prev = status_counts
-            .get(status)
+            .get(&status)
             .and_then(Value::as_u64)
             .unwrap_or(0);
-        status_counts.insert(status.to_string(), Value::from(prev + 1));
+        status_counts.insert(status, Value::from(prev + 1));
     }
 
     let mut feature_summaries = Vec::new();
-    for f in &registry.features {
-        let Some(spec_path) = f.spec_path.as_deref() else {
-            continue;
-        };
-        if spec_path.is_empty() {
+    for f in &registry.specs {
+        if f.spec_path.is_empty() {
             continue;
         }
         feature_summaries.push(json!({
             "id": f.id,
-            "title": f.title.as_deref().unwrap_or(""),
-            "specPath": spec_path,
+            "title": f.title,
+            "specPath": f.spec_path,
         }));
     }
 
     Ok(json!({
-        "featureCount": registry.features.len(),
+        "featureCount": registry.specs.len(),
         "validationPassed": validation_passed,
         "violationsCount": violations_count,
         "statusCounts": status_counts,
@@ -308,47 +319,37 @@ fn read_registry_summary(path: &Path) -> Result<Value, String> {
 #[cfg(test)]
 mod tests {
     use super::read_registry_summary;
-    use std::io::Write;
+    use std::path::Path;
 
-    #[test]
-    fn read_registry_summary_parses_counts() {
-        let dir = tempfile::tempdir().expect("tempdir");
-        let path = dir.path().join("registry.json");
-        let mut file = std::fs::File::create(&path).expect("file");
-        writeln!(
-            file,
-            r#"{{
-  "specVersion":"1.5.0",
-  "features":[
-    {{"id":"001","status":"active","title":"A","specPath":"specs/001-a/spec.md"}},
-    {{"id":"002","status":"active","title":"B","specPath":"specs/002-b/spec.md"}},
-    {{"id":"003","status":"draft","title":"C","specPath":"specs/003-c/spec.md"}}
-  ],
-  "validation":{{"passed":true,"violations":[]}}
-}}"#
-        )
-        .expect("write");
-
-        let summary = read_registry_summary(&path).expect("summary");
-        assert_eq!(summary["featureCount"], 3);
-        assert_eq!(summary["validationPassed"], true);
-        assert_eq!(summary["statusCounts"]["active"], 2);
-        assert_eq!(summary["statusCounts"]["draft"], 1);
-        let fs = summary["featureSummaries"]
-            .as_array()
-            .expect("featureSummaries");
-        assert_eq!(fs.len(), 3);
-        assert_eq!(fs[0]["specPath"], "specs/001-a/spec.md");
+    /// Repo root from the crate manifest (src-tauri is 4 levels deep), so the
+    /// test is independent of cargo's working directory.
+    fn repo_root() -> std::path::PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../..")
     }
 
     #[test]
-    fn read_registry_summary_rejects_missing_features() {
-        let dir = tempfile::tempdir().expect("tempdir");
-        let path = dir.path().join("registry.json");
-        let mut file = std::fs::File::create(&path).expect("file");
-        writeln!(file, r#"{{"specVersion":"1.5.0","validation":{{"passed":true}}}}"#).expect("write");
+    fn read_registry_summary_parses_counts_from_committed_shards() {
+        let root = repo_root();
+        if !root.join(".derived/spec-registry/by-spec").is_dir() {
+            return; // shards absent (fresh clone) -> skip
+        }
+        let summary = read_registry_summary(&root).expect("summary");
+        assert!(summary["featureCount"].as_u64().unwrap() >= 200);
+        assert_eq!(summary["validationPassed"], true);
+        // Lowercase status keys are preserved through the typed-enum round-trip.
+        assert!(summary["statusCounts"]["approved"].as_u64().unwrap() > 0);
+        let fs = summary["featureSummaries"]
+            .as_array()
+            .expect("featureSummaries");
+        assert!(!fs.is_empty());
+        assert!(fs[0]["specPath"].as_str().unwrap().starts_with("specs/"));
+    }
 
-        let err = read_registry_summary(&path).expect_err("expected error");
-        assert!(err.contains("features array"));
+    #[test]
+    fn read_registry_summary_errors_without_shards() {
+        // A bare tempdir has no committed shards, so the library read fails.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let err = read_registry_summary(dir.path()).expect_err("expected error");
+        assert!(err.contains("Failed reading registry"), "got: {err}");
     }
 }

@@ -10,16 +10,16 @@
 #
 # Why this exists
 # ---------------
-# The indexer's content hash covers more than spec.md edits — see
-# `tools/codebase-indexer/src/lib.rs::collect_input_files`. Inputs are:
+# The index content hash covers more than spec.md edits (see spec-spine.toml
+# [index] extra_hashed_inputs + the always-hashed core). Inputs include:
 #   Cargo.toml (workspace + each crate/tool), package.json,
-#   pnpm-workspace.yaml, specs/*/spec.md, factory/adapters/*/manifest.yaml,
-#   factory/process/stages/*, .claude/{agents,commands,rules}/**/*.md,
-#   standards/schemas/**/*.{json,yaml,yml}, .github/workflows/*.yml.
-# Most non-trivial PRs touch at least one of these and need a fresh
-# .derived/codebase-index/index.json in the diff. The CI staleness check
-# fails after merge attempts otherwise; this hook moves the failure to
-# the earliest possible point.
+#   pnpm-workspace.yaml, specs/*/spec.md, the adapter-scopes snapshot,
+#   .claude/{agents,commands,rules,skills}/**, .claude/settings.json,
+#   .mcp.json, standards/schemas/**, .github/workflows/*.yml, spec-spine.toml.
+# Most non-trivial PRs touch at least one of these and need fresh
+# .derived/codebase-index shards in the diff. The CI staleness check fails
+# after merge attempts otherwise; this hook moves the failure to the
+# earliest possible point.
 #
 # Behaviour: read-only — never mutates the working tree or staging area.
 # If the index is stale the commit is refused with a one-line fix.
@@ -27,32 +27,30 @@
 
 set -eu
 
-INDEXER=tools/spec-spine/codebase-indexer/target/release/codebase-indexer
-
-if [ ! -x "$INDEXER" ]; then
+if ! command -v spec-spine >/dev/null 2>&1; then
   cat >&2 <<'EOF'
-[pre-commit] codebase-indexer binary not built.
-            Run `make setup` (one-time) or `make index` to build it.
+[pre-commit] spec-spine CLI not found on PATH.
+            Run `make setup` (one-time) or `cargo install spec-spine-cli --version 0.8.0 --locked`.
             To bypass for this commit only: git commit --no-verify
 EOF
   exit 1
 fi
 
-if ! "$INDEXER" check >/dev/null 2>&1; then
+if ! spec-spine index check >/dev/null 2>&1; then
   cat >&2 <<'EOF'
-[pre-commit] codebase-index is stale relative to current inputs.
+[pre-commit] codebase index is stale relative to current inputs.
 
-  The indexer hashes Cargo.toml, package.json, pnpm-workspace.yaml,
-  specs/*/spec.md, standards/schemas/**/*.{json,yaml,yml},
-  .claude/{agents,commands,rules}/*.md, and .github/workflows/*.yml —
-  at least one of these changed and the
-  committed .derived/codebase-index/index.json no longer matches.
+  The index hashes Cargo.toml, package.json, pnpm-workspace.yaml,
+  specs/*/spec.md, standards/schemas/**, .claude/** + settings.json,
+  .mcp.json, .github/workflows/*.yml, and spec-spine.toml. At least one
+  of these changed and the committed .derived/codebase-index shards no
+  longer match.
 
   Fix:
     make pr-prep
-    git add .derived/codebase-index/index.json
+    git add .derived/codebase-index
 
-  Bypass (NOT recommended — CI will fail):
+  Bypass (NOT recommended, CI will fail):
     git commit --no-verify
 EOF
   exit 1

@@ -2,7 +2,8 @@
 id: "015-registry-consumer-list-compact-json-mvp"
 title: "Registry consumer list compact JSON"
 feature_branch: "015-registry-consumer-list-compact-json-mvp"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 kind: platform-delivery
 domain: tooling
@@ -16,7 +17,6 @@ summary: >
 extends:
   - spec: "012-registry-consumer-list-json-mvp"
     nature: additive
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Registry consumer list compact JSON

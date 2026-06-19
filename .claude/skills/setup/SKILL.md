@@ -8,7 +8,7 @@ allowed-tools: Bash, Read
 
 Get a fresh clone operational. After this completes, `/init` can report lifecycle and structural counts through governed consumer binaries (no ad-hoc parsing of `build/**/*.json` — see spec 103).
 
-`make setup` is the canonical contributor entry point. It installs deps, builds the spec/index/registry-consumer binaries, compiles `registry.json` and `index.json`, and fetches the axiomregent sidecar. This command runs it and then verifies the binaries the init protocol depends on actually return.
+`make setup` is the canonical contributor entry point. It installs the spec-spine CLI (`cargo install spec-spine-cli --version 0.8.0 --locked`), builds OAP-specific tools, compiles the spec registry and codebase index shards under `.derived/`, and fetches the axiomregent sidecar. This command runs it and then verifies the binaries the init protocol depends on actually return.
 
 ## Process
 
@@ -27,12 +27,12 @@ Halt on non-zero exit and surface the failing step verbatim. `make check-deps` (
 Smoke-test the same calls `/init` makes. Passing here means `/init` will work on this clone:
 
 ```bash
-./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
-./tools/spec-spine/registry-consumer/target/release/registry-consumer status-report --json --nonzero-only
-./tools/spec-spine/registry-consumer/target/release/registry-consumer list --ids-only | wc -l
+spec-spine index
+spec-spine registry status-report --json --nonzero-only
+spec-spine registry list --ids-only | wc -l
 ```
 
-`codebase-indexer compile` (re)generates the gitignored structural index (spec 188 Phase 4b: the broad index is a rebuilt-on-demand artifact, never committed). Do **not** parse `build/**/*.json` directly to "verify" success; that violates spec 103 governed reads.
+`spec-spine index` (re)generates the gitignored structural index (spec 188 Phase 4b: the broad index is a rebuilt-on-demand artifact, never committed). Do **not** parse `.derived/**/*.json` directly to "verify" success; that violates spec 103 governed reads.
 
 ### 3. Emit summary
 
@@ -43,9 +43,9 @@ Report exactly:
 
 **make setup:** {ok / failed at <step>}
 **Governed reads verified:**
-  - codebase-indexer compile: {ok}
-  - registry-consumer status-report: {N specs across <statuses>}
-  - registry-consumer list --ids-only: {N spec ids}
+  - spec-spine index: {ok}
+  - spec-spine registry status-report: {N specs across <statuses>}
+  - spec-spine registry list --ids-only: {N spec ids}
 
 Next: run `/init` to load full session context.
 ```

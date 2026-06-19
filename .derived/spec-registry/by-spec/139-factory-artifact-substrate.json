@@ -1,0 +1,314 @@
+{
+  "record": {
+    "amendmentRecord": "199-factory-thin-consumer-sync",
+    "amends": [
+      "108-factory-as-platform-feature",
+      "111-org-agent-catalog-sync",
+      "123-agent-catalog-org-rescope"
+    ],
+    "codeAliases": [
+      "FACTORY_ARTIFACT_SUBSTRATE"
+    ],
+    "created": "2026-05-05",
+    "dependsOn": [
+      "082-artifact-integrity-platform-hardening",
+      "094-unified-artifact-store",
+      "108-factory-as-platform-feature",
+      "111-org-agent-catalog-sync",
+      "112-factory-project-lifecycle",
+      "123-agent-catalog-org-rescope",
+      "124-opc-factory-run-platform-integration"
+    ],
+    "domain": "platform",
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/32_factory_artifact_substrate.up.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/33_migrate_agent_catalog.up.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/34_drop_legacy_factory_tables.up.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/35_drop_legacy_agent_catalog_family.up.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/substrate.ts"
+      },
+      {
+        "kind": "file",
+        "path": "crates/factory-engine/src/substrate_version.rs"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/agentCatalogMigration.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/oapContracts.ts"
+      },
+      {
+        "kind": "file",
+        "path": "crates/factory-engine/src/factory_root.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/factory-engine/src/virtual_root.rs"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/runAgentRefs.ts"
+      }
+    ],
+    "extends": [
+      {
+        "nature": "wrapping",
+        "spec": "108-factory-as-platform-feature",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/translator.ts"
+        }
+      },
+      {
+        "nature": "wrapping",
+        "spec": "108-factory-as-platform-feature",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/syncPipeline.ts"
+        }
+      },
+      {
+        "nature": "wrapping",
+        "spec": "108-factory-as-platform-feature",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/syncWorker.ts"
+        }
+      },
+      {
+        "nature": "wrapping",
+        "spec": "108-factory-as-platform-feature",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/artifacts.ts"
+        }
+      },
+      {
+        "nature": "wrapping",
+        "spec": "108-factory-as-platform-feature",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/conflicts.ts"
+        }
+      },
+      {
+        "nature": "wrapping",
+        "spec": "108-factory-as-platform-feature",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/bindings.ts"
+        }
+      },
+      {
+        "nature": "wrapping",
+        "spec": "108-factory-as-platform-feature",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/upstreams.ts"
+        }
+      },
+      {
+        "nature": "wrapping",
+        "spec": "108-factory-as-platform-feature",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/routes/app.factory.artifacts.tsx"
+        }
+      },
+      {
+        "nature": "wrapping",
+        "spec": "108-factory-as-platform-feature",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/components/artifact-merge-editor.tsx"
+        }
+      },
+      {
+        "nature": "wrapping",
+        "spec": "108-factory-as-platform-feature",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/browse.ts"
+        }
+      },
+      {
+        "nature": "wrapping",
+        "spec": "111-org-agent-catalog-sync",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/agents/catalog.ts"
+        }
+      },
+      {
+        "nature": "wrapping",
+        "spec": "111-org-agent-catalog-sync",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/agents/relay.ts"
+        }
+      },
+      {
+        "nature": "wrapping",
+        "spec": "111-org-agent-catalog-sync",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/sync/service.ts"
+        }
+      },
+      {
+        "nature": "wrapping",
+        "spec": "123-agent-catalog-org-rescope",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/agents/bindings.ts"
+        }
+      }
+    ],
+    "extraFrontmatter": {
+      "amended": "2026-06-09",
+      "closed": "2026-05-05",
+      "slug": "factory-artifact-substrate"
+    },
+    "id": "139-factory-artifact-substrate",
+    "implementation": "complete",
+    "kind": "architecture",
+    "owner": "bart",
+    "references": [
+      {
+        "role": "historical",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/oapNativeIngest.ts"
+        }
+      },
+      {
+        "role": "historical",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/oapNativeSanitise.ts"
+        }
+      },
+      {
+        "role": "historical",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/projection.ts"
+        }
+      }
+    ],
+    "refines": [
+      {
+        "aspect": "factory-engine-substrate",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/engine.rs"
+        }
+      },
+      {
+        "aspect": "factory-engine-substrate",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/factory.rs"
+        }
+      },
+      {
+        "aspect": "factory-engine-substrate",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/opcBundle.ts"
+        }
+      },
+      {
+        "aspect": "factory-engine-substrate",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/create.ts"
+        }
+      },
+      {
+        "aspect": "factory-engine-substrate",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/import.ts"
+        }
+      },
+      {
+        "aspect": "factory-engine-substrate",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/scaffoldReadiness.ts"
+        }
+      },
+      {
+        "aspect": "factory-engine-substrate",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/schema.ts"
+        }
+      }
+    ],
+    "risk": "high",
+    "sectionHeadings": [
+      "139 — Factory Artifact Substrate",
+      "1. Problem Statement",
+      "2. Decision",
+      "2.1 Substrate",
+      "2.2 Upstreams",
+      "3. Scope",
+      "3.1 In Scope",
+      "3.2 Non-Goals",
+      "4. Origin / Kind / Bundle Taxonomy",
+      "4.1 Origin",
+      "4.2 Kind",
+      "4.3 Bundle",
+      "5. Sync Flow (replaces spec 108 §5)",
+      "5.1 Conflict resolution UI",
+      "6. Override and Resolution Semantics",
+      "6.1 Effective body",
+      "6.2 Frontmatter `id` resolution (cross-origin)",
+      "6.3 Per-skill tier ceiling",
+      "6.4 Audit actions",
+      "7. Symmetric Upstream Sourcing for OAP-Native Adapters",
+      "7.1 Sourcing options per adapter",
+      "7.2 Adapter manifest changes",
+      "7.3 Lifting the existing OAP-native adapter content",
+      "8. OPC Contract (closes spec 108 §7.1)",
+      "9. Migration Path",
+      "Phase 1 — Substrate online, dual-write",
+      "Phase 2 — Migrate `agent_catalog` and OAP-native adapters",
+      "Phase 3 — OPC virtual factory_root",
+      "Phase 4 — Retire legacy tables",
+      "10. Symmetry With Existing Specs",
+      "11. Risks and Open Questions",
+      "12. Success Criteria",
+      "13. Out of Scope (revisit after Phase 4)",
+      "14. Post-approval hardening: adapter-manifest projection guard (2026-06-05)"
+    ],
+    "specPath": "specs/139-factory-artifact-substrate/spec.md",
+    "status": "approved",
+    "summary": "Replace the spec 108 bucket-blob translator with a content-addressed substrate (`factory_artifact_substrate`) that mirrors upstream Factory and Template repos verbatim, allows per-org override of any file, and generalises spec 111's `agent_catalog` into the same row shape so Adapters, Contracts, Processes, Agents, and Skills become facets over a single store. Symmetrises upstream sourcing across all four adapters (resolves the `next-prisma`/`rust-axum`/`encore-react` \"no upstream scaffold\" gap) and closes spec 108 §7.1 (OPC factory_root checkout punt) by exposing every artifact at a stable `(origin, path, content_hash)` triple.\n",
+    "title": "Factory artifact substrate — verbatim mirror, per-org override, unified Agent/Skill/Adapter/Contract storage"
+  },
+  "shardHash": "0b02825f8a414fd0878e45ed918a4930cc430f1b3060860012325e8b39bfab32",
+  "specVersion": "1.1.0"
+}

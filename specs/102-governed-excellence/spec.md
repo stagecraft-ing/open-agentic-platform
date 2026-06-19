@@ -50,9 +50,10 @@ extends:
   - spec: "052-state-persistence"
     nature: additive
     unit: { kind: file, path: crates/orchestrator/src/lib.rs }
-  - spec: "001-spec-compiler-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
+# 217 deleted the in-tree spec-compiler; the registry-freshness seam this spec
+# extended (FR registry freshness) is now spec-spine-core::compile. The
+# spec-compiler/src/lib.rs edge is stripped (path deleted); all other extends edges
+# (factory-engine, tool-registry, policy-kernel, orchestrator) survive. Amended by 217.
 co_authority:
   - with_specs:
       - "102-governed-excellence"

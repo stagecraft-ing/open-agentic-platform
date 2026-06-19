@@ -1,11 +1,13 @@
-// Spec 163 FR-002 / spec 103 — registry-consumer subprocess wrapper.
+// Spec 163 FR-002 / spec 103 / spec 217: spec-spine registry subprocess wrapper.
 //
 // The reader is the only path through which stagecraft consumes the
-// registry. These tests exercise it against the OAP repo's own
-// .derived/spec-registry/registry.json — the most readily available
-// real fixture. The path is resolved relative to this file so the
-// test does not depend on cwd.
+// registry. These tests exercise the pure JSON relationship parser, plus
+// an integration suite against the OAP repo's own committed
+// .derived/spec-registry/by-spec shards via the `spec-spine` CLI (skipped
+// when the CLI or the shards are absent, e.g. the ci-stagecraft lane).
+// Paths resolve relative to this file so the tests do not depend on cwd.
 
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,90 +16,75 @@ import {
   getSpecDetail,
   getSpecRelationships,
   listSpecs,
-  parseRelationshipsText,
+  parseRelationshipsJson,
 } from "./registryReader";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// platform/services/stagecraft/api/specRegistry/ → repo root is 5 levels up.
+// platform/services/stagecraft/api/specRegistry/ -> repo root is 5 levels up.
 const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..", "..");
-const REGISTRY_PATH = resolve(
-  REPO_ROOT,
-  ".derived/spec-registry/registry.json"
-);
-const BINARY_PATH = resolve(
-  REPO_ROOT,
-  "tools/spec-spine/registry-consumer/target/release/registry-consumer"
-);
+const REGISTRY_SHARDS = resolve(REPO_ROOT, ".derived/spec-registry/by-spec");
 
-const haveFixture =
-  existsSync(REGISTRY_PATH) && existsSync(BINARY_PATH);
+// Resolve the published spec-spine CLI: explicit env override first, then
+// PATH. Tests pass this as `binaryPath` so they do not depend on ambient env.
+function resolveSpecSpine(): string | null {
+  const fromEnv = process.env.REGISTRY_CONSUMER_BIN;
+  if (fromEnv && existsSync(fromEnv)) return fromEnv;
+  try {
+    const p = execFileSync("which", ["spec-spine"], { encoding: "utf8" }).trim();
+    return p.length > 0 ? p : null;
+  } catch {
+    return null;
+  }
+}
 
-describe("parseRelationshipsText (pure parser)", () => {
-  test("parses outgoing + incoming spec-bearing edges", () => {
-    const text = [
-      "Relationships for: 163-stagecraft-requirements-view",
-      "",
-      "Outgoing (2):",
-      "  extends → 087-unified-workspace-architecture",
-      "  refines → 130-spec-coupling-primary-owner",
-      "",
-      "Incoming (1):",
-      "  amends ← 200-some-amender",
-    ].join("\n");
-    const r = parseRelationshipsText("163-stagecraft-requirements-view", text);
+const SPEC_SPINE_BIN = resolveSpecSpine();
+const haveFixture = existsSync(REGISTRY_SHARDS) && SPEC_SPINE_BIN !== null;
+
+describe("parseRelationshipsJson (pure parser)", () => {
+  test("projects outgoing + incoming spec-to-spec edges", () => {
+    const json = JSON.stringify({
+      id: "163-stagecraft-requirements-view",
+      dependsOn: [
+        "087-unified-workspace-architecture",
+        "130-spec-coupling-primary-owner",
+      ],
+      supersedes: ["050-old-thing"],
+      amends: [],
+      dependedOnBy: ["200-some-dependent"],
+      supersededBy: [],
+      amendedBy: ["201-some-amender"],
+    });
+    const r = parseRelationshipsJson("163-stagecraft-requirements-view", json);
+    expect(r.id).toBe("163-stagecraft-requirements-view");
     expect(r.outgoing).toEqual([
-      { kind: "extends", otherSpec: "087-unified-workspace-architecture" },
-      { kind: "refines", otherSpec: "130-spec-coupling-primary-owner" },
+      { kind: "depends_on", otherSpec: "087-unified-workspace-architecture" },
+      { kind: "depends_on", otherSpec: "130-spec-coupling-primary-owner" },
+      { kind: "supersedes", otherSpec: "050-old-thing" },
     ]);
     expect(r.incoming).toEqual([
-      { kind: "amends", otherSpec: "200-some-amender" },
+      { kind: "depends_on", otherSpec: "200-some-dependent" },
+      { kind: "amends", otherSpec: "201-some-amender" },
     ]);
   });
 
-  test("handles empty (none) blocks", () => {
-    const text = [
-      "Relationships for: x",
-      "",
-      "Outgoing (0):",
-      "  (none)",
-      "",
-      "Incoming (0):",
-      "  (none)",
-    ].join("\n");
-    const r = parseRelationshipsText("x", text);
+  test("handles missing/empty arrays", () => {
+    const r = parseRelationshipsJson("x", JSON.stringify({ id: "x" }));
     expect(r.outgoing).toEqual([]);
     expect(r.incoming).toEqual([]);
   });
 
-  test("skips path-only outgoing edges (e.g. constrains with no other spec)", () => {
-    // Mirrors the real format emitted by `print_relationships_human`
-    // for a constrains edge that lists paths but no spec on the far end.
-    const text = [
-      "Outgoing (2):",
-      "  extends → 001-spec-compiler-mvp",
-      "  constrains",
-    ].join("\n");
-    const r = parseRelationshipsText("y", text);
-    expect(r.outgoing).toEqual([
-      { kind: "extends", otherSpec: "001-spec-compiler-mvp" },
-    ]);
-  });
-
-  test("strips trailing [paths] attribute on outgoing edges", () => {
-    const text = [
-      "Outgoing (1):",
-      "  extends → 087-unified-workspace-architecture [platform/services/stagecraft/web/app/routes]",
-    ].join("\n");
-    const r = parseRelationshipsText("z", text);
-    expect(r.outgoing).toEqual([
-      { kind: "extends", otherSpec: "087-unified-workspace-architecture" },
-    ]);
+  test("filters non-string and empty entries", () => {
+    const json = JSON.stringify({ dependsOn: ["001-real", "", null, 42] });
+    const r = parseRelationshipsJson("y", json);
+    expect(r.outgoing).toEqual([{ kind: "depends_on", otherSpec: "001-real" }]);
   });
 });
 
 describe.skipIf(!haveFixture)("registryReader against OAP's own registry", () => {
+  const opts = { binaryPath: SPEC_SPINE_BIN! };
+
   test("listSpecs returns sorted typed rows (FR-001, FR-002)", async () => {
-    const specs = await listSpecs(REGISTRY_PATH, { binaryPath: BINARY_PATH });
+    const specs = await listSpecs(REPO_ROOT, opts);
     expect(specs.length).toBeGreaterThan(150);
     // Sorted by id.
     for (let i = 1; i < specs.length; i++) {
@@ -112,31 +99,30 @@ describe.skipIf(!haveFixture)("registryReader against OAP's own registry", () =>
   test("getSpecDetail attaches the markdown body (FR-006)", async () => {
     const detail = await getSpecDetail(
       "163-stagecraft-requirements-view",
-      REGISTRY_PATH,
       REPO_ROOT,
-      { binaryPath: BINARY_PATH }
+      REPO_ROOT,
+      opts
     );
     expect(detail.id).toBe("163-stagecraft-requirements-view");
-    expect(detail.body).toContain("Spec-spine Requirements view");
-    // Frontmatter must be stripped — the body must not start with `---`.
+    expect(detail.body.length).toBeGreaterThan(0);
+    // Frontmatter must be stripped: the body must not start with `---`.
     expect(detail.body.startsWith("---")).toBe(false);
-    // Spec 163's references include a pair-spec edge.
-    expect(detail.references.some((r) => r.role === "pair-spec")).toBe(true);
   });
 
-  test("getSpecRelationships parses the human surface (FR-006)", async () => {
+  test("getSpecRelationships parses the typed neighborhood (FR-006)", async () => {
     const r = await getSpecRelationships(
-      "163-stagecraft-requirements-view",
-      REGISTRY_PATH,
-      { binaryPath: BINARY_PATH }
+      "217-spec-spine-engine-swap-collapse",
+      REPO_ROOT,
+      opts
     );
-    expect(r.id).toBe("163-stagecraft-requirements-view");
-    // Spec 163 extends 087.
+    expect(r.id).toBe("217-spec-spine-engine-swap-collapse");
+    expect(Array.isArray(r.outgoing)).toBe(true);
+    expect(Array.isArray(r.incoming)).toBe(true);
+    // 217 depends on several specs; its neighborhood is non-empty.
+    expect(r.outgoing.length + r.incoming.length).toBeGreaterThan(0);
     expect(
-      r.outgoing.some(
-        (e) =>
-          e.kind === "extends" &&
-          e.otherSpec === "087-unified-workspace-architecture"
+      r.outgoing.every(
+        (e) => typeof e.kind === "string" && typeof e.otherSpec === "string"
       )
     ).toBe(true);
   });

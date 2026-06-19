@@ -8,8 +8,14 @@ amends: ["006-conformance-lint-mvp"]
 owner: bart
 created: "2026-05-02"
 approved: "2026-05-02"
-amended: "2026-05-13"
-amendment_record: "147-spec-kind-grammar"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-05-13 by 147-spec-kind-grammar.
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the Makefile `spec-lint`
+  invocation this spec governs (the strict --fail-on-warn posture) was repointed
+  from the deleted in-tree generic spec-lint to the surviving OAP overlay spec-lint
+  binary plus `spec-spine lint` (generic codes). The strict-posture policy is
+  unchanged; only the invoked binary moved.
 kind: governance
 domain: tooling
 risk: low

@@ -1,7 +1,7 @@
 //! OAP-side enricher for the generic spec-spine registry.
 //!
-//! Cut D W-06a: reads `build/spec-registry/registry.json` via the
-//! typed-reader (`open_agentic_spec_registry_reader::load`), walks
+//! Cut D W-06a (spec 217): reads the committed `.derived/spec-registry`
+//! shards via the published library reader, walks
 //! `specs/*/spec.md` for `compliance:` frontmatter and the repository
 //! tree for `.factory/build-spec.yaml` files, and emits
 //! `build/spec-registry/registry-oap.json` with the OAP-specific
@@ -13,22 +13,26 @@
 //! generic compiler drops those fields and the enricher's output
 //! becomes the sole authoritative source for OAP-specific extensions.
 
-use open_agentic_spec_registry_reader as srr;
 use open_agentic_spec_types::{FrontmatterError, split_frontmatter_required};
 use serde::Serialize;
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
+use spec_spine_core::load_committed_registry;
+use spec_spine_types::Registry;
 use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
+
+pub mod authority;
 
 #[derive(Debug)]
 pub enum EnrichError {
     Io(std::io::Error),
     Json(serde_json::Error),
     Yaml(serde_yaml::Error),
-    Registry(srr::RegistryError),
+    /// Spec 217 engine swap: the library registry-read error, as a string.
+    Registry(String),
     InvalidFrontmatter { path: PathBuf, msg: String },
 }
 
@@ -61,11 +65,6 @@ impl From<serde_json::Error> for EnrichError {
 impl From<serde_yaml::Error> for EnrichError {
     fn from(e: serde_yaml::Error) -> Self {
         EnrichError::Yaml(e)
-    }
-}
-impl From<srr::RegistryError> for EnrichError {
-    fn from(e: srr::RegistryError) -> Self {
-        EnrichError::Registry(e)
     }
 }
 
@@ -101,13 +100,31 @@ pub struct FactoryProjectRecord {
 /// computes OAP-specific extensions, and returns the enriched
 /// registry-oap.json bytes (deterministic, sorted, pretty-printed).
 pub fn enrich(repo_root: &Path) -> Result<Vec<u8>, EnrichError> {
-    let registry_path = repo_root.join(".derived/spec-registry/registry.json");
-    let registry = srr::load(&registry_path)?;
+    // Spec 217 engine swap: read the committed registry shards via the library.
+    let cfg = load_spec_spine_config(repo_root);
+    let registry =
+        load_committed_registry(&cfg, repo_root).map_err(|e| EnrichError::Registry(e.to_string()))?;
     let compliance_by_spec = collect_compliance(repo_root, &registry)?;
     let factory_projects = collect_factory_projects(repo_root)?;
     let enriched = build_enriched_registry(&registry, &compliance_by_spec, &factory_projects)?;
     let bytes = canonical_json_bytes(&enriched)?;
     Ok(bytes)
+}
+
+/// Load the spec-spine config for `repo_root` (spec 217 engine swap): the
+/// committed `spec-spine.toml` when present, else `Config::default()`.
+fn load_spec_spine_config(repo_root: &Path) -> spec_spine_types::Config {
+    std::fs::read_to_string(repo_root.join("spec-spine.toml"))
+        .ok()
+        .and_then(|src| spec_spine_types::load_config(&src).ok())
+        .unwrap_or_default()
+}
+
+/// Load the committed registry for `repo_root` via the published library
+/// (spec 217 FR-302 surface, shared by the `by-authority` verb).
+pub fn load_registry(repo_root: &Path) -> Result<Registry, EnrichError> {
+    let cfg = load_spec_spine_config(repo_root);
+    load_committed_registry(&cfg, repo_root).map_err(|e| EnrichError::Registry(e.to_string()))
 }
 
 /// Convenience: compute + write `registry-oap.json` to
@@ -123,14 +140,12 @@ pub fn enrich_and_write(repo_root: &Path) -> Result<PathBuf, EnrichError> {
 
 fn collect_compliance(
     repo_root: &Path,
-    registry: &srr::Registry,
+    registry: &Registry,
 ) -> Result<std::collections::BTreeMap<String, Vec<ComplianceEntry>>, EnrichError> {
     let mut out = std::collections::BTreeMap::new();
-    for feature in &registry.features {
-        let Some(spec_path) = feature.spec_path.as_deref() else {
-            continue;
-        };
-        let abs = repo_root.join(spec_path);
+    for feature in &registry.specs {
+        // `spec_path` is a required String on the library SpecRecord.
+        let abs = repo_root.join(&feature.spec_path);
         let raw = match fs::read_to_string(&abs) {
             Ok(r) => r,
             Err(_) => continue, // spec.md not on disk; skip (typed reader handles missing earlier).
@@ -161,67 +176,59 @@ fn collect_factory_projects(repo_root: &Path) -> Result<Vec<FactoryProjectRecord
 }
 
 fn build_enriched_registry(
-    registry: &srr::Registry,
+    registry: &Registry,
     compliance_by_spec: &std::collections::BTreeMap<String, Vec<ComplianceEntry>>,
     factory_projects: &[FactoryProjectRecord],
 ) -> Result<Value, EnrichError> {
-    // Start from the verbatim raw Value the typed reader preserved.
-    // This is the deterministic byte-for-byte input from registry.json
-    // so the enriched output is a strict superset.
-    let mut enriched = registry.raw.clone();
-    let obj = match enriched.as_object_mut() {
-        Some(o) => o,
-        None => {
-            return Err(EnrichError::InvalidFrontmatter {
-                path: PathBuf::from("registry.json"),
-                msg: "top-level value is not an object".into(),
-            });
+    // Spec 217 engine swap: the in-tree reader exposed a verbatim `raw` Value to
+    // overlay onto. The library `Registry` is strongly typed and drops raw, so we
+    // build the enriched artifact from the typed records. The registry-oap.json
+    // top-level shape is preserved (`specVersion` / `build` / `features` /
+    // `validation` / `factoryProjects`); each `features` entry is the serialized
+    // library `SpecRecord` with the OAP `compliance` overlay injected by id.
+    let mut features: Vec<Value> = Vec::with_capacity(registry.specs.len());
+    for spec in &registry.specs {
+        let mut fv = serde_json::to_value(spec)?;
+        if let (Some(obj), Some(entries)) = (fv.as_object_mut(), compliance_by_spec.get(&spec.id)) {
+            obj.insert("compliance".to_string(), serde_json::to_value(entries)?);
         }
-    };
-
-    // Inject compliance into each feature when the enricher found one.
-    if let Some(features) = obj.get_mut("features").and_then(|v| v.as_array_mut()) {
-        for f in features.iter_mut() {
-            let Some(f_obj) = f.as_object_mut() else {
-                continue;
-            };
-            let Some(id) = f_obj.get("id").and_then(|v| v.as_str()) else {
-                continue;
-            };
-            if let Some(entries) = compliance_by_spec.get(id) {
-                f_obj.insert("compliance".to_string(), serde_json::to_value(entries)?);
-            }
-        }
+        features.push(fv);
     }
 
+    // Build block, tagged with the enricher so consumers can distinguish the
+    // enriched artifact from the generic one.
+    let mut build = serde_json::to_value(&registry.build)?;
+    if let Some(b) = build.as_object_mut() {
+        b.insert(
+            "enricherId".to_string(),
+            Value::String("oap-registry-enrich".to_string()),
+        );
+        b.insert(
+            "enricherVersion".to_string(),
+            Value::String(env!("CARGO_PKG_VERSION").to_string()),
+        );
+    }
+
+    let mut top = Map::new();
+    top.insert(
+        "specVersion".to_string(),
+        Value::String(registry.spec_version.clone()),
+    );
+    top.insert("build".to_string(), build);
+    top.insert("features".to_string(), Value::Array(features));
+    top.insert(
+        "validation".to_string(),
+        serde_json::to_value(&registry.validation)?,
+    );
     // Overlay factoryProjects only when at least one was discovered.
     if !factory_projects.is_empty() {
-        obj.insert(
+        top.insert(
             "factoryProjects".to_string(),
             serde_json::to_value(factory_projects)?,
         );
     }
 
-    // Tag the enricher in the build block so consumers can distinguish
-    // the enriched artifact from the generic one.
-    let build = obj
-        .entry("build".to_string())
-        .or_insert(json!({}))
-        .as_object_mut()
-        .ok_or_else(|| EnrichError::InvalidFrontmatter {
-            path: PathBuf::from("registry.json"),
-            msg: "build is not an object".into(),
-        })?;
-    build.insert(
-        "enricherId".to_string(),
-        Value::String("oap-registry-enrich".to_string()),
-    );
-    build.insert(
-        "enricherVersion".to_string(),
-        Value::String(env!("CARGO_PKG_VERSION").to_string()),
-    );
-
-    Ok(enriched)
+    Ok(Value::Object(top))
 }
 
 fn canonical_json_bytes(value: &Value) -> Result<Vec<u8>, EnrichError> {
@@ -498,26 +505,38 @@ project:
         assert!(parse_factory_project(dir.path(), &bp).unwrap().is_none());
     }
 
+    /// Spec 217: the committed registry is the sharded `by-spec` tree. Write one
+    /// fabricated registry shard (`load_committed_registry` does not validate the
+    /// shard hash, only the MAJOR schema version, so a placeholder hash is fine).
+    fn write_registry_shard(repo: &Path, id: &str, spec_path: &str) {
+        let by_spec = repo.join(".derived/spec-registry/by-spec");
+        fs::create_dir_all(&by_spec).unwrap();
+        let shard = serde_json::json!({
+            "specVersion": "1.0.0",
+            "shardHash": "0",
+            "record": {
+                "id": id,
+                "title": id,
+                "status": "approved",
+                "created": "2026-01-01",
+                "summary": "x",
+                "specPath": spec_path,
+            }
+        });
+        fs::write(
+            by_spec.join(format!("{id}.json")),
+            serde_json::to_string_pretty(&shard).unwrap(),
+        )
+        .unwrap();
+    }
+
     #[test]
     fn enrich_walks_compliance_from_specs() {
         let dir = tempfile::tempdir().unwrap();
         let repo = dir.path();
-        // Minimal registry.json with one feature pointing at a spec.md.
-        let registry_dir = repo.join(".derived/spec-registry");
-        fs::create_dir_all(&registry_dir).unwrap();
-        fs::write(
-            registry_dir.join("registry.json"),
-            r#"{
-                "specVersion": "1.5.0",
-                "build": {"compilerId":"t","compilerVersion":"0","inputRoot":".","contentHash":"0"},
-                "features": [
-                    {"id":"001-x","title":"X","specPath":"specs/001-x/spec.md","status":"approved"}
-                ],
-                "validation": {"passed":true,"violations":[]}
-            }"#,
-        )
-        .unwrap();
-        // Spec on disk with compliance frontmatter.
+        // One committed shard pointing at a spec.md.
+        write_registry_shard(repo, "001-x", "specs/001-x/spec.md");
+        // Spec on disk with compliance frontmatter (read by the compliance walk).
         let spec_dir = repo.join("specs/001-x");
         fs::create_dir_all(&spec_dir).unwrap();
         fs::write(
@@ -545,13 +564,8 @@ project:
     fn enrich_walks_factory_build_specs() {
         let dir = tempfile::tempdir().unwrap();
         let repo = dir.path();
-        let registry_dir = repo.join(".derived/spec-registry");
-        fs::create_dir_all(&registry_dir).unwrap();
-        fs::write(
-            registry_dir.join("registry.json"),
-            r#"{"specVersion":"1.5.0","build":{"compilerId":"t","compilerVersion":"0","inputRoot":".","contentHash":"0"},"features":[],"validation":{"passed":true,"violations":[]}}"#,
-        )
-        .unwrap();
+        // Empty committed registry (the dir must exist for the library reader).
+        fs::create_dir_all(repo.join(".derived/spec-registry/by-spec")).unwrap();
         // Build spec under a project dir.
         let bp_dir = repo.join("p1/.factory");
         fs::create_dir_all(&bp_dir).unwrap();

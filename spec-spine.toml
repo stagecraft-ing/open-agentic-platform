@@ -96,6 +96,16 @@ extra_hashed_inputs = [
 ]
 resolver_exclusions = ["target", "node_modules", ".derived", "dist", "build", ".next"]
 
+# Spec 184/188 narrow Claude shared-config staleness slice. `spec-spine index
+# check --slice claude-config` gates this glob group independently of the global
+# index contentHash, replacing the deleted in-tree `codebase-indexer check-config`
+# (spec 217 Phase 4). Hashes are emitted to .derived/codebase-index/slices.json
+# by `spec-spine index`. Mirrors the spec 188 Phase 4 config-hash.json slice
+# (.claude/settings.json + .mcp.json) so a quiet edit to the agentic config still
+# trips a PR-time gate after the broad index-freshness check became report-only.
+[index.slices]
+claude-config = [".claude/settings.json", ".mcp.json"]
+
 [coupling]
 # Additions to the built-in bypass floor (which already covers .github/,
 # docs/, README.md, CODEOWNERS, lockfiles, .derived/, etc.).

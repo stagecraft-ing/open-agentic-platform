@@ -15,11 +15,12 @@ summary: >
   superseded, retired) in authored specs and compiled registry; consumer guarantees
   and explicit non-goals so 004+ can build on stable lifecycle language without
   reopening 000/001 unless a constitutional amendment is required.
+# 217 deleted the in-tree spec-compiler + registry-consumer; the lifecycle status
+# model (draft/active/superseded/retired) this spec defines is now enforced by
+# spec-spine-core. The implementation code-units are stripped (paths deleted); the
+# authored status-semantics model remains this spec's contribution. Amended by 217.
 refines:
   - aspect: "status-semantics"
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
-  - aspect: "status-semantics"
-    unit: { kind: file, path: tools/spec-spine/registry-consumer/src/lib.rs }
 ---
 
 # Feature Specification: Feature lifecycle & status semantics

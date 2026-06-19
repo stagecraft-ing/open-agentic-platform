@@ -124,7 +124,9 @@ mod tests {
         let ctx = TenantGateContext::default();
         let out = render_tenant_makefile(&ctx).unwrap();
         assert!(out.contains("pr-prep:"));
-        assert!(out.contains("tools/spec-spine"));
+        // Spec 217: the tenant Makefile invokes the published `spec-spine` CLI
+        // on PATH, not a vendored `tools/spec-spine/` binary directory.
+        assert!(out.contains("spec-spine couple"));
         assert!(out.contains(".derived/codebase-index/index.json"));
         assert!(out.contains(".derived/spec-registry/registry.json"));
         assert!(!out.contains("@@"));
@@ -132,13 +134,15 @@ mod tests {
 
     #[test]
     fn makefile_honours_index_and_registry_overrides() {
+        // Spec 217: the Makefile no longer substitutes `binaries_dir` (it calls
+        // the `spec-spine` CLI on PATH), so this exercises only the INDEX /
+        // REGISTRY path overrides the Makefile still honours.
         let ctx = TenantGateContext {
-            binaries_dir: "vendor/spine".into(),
             index_path: "build/index.json".into(),
             registry_path: "build/registry.json".into(),
+            ..Default::default()
         };
         let out = render_tenant_makefile(&ctx).unwrap();
-        assert!(out.contains("vendor/spine"));
         assert!(out.contains("build/index.json"));
         assert!(out.contains("build/registry.json"));
     }
@@ -147,10 +151,11 @@ mod tests {
     fn unsubstituted_placeholder_is_rejected() {
         // Smuggle the placeholder syntax through a context value to
         // simulate a future template carrying a typo'd `@@foo@@`. Exercises
-        // the shared `substitute` rejection via the Makefile renderer (the
-        // workflow renderer was retired with the vendored-binary template).
+        // the shared `substitute` rejection via the Makefile renderer. Spec 217:
+        // routed through `index_path` (still substituted into INDEX) since the
+        // Makefile no longer substitutes `binaries_dir`.
         let ctx = TenantGateContext {
-            binaries_dir: "@@lurking_placeholder@@".into(),
+            index_path: "@@lurking_placeholder@@".into(),
             ..Default::default()
         };
         let err = render_tenant_makefile(&ctx).unwrap_err();

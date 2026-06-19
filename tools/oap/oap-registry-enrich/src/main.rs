@@ -1,6 +1,5 @@
 use clap::{Parser, Subcommand};
 use open_agentic_registry_enrich::{EnrichError, enrich_and_write};
-use open_agentic_spec_registry_reader as srr;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -40,6 +39,19 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Output the authority set for a code path (spec 217 FR-302: the
+    /// authority-resolver verb migrated from `registry-consumer`). Reads the
+    /// committed registry via `spec-spine-core::load_committed_registry`.
+    ByAuthority {
+        /// Repo-relative code path to resolve authority for.
+        path: String,
+        /// Filter co_authority entries to this section/anchor name.
+        #[arg(long)]
+        section: Option<String>,
+        /// Emit structured JSON.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -70,16 +82,35 @@ fn main() -> ExitCode {
         } => {
             let path = registry_path
                 .unwrap_or_else(|| repo_root.join(".derived/spec-registry/registry-oap.json"));
-            let registry = match srr::load(&path) {
+            // Spec 217 engine swap: registry-oap.json is the OAP overlay artifact
+            // this binary itself emits. Read it directly into the minimal shape the
+            // report needs, rather than via the (deleted) in-tree registry reader.
+            #[derive(serde::Deserialize)]
+            struct OapRegistry {
+                #[serde(default)]
+                features: Vec<OapFeature>,
+            }
+            #[derive(serde::Deserialize)]
+            struct OapFeature {
+                id: String,
+                #[serde(default)]
+                compliance: Option<serde_json::Value>,
+            }
+            let registry: OapRegistry = match std::fs::read_to_string(&path)
+                .map_err(|e| e.to_string())
+                .and_then(|s| serde_json::from_str(&s).map_err(|e| e.to_string()))
+            {
                 Ok(r) => r,
                 Err(e) => {
                     eprintln!("oap-registry-enrich: {}: {e}", path.display());
                     return ExitCode::from(3);
                 }
             };
+            let mut features = registry.features;
+            features.sort_by(|a, b| a.id.cmp(&b.id));
             let mut control_map: std::collections::BTreeMap<String, Vec<String>> =
                 std::collections::BTreeMap::new();
-            for f in registry.features_sorted() {
+            for f in &features {
                 let Some(compliance) = f.compliance.as_ref().and_then(|v| v.as_array()) else {
                     continue;
                 };
@@ -129,6 +160,41 @@ fn main() -> ExitCode {
                 println!("{:<40} {:<6} specs", "control", "count");
                 for (control, specs) in &control_map {
                     println!("{:<40} {:<6} {}", control, specs.len(), specs.join(", "));
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        Command::ByAuthority {
+            path,
+            section,
+            json,
+        } => {
+            let registry = match open_agentic_registry_enrich::load_registry(&repo_root) {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("oap-registry-enrich: registry read failed: {e}");
+                    return ExitCode::from(3);
+                }
+            };
+            let result = open_agentic_registry_enrich::authority::authority_for_path(
+                &registry,
+                &path,
+                section.as_deref(),
+            );
+            if json {
+                match serde_json::to_string_pretty(&result) {
+                    Ok(s) => println!("{s}"),
+                    Err(e) => {
+                        eprintln!("oap-registry-enrich: {e}");
+                        return ExitCode::from(3);
+                    }
+                }
+            } else if result.is_empty() {
+                println!("No specs claim authority over: {path}");
+            } else {
+                println!("Authority set for path: {path}");
+                for entry in &result {
+                    println!("  {:<44} via: {}", entry.spec_id, entry.relationship);
                 }
             }
             ExitCode::SUCCESS

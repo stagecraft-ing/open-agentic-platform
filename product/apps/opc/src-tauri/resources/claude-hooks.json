@@ -1,6 +1,6 @@
 {
   "_spec": "166-opc-stop-hook-gate-chain",
-  "_doc": "OPC's bundled Claude Code hook chain. Each command uses the ${OPC_HOOKS_DIR} placeholder; OPC sets that env var to the resolved resources/claude-hooks/ directory before launching the Claude Code subprocess. Entries flagged platform_mandatory: true cannot be removed by project-level overrides (FR-006). The platform-mandatory floor is the codebase-indexer check and spec-code-coupling-check at Stop time. The codification-gate entry composes with the chain per spec 174 FR-008; per-finding override lives in the project's .codification-override.yaml (FR-007), not in the hook config.",
+  "_doc": "OPC's bundled Claude Code hook chain. Each command uses the ${OPC_HOOKS_DIR} placeholder; OPC sets that env var to the resolved resources/claude-hooks/ directory before launching the Claude Code subprocess. Entries flagged platform_mandatory: true cannot be removed by project-level overrides (FR-006). The platform-mandatory floor is the spec-spine index check and spec-spine couple at Stop time. The codification-gate entry composes with the chain per spec 174 FR-008; per-finding override lives in the project's .codification-override.yaml (FR-007), not in the hook config.",
   "hooks": {
     "PostToolUse": [
       {

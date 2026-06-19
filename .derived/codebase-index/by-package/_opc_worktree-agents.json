@@ -1,0 +1,11 @@
+{
+  "package": {
+    "kind": "npm-package",
+    "name": "@opc/worktree-agents",
+    "path": "product/packages/worktree-agents",
+    "specRef": "051-worktree-agents",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "86efebe41ce4d2e912b778e529c750a5f06618411ecd3b83684e9669d5db6e90"
+}

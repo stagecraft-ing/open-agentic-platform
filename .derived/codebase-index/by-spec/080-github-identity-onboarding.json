@@ -1,0 +1,46 @@
+{
+  "mapping": {
+    "implementingPaths": [
+      {
+        "path": "platform/services/stagecraft/api/auth",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/github",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/auth"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "directory",
+          "path": "platform/services/stagecraft/api/auth"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/github"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "directory",
+          "path": "platform/services/stagecraft/api/github"
+        }
+      }
+    ],
+    "specId": "080-github-identity-onboarding",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "8f77eeb2c2a1619c71557edbddc501097c99a5502b75e4bdcf89b2e292f89dc7"
+}

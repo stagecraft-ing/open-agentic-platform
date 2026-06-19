@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib",
+    "name": "agent",
+    "path": "crates/agent",
+    "specRef": "035-agent-governed-execution",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "bdc75f13050066c4081658a54a1bed7aca76374d01ff1e19a48fdcb96d99472f"
+}

@@ -2,7 +2,8 @@
 id: "001-spec-compiler-mvp"
 title: "Spec compiler MVP (registry.json + build-meta.json)"
 feature_branch: "001-spec-compiler-mvp"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 kind: tooling
 domain: tooling
@@ -21,12 +22,11 @@ summary: >
   validation surface: KNOWN_KEYS extension, V-012..V-019 (warning severity in
   Phase 1), VALID_KINDS enum, SHAPE_TABLE reservation, and `implements:` scalar/list
   serialization. SPEC_VERSION bumps 1.4.0 → 1.5.0.
-establishes:
-  - unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
-  - unit: { kind: file, path: tools/spec-spine/spec-compiler/src/main.rs }
-references:
-  - role: artifact
-    unit: { kind: file, path: .derived/spec-registry/registry.json }
+# 217 (spec-spine engine swap) deleted the in-tree spec-compiler crate this
+# spec established; the establishes file-units (and the monolithic registry.json
+# reference) are removed because those paths no longer exist (compile capability
+# is now spec-spine-core::compile). Historical authorship is preserved in 217's
+# supersedes edge and this spec's prose. Superseded by 217.
 ---
 
 # Feature Specification: Spec compiler MVP

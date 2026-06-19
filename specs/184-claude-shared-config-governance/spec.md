@@ -47,10 +47,10 @@ amendment_record: |
   below carry inline notes recording the mechanism change.
 amends:
   - "101-codebase-index-mvp"
-extends:
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
+# 217 deleted the in-tree codebase-indexer; the config-hash slice (check-config) is
+# now in spec-spine-core (spec-spine index check --slice claude-config). The
+# codebase-indexer/src/lib.rs edge is stripped (deleted); this spec's authority over
+# the hashed inputs (.mcp.json, .claude/settings.json) survives below. Amended by 217.
 establishes:
   - unit: { kind: file, path: .mcp.json }
   - unit: { kind: file, path: .claude/settings.json }

@@ -1,15 +1,17 @@
-// Spec 163 / spec 103 — registry-consumer subprocess wrapper.
+// Spec 163 / spec 103 / spec 217: spec-spine registry subprocess wrapper.
 //
-// Spec 103 mandates that .derived/spec-registry/registry.json be read
-// only through the registry-consumer binary by orchestrated workflows.
-// This module is the stagecraft-side enforcement of that discipline:
-// every call into the spec-spine on behalf of the Requirements view
-// (FR-001..FR-006) routes through `spawnRegistryConsumer` below; no
-// other module in `api/specRegistry/` parses the registry JSON file.
+// Spec 103 mandates that the compiled spec registry be read only through
+// the governed consumer by orchestrated workflows. Spec 217 swapped the
+// in-tree reader for the published `spec-spine` CLI: the registry is now
+// the sharded `.derived/spec-registry/by-spec/*.json` tree, read via
+// `spec-spine registry <verb> --repo <projectRoot>`. This module is the
+// stagecraft-side enforcement: every call on behalf of the Requirements
+// view (FR-001..FR-006) routes through `spawnSpecSpine` below; no other
+// module in `api/specRegistry/` parses the registry shards.
 //
-// The binary path is resolved from REGISTRY_CONSUMER_BIN (env). Tests
-// pass `binaryPath` directly so they do not depend on the developer's
-// ambient environment.
+// The binary path is resolved from REGISTRY_CONSUMER_BIN (env), which now
+// points at the `spec-spine` CLI. Tests pass `binaryPath` directly so they
+// do not depend on the developer's ambient environment.
 
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
@@ -23,9 +25,9 @@ import type {
 } from "./types";
 
 export interface ReaderOptions {
-  /** Override for REGISTRY_CONSUMER_BIN; tests set this. */
+  /** Override for REGISTRY_CONSUMER_BIN (the spec-spine CLI); tests set this. */
   binaryPath?: string;
-  /** Subprocess timeout. Default 30s — registry-consumer is fast. */
+  /** Subprocess timeout. Default 30s; spec-spine is fast. */
   timeoutMs?: number;
 }
 
@@ -35,8 +37,9 @@ function resolveBinary(opts: ReaderOptions): string {
   const bin = opts.binaryPath ?? process.env.REGISTRY_CONSUMER_BIN;
   if (!bin) {
     throw new Error(
-      "registry-consumer binary path is not configured. Set REGISTRY_CONSUMER_BIN or build the binary: " +
-        "`cargo build --release --manifest-path tools/spec-spine/registry-consumer/Cargo.toml`"
+      "spec-spine CLI path is not configured. Set REGISTRY_CONSUMER_BIN to the " +
+        "`spec-spine` binary, or install it: " +
+        "`cargo install spec-spine-cli --version 0.8.0 --locked`"
     );
   }
   return bin;
@@ -46,7 +49,7 @@ interface SpawnResult {
   stdout: string;
 }
 
-function spawnRegistryConsumer(
+function spawnSpecSpine(
   bin: string,
   args: string[],
   timeoutMs: number
@@ -63,7 +66,7 @@ function spawnRegistryConsumer(
       if (code !== 0) {
         rejectP(
           new Error(
-            `registry-consumer ${args.join(" ")} exited ${code}: ${Buffer.concat(err)
+            `spec-spine ${args.join(" ")} exited ${code}: ${Buffer.concat(err)
               .toString("utf8")
               .slice(0, 2000)}`
           )
@@ -76,7 +79,7 @@ function spawnRegistryConsumer(
   });
 }
 
-/** Shape we accept from `registry-consumer list --json`. */
+/** Shape we accept from `spec-spine registry list --json`. */
 interface RawListRow {
   id: string;
   title: string;
@@ -118,12 +121,18 @@ function relationshipFieldsFor(raw: RawListRow): Record<string, unknown[]> {
 }
 
 function projectListRow(raw: RawListRow): SpecListRow {
-  const extra = raw.extraFrontmatter ?? {};
-  const categories = Array.isArray(raw.category)
-    ? raw.category.filter((s): s is string => typeof s === "string")
-    : typeof raw.category === "string"
-      ? [raw.category]
+  const extra = (raw.extraFrontmatter ?? {}) as Record<string, unknown>;
+  // Spec 217: the library carries OAP overlay keys (category/risk/owner)
+  // inside extraFrontmatter, not at the top level. Read top-level first
+  // (back-compat), then fall back to the overlay map.
+  const rawCategory = raw.category ?? extra.category;
+  const categories = Array.isArray(rawCategory)
+    ? rawCategory.filter((s): s is string => typeof s === "string")
+    : typeof rawCategory === "string"
+      ? [rawCategory]
       : [];
+  const rawRisk = raw.risk ?? extra.risk;
+  const rawOwner = raw.owner ?? extra.owner;
   const hasDecompositionOrigin = Array.isArray(raw.references)
     ? raw.references.some((r) => r?.role === "decomposition-origin")
     : false;
@@ -134,9 +143,9 @@ function projectListRow(raw: RawListRow): SpecListRow {
     implementation: raw.implementation,
     kind: raw.kind ?? null,
     categories,
-    // Spec 164 FR-008 — typed for the Development board's filter chips.
-    risk: typeof raw.risk === "string" ? raw.risk : null,
-    owner: typeof raw.owner === "string" ? raw.owner : null,
+    // Spec 164 FR-008: typed for the Development board's filter chips.
+    risk: typeof rawRisk === "string" ? rawRisk : null,
+    owner: typeof rawOwner === "string" ? rawOwner : null,
     summary: raw.summary ?? null,
     specPath: raw.specPath,
     extraFrontmatter: extra,
@@ -145,26 +154,26 @@ function projectListRow(raw: RawListRow): SpecListRow {
   };
 }
 
-/** List specs from the project's registry.json (FR-001). */
+/** List specs from the project's spec-spine registry shards (FR-001). */
 export async function listSpecs(
-  registryPath: string,
+  repoRoot: string,
   opts: ReaderOptions = {}
 ): Promise<SpecListRow[]> {
   const bin = resolveBinary(opts);
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const { stdout } = await spawnRegistryConsumer(
+  const { stdout } = await spawnSpecSpine(
     bin,
-    ["--registry-path", registryPath, "list", "--json"],
+    ["--repo", repoRoot, "registry", "list", "--json"],
     timeoutMs
   );
   const arr = JSON.parse(stdout) as RawListRow[];
   if (!Array.isArray(arr)) {
-    throw new Error("registry-consumer list --json did not return an array");
+    throw new Error("spec-spine registry list --json did not return an array");
   }
   return arr.map(projectListRow).sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** Shape we accept from `registry-consumer show <id> --json`. */
+/** Shape we accept from `spec-spine registry show <id> --json`. */
 interface RawShowRecord extends RawListRow {
   references?: Array<{ role: string; unit: SpecReference["unit"] }>;
 }
@@ -183,15 +192,15 @@ function stripFrontmatter(md: string): string {
 /** Get one spec record + body (FR-006). */
 export async function getSpecDetail(
   specId: string,
-  registryPath: string,
+  repoRoot: string,
   projectRoot: string,
   opts: ReaderOptions = {}
 ): Promise<SpecDetail> {
   const bin = resolveBinary(opts);
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const { stdout } = await spawnRegistryConsumer(
+  const { stdout } = await spawnSpecSpine(
     bin,
-    ["--registry-path", registryPath, "show", specId, "--json"],
+    ["--repo", repoRoot, "registry", "show", specId, "--json"],
     timeoutMs
   );
   const raw = JSON.parse(stdout) as RawShowRecord;
@@ -217,70 +226,58 @@ export async function getSpecDetail(
 
 /**
  * Outgoing + incoming relationship edges for a spec (FR-006, spec 130).
- * Parsed from registry-consumer's `show-relationships` human-readable
- * output — the typed JSON form is not yet exposed by the binary, but
- * the human form is stable enough to scrape, line-shape per
- * tools/spec-spine/registry-consumer/src/main.rs `print_relationships_human`:
- *
- *   Relationships for: <id>
- *
- *   Outgoing (N):
- *     <kind>                              # path-only edges (e.g. constrains)
- *     <kind> → <other-spec>
- *     <kind> → <other-spec> [<paths>]
- *
- *   Incoming (M):
- *     <kind> ← <other-spec>
+ * Spec 217: read from `spec-spine registry relationships <id> --json`, a
+ * typed spec-to-spec neighborhood, replacing the prior scrape of the
+ * in-tree human-text output. The library emits outgoing edges (dependsOn /
+ * supersedes / amends) plus the reverse incoming edges (dependedOnBy /
+ * supersededBy / amendedBy); each projects into the {kind, otherSpec}
+ * SpecEdge shape the Requirements view renders.
  */
 export async function getSpecRelationships(
   specId: string,
-  registryPath: string,
+  repoRoot: string,
   opts: ReaderOptions = {}
 ): Promise<SpecRelationships> {
   const bin = resolveBinary(opts);
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const { stdout } = await spawnRegistryConsumer(
+  const { stdout } = await spawnSpecSpine(
     bin,
-    ["--registry-path", registryPath, "show-relationships", specId],
+    ["--repo", repoRoot, "registry", "relationships", specId, "--json"],
     timeoutMs
   );
-  return parseRelationshipsText(specId, stdout);
+  return parseRelationshipsJson(specId, stdout);
 }
 
-// Outgoing edge with named spec: `<kind> → <other> [<paths>]?`. The
-// trailing `[paths]` is captured but not surfaced today — the
-// Requirements view shows the relationship graph (other specs), not
-// per-path detail.
-const OUTGOING_LINE = /^\s*([a-z_]+)\s*→\s*([^\s\[]+)(?:\s*\[(.+)\])?\s*$/;
-// Incoming edges always carry an other-spec.
-const INCOMING_LINE = /^\s*([a-z_]+)\s*←\s*(\S+)\s*$/;
+/** Shape of `spec-spine registry relationships <id> --json`. */
+interface RawRelationships {
+  id?: string;
+  dependsOn?: string[];
+  supersedes?: string[];
+  amends?: string[];
+  dependedOnBy?: string[];
+  supersededBy?: string[];
+  amendedBy?: string[];
+}
 
-export function parseRelationshipsText(specId: string, text: string): SpecRelationships {
-  const outgoing: SpecEdge[] = [];
-  const incoming: SpecEdge[] = [];
-  let section: "outgoing" | "incoming" | null = null;
-  for (const lineRaw of text.split(/\r?\n/)) {
-    const line = lineRaw.trimEnd();
-    if (/^Outgoing\b/i.test(line)) {
-      section = "outgoing";
-      continue;
-    }
-    if (/^Incoming\b/i.test(line)) {
-      section = "incoming";
-      continue;
-    }
-    if (!section || !line.trim()) continue;
-    if (section === "outgoing") {
-      const m = OUTGOING_LINE.exec(line);
-      if (!m) continue;
-      const [, kind, otherSpec] = m;
-      outgoing.push({ kind, otherSpec });
-    } else {
-      const m = INCOMING_LINE.exec(line);
-      if (!m) continue;
-      const [, kind, otherSpec] = m;
-      incoming.push({ kind, otherSpec });
-    }
-  }
+function edgesFrom(list: string[] | undefined, kind: string): SpecEdge[] {
+  return Array.isArray(list)
+    ? list
+        .filter((s): s is string => typeof s === "string" && s.length > 0)
+        .map((otherSpec) => ({ kind, otherSpec }))
+    : [];
+}
+
+export function parseRelationshipsJson(specId: string, json: string): SpecRelationships {
+  const raw = JSON.parse(json) as RawRelationships;
+  const outgoing: SpecEdge[] = [
+    ...edgesFrom(raw.dependsOn, "depends_on"),
+    ...edgesFrom(raw.supersedes, "supersedes"),
+    ...edgesFrom(raw.amends, "amends"),
+  ];
+  const incoming: SpecEdge[] = [
+    ...edgesFrom(raw.dependedOnBy, "depends_on"),
+    ...edgesFrom(raw.supersededBy, "supersedes"),
+    ...edgesFrom(raw.amendedBy, "amends"),
+  ];
   return { id: specId, outgoing, incoming };
 }

@@ -21,9 +21,6 @@ extends:
     unit: { kind: file, path: platform/services/deployd-api-rs/Cargo.toml }
   - spec: "073-axiomregent-unification"
     nature: additive
-    unit: { kind: file, path: platform/services/deployd-api-rs/Cargo.lock }
-  - spec: "073-axiomregent-unification"
-    nature: additive
     unit: { kind: file, path: platform/services/deployd-api-rs/src/main.rs }
   - spec: "073-axiomregent-unification"
     nature: additive

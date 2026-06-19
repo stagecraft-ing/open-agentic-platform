@@ -1,20 +1,18 @@
 //! OAP-side enricher for the generic codebase index.
 //!
-//! Cut D W-07a: reads the generic index emitted by codebase-indexer
-//! via the W-11 typed reader (`open_agentic_codebase_indexer::load`),
-//! walks the OAP-specific directories (`factory/adapters/`,
-//! `.claude/{agents,commands,rules,schemas}/`,
-//! `.github/workflows/`), and emits
-//! `build/codebase-index/index-oap.json` with Layers 3-5 overlaid on
+//! Walks the OAP-specific directories (`factory/adapters/`,
+//! `.claude/{agents,commands,rules,schemas}/`, `.github/workflows/`) and
+//! emits `.derived/codebase-index/index-oap.json` with Layers 3-5 overlaid on
 //! the generic Layers 1-2.
 //!
-//! During W-07a → W-07c transition codebase-indexer still emits
-//! Layers 3-5 directly; the enricher's output is a parallel artifact
-//! whose Layer 3-5 emissions match. W-07c removes Layers 3-5 from the
-//! generic side and the enricher becomes the sole authoritative
-//! source.
+//! Spec 217 engine swap: the generic Layers 1-2 are assembled from the
+//! committed sharded index (`.derived/codebase-index/by-spec`, `by-package`)
+//! via `spec_spine_core::load_committed_index` and projected to JSON, replacing
+//! the former in-tree indexer's load of a monolithic
+//! `index.json` (the library emits no monolith). The typed `CodebaseIndex` is
+//! the Layer 1-2 base; the OAP overlay is layered on top.
 
-use open_agentic_codebase_indexer::{IndexReaderError, load as load_index};
+use spec_spine_core::load_committed_index;
 use serde_json::{Map, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -40,7 +38,7 @@ pub use types::{
 pub enum EnrichError {
     Io(std::io::Error),
     Json(serde_json::Error),
-    Index(IndexReaderError),
+    Index(String),
     Invalid(String),
 }
 
@@ -67,30 +65,36 @@ impl From<serde_json::Error> for EnrichError {
         EnrichError::Json(e)
     }
 }
-impl From<IndexReaderError> for EnrichError {
-    fn from(e: IndexReaderError) -> Self {
-        EnrichError::Index(e)
-    }
+
+/// Load the spec-spine config for `repo_root` (spec 217 engine swap): the
+/// committed `spec-spine.toml` when present, else `Config::default()` (which
+/// already points `derived_dir` at `.derived`).
+fn load_spec_spine_config(repo_root: &Path) -> spec_spine_types::Config {
+    fs::read_to_string(repo_root.join("spec-spine.toml"))
+        .ok()
+        .and_then(|src| spec_spine_types::load_config(&src).ok())
+        .unwrap_or_default()
 }
 
 /// Compute the enriched index bytes (deterministic, sorted, pretty).
 pub fn enrich(repo_root: &Path) -> Result<Vec<u8>, EnrichError> {
-    let index_path = repo_root.join(".derived/codebase-index/index.json");
-    let index = load_index(&index_path)?;
+    // Spec 217 engine swap: the committed index is the sharded by-spec /
+    // by-package tree (no monolithic index.json). Assemble the typed
+    // CodebaseIndex via the library and project Layers 1-2 from it.
+    let cfg = load_spec_spine_config(repo_root);
+    let index =
+        load_committed_index(&cfg, repo_root).map_err(|e| EnrichError::Index(e.to_string()))?;
 
     let (adapters, factory_diags) = scan_adapters(repo_root);
     let infrastructure = scan_infrastructure(repo_root);
     let workflow_scan = scan_workflows(repo_root);
 
-    // Start from the typed index's raw JSON (preserves Layers 1+2
-    // exactly as the generic indexer emitted them). Note: load() does
-    // not preserve a `raw` field on CodebaseIndex (unlike the registry
-    // typed-reader), so we re-read the raw bytes ourselves to keep
-    // the Layer 1+2 emission byte-stable across the enrichment.
-    let raw = fs::read_to_string(&index_path)?;
-    let mut enriched: Value = serde_json::from_str(&raw)?;
+    // The typed library index serializes to the generic Layers 1-2 shape
+    // (camelCase: schemaVersion / build / packages / traceability /
+    // diagnostics). Overlay Layers 3-5 onto it.
+    let mut enriched: Value = serde_json::to_value(&index)?;
     let obj = enriched.as_object_mut().ok_or_else(|| {
-        EnrichError::Invalid("index.json top-level is not an object".to_string())
+        EnrichError::Invalid("serialized index is not an object".to_string())
     })?;
 
     // Overlay Layer 3 (factory adapters).
@@ -148,15 +152,6 @@ pub fn enrich(repo_root: &Path) -> Result<Vec<u8>, EnrichError> {
         Value::String(env!("CARGO_PKG_VERSION").to_string()),
     );
 
-    // Schema-version tag: the enriched superset gets its own
-    // schemaVersion. The generic schema's `schemaVersion` (e.g.
-    // "1.4.0" pre-W-07c, "2.0.0" post-W-07c) stays untouched on the
-    // generic index; the enricher emits a parallel
-    // `enrichedSchemaVersion` so consumers can distinguish.
-    let _ = index.schema_version; // touched to satisfy the read
-
-    let _suppress = std::any::type_name::<EnrichDiagnostic>(); // ensure type is used
-
     canonical_json_bytes(&enriched)
 }
 
@@ -200,31 +195,22 @@ fn sort_json_value(v: Value) -> Value {
 mod tests {
     use super::*;
 
-    fn write_minimal_index(repo: &Path, schema_version: &str) {
-        let dir = repo.join(".derived/codebase-index");
-        fs::create_dir_all(&dir).unwrap();
-        fs::write(
-            dir.join("index.json"),
-            format!(
-                r#"{{
-                    "schemaVersion": "{schema_version}",
-                    "build": {{ "indexerId": "test", "indexerVersion": "0", "repoRoot": ".", "contentHash": "0" }},
-                    "inventory": [],
-                    "traceability": {{ "mappings": [], "orphanedSpecs": [], "untracedCode": [] }},
-                    "factory": [],
-                    "infrastructure": {{ "tools": [], "agents": [], "commands": [], "rules": [], "schemas": [] }},
-                    "diagnostics": {{ "warnings": [], "errors": [] }}
-                }}"#
-            ),
-        )
-        .unwrap();
+    /// Spec 217: the committed index is the sharded by-spec / by-package tree
+    /// under `.derived/codebase-index`. The enricher's job is the OAP overlay
+    /// (Layers 3-5), so these tests exercise it against an empty committed
+    /// index (the shard dirs exist but hold no shards). `load_committed_index`
+    /// then yields an empty `CodebaseIndex` onto which the overlay is layered.
+    fn write_empty_index_shards(repo: &Path) {
+        let base = repo.join(".derived/codebase-index");
+        fs::create_dir_all(base.join("by-spec")).unwrap();
+        fs::create_dir_all(base.join("by-package")).unwrap();
     }
 
     #[test]
     fn enrich_walks_factory_adapters() {
         let dir = tempfile::tempdir().unwrap();
         let repo = dir.path();
-        write_minimal_index(repo, "1.4.0");
+        write_empty_index_shards(repo);
 
         let adapter_dir = repo.join("factory/adapters/my-adapter");
         fs::create_dir_all(&adapter_dir).unwrap();
@@ -246,7 +232,7 @@ mod tests {
     fn enrich_walks_claude_dirs_for_infrastructure() {
         let dir = tempfile::tempdir().unwrap();
         let repo = dir.path();
-        write_minimal_index(repo, "1.4.0");
+        write_empty_index_shards(repo);
 
         let agents_dir = repo.join(".claude/agents");
         fs::create_dir_all(&agents_dir).unwrap();
@@ -269,7 +255,7 @@ mod tests {
     fn enrich_emits_workflow_traceability_and_i105_diagnostic() {
         let dir = tempfile::tempdir().unwrap();
         let repo = dir.path();
-        write_minimal_index(repo, "1.4.0");
+        write_empty_index_shards(repo);
 
         let wf_dir = repo.join(".github/workflows");
         fs::create_dir_all(&wf_dir).unwrap();
@@ -294,7 +280,7 @@ mod tests {
     fn enrich_tags_build_block() {
         let dir = tempfile::tempdir().unwrap();
         let repo = dir.path();
-        write_minimal_index(repo, "1.4.0");
+        write_empty_index_shards(repo);
 
         let path = enrich_and_write(repo).unwrap();
         let v: Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
@@ -303,10 +289,11 @@ mod tests {
     }
 
     #[test]
-    fn enrich_accepts_post_w07c_schema_version() {
+    fn enrich_succeeds_against_committed_shard_tree() {
         let dir = tempfile::tempdir().unwrap();
         let repo = dir.path();
-        write_minimal_index(repo, "1.4.0"); // current codebase-indexer version
-        let _path = enrich_and_write(repo).expect("enrich must succeed on current schema");
+        write_empty_index_shards(repo);
+        let _path = enrich_and_write(repo)
+            .expect("enrich must succeed on the sharded committed index");
     }
 }

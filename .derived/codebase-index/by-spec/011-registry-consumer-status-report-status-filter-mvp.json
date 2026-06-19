@@ -1,0 +1,9 @@
+{
+  "mapping": {
+    "implementingPaths": [],
+    "specId": "011-registry-consumer-status-report-status-filter-mvp",
+    "specStatus": "superseded"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "96acd60a15f1efb6d5e41ba4e787e164eb2ead32036d12d7987a9d2404d43b65"
+}

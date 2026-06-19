@@ -20,23 +20,16 @@ depends_on:
   - "006-conformance-lint-mvp"  # spec-lint (V-031 emission)
   - "147-spec-kind-grammar"  # precedent — sibling amendment of 000's frontmatter grammar
 code_aliases: ["DOMAIN_FIELD"]
+# 217 deleted the in-tree spec-compiler + registry-consumer; the domain-field parse
+# (V-030) and the --domain filter moved to spec-spine-core / `spec-spine registry list
+# --domain`. The spec-compiler + registry-consumer test units are stripped (paths
+# deleted); the surviving spec-lint V-031 presence test is retained. Amended by 217.
 establishes:
-  - unit: { kind: file, path: tools/spec-spine/spec-compiler/tests/spec179_domain_field.rs }
-  - unit: { kind: file, path: tools/spec-spine/registry-consumer/tests/spec179_domain_filter.rs }
   - unit: { kind: file, path: tools/spec-spine/spec-lint/tests/spec179_domain_presence.rs }
 extends:
   - spec: "147-spec-kind-grammar"
     nature: additive
     unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
-  - spec: "001-spec-compiler-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
-  - spec: "002-registry-consumer-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/registry-consumer/src/lib.rs }
-  - spec: "002-registry-consumer-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/registry-consumer/src/main.rs }
   - spec: "006-conformance-lint-mvp"
     nature: additive
     unit: { kind: file, path: tools/spec-spine/spec-lint/src/lib.rs }

@@ -1,0 +1,12 @@
+{
+  "package": {
+    "edition": "2024",
+    "kind": "rust-lib",
+    "name": "featuregraph",
+    "path": "crates/featuregraph",
+    "specRef": "034-featuregraph-registry-scanner-fix",
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "db621221639516fda9079c3c3d10ec461420139c2c6bea25034e9e6caff53c8d"
+}

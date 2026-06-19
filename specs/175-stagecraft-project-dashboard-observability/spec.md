@@ -20,8 +20,14 @@ depends_on:
   - "164-stagecraft-development-lifecycle-board"  # stagecraft-development-lifecycle-board (pair surface; supplies lifecycle counts shape)
   - "168-per-project-governance-certificate"  # per-project-governance-certificate (the certificate this view surfaces)
 code_aliases: ["STAGECRAFT_PROJECT_DASHBOARD", "PROJECT_DETAIL_OBSERVABILITY"]
-amended: "2026-05-24"
-amendment_record: "175 (self) — implementation-time `establishes:` and `extends:` fill-in"
+amended: "2026-06-18"
+amendment_record: |
+  175 (self): implementation-time `establishes:` and `extends:` fill-in.
+  amended 2026-06-18 by spec 217 (engine-swap collapse): projectDashboard/dashboard.ts
+  was updated to pass the project root to spec 163's spec-registry reader after the
+  reader's API moved from `--registry-path <file>` to `--repo <projectRoot>` in the
+  engine swap. The dashboard's observability contract is unchanged; only the
+  reader-call argument shape moved.
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/encore.service.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/projectDashboard/dashboard.ts }
