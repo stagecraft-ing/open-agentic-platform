@@ -23,6 +23,7 @@ import {
 import {
   createDeploymentRecord,
   getLatestDeploymentForEnv,
+  mapDeploydStatus,
   updateDeploymentByReleaseId,
   updateDeploymentRecord,
 } from "./deployments";
@@ -613,13 +614,6 @@ function hostLabel(s: string): string {
       .replace(/^-+|-+$/g, "")
       .slice(0, 63) || "env"
   );
-}
-
-/** Map deployd-api's status string onto our DeploymentStatus enum. */
-function mapDeploydStatus(status: string | null): DeploymentStatus {
-  if (status === "ROLLED_OUT") return "ROLLED_OUT";
-  if (status === "FAILED") return "FAILED";
-  return "PENDING";
 }
 
 interface ResolvedArtifact {

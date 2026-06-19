@@ -21,6 +21,18 @@ import {
   type EnvironmentDeployment,
 } from "../db/schema";
 
+/**
+ * Map deployd-api's status string onto our DeploymentStatus enum. deployd's
+ * terminal states are ROLLED_OUT / FAILED; anything else (DEPLOYING, etc.) is
+ * recorded as PENDING and reconciled later (FR-008). Shared by the UI trigger
+ * and the PR webhook so both record statuses consistently.
+ */
+export function mapDeploydStatus(status: string | null): DeploymentStatus {
+  if (status === "ROLLED_OUT") return "ROLLED_OUT";
+  if (status === "FAILED") return "FAILED";
+  return "PENDING";
+}
+
 /** Fields accepted when recording a fresh dispatch. */
 export interface NewDeploymentRecord {
   environmentId: string;

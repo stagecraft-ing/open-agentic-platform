@@ -21,6 +21,12 @@ import {
   isDeploydConfigured,
 } from "../deploy/deploydClient";
 import {
+  createDeploymentRecord,
+  getLatestDeploymentForEnv,
+  mapDeploydStatus,
+  updateDeploymentRecord,
+} from "../deploy/deployments";
+import {
   deriveArtifactRef,
   derivePreviewRef,
   type ArtifactVariant,
@@ -154,22 +160,36 @@ async function dispatchEvent(event: string, payload: unknown): Promise<void> {
           const repoRow = await findRepoRow(p.repository.full_name);
           if (repoRow) {
             const previewEnv = await findOrCreatePreviewEnv(repoRow.projectId, p.number);
+            // Shared ref convention (spec 213 FR-003/FR-005): the `oap-build`
+            // workflow publishes this `pr-{n}` tag on the head commit, so the
+            // dispatched image exists. Derived from the current project_repos
+            // row (handles repo rename).
+            const previewRef = derivePreviewRef({
+              githubOrg: repoRow.githubOrg,
+              repoName: repoRow.repoName,
+              prNumber: p.number,
+            });
             try {
               const result = await createPreviewDeployment({
                 tenant_id: "default",
                 app_id: repoRow.projectId,
                 env_id: previewEnv.id,
                 release_sha: p.pull_request.head.sha,
-                // Shared ref convention (spec 213 FR-003/FR-005): the
-                // `oap-build` workflow publishes this `pr-{n}` tag on the
-                // head commit, so the dispatched image exists. Derived from
-                // the current project_repos row (handles repo rename).
-                artifact_ref: derivePreviewRef({
-                  githubOrg: repoRow.githubOrg,
-                  repoName: repoRow.repoName,
-                  prNumber: p.number,
-                }),
+                artifact_ref: previewRef,
                 lane: "LANE_A",
+              });
+              // FR-005: record the dispatch keyed to deployd's real release id
+              // so the PR-close path destroys the actual release instead of a
+              // constructed string it never minted.
+              await createDeploymentRecord({
+                environmentId: previewEnv.id,
+                projectId: repoRow.projectId,
+                releaseSha: p.pull_request.head.sha,
+                artifactRef: previewRef,
+                variant: "root",
+                status: mapDeploydStatus(result.status),
+                releaseId: result.release_id,
+                dispatchedBy: "webhook",
               });
               log.info("Preview deploy triggered", { releaseId: result.release_id, pr: p.number });
             } catch (err) {
@@ -185,11 +205,35 @@ async function dispatchEvent(event: string, payload: unknown): Promise<void> {
         if (isDeploydConfigured()) {
           const repoRow = await findRepoRow(p.repository.full_name);
           if (repoRow) {
-            try {
-              await destroyPreviewDeployment(`preview-${repoRow.projectId}-pr-${p.number}`);
-              log.info("Preview destroy triggered", { pr: p.number });
-            } catch (err) {
-              log.error("Preview destroy failed", { error: String(err), pr: p.number });
+            // FR-005: resolve the stored deployd release id and destroy THAT.
+            // The prior code destroyed a constructed `preview-{projectId}-pr-{n}`
+            // string deployd never minted, so the DELETE 404'd and preview
+            // releases leaked. A missing env/record is a logged no-op, never a
+            // fabricated id.
+            const previewEnv = await findPreviewEnv(repoRow.projectId, p.number);
+            const record = previewEnv
+              ? await getLatestDeploymentForEnv(previewEnv.id)
+              : undefined;
+            if (record?.releaseId && record.status !== "DESTROYED") {
+              try {
+                await destroyPreviewDeployment(record.releaseId);
+                await updateDeploymentRecord(record.id, { status: "DESTROYED" });
+                log.info("Preview destroy triggered", {
+                  pr: p.number,
+                  releaseId: record.releaseId,
+                });
+              } catch (err) {
+                log.error("Preview destroy failed", {
+                  error: String(err),
+                  pr: p.number,
+                  releaseId: record.releaseId,
+                });
+              }
+            } else {
+              log.info("Preview destroy skipped: no recorded release id", {
+                pr: p.number,
+                projectId: repoRow.projectId,
+              });
             }
           }
         }
@@ -724,6 +768,18 @@ async function findRepoRow(fullName: string) {
     .where(and(eq(projectRepos.githubOrg, owner), eq(projectRepos.repoName, name)))
     .limit(1);
   return rows[0] ?? null;
+}
+
+/** Find-only lookup of a PR's preview environment (FR-005 destroy path); does
+ *  NOT create one, so closing a PR that never deployed leaves no orphan env. */
+async function findPreviewEnv(projectId: string, prNumber: number) {
+  const envName = `preview-pr-${prNumber}`;
+  const [row] = await db
+    .select()
+    .from(environments)
+    .where(and(eq(environments.projectId, projectId), eq(environments.name, envName)))
+    .limit(1);
+  return row ?? null;
 }
 
 async function findOrCreatePreviewEnv(projectId: string, prNumber: number) {
