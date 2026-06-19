@@ -311,15 +311,18 @@ tools/*/build/
 # (spec 101 SC-06) is restored. The monolithic `index.json` / `registry.json`
 # are never emitted again (spec-spine 0.8.0 emits only shards). `build-meta.json`
 # (ephemeral wall-clock) and the OAP overlay outputs (`index-oap.json`,
-# `CODEBASE-INDEX.md`, `slices.json`) stay gitignored and rebuilt on demand.
-# `config-hash.json` (spec 188 Phase 4a, the re-homed config-slice hash) stays
-# committed.
+# `CODEBASE-INDEX.md`) stay gitignored and rebuilt on demand. `config-hash.json`
+# (spec 188 Phase 4a) and `slices.json` stay committed: `slices.json` is the
+# spec 184 config-slice gate reference that the `spec-spine index check --slice`
+# consumer reads on a fresh clone, so it must be present in git (the ci-parity
+# producer/consumer gate enforces this).
 .derived/spec-registry/*
 !.derived/spec-registry/by-spec/
 .derived/codebase-index/*
 !.derived/codebase-index/by-spec/
 !.derived/codebase-index/by-package/
 !.derived/codebase-index/config-hash.json
+!.derived/codebase-index/slices.json
 .derived/schema-parity/*
 .axiomregent/
 .fastembed_cache/
