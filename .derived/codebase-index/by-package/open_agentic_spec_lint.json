@@ -4,9 +4,9 @@
     "kind": "rust-lib-bin",
     "name": "open_agentic_spec_lint",
     "path": "tools/spec-spine/spec-lint",
-    "specRef": "006-conformance-lint-mvp",
+    "specRef": "147-spec-kind-grammar",
     "version": "0.1.0"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "42c01411897e1321c0a06bcb03751c1e3730fbf57ff00d6f9378a9f0701c63b1"
+  "shardHash": "7f684ea00c24b95ded45e8f437a5bcbae0263096b16cb7cb35079a1e43f390bd"
 }

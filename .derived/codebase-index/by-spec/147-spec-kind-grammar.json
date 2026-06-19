@@ -19,6 +19,10 @@
         "source": "spec-edge"
       },
       {
+        "path": "tools/spec-spine/spec-lint",
+        "source": "manifest-metadata"
+      },
+      {
         "path": "tools/spec-spine/spec-lint/src/lib.rs",
         "source": "spec-edge"
       }

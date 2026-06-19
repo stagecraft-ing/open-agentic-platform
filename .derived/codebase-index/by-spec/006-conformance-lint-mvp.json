@@ -1,11 +1,6 @@
 {
   "mapping": {
-    "implementingPaths": [
-      {
-        "path": "tools/spec-spine/spec-lint",
-        "source": "manifest-metadata"
-      }
-    ],
+    "implementingPaths": [],
     "specId": "006-conformance-lint-mvp",
     "specStatus": "superseded"
   },

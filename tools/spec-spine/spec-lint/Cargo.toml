@@ -24,4 +24,4 @@ toml = "0.8"
 tempfile = "3.27.0"
 
 [package.metadata.oap]
-spec = "006-conformance-lint-mvp"
+spec = "147-spec-kind-grammar"
