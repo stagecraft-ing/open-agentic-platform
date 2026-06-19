@@ -421,6 +421,18 @@ complete) so the library's `L-005` string is unambiguous. Until then OAP's
 existing `spec-lint --fail-on-warn` remains the lint gate (AC-102 holds: it
 exits 0 on the current corpus, unchanged).
 
+**Update (2026-06-19, after Workstreams F + D landed):** the corpus-governance
+wave (Phase 5/F) and the shard-commit (Workstream D) landed as spec.md and
+artifact changes only. The library-lint *merge* itself (folding the generic
+`L-001..L-004` pass into the OAP gate, dropping the now-redundant `V-020`/`V-031`,
+and retiring OAP's obsolete `L-005`) was NOT wired in the bundle, because the
+`V-020`/`L-001` reconciliation in (b) above is a behavior-and-corpus change that
+warrants its own focused pass rather than a tail-end addition to the engine-swap
+PR. It is now a tracked post-217 follow-up. AC-102 continues to hold unchanged:
+OAP's `spec-lint --fail-on-warn` is the lint gate and exits 0 on the current
+corpus; the OAP-domain codes (W-130/131/132, V-030/031, W-161, L-005) stay
+exercised by their fixture tests.
+
 **Consequence for the phase model.** This is the third Phase-1 element
 (after the spec-types re-export and the lint code-split) whose clean
 standalone landing dissolved on contact with the library's stricter or
