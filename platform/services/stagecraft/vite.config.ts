@@ -133,6 +133,10 @@ export default defineConfig({
       // approval-summary parity / agent resolution) + mode-sensitive
       // lift + verify interplay; live DB.
       "**/factory/overrideQuarantineEnforcement.test.ts",
+      // Spec 215 FR-003: environment_deployments record writer
+      // (create / patch-by-id / patch-by-release / latest-per-env /
+      // by-release lookup) exercised against live Postgres.
+      "**/deploy/deployments.test.ts",
     ],
   },
 });

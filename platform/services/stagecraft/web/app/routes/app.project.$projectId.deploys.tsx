@@ -1,6 +1,9 @@
 import { Link, useLoaderData, useParams } from "react-router";
 import { requireUser } from "../lib/auth.server";
-import { listEnvironments } from "../lib/projects-api.server";
+import {
+  getLatestDeployment,
+  listEnvironments,
+} from "../lib/projects-api.server";
 
 type EnvironmentRow = {
   id: string;
@@ -31,7 +34,26 @@ export async function loader({
     // deployd service may not be ready
   }
 
-  return { environments };
+  // FR-004: per-environment latest-deployment status badge. Best-effort and
+  // parallel; an env with no deployment (or a transient error) simply has no
+  // badge rather than failing the whole page.
+  const deployStatuses: Record<string, string> = {};
+  await Promise.all(
+    environments.map(async (env) => {
+      try {
+        const { deployment } = await getLatestDeployment(
+          request,
+          params.projectId,
+          env.id,
+        );
+        if (deployment) deployStatuses[env.id] = deployment.status;
+      } catch {
+        // no badge for this env
+      }
+    }),
+  );
+
+  return { environments, deployStatuses };
 }
 
 const ENV_KIND_COLORS: Record<string, string> = {
@@ -41,8 +63,20 @@ const ENV_KIND_COLORS: Record<string, string> = {
   production: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 };
 
+const DEPLOY_STATUS_COLORS: Record<string, string> = {
+  REQUESTED: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+  PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+  ROLLED_OUT: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  FAILED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  REQUEST_FAILED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  DESTROYED: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+};
+
 export default function DeployStatus() {
-  const { environments } = useLoaderData() as { environments: EnvironmentRow[] };
+  const { environments, deployStatuses } = useLoaderData() as {
+    environments: EnvironmentRow[];
+    deployStatuses: Record<string, string>;
+  };
   const { projectId } = useParams() as { projectId: string };
 
   return (
@@ -92,6 +126,15 @@ export default function DeployStatus() {
                     {env.k8sNamespace && (
                       <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 font-mono">
                         ns: {env.k8sNamespace}
+                      </p>
+                    )}
+                    {deployStatuses[env.id] && (
+                      <p className="mt-1">
+                        <span
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${DEPLOY_STATUS_COLORS[deployStatuses[env.id]] ?? "bg-gray-100 text-gray-800"}`}
+                        >
+                          {deployStatuses[env.id]}
+                        </span>
                       </p>
                     )}
                   </Link>

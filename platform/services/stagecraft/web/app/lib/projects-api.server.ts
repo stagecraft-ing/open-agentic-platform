@@ -700,3 +700,61 @@ export async function removeAllowlistEntry(
     { method: "DELETE" },
   ) as Promise<{ ok: true; removed: AccessGateAllowlistEntry | null }>;
 }
+
+// -------------------------------------------------------------------------
+// Spec 215: deploy trigger + status. Wire shapes mirror
+// `api/deploy/deploy.ts` (DeploymentView). The web tier calls these
+// stagecraft endpoints, never deployd-api directly (FR-002). Status is
+// served by getLatestDeployment, which lazily reconciles a stale PENDING
+// record against deployd-api before answering (FR-008), so a separate
+// getDeploymentStatus call is unnecessary.
+// -------------------------------------------------------------------------
+
+export type DeploymentStatus =
+  | "REQUESTED"
+  | "PENDING"
+  | "ROLLED_OUT"
+  | "FAILED"
+  | "REQUEST_FAILED"
+  | "DESTROYED";
+
+export interface DeploymentView {
+  id: string;
+  environmentId: string;
+  projectId: string;
+  releaseId: string | null;
+  releaseSha: string;
+  artifactRef: string;
+  variant: string;
+  status: DeploymentStatus;
+  endpoints: string[];
+  dispatchedBy: string;
+  diagnostic: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** FR-001/002: trigger a deploy of the project's latest built image to an env. */
+export async function createDeployment(
+  request: Request,
+  projectId: string,
+  envId: string,
+) {
+  return apiFetch(
+    request,
+    `/api/projects/${projectId}/envs/${envId}/deployments`,
+    { method: "POST", body: "{}" },
+  ) as Promise<{ deployment: DeploymentView; alreadyDeployed: boolean }>;
+}
+
+/** FR-004/008: latest deployment for an env (null = never deployed). */
+export async function getLatestDeployment(
+  request: Request,
+  projectId: string,
+  envId: string,
+) {
+  return apiFetch(
+    request,
+    `/api/projects/${projectId}/envs/${envId}/deployments/latest`,
+  ) as Promise<{ deployment: DeploymentView | null }>;
+}

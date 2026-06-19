@@ -16,6 +16,7 @@
 import {
   Form,
   useActionData,
+  useFetcher,
   useLoaderData,
   useNavigation,
 } from "react-router";
@@ -697,6 +698,13 @@ function renderReadinessBanner(readiness: ScaffoldReadiness): React.ReactNode {
 }
 
 function CreateSuccess({ data }: { data: ActionSuccess }) {
+  // The deploy trigger posts to the env detail route's action, whose result
+  // shape is { ok, intent?, error? }.
+  const deployFetcher = useFetcher<{
+    ok: boolean;
+    intent?: string;
+    error?: string;
+  }>();
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3">
@@ -738,6 +746,52 @@ function CreateSuccess({ data }: { data: ActionSuccess }) {
             </a>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono break-all">
               {data.opcDeepLink}
+            </p>
+          </dd>
+        </div>
+        {/* Spec 215 FR-001: post-create deploy accelerator. */}
+        <div className="grid grid-cols-[12rem_1fr] px-4 py-3">
+          <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            Preview in Deployd
+          </dt>
+          <dd className="space-y-1">
+            <div className="flex items-center gap-3">
+              <deployFetcher.Form
+                method="post"
+                action={`/app/project/${data.projectId}/deploys/${data.devEnvironmentId}`}
+              >
+                <input type="hidden" name="intent" value="deploy.trigger" />
+                <button
+                  type="submit"
+                  disabled={deployFetcher.state !== "idle"}
+                  className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {deployFetcher.state !== "idle"
+                    ? "Deploying..."
+                    : "Preview in Deployd"}
+                </button>
+              </deployFetcher.Form>
+              <a
+                href={`/app/project/${data.projectId}/deploys/${data.devEnvironmentId}`}
+                className="text-sm text-indigo-600 dark:text-indigo-400"
+              >
+                View Deployd →
+              </a>
+            </div>
+            {deployFetcher.data && deployFetcher.data.ok === false && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {deployFetcher.data.error}
+              </p>
+            )}
+            {deployFetcher.data && deployFetcher.data.ok === true && (
+              <p className="text-xs text-green-600 dark:text-green-400">
+                Deploy triggered. Open View Deployd for live status.
+              </p>
+            )}
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Deploys the latest built image to the development environment.
+              While the image is still building you will see "image not built
+              yet"; retry once the build finishes.
             </p>
           </dd>
         </div>
