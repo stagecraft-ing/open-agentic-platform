@@ -12,11 +12,23 @@
         "source": "spec-edge"
       },
       {
+        "path": "crates/policy-kernel/Cargo.toml",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/policy-kernel/src/audit.rs",
         "source": "spec-edge"
       },
       {
+        "path": "crates/policy-kernel/src/bin/verify_audit_chain.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/policy-kernel/src/proof_chain.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/policy-kernel/tests/verify_audit_chain_cli.rs",
         "source": "spec-edge"
       },
       {
@@ -36,6 +48,32 @@
       {
         "locations": [
           {
+            "file": "crates/policy-kernel/src/bin/verify_audit_chain.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/policy-kernel/src/bin/verify_audit_chain.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/policy-kernel/tests/verify_audit_chain_cli.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/policy-kernel/tests/verify_audit_chain_cli.rs"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/featuregraph/tests/golden/features_graph.json"
           }
         ],
@@ -44,6 +82,19 @@
         "unit": {
           "kind": "file",
           "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/policy-kernel/Cargo.toml"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/policy-kernel/Cargo.toml"
         }
       },
       {
@@ -116,5 +167,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "b1c1dcb15e0f5ba59c08ac7ab30cad5462108f06bd1d3807b84e2d86bb7b91a2"
+  "shardHash": "4c1b2c03f34fde9f94850178a660a42a3b4ac81e4103eced81626580e3d512d9"
 }
