@@ -106,16 +106,41 @@ This spec is scoped to *activation* of existing machinery. It adds no
 new gate semantics — every gate it wires is one OAP already runs on
 itself.
 
-## Functional requirements (sketch — refine before implementation)
+## Functional requirements
 
-- **FR-001 — Enforcing tenant CI.** The seeded workflow runs, blocking:
-  registry compile, spec-lint, the spec/code coupling gate against the
-  tenant's own spine, the provenance validator over factory-written
-  claims, and `verify-certificate` over the project's certificate. A
-  red gate fails the tenant PR. Per-CI-platform templates beyond GitHub
-  Actions remain the spec 167 deferral they already are.
-- **FR-002: Born-with kernel completeness (fail-closed).** The live
-  project-creation flow (stagecraft's TypeScript Create path,
+> **Refinement note (2026-06-19).** Filed as a sketch; this revision
+> grounds the open FRs on the now-vended tenant verification surface.
+> FR-002 landed in PR #366. tenant-tail (spec 219) is published to npm
+> (`tenant-tail@0.1.0` plus its five `@tenant-tail/cli-<os>-<cpu>`
+> platform packages), so the run-side verifiers FR-001 invokes now exist
+> as a consumable pin. FR-004 is rewritten to the npm-pin / `npm ci`
+> sha512 integrity model that spec 219 FR-006 established, replacing the
+> earlier "content hash against `.kernel-version`" wording (the amendment
+> spec 219 tracked against this spec). FR-003 (the certificate *emit*
+> leg) is deferred to the future emit spec (residual R-2): tenant-tail is
+> verify-only by construction, so emission is not part of this
+> activation. The "sketch, refine before implementation" qualifier is
+> retired for FR-001/004/005; they are implementable as written.
+
+- **FR-001: Enforcing tenant CI.** The seeded GitHub Actions workflow
+  (template-encore's `.github/workflows/spec-spine.yml`) runs as a
+  blocking gate, not advisory. Against the tenant's own spine and run
+  artifacts it executes:
+  - **spec-spine** (the vended `spec-spine` npm pin): `compile`, `lint`,
+    and `couple` (the spec/code coupling gate against the tenant's own
+    spine). These are already present in the seeded workflow.
+  - **tenant-tail** (the vended `tenant-tail` npm pin, spec 219):
+    `verify-provenance --project . --fail-on-rejected` over
+    factory-written claims, and `verify-certificate` over the project's
+    `governance-certificate.json` when one is present.
+
+  A non-zero gate fails the tenant PR. Because `verify-provenance`
+  defaults to a diagnostic exit 0, the CI step MUST pass
+  `--fail-on-rejected` for the gate to be enforcing (see FR-005).
+  Per-CI-platform templates beyond GitHub Actions remain the spec 167
+  deferral they already are.
+- **FR-002: Born-with kernel completeness (fail-closed). [Delivered, PR #366.]**
+  The live project-creation flow (stagecraft's TypeScript Create path,
   `perRequestScaffold.ts`) writes the `.kernel-version` stamp and then
   asserts it is present and complete (parses, with a non-empty
   `spec_spine_version` and adapter identity) before creation completes; a
@@ -127,22 +152,50 @@ itself.
   "production pipeline auto-fire" deferral named is delivered here against
   the TypeScript path; the engine path stays the orthogonal non-npm
   fallback (OQ-6) spec 167 designed it to be.
-- **FR-003 — Tenant-emit certificate auto-fire.** A tenant-side factory
-  run emits its governance certificate at termination (success or halt)
-  under `.factory/runs/<run-id>/` — the spec 168 FR-002 tenant-emit leg
-  — using the vended emitter, with the kernel's verifier able to verify
-  offline.
-- **FR-004 — Vended-tool integrity.** Before trusting any vended binary,
-  the tenant CI verifies its content hash against `.kernel-version`
-  (spec 167 FR-005's pinned-toolchain record). A hash mismatch fails the
-  build naming the binary — the produced app's gates must not be
-  satisfiable by swapping the gatekeeper (ASI04 m6, continuous
-  validation; the spec 102 do-not-trust-the-producer posture applied to
-  tooling).
-- **FR-005 — Degraded-mode visibility.** A gate that cannot run (missing
-  binary, no network for advisory data) fails visibly with reason —
-  skip-as-pass is forbidden across all seeded gates (the spec 200 FR-004
-  posture, uniformly applied).
+- **FR-003: Tenant-emit certificate auto-fire. [Deferred to the emit spec
+  (residual R-2).]** A tenant-side factory run emitting its governance
+  certificate at termination under `.factory/runs/<run-id>/` is the
+  spec 168 FR-002 tenant-emit leg. It is *not* delivered by this
+  activation: tenant-tail (spec 219) is verify-only by construction, and
+  the emitter (`build-certificate`) is identity-bearing and harness-bound,
+  so it ships with its firing in a separate emit spec, not here. FR-001
+  verifies a certificate *when one is present*; producing one on the
+  tenant side is the deferred leg. Recorded here to keep the activation's
+  eventual shape honest.
+- **FR-004: Vended-tool integrity (npm-pin model).** The tenant pins
+  `spec-spine` and `tenant-tail` as exact-version npm devDependencies
+  (the pins recorded in `.kernel-version`, spec 167 FR-005). Integrity is
+  the `npm ci` sha512 lockfile verification, which covers each package
+  and its `@scope/cli-<os>-<cpu>` platform subpackages generically and
+  aborts on a tampered lockfile entry (spec 219 FR-006). The tenant CI
+  MUST install with `npm ci` (never `npm install`, which would not gate
+  on the lockfile). The born-with `spec-spine` pin is recorded in
+  `.kernel-version` (`kernel.spec_spine_version`, spec 167 FR-005); CI
+  asserts the installed `spec-spine` version equals it, so a produced app
+  cannot silently drift its governance toolchain away from the version it
+  was born under (a mismatch fails the build naming the package).
+  `tenant-tail` and the rest of the npm-vended toolchain are covered by
+  the `npm ci` lockfile sha512 verification over their exact-version pins;
+  tenant-tail is not recorded in `.kernel-version` today (the stamp
+  predates the toolkit), and recording its pin there is a tracked future
+  hardening (OQ-1). The produced app's gates must not be satisfiable by
+  swapping the gatekeeper (ASI04 m6, continuous validation; the spec 102
+  do-not-trust-the-producer posture applied to tooling). This supersedes
+  the earlier "verify its content hash against `.kernel-version`" wording:
+  the vended toolchain is npm packages, not loose binaries, so the
+  lockfile sha512 (all tools) plus a born-with pin-equality check
+  (`spec-spine`) is the integrity surface.
+- **FR-005: Degraded-mode visibility.** A gate that cannot run (the
+  `npx --no-install` resolution fails because a pin is missing, or
+  advisory data is unreachable) fails visibly with a reason; skip-as-pass
+  is forbidden across all seeded gates (the spec 200 FR-004 posture,
+  uniformly applied). The enforcing posture for each verb's exit-code
+  contract is explicit: `verify-provenance` runs with `--fail-on-rejected`
+  (its default exit 0 is diagnostic only); `verify-certificate` fails on a
+  bad certificate, and the workflow passes `--require-sealed` where a
+  platform countersign is expected (otherwise an unsealed certificate is a
+  visible exit-0 notice, never a silent pass). The workflow MUST NOT mask
+  a gate's non-zero exit with `|| true` or `continue-on-error`.
 
 ## Acceptance criteria (sketch)
 
@@ -163,8 +216,15 @@ itself.
 
 - New gate semantics (every wired gate exists; specs 127/130/133 own
   coupling semantics, 121 owns provenance, 168 owns the certificate).
+- The certificate *emit* leg (FR-003 / spec 168 FR-002). Deferred to the
+  emit spec (residual R-2); tenant-tail is verify-only and carries no
+  emitter (spec 219 FR-002).
+- The tenant-tail toolkit's own implementation, release matrix, and npm
+  distribution. Governed by spec 219 and tenant-tail's own `specs/`
+  corpus; this spec only consumes the published pin.
 - The SBOM/dependency parity gate content (spec 203 defines it; this
-  spec provides the enforcing CI home it lands in).
+  spec provides the enforcing CI home it lands in). The `verify-sbom`
+  verb stays staged in tenant-tail until spec 203's core exists.
 - Tenant retrofit beyond born-with projects (spec 165's promotion path;
   retrofit activation follows the same contract once that path emits
   kernels).
@@ -172,8 +232,25 @@ itself.
 
 ## Sequencing
 
-Implementable now — it activates landed machinery (specs 167/168 are
-approved with documented deferrals; this spec is those deferrals'
-delivery vehicle). Coordinates with spec 203 (whose parity gate lands in
+FR-002 is delivered (PR #366). The tenant-tail vend blocker is cleared:
+spec 219 published `tenant-tail@0.1.0` and its platform packages to npm,
+so the run-side verifiers FR-001 invokes are now a consumable pin. The
+remaining leg is the template-encore CI activation (FR-001/004/005) in
+`.github/workflows/spec-spine.yml`, which carries no in-OAP authority
+target (the same cross-repo posture spec 219 records for its own closing
+legs). This spec coordinates with spec 203 (whose parity gate lands in
 the CI surface this spec makes enforcing) and precedes spec 210's
-falsifiability check for the same reason.
+falsifiability check for the same reason. FR-003 (the emit leg) waits on
+the emit spec (residual R-2) and does not gate this activation.
+
+## Open questions
+
+- **OQ-1: record the `tenant-tail` pin in `.kernel-version`.** The
+  born-with stamp records `kernel.spec_spine_version` but not a
+  `tenant-tail` version (the stamp predates the toolkit). Today
+  tenant-tail integrity rests on the `npm ci` lockfile sha512 (FR-004),
+  which is sufficient for tamper-detection; recording the born-with
+  `tenant-tail` pin would additionally let CI assert the verifier itself
+  has not drifted from birth, symmetric with the `spec-spine` check. This
+  is an OAP-side stamp change (`kernelVersionStamp.ts` + `version.rs`),
+  deferred as a hardening rather than a blocker.
