@@ -77,6 +77,14 @@ export default [
       ),
       route("pipelines", "routes/app.project.$projectId.pipelines.tsx"),
       route("deploys", "routes/app.project.$projectId.deploys.tsx"),
+      // Spec 215: env-detail page (deployment card + trigger, FR-004/FR-006;
+      // also spec 137's access-gate UI). The detail file existed since 137 but
+      // was never registered here, so /deploys/:envId 404'd. Sibling of the
+      // list (deploys.tsx is a leaf, no Outlet).
+      route(
+        "deploys/:envId",
+        "routes/app.project.$projectId.deploys.$envId.tsx",
+      ),
       route("settings", "routes/app.project.$projectId.settings.tsx", [
         index("routes/app.project.$projectId.settings._index.tsx"),
         route("repos", "routes/app.project.$projectId.settings.repos.tsx"),
