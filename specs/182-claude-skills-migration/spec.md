@@ -24,10 +24,10 @@ amends:
   - "104-makefile-ci-parity-contract"
   - "103-init-protocol-governed-reads"
 amends_sections: []
-extends:
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
+# 217 deleted the in-tree codebase-indexer; the workflow/skills hashing this spec
+# extended is now in spec-spine-core (spec-spine index). The codebase-indexer/src/lib.rs
+# edge is stripped (path deleted); this spec's authority is the .claude/skills/**
+# surface it establishes (below). Amended by 217.
 establishes:
   - unit: { kind: directory, path: .claude/skills/init }
   - unit: { kind: file, path: .claude/skills/init/SKILL.md }

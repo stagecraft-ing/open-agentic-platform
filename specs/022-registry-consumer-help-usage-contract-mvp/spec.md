@@ -2,7 +2,8 @@
 id: "022-registry-consumer-help-usage-contract-mvp"
 title: "Registry consumer help/usage output contract MVP"
 feature_branch: "022-registry-consumer-help-usage-contract-mvp"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 kind: platform-delivery
 domain: tooling
@@ -16,10 +17,10 @@ summary: >
 extends:
   - spec: "002-registry-consumer-mvp"
     nature: additive
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
+
 refines:
   - aspect: "contract-tests"
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
+
 ---
 
 # Feature Specification: Help/usage output contract

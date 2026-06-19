@@ -17,9 +17,13 @@ depends_on:
   - "001-spec-compiler-mvp"  # spec-compiler-mvp (where V-004 is implemented)
   - "158-workflow-ref-sha-pinning-lint"  # workflow-ref-sha-pinning-lint (the motivating case)
 code_aliases: ["V004_FIXTURE_EXEMPTION"]
+# 217 deleted the in-tree spec-compiler; V-004 enforcement is now in spec-spine-core.
+# The implementation code-unit is stripped (path deleted); this spec's authority is
+# its amends-000 refinement of the V-004 scan-path policy (the aspect persists in the
+# library). Amended by 217.
 refines:
   - aspect: "v004-scan-path-policy"
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
+    refines_specs: ["000-bootstrap-spec-system"]
 summary: >
   Refine V-004's scan-path policy (defined in spec 000) to exempt lint
   test fixtures under `tools/*/tests/fixtures/**`. The exemption rests on

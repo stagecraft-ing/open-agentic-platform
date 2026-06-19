@@ -83,14 +83,14 @@ depends_on:
   - "003-feature-lifecycle-mvp"  # feature-lifecycle-mvp (status vocabulary)
 code_aliases: ["CODEBASE_INDEX"]
 risk: low
+# 217 deleted the in-tree codebase-indexer this spec established; the index producer
+# is now spec-spine-core (`spec-spine index`), emitting per-unit shards. The
+# codebase-indexer source units and the monolithic index.json reference are stripped
+# (paths deleted / no longer emitted). Spec 101 continues to govern the codebase-index
+# contract, now expressed by establishing the schema (promoted from a reference).
+# (Workstream D migrates the monolithic schema to the library shard schemas; until
+# then 101 owns it.) Amended by 217.
 establishes:
-  - unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/main.rs }
-  - unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
-  - unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/spec_scanner.rs }
-  - unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/manifest.rs }
-references:
-  - role: artifact
-    unit: { kind: file, path: .derived/codebase-index/index.json }
   - unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }
 ---
 

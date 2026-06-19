@@ -2,7 +2,8 @@
 id: "006-conformance-lint-mvp"
 title: "Conformance lint (optional workflow warnings)"
 feature_branch: "006-conformance-lint-mvp"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 amended: "2026-05-13"
 amendment_record: "147-spec-kind-grammar"

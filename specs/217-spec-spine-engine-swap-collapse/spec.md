@@ -34,22 +34,114 @@ depends_on:
   - "152-path-co-authority"
   - "181-registry-consumer-unit-grammar-authority"
 code_aliases: ["SPEC_SPINE_ENGINE_SWAP_COLLAPSE"]
-# DRAFT frontmatter carries only edges that are TRUE NOW: 217 establishes
-# spec-spine.toml (the Phase 0 root config it introduces), owns its
-# featuregraph golden row (extends 034), and depends on 216. The supersession
-# and amendment WAVE (documented in section 6) is deliberately NOT declared in
-# this draft's frontmatter. Those supersedes/amends edges land in the
-# implementation PR, atomically with the predecessor status flips and the binary
-# deletion, so the spine never asserts an un-effected supersession while the
-# in-tree binaries still exist (CONST-005; the relationship graph is current
-# truth, not declared intent). Until then, 001/002/006/133/176/181 remain
-# approved and authoritative over their still-present code.
+# Implementation-PR frontmatter. The Phase 5 supersession + amendment WAVE
+# (documented in section 6) is NOW declared below, atomically with the binary
+# deletion (Phase 3) and the predecessor status flips. The four in-tree engine
+# crates are deleted, so the supersessions have taken effect: the spine asserts
+# current truth, not intent (CONST-005). 217 establishes spec-spine.toml (Phase 0
+# root config), owns its featuregraph golden row (extends 034), depends on 216,
+# supersedes the six engine-establishing specs + the 007-031 contract series, and
+# amends the surviving overlay specs whose deleted-crate units were re-homed.
 establishes:
   - unit: { kind: file, path: spec-spine.toml }
 extends:
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+# Phase 5 corpus-governance wave (section 6). These edges land in THIS
+# implementation PR, atomically with the binary deletion (Phase 3) and the
+# predecessor status flips, so the spine never asserts an un-effected supersession.
+# The four in-tree engine crates are now deleted, so the supersessions have taken
+# effect. supersedes = the six full-supersede specs (section 6.1) + the 007-031
+# registry-consumer contract series (section 6.4). amends = the surviving overlay
+# specs whose dangling deleted-crate units were stripped and re-homed to the library
+# (sections 6.2/6.3/6.4 + the empirically-derived gap set recorded in section 6.5).
+supersedes:
+  - spec: "001-spec-compiler-mvp"
+    scope: full
+  - spec: "002-registry-consumer-mvp"
+    scope: full
+  - spec: "006-conformance-lint-mvp"
+    scope: full
+  - spec: "133-amends-aware-coupling-gate"
+    scope: full
+  - spec: "176-amends-aware-section-satisfaction-parity"
+    scope: full
+  - spec: "181-registry-consumer-unit-grammar-authority"
+    scope: full
+  - spec: "007-registry-consumer-status-report-mvp"
+    scope: full
+  - spec: "008-registry-consumer-status-report-json-mvp"
+    scope: full
+  - spec: "009-registry-consumer-status-report-nonzero-mvp"
+    scope: full
+  - spec: "010-registry-consumer-status-report-json-contract-mvp"
+    scope: full
+  - spec: "011-registry-consumer-status-report-status-filter-mvp"
+    scope: full
+  - spec: "012-registry-consumer-list-json-mvp"
+    scope: full
+  - spec: "013-registry-consumer-show-json-mvp"
+    scope: full
+  - spec: "014-registry-consumer-show-compact-json-mvp"
+    scope: full
+  - spec: "015-registry-consumer-list-compact-json-mvp"
+    scope: full
+  - spec: "016-registry-consumer-status-report-compact-json-mvp"
+    scope: full
+  - spec: "017-registry-consumer-shared-json-serialization-helper-mvp"
+    scope: full
+  - spec: "018-registry-consumer-list-show-json-contract-mvp"
+    scope: full
+  - spec: "019-registry-consumer-readme-examples-contract-mvp"
+    scope: full
+  - spec: "020-registry-consumer-error-contract-mvp"
+    scope: full
+  - spec: "021-registry-consumer-field-shape-invariants-contract-mvp"
+    scope: full
+  - spec: "022-registry-consumer-help-usage-contract-mvp"
+    scope: full
+  - spec: "023-registry-consumer-flag-conflict-argument-validation-contract-mvp"
+    scope: full
+  - spec: "024-registry-consumer-version-banner-contract-mvp"
+    scope: full
+  - spec: "025-registry-consumer-default-path-contract-mvp"
+    scope: full
+  - spec: "026-registry-consumer-allow-invalid-contract-mvp"
+    scope: full
+  - spec: "027-registry-consumer-sorting-order-contract-mvp"
+    scope: full
+  - spec: "028-registry-consumer-channel-discipline-contract-mvp"
+    scope: full
+  - spec: "029-registry-consumer-contract-governance-gate-mvp"
+    scope: full
+  - spec: "030-registry-consumer-internal-output-exit-refactor-mvp"
+    scope: full
+  - spec: "031-registry-consumer-list-ids-only-contract-mvp"
+    scope: full
+amends:
+  - "003-feature-lifecycle-mvp"
+  - "039-feature-id-reconciliation"
+  - "091-registry-enrichment"
+  - "101-codebase-index-mvp"
+  - "102-governed-excellence"
+  - "103-init-protocol-governed-reads"
+  - "118-workflow-spec-traceability"
+  - "127-spec-code-coupling-gate"
+  - "128-spec-lint-default-fail-on-warn"
+  - "129-granular-package-oap-metadata"
+  - "130-spec-coupling-primary-owner"
+  - "132-constitutional-invariant-freeze"
+  - "147-spec-kind-grammar"
+  - "152-path-co-authority"
+  - "154-logical-unit-ownership-grammar"
+  - "155-logical-unit-resolution-semantics"
+  - "156-references-edge-provenance-grammar"
+  - "159-v004-lint-fixture-exemption"
+  - "161-knowledge-requirements-provenance-emission"
+  - "179-domain-frontmatter-field"
+  - "182-claude-skills-migration"
+  - "184-claude-shared-config-governance"
 ---
 
 # Feature Specification: Spec-Spine Engine Swap and Collapse
@@ -939,6 +1031,61 @@ binary that no longer exists. Their contractual intent (the output
 format, the exit codes, the field shapes) is honoured by the library.
 The contracts are not violated; their subject has moved. Marking them
 superseded is accurate status, not gate-appeasement.
+
+### 6.5 Implementation-PR reconciliation (empirically derived, 2026-06-18)
+
+Executing this wave against the post-deletion corpus (spec-spine 0.8.0
+`spec-spine index`) surfaced 107 hard error diagnostics (56 I-004 file-unit,
+45 I-003 crate-unit, 4 I-006 section-unit, 2 I-007 directory-unit), every one
+pointing inside the four deleted crates. Reconciling that empirical set against
+sections 6.1-6.4 produced three corrections, recorded here so the wave's scope is
+the diagnostic truth rather than the prose enumeration:
+
+1. **The clearing mechanism is unit-stripping, not status.** A hard I-0xx fires on
+   any owning-edge unit (`establishes`/`extends`/`refines`/`co_authority`) whose
+   owning spec carries `implementation: complete`, independent of `status`. Flipping
+   a spec to `superseded` does NOT downgrade its dangling-unit errors (verified:
+   superseding 001 left both I-004 errors intact); only removing the unit (the file
+   is genuinely deleted) clears the diagnostic. So every wave spec, superseded and
+   amended alike, has its deleted-crate units physically stripped; the supersession
+   flips are the honest lifecycle disposition layered on top, not the gate mechanism.
+   (`references:` edges are the exception: they degrade to W-002 warnings regardless
+   of status.)
+
+2. **Section 6.4's "003-031" range is corrected to 002 + 007-031.** Only 002 and
+   007-031 carry the `open_agentic_spec_registry_reader` crate-unit. Spec 003
+   (feature-lifecycle-mvp) carries no crate-unit; it dangles file-units on the deleted
+   spec-compiler/registry-consumer and is the authored lifecycle-status model (which
+   survives), so it is reclassified to amend. Specs 004 (spec-to-execution-bridge) and
+   005 (verification-reconciliation) claim NO deleted-crate units and emit zero
+   diagnostics; superseding them would FAIL the FR-502 honesty test (their subjects
+   are not deleted), so they are excluded from the wave.
+
+3. **Gap-amend set (erroring specs unenumerated in 6.1-6.4).** Ten specs carry dangling
+   deleted-crate owning-units that section 6 did not list. Each survives approved with
+   authority elsewhere; each has its deleted-crate units stripped and is amended by 217:
+   003 (lifecycle model), 039 (codeAliases; keeps registry.schema.json), 091 (enrichment;
+   keeps featuregraph readers), 102 (governed-excellence; keeps factory-engine,
+   tool-registry, policy-kernel, orchestrator), 118 (workflow traceability; keeps the
+   `.github/workflows` refines), 129 (granular metadata; keeps the codebase-index schema),
+   156 (references-edge provenance; keeps spec-types, schemas, golden), 159 (V-004 fixture
+   exemption; authority is its amends-000 refinement), 182 (claude-skills; keeps the
+   `.claude/skills` establishes), 188 (index merge serialization; keeps githooks,
+   ci-parity, config-hash).
+
+**Residuals (Workstream D/G; not blocking this wave's index + lint gates):**
+- The surviving `tools/spec-spine/spec-lint` crate's `[package.metadata.oap] spec`
+  still names the now-superseded 006. The crate source is owned by live specs (147/179
+  via units); only the package-level primary-spec pointer is stale, and no diagnostic
+  fires. Repointing it to a live spec (147 established the spec-lint kind-grammar
+  surface) is a one-line Cargo.toml edit folded into the same PR.
+- `product/apps/opc/src-tauri/Cargo.lock` couples to spec 178's directory ownership
+  (see Workstream A3); the PR body carries a scoped `Spec-Drift-Waiver`.
+
+**6.5 honesty test (FR-502).** Every disposition above clears the auditor test
+("correct even if the gate did not exist?"): the four crates are genuinely deleted,
+each stripped unit points at a genuinely-absent file, and every surviving unit is
+retained. 004 and 005 are left untouched precisely because that test fails for them.
 
 ---
 

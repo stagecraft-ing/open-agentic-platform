@@ -19,6 +19,16 @@ depends_on:
   - "156-references-edge-provenance-grammar"  # references-edge-provenance-grammar (the provenance badges)
   - "161-knowledge-requirements-provenance-emission"  # knowledge-requirements-provenance-emission (rendering contract)
 code_aliases: ["STAGECRAFT_REQUIREMENTS_VIEW", "SPEC_SPINE_DASHBOARD"]
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the spec-registry reader
+  this spec establishes (platform/services/stagecraft/api/specRegistry/) was
+  repointed off the deleted in-tree registry-consumer binary onto the published
+  spec-spine CLI. registryReader.ts now invokes `spec-spine registry` with
+  `--repo <projectRoot>` (was `--registry-path <file>`) and parses
+  `relationships --json` (was a text scrape); resolver.ts checks the by-spec shard
+  directory (was registry.json). The Requirements view contract and rendering are
+  unchanged; only the underlying read mechanism moved to the library seam.
 establishes:
   - unit: { kind: directory, path: platform/services/stagecraft/api/specRegistry }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.up.sql }

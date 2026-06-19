@@ -6,6 +6,12 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-05-22"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the W-161
+  decomposition-origin lint code is OAP-domain and remains in the surviving OAP
+  overlay spec-lint. The engine swap removed only the generic half of the lint
+  surface; W-161's home and behaviour are unchanged. Recorded for completeness.
 kind: governance
 domain: substrate
 risk: medium

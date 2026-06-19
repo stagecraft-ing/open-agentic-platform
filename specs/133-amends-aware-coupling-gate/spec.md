@@ -2,7 +2,8 @@
 id: "133-amends-aware-coupling-gate"
 slug: coupling-gate
 title: "Coupling Gate — authority derivation, satisfaction semantics, constraint evaluation"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 owner: bart
 created: "2026-05-03"
@@ -25,18 +26,17 @@ depends_on:
   - "101-codebase-index-mvp"
   - "130-spec-coupling-primary-owner"
 code_aliases: ["COUPLING_GATE"]
-establishes:
-  - unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/lib.rs }
-  - unit: { kind: file, path: tools/spec-spine/spec-code-coupling-check/src/main.rs }
+# 217 (spec-spine engine swap) deleted the in-tree spec-code-coupling-check crate
+# this spec established; the coupling-gate algorithm (authority derivation,
+# satisfaction semantics, section matching, constraint evaluation) is now
+# spec-spine-core::couple_with (verdict-equivalence proven). The establishes units
+# and the co_authority section unit are removed (paths deleted); the extends-101
+# lineage is retained without a code unit (the codebase-indexer source is likewise
+# deleted). The CI coupling workflow that consumed this algorithm survives under
+# spec 127. Superseded by 217.
 extends:
   - spec: "101-codebase-index-mvp"
     nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
-co_authority:
-  - with_specs:
-      - "130-spec-coupling-primary-owner"
-      - "152-path-co-authority"
-    unit: { kind: section, file: tools/spec-spine/spec-code-coupling-check/src/lib.rs, anchor: authority-derivation }
 summary: >
   The derivation algorithm, satisfaction semantics, constraint evaluation,
   and output format of the spec/code coupling gate. Given a diff and the

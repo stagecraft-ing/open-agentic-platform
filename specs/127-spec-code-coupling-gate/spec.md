@@ -19,10 +19,10 @@ depends_on:
 code_aliases: ["SPEC_CODE_COUPLING_WORKFLOW"]
 establishes:
   - unit: { kind: file, path: .github/workflows/ci-spec-code-coupling.yml }
-extends:
-  - spec: "133-amends-aware-coupling-gate"
-    nature: additive
-    unit: { kind: crate, id: open_agentic_spec_code_coupling_check }
+# 217 deleted the in-tree spec-code-coupling-check; the gate algorithm is now
+# spec-spine-core::couple_with, invoked as `spec-spine couple`. The crate-unit is
+# stripped (deleted). The CI workflow and the Makefile coupling section this spec
+# governs survive; only the binary invocation changed. Amended by 217.
 co_authority:
   - with_specs:
       - "102-governed-excellence"

@@ -2,7 +2,8 @@
 id: "018-registry-consumer-list-show-json-contract-mvp"
 title: "Registry consumer list/show JSON contract tests"
 feature_branch: "018-registry-consumer-list-show-json-contract-mvp"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 kind: platform-delivery
 domain: tooling
@@ -16,10 +17,10 @@ summary: >
 extends:
   - spec: "002-registry-consumer-mvp"
     nature: additive
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
+
 refines:
   - aspect: "contract-tests"
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
+
 ---
 
 # Feature Specification: List/show JSON contract tests

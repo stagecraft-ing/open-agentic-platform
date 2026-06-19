@@ -2,7 +2,8 @@
 id: "009-registry-consumer-status-report-nonzero-mvp"
 title: "Registry consumer status-report nonzero filtering"
 feature_branch: "009-registry-consumer-status-report-nonzero-mvp"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 kind: platform-delivery
 domain: tooling
@@ -16,7 +17,6 @@ summary: >
 extends:
   - spec: "007-registry-consumer-status-report-mvp"
     nature: additive
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
 ---
 
 # Feature Specification: Registry consumer status-report nonzero filtering

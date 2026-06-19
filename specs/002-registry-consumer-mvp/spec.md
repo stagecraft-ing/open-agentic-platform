@@ -2,7 +2,8 @@
 id: "002-registry-consumer-mvp"
 title: "Registry consumer MVP (read-only spec runtime surface)"
 feature_branch: "002-registry-consumer-mvp"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 kind: platform
 domain: tooling
@@ -14,11 +15,12 @@ summary: >
   Define the first official read-only consumer of .derived/spec-registry/registry.json:
   who may read it, what guarantees downstream tools rely on, and a normative CLI for
   listing, filtering, and lookups; optional Rust library is non-normative for MVP.
-establishes:
-  - unit: { kind: crate, id: open_agentic_spec_registry_reader }
-  - unit: { kind: file, path: tools/spec-spine/registry-consumer/src/lib.rs }
-  - unit: { kind: file, path: tools/spec-spine/registry-consumer/src/main.rs }
-  - unit: { kind: file, path: tools/spec-spine/registry-consumer/Cargo.toml }
+# 217 (spec-spine engine swap) deleted the in-tree registry-consumer crate
+# (open_agentic_spec_registry_reader) this spec established; all establishes units
+# are removed because those paths no longer exist. The read-only registry surface
+# is now spec-spine registry (list/show/status-report) + oap-registry-enrich
+# (authority verbs). Superseded by 217, together with the 007-031 contract series.
+# Historical authorship preserved in 217's supersedes edge and this spec's prose.
 ---
 
 # Feature Specification: Registry consumer MVP

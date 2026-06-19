@@ -15,10 +15,10 @@ summary: >
   compiler fields. Validate risk enum values. Update featuregraph to read enriched
   fields from the compiled registry, enabling downstream spec-driven gating.
 code_aliases: ["REGISTRY_ENRICHMENT"]
+# 217 deleted the in-tree spec-compiler; the enriched-field parse/emit (depends_on,
+# owner, risk) is now in spec-spine-core. The spec-compiler/src/lib.rs edge is
+# stripped (path deleted); the featuregraph reader edges survive. Amended by 217.
 extends:
-  - spec: "001-spec-compiler-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/src/registry_source.rs }

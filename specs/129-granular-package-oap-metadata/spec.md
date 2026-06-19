@@ -14,10 +14,11 @@ depends_on:
   - "101-codebase-index-mvp"  # codebase-index-mvp (the schema being extended)
   - "118-workflow-spec-traceability"  # workflow-spec-traceability (the `# Spec:` precedent)
 code_aliases: ["GRANULAR_OAP_METADATA"]
+# 217 deleted the in-tree codebase-indexer; file-level `// Spec:` header parsing is
+# now in spec-spine-core. The codebase_indexer crate-unit is stripped (deleted); the
+# codebase-index.schema.json edge (the TraceSource grammar this spec extended) is
+# retained. Amended by 217.
 extends:
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: crate, id: open_agentic_codebase_indexer }
   - spec: "101-codebase-index-mvp"
     nature: additive
     unit: { kind: file, path: standards/schemas/spec-spine/codebase-index.schema.json }

@@ -24,22 +24,19 @@ summary: |
   retire the prose-scan workarounds W-002 and W-003.
 amends: ["000-bootstrap-spec-system", "128-spec-lint-default-fail-on-warn", "001-spec-compiler-mvp", "006-conformance-lint-mvp", "101-codebase-index-mvp", "132-constitutional-invariant-freeze", "133-amends-aware-coupling-gate"]
 amends_sections: []
+# 217 deleted the in-tree spec-compiler + codebase-indexer; the kind-grammar parse
+# (V-012..V-019) and scanner moved to spec-spine-core. The spec-compiler, codebase-indexer
+# spec_scanner, and codebase-indexer lib edges are stripped (paths deleted). The
+# surviving spec-lint overlay edge (W-130/131/132, the crate survives) and the
+# registry.schema.json edge are retained, as is the spec-types refines below.
+# Amended by 217.
 extends:
-  - spec: "001-spec-compiler-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
   - spec: "006-conformance-lint-mvp"
     nature: additive
     unit: { kind: file, path: tools/spec-spine/spec-lint/src/lib.rs }
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/spec_scanner.rs }
   - spec: "132-constitutional-invariant-freeze"
     nature: additive
     unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
-  - spec: "133-amends-aware-coupling-gate"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/lib.rs }
 refines:
   - aspect: "kind-grammar-corpus-backfill"
     unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }

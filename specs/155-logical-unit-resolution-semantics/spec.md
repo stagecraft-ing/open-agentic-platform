@@ -20,13 +20,14 @@ risk: low
 depends_on:
   - "154-logical-unit-ownership-grammar"
 code_aliases: ["UNIT_RESOLUTION_SEMANTICS"]
+# 217 deleted the in-tree spec-compiler; the V-024 unit-resolution predicate this spec
+# added is now in spec-spine-core/types. The spec-compiler test edge is stripped (path
+# deleted); the spec-types overlay edge (where the resolution rules live) survives.
+# Amended by 217.
 extends:
   - spec: "001-spec-compiler-mvp"
     nature: additive
     unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
-  - spec: "001-spec-compiler-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/tests/spec154_unit_grammar_negative.rs }
 references:
   - role: motivating-case
     unit: { kind: file, path: specs/154-logical-unit-ownership-grammar/segment-3-design.md }

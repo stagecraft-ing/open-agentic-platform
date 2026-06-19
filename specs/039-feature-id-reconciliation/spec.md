@@ -14,10 +14,11 @@ summary: >
   Bridge the dual identity system — kebab spec IDs and UPPERCASE code attribution
   tokens — by adding an optional codeAliases field to the compiled registry schema,
   spec-compiler, and featuregraph scanner. Implements ADR 0001.
+# 217 deleted the in-tree spec-compiler; the codeAliases parse/emit this spec added
+# is now in spec-spine-core. The spec-compiler/src/lib.rs edge is stripped (path
+# deleted); the surviving registry.schema.json edge (the codeAliases schema field)
+# is retained. Amended by 217.
 extends:
-  - spec: "001-spec-compiler-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
   - spec: "001-spec-compiler-mvp"
     nature: additive
     unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }

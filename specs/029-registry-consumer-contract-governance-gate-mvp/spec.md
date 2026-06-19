@@ -2,7 +2,8 @@
 id: "029-registry-consumer-contract-governance-gate-mvp"
 title: "Registry consumer change classification and contract-governance gate MVP"
 feature_branch: "029-registry-consumer-contract-governance-gate-mvp"
-status: approved
+status: superseded
+superseded_by: "217-spec-spine-engine-swap-collapse"
 implementation: complete
 kind: platform-delivery
 domain: tooling
@@ -17,10 +18,10 @@ summary: >
 extends:
   - spec: "002-registry-consumer-mvp"
     nature: additive
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
+
 refines:
   - aspect: "contract-tests"
-    unit: { kind: crate, id: open_agentic_spec_registry_reader }
+
 ---
 
 # Feature Specification: Contract governance gate

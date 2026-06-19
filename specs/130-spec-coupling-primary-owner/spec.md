@@ -29,13 +29,10 @@ code_aliases: ["SPEC_RELATIONSHIP_GRAPH"]
 establishes:
   - unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
   - unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
-extends:
-  - spec: "001-spec-compiler-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
-  - spec: "101-codebase-index-mvp"
-    nature: additive
-    unit: { kind: file, path: tools/spec-spine/codebase-indexer/src/spec_scanner.rs }
+# 217 deleted the in-tree spec-compiler + codebase-indexer; the relationship-graph
+# parse/emit + scanner are now in spec-spine-core. Both extends code-units are
+# stripped (paths deleted). This spec's establishes (spec-types overlay lib.rs +
+# registry.schema.json) and constrains (frozen schema) survive. Amended by 217.
 constrains:
   - flavor: invariant-freeze
     unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
