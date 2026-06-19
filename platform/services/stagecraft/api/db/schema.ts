@@ -355,7 +355,17 @@ export const deploymentStatusValues = [
   "REQUEST_FAILED",
   "DESTROYED",
 ] as const;
-export type DeploymentStatus = (typeof deploymentStatusValues)[number];
+// Explicit union, NOT `(typeof deploymentStatusValues)[number]`: Encore.ts's
+// TS parser rejects that indexed-access-on-typeof-array form ("unsupported
+// indexed access type operation") and fails service compilation. Keep this
+// union in sync with deploymentStatusValues above (and migration 49's CHECK).
+export type DeploymentStatus =
+  | "REQUESTED"
+  | "PENDING"
+  | "ROLLED_OUT"
+  | "FAILED"
+  | "REQUEST_FAILED"
+  | "DESTROYED";
 
 export const environmentDeployments = pgTable(
   "environment_deployments",
