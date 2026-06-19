@@ -1611,3 +1611,36 @@ export const projectSpecGroupNames = pgTable(
     index("project_spec_group_names_by_project").on(t.projectId),
   ],
 );
+
+// ---------------------------------------------------------------------------
+// Spec 207 AC-4: session-scoped audit segment countersign seals.
+//
+// One row per countersigned segment head submitted over the duplex channel.
+// Stagecraft is the sole signing authority (spec 198 FR-014 posture). The
+// upsert is idempotent on (org_id, session_id, segment_id) to handle
+// at-least-once reconnect re-submission.
+// ---------------------------------------------------------------------------
+
+export const factorySessionAuditSeals = pgTable(
+  "factory_session_audit_seals",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id").notNull(),
+    sessionId: text("session_id").notNull(),
+    segmentId: text("segment_id").notNull(),
+    segmentHeadHash: text("segment_head_hash").notNull(),
+    segmentRecordCount: integer("segment_record_count").notNull(),
+    firstRecordAt: timestamp("first_record_at", { withTimezone: true }),
+    lastRecordAt: timestamp("last_record_at", { withTimezone: true }),
+    // A row is only created once countersigned, so unanchored defaults false.
+    // The local side tracks its own unanchored state.
+    unanchored: boolean("unanchored").notNull().default(false),
+    countersignJws: text("countersign_jws"),
+    countersignKid: text("countersign_kid"),
+    countersignedAt: timestamp("countersigned_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.orgId, t.sessionId, t.segmentId)],
+);

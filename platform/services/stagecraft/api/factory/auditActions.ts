@@ -27,6 +27,10 @@ export const FACTORY_RUN_COUNTERSIGNED = "factory.run.countersigned" as const;
 // the `summaryHash` of the ApprovalSummary the approver saw, so the
 // certificate chain can prove the basis, not just the click.
 export const FACTORY_RUN_GATE_APPROVED = "factory.run.gate_approved" as const;
+// Spec 207 AC-4: audit segment countersign. Recorded once per upsert so
+// reconnect re-submissions are visible in the audit trail.
+export const FACTORY_AUDIT_SEGMENT_COUNTERSIGNED =
+  "factory.audit_segment.countersigned" as const;
 
 export type FactoryRunAuditAction =
   | typeof FACTORY_RUN_RESERVED
@@ -37,4 +41,5 @@ export type FactoryRunAuditAction =
   | typeof FACTORY_RUN_GRANT_ISSUED
   | typeof FACTORY_RUN_GRANT_REFUSED
   | typeof FACTORY_RUN_COUNTERSIGNED
-  | typeof FACTORY_RUN_GATE_APPROVED;
+  | typeof FACTORY_RUN_GATE_APPROVED
+  | typeof FACTORY_AUDIT_SEGMENT_COUNTERSIGNED;

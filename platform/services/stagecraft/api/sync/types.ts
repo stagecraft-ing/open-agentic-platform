@@ -203,6 +203,7 @@ export type ClientEnvelope =
   | ClientFactoryRunCancelled
   | ClientFactoryRunGrantRequest
   | ClientFactoryRunGrantRenew
+  | ClientAuditSegmentCountersignRequest
   | ClientAgentCatalogFetchRequest
   | ClientAck
   | ClientResyncRequest
@@ -494,6 +495,24 @@ export interface ClientAgentCatalogFetchRequest {
   observedAt: string;
 }
 
+/**
+ * Spec 207 AC-4: the local side submits an audit segment HEAD (hash plus
+ * metadata) over the duplex channel. Stagecraft countersigns and persists
+ * a seal row. Offline-first: the local side accumulates unanchored heads
+ * and submits at reconnect.
+ */
+export interface ClientAuditSegmentCountersignRequest {
+  kind: "audit.segment.countersign_request";
+  meta: EnvelopeMeta;
+  projectId?: string;
+  sessionId: string;
+  segmentId: string;
+  segmentHeadHash: string;
+  segmentRecordCount: number;
+  firstRecordAt: string;
+  lastRecordAt: string;
+}
+
 /** Client acknowledging a previously-received server event. */
 export interface ClientAck {
   kind: "sync.ack";
@@ -535,6 +554,7 @@ export type ServerEnvelope =
   | ServerFactoryRunRequest
   | ServerFactoryRunGrant
   | ServerFactoryRunCertificateCountersign
+  | ServerAuditSegmentCountersign
   | ServerAgentCatalogUpdated
   | ServerAgentCatalogSnapshot
   | ServerProjectAgentBindingUpdated
@@ -581,6 +601,23 @@ export interface ServerFactoryRunCertificateCountersign {
   runId: string;
   countersigned: boolean;
   /** Compact JWS (`typ: oap-cert-countersign+jws`). */
+  countersignJws?: string;
+  kid?: string;
+  refusedReason?: string;
+}
+
+/**
+ * Spec 207 AC-4: targeted reply to `audit.segment.countersign_request`.
+ * `countersigned: false` is attributable (signing unconfigured, internal
+ * error) so the segment stays visibly unsealed rather than silently ignored.
+ */
+export interface ServerAuditSegmentCountersign {
+  kind: "audit.segment.countersign";
+  meta: ServerMeta;
+  sessionId: string;
+  segmentId: string;
+  countersigned: boolean;
+  /** Compact JWS (`typ: oap-audit-segment-countersign+jws`). */
   countersignJws?: string;
   kid?: string;
   refusedReason?: string;
@@ -966,6 +1003,7 @@ export interface ClientEnvelopeWire {
     | "factory.run.cancelled"
     | "factory.run.grant_request"
     | "factory.run.grant_renew"
+    | "audit.segment.countersign_request"
     | "agent.catalog.fetch_request"
     | "sync.ack"
     | "sync.resync_request"
@@ -1038,6 +1076,13 @@ export interface ClientEnvelopeWire {
   buildSpecHash?: string;
   seq?: number;
   certificateSha256?: string;
+  // spec 207 AC-4: audit.segment.countersign_request fields. `sessionId` is
+  // declared above (shared with factory.run.ack).
+  segmentId?: string;
+  segmentHeadHash?: string;
+  segmentRecordCount?: number;
+  firstRecordAt?: string;
+  lastRecordAt?: string;
 }
 
 /** Flat counterpart of {@link ServerEnvelope} for the Encore stream boundary. */
@@ -1051,6 +1096,7 @@ export interface ServerEnvelopeWire {
     | "factory.run.request"
     | "factory.run.grant"
     | "factory.run.certificate_countersign"
+    | "audit.segment.countersign"
     | "agent.catalog.updated"
     | "agent.catalog.snapshot"
     | "project.agent_binding.updated"
@@ -1168,6 +1214,9 @@ export interface ServerEnvelopeWire {
   refusedReason?: RunGrantRefusalReason | string;
   countersigned?: boolean;
   countersignJws?: string;
+  // spec 207 AC-4: audit.segment.countersign fields. `sessionId` is declared
+  // above (shared with other variants).
+  segmentId?: string;
 }
 
 // Compile-time assignability gates: every variant must fit the wire shape.
@@ -1191,6 +1240,7 @@ const CLIENT_KINDS: ReadonlySet<ClientEnvelopeKind> = new Set<ClientEnvelopeKind
   "factory.run.cancelled",
   "factory.run.grant_request",
   "factory.run.grant_renew",
+  "audit.segment.countersign_request",
   "agent.catalog.fetch_request",
   "sync.ack",
   "sync.resync_request",

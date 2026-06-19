@@ -30,6 +30,22 @@
       {
         "kind": "file",
         "path": "crates/factory-engine/tests/run_audit_anchoring.rs"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/auditSegmentHandlers.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/auditSegmentHandlers.test.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.up.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.down.sql"
       }
     ],
     "extends": [
@@ -47,6 +63,14 @@
         "unit": {
           "kind": "file",
           "path": "crates/policy-kernel/Cargo.toml"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "198-factory-governance-envelope",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/signing-pure.ts"
         }
       }
     ],
@@ -72,13 +96,6 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/factory/signing.ts"
-        }
-      },
-      {
-        "role": "context",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
         }
       },
       {
@@ -117,6 +134,34 @@
           "kind": "file",
           "path": "crates/factory-engine/src/lib.rs"
         }
+      },
+      {
+        "aspect": "audit-segment-countersign-contract",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/sync/types.ts"
+        }
+      },
+      {
+        "aspect": "audit-segment-countersign-dispatch",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/sync/service.ts"
+        }
+      },
+      {
+        "aspect": "session-audit-seal-table",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/schema.ts"
+        }
+      },
+      {
+        "aspect": "audit-segment-countersign-action",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+        }
       }
     ],
     "sectionHeadings": [
@@ -133,6 +178,6 @@
     "summary": "Extend the proof-chain discipline from policy decisions to the audit surfaces themselves. Spec 047 hash-chains policy decision proofs, but the JSONL audit logs the platform actually accumulates (permission decisions per spec 068 NF-003, session activity, factory run logs) are plain append-only files: deletable, editable, and unanchored — failing the cross-cutting ASI 2026 observability principle (\"immutable, signed, tamper-evident logs\") and the ASI08/ASI10 logging mitigations that every incident reconstruction depends on. This spec chains audit records (each record carries the previous record's hash), anchors segment heads at rotation — run-scoped logs into the governance certificate's artifact list, session-scoped logs via the spec 198 FR-014 platform countersign when connected, locally chained when offline — and ships an independent verifier that does not trust the producer. Honest scope: a chain makes tampering EVIDENT, not impossible; anchoring bounds (not eliminates) silent-truncation.\n",
     "title": "Tamper-Evident Audit Log Chain (ASI observability principle)"
   },
-  "shardHash": "f6a528ccb502d9f20196b78d36e0fc4e96c15979b913aeb834fdecbd0df6818d",
+  "shardHash": "0d198a7f133f218895059ecd2fa5cd6b90ea6496cb9c5d71da77e7c07dea25a5",
   "specVersion": "1.1.0"
 }
