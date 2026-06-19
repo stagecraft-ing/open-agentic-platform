@@ -47,6 +47,14 @@ establishes:
   - unit: { kind: file, path: crates/factory-engine/src/run_audit_chain.rs }
   # AC-3 end-to-end: anchored segment is tamper-evident under verify_certificate.
   - unit: { kind: file, path: crates/factory-engine/tests/run_audit_anchoring.rs }
+  # FR-002 (Phase 2b, AC-4): the stagecraft session-audit countersign handler
+  # (platform seals a submitted segment head; spec 198 FR-014 keyless-local).
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/auditSegmentHandlers.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/auditSegmentHandlers.test.ts }
+  # The session-audit-seal table (one countersigned-segment row per
+  # org/session/segment; idempotent on resubmission).
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.down.sql }
 extends:
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
@@ -58,6 +66,12 @@ extends:
   - spec: "047-governance-control-plane"
     nature: additive
     unit: { kind: file, path: crates/policy-kernel/Cargo.toml }
+  # Phase 2b (AC-4): the new "oap-audit-segment-countersign+jws" type is an
+  # additive member of the FactoryJwsTyp union that spec 198 FR-014 owns. 207
+  # uses the signing authority; it does not evolve 198's authority.
+  - spec: "198-factory-governance-envelope"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/signing-pure.ts }
 refines:
   - aspect: "hash-chained-audit-records"
     unit: { kind: file, path: crates/policy-kernel/src/audit.rs }
@@ -70,11 +84,27 @@ refines:
   # Module registration for the run-audit chain writer.
   - aspect: "run-audit-module-registration"
     unit: { kind: file, path: crates/factory-engine/src/lib.rs }
+  # Phase 2b (AC-4): the duplex audit.segment.countersign_request contract.
+  - aspect: "audit-segment-countersign-contract"
+    unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }
+  # Phase 2b (AC-4): dispatch routing for the countersign request.
+  - aspect: "audit-segment-countersign-dispatch"
+    unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
+  # Phase 2b (AC-4): the session-audit-seal Drizzle table definition.
+  - aspect: "session-audit-seal-table"
+    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+  # Phase 2b (AC-4): the FACTORY_AUDIT_SEGMENT_COUNTERSIGNED audit action
+  # (upgraded from a context reference, since 207 now authors this constant).
+  - aspect: "audit-segment-countersign-action"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
+  # Phase 2b (AC-4): auditSegmentHandlers.test.ts is DB-bound, so it joins the
+  # spec 211 encore-test lane (the vite.config.ts exclude list IS the lane
+  # assignment; bare vitest would fail it on a missing ENCORE_RUNTIME_LIB).
+  - aspect: "encore-test-lane-assignment"
+    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
 references:
   - role: machinery
     unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.ts }
-  - role: context
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
   - role: context
     unit: { kind: file, path: docs/owasp-agentic-top-10-2026.md }
 ---
@@ -260,7 +290,33 @@ governance certificate so `verify-certificate` catches tampering.
   `factory_run.rs` + the factory-engine `lib.rs` module registration. No
   `governance_certificate.rs` change (the stage-scan is reused as-is).
 
-**Phase 2b (PR B, deferred): platform countersign (AC-4).** Session-scoped
-segments countersigned by stagecraft (spec 198 FR-014), offline-first with
-retroactive anchoring. Cross-repo; sequenced after the active stagecraft
-deploy settles. Design in `plan.md` (Phase 2b).
+**Phase 2b server side (2026-06-19, PR B1): platform countersign (AC-4,
+stagecraft half).** Stagecraft can now seal a session-scoped audit segment
+head (spec 198 FR-014: the platform signs, the local side is keyless).
+
+- A new duplex message `audit.segment.countersign_request` carries
+  `{sessionId, segmentId, segmentHeadHash, segmentRecordCount, first/lastRecordAt}`;
+  `auditSegmentHandlers.ts` (mirroring `countersignRunCertificate`) signs the
+  head with a new domain typ `oap-audit-segment-countersign+jws` via the
+  existing `signFactoryJws`, and persists a row in the new
+  `factory_session_audit_seals` table, idempotent on
+  `(org_id, session_id, segment_id)` so reconnect resubmission is safe.
+- The seal attests "the platform observed this segment head from this
+  org/session at iat"; it does not gate on factory admission (unlike the
+  run-grant countersign), because audit sealing is a universal observability
+  capability, not an execution grant. The submitted head hash is taken on
+  trust (the platform attests observation, not content; the local chain still
+  has to match the head). The duplex auth layer supplies the authenticated
+  org/session.
+- The new typ is an additive member of the spec-198-owned `FactoryJwsTyp`
+  (declared via an additive `extends` edge on 198). Tests:
+  `auditSegmentHandlers.test.ts` (5 cases: positive, idempotent resubmit,
+  distinct segments/sessions, refusal when unconfigured); grant tests
+  unchanged (17/17).
+
+**Phase 2b client side (PR B2, deferred): OPC-side consumption.** The local
+side accumulates unanchored segment heads, submits them over the duplex
+channel at reconnect, stores the returned countersignatures, and exposes the
+unanchored window. This completes AC-4 end-to-end. Sequenced after the active
+stagecraft (215) deploy/verify settles to avoid duplex-surface runtime
+ambiguity. Design in `plan.md` (Phase 2b).

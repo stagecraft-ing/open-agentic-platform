@@ -137,6 +137,9 @@ export default defineConfig({
       // (create / patch-by-id / patch-by-release / latest-per-env /
       // by-release lookup) exercised against live Postgres.
       "**/deploy/deployments.test.ts",
+      // Spec 207 AC-4: platform countersign of audit segments mutates
+      // audit_log + org/user fixtures via the live DB; runs under encore test.
+      "**/factory/auditSegmentHandlers.test.ts",
     ],
   },
 });

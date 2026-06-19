@@ -22,11 +22,12 @@ import {
   type KeyObject,
 } from "node:crypto";
 
-/** Domain-separation values for the three signature classes (PD-1). */
+/** Domain-separation values for the four signature classes (PD-1). */
 export type FactoryJwsTyp =
   | "oap-admission-seal+jws"
   | "oap-run-grant+jwt"
-  | "oap-cert-countersign+jws";
+  | "oap-cert-countersign+jws"
+  | "oap-audit-segment-countersign+jws";
 
 export type PublicJwk = {
   kty: "OKP";

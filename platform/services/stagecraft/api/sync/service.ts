@@ -57,6 +57,7 @@ import {
   handleGrantRenew,
   handleGrantRequest,
 } from "../factory/grantDuplexHandlers";
+import { handleAuditSegmentCountersignRequest } from "../factory/auditSegmentHandlers";
 
 // ---------------------------------------------------------------------------
 // Inbound path
@@ -135,6 +136,12 @@ export async function handleInbound(
     evt.kind === "factory.run.grant_renew"
   ) {
     return grantDispatch(ctx, evt);
+  }
+
+  // Spec 207 AC-4: audit segment countersign. The handler signs the segment
+  // HEAD and returns a targeted `audit.segment.countersign` reply.
+  if (evt.kind === "audit.segment.countersign_request") {
+    return auditSegmentDispatch(ctx, evt);
   }
 
   // For all other kinds, persist + log + audit where appropriate.
@@ -331,6 +338,35 @@ async function grantDispatch(
     return outcome.result;
   } catch (err) {
     log.error("sync: factory.run grant handler failed", {
+      orgId: ctx.orgId,
+      clientId: ctx.clientId,
+      kind: evt.kind,
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return { ok: false, reason: "internal_error" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Spec 207 AC-4: audit.segment.countersign_request dispatch
+// ---------------------------------------------------------------------------
+
+async function auditSegmentDispatch(
+  ctx: InboundContext,
+  evt: ClientEnvelope,
+): Promise<InboundResult> {
+  if (evt.kind !== "audit.segment.countersign_request") {
+    return { ok: false, reason: "invalid", detail: "unexpected event kind" };
+  }
+  try {
+    const handlerCtx = { orgId: ctx.orgId, userId: ctx.userId };
+    const reply = await handleAuditSegmentCountersignRequest(evt, handlerCtx);
+    await sendTargetedServerEvent(ctx.orgId, ctx.clientId, reply, {
+      correlationId: evt.meta.eventId,
+    });
+    return { ok: true };
+  } catch (err) {
+    log.error("sync: audit segment countersign handler failed", {
       orgId: ctx.orgId,
       clientId: ctx.clientId,
       kind: evt.kind,
