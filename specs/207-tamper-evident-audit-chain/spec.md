@@ -3,7 +3,7 @@ id: "207-tamper-evident-audit-chain"
 title: "Tamper-Evident Audit Log Chain (ASI observability principle)"
 feature_branch: "feat/207-tamper-evident-audit-chain"
 status: draft
-implementation: pending
+implementation: in-progress
 kind: governance
 domain: tooling
 created: "2026-06-11"
@@ -34,12 +34,25 @@ depends_on:
   - "068-permission-runtime"
   - "102-governed-excellence"
   - "198-factory-governance-envelope"
+establishes:
+  # FR-003 (Phase 1): the independent audit-chain verifier. Its home was left
+  # open at filing ("home decided in plan.md") and is decided in plan.md: a
+  # sister binary to verify_proof_chain, in policy-kernel.
+  - unit: { kind: file, path: crates/policy-kernel/src/bin/verify_audit_chain.rs }
+  # FR-003 end-to-end coverage: the verifier CLI exit-code contract (clean
+  # exits 0, tampered exits non-zero naming the record, no-arg exits usage).
+  - unit: { kind: file, path: crates/policy-kernel/tests/verify_audit_chain_cli.rs }
 extends:
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+  # Phase 1: the new [[bin]] target for verify_audit_chain is an additive
+  # extension of the spec-047-owned policy-kernel manifest.
+  - spec: "047-governance-control-plane"
+    nature: additive
+    unit: { kind: file, path: crates/policy-kernel/Cargo.toml }
 refines:
   - aspect: "hash-chained-audit-records"
     unit: { kind: file, path: crates/policy-kernel/src/audit.rs }
@@ -79,7 +92,13 @@ the rogue agent can edit the review's input.
 The fix is the discipline OAP already owns, applied uniformly: chain,
 anchor, verify independently.
 
-## Functional requirements (sketch — refine before implementation)
+## Functional requirements
+
+> Refined from the filing sketch per the spec's own instruction; the
+> plan.md decisions are folded in. Phase 1 (this implementation) lands
+> FR-001, FR-003, and the LOCAL half of FR-002. Phase 2 lands the
+> cross-repo anchoring (run certificate + platform countersign). See
+> Sequencing and the Implementation log.
 
 - **FR-001 — Hash-chained records.** Every audit record carries the hash
   of its predecessor (genesis-marked per segment), reusing the spec 047
@@ -110,7 +129,23 @@ anchor, verify independently.
   the spec records this as the accepted residual rather than implying
   tamper-proofness (the ASI08 residual-statement discipline).
 
-## Acceptance criteria (sketch)
+> **Refinement (Phase 1 honesty).** "Detects modification" holds only
+> against the external anchor. A self-referential chain catches edits that
+> do NOT recompute downstream hashes (in-place edits, mid-segment deletion,
+> reordering). It does NOT, on its own, catch an edit that re-establishes
+> internal consistency: a writer of an OPEN, not-yet-anchored segment can
+> re-genesis and recompute every `record_hash` (whole-segment rewrite,
+> head-prefix deletion, tail deletion) and the walker passes. That entire
+> class is the Phase 1 residual until FR-002 anchoring (run certificate /
+> platform countersign, Phase 2) supplies the external trust root. The
+> residual is therefore broader than tail deletion alone; it is bounded by
+> the anchoring cadence, not eliminated by the chain.
+
+## Acceptance criteria
+
+> Phase 1 satisfies AC-1, AC-2, AC-5 (local, offline, deterministic,
+> covered by `crates/policy-kernel` unit + CLI tests). AC-3 and AC-4
+> (cross-repo anchoring) are Phase 2.
 
 - **AC-1.** Flipping one byte in record N of a segment: the verifier
   exits non-zero naming record N.
@@ -143,3 +178,45 @@ FR-001 and FR-003 are implementable now (policy-kernel is local and the
 chain shape exists). FR-002's countersign anchoring follows spec 198
 phase 4 machinery (landed) and should ride the same key infrastructure,
 not duplicate it.
+
+## Implementation log
+
+**Phase 1 (2026-06-19).** Local chain + independent verifier, in
+`crates/policy-kernel`. Plan and decisions: `plan.md`.
+
+- **FR-001 (done).** The spec 047 record-hash linkage was extracted into a
+  content-agnostic primitive `proof_chain::link_record_hash(value,
+  hash_field)`; `compute_record_hash` is now a thin wrapper over it
+  (behaviour byte-identical, guarded by the existing spec 047 chain
+  tests). `audit::AuditLogger` writes each JSONL record with
+  `previous_record_hash` + `record_hash` computed through that primitive;
+  a fresh segment is genesis-marked, and a process restart on a non-empty
+  file recovers the chain head and continues unbroken.
+- **FR-002 (local half done; cross-repo deferred).** Rotation closes a
+  segment with a `segment_head` record (`segment_id`, `record_count`,
+  first/last timestamp); the head hash becomes the next segment's genesis
+  binding (continuity), and the `record_count` is the closed-segment
+  truncation tripwire. Run-certificate and platform-countersign anchoring
+  (AC-3, AC-4) are Phase 2.
+- **FR-003 (done).** `verify_audit_chain` binary (sister to
+  `verify_proof_chain`): walks a segment, recomputes hashes, checks links,
+  validates a trailing head's count, and exits non-zero naming the first
+  broken record. `verify_audit_chain(records, expected_genesis)` is the
+  unit-testable core; the binary is a thin CLI shell.
+- **FR-004 (stated).** Until FR-002 anchoring lands (Phase 2), the open
+  not-yet-anchored segment is the residual: any internally-consistent
+  rewrite (whole-segment re-hash, head-prefix deletion, tail deletion)
+  passes the self-referential walker. The chain catches only edits that
+  fail to recompute downstream hashes. The 10 MB rotation size bounds the
+  unanchored window; the external anchor closes the class. See the FR-004
+  refinement note above (corrected after local review).
+
+Carve-out (plan.md decision 3): stagecraft database-resident audit rows
+(`auditActions.ts`) are NOT file-chained; their honest anchoring story is
+the platform countersign plus append-only DB posture, not the per-record
+file chain. No stagecraft code changes in Phase 1.
+
+Coupling note: the implementation PR adds `establishes:` edges for the new
+verifier binary and its CLI test, and an additive `extends:` edge on the
+spec-047-owned `crates/policy-kernel/Cargo.toml` for the new `[[bin]]`
+target, per the spec-196 "edge lands with the code" precedent.
