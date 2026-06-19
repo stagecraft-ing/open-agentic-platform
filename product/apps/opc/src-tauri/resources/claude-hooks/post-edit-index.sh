@@ -19,21 +19,21 @@ if ! oap_is_project "$root"; then
   exit 0
 fi
 
-bin=$(oap_locate_binary "$root" codebase-indexer || true)
+bin=$(oap_locate_binary "$root" spec-spine || true)
 if [ -z "$bin" ]; then
   # FR-007: PostToolUse hooks must complete fast. A missing binary is not a
-  # drift signal — surface it as advisory (non-blocking) and let Stop-time
+  # drift signal; surface it as advisory (non-blocking) and let Stop-time
   # validation handle hard enforcement.
-  oap_emit_diagnostic post-edit-index codebase-indexer 0 "binary not found; PostToolUse staleness check skipped"
+  oap_emit_diagnostic post-edit-index spec-spine 0 "spec-spine binary not found; PostToolUse staleness check skipped"
   exit 0
 fi
 
 cd "$root" || exit 2
-stderr=$("$bin" check 2>&1)
+stderr=$("$bin" index check 2>&1)
 rc=$?
 if [ $rc -ne 0 ]; then
   summary=$(printf '%s' "$stderr" | head -n3 | tr '\n' ' ' | sed 's/  */ /g')
-  oap_emit_diagnostic post-edit-index codebase-indexer "$rc" "${summary:-codebase-index is stale; run codebase-indexer compile}"
+  oap_emit_diagnostic post-edit-index spec-spine "$rc" "${summary:-codebase-index is stale; run spec-spine index}"
   exit 2
 fi
 exit 0

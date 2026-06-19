@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Spec: 166-opc-stop-hook-gate-chain — hook wrapper test suite.
+# Spec: 166-opc-stop-hook-gate-chain: hook wrapper test suite.
 #
 # Self-contained shell tests for the six wrapper scripts. Tests run against
 # a synthetic OAP-shaped project tree and a set of mock binaries placed on
@@ -63,25 +63,43 @@ make_project() {
   mkdir -p "$root/specs" "$root/.derived/spec-registry" "$root/.derived/codebase-index"
   printf '{}' > "$root/.derived/spec-registry/registry.json"
   printf '{}' > "$root/.derived/codebase-index/index.json"
-  # Initialise git so spec-code-coupling-check's status invocation works.
+  # Initialise git so spec-spine couple's status invocation works.
   (cd "$root" && git init -q && git config user.email t@t && git config user.name t && \
      git add . && git commit -q -m init >/dev/null 2>&1) || true
 
   local bindir="$root/.mock-bin"
   mkdir -p "$bindir"
 
-  if [ "$idx_rc" != "missing" ]; then
-    cat > "$bindir/codebase-indexer" <<EOF
+  # Single spec-spine mock binary dispatches on subcommand.
+  if [ "$idx_rc" != "missing" ] || [ "$cp_rc" != "missing" ]; then
+    # Capture values for use inside the heredoc.
+    local _idx_rc="$idx_rc"
+    local _cp_rc="$cp_rc"
+    cat > "$bindir/spec-spine" <<EOF
 #!/usr/bin/env bash
-if [ "\$1" = "check" ]; then
-  if [ "$idx_rc" -ne 0 ]; then
-    echo "codebase-index stale: 12 inputs changed" 1>&2
+subcmd="\$1"
+shift || true
+if [ "\$subcmd" = "index" ]; then
+  action="\$1"
+  if [ "\$action" = "check" ]; then
+    if [ "${_idx_rc}" != "missing" ] && [ "${_idx_rc}" -ne 0 ]; then
+      echo "codebase-index stale: 12 inputs changed" 1>&2
+      exit ${_idx_rc}
+    fi
+    exit 0
   fi
-  exit $idx_rc
+  exit 0
+fi
+if [ "\$subcmd" = "couple" ]; then
+  if [ "${_cp_rc}" != "missing" ] && [ "${_cp_rc}" -ne 0 ]; then
+    echo "spec/code coupling violation: path X has no owning spec" 1>&2
+    exit ${_cp_rc}
+  fi
+  exit 0
 fi
 exit 0
 EOF
-    chmod +x "$bindir/codebase-indexer"
+    chmod +x "$bindir/spec-spine"
   fi
 
   if [ "$sl_rc" != "missing" ]; then
@@ -95,22 +113,11 @@ EOF
     chmod +x "$bindir/spec-lint"
   fi
 
-  if [ "$cp_rc" != "missing" ]; then
-    cat > "$bindir/spec-code-coupling-check" <<EOF
-#!/usr/bin/env bash
-if [ "$cp_rc" -ne 0 ]; then
-  echo "spec/code coupling violation: path X has no owning spec" 1>&2
-fi
-exit $cp_rc
-EOF
-    chmod +x "$bindir/spec-code-coupling-check"
-  fi
-
   if [ "$cg_rc" != "missing" ]; then
     cat > "$bindir/codification-gate" <<EOF
 #!/usr/bin/env bash
 if [ "$cg_rc" -ne 0 ]; then
-  echo "codification-gate: blocking — uncoded CRITICAL/HIGH findings:" 1>&2
+  echo "codification-gate: blocking; uncoded CRITICAL/HIGH findings:" 1>&2
   echo "  - [Critical] F-MOCK (axiomregent): mock finding for hook test" 1>&2
 fi
 exit $cg_rc
@@ -171,7 +178,7 @@ TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
 echo
-echo "== _lib.sh — pure helpers =="
+echo "== _lib.sh: pure helpers =="
 # shellcheck source=../_lib.sh
 . "$HOOKS_DIR/_lib.sh"
 assert_eq "is_spec_md positive (project-relative)" "0" "$(oap_is_spec_md specs/166-foo/spec.md && echo 0 || echo 1)"
@@ -214,21 +221,21 @@ out=$(run_hook post-edit-index.sh '{}' "$bindir" "$proj")
 rc=$(run_hook_rc post-edit-index.sh '{}' "$bindir" "$proj")
 assert_eq "post-edit-index exit 2 on staleness" "2" "$rc"
 assert_contains "post-edit-index emits FR-005 diagnostic" '"hook":"post-edit-index"' "$out"
-assert_contains "post-edit-index names binary" '"binary":"codebase-indexer"' "$out"
+assert_contains "post-edit-index names binary" '"binary":"spec-spine"' "$out"
 
 echo
 echo "== FR-002: PostToolUse spec-lint conditional =="
 proj=$(mktemp -d)
 bindir=$(make_project "$proj" 0 0 0 noop)
-# Non-spec edit — no-op.
+# Non-spec edit: no-op.
 rc=$(run_hook_rc post-edit-spec-lint.sh '{"tool_input":{"file_path":"'"$proj"'/src/main.rs"}}' "$bindir" "$proj")
 assert_eq "post-edit-spec-lint no-op on non-spec edit" "0" "$rc"
 
-# spec edit, lint clean — pass.
+# spec edit, lint clean: pass.
 rc=$(run_hook_rc post-edit-spec-lint.sh '{"tool_input":{"file_path":"'"$proj"'/specs/166-foo/spec.md"}}' "$bindir" "$proj")
 assert_eq "post-edit-spec-lint pass on clean spec" "0" "$rc"
 
-# spec edit, lint warns — block.
+# spec edit, lint warns: block.
 proj=$(mktemp -d)
 bindir=$(make_project "$proj" 0 1 0 noop)
 out=$(run_hook post-edit-spec-lint.sh '{"tool_input":{"file_path":"'"$proj"'/specs/166-foo/spec.md"}}' "$bindir" "$proj")
@@ -237,7 +244,7 @@ assert_eq "post-edit-spec-lint exit 2 on lint warning" "2" "$rc"
 assert_contains "post-edit-spec-lint diagnostic" '"hook":"post-edit-spec-lint"' "$out"
 
 echo
-echo "== FR-003: Stop chain — codebase-index =="
+echo "== FR-003: Stop chain: codebase-index =="
 proj=$(mktemp -d)
 bindir=$(make_project "$proj" 0 0 0 noop)
 rc=$(run_hook_rc stop-index.sh '{}' "$bindir" "$proj")
@@ -257,7 +264,7 @@ rc=$(run_hook_rc stop-index.sh '{}' "$bindir" "$proj")
 assert_eq "stop-index blocks when binary missing (platform-mandatory)" "2" "$rc"
 
 echo
-echo "== FR-003: Stop chain — spec-lint =="
+echo "== FR-003: Stop chain: spec-lint =="
 proj=$(mktemp -d)
 bindir=$(make_project "$proj" 0 0 0 noop)
 rc=$(run_hook_rc stop-spec-lint.sh '{}' "$bindir" "$proj")
@@ -269,7 +276,7 @@ rc=$(run_hook_rc stop-spec-lint.sh '{}' "$bindir" "$proj")
 assert_eq "stop-spec-lint blocks on warning" "2" "$rc"
 
 echo
-echo "== FR-003: Stop chain — coupling =="
+echo "== FR-003: Stop chain: coupling =="
 proj=$(mktemp -d)
 bindir=$(make_project "$proj" 0 0 0 noop)
 rc=$(run_hook_rc stop-coupling.sh '{}' "$bindir" "$proj")
@@ -283,7 +290,7 @@ echo "modified" > "$proj/src/main.rs"
 rc=$(run_hook_rc stop-coupling.sh '{}' "$bindir" "$proj")
 assert_eq "stop-coupling blocks on coupling violation" "2" "$rc"
 
-# Without compiled artifacts → advisory exit 0.
+# Without compiled artifacts: advisory exit 0.
 proj=$(mktemp -d)
 mkdir -p "$proj/specs"
 bindir=$(mktemp -d)
@@ -291,7 +298,7 @@ rc=$(run_hook_rc stop-coupling.sh '{}' "$bindir" "$proj")
 assert_eq "stop-coupling advisory when artifacts absent" "0" "$rc"
 
 echo
-echo "== FR-003: Stop chain — workflow-pins (conditional) =="
+echo "== FR-003: Stop chain: workflow-pins (conditional) =="
 proj=$(mktemp -d)
 bindir=$(make_project "$proj" 0 0 0 noop)
 rc=$(run_hook_rc stop-workflow-pins.sh '{}' "$bindir" "$proj")
@@ -310,14 +317,14 @@ assert_eq "stop-workflow-pins blocks on unpinned ref" "2" "$rc"
 assert_contains "stop-workflow-pins diagnostic" '"hook":"stop-workflow-pins"' "$out"
 
 echo
-echo "== spec 174: Stop chain — codification-gate =="
-# Clean — gate passes.
+echo "== spec 174: Stop chain: codification-gate =="
+# Clean: gate passes.
 proj=$(mktemp -d)
 bindir=$(make_project "$proj" 0 0 0 noop 0)
 rc=$(run_hook_rc stop-codification.sh '{}' "$bindir" "$proj")
 assert_eq "stop-codification passes when no uncoded findings" "0" "$rc"
 
-# Blocking — gate exits 2 with diagnostic envelope.
+# Blocking: gate exits 2 with diagnostic envelope.
 proj=$(mktemp -d)
 bindir=$(make_project "$proj" 0 0 0 noop 2)
 out=$(run_hook stop-codification.sh '{}' "$bindir" "$proj")
@@ -326,7 +333,7 @@ assert_eq "stop-codification blocks on uncoded finding" "2" "$rc"
 assert_contains "stop-codification emits FR-005 diagnostic" '"hook":"stop-codification"' "$out"
 assert_contains "stop-codification names binary" '"binary":"codification-gate"' "$out"
 
-# Binary absent — advisory exit 0 (forward-compat: substrate emission may
+# Binary absent: advisory exit 0 (forward-compat: substrate emission may
 # not be wired yet; spec-coupling + index gates still gate the spine shape).
 proj=$(mktemp -d)
 bindir=$(make_project "$proj" 0 0 0 noop missing)
@@ -336,7 +343,7 @@ assert_eq "stop-codification advisory when binary missing" "0" "$rc"
 assert_contains "stop-codification advisory diagnostic" '"hook":"stop-codification"' "$out"
 
 echo
-echo "── summary ──"
+echo "-- summary --"
 printf 'PASS=%d FAIL=%d\n' "$PASS" "$FAIL"
 if [ "$FAIL" -gt 0 ]; then
   printf '\nFailures:\n'

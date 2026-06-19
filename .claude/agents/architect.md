@@ -30,9 +30,9 @@ This is a governed monorepo with three layers:
 
 | Layer | Path | Tech |
 |-------|------|------|
-| Spec Spine | `specs/` | Markdown + YAML frontmatter, compiled to `.derived/spec-registry/registry.json` |
+| Spec Spine | `specs/` | Markdown + YAML frontmatter, compiled to `.derived/spec-registry/by-spec/*.json` shards |
 | Rust Crates | `crates/` | agent, axiomregent, factory-engine, factory-contracts, featuregraph, orchestrator, policy-kernel, run, skill-factory, tool-registry, xray |
-| Rust Tools | `tools/` | spec-compiler, registry-consumer, spec-lint, policy-compiler |
+| Rust Tools | `tools/` | spec-spine CLI (published), spec-lint, policy-compiler, oap-registry-enrich |
 | Desktop App (OPC) | `apps/opc/` | Tauri v2 + React + TypeScript |
 | Factory | `factory/` | Process stages, contract schemas, adapters (aim-vue-node, next-prisma, encore-react, rust-axum) |
 | Platform | `platform/` | Encore.ts (stagecraft), Rust (deployd-api-rs), Terraform, Helm |
@@ -52,7 +52,7 @@ Read the files needed to understand the current state:
 - `CLAUDE.md` and `AGENTS.md` — project conventions and session protocol
 - Relevant specs in `specs/NNN-slug/spec.md` — the authoritative design record
 - Existing code in affected crates or packages — understand current patterns
-- `.derived/spec-registry/registry.json` — compiled feature state (if relevant)
+- `.derived/spec-registry/by-spec/*.json` shards: compiled feature state (if relevant)
 
 ### 3. Validate Against Spec Spine
 
@@ -61,7 +61,7 @@ For each proposed change, check:
 - Does a spec already exist for this feature? If not, should one be created first?
 - Does the approach align with the spec's stated design and constraints?
 - Are there cross-feature dependencies declared in spec frontmatter that must be respected?
-- Will the change require spec-compiler updates or new lint rules?
+- Will the change require spec-spine CLI updates or new lint rules?
 
 ### 4. Decompose into Steps
 
@@ -93,7 +93,7 @@ Look for:
 - [ ] Spec Spine — [which specs]
 - [ ] Rust Crates — [which crates]
 - [ ] Desktop App — [which packages/components]
-- [ ] Tooling — [spec-compiler, registry-consumer, spec-lint]
+- [ ] Tooling: [spec-spine CLI, spec-lint, oap-registry-enrich]
 
 ### Steps
 
@@ -122,7 +122,7 @@ Look for:
 - **DO:** Keep steps small enough that each can be verified independently
 - **DO NOT:** Modify any files — this agent is strictly read-only
 - **DO NOT:** Skip loading specs — they are the authoritative record
-- **DO NOT:** Propose changes that bypass the spec-compiler build system
+- **DO NOT:** Propose changes that bypass the spec-spine build system
 
 ## What to remember (project memory)
 
@@ -132,8 +132,8 @@ This agent has `memory: project` and writes to `.claude/agent-memory/architect/M
 
 - **Spec-shape patterns** — non-obvious frontmatter combinations that work or fail. Example: "`kind: migration` + `risk: low` specs in this repo always carry an `amends:` list of every spec whose path references change; omitting that list fails the coupling gate."
 - **Decomposition pitfalls** — wrong cuts you've seen proposed. Example: "splitting a Rust + spec change into 'spec PR' + 'code PR' breaks the spec-code-coupling gate; both must land in the same PR."
-- **Latent constraints** — invariants that aren't in any single doc but emerge from how the spine actually behaves. Example: "any change touching the indexer's input list at `tools/spec-spine/codebase-indexer/src/lib.rs::collect_input_files` requires amending spec 101 in the same PR."
-- **Reusable plan skeletons** — when a class of plan repeats. Example: "the standard `oap.spec` backfill plan: (1) identify orphans via `codebase-indexer orphans --json`, (2) decide ownership, (3) edit Cargo.toml/package.json, (4) regenerate index, (5) commit."
+- **Latent constraints**: invariants that aren't in any single doc but emerge from how the spine actually behaves. Example: "any change touching the indexer's input list in the spec-spine codebase-index module requires amending spec 101 in the same PR."
+- **Reusable plan skeletons**: when a class of plan repeats. Example: "the standard `oap.spec` backfill plan: (1) identify orphans via `spec-spine index orphans --json`, (2) decide ownership, (3) edit Cargo.toml/package.json, (4) regenerate index, (5) commit."
 
 **Do NOT record** plans for specific features (those go in `specs/`), reactions to single conversations, or generic engineering advice. The memory file should read as accumulated taste — the patterns a senior architect on this project would name if asked "what do I keep seeing?"
 

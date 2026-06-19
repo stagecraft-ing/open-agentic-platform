@@ -10,7 +10,7 @@
 
 .PHONY: setup dev dev-platform dev-all stop \
         axiomregent axiomregent-all fetch-axiomregent fetch-axiomregent-check \
-        registry spec-compile spec-tools register-merge-driver \
+        registry spec-compile spec-tools register-merge-driver ensure-spec-spine \
         index index-check index-render pr-prep \
         check-deps \
         agent-frontmatter-ts ci-agent-frontmatter-ts \
@@ -41,35 +41,28 @@ check-deps:
 # Setup (one-time)
 # ============================================================
 
-setup: check-deps
+setup: check-deps ensure-spec-spine
 	@echo ""
 	@echo "==> Installing pnpm workspace dependencies..."
 	cd product && pnpm install
 	@echo ""
-	@echo "==> Building spec compiler..."
-	cargo build --release --manifest-path tools/spec-spine/spec-compiler/Cargo.toml --target-dir tools/spec-spine/spec-compiler/target
+	@echo "==> Compiling spec registry (spec-spine compile)..."
+	spec-spine compile
 	@echo ""
-	@echo "==> Compiling spec registry..."
-	./tools/spec-spine/spec-compiler/target/release/spec-compiler compile
-	@echo ""
-	@echo ""
-	@echo "==> Building codebase indexer..."
-	cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
-	@echo ""
-	@echo "==> Fetching axiomregent sidecar binary (before index compile so the binary is present in the resolver's walk)..."
+	@echo "==> Fetching axiomregent sidecar binary (before the index so the binary is present in the resolver's walk)..."
 	@$(MAKE) fetch-axiomregent-check || echo "  WARN: fetch failed. Run 'make axiomregent' to build from source."
 	@echo ""
-	@echo "==> Compiling codebase index..."
-	./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
+	@echo "==> Building the codebase index (spec-spine index)..."
+	spec-spine index
 	@echo ""
 	@echo "==> Building OAP code-index enricher..."
 	cargo build --release --manifest-path tools/oap/oap-code-index-enrich/Cargo.toml --target-dir tools/oap/oap-code-index-enrich/target
 	@echo ""
-	@echo "==> Compiling OAP overlay (index-oap.json — required for /init's render step)..."
+	@echo "==> Compiling OAP overlay (index-oap.json: required for /init's render step)..."
 	./tools/oap/oap-code-index-enrich/target/release/oap-code-index-enrich
 	@echo ""
-	@echo "==> Building registry-consumer (governed-read CLI for /init)..."
-	cargo build --release --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --target-dir tools/spec-spine/registry-consumer/target
+	@echo "==> Building OAP registry enricher (registry-oap.json + governed-read authority verbs for /init)..."
+	cargo build --release --manifest-path tools/oap/oap-registry-enrich/Cargo.toml --target-dir tools/oap/oap-registry-enrich/target
 	@echo ""
 	@echo "==> Registering oap-index-regen git merge driver (spec 188)..."
 	@$(MAKE) register-merge-driver
@@ -179,6 +172,22 @@ fetch-axiomregent-check:
 	 fi
 
 # ============================================================
+# spec-spine CLI (the published governance engine; the in-tree engine
+# crates were deleted per spec 217). Targets below assume `spec-spine`
+# is on PATH; `make setup` installs the pinned version via the
+# `ensure-spec-spine` prerequisite.
+# ============================================================
+SPEC_SPINE_VERSION ?= 0.8.0
+
+ensure-spec-spine:
+	@if [ "$$(spec-spine --version 2>/dev/null | awk '{print $$2}')" != "$(SPEC_SPINE_VERSION)" ]; then \
+	    echo "==> Installing spec-spine $(SPEC_SPINE_VERSION) CLI (cargo install spec-spine-cli)..."; \
+	    cargo install spec-spine-cli --version $(SPEC_SPINE_VERSION) --locked --force; \
+	  else \
+	    echo "  spec-spine $(SPEC_SPINE_VERSION) present"; \
+	  fi
+
+# ============================================================
 # Spec tools
 # ============================================================
 ## tag: registry
@@ -210,7 +219,7 @@ oap-code-index-enrich:
 ## coupling gate against origin/main. Run before `git commit` on PRs so
 ## the corresponding CI check passes first try.
 ##
-## Index inputs (see tools/spec-spine/codebase-indexer/src/lib.rs `collect_input_files`):
+## Index inputs (see spec-spine.toml [index] extra_hashed_inputs + the always-hashed core):
 ##   Cargo.toml, workspace + tool Cargo.tomls, package.json, pnpm-workspace.yaml,
 ##   specs/*/spec.md, platform/services/stagecraft/api/factory/adapter-scopes.json
 ##   (post-spec-160; was factory/adapters/*/manifest.yaml),
@@ -223,14 +232,15 @@ pr-prep: index ci-fast-spec-coupling
 	@echo ""
 	@echo "==> pr-prep: codebase-index regenerated (gitignored, not committed per spec 188 Phase 4b), coupling gate clean."
 
-spec-compile:
-	./tools/spec-spine/spec-compiler/target/release/spec-compiler compile
+spec-compile: ensure-spec-spine
+	spec-spine compile
 
-spec-tools:
-	cargo build --release --manifest-path tools/spec-spine/spec-compiler/Cargo.toml --target-dir tools/spec-spine/spec-compiler/target
-	cargo build --release --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --target-dir tools/spec-spine/registry-consumer/target
+## Build the surviving OAP overlay lint binaries. The generic engine
+## crates were deleted in spec 217; the published `spec-spine` CLI
+## (ensured above) replaces them. spec-lint and stakeholder-doc-lint are
+## OAP-domain overlays that survive.
+spec-tools: ensure-spec-spine
 	cargo build --release --manifest-path tools/spec-spine/spec-lint/Cargo.toml --target-dir tools/spec-spine/spec-lint/target
-	cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
 	cargo build --release --manifest-path tools/oap/stakeholder-doc-lint/Cargo.toml --target-dir tools/oap/stakeholder-doc-lint/target
 
 # ============================================================
@@ -322,28 +332,22 @@ verify-certificate:
 # Codebase Index
 # ============================================================
 #
-# All three targets ensure the binary is current before invoking it. A
-# stale binary built against an older source tree silently produces a
-# different content hash than the same source compiled fresh — that
-# masquerades as a cross-platform determinism bug (see issue #46
-# investigation). Rebuilding before each invocation costs nothing on
-# warm cargo cache.
+# The index is built by the published `spec-spine` CLI (`spec-spine index`,
+# bare: there is no `index compile` subcommand). The pinned CLI version
+# (SPEC_SPINE_VERSION, installed by `make setup` via ensure-spec-spine)
+# makes the content hash deterministic across machines, replacing the
+# in-tree indexer's rebuild-before-invoke guard (issue #46).
 
-CODEBASE_INDEXER_BIN = tools/spec-spine/codebase-indexer/target/release/codebase-indexer
+index: ensure-spec-spine
+	spec-spine index
 
-$(CODEBASE_INDEXER_BIN): tools/spec-spine/codebase-indexer/Cargo.toml tools/spec-spine/codebase-indexer/src/*.rs
-	cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
-
-index: $(CODEBASE_INDEXER_BIN)
-	./$(CODEBASE_INDEXER_BIN) compile
-
-index-check: $(CODEBASE_INDEXER_BIN)
-	./$(CODEBASE_INDEXER_BIN) check
+index-check: ensure-spec-spine
+	spec-spine index check
 
 ## Generic Layers 1+2+Diagnostics rendering (Epic 2 I11 restored).
 ## Goes to stdout; redirect to capture.
-index-render-generic: $(CODEBASE_INDEXER_BIN)
-	./$(CODEBASE_INDEXER_BIN) render
+index-render-generic: ensure-spec-spine
+	spec-spine index render
 
 ## OAP-overlay (Layers 1-5) markdown rendering.
 ## Requires index-oap.json (produced by `make oap-code-index-enrich`).
@@ -361,7 +365,7 @@ index-render:
 # table; spec 139 then absorbed those rows into the universal
 # `factory_artifact_substrate` table. The bundled snapshot at
 # platform/services/stagecraft/api/factory/adapter-scopes.json is retained
-# as a static fallback and is the file the codebase-indexer hashes per
+# as a static fallback and is the file the spec-spine index hashes per
 # spec 160 (replacing the legacy in-tree manifest walk).
 
 # ============================================================
@@ -436,8 +440,8 @@ destroy-%:
 #   ci-rust       — Rust workspace + deployd-api-rs: check + clippy
 #                   -D warnings + test (covers all 18 crates/ workspace
 #                   members in one --workspace invocation per spec 135 FR-01)
-#   ci-tools      — Tool crates + registry-consumer contract subsets +
-#                   codebase-indexer staleness gate (spec-conformance.yml)
+#   ci-tools      : OAP overlay-tool crates + spec-spine engine smokes
+#                   (spec-conformance.yml)
 #   ci-desktop    — product/apps/opc: tauri rust (custom clippy flags) +
 #                   version alignment + tsc --noEmit + vitest (ci-desktop.yml)
 #   ci-stagecraft — platform/services/stagecraft: npm ci + tsc + vitest
@@ -459,18 +463,18 @@ ci-strict: ci-rust ci-tools ci-config-hash ci-desktop ci-stagecraft ci-stagecraf
 
 # Mirrors the check-config step inside .github/workflows/spec-conformance.yml
 # for `make ci-strict` parity (spec 104; the standalone ci-config-hash.yml
-# was deleted 2026-06-10 — see spec 188's amendment). Verifies the committed
-# config-hash.json slice
-# (.claude/settings.json + .mcp.json) is fresh — the narrow PR-time gate
-# that preserves spec 184's guarantee after the broad index-freshness check
-# became best-effort/report-only (cd-index-staleness-report.yml, spec 188
-# Phase 3). Phase 4 re-homed the slice out of the broad index's
-# build.claudeConfigHash into config-hash.json; behavior is unchanged.
-ci-config-hash:
+# was deleted 2026-06-10, see spec 188's amendment). Gates the committed
+# `claude-config` slice (.claude/settings.json + .mcp.json) declared under
+# spec-spine.toml [index.slices] and emitted to .derived/codebase-index/
+# slices.json: the narrow PR-time gate that preserves spec 184's guarantee
+# after the broad index-freshness check became best-effort/report-only
+# (spec 188 Phase 3). Spec 217 replaced the in-tree config-hash check
+# with `spec-spine index check --slice claude-config`; behavior is
+# unchanged.
+ci-config-hash: ensure-spec-spine
 	@echo ""
 	@echo "==> ci-config-hash: Claude shared-config slice staleness"
-	cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
-	./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check-config
+	spec-spine index check --slice claude-config
 
 # Rust validation (spec 135 FR-01): the `crates/` workspace is validated
 # once via `cargo --workspace --manifest-path crates/Cargo.toml`, covering
@@ -490,33 +494,12 @@ ci-rust:
 	cargo clippy --manifest-path platform/services/deployd-api-rs/Cargo.toml -- -D warnings
 	cargo test   --manifest-path platform/services/deployd-api-rs/Cargo.toml
 
-# registry-consumer contract gates (spec-conformance.yml)
-CI_REGISTRY_CONSUMER_CONTRACTS = \
-    readme_ \
-    error_contract_ \
-    shape_contract_ \
-    help_contract_ \
-    arg_contract_ \
-    version_contract_ \
-    default_path_contract_ \
-    allow_invalid_contract_ \
-    sorting_contract_ \
-    channel_contract_
-
-ci-tools:
-	@echo "==> ci-tools: spec-compiler"
-	cargo build --release --manifest-path tools/spec-spine/spec-compiler/Cargo.toml --target-dir tools/spec-spine/spec-compiler/target
-	./tools/spec-spine/spec-compiler/target/release/spec-compiler compile
-	cargo test --manifest-path tools/spec-spine/spec-compiler/Cargo.toml
+ci-tools: ensure-spec-spine
+	@echo "==> ci-tools: spec-spine compile (engine smoke; replaces the deleted in-tree compiler, spec 217)"
+	spec-spine compile
 	@echo ""
-	@echo "==> ci-tools: registry-consumer (+ contract subsets)"
-	cargo build --release --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --target-dir tools/spec-spine/registry-consumer/target
-	./tools/spec-spine/registry-consumer/target/release/registry-consumer list | head -n 5
-	cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml
-	@set -e; for c in $(CI_REGISTRY_CONSUMER_CONTRACTS); do \
-	    echo "  contract gate: $$c"; \
-	    cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml --all $$c; \
-	done
+	@echo "==> ci-tools: spec-spine registry (read-path smoke; replaces the deleted in-tree registry reader, spec 217)"
+	spec-spine registry list | head -n 5
 	@echo ""
 ## tag: spec-lint
 	@echo "==> ci-tools: spec-lint"
@@ -530,10 +513,8 @@ ci-tools:
 	cargo test --manifest-path tools/oap/stakeholder-doc-lint/Cargo.toml
 	./tools/oap/stakeholder-doc-lint/target/release/stakeholder-doc-lint --project . || true   # warnings non-blocking by default (FR-035)
 	@echo ""
-	@echo "==> ci-tools: codebase-indexer (compile + tests; broad staleness gate retired per spec 188 Phase 4b)"
-	cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
-	./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
-	cargo test --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml
+	@echo "==> ci-tools: spec-spine index (engine smoke; replaces the deleted in-tree indexer, spec 217; broad staleness gate retired per spec 188 Phase 4b)"
+	spec-spine index
 	@echo ""
 	@echo "==> ci-tools: policy-compiler"
 	cargo build --release --manifest-path tools/oap/policy-compiler/Cargo.toml --target-dir tools/oap/policy-compiler/target
@@ -685,10 +666,9 @@ factory-schema-lockstep:
 # ============================================================
 ## tag: spec-code-coupling
 
-ci-spec-code-coupling:
-	@echo "==> ci-spec-code-coupling: build + run gate"
-	cargo build --release --manifest-path tools/spec-spine/spec-code-coupling-check/Cargo.toml --target-dir tools/spec-spine/spec-code-coupling-check/target
-	cargo test --manifest-path tools/spec-spine/spec-code-coupling-check/Cargo.toml
+ci-spec-code-coupling: ensure-spec-spine
+	@echo "==> ci-spec-code-coupling: index staleness + coupling gate (spec-spine)"
+	spec-spine index check
 	@# Local mirror of .github/workflows/ci-spec-code-coupling.yml. CI passes
 	@# explicit base/head SHAs via --base/--head; locally we materialise the
 	@# working-tree-vs-origin/main diff (committed + staged + unstaged) plus
@@ -698,8 +678,7 @@ ci-spec-code-coupling:
 	  base=$(or $(BASE_REF),origin/main); \
 	  { git diff --name-only $$base; git ls-files --others --exclude-standard; } \
 	      | sort -u > $$paths_file; \
-	  ./tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check \
-	      --base $$base --head HEAD --paths-from $$paths_file; \
+	  spec-spine couple --base $$base --head HEAD --paths-from $$paths_file; \
 	  status=$$?; rm -f $$paths_file; exit $$status
 
 # ============================================================
@@ -834,22 +813,17 @@ ci-fast-rust:
 	      --manifest-path platform/services/deployd-api-rs/Cargo.toml ) & DA_PID=$$!; \
 	  wait $$WS_PID; W=$$?; wait $$DA_PID; D=$$?; exit $$((W | D))
 
-# Tools — parallel xargs fan-out, shared CARGO_TARGET_DIR so the 7 isolated
-# manifests dedup deps. The 10× registry-consumer contract subset loop in
-# `ci-tools` is dropped here per spec 134 §2.2(4): execution is subsumed
-# by the unfiltered `cargo test --manifest-path tools/spec-spine/registry-consumer/Cargo.toml`,
-# and the dropped loop's prefix-existence guarantee is preserved by the
-# explicit `cargo test -- --list` post-pass below.
+# Tools: parallel xargs fan-out, shared CARGO_TARGET_DIR so the isolated
+# OAP overlay-tool manifests dedup deps. The generic engine crates were
+# deleted per spec 217; their CI coverage is now the `spec-spine
+# compile|index` smokes appended below.
 CIFAST_TOOL_MANIFESTS = \
-    tools/spec-spine/spec-compiler/Cargo.toml \
-    tools/spec-spine/registry-consumer/Cargo.toml \
     tools/spec-spine/spec-lint/Cargo.toml \
     tools/oap/stakeholder-doc-lint/Cargo.toml \
-    tools/spec-spine/codebase-indexer/Cargo.toml \
     tools/oap/policy-compiler/Cargo.toml \
     tools/oap/assumption-cascade-check/Cargo.toml
 
-ci-fast-tools:
+ci-fast-tools: ensure-spec-spine
 	@mkdir -p $(CIFAST_TARGET_DIR)
 	@echo "==> ci-fast-tools: $(words $(CIFAST_TOOL_MANIFESTS)) manifests, shared target dir"
 	@# BSD xargs (macOS) caps `-I{}` replacement at 255 bytes by default and
@@ -865,25 +839,14 @@ ci-fast-tools:
 	    CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) cargo clippy --manifest-path "$$m" --all-targets -- -D warnings && \
 	    CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) cargo $(CIFAST_CARGO_TEST) --manifest-path "$$m" && \
 	    echo "  [done ] $$m"' _
-	@# Spec 134 §2.2(4): preserve the contract-prefix existence guarantee
-	@# the dropped registry-consumer subset loop implicitly provided. Each
-	@# prefix in CI_REGISTRY_CONSUMER_CONTRACTS MUST match ≥1 listed test.
-	@TESTS=$$(mktemp); \
-	 CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) cargo test \
-	    --manifest-path tools/spec-spine/registry-consumer/Cargo.toml -- --list \
-	    > $$TESTS 2>&1; \
-	 status=0; \
-	 for p in $(CI_REGISTRY_CONSUMER_CONTRACTS); do \
-	    grep -q "^$$p" $$TESTS || { \
-	      echo "ERROR: contract prefix '$$p' has no matching test"; status=1; \
-	    }; \
-	 done; \
-	 rm -f $$TESTS; exit $$status
-	@# Spec-lint smoke + codebase-indexer compile smoke (mirrors ci-tools; broad staleness gate retired per spec 188 Phase 4b).
+	@# Spec-lint smoke (survives) + spec-spine engine smokes. The generic
+	@# engine crates were deleted per spec 217; the dropped registry-reader
+	@# contract-prefix guard tested that deleted binary's CLI and is gone with
+	@# it. Broad staleness gate retired per spec 188 Phase 4b.
 	@CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) \
 	  cargo run --release --manifest-path tools/spec-spine/spec-lint/Cargo.toml -- --fail-on-warn
-	@CARGO_TARGET_DIR=$(CIFAST_TARGET_DIR) \
-	  cargo run --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml -- compile
+	@spec-spine compile
+	@spec-spine index
 
 ci-fast-desktop:
 	@test -f product/apps/opc/dist/index.html || { mkdir -p product/apps/opc/dist; \
@@ -931,14 +894,12 @@ ci-fast-schema-parity:
 	    stakeholder_docs::tests::writes_stakeholder_docs_fingerprint_file
 	bun run tools/oap/schema-parity-check/index.mjs
 
-ci-fast-spec-coupling:
-	cargo build --release --manifest-path tools/spec-spine/spec-code-coupling-check/Cargo.toml --target-dir tools/spec-spine/spec-code-coupling-check/target
+ci-fast-spec-coupling: ensure-spec-spine
 	@paths_file=$$(mktemp); \
 	  base=$(or $(BASE_REF),origin/main); \
 	  { git diff --name-only $$base; git ls-files --others --exclude-standard; } \
 	      | sort -u > $$paths_file; \
-	  ./tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check \
-	      --base $$base --head HEAD --paths-from $$paths_file; \
+	  spec-spine couple --base $$base --head HEAD --paths-from $$paths_file; \
 	  status=$$?; rm -f $$paths_file; exit $$status
 
 ci-fast-supply-chain:
@@ -1006,7 +967,7 @@ help:
 	@echo "  make ci                 Spec 134 fast loop (promoted to default by spec 135) — parallel local validation, parity-exempt. Daily dev loop. ~5 min warm on M1 Pro 10c / 64 GB."
 	@echo "  make ci-strict          Parity mirror — composes ci-rust, ci-tools, ci-desktop, ci-stagecraft, ci-supply-chain. Pre-push / parity-investigation. ~90 min on M1 Pro."
 	@echo "  make ci-rust            All Rust manifests: check + clippy -D warnings + test"
-	@echo "  make ci-tools           Spec tool crates + registry-consumer contract subsets + staleness gate"
+	@echo "  make ci-tools           OAP overlay-tool crates + spec-spine engine smokes + staleness gate"
 	@echo "  make ci-desktop         product/apps/opc rust + version alignment + tsc + vitest"
 	@echo "  make ci-stagecraft      platform/services/stagecraft: npm ci + tsc + vitest"
 	@echo "  make ci-stagecraft-encore  DB-bound encore-test lane + coverage guard (spec 211; needs encore CLI + Docker)"

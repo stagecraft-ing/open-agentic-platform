@@ -28,7 +28,7 @@ memory: project
 
 | Layer | Path | Key Concerns |
 |-------|------|-------------|
-| Spec Spine | `specs/` | Frontmatter schema, spec-compiler compatibility, cross-spec references |
+| Spec Spine | `specs/` | Frontmatter schema, spec-spine CLI compatibility, cross-spec references |
 | Rust Crates | `crates/` | Memory safety, error handling (`thiserror`), `pub` API surface, crate coupling |
 | Rust Tools | `tools/` | CLI correctness, registry output format, exit codes |
 | Desktop App | `apps/opc/` | Tauri command safety, React patterns, TypeScript strictness |
@@ -71,7 +71,7 @@ For each changed file:
 - Does the implementation match what the backing spec describes?
 - Are all spec requirements addressed, or are some deferred?
 - If the spec was modified, does the change maintain frontmatter schema validity?
-- Would the spec-compiler still produce correct output?
+- Would `spec-spine compile` still produce correct output?
 
 ### 6. Check Conventions
 
@@ -119,7 +119,7 @@ For each changed file:
 - [ ] Builds cleanly (`cargo check` / TypeScript compile)
 - [ ] Tests pass (if applicable)
 - [ ] No new warnings from `cargo clippy`
-- [ ] Spec-compiler output unchanged (if specs were not modified)
+- [ ] `spec-spine compile` output unchanged (if specs were not modified)
 
 ### Verdict
 [APPROVE / APPROVE WITH NOTES / REQUEST CHANGES]
@@ -145,7 +145,7 @@ This agent has `memory: project` and writes to `.claude/agent-memory/reviewer/ME
 
 - **Drift signatures** — when you see the same class of defect twice. Examples: AC numbering gaps in spec PRs, `Cargo.toml` version bumps shipping without corresponding spec coverage, Encore.ts handler signatures drifting from the stagecraft conventions in `platform/services/stagecraft/CLAUDE.md`, `[package.metadata.oap].spec` claims pointing at superseded specs, `.derived/codebase-index/index.json` left stale in PRs.
 - **Stable preferences** — author conventions that aren't in CLAUDE.md but are consistently applied. Example: "this team prefers `#[tracing::instrument]` on public crate functions over manual `tracing::info!` calls in handler bodies."
-- **Spec-spine quirks** — non-obvious behaviors of the toolchain you only discover by reviewing many PRs. Example: "the codebase-indexer hashes `.github/workflows/*.yml` but not `.github/actions/`, so action edits never trip the staleness gate."
+- **Spec-spine quirks**: non-obvious behaviors of the toolchain you only discover by reviewing many PRs. Example: "the spec-spine indexer hashes `.github/workflows/*.yml` but not `.github/actions/`, so action edits never trip the staleness gate."
 - **Recurring CONST-005 triggers** — patterns of "spec edit to satisfy an action" that need extra scrutiny.
 
 **Do NOT record** single-PR details (file paths from one diff, specific commit hashes, "user asked about spec 180"), explanations of how the toolchain works (that's in specs and CLAUDE.md), or transcripts of past reviews. The memory file should read like a senior reviewer's mental model after a year on the project — patterns, not events.

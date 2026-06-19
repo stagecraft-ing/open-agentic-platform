@@ -28,7 +28,7 @@ Review the output carefully. Identify:
 Follow these rules strictly:
 
 **Type prefix (required):** `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
-- Use optional scope when it clarifies the affected area: `feat(desktop):`, `fix(ci):`, `chore(spec-compiler):`
+- Use optional scope when it clarifies the affected area: `feat(desktop):`, `fix(ci):`, `chore(spec-spine):`
 - Match the scoping conventions visible in recent commit history
 
 **Subject line:**

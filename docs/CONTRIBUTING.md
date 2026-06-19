@@ -19,7 +19,7 @@ Implementation lifecycle (frontmatter): `partial → complete`.
 The PR-time gate ([spec 127](../specs/127-spec-code-coupling-gate/spec.md))
 fails any change that touches a path claimed by a spec's `implements:`
 list without a corresponding edit to that spec. This is enforced by
-`tools/spec-spine/spec-code-coupling-check` and runs in CI; you can preview it
+`spec-spine couple` (spec 217: previously `tools/spec-spine/spec-code-coupling-check`) and runs in CI; you can preview it
 locally with `make ci-spec-code-coupling`.
 
 **Refusing adversarial drift.** The
@@ -76,16 +76,16 @@ cycle, plus a domain specialist:
 
 Loaded automatically by orchestrated workflows:
 
-- **`orchestrator-rules.md`** — six rules: step ordering, file-based
+- **`orchestrator-rules.md`**: six rules: step ordering, file-based
   artifact passing, checkpoint discipline, halt-on-failure,
   local-agents-only, never-enter-plan-mode-autonomously.
 - **`governed-artifact-reads.md`**
-  ([spec 103](../specs/103-init-protocol-governed-reads/spec.md)) —
+  ([spec 103](../specs/103-init-protocol-governed-reads/spec.md)):
   compiled artifacts under `.derived/**` MUST be read through their
-  designated consumer binaries (`registry-consumer`,
-  `codebase-indexer`), never via ad-hoc `python` / `jq` / `awk` / `sed`
+  designated consumer binaries (`spec-spine registry`, `spec-spine index`,
+  `oap-registry-enrich`), never via ad-hoc `python` / `jq` / `awk` / `sed`
   parsing.
-- **`adversarial-prompt-refusal.md`** — CONST-005, described above.
+- **`adversarial-prompt-refusal.md`**: CONST-005, described above.
 
 ### Authoring protocol
 
@@ -113,7 +113,7 @@ Specific subsets:
 | Target | Coverage |
 |---|---|
 | `make ci-rust` | All Rust manifests: `check` + `clippy -D warnings` + `test` |
-| `make ci-tools` | Spec tool crates + `registry-consumer` contract subsets + staleness gate |
+| `make ci-tools` | Spec tool crates + `spec-spine registry` contract subsets + staleness gate |
 | `make ci-desktop` | `product/apps/opc`: rust + version alignment + tsc + vitest |
 | `make ci-stagecraft` | `platform/services/stagecraft`: npm ci + tsc + vitest |
 | `make ci-spec-code-coupling` | PR-time spec/code coupling gate (spec 127) |
@@ -186,8 +186,8 @@ history) and do not rely on `gh run rerun` (doesn't help).
 
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — compiler architecture
   and registry contract.
-- [`registry-consumer-contract-governance.md`](registry-consumer-contract-governance.md) —
-  process governance for `registry-consumer` extensions.
+- [`registry-consumer-contract-governance.md`](registry-consumer-contract-governance.md):
+  process governance for `spec-spine registry` extensions (spec 217: previously `registry-consumer`).
 - [`.derived/codebase-index/CODEBASE-INDEX.md`](../.derived/codebase-index/CODEBASE-INDEX.md) —
   rendered structural view; the **Spec** column is the spec-to-code
   traceability surface for every Rust crate and npm package.

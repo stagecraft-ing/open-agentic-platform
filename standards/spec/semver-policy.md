@@ -10,5 +10,5 @@
 > after Epic 2 lands.
 >
 > See `standards/spec/constitution.md` §Constitutional invariants and
-> the spec-compiler's `SPEC_VERSION` constant in
-> `tools/spec-spine/spec-compiler/src/lib.rs` for the current de facto policy.
+> the `SPEC_VERSION` constant in the published `spec-spine` library (spec 217: previously
+> `tools/spec-spine/spec-compiler/src/lib.rs`) for the current de facto policy.

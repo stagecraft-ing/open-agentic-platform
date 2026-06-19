@@ -1,7 +1,7 @@
 //! OAP-side enricher for the generic spec-spine registry.
 //!
-//! Cut D W-06a: reads `build/spec-registry/registry.json` via the
-//! typed-reader (`open_agentic_spec_registry_reader::load`), walks
+//! Cut D W-06a (spec 217): reads the committed `.derived/spec-registry`
+//! shards via the published library reader, walks
 //! `specs/*/spec.md` for `compliance:` frontmatter and the repository
 //! tree for `.factory/build-spec.yaml` files, and emits
 //! `build/spec-registry/registry-oap.json` with the OAP-specific

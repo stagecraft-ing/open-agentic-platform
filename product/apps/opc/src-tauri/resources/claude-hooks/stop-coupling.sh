@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Spec: 166-opc-stop-hook-gate-chain (FR-003, platform-mandatory)
 #
-# Stop hook: spec-code-coupling-check against the working tree. This is the
+# Stop hook: spec-spine couple against the working tree. This is the
 # second platform-mandatory entry (FR-006).
 #
 # Conversation-end runs use HEAD as the comparison base (working-tree diff)
@@ -23,20 +23,20 @@ if ! oap_is_project "$root"; then
   exit 0
 fi
 
-if [ ! -f "$root/.derived/spec-registry/registry.json" ] || \
-   [ ! -f "$root/.derived/codebase-index/index.json" ]; then
-  # Without compiled artifacts the gate cannot run. Surface as advisory so
-  # the user knows to compile, but do not hard-block: the stop-index hook
-  # already covers the staleness signal, and the coupling gate needs both
-  # artifacts present to be meaningful.
-  oap_emit_diagnostic stop-coupling spec-code-coupling-check 0 "spec-registry or codebase-index not compiled; coupling gate skipped (run make registry)"
-  exit 0
+bin=$(oap_locate_binary "$root" spec-spine || true)
+if [ -z "$bin" ]; then
+  oap_emit_diagnostic stop-coupling spec-spine 127 "spec-spine binary not found; cannot validate working-tree coupling at Stop"
+  exit 2
 fi
 
-bin=$(oap_locate_binary "$root" spec-code-coupling-check || true)
-if [ -z "$bin" ]; then
-  oap_emit_diagnostic stop-coupling spec-code-coupling-check 127 "spec-code-coupling-check binary not found; cannot validate working-tree coupling at Stop"
-  exit 2
+# Without compiled artifacts the gate cannot run. Surface as advisory so
+# the user knows to compile, but do not hard-block: the stop-index hook
+# already covers the staleness signal, and the coupling gate needs both
+# artifacts present to be meaningful.
+if ! "$bin" index check >/dev/null 2>&1; then
+  # index is stale or absent; advisory exit so stop-index gate surfaces first.
+  oap_emit_diagnostic stop-coupling spec-spine 0 "codebase-index not fresh; coupling gate skipped (run spec-spine index)"
+  exit 0
 fi
 
 cd "$root" || exit 2
@@ -56,17 +56,17 @@ if [ ! -s "$paths_file" ]; then
   exit 0
 fi
 
-# spec-code-coupling-check supports a `--paths-from` override that bypasses
+# spec-spine couple supports a `--paths-from` override that bypasses
 # git-base/--head diff computation for the path set. We point it at the
 # working-tree paths. Per the binary's CLI, section attribution falls back
 # to whole-file authority in this mode; that's intentional for a
 # conversation-end seam (we want a fast cohesion check, not a section-level
 # audit).
-output=$("$bin" --repo "$root" --paths-from "$paths_file" 2>&1)
+output=$("$bin" couple --repo "$root" --paths-from "$paths_file" 2>&1)
 rc=$?
 if [ $rc -ne 0 ]; then
   summary=$(printf '%s' "$output" | head -n5 | tr '\n' ' ' | sed 's/  */ /g')
-  oap_emit_diagnostic stop-coupling spec-code-coupling-check "$rc" "${summary:-spec/code coupling violation in working tree; touch the owning spec.md or revert before closing}"
+  oap_emit_diagnostic stop-coupling spec-spine "$rc" "${summary:-spec/code coupling violation in working tree; touch the owning spec.md or revert before closing}"
   exit 2
 fi
 exit 0

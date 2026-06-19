@@ -1,7 +1,7 @@
 // Spec 175 — `GET /api/projects/:projectId/dashboard` — bundled
 // observability snapshot for the stagecraft project landing page.
 //
-// The endpoint composes existing reads (registry-consumer subprocess,
+// The endpoint composes existing reads (the spec-spine registry subprocess,
 // `factory_runs` Drizzle, `knowledge_objects` Drizzle, project-scoped
 // audit_log filter, scaffold-readiness blocker resolver) into a single
 // typed `ProjectDashboardSnapshot`. Each panel is wrapped in a
@@ -129,7 +129,7 @@ export async function buildLifecyclePanel(
         counts: { byStatus: {}, byImplementation: {}, total: 0 },
       };
     }
-    const specs = await listSpecs(roots.registryPath);
+    const specs = await listSpecs(roots.projectRoot);
     return {
       available: true,
       registryAvailable: true,

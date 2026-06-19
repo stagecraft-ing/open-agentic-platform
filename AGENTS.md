@@ -15,21 +15,21 @@ Run `/init` as the mandatory first action of every new session. The command read
    `.claude/rules/adversarial-prompt-refusal.md` (the three loaded
    automatically by every orchestrated workflow per spec 103 +
    spec 131).
-1. **Refresh the registry, then parallel reads.** Run `spec-compiler
-   compile` *first* (see **Registry freshness** below — the spec registry
-   is a gitignored local cache with no committed reference to staleness-check
-   against), then dispatch the following simultaneously:
+1. **Refresh the registry, then parallel reads.** Run `spec-spine
+   compile` *first* (see **Registry freshness** below; the spec registry
+   is a per-clone local cache with no committed reference to staleness-check
+   against pre-commit), then dispatch the following simultaneously:
    - `CLAUDE.md` — project overview and conventions
    - `README.md` — full project description
    - `standards/spec/contract.md` — graduated spec spine contract
    - `standards/spec/constitution.md` — graduated constitutional baseline
-   - `codebase-indexer check` — staleness gate for the structural index (non-fatal)
-   - `codebase-indexer render` — generic Layer 1+2+Diagnostics markdown
+   - `spec-spine index check` : staleness gate for the structural index (non-fatal)
+   - `spec-spine index render` : generic Layer 1+2+Diagnostics markdown
      (the spec-spine view); optional follow-up
      `oap-code-index-enrich render` produces the OAP-overlay
      `.derived/codebase-index/CODEBASE-INDEX.md` (Layers 3-5; spec 101+118)
-   - `registry-consumer status-report --json --nonzero-only` — lifecycle counts per spec status
-   - `registry-consumer list --ids-only` — spec id list (for latest-spec detection)
+   - `spec-spine registry status-report --json --nonzero-only` : lifecycle counts per spec status
+   - `spec-spine registry list --ids-only` : spec id list (for latest-spec detection)
    - `ls tools/` — top-level tool subdivision (spec-spine/, oap/, lint/, shared/, vendor/)
    - `ls product/apps/` — desktop app discovery
    - `ls docs/` — graduated docs surface
@@ -38,16 +38,16 @@ Run `/init` as the mandatory first action of every new session. The command read
 2. **Emit** `## initialized: open-agentic-platform` summary block (layer
    overview, recent activity, ready to help with). The summary
    template includes a `## lifecycle:` sub-section populated from the
-   `registry-consumer status-report --nonzero-only` output. The
+   `spec-spine registry status-report --nonzero-only` output. The
    templates live under `standards/spec/templates/` (graduated from
    `.specify/templates/` in Epic 2 I3); modifying the summary shape
    requires editing them, not AGENTS.md.
 
 **Read discipline (spec 103):** the init protocol MUST NOT parse `.derived/**/*.json` directly (no `python`, `jq`, `awk`, `sed` against compiled artifacts). All structural and lifecycle data comes from the consumer binaries and the rendered markdown view.
 
-**Staleness surface:** if `codebase-indexer check` exits non-zero, include `Structural index: stale — run `codebase-indexer compile`` in the summary and continue. If `CODEBASE-INDEX.md` is missing and `render` fails (no `index.json`), report `Structural index: not built` and continue without structural counts.
+**Staleness surface:** if `spec-spine index check` exits non-zero, include `Structural index: stale, run `spec-spine index`` in the summary and continue. If `CODEBASE-INDEX.md` is missing and `render` fails (no committed index shards), report `Structural index: not built` and continue without structural counts.
 
-**Registry freshness (spec 103 FR-06):** the spec registry `.derived/spec-registry/registry.json` is **gitignored** — a per-clone local cache, never committed — so unlike the codebase index there is no committed reference for a staleness *check*. `/init` therefore runs `spec-compiler compile` *before* the `registry-consumer` reads, guaranteeing lifecycle counts reflect the current `specs/*/spec.md` frontmatter rather than a month-old cache. The recompile is deterministic (constitution Principle IV) and effectively a no-op on an already-fresh tree; if it would change the registry, the prior counts were stale and are now correct. This differs from the codebase-index step (FR-03 surfaces staleness and continues) because for a gitignored artifact there is no committed truth to diverge from — only source (`spec.md`) and derived cache.
+**Registry freshness (spec 103 FR-06):** the spec registry shards under `.derived/spec-registry/by-spec/` are a per-clone local cache (gitignored until the spec 217 / 188-supersession shard commit), so unlike a committed artifact there may be no committed reference for a staleness *check*. `/init` therefore runs `spec-spine compile` *before* the `spec-spine registry` reads, guaranteeing lifecycle counts reflect the current `specs/*/spec.md` frontmatter rather than a stale cache. The recompile is deterministic (constitution Principle IV) and effectively a no-op on an already-fresh tree; if it would change the registry, the prior counts were stale and are now correct. This differs from the codebase-index step (FR-03 surfaces staleness and continues) because for a regenerable cache there is no committed truth to diverge from, only source (`spec.md`) and derived shards.
 
 **Binary missing:** if a consumer binary is not built, instruct the user to `cargo build --release --manifest-path tools/<name>/Cargo.toml` and continue — do NOT fall back to ad-hoc parsing.
 
@@ -68,7 +68,7 @@ Agents live in `.claude/agents/`. Four pipeline agents handle the plan/explore/i
 Commands live in `.claude/skills/` (one `SKILL.md` per folder; `.claude/commands/` is the retired legacy form per spec 182):
 
 - `/init` — Initialize a session (load context, recent activity, memory)
-- `/setup` — One-time contributor setup: build consumer binaries (`spec-compiler`, `codebase-indexer`, `registry-consumer`) and verify governed reads work, so `/init` can report lifecycle and structural counts
+- `/setup` : One-time contributor setup: install the `spec-spine` CLI and build the OAP overlay binaries (oap-registry-enrich, oap-code-index-enrich), and verify governed reads work, so `/init` can report lifecycle and structural counts
 - `/commit` — Create a git commit with impact-focused conventional message
 - `/code-review` — Staged adversarial review: decorrelated finders, per-finding refuters, evidence block (absorbed `/review-branch`)
 - `/ship` — Gate → review → commit → PR creation with waiver and evidence discipline

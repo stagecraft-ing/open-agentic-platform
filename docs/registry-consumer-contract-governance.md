@@ -2,11 +2,11 @@
 
 Status: **Contract stabilization complete; controlled extension mode active**.
 
-This document defines how changes to `tools/spec-spine/registry-consumer/` are classified and reviewed.
+This document defines how changes to the `spec-spine registry` subcommand surface are classified and reviewed. (spec 217: the in-tree `tools/spec-spine/registry-consumer/` binary was replaced by the published `spec-spine` CLI; the contract governance process defined here applies to the `spec-spine registry` subcommands.)
 
 ## Stabilization boundary
 
-The registry-consumer interface is now a governed contract-bearing tool. The following surfaces are normative:
+The registry consumer interface is now a governed contract-bearing surface. The following surfaces are normative:
 
 - JSON/content contracts (`010`, `018`, `021`)
 - README examples contracts (`019`)
@@ -17,11 +17,11 @@ The registry-consumer interface is now a governed contract-bearing tool. The fol
 - Sorting-order contracts (`027`)
 - stdout/stderr channel contracts (`028`)
 
-Normative behavior is defined by fixture-backed tests under `tools/spec-spine/registry-consumer/tests/fixtures/` and contract tests in `tools/spec-spine/registry-consumer/tests/cli.rs`.
+Normative behavior is defined by fixture-backed tests in the `spec-spine` library crate and contract tests against the `spec-spine registry` subcommands.
 
 ## Change classification rubric (required)
 
-Every change touching `tools/spec-spine/registry-consumer/` MUST declare one class:
+Every change touching the `spec-spine registry` subcommand surface MUST declare one class:
 
 1. **contract extension**
    - Adds new externally visible behavior and new contract fixtures/tests.
@@ -32,7 +32,7 @@ Every change touching `tools/spec-spine/registry-consumer/` MUST declare one cla
 
 ## Extension acceptance rubric (required for contract extensions)
 
-A proposed `registry-consumer` extension is acceptable only if it satisfies all of the following:
+A proposed `spec-spine registry` extension is acceptable only if it satisfies all of the following:
 
 1. **Clear interface value**
    - Adds a new user-reliable guarantee with obvious operator or automation value.
@@ -60,7 +60,7 @@ A proposed `registry-consumer` extension is acceptable only if it satisfies all 
 
 ## Release gate checklist (required)
 
-For every PR touching `tools/spec-spine/registry-consumer/`, answer:
+For every PR touching the `spec-spine registry` subcommand surface, answer:
 
 - Does this change observable output?
 - Does this change ordering?
@@ -73,10 +73,10 @@ If any observable behavior changes, fixture updates and contract rationale are m
 
 ## Contract baseline corpus
 
-The current fixture set under `tools/spec-spine/registry-consumer/tests/fixtures/` is the baseline contract corpus.
+The fixture set that governed the in-tree `registry-consumer` (under `tools/spec-spine/registry-consumer/tests/fixtures/`) was the baseline contract corpus before spec 217. Going forward the baseline is defined by the `spec-spine` library's own fixture-backed tests for the `registry` subcommands.
 
 Future work is judged against this baseline. Do not update fixtures to match implementation drift without explicit contract justification.
 
 ## CI expectation
 
-Main validation path must run both full registry-consumer tests and explicit fixture-bearing contract subsets.
+Main validation path must run both full `spec-spine registry` tests and explicit fixture-bearing contract subsets.

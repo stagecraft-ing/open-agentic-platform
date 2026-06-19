@@ -19,7 +19,7 @@ Typecheck + Rust check: `pnpm -C apps/desktop check`
 
 ## Inspect and governance (Feature 032)
 
-1. **Compile the registry** (repo root) so `build/spec-registry/registry.json` exists — see the root [`README.md`](../../README.md) for `spec-compiler compile`.
+1. **Compile the registry** (repo root) so `.derived/spec-registry/` exists. Run `spec-spine compile` or `make registry` from the repo root (see the root [`README.md`](../../README.md)).
 
 2. **Inspect (Xray)** — open the **Xray** tab, enter an **absolute path** to a project root, and run **Scan project**. After a successful scan, a **Follow-up** section may list **View spec** actions when the compiled registry includes feature `specPath` entries for that repo.
 

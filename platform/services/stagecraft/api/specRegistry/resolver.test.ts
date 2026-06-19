@@ -30,16 +30,21 @@ describe("resolveProjectRegistry", () => {
     expect(res).toBeNull();
   });
 
-  test("returns paths when registry.json is materialised", async () => {
+  test("returns paths when the sharded registry is materialised", async () => {
     const projectId = "11111111-2222-3333-4444-555555555555";
     const projectRoot = join(base, projectId);
-    const registryDir = join(projectRoot, ".derived", "spec-registry");
-    await mkdir(registryDir, { recursive: true });
-    await writeFile(join(registryDir, "registry.json"), "[]");
+    // Spec 217: the resolver probes for the committed shard directory
+    // (.derived/spec-registry/by-spec), not a monolithic registry.json.
+    const bySpecDir = join(projectRoot, ".derived", "spec-registry", "by-spec");
+    await mkdir(bySpecDir, { recursive: true });
+    await writeFile(
+      join(bySpecDir, "000-bootstrap-spec-system.json"),
+      JSON.stringify({ specVersion: "1.0.0", shardHash: "0", record: { id: "000-bootstrap-spec-system" } })
+    );
 
     const res = await resolveProjectRegistry(projectId, { base });
     expect(res).not.toBeNull();
     expect(res!.projectRoot).toBe(projectRoot);
-    expect(res!.registryPath).toBe(join(registryDir, "registry.json"));
+    expect(res!.registryPath).toBe(bySpecDir);
   });
 });

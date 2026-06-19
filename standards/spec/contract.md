@@ -12,8 +12,8 @@ This file is a **short normative summary** of Feature `000-bootstrap-spec-system
 
 ## Machine layer
 
-- Machine durable truth: **JSON only**, emitted by the **spec compiler** into `build/spec-registry/`.
-- **`registry.json`**: deterministic, canonical for consumers (e.g. future featuregraph).
+- Machine durable truth: **JSON only**, emitted by **`spec-spine compile`** into `.derived/spec-registry/`.
+- **Sharded output** under `.derived/spec-registry/by-spec/`: deterministic, canonical for consumers; read through `spec-spine registry` subcommands, not ad-hoc parsers.
 - **`build-meta.json`**: ephemeral compiler-owned JSON (wall-clock `builtAt`); **not** part of golden-file determinism checks.
 - Humans do not hand-edit compiler JSON.
 
@@ -31,6 +31,6 @@ This file is a **short normative summary** of Feature `000-bootstrap-spec-system
 
 Read the full contract: `specs/000-bootstrap-spec-system/spec.md`.
 
-For registry-consumer process governance after contract stabilization, see `docs/registry-consumer-contract-governance.md`.
+For registry consumer process governance after contract stabilization, see `docs/registry-consumer-contract-governance.md`.
 
-Distilled extension rule (registry-consumer): accept an extension only when it adds one clear guarantee with minimal surface area, explicit mode/flag interaction rules, fixture-first contract coverage (including help surface), and no drift to settled guarantees; otherwise classify it as a breaking change candidate and enter explicit versioning discussion.
+Distilled extension rule (`spec-spine registry`): accept an extension only when it adds one clear guarantee with minimal surface area, explicit mode/flag interaction rules, fixture-first contract coverage (including help surface), and no drift to settled guarantees; otherwise classify it as a breaking change candidate and enter explicit versioning discussion.

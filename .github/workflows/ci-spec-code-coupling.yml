@@ -3,8 +3,8 @@
 #
 # PR-time gate: every diff path's current authority spec (derived from
 # the relationship-graph per spec 130) must be edited in the same PR.
-# Reads .derived/codebase-index/index.json via typed deserialization shared
-# with `codebase-indexer` (spec 103 governed-read exception).
+# Reads the committed .derived/codebase-index shard trees via the published
+# spec-spine couple gate (spec 103 governed-read: the gate is the consumer).
 # Empty-authority-by-rule patterns (formerly .github/spec-coupling-
 # bypass.txt) are codified in spec 152 (path-co-authority) §3.2;
 # explicit waivers via `Spec-Drift-Waiver: <reason>` line in PR body
@@ -41,23 +41,22 @@ jobs:
         with:
           toolchain: '1.95.0'
 
-      # 2026-06-10: this job previously cold-built the indexer + coupling
-      # checker on every run — the only tiny gate without a cargo cache.
+      # Spec 217 deleted the in-tree engine; the published spec-spine CLI is
+      # the coupling gate (couple) and the index staleness gate (index check),
+      # reading the committed shard trees. rust-cache keeps the one-time
+      # `cargo install spec-spine-cli` warm across runs.
       - name: Rust cache
         uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
         with:
           shared-key: spec-code-coupling
 
-      - name: Build codebase-indexer
-        run: cargo build --release --manifest-path tools/spec-spine/codebase-indexer/Cargo.toml --target-dir tools/spec-spine/codebase-indexer/target
+      - name: Install spec-spine CLI
+        run: cargo install spec-spine-cli --version 0.8.0 --locked
 
-      - name: Compile codebase-index
-        run: ./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile
+      - name: Index staleness gate
+        run: spec-spine index check
 
-      - name: Build spec-code-coupling-check
-        run: cargo build --release --manifest-path tools/spec-spine/spec-code-coupling-check/Cargo.toml --target-dir tools/spec-spine/spec-code-coupling-check/target
-
-      - name: Run spec-code-coupling-check
+      - name: Run coupling gate
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -67,5 +66,4 @@ jobs:
           # Materialise the PR body to a file so the gate can grep waivers.
           body_file="$(mktemp)"
           printf '%s' "${PR_BODY:-}" > "$body_file"
-          ./tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check \
-              --base "$BASE_SHA" --head "$HEAD_SHA" --pr-body "$body_file"
+          spec-spine couple --base "$BASE_SHA" --head "$HEAD_SHA" --pr-body "$body_file"

@@ -5,8 +5,8 @@
 //! Load feature manifest entries from the **committed spec registry**.
 //!
 //! Spec 217 engine swap: this module previously parsed the monolithic
-//! `.derived/spec-registry/registry.json` through the in-tree typed reader
-//! (`open_agentic_spec_registry_reader::load`). It now reads the committed
+//! `.derived/spec-registry/registry.json` through the former in-tree typed
+//! reader. It now reads the committed
 //! sharded registry (`.derived/spec-registry/by-spec/*.json`) through the
 //! published library's [`spec_spine_core::load_committed_registry`], returning
 //! [`spec_spine_types::SpecRecord`]s directly.

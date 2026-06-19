@@ -10,11 +10,10 @@
 //! runs the project's coupling gate as a sanity check before completing.
 //!
 //! Design choices:
-//! - The spec-compiler is called **in-process** via its library
-//!   (`open_agentic_spec_compiler::compile_and_write`) — deterministic, no
-//!   binary-path discovery.
-//! - The coupling gate is shelled out to the project's `spec-code-coupling-check`
-//!   binary in `--paths-from` mode (the binary already orchestrates the
+//! - The compiler is called **in-process** via the published library
+//!   (`spec_spine_core::compile`): deterministic, no binary-path discovery.
+//! - The coupling gate is shelled out to the project's `spec-spine couple`
+//!   in `--paths-from` mode (the `couple` subcommand orchestrates the
 //!   index/registry/diff machinery). It is **optional**: when no binary is
 //!   supplied the step is skipped. A non-zero gate result is surfaced but
 //!   does not abort promotion — promotion of a pure-spec change is a sanity
@@ -72,8 +71,8 @@ pub struct PromotionOutcome {
 }
 
 /// Promote a staged spec into the project's spec spine. `coupling_check_bin`
-/// is the path to the project's `spec-code-coupling-check` binary, or `None`
-/// to skip the gate sanity check.
+/// is the path to the project's `spec-spine` CLI (the `couple` subcommand is
+/// invoked), or `None` to skip the gate sanity check.
 pub fn promote_spec(
     req: &PromotionRequest,
     coupling_check_bin: Option<&Path>,
@@ -236,6 +235,7 @@ fn run_coupling_gate(
         .map_err(|e| PipelineError::io(&paths_file, e))?;
 
     let output = Command::new(bin)
+        .arg("couple")
         .arg("--repo")
         .arg(&req.project_root)
         .arg("--paths-from")

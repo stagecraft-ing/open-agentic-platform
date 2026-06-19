@@ -122,8 +122,18 @@ const ALLOW_LIST: &[&str] = &[
     // ci-desktop.yml creates a sidecar binary stub named for the CI runner's
     // host triple (aarch64-apple-darwin on macOS runners). The Makefile's
     // ci-desktop target creates the same stub using the local host triple
-    // detected at runtime — not byte-identical, but equivalent in intent.
+    // detected at runtime: not byte-identical, but equivalent in intent.
     "axiomregent-aarch64-apple-darwin",
+    // ci-spec-code-coupling.yml runs the coupling gate against the PR's
+    // base/head SHAs with the PR body as the waiver source. The Makefile
+    // mirror (ci-spec-code-coupling) runs the same `spec-spine couple` against
+    // the working-tree-vs-origin/main diff via `--paths-from`. Same gate,
+    // intentionally different invocation per environment (spec 217 rewire of
+    // the former spec-code-coupling-check call). Pre-spec-217 this was masked
+    // by the workflow's two-line `\` continuation (the args landed on a line
+    // whose first word was not a significant command); the single-line CLI
+    // form exposes it, so allowlist the CI-specific invocation explicitly.
+    "spec-spine couple --base \"$BASE_SHA\"",
 ];
 
 #[derive(Debug, Clone)]
@@ -263,52 +273,63 @@ struct ProducerRule {
     artifact: &'static str,
 }
 
-/// Commands known to READ a governed artifact under `build/`.
+/// Commands known to READ a governed artifact under `.derived/`.
 /// Extend as new tools are added to the governed-read surface.
 const CONSUMERS: &[ConsumerRule] = &[
-    // The broad `codebase-indexer check` (whole-index staleness) was retired by
-    // spec 188 Phase 4b: the broad index is gitignored and rebuilt on demand,
-    // never committed, so there is no committed artifact to gate on and no
-    // workflow invokes it. The narrow `check-config` reads the tracked
-    // `config-hash.json` (re-homed in spec 188 Phase 4a), which is committed, so
-    // its precondition is satisfied. Modeling it explicitly (rather than letting
-    // the old broad `codebase-indexer check` substring shadow it) keeps the
-    // fresh-clone guarantee honest for the config gate.
+    // Spec 217: the in-tree engine was replaced by the published `spec-spine`
+    // CLI, and the registry/index are sharded (spec 188-supersession commits
+    // the shards present-on-clone). The config-slice check reads slices.json;
+    // the broad index check + render and the registry reads read the shard
+    // trees. NOTE: the `--slice` rule MUST precede the bare `index check` rule
+    // so the more specific artifact (slices.json) wins the first-match.
     ConsumerRule {
-        pattern: "codebase-indexer check-config",
-        artifact: ".derived/codebase-index/config-hash.json",
+        pattern: "spec-spine index check --slice",
+        artifact: ".derived/codebase-index/slices.json",
     },
     ConsumerRule {
-        pattern: "codebase-indexer render",
-        artifact: ".derived/codebase-index/index.json",
+        pattern: "spec-spine index check",
+        artifact: ".derived/codebase-index/by-spec",
     },
     ConsumerRule {
-        pattern: "registry-consumer list",
-        artifact: ".derived/spec-registry/registry.json",
+        pattern: "spec-spine index render",
+        artifact: ".derived/codebase-index/by-spec",
     },
     ConsumerRule {
-        pattern: "registry-consumer show",
-        artifact: ".derived/spec-registry/registry.json",
+        pattern: "spec-spine registry list",
+        artifact: ".derived/spec-registry/by-spec",
     },
     ConsumerRule {
-        pattern: "registry-consumer status-report",
-        artifact: ".derived/spec-registry/registry.json",
+        pattern: "spec-spine registry show",
+        artifact: ".derived/spec-registry/by-spec",
     },
     ConsumerRule {
-        pattern: "registry-consumer compliance-report",
-        artifact: ".derived/spec-registry/registry.json",
+        pattern: "spec-spine registry status-report",
+        artifact: ".derived/spec-registry/by-spec",
+    },
+    ConsumerRule {
+        pattern: "spec-spine registry relationships",
+        artifact: ".derived/spec-registry/by-spec",
+    },
+    ConsumerRule {
+        pattern: "oap-registry-enrich compliance-report",
+        artifact: ".derived/spec-registry/registry-oap.json",
     },
 ];
 
-/// Commands known to WRITE a governed artifact under `build/`.
+/// Commands known to WRITE a governed artifact under `.derived/`.
 const PRODUCERS: &[ProducerRule] = &[
     ProducerRule {
-        pattern: "spec-compiler compile",
-        artifact: ".derived/spec-registry/registry.json",
+        pattern: "spec-spine compile",
+        artifact: ".derived/spec-registry/by-spec",
     },
+    // `spec-spine index` (bare) builds the index shards. It is a substring of
+    // the `spec-spine index check`/`render` consumer lines, so a check/render
+    // line also registers as a producer here; that is benign because the
+    // committed shards satisfy `covered_by_git` post spec-188-supersession, so
+    // it can never mask a real precondition into a false green.
     ProducerRule {
-        pattern: "codebase-indexer compile",
-        artifact: ".derived/codebase-index/index.json",
+        pattern: "spec-spine index",
+        artifact: ".derived/codebase-index/by-spec",
     },
     ProducerRule {
         pattern: "adapter-scopes-compiler",
@@ -352,8 +373,8 @@ pub fn check_preconditions(repo_root: &Path) -> Result<Vec<PreconditionDrift>, S
                         continue;
                     }
                     if let Some(c) = CONSUMERS.iter().find(|c| line.contains(c.pattern)) {
-                        let covered_by_earlier_step = produced.contains(c.artifact);
-                        let covered_by_git = tracked.contains(c.artifact);
+                        let covered_by_earlier_step = covered(&produced, c.artifact);
+                        let covered_by_git = covered(&tracked, c.artifact);
                         if !covered_by_earlier_step && !covered_by_git {
                             drifts.push(PreconditionDrift {
                                 workflow: (*wf_name).to_string(),
@@ -396,6 +417,19 @@ fn load_tracked_files(repo_root: &Path) -> Result<BTreeSet<String>, String> {
         .collect())
 }
 
+/// True when `artifact` is satisfied by `set`: either an exact member, or a
+/// directory whose shard files live under it (`<artifact>/...`). Spec 217
+/// sharded the registry/index, so they are committed (and produced) as
+/// `by-spec/*.json` / `by-package/*.json` files rather than a bare directory
+/// path; an exact `.contains` would miss every committed shard.
+fn covered(set: &BTreeSet<String>, artifact: &str) -> bool {
+    if set.contains(artifact) {
+        return true;
+    }
+    let prefix = format!("{artifact}/");
+    set.iter().any(|p| p.starts_with(&prefix))
+}
+
 /// Normalise a raw `run:` line: strip whitespace, line-continuation slash,
 /// trailing `# comment`, and obvious shell suffixes.
 fn normalise(raw: &str) -> String {
@@ -424,7 +458,11 @@ pub fn significant_tokens(line: &str) -> Vec<String> {
         return vec![];
     }
     let cmd = words[0];
-    let significant = matches!(cmd, "cargo" | "pnpm" | "npm" | "npx" | "node")
+    // `spec-spine` is the published governance CLI invoked bare on PATH
+    // (spec 217 replaced the in-tree `./tools/spec-spine/*` engine binaries);
+    // it must stay significant so Makefile<->workflow parity still compares
+    // the compile/index/registry/couple commands.
+    let significant = matches!(cmd, "cargo" | "pnpm" | "npm" | "npx" | "node" | "spec-spine")
         || cmd.starts_with("./tools/");
     if !significant {
         return vec![];
@@ -576,8 +614,8 @@ mod tests {
 
     #[test]
     fn tokens_tool_binary_invocation() {
-        let t = significant_tokens("./tools/spec-spine/spec-compiler/target/release/spec-compiler compile");
-        assert!(t.contains(&"./tools/spec-spine/spec-compiler/target/release/spec-compiler".into()));
+        let t = significant_tokens("spec-spine compile");
+        assert!(t.contains(&"spec-spine".into()));
         assert!(t.contains(&"compile".into()));
     }
 
@@ -658,13 +696,11 @@ mod tests {
         // artifact under build/. If a new consumer is added without a rule,
         // this is the test that should fail.
         let lines = [
-            // The broad `codebase-indexer check` was retired by spec 188 Phase 4b
-            // (gitignored, rebuilt-on-demand index); the narrow `check-config`
-            // (reads the tracked config-hash.json) is the current governed read.
-            "./tools/spec-spine/codebase-indexer/target/release/codebase-indexer check-config",
-            "./tools/spec-spine/codebase-indexer/target/release/codebase-indexer render",
-            "./tools/spec-spine/registry-consumer/target/release/registry-consumer list",
-            "./tools/spec-spine/registry-consumer/target/release/registry-consumer status-report --json",
+            // Spec 217: the rewired governed-read commands (spec-spine CLI).
+            "spec-spine index check --slice claude-config",
+            "spec-spine index render",
+            "spec-spine registry list",
+            "spec-spine registry status-report --json",
         ];
         for line in lines {
             assert!(
@@ -677,8 +713,8 @@ mod tests {
     #[test]
     fn producer_rules_cover_governed_writes() {
         let lines = [
-            "./tools/spec-spine/spec-compiler/target/release/spec-compiler compile",
-            "./tools/spec-spine/codebase-indexer/target/release/codebase-indexer compile",
+            "spec-spine compile",
+            "spec-spine index",
             "./tools/oap/adapter-scopes-compiler/target/release/adapter-scopes-compiler",
         ];
         for line in lines {

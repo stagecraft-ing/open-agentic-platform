@@ -488,7 +488,7 @@ pub fn lint_repo(repo_root: &Path) -> Vec<Warning> {
 
 /// Discover workspace-member directory paths from the root Cargo.toml.
 /// Returns a sorted set of relative directory paths (e.g.
-/// `"crates/canonical-json"`, `"tools/spec-spine/spec-compiler"`).
+/// `"crates/canonical-json"`, `"tools/spec-spine/spec-lint"`).
 /// Empty when the manifest is absent or unparseable.
 fn workspace_member_dirs(repo_root: &Path) -> Vec<String> {
     let manifest = repo_root.join("Cargo.toml");

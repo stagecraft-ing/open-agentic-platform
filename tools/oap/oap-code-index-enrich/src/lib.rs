@@ -8,7 +8,7 @@
 //! Spec 217 engine swap: the generic Layers 1-2 are assembled from the
 //! committed sharded index (`.derived/codebase-index/by-spec`, `by-package`)
 //! via `spec_spine_core::load_committed_index` and projected to JSON, replacing
-//! the in-tree `open_agentic_codebase_indexer::load` of a monolithic
+//! the former in-tree indexer's load of a monolithic
 //! `index.json` (the library emits no monolith). The typed `CodebaseIndex` is
 //! the Layer 1-2 base; the OAP overlay is layered on top.
 

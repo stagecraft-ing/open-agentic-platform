@@ -6,7 +6,7 @@
 //
 // These helpers are explicitly deterministic and side-effect-free so
 // the rendering remains hash-stable (FR-008). They are heuristics —
-// the authoritative gate evaluation is the spec-code-coupling-check
+// the authoritative gate evaluation is the spec-spine couple
 // binary at PR time. The cockpit-time prediction exists to surface
 // likely-fail actions BEFORE the human acknowledges them.
 

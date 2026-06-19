@@ -16,7 +16,7 @@ set -u
 #   2. The decoded `cwd` field from the hook stdin JSON, if non-empty.
 #   3. `pwd` as a last resort.
 #
-# Echoes the absolute project root path. Always exits 0 — the caller decides
+# Echoes the absolute project root path. Always exits 0; the caller decides
 # what to do when the path is not an OAP project.
 oap_resolve_project_root() {
   local stdin_json="${1:-}"
@@ -49,7 +49,7 @@ oap_resolve_project_root() {
 # either is sufficient.
 #
 # FR-008: hooks no-op when not in an OAP project. Project-detection here is
-# intentionally lighter than factory-project-detect — factory detection is
+# intentionally lighter than factory-project-detect: factory detection is
 # about pipeline state, OAP detection is about spec-spine presence.
 oap_is_project() {
   local root="$1"
@@ -74,14 +74,11 @@ oap_locate_binary() {
   fi
   local candidates=()
   case "$name" in
-    codebase-indexer)
-      candidates+=("$root/tools/spec-spine/codebase-indexer/target/release/codebase-indexer")
+    spec-spine)
+      # Published CLI (cargo install spec-spine-cli); no in-tree fallback.
       ;;
     spec-lint)
       candidates+=("$root/tools/spec-spine/spec-lint/target/release/spec-lint")
-      ;;
-    spec-code-coupling-check)
-      candidates+=("$root/tools/spec-spine/spec-code-coupling-check/target/release/spec-code-coupling-check")
       ;;
     codification-gate)
       candidates+=("$root/tools/oap/codification-gate/target/release/codification-gate")

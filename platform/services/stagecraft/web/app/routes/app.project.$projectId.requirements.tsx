@@ -3,8 +3,8 @@
 // Renders the project's authored spec corpus as the primary
 // stakeholder-visible artifact of OAP's "spec-spine as universal
 // representation" thesis (intent doc §2.4). All reads route through
-// the Encore API surface in `api/specRegistry/`, which shells
-// registry-consumer per spec 103 governed-read discipline (FR-002).
+// the Encore API surface in `api/specRegistry/`, which shells the
+// spec-spine registry CLI per spec 103 governed-read discipline (FR-002).
 
 import { useState } from "react";
 import {

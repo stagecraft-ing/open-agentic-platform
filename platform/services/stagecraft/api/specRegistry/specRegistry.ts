@@ -58,7 +58,7 @@ export const listProjectSpecs = api(
     if (!roots) {
       return { registryAvailable: false, specs: [] };
     }
-    const specs = await listSpecs(roots.registryPath);
+    const specs = await listSpecs(roots.projectRoot);
     return { registryAvailable: true, specs };
   }
 );
@@ -87,13 +87,13 @@ export const showProjectSpec = api(
     try {
       const spec = await getSpecDetail(
         req.specId,
-        roots.registryPath,
+        roots.projectRoot,
         roots.projectRoot
       );
       return { spec };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      // registry-consumer's `show` exits non-zero on unknown id.
+      // spec-spine registry show exits non-zero on unknown id.
       if (/exited 1/i.test(msg) || /not found/i.test(msg)) {
         throw APIError.notFound(`spec ${req.specId} not found in this project`);
       }
@@ -126,7 +126,7 @@ export const showProjectSpecRelationships = api(
     try {
       const relationships = await getSpecRelationships(
         req.specId,
-        roots.registryPath
+        roots.projectRoot
       );
       return { relationships };
     } catch (err) {

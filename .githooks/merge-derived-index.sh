@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Spec: 188-derived-index-merge-serialization
 #
-# Git merge driver `oap-index-regen` for the one committed derived
-# artifact, `.derived/codebase-index/index.json`. When two branches both
-# regenerated the index, the textual merge conflicts on the content hash
-# and the inventory block. This driver resolves that conflict
+# Git merge driver `oap-index-regen` for the committed derived index shards
+# under `.derived/codebase-index/` (by-spec/*, by-package/*, slices.json).
+# When two branches both regenerated the index, a same-shard textual merge
+# conflicts on the content hash. This driver resolves that conflict
 # deterministically: regenerate the index from the merged working tree and
-# hand the fresh artifact back to git as the resolution — so a rebase onto
-# a merged PR no longer leaves an index conflict to resolve by hand
-# (spec 188 Phase 1, FR-001/FR-002).
+# hand the fresh shard back to git as the resolution, so a rebase onto a
+# merged PR no longer leaves a conflict to resolve by hand (spec 188 Phase 1,
+# FR-001/FR-002; sharded per spec 217, which makes same-shard conflicts rare).
 #
 # Enable in this clone (opt-in, mirrors `git config core.hooksPath
 # .githooks` for the pre-commit hook):
@@ -19,8 +19,10 @@
 #   git config --unset merge.oap-index-regen.driver
 #   git config --unset merge.oap-index-regen.name
 #
-# Assignment lives in committed .gitattributes:
-#   .derived/codebase-index/index.json merge=oap-index-regen
+# Assignment lives in committed .gitattributes (shard globs, repointed with
+# the committed shards per spec 217):
+#   .derived/codebase-index/by-spec/*.json    merge=oap-index-regen
+#   .derived/codebase-index/by-package/*.json merge=oap-index-regen
 #
 # Git invokes:  <driver> %O %A %B %P
 #   $1 = %O  ancestor version  (unused — the index is fully derived)
@@ -29,9 +31,9 @@
 #   $3 = %B  other/theirs version  (unused)
 #   $4 = %P  pathname being merged (for logging)
 #
-# Fail-closed: if the indexer is not built or `compile` fails, exit 1 and
-# leave the conflict in place. The CI staleness gate
-# (`codebase-indexer check`, spec 101/184) remains the source of truth;
+# Fail-closed: if the spec-spine CLI is absent or `spec-spine index` fails,
+# exit 1 and leave the conflict in place. The CI staleness gate
+# (`spec-spine index check`, spec 101/184) remains the source of truth;
 # this driver is a convenience over the conflict, never a replacement for
 # the gate.
 #
@@ -47,15 +49,14 @@ set -eu
 OURS="${2:?merge driver expects %A as \$2}"
 PATHNAME="${4:-.derived/codebase-index/index.json}"
 
-INDEXER=tools/spec-spine/codebase-indexer/target/release/codebase-indexer
-INDEX=.derived/codebase-index/index.json
+INDEX_DIR=.derived/codebase-index
 
-if [ ! -x "$INDEXER" ]; then
+if ! command -v spec-spine >/dev/null 2>&1; then
   cat >&2 <<EOF
-[merge-derived-index] codebase-indexer binary not built — cannot auto-resolve $PATHNAME.
-            Build it (\`make setup\` one-time, or \`make index\`), then re-run the
-            rebase/merge, or resolve manually:
-                make registry && git add $INDEX
+[merge-derived-index] spec-spine CLI not on PATH; cannot auto-resolve $PATHNAME.
+            Install it (\`make setup\` one-time, or \`cargo install spec-spine-cli
+            --version 0.8.0 --locked\`), then re-run the rebase/merge, or resolve
+            manually: make registry && git add $INDEX_DIR
 EOF
   exit 1
 fi
@@ -63,15 +64,18 @@ fi
 # Regenerate from the merged working tree. The indexer is deterministic
 # for a given committed input set, so the regenerated index is the correct
 # union of both branches' input changes.
-if ! "$INDEXER" compile >/dev/null 2>&1; then
+if ! spec-spine index >/dev/null 2>&1; then
   cat >&2 <<EOF
-[merge-derived-index] \`codebase-indexer compile\` failed; leaving conflict in $PATHNAME
-            for manual resolution (\`make registry && git add $INDEX\`).
+[merge-derived-index] \`spec-spine index\` failed; leaving conflict in $PATHNAME
+            for manual resolution (\`make registry && git add $INDEX_DIR\`).
 EOF
   exit 1
 fi
 
-# Hand the freshly-compiled artifact back to git as the merge result.
-cp "$INDEX" "$OURS"
+# Hand the freshly-regenerated shard back to git as the merge result. Git
+# invokes this driver once per conflicting shard file ($PATHNAME); copy that
+# specific regenerated file, not a monolithic index (sharded per spec 217 /
+# 188; the .gitattributes glob repoint lands with the committed shards).
+cp "$PATHNAME" "$OURS"
 echo "[merge-derived-index] regenerated $PATHNAME from the merged tree." >&2
 exit 0
