@@ -97,6 +97,11 @@ refines:
   # (upgraded from a context reference, since 207 now authors this constant).
   - aspect: "audit-segment-countersign-action"
     unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
+  # Phase 2b (AC-4): auditSegmentHandlers.test.ts is DB-bound, so it joins the
+  # spec 211 encore-test lane (the vite.config.ts exclude list IS the lane
+  # assignment; bare vitest would fail it on a missing ENCORE_RUNTIME_LIB).
+  - aspect: "encore-test-lane-assignment"
+    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
 references:
   - role: machinery
     unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.ts }
