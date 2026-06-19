@@ -2,13 +2,28 @@ import log from "encore.dev/log";
 import { getCachedDeploydAuthHeader } from "./oidcM2m";
 import { readSecretFromDir } from "./secrets";
 
-const DEPLOYD_URL =
+// Spec 215 FR-007: this module is the single deployd-api client. M2M secret
+// resolution and the token cache (via oidcM2m.ts) live here once; `deploy.ts`
+// (the raw proxy) and the new trigger path (deployments.ts) import
+// `getDeploydAuthHeader` / `DEPLOYD_URL` rather than re-deriving credentials.
+export const DEPLOYD_URL =
   process.env.DEPLOYD_URL ?? "http://deployd-api.deployd-system.svc.cluster.local";
 const OIDC_ENDPOINT = process.env.OIDC_ENDPOINT ?? process.env.LOGTO_ENDPOINT ?? "";
 const DEPLOYD_AUDIENCE = process.env.DEPLOYD_AUDIENCE ?? "";
 const DEPLOYD_SCOPE = process.env.DEPLOYD_SCOPE ?? "";
 
-async function getAuthHeader(): Promise<string> {
+/**
+ * Resolve a cached M2M bearer header for calling deployd-api. Single source of
+ * credential resolution (spec 215 FR-007): reads OIDC_M2M_CLIENT_ID/SECRET from
+ * the CSI secrets mount or env (LOGTO_* fallback), then delegates to the shared
+ * token cache in oidcM2m.ts. Throws with a specific diagnostic when config or
+ * credentials are absent.
+ */
+export async function getDeploydAuthHeader(): Promise<string> {
+  if (!OIDC_ENDPOINT || !DEPLOYD_AUDIENCE) {
+    throw new Error("Missing OIDC_ENDPOINT or DEPLOYD_AUDIENCE");
+  }
+
   const clientId =
     (await readSecretFromDir("OIDC_M2M_CLIENT_ID")) ??
     process.env.OIDC_M2M_CLIENT_ID ??
@@ -22,8 +37,10 @@ async function getAuthHeader(): Promise<string> {
     process.env.LOGTO_M2M_CLIENT_SECRET ??
     "";
 
-  if (!OIDC_ENDPOINT || !DEPLOYD_AUDIENCE || !clientId || !clientSecret) {
-    throw new Error("Missing OIDC/deployd credentials for M2M auth");
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      "Missing OIDC_M2M_CLIENT_ID or OIDC_M2M_CLIENT_SECRET in secrets mount or env"
+    );
   }
 
   return getCachedDeploydAuthHeader({
@@ -58,7 +75,7 @@ export async function createPreviewDeployment(opts: {
   artifact_ref: string;
   lane: string;
 }): Promise<DeploydDeploymentResult> {
-  const authHeader = await getAuthHeader();
+  const authHeader = await getDeploydAuthHeader();
   const resp = await fetch(`${DEPLOYD_URL}/v1/deployments`, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: authHeader },
@@ -83,7 +100,7 @@ export async function destroyPreviewDeployment(releaseId: string): Promise<void>
     return;
   }
 
-  const authHeader = await getAuthHeader();
+  const authHeader = await getDeploydAuthHeader();
   const resp = await fetch(`${DEPLOYD_URL}/v1/deployments/${releaseId}`, {
     method: "DELETE",
     headers: { authorization: authHeader },

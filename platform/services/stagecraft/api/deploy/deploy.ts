@@ -1,10 +1,11 @@
-import { api } from "encore.dev/api";
+import { api, APIError } from "encore.dev/api";
 import log from "encore.dev/log";
 import { eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import { environments, projects, organizations } from "../db/schema";
+import { validateM2mRequest } from "../auth/m2mAuth.js";
 import { readSecretFromDir } from "./secrets";
-import { getCachedDeploydAuthHeader } from "./oidcM2m";
+import { getDeploydAuthHeader, DEPLOYD_URL } from "./deploydClient";
 import { loadDeployDescriptorForEnv } from "../environments/accessGatesDeploy";
 import {
   resolveChartSelection,
@@ -19,11 +20,9 @@ import type { HostVariant } from "./hostname";
 // during codegen and crashes on `TsFnOrConstructorType` — see
 // `api/knowledge/extractionOutput.ts` for the longer explanation.
 
-const DEPLOYD_URL =
-  process.env.DEPLOYD_URL ?? "http://deployd-api.deployd-system.svc.cluster.local";
-const OIDC_ENDPOINT = process.env.OIDC_ENDPOINT ?? process.env.LOGTO_ENDPOINT ?? "";
-const DEPLOYD_AUDIENCE = process.env.DEPLOYD_AUDIENCE ?? "";
-const DEPLOYD_SCOPE = process.env.DEPLOYD_SCOPE ?? "";
+// DEPLOYD_URL and getDeploydAuthHeader are imported from ./deploydClient: the
+// single deployd client module (spec 215 FR-007). The M2M token endpoint
+// (OIDC_ENDPOINT), audience, and scope are resolved there, not here.
 // Spec 137 — Rauthy issuer URL passed through to deployd-api so the
 // rendered oauth2-proxy points at our identity provider. Distinct from
 // OIDC_ENDPOINT (which is the M2M token endpoint used to call deployd-api).
@@ -219,43 +218,37 @@ function safeJson(s: string): unknown {
   }
 }
 
-async function getDeploydAuthHeader(): Promise<string> {
-  if (!OIDC_ENDPOINT || !DEPLOYD_AUDIENCE) {
-    throw new Error("Missing OIDC_ENDPOINT or DEPLOYD_AUDIENCE");
-  }
-
-  const clientId =
-    (await readSecretFromDir("OIDC_M2M_CLIENT_ID")) ??
-    process.env.OIDC_M2M_CLIENT_ID ??
-    (await readSecretFromDir("LOGTO_M2M_CLIENT_ID")) ??
-    process.env.LOGTO_M2M_CLIENT_ID ??
-    "";
-  const clientSecret =
-    (await readSecretFromDir("OIDC_M2M_CLIENT_SECRET")) ??
-    process.env.OIDC_M2M_CLIENT_SECRET ??
-    (await readSecretFromDir("LOGTO_M2M_CLIENT_SECRET")) ??
-    process.env.LOGTO_M2M_CLIENT_SECRET ??
-    "";
-
-  if (!clientId || !clientSecret) {
-    throw new Error(
-      "Missing OIDC_M2M_CLIENT_ID or OIDC_M2M_CLIENT_SECRET in secrets mount or env"
-    );
-  }
-
-  return getCachedDeploydAuthHeader({
-    oidcEndpoint: OIDC_ENDPOINT,
-    resource: DEPLOYD_AUDIENCE,
-    scope: DEPLOYD_SCOPE || undefined,
-    clientId,
-    clientSecret,
-    skewSeconds: 30,
-  });
-}
-
 export const createDeployment = api.raw(
+  // Spec 215 FR-006: `auth: false` keeps the Encore gateway's user-session
+  // handler off this seam, but the handler now requires a valid Rauthy M2M
+  // JWT carrying `platform:deploy:write`. Browser-reachable anonymity ends;
+  // machine callers present a client_credentials token (validateM2mRequest).
   { expose: true, path: "/v1/deployments", method: "POST", auth: false },
   async (req, res) => {
+    // FR-006: validate the M2M bearer before doing any work. In a raw handler
+    // a thrown APIError is not auto-rendered, so map its code to a status and
+    // write the response ourselves.
+    try {
+      const authHeader =
+        typeof req.headers["authorization"] === "string"
+          ? req.headers["authorization"]
+          : undefined;
+      await validateM2mRequest(authHeader, "platform:deploy:write");
+    } catch (err) {
+      const code = err instanceof APIError ? err.code : "internal";
+      const status =
+        code === "unauthenticated" ? 401 : code === "permission_denied" ? 403 : 500;
+      res.statusCode = status;
+      res.setHeader("Content-Type", "application/json");
+      res.end(
+        JSON.stringify({
+          error: String(code),
+          message: err instanceof Error ? err.message : "authentication failed",
+        })
+      );
+      return;
+    }
+
     let body: unknown;
     try {
       const chunks: Buffer[] = [];
