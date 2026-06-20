@@ -29,6 +29,14 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/db/migrations/51_project_repos_unique_repo.down.sql",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/db/migrations/51_project_repos_unique_repo.up.sql",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
@@ -49,6 +57,10 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/github/webhook.test.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/github/webhook.ts",
         "source": "spec-edge"
       },
@@ -58,6 +70,10 @@
       },
       {
         "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/vite.config.ts",
         "source": "spec-edge"
       }
     ],
@@ -91,6 +107,32 @@
       {
         "locations": [
           {
+            "file": "platform/services/stagecraft/api/db/migrations/51_project_repos_unique_repo.down.sql"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/migrations/51_project_repos_unique_repo.down.sql"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/db/migrations/51_project_repos_unique_repo.up.sql"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/migrations/51_project_repos_unique_repo.up.sql"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "platform/services/stagecraft/api/deploy/artifacts.test.ts"
           }
         ],
@@ -112,6 +154,19 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/deploy/artifacts.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/github/webhook.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/github/webhook.test.ts"
         }
       },
       {
@@ -193,6 +248,19 @@
         }
       },
       {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/vite.config.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/vite.config.ts"
+        }
+      },
+      {
         "locations": [],
         "ownership": false,
         "sourceField": "references",
@@ -232,5 +300,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "a60d026dbec92f7d35e3c874f52db9409b94ddf6b74797df5e0d5134a70aa56d"
+  "shardHash": "c8183b9af9d426e22371e10cb2876aad205fb7273999312ee4e78a4561dfcbab"
 }

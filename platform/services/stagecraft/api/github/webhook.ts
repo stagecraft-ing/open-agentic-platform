@@ -6,7 +6,6 @@ import { db } from "../db/drizzle";
 import {
   projectRepos,
   organizations,
-  projects,
   environments,
   projectArtifacts,
   githubInstallations,
@@ -120,31 +119,34 @@ async function dispatchEvent(event: string, payload: unknown): Promise<void> {
 
     case "repository":
       if (p.action === "created") {
-        log.info("New repository created via webhook", {
-          repo: p.repository.full_name,
-        });
-        // Auto-register: find a project whose org matches this GitHub org
-        const [project] = await db
-          .select({ id: projects.id })
-          .from(projects)
-          .innerJoin(organizations, eq(organizations.id, projects.orgId))
-          .where(eq(organizations.slug, p.repository.owner.login))
-          .limit(1);
-
-        if (project) {
-          const [owner, repoName] = p.repository.full_name.split("/");
-          await db
-            .insert(projectRepos)
-            .values({
-              projectId: project.id,
-              githubOrg: owner,
-              repoName,
-              defaultBranch: p.repository.default_branch ?? "main",
-              isPrimary: false,
-              githubInstallId: p.installation?.id ?? null,
-            })
-            .onConflictDoNothing();
-          log.info("Auto-registered repo", { repo: p.repository.full_name, projectId: project.id });
+        // Spec 213 FR-009: one GitHub repo maps to exactly one project, and a
+        // newly-created repo has no inherent owning project. The create/clone/
+        // import flows already insert the owning project's primary
+        // project_repos row, so this webhook must NOT speculatively link the
+        // new repo to an arbitrary project in the org. The previous
+        // org-scoped `.limit(1)` pick raced project creation and
+        // cross-attributed builds to whichever project happened to exist
+        // first (e.g. a new repo created for project B was linked onto an
+        // unrelated project A, which then resolved B's image at deploy time).
+        // If the repo is already registered, refresh its installation id;
+        // otherwise leave it unlinked for an explicit import/link.
+        const existing = await findRepoRow(p.repository.full_name);
+        const installId = p.installation?.id ?? null;
+        if (existing) {
+          if (installId !== null && existing.githubInstallId !== installId) {
+            await db
+              .update(projectRepos)
+              .set({ githubInstallId: installId, updatedAt: new Date() })
+              .where(eq(projectRepos.id, existing.id));
+          }
+          log.info("repository.created: repo already registered", {
+            repo: p.repository.full_name,
+            projectId: existing.projectId,
+          });
+        } else {
+          log.info("repository.created: not auto-linked (no owning project)", {
+            repo: p.repository.full_name,
+          });
         }
       }
       break;
@@ -759,15 +761,39 @@ async function repoPathExists(
   return resp.ok;
 }
 
-async function findRepoRow(fullName: string) {
+// Spec 213 FR-009: resolve the single project that owns a GitHub repo. The
+// (github_org, repo_name) edge is unique (schema unique index), so at most one
+// row matches. As defense in depth for environments where the index is not yet
+// applied, prefer the primary link and fail loud on a genuinely ambiguous
+// match rather than silently picking one: the prior `.limit(1)` behaviour
+// returned an arbitrary row and cross-attributed builds to the wrong project.
+export async function findRepoRow(fullName: string) {
   const [owner, name] = fullName.split("/");
   if (!owner || !name) return null;
   const rows = await db
     .select()
     .from(projectRepos)
-    .where(and(eq(projectRepos.githubOrg, owner), eq(projectRepos.repoName, name)))
-    .limit(1);
-  return rows[0] ?? null;
+    .where(
+      and(eq(projectRepos.githubOrg, owner), eq(projectRepos.repoName, name)),
+    );
+  if (rows.length <= 1) return rows[0] ?? null;
+  const primaries = rows.filter((r) => r.isPrimary);
+  if (primaries.length === 1) {
+    log.warn("findRepoRow: multiple links for repo; using primary", {
+      repo: fullName,
+      count: rows.length,
+    });
+    return primaries[0];
+  }
+  log.error("findRepoRow: ambiguous repo->project links; refusing to guess", {
+    repo: fullName,
+    count: rows.length,
+    primaries: primaries.length,
+  });
+  throw new Error(
+    `ambiguous project_repos for ${fullName}: ${rows.length} links, ` +
+      `${primaries.length} primary (FR-009 one-repo-one-project violated)`,
+  );
 }
 
 /** Find-only lookup of a PR's preview environment (FR-005 destroy path); does

@@ -67,6 +67,16 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/deploy/artifacts.test.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/48_project_artifacts.up.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/48_project_artifacts.down.sql }
+  # FR-009: one-repo-one-project unique index + its regression cover.
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/51_project_repos_unique_repo.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/51_project_repos_unique_repo.down.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/github/webhook.test.ts }
+refines:
+  # FR-009 adds webhook.test.ts to the encore-test lane exclude list (the
+  # vite.config.ts exclude list IS the lane assignment; same precedent as
+  # spec 215's deployments.test.ts row).
+  - aspect: "encore-test-lane-assignment"
+    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
 references:
   # Precedent only while it lives: spec 214 supersedes and retires this
   # workflow; the seeded oap-build.yml below is the canonical tenant
@@ -209,6 +219,14 @@ string.
 - GHCR package visibility is private by default: pulling from the cluster
   is the concern of spec 214 (`imagePullSecrets`); this spec only
   guarantees push.
+- Repo linked to more than one project (FR-009): observed 2026-06-20 when
+  creating project B's repo emitted a `repository.created` webhook that
+  the handler auto-linked to the only project then existing (A), racing
+  B's own creation. B's build was then recorded under A's
+  `project_artifacts`, and A's manual deploy resolved B's image and failed
+  on the cluster. FR-009 makes the `(github_org, repo_name)` edge unique,
+  removes the speculative link, and makes `findRepoRow` fail loud on
+  ambiguity, so a build can never be attributed to the wrong project.
 
 ## Requirements *(mandatory)*
 
@@ -261,6 +279,28 @@ string.
   to seed `oap-build.yml` into an existing project repo created before
   this spec (same GitHub App content-write used at create time). Exposed
   as an admin API; UI exposure is spec 215's concern.
+- **FR-009** (added 2026-06-20): One GitHub repo maps to **exactly one**
+  project. FR-006 derives a build's owning project from `project_repos`
+  via `findRepoRow(org/repo)`; that attribution is correct only if the
+  `(github_org, repo_name)` edge is 1:1. The invariant MUST be enforced
+  structurally and at every write site:
+  1. **Schema**: `project_repos` carries a unique index on
+     `(github_org, repo_name)` (migration `51_project_repos_unique_repo`).
+     The migration resolves any pre-existing duplicate links by keeping
+     the `is_primary` link and dropping non-primary duplicates; it fails
+     loud when a duplicate group has zero or multiple primaries rather
+     than guessing.
+  2. **No speculative linking**: the `repository.created` webhook MUST NOT
+     link a newly-created repo to an arbitrary project in the org. A new
+     repo's owning project is established by the create/clone/import flow
+     that produced it (the primary `project_repos` row); a repo with no
+     owning project is left unlinked for explicit import, never
+     auto-attached.
+  3. **Deterministic resolution**: `findRepoRow` MUST NOT return an
+     arbitrary row on ambiguity. Under the unique index at most one row
+     matches; as defense in depth it prefers the primary link and fails
+     loud (throws) on a genuinely ambiguous match rather than silently
+     picking one.
 
 ### Key Entities
 
