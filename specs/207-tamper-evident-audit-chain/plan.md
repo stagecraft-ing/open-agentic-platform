@@ -202,3 +202,40 @@ anchoring. Cross-repo; lands after 2a.
   candidate-owner list at PR time.
 - **Risk:** touches the duplex/sync surface. PR B is sequenced after the
   `~/Dev` lane's 215 deploy/verify settles to avoid runtime ambiguity.
+
+### Phase 2b split (revised 2026-06-20): producer-first
+
+Implementation revealed PR B's plan had a hidden assumption. "The local side
+accumulates unanchored segment heads" presumed a running local session audit
+chain. There was none: Phase 1's `AuditLogger` is real but instantiated by zero
+production code (`with_audit_logger` has no callers; `PermissionRuntime` is
+constructed nowhere). The live governed-tool permission path is axiomregent's
+`policy_preflight_response` / `audit_tool_dispatch`, not the dormant spec-068
+runtime. A consumer-only client PR would be a dead consumer. So PR B is split:
+
+- **PR B1 (server, DONE, #394 / `0889b27e`).** Stagecraft countersign handler,
+  seal table, signing typ, duplex dispatch. As above.
+- **PR B2a (producer, THIS PR).** Wire the live session audit chain in
+  axiomregent so a real chain runs, rotates, and emits closed segment heads.
+  - `policy_kernel::audit::AuditLogger::log_value(Value)` (content-agnostic;
+    `log(AuditEntry)` becomes a thin wrapper). The same primitive-reuse posture
+    as Phase 2a's run-audit chain.
+  - The axiomregent `Router` chains EVERY governed tool-dispatch decision via a
+    `record_audit` helper (forward + chain) at the existing `audit_tool_dispatch`
+    chokepoint; `set_audit_chain` attaches it at
+    `<AXIOMREGENT_DATA_DIR>/audit/permissions.jsonl` (mirrors
+    `set_preflight_checker`). Keyed by the agent process instance (the duplex
+    `sessionId` arrives only at `sync.hello`, post-spawn).
+  - Cross-process handoff to B2b: the producer runs in the axiomregent
+    subprocess, the client in the Tauri process; they share disk via the
+    parent-pinned `AXIOMREGENT_DATA_DIR`. No IPC.
+  - **Coupling (B2a):** `establishes:` `crates/axiomregent/tests/session_audit_chain_test.rs`;
+    `refines:` `crates/axiomregent/src/router/mod.rs` + `crates/axiomregent/src/main.rs`
+    (spec-073-owned, behaviour-refined, not authority-evolved); the `audit.rs`
+    change rides the existing `hash-chained-audit-records` edge.
+- **PR B2b (client, NEXT).** OPC Tauri reads closed segment heads off the shared
+  chain dir, submits each over the duplex `audit.segment.countersign_request` at
+  reconnect (the proven `send_and_await_reply`/`reply_waiters` correlation),
+  stores the returned countersignature, and exposes the unanchored window. The
+  open segment plus any closed-but-uncountersigned segments ARE the FR-004
+  window; submitting only closed (rotated) heads is faithful to that residual.

@@ -55,6 +55,11 @@ establishes:
   # org/session/segment; idempotent on resubmission).
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.up.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.down.sql }
+  # FR-001/FR-002 (Phase 2b producer, PR1): the axiomregent session-audit-chain
+  # integration test. Proves every governed tool dispatch is hash-chained and
+  # the independent walker verifies it offline (the producer the AC-4 client
+  # consumes; a consumer-only PR2 would be a dead consumer without it).
+  - unit: { kind: file, path: crates/axiomregent/tests/session_audit_chain_test.rs }
 extends:
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
@@ -102,6 +107,19 @@ refines:
   # assignment; bare vitest would fail it on a missing ENCORE_RUNTIME_LIB).
   - aspect: "encore-test-lane-assignment"
     unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+  # Phase 2b producer (PR1): the axiomregent router hash-chains every governed
+  # tool-dispatch decision into the session audit chain (set_audit_chain +
+  # record_audit, reusing the policy-kernel AuditLogger's log_value). This is
+  # the LIVE producer the AC-4 countersign client consumes; it refines the
+  # spec-073-owned router's dispatch-audit aspect (it does not evolve 073's
+  # authority over the router).
+  - aspect: "session-audit-chain-producer"
+    unit: { kind: file, path: crates/axiomregent/src/router/mod.rs }
+  # Phase 2b producer (PR1): main.rs attaches the chain under the agent data
+  # dir (`<AXIOMREGENT_DATA_DIR>/audit`), the path the OPC desktop recomputes
+  # to read closed segment heads for countersign.
+  - aspect: "session-audit-chain-wiring"
+    unit: { kind: file, path: crates/axiomregent/src/main.rs }
 references:
   - role: machinery
     unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.ts }
@@ -314,9 +332,44 @@ head (spec 198 FR-014: the platform signs, the local side is keyless).
   distinct segments/sessions, refusal when unconfigured); grant tests
   unchanged (17/17).
 
-**Phase 2b client side (PR B2, deferred): OPC-side consumption.** The local
-side accumulates unanchored segment heads, submits them over the duplex
-channel at reconnect, stores the returned countersignatures, and exposes the
-unanchored window. This completes AC-4 end-to-end. Sequenced after the active
-stagecraft (215) deploy/verify settles to avoid duplex-surface runtime
-ambiguity. Design in `plan.md` (Phase 2b).
+**Phase 2b producer (2026-06-20, PR B2a): the local session audit chain.**
+A pre-flight gap found while scoping the AC-4 client: the original B2 plan
+("the local side accumulates unanchored segment heads") presumed a local
+session audit chain that did **not exist** in production. Phase 1 built
+`AuditLogger` + `PermissionRuntime::with_audit_logger`, but `with_audit_logger`
+had zero callers and `PermissionRuntime` was constructed nowhere; the live
+governed-tool permission path is axiomregent's `policy_preflight_response` /
+`audit_tool_dispatch`, not the dormant spec-068 runtime. A consumer-only PR
+would have been a dead consumer. Resolution (architect): producer-first.
+
+- **Primitive (FR-001).** `policy_kernel::audit::AuditLogger` gains a
+  content-agnostic `log_value(serde_json::Value)`; `log(AuditEntry)` is now a
+  thin typed wrapper over it (behaviour byte-identical, guarded by the Phase 1
+  chain tests). This mirrors the Phase 2a precedent of reusing the chain
+  primitive content-agnostically rather than forcing a typed record shape.
+- **Producer.** The axiomregent `Router` hash-chains **every** governed
+  tool-dispatch decision (allowed / denied / allowed_no_lease /
+  denied_no_lease / policy_denied) into a rotating session segment via a new
+  `record_audit` helper (forwards via Seam B AND chains), reusing the same
+  `audit_tool_dispatch` records already forwarded to the platform. The chain is
+  attached by `set_audit_chain` (mirroring `set_preflight_checker`) at
+  `<AXIOMREGENT_DATA_DIR>/audit/permissions.jsonl`. Keyed by the agent process
+  instance: the duplex `sessionId` only arrives at `sync.hello`, after the
+  sidecar is already spawned, so it cannot key the chain at startup.
+- **Cross-process handoff.** The producer runs in the axiomregent subprocess;
+  the AC-4 client (PR B2b) runs in the OPC Tauri process. They share disk: the
+  Tauri parent pins `AXIOMREGENT_DATA_DIR` under `app_data_dir`, so the desktop
+  recomputes the identical chain path to read closed segment heads. No IPC.
+- **Coupling:** `establishes:` the integration test; `refines:` the spec-073
+  router (`mod.rs`) + `main.rs`; the `audit.rs` change rides the existing
+  `hash-chained-audit-records` refines edge.
+
+**Phase 2b client side (PR B2b, next): OPC-side consumption.** The local side
+reads closed (rotated) segment heads from the producer chain, submits them over
+the duplex `audit.segment.countersign_request` at reconnect (the proven
+`send_and_await_reply` reply-correlation already used by grant + cert
+countersign), stores the returned countersignatures, and exposes the unanchored
+window (the open segment + any closed-but-uncountersigned segments, the FR-004
+bound). This completes AC-4 end-to-end. Now unblocked by the producer; still
+sequenced to avoid duplex-surface runtime ambiguity with the active stagecraft
+(215) deploy. Design in `plan.md` (Phase 2b).
