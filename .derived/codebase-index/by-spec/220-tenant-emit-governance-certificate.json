@@ -1,0 +1,142 @@
+{
+  "mapping": {
+    "amends": [
+      "168-per-project-governance-certificate"
+    ],
+    "dependsOn": [
+      "102-governed-excellence",
+      "168-per-project-governance-certificate",
+      "167-born-with-spec-spine-kernel",
+      "198-factory-governance-envelope",
+      "209-tenant-kernel-ci-enforcement",
+      "219-tenant-tail-verifier-toolkit"
+    ],
+    "implementingPaths": [
+      {
+        "path": "crates/factory-engine/src/bin/build_certificate.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/src/governance_certificate.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/src/platform_jws.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/featuregraph/tests/golden/features_graph.json",
+        "source": "spec-edge"
+      },
+      {
+        "path": "specs/168-per-project-governance-certificate/spec.md",
+        "source": "spec-edge"
+      },
+      {
+        "path": "specs/209-tenant-kernel-ci-enforcement/spec.md",
+        "source": "spec-edge"
+      },
+      {
+        "path": "specs/219-tenant-tail-verifier-toolkit/spec.md",
+        "source": "spec-edge"
+      }
+    ],
+    "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "crates/featuregraph/tests/golden/features_graph.json"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/bin/build_certificate.rs"
+          }
+        ],
+        "ownership": false,
+        "sourceField": "references",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/bin/build_certificate.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/governance_certificate.rs"
+          }
+        ],
+        "ownership": false,
+        "sourceField": "references",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/governance_certificate.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/platform_jws.rs"
+          }
+        ],
+        "ownership": false,
+        "sourceField": "references",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/platform_jws.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "specs/168-per-project-governance-certificate/spec.md"
+          }
+        ],
+        "ownership": false,
+        "sourceField": "references",
+        "unit": {
+          "kind": "file",
+          "path": "specs/168-per-project-governance-certificate/spec.md"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "specs/209-tenant-kernel-ci-enforcement/spec.md"
+          }
+        ],
+        "ownership": false,
+        "sourceField": "references",
+        "unit": {
+          "kind": "file",
+          "path": "specs/209-tenant-kernel-ci-enforcement/spec.md"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "specs/219-tenant-tail-verifier-toolkit/spec.md"
+          }
+        ],
+        "ownership": false,
+        "sourceField": "references",
+        "unit": {
+          "kind": "file",
+          "path": "specs/219-tenant-tail-verifier-toolkit/spec.md"
+        }
+      }
+    ],
+    "specId": "220-tenant-emit-governance-certificate",
+    "specStatus": "draft"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "ca53263548bde2d7e032fe2d8691ed20e8778cda5efa9eec4678acad32595dce"
+}
