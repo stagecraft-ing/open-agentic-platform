@@ -68,7 +68,9 @@ use commands::orchestrator::{
 };
 use commands::proxy::{apply_proxy_settings, get_proxy_settings, save_proxy_settings};
 use commands::stagecraft_client::StagecraftState;
-use commands::sync_client::{OpcInstanceId, SyncClientConfig, SyncClientState};
+use commands::sync_client::{
+    OpcInstanceId, SyncClientConfig, SyncClientState, audit_unanchored_window,
+};
 use commands::storage::{
     storage_delete_row, storage_execute_sql, storage_insert_row, storage_list_tables,
     storage_read_table, storage_reset_database, storage_update_row,
@@ -725,6 +727,8 @@ pub fn run() {
             commands::settings::get_stagecraft_base_url,
             commands::settings::set_stagecraft_base_url,
             commands::settings::reconnect_stagecraft_duplex,
+            // Tamper-evident audit chain (spec 207 AC-4 / FR-004)
+            audit_unanchored_window,
             // OPC decomposition pipeline (spec 165)
             commands::decomposition::decomposition_run,
             commands::decomposition::decomposition_list_runs,

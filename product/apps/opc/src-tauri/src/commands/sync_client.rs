@@ -23,6 +23,7 @@ use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::net::TcpStream;
@@ -378,6 +379,9 @@ const SERVER_KINDS: &[&str] = &[
     // reply_waiters before the normal dispatch path.
     "factory.run.grant",
     "factory.run.certificate_countersign",
+    // Spec 207 AC-4 - reply-correlated frame for the session-audit segment
+    // countersign (routed via reply_waiters, like the two above).
+    "audit.segment.countersign",
 ];
 
 /// Mirrors `isClientEnvelope` on the stagecraft side — enforces schema
@@ -573,6 +577,31 @@ pub enum OutboundFrame {
         #[serde(rename = "buildSpecHash", skip_serializing_if = "Option::is_none")]
         build_spec_hash: Option<String>,
     },
+    /// Spec 207 AC-4 - the desktop submits a closed (rotated) audit segment
+    /// HEAD for platform countersign. The local side is keyless (spec 198
+    /// FR-014): it sends the head hash plus metadata, stagecraft signs and
+    /// persists a seal row, and replies with `audit.segment.countersign`
+    /// correlated via `meta.correlationId`. Offline-first: heads accumulate
+    /// while disconnected and are swept at reconnect (idempotent on the seal's
+    /// `(org, session, segment)` key).
+    #[serde(rename = "audit.segment.countersign_request")]
+    AuditSegmentCountersignRequest {
+        meta: EnvelopeMeta,
+        #[serde(rename = "projectId", skip_serializing_if = "Option::is_none")]
+        project_id: Option<String>,
+        #[serde(rename = "sessionId")]
+        session_id: String,
+        #[serde(rename = "segmentId")]
+        segment_id: String,
+        #[serde(rename = "segmentHeadHash")]
+        segment_head_hash: String,
+        #[serde(rename = "segmentRecordCount")]
+        segment_record_count: u64,
+        #[serde(rename = "firstRecordAt")]
+        first_record_at: String,
+        #[serde(rename = "lastRecordAt")]
+        last_record_at: String,
+    },
 }
 
 /// Reason enum for {@link OutboundFrame::AgentCatalogFetchRequest}. Mirrors
@@ -697,6 +726,36 @@ pub struct SyncClientInner {
     /// Uses `std::sync::Mutex` (not tokio) so it can be locked from both
     /// sync (`resolve_reply_waiter`) and async (`send_and_await_reply`) contexts.
     reply_waiters: std::sync::Mutex<HashMap<String, oneshot::Sender<ServerEnvelopeWire>>>,
+    /// Spec 207 AC-4 - the duplex session id carried on `sync.hello`. Used as
+    /// the scope key when the desktop submits closed audit segment heads for
+    /// platform countersign (the seal is keyed `(org, session, segment)`).
+    session_id: RwLock<Option<String>>,
+    /// Spec 207 AC-4 - the axiomregent producer's audit chain directory
+    /// (`<AXIOMREGENT_DATA_DIR>/audit`), recomputed by the desktop from the same
+    /// `app_data_dir` the OPC sidecar pins (see `sidecars::spawn_axiomregent`),
+    /// so the AC-4 sweep reads closed segment heads off the shared disk. Set at
+    /// spawn time; `None` disables the sweep (e.g. headless builds without an
+    /// app data dir).
+    audit_chain_dir: RwLock<Option<PathBuf>>,
+    /// Spec 207 AC-4 - in-flight guard for the countersign sweep. `sync.hello`
+    /// fires on every (re)connect, so without this a reconnect burst would spawn
+    /// overlapping sweeps that race the seal store. Only the task that flips
+    /// this `false -> true` runs; a `SweepGuard` resets it on completion or
+    /// panic.
+    audit_sweep_active: std::sync::atomic::AtomicBool,
+}
+
+/// Spec 207 AC-4 - resets [`SyncClientInner::audit_sweep_active`] when the sweep
+/// task ends (normally or by panic), so a future `sync.hello` can start the next
+/// sweep. Holds an `Arc` because the task is detached and outlives the caller.
+struct SweepGuard(Arc<SyncClientInner>);
+
+impl Drop for SweepGuard {
+    fn drop(&mut self) {
+        self.0
+            .audit_sweep_active
+            .store(false, std::sync::atomic::Ordering::Release);
+    }
 }
 
 impl SyncClientInner {
@@ -901,7 +960,7 @@ impl SyncClientInner {
             if let Ok(mut map) = self.reply_waiters.lock() {
                 map.remove(&event_id);
             }
-            return Err("duplex stream disconnected; cannot send grant request".into());
+            return Err("duplex stream disconnected; cannot send request".into());
         }
         match tokio::time::timeout(std::time::Duration::from_secs(30), rx).await {
             Ok(Ok(reply)) => Ok(reply),
@@ -910,7 +969,7 @@ impl SyncClientInner {
                 if let Ok(mut map) = self.reply_waiters.lock() {
                     map.remove(&event_id);
                 }
-                Err("grant request timed out after 30 s".into())
+                Err("duplex request timed out after 30 s".into())
             }
         }
     }
@@ -928,6 +987,74 @@ impl SyncClientInner {
             completed_at: chrono::Utc::now().to_rfc3339(),
         };
         self.send(frame).await
+    }
+
+    /// Spec 207 AC-4 - record the duplex session id observed on `sync.hello`.
+    pub(crate) fn set_session_id(&self, session_id: Option<String>) {
+        if let Ok(mut g) = self.session_id.write() {
+            *g = session_id;
+        }
+    }
+
+    /// Spec 207 AC-4 - the last observed duplex session id, if connected.
+    pub fn session_id(&self) -> Option<String> {
+        self.session_id.read().ok().and_then(|g| g.clone())
+    }
+
+    /// Spec 207 AC-4 - pin the producer's audit chain directory so the
+    /// reconnect sweep and the unanchored-window query read the shared disk.
+    pub(crate) fn set_audit_chain_dir(&self, dir: PathBuf) {
+        if let Ok(mut g) = self.audit_chain_dir.write() {
+            *g = Some(dir);
+        }
+    }
+
+    /// Spec 207 AC-4 - the producer's audit chain directory, if pinned.
+    pub(crate) fn audit_chain_dir(&self) -> Option<PathBuf> {
+        self.audit_chain_dir.read().ok().and_then(|g| g.clone())
+    }
+
+    /// Spec 207 AC-4 - submit one closed audit segment HEAD for platform
+    /// countersign and await the correlated reply (the proven
+    /// `send_and_await_reply` correlation, like the grant + cert paths). The
+    /// local side holds no signing keys; it attests the head hash and metadata
+    /// and stagecraft returns a short-lived JWS. Errors propagate so the sweep
+    /// can stop and retry on the next reconnect.
+    pub(crate) async fn submit_audit_segment_countersign(
+        &self,
+        session_id: &str,
+        head: &SegmentHead,
+    ) -> Result<AuditSegmentCountersignOutcome, String> {
+        let event_id = uuid::Uuid::new_v4().to_string();
+        let frame = OutboundFrame::AuditSegmentCountersignRequest {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: event_id.clone(),
+                sent_at: chrono::Utc::now().to_rfc3339(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            project_id: None,
+            session_id: session_id.to_string(),
+            segment_id: head.segment_id.clone(),
+            segment_head_hash: head.segment_head_hash.clone(),
+            segment_record_count: head.segment_record_count,
+            first_record_at: head.first_record_at.clone(),
+            last_record_at: head.last_record_at.clone(),
+        };
+        // The reply is matched to this request by `meta.correlationId` (the
+        // event_id above), so the segment it seals is the one we submitted; we
+        // key the outcome by `head.segment_id` rather than re-reading it off the
+        // wire (the duplex `ServerEnvelopeWire` carries the shared countersign
+        // fields, and serde ignores the reply's echoed `segmentId`).
+        let reply = self.send_and_await_reply(frame, event_id).await?;
+        Ok(AuditSegmentCountersignOutcome {
+            segment_id: head.segment_id.clone(),
+            countersigned: reply.countersigned.unwrap_or(false),
+            countersign_jws: reply.countersign_jws,
+            kid: reply.kid,
+            refused_reason: reply.refused_reason,
+        })
     }
 }
 
@@ -999,6 +1126,18 @@ impl SyncClientState {
         auth: Arc<StagecraftClient>,
         app: tauri::AppHandle,
     ) {
+        // Spec 207 AC-4: recompute the producer's audit chain dir off the same
+        // `app_data_dir` the OPC sidecar pins as AXIOMREGENT_DATA_DIR
+        // (`sidecars::spawn_axiomregent`), so the reconnect sweep reads closed
+        // segment heads from the shared disk. A missing dir disables the sweep.
+        {
+            use tauri::Manager as _;
+            if let Ok(base) = app.path().app_data_dir() {
+                self.inner
+                    .set_audit_chain_dir(audit_chain_dir_under(&base));
+            }
+        }
+
         // `self.join` is a *tokio* mutex, so holding the guard across the
         // `.await` below is sound — the std-`Mutex` "never hold across await"
         // rule does not apply to `tokio::sync::Mutex`. The hold is deliberate:
@@ -1497,7 +1636,9 @@ async fn handle_text_frame(
     // is registered (unexpected unsolicited delivery), log a warning and drop.
     if matches!(
         envelope.kind.as_str(),
-        "factory.run.grant" | "factory.run.certificate_countersign"
+        "factory.run.grant"
+            | "factory.run.certificate_countersign"
+            | "audit.segment.countersign"
     ) {
         let kind = envelope.kind.clone();
         if !inner.resolve_reply_waiter(envelope) {
@@ -1537,6 +1678,31 @@ async fn handle_text_frame(
             // flips on this envelope's receipt, which proves stagecraft accepted
             // the handshake for the claimed (clientId, orgId).
             inner.mark_sync_hello_received();
+            // Spec 207 AC-4: at (re)connect, submit any closed-but-unanchored
+            // audit segment heads for platform countersign. Runs detached so
+            // the read loop is never blocked; a transport failure mid-sweep
+            // simply retries on the next reconnect. The duplex session id (the
+            // seal scope key) only arrives here, on `sync.hello`.
+            inner.set_session_id(envelope.session_id.clone());
+            if let (Some(chain_dir), Some(session_id)) =
+                (inner.audit_chain_dir(), envelope.session_id.clone())
+            {
+                // Only start a sweep when none is in flight (reconnect churn can
+                // deliver `sync.hello` repeatedly). The SweepGuard resets the
+                // flag when the task ends, even on panic.
+                use std::sync::atomic::Ordering;
+                if inner
+                    .audit_sweep_active
+                    .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+                    .is_ok()
+                {
+                    let inner = inner.clone();
+                    tokio::spawn(async move {
+                        let _guard = SweepGuard(inner.clone());
+                        run_audit_countersign_sweep(&inner, chain_dir, session_id).await;
+                    });
+                }
+            }
         }
         "sync.ack" | "sync.nack" => {
             // No inbox to reconcile yet — tracked in a later phase.
@@ -1572,6 +1738,307 @@ pub(crate) fn new_meta() -> EnvelopeMeta {
         correlation_id: None,
         causation_id: None,
     }
+}
+
+// ---------------------------------------------------------------------------
+// Spec 207 AC-4 - session-audit segment countersign (OPC client side)
+// ---------------------------------------------------------------------------
+//
+// The axiomregent sidecar (the producer, PR B2a) hash-chains every governed
+// tool dispatch into a rotating segment under `<AXIOMREGENT_DATA_DIR>/audit`.
+// The open segment is `permissions.jsonl`; rotation closes it with a
+// `segment_head` record and shifts it to `permissions.jsonl.1` .. `.5` (see
+// `policy_kernel::audit`). This module reads those closed segment heads off the
+// shared disk and submits each for platform countersign, completing AC-4
+// end-to-end. The local side holds no signing keys (spec 198 FR-014): it only
+// attests the head hash + metadata; stagecraft signs and persists the seal.
+
+/// Open-segment file name written by the producer (`policy_kernel::audit`).
+const AUDIT_SEGMENT_FILE: &str = "permissions.jsonl";
+/// Closed-segment rotations the producer retains (`permissions.jsonl.1..=N`).
+const MAX_AUDIT_ROTATIONS: usize = 5;
+/// Local record of which closed segments stagecraft has already countersigned,
+/// so the sweep does not resubmit on every reconnect. Lives in the chain dir
+/// (the producer only ever writes `permissions.jsonl*`, never this file).
+const SEAL_STORE_FILE: &str = "countersigns.json";
+/// Upper bound on a segment file we will read whole. The producer rotates at
+/// 10 MB (`policy_kernel::audit::MAX_SIZE_BYTES`), so a legitimate segment is
+/// always under this; the cap stops a pathological or hostile oversized file
+/// (an attacker with local write access to the data dir) from OOM-ing the read.
+const MAX_SEGMENT_READ_BYTES: u64 = 64 * 1024 * 1024;
+
+/// Read a file whole only when it is within [`MAX_SEGMENT_READ_BYTES`].
+/// Oversized or unreadable files yield `None` (the segment is skipped rather
+/// than risking an unbounded allocation on the reading thread).
+fn read_capped(path: &Path) -> Option<String> {
+    let len = std::fs::metadata(path).ok()?.len();
+    if len > MAX_SEGMENT_READ_BYTES {
+        log::warn!(
+            "sync_client: audit segment {} is {len} bytes (> {MAX_SEGMENT_READ_BYTES} cap); skipping",
+            path.display()
+        );
+        return None;
+    }
+    std::fs::read_to_string(path).ok()
+}
+
+/// The producer's audit chain directory under the OPC-pinned data dir. Mirrors
+/// `sidecars::spawn_axiomregent` (`<app_data_dir>/axiomregent/data`) plus the
+/// `set_audit_chain(data_dir.join("audit"))` the agent applies on startup.
+pub(crate) fn audit_chain_dir_under(app_data_dir: &Path) -> PathBuf {
+    app_data_dir
+        .join("axiomregent")
+        .join("data")
+        .join("audit")
+}
+
+/// A closed audit segment's head, read off the shared chain dir. Field names
+/// map the producer's segment-head record (`policy_kernel::audit::build_head`)
+/// onto the `audit.segment.countersign_request` wire shape.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SegmentHead {
+    pub segment_id: String,
+    /// The head record's own `record_hash` (anchors the closed segment).
+    pub segment_head_hash: String,
+    pub segment_record_count: u64,
+    pub first_record_at: String,
+    pub last_record_at: String,
+}
+
+/// Result of a single countersign submission (the parsed reply).
+#[derive(Debug, Clone)]
+pub struct AuditSegmentCountersignOutcome {
+    pub segment_id: String,
+    pub countersigned: bool,
+    pub countersign_jws: Option<String>,
+    pub kid: Option<String>,
+    pub refused_reason: Option<String>,
+}
+
+/// The unanchored window (FR-004 residual surface): the still-open segment plus
+/// any closed segments not yet countersigned. Serialised to the frontend.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct UnanchoredWindow {
+    /// Records in the still-open (never-rotated) segment, which has no external
+    /// anchor yet and is the broadest part of the residual.
+    pub open_segment_record_count: u64,
+    /// Closed (rotated) segments awaiting countersign.
+    pub unsealed_closed_segments: Vec<UnanchoredSegment>,
+    /// Closed segments already countersigned (anchored, out of the window).
+    pub sealed_segment_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct UnanchoredSegment {
+    pub segment_id: String,
+    pub record_count: u64,
+    pub first_record_at: String,
+    pub last_record_at: String,
+}
+
+/// Parse a closed segment file's trailing `segment_head` record into a
+/// [`SegmentHead`]. Returns `None` when the file is absent, empty, or its last
+/// line is not a segment head (an open or malformed segment is simply skipped).
+fn read_segment_head(path: &Path) -> Option<SegmentHead> {
+    let content = read_capped(path)?;
+    let last = content.lines().rev().find(|l| !l.trim().is_empty())?;
+    let v: Value = serde_json::from_str(last).ok()?;
+    if v.get("segment_head").and_then(Value::as_bool) != Some(true) {
+        return None;
+    }
+    Some(SegmentHead {
+        segment_id: v.get("segment_id").and_then(Value::as_str)?.to_string(),
+        segment_head_hash: v.get("record_hash").and_then(Value::as_str)?.to_string(),
+        segment_record_count: v.get("record_count").and_then(Value::as_u64)?,
+        first_record_at: v
+            .get("first_timestamp")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string(),
+        last_record_at: v
+            .get("last_timestamp")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string(),
+    })
+}
+
+/// Enumerate the heads of all retained closed segments (`permissions.jsonl.1`
+/// through `.MAX_AUDIT_ROTATIONS`), newest first.
+fn closed_segment_heads(chain_dir: &Path) -> Vec<SegmentHead> {
+    let mut heads = Vec::new();
+    for n in 1..=MAX_AUDIT_ROTATIONS {
+        let p = chain_dir.join(format!("{AUDIT_SEGMENT_FILE}.{n}"));
+        if let Some(head) = read_segment_head(&p) {
+            heads.push(head);
+        }
+    }
+    heads
+}
+
+fn seal_store_path(chain_dir: &Path) -> PathBuf {
+    chain_dir.join(SEAL_STORE_FILE)
+}
+
+/// Load the local seal record (`segment_id` -> countersign metadata). A missing
+/// or unparseable store reads as empty (the sweep re-submits, which is safe:
+/// the platform upsert is idempotent on `(org, session, segment)`).
+fn load_seals(chain_dir: &Path) -> serde_json::Map<String, Value> {
+    std::fs::read_to_string(seal_store_path(chain_dir))
+        .ok()
+        .and_then(|s| serde_json::from_str::<Value>(&s).ok())
+        .and_then(|v| v.as_object().cloned())
+        .unwrap_or_default()
+}
+
+/// Persist one countersignature into the local seal store. Returns `true` only
+/// when the write durably landed. The replace is atomic (write a temp sibling,
+/// then rename over the target) so a crash mid-write can never leave a torn
+/// `countersigns.json` that `load_seals` would read as empty (which would
+/// re-submit every already-sealed segment).
+fn record_seal(chain_dir: &Path, outcome: &AuditSegmentCountersignOutcome) -> bool {
+    let mut seals = load_seals(chain_dir);
+    seals.insert(
+        outcome.segment_id.clone(),
+        serde_json::json!({
+            "countersignJws": outcome.countersign_jws,
+            "kid": outcome.kid,
+            "countersignedAt": chrono::Utc::now().to_rfc3339(),
+        }),
+    );
+    let Ok(serialized) = serde_json::to_string_pretty(&Value::Object(seals)) else {
+        return false;
+    };
+    let tmp_path = chain_dir.join(format!("{SEAL_STORE_FILE}.tmp"));
+    if std::fs::write(&tmp_path, serialized).is_err() {
+        return false;
+    }
+    std::fs::rename(&tmp_path, seal_store_path(chain_dir)).is_ok()
+}
+
+/// Spec 207 AC-4 - submit every closed-but-unsealed segment head for platform
+/// countersign, recording each returned countersignature locally. Best-effort:
+/// a refusal is logged and skipped; a transport failure stops the sweep so the
+/// next reconnect retries from where it left off. Serialised by the caller's
+/// in-flight guard (`audit_sweep_active`), so the seal-store read/write below is
+/// the only writer for the duration of a sweep. Blocking file I/O is offloaded
+/// to `spawn_blocking` (the file's keychain-read precedent), keeping the tokio
+/// worker free for the duplex stream while a (up to 10 MB) segment is read.
+async fn run_audit_countersign_sweep(
+    inner: &SyncClientInner,
+    chain_dir: PathBuf,
+    session_id: String,
+) {
+    // Enumerate closed segments + load the seal store off the async runtime.
+    let dir = chain_dir.clone();
+    let Ok((heads, sealed)) =
+        tokio::task::spawn_blocking(move || (closed_segment_heads(&dir), load_seals(&dir))).await
+    else {
+        return;
+    };
+    if heads.is_empty() {
+        return;
+    }
+    let mut anchored = 0usize;
+    for head in heads {
+        if sealed.contains_key(&head.segment_id) {
+            continue;
+        }
+        match inner
+            .submit_audit_segment_countersign(&session_id, &head)
+            .await
+        {
+            Ok(outcome) if outcome.countersigned => {
+                let dir = chain_dir.clone();
+                let to_persist = outcome.clone();
+                let persisted =
+                    tokio::task::spawn_blocking(move || record_seal(&dir, &to_persist)).await;
+                if matches!(persisted, Ok(true)) {
+                    anchored += 1;
+                } else {
+                    // The platform sealed it but the local store write failed.
+                    // Safe: the seal upsert is idempotent on (org, session,
+                    // segment), so the next reconnect re-submits and re-records.
+                    log::warn!(
+                        "sync_client: audit segment {} sealed by platform but local seal-store write failed; will re-record on next reconnect",
+                        head.segment_id
+                    );
+                }
+            }
+            Ok(outcome) => {
+                log::warn!(
+                    "sync_client: audit segment {} countersign refused: {}",
+                    head.segment_id,
+                    outcome.refused_reason.as_deref().unwrap_or("unattributed")
+                );
+            }
+            Err(e) => {
+                log::warn!(
+                    "sync_client: audit segment {} countersign failed ({e}) - will retry on next reconnect",
+                    head.segment_id
+                );
+                break;
+            }
+        }
+    }
+    if anchored > 0 {
+        log::info!("sync_client: anchored {anchored} audit segment head(s) via platform countersign");
+    }
+}
+
+/// Count the data records in the still-open segment (excludes any trailing head,
+/// which only a closed segment carries).
+fn open_segment_record_count(chain_dir: &Path) -> u64 {
+    let path = chain_dir.join(AUDIT_SEGMENT_FILE);
+    let Some(content) = read_capped(&path) else {
+        return 0;
+    };
+    content
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .filter_map(|l| serde_json::from_str::<Value>(l).ok())
+        .filter(|v| v.get("segment_head").and_then(Value::as_bool) != Some(true))
+        .count() as u64
+}
+
+/// Spec 207 AC-4 / FR-004 - compute the unanchored window from the chain dir on
+/// disk: the open segment plus closed segments not yet in the local seal store.
+pub(crate) fn compute_unanchored_window(chain_dir: &Path) -> UnanchoredWindow {
+    let sealed = load_seals(chain_dir);
+    let mut unsealed = Vec::new();
+    let mut sealed_count = 0usize;
+    for head in closed_segment_heads(chain_dir) {
+        if sealed.contains_key(&head.segment_id) {
+            sealed_count += 1;
+        } else {
+            unsealed.push(UnanchoredSegment {
+                segment_id: head.segment_id,
+                record_count: head.segment_record_count,
+                first_record_at: head.first_record_at,
+                last_record_at: head.last_record_at,
+            });
+        }
+    }
+    UnanchoredWindow {
+        open_segment_record_count: open_segment_record_count(chain_dir),
+        unsealed_closed_segments: unsealed,
+        sealed_segment_count: sealed_count,
+    }
+}
+
+/// Spec 207 AC-4 / FR-004 - the cockpit-queryable unanchored audit window: the
+/// open segment plus any closed-but-uncountersigned segments. Honest residual
+/// surface (the chain makes tampering evident only against an external anchor).
+#[tauri::command]
+pub fn audit_unanchored_window(app: tauri::AppHandle) -> Result<UnanchoredWindow, String> {
+    use tauri::Manager as _;
+    let base = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("app_data_dir unavailable: {e}"))?;
+    Ok(compute_unanchored_window(&audit_chain_dir_under(&base)))
 }
 
 // ---------------------------------------------------------------------------
@@ -2547,5 +3014,267 @@ mod tests {
         let env = empty_envelope("factory.run.grant", ENVELOPE_SCHEMA_VERSION);
         let resolved = inner.resolve_reply_waiter(env);
         assert!(!resolved);
+    }
+
+    // Spec 207 AC-4: session-audit segment countersign (OPC client side).
+
+    #[test]
+    fn accepts_audit_segment_countersign_kind() {
+        // The reply must be a recognised SERVER->CLIENT kind so the duplex
+        // consumer routes it to the reply waiter rather than dropping it.
+        assert!(is_server_envelope(&empty_envelope(
+            "audit.segment.countersign",
+            ENVELOPE_SCHEMA_VERSION
+        )));
+    }
+
+    #[test]
+    fn audit_segment_countersign_request_serializes_to_camelcase_wire_shape() {
+        // Must match `ClientAuditSegmentCountersignRequest` in
+        // `platform/services/stagecraft/api/sync/types.ts` exactly.
+        let frame = OutboundFrame::AuditSegmentCountersignRequest {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "evt-as1".into(),
+                sent_at: "2026-06-20T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            project_id: None,
+            session_id: "sess-1".into(),
+            segment_id: "seg-1".into(),
+            segment_head_hash: "sha256:head1".into(),
+            segment_record_count: 7,
+            first_record_at: "2026-06-20T00:00:00Z".into(),
+            last_record_at: "2026-06-20T00:00:09Z".into(),
+        };
+        let json = serde_json::to_value(&frame).unwrap();
+        assert_eq!(json["kind"], "audit.segment.countersign_request");
+        assert_eq!(json["sessionId"], "sess-1");
+        assert_eq!(json["segmentId"], "seg-1");
+        assert_eq!(json["segmentHeadHash"], "sha256:head1");
+        assert_eq!(json["segmentRecordCount"], 7);
+        assert_eq!(json["firstRecordAt"], "2026-06-20T00:00:00Z");
+        assert_eq!(json["lastRecordAt"], "2026-06-20T00:00:09Z");
+        // projectId is optional and omitted when None.
+        assert!(json.get("projectId").is_none());
+        assert_eq!(json["meta"]["eventId"], "evt-as1");
+    }
+
+    #[test]
+    fn audit_segment_countersign_reply_deserializes_from_wire_json() {
+        // Mirrors the `ServerAuditSegmentCountersign` success reply shape.
+        let raw = r#"{
+          "kind": "audit.segment.countersign",
+          "meta": {
+            "v": 2,
+            "eventId": "e-reply",
+            "sentAt": "2026-06-20T00:00:10Z",
+            "correlationId": "evt-as1",
+            "orgCursor": "cur-1",
+            "orgId": "org-1"
+          },
+          "sessionId": "sess-1",
+          "segmentId": "seg-1",
+          "countersigned": true,
+          "countersignJws": "eyJ.jws.sig",
+          "kid": "fk-2026-06"
+        }"#;
+        let env: ServerEnvelopeWire = serde_json::from_str(raw).expect("deserialize");
+        assert!(is_server_envelope(&env));
+        assert_eq!(env.session_id.as_deref(), Some("sess-1"));
+        // The reply's echoed `segmentId` is ignored by serde (the client keys
+        // the outcome off the submitted head + the reply correlation instead).
+        assert_eq!(env.countersigned, Some(true));
+        assert_eq!(env.countersign_jws.as_deref(), Some("eyJ.jws.sig"));
+        assert_eq!(env.kid.as_deref(), Some("fk-2026-06"));
+        assert_eq!(env.meta.correlation_id.as_deref(), Some("evt-as1"));
+    }
+
+    /// Write a closed segment file (data records + a trailing segment head)
+    /// mirroring the producer's `policy_kernel::audit` rotation output.
+    fn write_closed_segment(path: &Path, seg_id: &str, data_count: u64, head_hash: &str) {
+        let mut lines = Vec::new();
+        for i in 0..data_count {
+            // Fixed timestamp: the value is irrelevant to any assertion (only
+            // the trailing head is read), and a constant avoids malformed
+            // seconds for data_count > 9.
+            lines.push(format!(
+                r#"{{"tool":"t{i}","decision":"allowed","timestamp":"2026-06-20T00:00:00Z","previous_record_hash":"p{i}","record_hash":"r{i}"}}"#
+            ));
+        }
+        lines.push(format!(
+            r#"{{"segment_head":true,"segment_id":"{seg_id}","record_count":{data_count},"first_timestamp":"2026-06-20T00:00:00Z","last_timestamp":"2026-06-20T00:00:09Z","previous_record_hash":"plast","record_hash":"{head_hash}"}}"#
+        ));
+        std::fs::write(path, format!("{}\n", lines.join("\n"))).unwrap();
+    }
+
+    #[test]
+    fn read_segment_head_parses_trailing_head_and_skips_open_segment() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let closed = tmp.path().join("permissions.jsonl.1");
+        write_closed_segment(&closed, "seg-a", 3, "sha256:head-a");
+        let head = read_segment_head(&closed).expect("closed segment has a head");
+        assert_eq!(head.segment_id, "seg-a");
+        assert_eq!(head.segment_head_hash, "sha256:head-a");
+        assert_eq!(head.segment_record_count, 3);
+        assert_eq!(head.first_record_at, "2026-06-20T00:00:00Z");
+        assert_eq!(head.last_record_at, "2026-06-20T00:00:09Z");
+
+        // An open segment (no trailing head) yields None.
+        let open = tmp.path().join("permissions.jsonl");
+        std::fs::write(
+            &open,
+            "{\"tool\":\"x\",\"decision\":\"allowed\",\"record_hash\":\"o1\"}\n",
+        )
+        .unwrap();
+        assert!(read_segment_head(&open).is_none());
+        // A missing file yields None too.
+        assert!(read_segment_head(&tmp.path().join("nope.jsonl.2")).is_none());
+    }
+
+    #[test]
+    fn closed_segment_heads_enumerates_rotations() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        write_closed_segment(&tmp.path().join("permissions.jsonl.1"), "seg-1", 2, "h1");
+        write_closed_segment(&tmp.path().join("permissions.jsonl.2"), "seg-2", 4, "h2");
+        // Gap at .3, .4, .5 (enumeration skips absent rotations).
+        let heads = closed_segment_heads(tmp.path());
+        assert_eq!(heads.len(), 2);
+        assert_eq!(heads[0].segment_id, "seg-1");
+        assert_eq!(heads[1].segment_id, "seg-2");
+    }
+
+    #[test]
+    fn seal_store_round_trip_and_unanchored_window() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        // Two closed segments + one open segment with 1 record.
+        write_closed_segment(&tmp.path().join("permissions.jsonl.1"), "seg-1", 2, "h1");
+        write_closed_segment(&tmp.path().join("permissions.jsonl.2"), "seg-2", 5, "h2");
+        std::fs::write(
+            &tmp.path().join("permissions.jsonl"),
+            "{\"tool\":\"x\",\"decision\":\"allowed\",\"record_hash\":\"o1\"}\n",
+        )
+        .unwrap();
+
+        // Before any seal: open(1) + both closed unsealed, none sealed.
+        let w0 = compute_unanchored_window(tmp.path());
+        assert_eq!(w0.open_segment_record_count, 1);
+        assert_eq!(w0.unsealed_closed_segments.len(), 2);
+        assert_eq!(w0.sealed_segment_count, 0);
+
+        // Seal seg-1 and recompute: it leaves the window.
+        assert!(record_seal(
+            tmp.path(),
+            &AuditSegmentCountersignOutcome {
+                segment_id: "seg-1".into(),
+                countersigned: true,
+                countersign_jws: Some("jws-1".into()),
+                kid: Some("kid-1".into()),
+                refused_reason: None,
+            },
+        ));
+        assert!(load_seals(tmp.path()).contains_key("seg-1"));
+        // The atomic-replace temp file must not linger.
+        assert!(!tmp.path().join("countersigns.json.tmp").exists());
+        let w1 = compute_unanchored_window(tmp.path());
+        assert_eq!(w1.sealed_segment_count, 1);
+        assert_eq!(w1.unsealed_closed_segments.len(), 1);
+        assert_eq!(w1.unsealed_closed_segments[0].segment_id, "seg-2");
+        assert_eq!(w1.unsealed_closed_segments[0].record_count, 5);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn submit_audit_segment_countersign_round_trips_reply() {
+        let inner = Arc::new(SyncClientInner::default());
+        let (tx, mut rx) = mpsc::channel::<OutboundFrame>(8);
+        inner.set_outbound(Some(tx));
+
+        // Responder: drain the request, mint a correlated reply, resolve it.
+        let responder = {
+            let inner = inner.clone();
+            tokio::spawn(async move {
+                let frame = rx.recv().await.expect("request frame");
+                // Echo the request's segment id back to prove the client keys
+                // the outcome off the head it submitted, not the wire echo.
+                let (event_id, segment_id) = match frame {
+                    OutboundFrame::AuditSegmentCountersignRequest {
+                        meta, segment_id, ..
+                    } => (meta.event_id, segment_id),
+                    other => panic!("unexpected frame: {other:?}"),
+                };
+                assert_eq!(segment_id, "seg-9");
+                let mut reply =
+                    empty_envelope("audit.segment.countersign", ENVELOPE_SCHEMA_VERSION);
+                reply.meta.correlation_id = Some(event_id);
+                reply.session_id = Some("sess-1".into());
+                reply.countersigned = Some(true);
+                reply.countersign_jws = Some("jws-xyz".into());
+                reply.kid = Some("fk-2026-06".into());
+                assert!(inner.resolve_reply_waiter(reply), "waiter resolved");
+            })
+        };
+
+        let head = SegmentHead {
+            segment_id: "seg-9".into(),
+            segment_head_hash: "sha256:head9".into(),
+            segment_record_count: 4,
+            first_record_at: "2026-06-20T00:00:00Z".into(),
+            last_record_at: "2026-06-20T00:00:09Z".into(),
+        };
+        let outcome = inner
+            .submit_audit_segment_countersign("sess-1", &head)
+            .await
+            .expect("countersign round-trips");
+        assert!(outcome.countersigned);
+        assert_eq!(outcome.segment_id, "seg-9");
+        assert_eq!(outcome.countersign_jws.as_deref(), Some("jws-xyz"));
+        assert_eq!(outcome.kid.as_deref(), Some("fk-2026-06"));
+        responder.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn submit_audit_segment_countersign_maps_refusal() {
+        // An attributable refusal (countersigned=false) must surface its reason
+        // rather than be reported as sealed (the sweep then logs + skips it).
+        let inner = Arc::new(SyncClientInner::default());
+        let (tx, mut rx) = mpsc::channel::<OutboundFrame>(8);
+        inner.set_outbound(Some(tx));
+
+        let responder = {
+            let inner = inner.clone();
+            tokio::spawn(async move {
+                let frame = rx.recv().await.expect("request frame");
+                let event_id = match frame {
+                    OutboundFrame::AuditSegmentCountersignRequest { meta, .. } => meta.event_id,
+                    other => panic!("unexpected frame: {other:?}"),
+                };
+                let mut reply =
+                    empty_envelope("audit.segment.countersign", ENVELOPE_SCHEMA_VERSION);
+                reply.meta.correlation_id = Some(event_id);
+                reply.countersigned = Some(false);
+                reply.refused_reason = Some("signing authority not configured (FR-014)".into());
+                assert!(inner.resolve_reply_waiter(reply));
+            })
+        };
+
+        let head = SegmentHead {
+            segment_id: "seg-r".into(),
+            segment_head_hash: "sha256:headr".into(),
+            segment_record_count: 1,
+            first_record_at: "2026-06-20T00:00:00Z".into(),
+            last_record_at: "2026-06-20T00:00:01Z".into(),
+        };
+        let outcome = inner
+            .submit_audit_segment_countersign("sess-1", &head)
+            .await
+            .expect("reply received");
+        assert!(!outcome.countersigned);
+        assert_eq!(
+            outcome.refused_reason.as_deref(),
+            Some("signing authority not configured (FR-014)")
+        );
+        assert!(outcome.countersign_jws.is_none());
+        responder.await.unwrap();
     }
 }

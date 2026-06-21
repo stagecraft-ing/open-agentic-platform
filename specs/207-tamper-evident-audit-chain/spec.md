@@ -3,7 +3,7 @@ id: "207-tamper-evident-audit-chain"
 title: "Tamper-Evident Audit Log Chain (ASI observability principle)"
 feature_branch: "feat/207-tamper-evident-audit-chain"
 status: draft
-implementation: in-progress
+implementation: complete  # All five ACs landed across four PRs: Phase 1 local chain + independent verifier (AC-1/AC-2/AC-5, policy-kernel); Phase 2a run-certificate anchoring (AC-3, factory-engine); Phase 2b server countersign + seal table (AC-4 server, stagecraft) and producer session-audit chain (axiomregent); Phase 2b client (this PR, AC-4 close): the OPC duplex consumer reads closed segment heads off the shared chain dir, submits each over audit.segment.countersign_request at reconnect, stores the countersignature, and exposes the unanchored window via the audit_unanchored_window command. Locally verified: cargo check (opc lib) clean, 46 sync_client unit tests green (8 new for the AC-4 client). Hardened after adversarial review: single-flight sweep guard (no overlapping sweeps on reconnect churn), blocking file I/O offloaded to spawn_blocking, atomic seal-store write (temp+rename) that reports persist success, and a read size cap. FR-004 is the stated, bounded residual (not eliminated): the open segment plus closed-but-uncountersigned segments are the unanchored window.
 kind: governance
 domain: tooling
 created: "2026-06-11"
@@ -120,6 +120,18 @@ refines:
   # to read closed segment heads for countersign.
   - aspect: "session-audit-chain-wiring"
     unit: { kind: file, path: crates/axiomregent/src/main.rs }
+  # Phase 2b client (PR B2b, AC-4 close): the OPC duplex consumer reads closed
+  # segment heads off the shared chain dir and submits each over the duplex
+  # audit.segment.countersign_request (proven send_and_await_reply correlation),
+  # stores the returned countersignature, and exposes the unanchored window via
+  # the audit_unanchored_window command. Refines the spec-110-owned duplex
+  # consumer's reply-correlation surface; it does not evolve 110's authority.
+  - aspect: "audit-segment-countersign-client"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/sync_client.rs }
+  # Phase 2b client (PR B2b): the unanchored-window query command is registered
+  # on the desktop command surface so the FR-004 residual is cockpit-queryable.
+  - aspect: "audit-segment-countersign-command-registration"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/lib.rs }
 references:
   - role: machinery
     unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.ts }
@@ -364,12 +376,30 @@ would have been a dead consumer. Resolution (architect): producer-first.
   router (`mod.rs`) + `main.rs`; the `audit.rs` change rides the existing
   `hash-chained-audit-records` refines edge.
 
-**Phase 2b client side (PR B2b, next): OPC-side consumption.** The local side
-reads closed (rotated) segment heads from the producer chain, submits them over
-the duplex `audit.segment.countersign_request` at reconnect (the proven
-`send_and_await_reply` reply-correlation already used by grant + cert
-countersign), stores the returned countersignatures, and exposes the unanchored
-window (the open segment + any closed-but-uncountersigned segments, the FR-004
-bound). This completes AC-4 end-to-end. Now unblocked by the producer; still
-sequenced to avoid duplex-surface runtime ambiguity with the active stagecraft
-(215) deploy. Design in `plan.md` (Phase 2b).
+**Phase 2b client side (PR B2b, DONE): OPC-side consumption.** Closes AC-4
+end-to-end. The OPC duplex consumer (`commands/sync_client.rs`) now:
+
+- Recomputes the producer's chain dir off the same `app_data_dir` the sidecar
+  pins as `AXIOMREGENT_DATA_DIR` (`sidecars::spawn_axiomregent`), set on the
+  `SyncClientInner` at spawn time. No IPC: the producer (axiomregent subprocess)
+  and this client (Tauri process) share disk.
+- On `sync.hello` (the moment the duplex session id arrives), spawns a detached
+  sweep that enumerates closed (rotated) segments `permissions.jsonl.1..=5`,
+  reads each trailing `segment_head`, skips those already in the local seal
+  store (`countersigns.json`), and submits the rest over
+  `audit.segment.countersign_request` using the proven `send_and_await_reply`
+  reply-correlation (shared with grant + cert countersign). Each returned
+  countersignature is persisted to the seal store. A refusal is logged and
+  skipped; a transport failure stops the sweep and retries on next reconnect.
+- Exposes the unanchored window (the open segment plus any
+  closed-but-uncountersigned segments, the FR-004 bound) via the
+  `audit_unanchored_window` Tauri command, so the residual is cockpit-queryable
+  (AC-4 "the unanchored window is queryable").
+
+The local side holds no signing keys (spec 198 FR-014): it attests the head
+hash + metadata; stagecraft signs. The seal upsert is idempotent on
+`(org, session, segment)`, so reconnect resubmission is safe.
+
+- **Coupling (B2b):** `refines:` `commands/sync_client.rs` (the AC-4 client
+  behaviour on the spec-110-owned duplex consumer) + `src-tauri/src/lib.rs`
+  (the query command registration); behaviour-refined, not authority-evolved.
