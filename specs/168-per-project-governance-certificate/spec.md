@@ -6,7 +6,7 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-05-22"
-amended: "2026-06-12"
+amended: "2026-06-20"
 amendment_record: |
   amended by spec 178 (2026-05-24): mechanical regeneration of
   crates/featuregraph/tests/golden/features_graph.json reflecting the
@@ -30,6 +30,17 @@ amendment_record: |
   certificate_toolchain emission contract (FR-001/FR-008) is intact — the
   fallback emit_kernel still writes .factory/toolchain.yaml with the
   emitter/verifier pin. Editorial-on-168; the change is 167's.
+  amended by spec 220 (2026-06-20), clarification: 168 FR-001/FR-002 (a tenant
+  ships and fires the emitter, automatic at run completion) were
+  capability-complete in-engine under 168 (the tenant-mode emitter requiring an
+  attributable signer, the post-hoc build-certificate path from a run directory,
+  and tests/tenant_emission_integration.rs all landed here), but the
+  tenant-facing DELIVERY was not: spec 219 vended only the verify-only half
+  (tenant-tail) and spec 209 FR-003 deferred the emitter, its firing, and the
+  tenant signer identity. Spec 220 is that delivery. No change to 168's
+  certificate format or verifier contract; this clarifies that 168's
+  "implementation: complete" was capability-level and the tenant emit leg lands
+  in spec 220. The body "Amendments received" section carries the dated callout.
 kind: capability
 domain: platform
 risk: medium
@@ -384,3 +395,18 @@ certificate emission, verifier contract, or its `establishes:`/`extends:`
 graph — the emitter and verifier still ship with the kernel, now obtained
 through the pinned spec-spine distribution rather than loose vendored
 binaries. Editorial cross-reference only.
+
+**Amendment 2026-06-20 (record: 220-tenant-emit-governance-certificate), clarification.**
+Spec 168's FR-001/FR-002 assert that a produced app ships and fires the
+certificate emitter, automatic at run completion. That capability landed in 168
+in-engine: the tenant-mode emitter requiring an attributable signer (the `Signer`
+constructor rejects an empty subject, FR-007), the post-hoc `build-certificate`
+path that reconstructs a certificate from a finished run directory, and the
+`tests/tenant_emission_integration.rs` integration test. The tenant-facing
+delivery did not land here: spec 219 vended only the verify-only half (tenant-tail,
+verify-only by construction) and spec 209 FR-003 deferred the emitter, its firing,
+and the tenant signer identity to a separate emit spec. Spec 220
+(`tenant-emit-governance-certificate`) is that emit spec. This is a clarification,
+not a supersession: 168's certificate format and verifier contract are unchanged.
+Read 168's `implementation: complete` as capability-complete in-engine; the tenant
+boundary is crossed (the emitter delivered, fired, and key-custodied) by spec 220.

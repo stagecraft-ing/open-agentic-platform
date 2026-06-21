@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:6dedf09177eb73f503d8f76fd692bfc78b0e0a73938912c3c28d80d5273672ad",
+  "graph_fingerprint": "sha256:690625447e5d574ab61dcfd9f470f7661379cb52a7f0aedff7806ce353cc4e39",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4144,6 +4144,27 @@
         "198-factory-governance-envelope",
         "170-signed-inter-stage-manifests",
         "121-claim-provenance-enforcement"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "220-tenant-emit-governance-certificate",
+      "title": "Tenant-Emit Governance Certificate (the emitter, its firing, and the tenant signer identity)",
+      "spec_path": "specs/220-tenant-emit-governance-certificate/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "102-governed-excellence",
+        "168-per-project-governance-certificate",
+        "167-born-with-spec-spine-kernel",
+        "198-factory-governance-envelope",
+        "209-tenant-kernel-ci-enforcement",
+        "219-tenant-tail-verifier-toolkit"
       ],
       "impl_files": [],
       "test_files": [],
