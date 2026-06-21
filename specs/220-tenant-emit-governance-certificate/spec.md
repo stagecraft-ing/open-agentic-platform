@@ -43,12 +43,30 @@ depends_on:
   - "167-born-with-spec-spine-kernel"
   - "198-factory-governance-envelope"
   - "209-tenant-kernel-ci-enforcement"
+  - "218-run-cert-corpus-binding"
   - "219-tenant-tail-verifier-toolkit"
 extends:
   # Same featuregraph-golden precedent specs 196/194/193/187/183/209/219 follow.
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+  # 220 additively extends the emitter 168 established: the post-hoc
+  # build_certificate.rs gains a --require-operator-key flag (FR-003) that refuses
+  # the ephemeral fallback in production, plus the tenant firing posture. Edit
+  # confined to build_certificate.rs; governance_certificate.rs is untouched
+  # (203/Dev1 owns the next cert-version bump there, see "Decisions" below).
+  - spec: "168-per-project-governance-certificate"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/bin/build_certificate.rs }
+  # 220 extends 218's corpus binding (read, never recompute) from the in-process
+  # factory_run.rs read-path to the post-hoc build_certificate.rs path, mirroring
+  # the same pattern: read OAP_CORPUS_ATTESTATION_PATH, hash via the public
+  # spec_spine_core::attest::attestation_hash reader seam, and call the public
+  # CertificateBuilder::corpus_binding(). No cert schema change (reuses the 1.6.0
+  # CorpusBinding); no governance_certificate.rs edit.
+  - spec: "218-run-cert-corpus-binding"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/src/bin/build_certificate.rs }
 amends:
   # Clarification (not supersession): 168 FR-001/FR-002 (a tenant ships and fires
   # the emitter, automatic at completion) were capability-complete in-engine under
@@ -63,8 +81,10 @@ references:
   # because OAP's behavior is preserved, not extended.
   - role: context
     unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
-  - role: context
-    unit: { kind: file, path: crates/factory-engine/src/bin/build_certificate.rs }
+  # build_certificate.rs was promoted from a context reference to an owning
+  # extends edge (above): 220 now modifies it. governance_certificate.rs stays a
+  # context reference: 220 calls its public API (CertificateBuilder::corpus_binding,
+  # the Signer types) but does not edit it, leaving that file to 203/Dev1's bump.
   - role: context
     unit: { kind: file, path: crates/factory-engine/src/platform_jws.rs }
   - role: context
@@ -79,7 +99,8 @@ references:
 
 **Feature Branch**: `feat/220-tenant-emit-governance-certificate`
 **Created**: 2026-06-20
-**Status**: Draft (the residual R-2 emit spec deferred by specs 209 FR-003 and 219)
+**Status**: Draft, decisions resolved 2026-06-21 (the residual R-2 emit spec
+deferred by specs 209 FR-003 and 219; OQ-1..OQ-4 are now decided, see "Decisions")
 **Input**: Spec 219's R-1 read concluded that the certificate verify core extracts
 cleanly (shipped as tenant-tail) while "the emitter (`build-certificate`) is
 identity-bearing and harness-bound and is explicitly NOT here; it ships with its
@@ -105,8 +126,9 @@ Spec 220 delivers the missing half. It does not supersede spec 168; it is the
 delivery vehicle for 168 FR-001/FR-002 at the tenant boundary. **Reconciliation
 (surfaced, not silently absorbed):** spec 168's `implementation: complete` reads
 at the tenant-facing level as more than was delivered. This spec carries an
-`amends: 168` edge and lands a clarification callout in spec 168's "Amendments
-received" section in the same change: 168's FR-001/FR-002 were capability-complete
+`amends: 168` edge, and the clarification callout already landed in spec 168's
+"Amendments received" section when this spec was filed (#397, 168 `amended:
+2026-06-20`): 168's FR-001/FR-002 were capability-complete
 in-engine (the tenant-mode emitter, the required-signer enforcement, the post-hoc
 build path, and the integration test), and the tenant-facing delivery (vending the
 emitter, firing it, and the tenant key custody) lands here. The clarification does
@@ -155,8 +177,14 @@ without shipping OAP's pipeline engine:
   countersign is "verifiable-but-unsealed" and verifies offline (198 FR-014 AC-4).
 - **tenant-tail `verify-certificate` already accepts this shape offline**
   (artifact-hash chain, Ed25519 signature, self-hash, optional inter-stage chain,
-  optional platform seal). The verifier round-trip is the contract spec 220 must
-  satisfy.
+  optional platform seal, optional `--corpus-attestation`). The verifier round-trip
+  is the contract spec 220 must satisfy.
+- **The corpus-binding read-path exists in-process (spec 218).** `factory_run.rs`
+  reads `OAP_CORPUS_ATTESTATION_PATH`, hashes the attestation via the public
+  `spec_spine_core::attest::attestation_hash` reader seam, and binds it through
+  `CertificateBuilder::corpus_binding()`. FR-007 mirrors that read-path onto the
+  post-hoc `build_certificate.rs`; it is an extension of the emitter work, not a
+  fourth independent gap.
 
 The three concrete tenant-side gaps (the crux): **no emitter binary** reaches a
 produced app, **no signer-key custody** model is defined for a tenant, and **no
@@ -169,11 +197,20 @@ firing point** invokes the emitter at a tenant run's completion.
   directory and writes a signed `governance-certificate.json` there. Because spec
   219 makes tenant-tail verify-only **by construction** (no emitter verb, no
   emitter dependency, structurally testable), the emitter is a **separate**
-  distributable, never a tenant-tail verb. Its exact packaging (a dedicated emit
-  repo mirroring tenant-tail's shape, vs a binary shipped through the born-with
-  kernel) is OQ-1. The emit core stays in OAP (`build_certificate.rs` +
-  `governance_certificate.rs`); the tenant distributable carries an extracted copy
-  kept in behavior parity, exactly as tenant-tail does for the verifier.
+  distributable, never a tenant-tail verb (preserving spec 219 FR-002 / AC-6).
+  **Packaging (OQ-1, decided):** a dedicated `tenant-emit` repository, a sibling
+  to tenant-tail. A Rust core with npm + py distributions produced at release,
+  consuming the pinned `spec-spine`, carrying the same GitHub release/CI workflows
+  tenant-tail does, and kernel-pinned so the born-with toolchain installs it next
+  to tenant-tail and spec-spine. **License (OQ-2, decided):** Apache-2.0, matching
+  tenant-tail and the rest of the vended toolchain (the sole copyright holder's
+  prerogative, recorded here as an explicit decision). The emit core stays in OAP
+  (`build_certificate.rs` + `governance_certificate.rs`); the `tenant-emit`
+  distributable carries an extracted copy of both, kept in behavior parity exactly
+  as tenant-tail does for the verifier. OAP-side, this spec modifies **only**
+  `build_certificate.rs` (the FR-003 flag and the FR-007 corpus read-path);
+  `governance_certificate.rs` is consumed through its public API and left
+  unchanged for spec 203 (Dev1) to carry its next version bump.
 - **FR-002: Firing at completion (automatic, not opt-in).** The tenant pipeline
   invokes the emitter as its terminal step on every run (success or halt),
   realizing spec 168 FR-002. In the born-with shape the firing is a step in the
@@ -190,11 +227,26 @@ firing point** invokes the emitter at a tenant run's completion.
   - The `signer` field names the tenant principal: a Rauthy-issued JWT subject for
     human-driven runs (spec 168 FR-007, specs 106/137) or an attributable service
     identity for unattended runs.
-  - **Anonymous signing is forbidden.** A run that cannot resolve a signer halts
-    before emitting rather than writing a null-signer certificate (spec 168 FR-007,
-    the spec 200 FR-004 fail-closed posture). The ephemeral key fallback is dev-only
-    and marks the certificate untrusted (`signing_attestation.kind: ephemeral`); a
-    production tenant emission uses `operator`.
+  - **Anonymous signing is forbidden, and the ephemeral fallback is refused in
+    production.** A run that cannot resolve a signer halts before emitting rather
+    than writing a null-signer certificate (spec 168 FR-007, the spec 200 FR-004
+    fail-closed posture). The ephemeral key fallback is dev-only and marks the
+    certificate untrusted (`signing_attestation.kind: ephemeral`). A production
+    tenant emission MUST pass the new `--require-operator-key` flag, under which the
+    emitter exits non-zero with a named diagnostic if signing material resolves to
+    `ephemeral` rather than `operator`. This is the **single OAP in-engine change**
+    this spec makes: a CLI-level flag on `build_certificate.rs`. It is deliberately
+    not pushed into `resolve_signing_material`, so OAP's own dev / CI runs keep
+    their legitimate ephemeral path (confirmed by the OQ-4 read of the emit core).
+  - **Key provisioning (OQ-3, decided).** Because a tenant is a project and a
+    project is a repo, the platform that creates the project mints the tenant's
+    Ed25519 key and sets it as the repo's CI secret (resolved by the emitter via
+    `OAP_SIGNING_KEY` / `OAP_SIGNING_KEY_PATH`) at project-creation time. This
+    collapses the apparent fork (a manually-configured CI secret vs a
+    platform-issued per-tenant key) into one flow, and it is the same provisioning
+    hook the deferred platform countersign / uplink (Out of scope) reuses to issue
+    a sealing identity. A tenant that self-hosts may configure the CI secret by
+    hand instead; the emitter contract is identical either way.
 - **FR-004: Unsealed-but-verifiable posture.** A tenant run is outside OAP's
   admission/grant flow, so the emitted certificate carries **no platform
   countersign** (spec 198 FR-014). It is Ed25519-signed by the tenant signer and
@@ -208,13 +260,37 @@ firing point** invokes the emitter at a tenant run's completion.
   chain re-derived from the run dir, Ed25519 signature, self-hash). Tampering any
   referenced artifact, or any certificate field, fails verification with the spec
   102 / 168 diagnostic contract. The same certificate, fed to the spec 209 FR-001
-  CI step, turns that step from dormant to enforcing.
+  CI step, turns that step from dormant to enforcing. When the certificate carries
+  a corpus binding (FR-007), the round-trip also covers it: tenant-tail
+  `verify-certificate --corpus-attestation <file>` re-derives and matches the bound
+  hash (spec 218 FR-003), and a mismatched or tampered attestation fails with the
+  spec 218 diagnostic.
 - **FR-006: Stage-grammar flexibility and determinism.** The emitter accepts the
   tenant's own stage shape (spec 168 §2.4: stages need only be representable as
   `{stage_id, input_hashes, output_hashes, runtime_metadata}`); it does not require
   the tenant pipeline to match OAP's s0..s6 grammar. Re-emitting from the same run
   directory produces byte-identical hashes (spec 168 FR-009), modulo the signer
   field which carries per-run identity.
+- **FR-007: Tenant corpus binding (read, never recompute).** The tenant emitter
+  binds the certificate to a corpus attestation over the tenant's **own** `specs/`
+  corpus, the same chain edge spec 218 added to OAP's run cert, now extended to the
+  post-hoc tenant path. The seeded tenant CI runs `spec-spine attest` over the
+  produced app's corpus (every born-with app carries a `specs/` corpus and a pinned
+  spec-spine, specs 167/209) to emit `attestation.json`; the emitter reads it via
+  `OAP_CORPUS_ATTESTATION_PATH`, hashes it through the public
+  `spec_spine_core::attest::attestation_hash` reader seam, and populates
+  `corpus_binding` via the public `CertificateBuilder::corpus_binding()`. Read,
+  never recompute (spec 218's load-bearing invariant): the emitter never compiles
+  or re-attests the corpus, and the FR-002 deny/clippy guards (now in main) keep
+  the extracted copy honest too. The binding is additive and optional exactly as in
+  spec 218: an unbound tenant certificate is the named "unbound" state, not a
+  failure. The bound attestation is the tenant's own governance ledger ("I ran a
+  pipeline, and at this commit my spec corpus was in this consistent state"),
+  distinct from OAP's platform corpus; the two certificates carry parallel,
+  independently reproducible corpus links. **Scope confinement:** this wiring lands
+  entirely in `build_certificate.rs` (mirroring the `factory_run.rs` read-path),
+  reuses the 1.6.0 `CorpusBinding` with no schema change and no version bump, and
+  does not touch `governance_certificate.rs` (left to spec 203's 1.7.0 SBOM bump).
 
 ## Acceptance criteria
 
@@ -239,6 +315,12 @@ firing point** invokes the emitter at a tenant run's completion.
   distinct distributables.
 - **AC-7.** Re-emitting from the same run directory yields identical artifact and
   certificate hashes (determinism), modulo the signer field.
+- **AC-8.** With a tenant corpus attestation present, the emitted certificate
+  carries `corpus_binding.corpus_attestation_hash` equal to that attestation's hash
+  (FR-007), and tenant-tail `verify-certificate --corpus-attestation <file>`
+  reports it verified; a mismatched or tampered attestation fails with the spec 218
+  diagnostic; with no attestation supplied the certificate is emitted "unbound"
+  (named, not a failure). The emitter performs no corpus recompute on any path.
 
 ## Out of scope
 
@@ -261,38 +343,71 @@ firing point** invokes the emitter at a tenant run's completion.
 - **OAP-side emission.** Specs 102/168 own OAP's own factory-run emission; 220 is
   strictly the tenant boundary.
 
-## Open questions
+## Decisions (the OQs, resolved)
 
-- **OQ-1: emit distributable packaging.** The verify side chose a dedicated repo
-  (tenant-tail). The emit side is identity-bearing and key-coupled, which may favor
-  shipping the emitter binary through the born-with kernel (next to the pinned
-  toolchain) rather than as a standalone npm tool, so the key-custody story and the
-  binary travel together. Decide: dedicated emit repo (tenant-tail sibling) vs
-  kernel-shipped binary vs npm tool. Whichever is chosen, FR-001's verify-only
-  separation from tenant-tail holds.
-- **OQ-2: licensing of the extracted emitter.** tenant-tail relicensed the
-  verify-only core to Apache-2.0 (the sole copyright holder's prerogative). The
-  emitter's relicense is the same prerogative and an explicit decision, not an
-  oversight; record it where the emitter is vended.
-- **OQ-3: tenant signing-key provisioning UX.** How a produced app's CI obtains its
-  Ed25519 secret: a manually configured CI secret (the FR-003 default) vs a
-  platform-issued per-tenant key. The platform-issued path ties to the deferred
-  uplink (a platform that issues tenant keys can also countersign), so OQ-3 and the
-  uplink are likely answered together.
-- **OQ-4: in-engine changes, if any.** The post-hoc `build-certificate` already
-  carries the run-dir path and `--signer-subject` flags, so FR-001 may need no
-  OAP-side code change beyond extraction. Confirm during implementation whether a
-  tenant-mode flag (e.g. forcing `operator` attestation and refusing the ephemeral
-  fallback in production) is warranted on the OAP `build_certificate.rs` source of
-  truth, or lives only in the vended copy.
+The four open questions the draft carried are now decided; this section records the
+resolution and the evidence behind it so implementation does not reopen them.
+
+- **OQ-1 (packaging): a dedicated `tenant-emit` repository, kernel-pinned.** A
+  sibling to tenant-tail: Rust core, npm + py at release, consuming the pinned
+  spec-spine, with tenant-tail's GitHub workflows, pinned by the born-with kernel
+  next to tenant-tail and spec-spine. Not folded into spec-spine (its ledger seal
+  signs the corpus attestation, a different object than the run certificate, so the
+  emitter cannot reuse it) and not a tenant-tail verb (spec 219's verify-only
+  boundary is by construction). The dedicated-repo shape keeps the verify/emit
+  separation legible while kernel-pinning keeps the binary, the operator key
+  (OQ-3), and the firing step co-located.
+- **OQ-2 (license): Apache-2.0**, matching tenant-tail and the rest of the vended
+  toolchain.
+- **OQ-3 (key provisioning): platform-mints-at-creation.** Tenant = project = repo,
+  so the platform that creates the project mints the Ed25519 key and sets it as the
+  repo CI secret at creation (see FR-003). The same hook the deferred uplink reuses
+  to countersign.
+- **OQ-4 (in-engine footprint): one CLI flag plus the corpus read-path, one file.**
+  The OQ-4 read of the emit core confirmed the post-hoc path already carries the
+  run-dir arg, `--tenant-mode`, the signer flags, `--stage-ids auto`, the `Signer`
+  empty-subject rejection, and the unsealed-but-verifiable posture. The single
+  genuine gap is FR-003's "production uses operator": the `--require-operator-key`
+  flag on `build_certificate.rs` (CLI-level only). FR-007's corpus read-path is a
+  second small addition to the same file, calling public API. Net OAP in-engine
+  footprint: ~35 LOC in `build_certificate.rs`; `governance_certificate.rs`
+  unchanged.
+
+### Coordination with spec 203 (Dev1, produced-app SBOM attestation)
+
+Spec 203's plan (merged via #403) is concurrently editing
+`governance_certificate.rs` (new SBOM artifact structs after `CorpusBinding`, cert
+version 1.6.0 -> 1.7.0) and references this spec's firing step. To avoid a
+shared-file authority tangle and a version-bump race, spec 220 deliberately stays
+out of `governance_certificate.rs`: it edits only `build_certificate.rs` and reaches
+the cert types through their public API. Spec 203 owns the next cert-version bump;
+spec 220 adds no field and no version. The two compose at the tenant firing point
+(a tenant run generates its SBOM (203) and its corpus attestation (FR-007), then
+emits one certificate (220) that can bind both), and that sequencing is the only
+contract between them. This coordination is prose, not a registry edge (203 and 220
+carry no formal relationship), tracked the way spec 218 tracks its cross-corpus
+dependency.
 
 ## Sequencing
 
-Implementable now. The verifier and the seeded `verify-certificate` CI step exist
-(specs 219 / 209); the emit core and its post-hoc path exist in-engine; the
-certificate format and the unsealed posture are settled (specs 102/168/198). The
-net-new work is the emit distributable (OQ-1), the tenant key-custody model
-(FR-003), and the firing step (FR-002), plus the owed spec-168 clarification
-amendment. Closure is gated on AC-2: a real produced app emitting a certificate
-that the spec 209 CI step verifies green, which is also the end-to-end validation
-spec 209's own AC-1 silently required.
+Implementable now, and the OQs are decided (see "Decisions"). The verifier and the
+seeded `verify-certificate` CI step exist (specs 219 / 209); the emit core and its
+post-hoc path exist in-engine; the certificate format, the corpus binding, and the
+unsealed posture are settled (specs 102/168/198/218). The work splits into three
+legs, mirroring the spec 219 shape (build the tenant distributable, then wire the
+OAP-side leg that pins it):
+
+1. **OAP engine (this repo, source of truth):** the `--require-operator-key` flag
+   (FR-003) and the corpus read-path (FR-007) on `build_certificate.rs`, ~35 LOC in
+   one file, plus a test. Lands first so the extracted copy is in behavior parity.
+2. **`tenant-emit` repo (parallel session):** extract `build_certificate.rs` +
+   `governance_certificate.rs`, package Rust + npm + py, port the
+   `tenant_emission_integration` tests, consume the pinned spec-spine, carry
+   tenant-tail's GitHub workflows, Apache-2.0, release (FR-001).
+3. **OAP kernel wiring + closure:** the born-with kernel template pins the released
+   `tenant-emit` and seeds the firing step (FR-002, the emit-side counterpart of
+   the verify step spec 209 seeded) plus the `spec-spine attest` step (FR-007).
+
+Closure is gated on AC-2: a real produced app emitting a certificate that the spec
+209 CI step verifies green, which is also the end-to-end validation spec 209's own
+AC-1 silently required, so landing this leg unblocks spec 209's closure.
