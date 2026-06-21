@@ -143,10 +143,10 @@
       "Implementation log"
     ],
     "specPath": "specs/212-factory-schema-lockstep-ci/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "Spec 197 declares the factory Build Spec an open standard that the owned factory source (factory) mirrors, and spec 197 AC-8 / spec 198 both verified that mirror BY HAND (\"verified directly against factory origin/main @ cc1139f\"). A hand diff is not a gate: the next factory edit, or the next OAP schema bump, can silently diverge the two contract surfaces and nothing fails. This spec automates the lockstep: an OAP-side enforcing CI job that fetches factory's contract/schemas/** at a committed pin and asserts structural agreement against standards/schemas/factory/** under a three-mode comparison (exact parity for the shared surface; a directional floor where OAP fields must persist on the factory side but factory additions pass; a section-scoped floor for the adapter-specialised manifest) — byte-equality is impossible, the surfaces carry divergent comments, additive evolution, and adapter-specific sections by design — plus a spec-197 FR-005 guard that no GoA-specific concept entered either contract surface. Two lanes: a PR-time check against the committed pin, and a scheduled check against factory@main that catches upstream drift the pin hasn't yet absorbed. factory stays gate-free (spec_spine: false); enforcement is unidirectional, OAP-side.\n",
     "title": "Factory Schema Lockstep CI (cross-repo contract parity, automated)"
   },
-  "shardHash": "b6160c71025837c2c1d93269313a7e018bab29323b346bad1692e76c28317f45",
+  "shardHash": "0bac711cdfbb7524d0208c2399a8a9f7f501acebba38ef90baa0c61798ac15f6",
   "specVersion": "1.1.0"
 }

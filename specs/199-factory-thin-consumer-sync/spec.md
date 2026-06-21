@@ -2,7 +2,7 @@
 id: "199-factory-thin-consumer-sync"
 title: "Thin-Consumer Factory Sync for Owned Sources"
 feature_branch: "feat/199-factory-thin-consumer-sync"
-status: draft
+status: approved
 implementation: complete
 kind: platform
 domain: platform

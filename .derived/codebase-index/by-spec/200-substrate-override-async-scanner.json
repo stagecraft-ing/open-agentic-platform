@@ -515,8 +515,8 @@
       }
     ],
     "specId": "200-substrate-override-async-scanner",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "e943c1fc792054cba0fae0093e9df9f961b13f1261cd503fad6778aaf2226822"
+  "shardHash": "2e8a64ca034e9ea45ed022570123ba3ec53c289b79ab4d07b23eaabfcaeac843"
 }

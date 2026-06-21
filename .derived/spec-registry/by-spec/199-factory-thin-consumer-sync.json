@@ -127,7 +127,7 @@
       "Implementation log"
     ],
     "specPath": "specs/199-factory-thin-consumer-sync/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "Move the stagecraft factory sync off the retired legacy-factory layout and make it a thin CONSUMER of the owned factory/template sources. Stagecraft stores upstream content verbatim in the substrate and serves it by kind and by the adapter's own (schema-validated) manifest — it stops TRANSLATING content OAP authors and controls. Adapter identity comes from the manifest (acme-vue-encore self-declares), substrate origin derives from the configured source, and the categorical \"7-stage-build\" projection — a stagecraft invention with no contract backing, coupled to the dead `Factory Agent/` directory shape — is retired. Process content is served opaque by kind; the run's governance lives in the admission envelope (spec 198), which this spec consumes. No backward compatibility is preserved; factory/template are the baseline.\n",
     "supersedes": [
       {
@@ -148,6 +148,6 @@
     ],
     "title": "Thin-Consumer Factory Sync for Owned Sources"
   },
-  "shardHash": "c63d71b61a4d1c3b7649dfc79642823a300a9ab13a5da7d46ff4b3f00ef74bde",
+  "shardHash": "f5d356d50ae0a03bc94b8817e43b8e3d07fca1526bc009d03bfaf13f9eaf371f",
   "specVersion": "1.1.0"
 }

@@ -2,7 +2,7 @@
 id: "212-factory-schema-lockstep-ci"
 title: "Factory Schema Lockstep CI (cross-repo contract parity, automated)"
 feature_branch: "feat/212-factory-schema-lockstep-ci"
-status: draft
+status: approved
 implementation: complete
 kind: governance
 domain: tooling
