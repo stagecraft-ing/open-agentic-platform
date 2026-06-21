@@ -13,6 +13,10 @@
         "source": "spec-edge"
       },
       {
+        "path": "crates/factory-engine/src/kernel_emission/templates.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl",
         "source": "spec-edge"
       },
@@ -45,6 +49,19 @@
         "unit": {
           "kind": "file",
           "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/kernel_emission/templates.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/kernel_emission/templates.rs"
         }
       },
       {
@@ -114,8 +131,8 @@
       }
     ],
     "specId": "219-tenant-tail-verifier-toolkit",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "fe30c8799e13b1c0ed020a8ab15f5ed0a625e3f5b9c3b3579518a7f904093ddc"
+  "shardHash": "0f4de20564752d24950d33f16a9c1dac65e3e8378ffe2426bc00c053992b32f0"
 }
