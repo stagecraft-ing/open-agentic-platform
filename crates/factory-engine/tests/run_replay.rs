@@ -31,7 +31,7 @@ async fn recorded_run_replay_produces_byte_identical_prompts() {
     // The run's authoritative bodies are known; we record the hashes only.
     let stage1_body = "# Stage 1 prompt\n\nDispatched content for s1.";
     let stage2_body = "# Stage 2 prompt — service catalog reference";
-    let adapter_body = "# Adapter manifest\n\nname: aim-vue-encore";
+    let adapter_body = "# Adapter manifest\n\nname: acme-vue-encore";
 
     let stage1_hash = sha256_hex(stage1_body);
     let stage2_hash = sha256_hex(stage2_body);
@@ -41,21 +41,21 @@ async fn recorded_run_replay_produces_byte_identical_prompts() {
     let manifest = vec![
         ArtifactRef {
             artifact_id: "art-stage-1".into(),
-            origin: "goa-software-factory".into(),
+            origin: "legacy-factory".into(),
             path: "Factory Agent/Orchestrator/factory-orchestration-s1.md".into(),
             version: 1,
             content_hash: stage1_hash.clone(),
         },
         ArtifactRef {
             artifact_id: "art-stage-2".into(),
-            origin: "goa-software-factory".into(),
+            origin: "legacy-factory".into(),
             path: "Factory Agent/Orchestrator/factory-orchestration-s2.md".into(),
             version: 1,
             content_hash: stage2_hash.clone(),
         },
         ArtifactRef {
             artifact_id: "art-adapter".into(),
-            origin: "template-encore".into(),
+            origin: "template".into(),
             path: "orchestration/template-orchestrator.md".into(),
             version: 3,
             content_hash: adapter_hash.clone(),
@@ -64,21 +64,21 @@ async fn recorded_run_replay_produces_byte_identical_prompts() {
     let mut store = HashMap::new();
     store.insert(
         (
-            "goa-software-factory".to_string(),
+            "legacy-factory".to_string(),
             "Factory Agent/Orchestrator/factory-orchestration-s1.md".to_string(),
         ),
         stage1_body.to_string(),
     );
     store.insert(
         (
-            "goa-software-factory".to_string(),
+            "legacy-factory".to_string(),
             "Factory Agent/Orchestrator/factory-orchestration-s2.md".to_string(),
         ),
         stage2_body.to_string(),
     );
     store.insert(
         (
-            "template-encore".to_string(),
+            "template".to_string(),
             "orchestration/template-orchestrator.md".to_string(),
         ),
         adapter_body.to_string(),
@@ -121,7 +121,7 @@ async fn replay_against_drifted_upstream_still_returns_recorded_body() {
     let cache_dir = TempDir::new().unwrap();
     let manifest = vec![ArtifactRef {
         artifact_id: "art-1".into(),
-        origin: "goa-software-factory".into(),
+        origin: "legacy-factory".into(),
         path: "Factory Agent/factory-orchestration.md".into(),
         version: 1,
         content_hash: original_hash.clone(),
@@ -132,7 +132,7 @@ async fn replay_against_drifted_upstream_still_returns_recorded_body() {
         let mut store = HashMap::new();
         store.insert(
             (
-                "goa-software-factory".to_string(),
+                "legacy-factory".to_string(),
                 "Factory Agent/factory-orchestration.md".to_string(),
             ),
             original_body.to_string(),
@@ -152,7 +152,7 @@ async fn replay_against_drifted_upstream_still_returns_recorded_body() {
         ));
         let vr = VirtualRoot::new(ORG_ID, cache_dir.path().to_path_buf(), empty_fetcher);
         let body = vr
-            .read_artifact("goa-software-factory", "Factory Agent/factory-orchestration.md")
+            .read_artifact("legacy-factory", "Factory Agent/factory-orchestration.md")
             .await
             .expect("cache hit serves the recorded body");
         assert_eq!(body, original_body);

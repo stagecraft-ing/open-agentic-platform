@@ -29,7 +29,7 @@ pub struct DeploymentRequest {
     pub env_slug: Option<String>,
     pub desired_routes: Option<Vec<RouteSpec>>,
     /// Chart name resolved by stagecraft's chartSelector (spec 136 Phase 2).
-    /// Optional for backwards compatibility; defaults to "aim-vue-encore",
+    /// Optional for backwards compatibility; defaults to "acme-vue-encore",
     /// the sole registered shape after the spec 214 retirement.
     pub chart: Option<String>,
     /// Chart version, mirrors the chartSelector output. Currently advisory:
@@ -132,7 +132,7 @@ pub async fn create_deployment(
         })
         .unwrap_or_default();
 
-    let chart = body.chart.clone().unwrap_or_else(|| "aim-vue-encore".into());
+    let chart = body.chart.clone().unwrap_or_else(|| "acme-vue-encore".into());
     let chart_version = body
         .chart_version
         .clone()

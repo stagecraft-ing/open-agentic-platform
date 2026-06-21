@@ -1,16 +1,16 @@
 # Spec: 214-tenant-app-chart-supersession
 #
-# CD for the aim-vue-encore reference image (FR-010 / SC-006). Builds and
-# pushes the factory's template-encore reference scaffold image to GHCR so the
-# deploy path (the aim-vue-encore chart + the deployd dispatch contract) has a
+# CD for the acme-vue-encore reference image (FR-010 / SC-006). Builds and
+# pushes the factory's template reference scaffold image to GHCR so the
+# deploy path (the acme-vue-encore chart + the deployd dispatch contract) has a
 # real artifact to install. Replaces the retired synthetic-tenant CD workflow:
 # the reference tenant is now the factory's own scaffold, not the synthetic
 # hello service.
 #
-# The image source is cross-repo (the template-encore upstream), pinned by a
+# The image source is cross-repo (the template upstream), pinned by a
 # full commit SHA per spec 158. Those coordinates are operational config
 # supplied out-of-band as repo variables + a read token, NOT committed here:
-#   vars.TENANT_APP_TEMPLATE_REPO          owner/template-encore
+#   vars.TENANT_APP_TEMPLATE_REPO          owner/template
 #   vars.TENANT_APP_TEMPLATE_REF           a full 40-char commit SHA (spec 158)
 #   secrets.TENANT_APP_TEMPLATE_READ_TOKEN read token for the upstream checkout
 # The resolve step fails loud with a specific diagnostic when they are unset
@@ -18,7 +18,7 @@
 # exact template version the scaffold path ships, so a wrong source is worse
 # than no build.
 #
-# Build pipeline mirrors template-encore's own `build:docker`
+# Build pipeline mirrors template's own `build:docker`
 # (`encore build docker --config ./infra.config.json --base <base> <image>`,
 # apps/api/package.json): build the public SPA into apps/api/web/build
 # (bundle_source: true folds it into the image), build the runtime base image
@@ -37,7 +37,7 @@ on:
   workflow_dispatch:
     inputs:
       template_ref:
-        description: "template-encore commit SHA to build (overrides vars.TENANT_APP_TEMPLATE_REF)"
+        description: "template commit SHA to build (overrides vars.TENANT_APP_TEMPLATE_REF)"
         required: false
         type: string
 
@@ -46,7 +46,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: ghcr.io/${{ github.repository }}/aim-vue-encore
+  IMAGE: ghcr.io/${{ github.repository }}/acme-vue-encore
   ENCORE_VERSION: '1.57.8'
 
 jobs:
@@ -66,7 +66,7 @@ jobs:
           TEMPLATE_REF: ${{ github.event.inputs.template_ref || vars.TENANT_APP_TEMPLATE_REF }}
         run: |
           if [ -z "$TEMPLATE_REPO" ] || [ -z "$TEMPLATE_REF" ]; then
-            echo "::error::TENANT_APP_TEMPLATE_REPO and TENANT_APP_TEMPLATE_REF must be set (repo variables, or pass template_ref via workflow_dispatch). The reference image builds from the template-encore upstream pinned by SHA (spec 158 / SC-006); refusing to build from a guessed source."
+            echo "::error::TENANT_APP_TEMPLATE_REPO and TENANT_APP_TEMPLATE_REF must be set (repo variables, or pass template_ref via workflow_dispatch). The reference image builds from the template upstream pinned by SHA (spec 158 / SC-006); refusing to build from a guessed source."
             exit 1
           fi
           if ! printf '%s' "$TEMPLATE_REF" | grep -Eq '^[0-9a-f]{40}$'; then
@@ -81,7 +81,7 @@ jobs:
       - name: Check out this repo (for the encore-install composite action)
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
-      - name: Check out template-encore source (SHA-pinned, spec 158)
+      - name: Check out template source (SHA-pinned, spec 158)
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           repository: ${{ steps.src.outputs.repo }}

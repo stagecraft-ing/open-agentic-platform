@@ -56,6 +56,6 @@
     "summary": "Proving-ground tenant profile. Selects the SAML auth driver capability (149) as the auth-driver registry (148) member for this tenant. No jurisdictional commitments — the `XX` jurisdiction and `example.invalid` domains are placeholders. This spec exists to exercise the spec-kind grammar V-013 and V-017 validators end-to-end against the `profile` kind. Real tenant profiles (GoA, partner orgs) will be authored as separate specs once the contract is exercised in production.\nAuthored as part of spec 147 §Migration Phase 3 — the proving-ground spec triplet exercising V-013/V-014/V-015/V-017 against the new `profile` kind.\n",
     "title": "Example tenant profile — proving-ground tenant for spec-kind grammar"
   },
-  "shardHash": "7f5dc12efd485e66c655d79a5faddd58fbe3dd9d50a54d9b79f85160ddceaa7a",
+  "shardHash": "ed89b2fcd0a3fb01eba44c7cb12b6d19f8fbe3ffd9a573ac8453718c6c3c9f50",
   "specVersion": "1.1.0"
 }

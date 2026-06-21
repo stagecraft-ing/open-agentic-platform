@@ -325,7 +325,7 @@ mod tests {
             citations: vec![],
             assumption: Some(AssumptionTag {
                 owner: owner.into(),
-                rationale: "pending Treasury Board".into(),
+                rationale: "pending Globex Finance".into(),
                 expires_at: Utc.with_ymd_and_hms(2026, 7, 30, 0, 0, 0).unwrap(),
                 tagged_at: now(),
             }),
@@ -375,22 +375,22 @@ mod tests {
         let report = report_with_one_assumption(
             "INT-003",
             "abc123",
-            vec!["1GX".into(), "Oracle".into()],
+            vec!["Globex".into(), "Initech".into()],
         );
         let claim = assumption_claim(
             "INT-003",
             ClaimKind::Int,
-            "1GX integration via Treasury Board",
-            "CFS Director",
+            "Globex integration via Globex Finance",
+            "Ops Lead",
         );
         let body = assumption_manifest_body(&report, &[claim]);
         assert!(body.contains("## INT-003"));
         assert!(body.contains("- **id**: `INT-003`"));
         assert!(body.contains("- **anchorHash**: `abc123`"));
         assert!(body.contains("- **kind**: `INT`"));
-        assert!(body.contains("CFS Director"));
-        assert!(body.contains("`1GX`"));
-        assert!(body.contains("`Oracle`"));
+        assert!(body.contains("Ops Lead"));
+        assert!(body.contains("`Globex`"));
+        assert!(body.contains("`Initech`"));
         assert!(body.contains("pending-promotion.md"));
     }
 
@@ -399,7 +399,7 @@ mod tests {
         let mut report = report_with_one_assumption(
             "INT-003",
             "abc",
-            vec!["1GX".into()],
+            vec!["Globex".into()],
         );
         // change to Derived — manifest should be empty
         report.claims[0].provenance_mode = ProvenanceMode::Derived;
@@ -413,12 +413,12 @@ mod tests {
         let report = report_with_one_assumption(
             "INT-003",
             "abc",
-            vec!["1GX".into(), "Oracle".into()],
+            vec!["Globex".into(), "Initech".into()],
         );
         let claim = assumption_claim(
             "INT-003",
             ClaimKind::Int,
-            "1GX",
+            "Globex",
             "ops",
         );
         let b1 = assumption_manifest_body(&report, std::slice::from_ref(&claim));
@@ -436,7 +436,7 @@ mod tests {
         let mut report = report_with_one_assumption(
             "INT-003",
             "abc",
-            vec!["1GX".into()],
+            vec!["Globex".into()],
         );
         report.claims[0].provenance_mode = ProvenanceMode::AssumptionOrphaned;
         let b1 = assumption_manifest_body(&report, &[]);
@@ -454,12 +454,12 @@ mod tests {
         let report = report_with_one_assumption(
             "INT-003",
             "abc",
-            vec!["1GX".into()],
+            vec!["Globex".into()],
         );
         let claim = assumption_claim(
             "INT-003",
             ClaimKind::Int,
-            "1GX",
+            "Globex",
             "ops",
         );
         emit_assumption_manifest(&report, &[claim], dir.path()).unwrap();
@@ -512,12 +512,12 @@ mod tests {
         let report = report_with_one_assumption(
             "INT-003",
             "anchor-abc",
-            vec!["1GX".into(), "Oracle".into(), "Treasury Board".into()],
+            vec!["Globex".into(), "Initech".into(), "Globex Finance".into()],
         );
         let claim = assumption_claim(
             "INT-003",
             ClaimKind::Int,
-            "1GX",
+            "Globex",
             "ops",
         );
         let body = assumption_manifest_body(&report, &[claim]);
@@ -525,11 +525,11 @@ mod tests {
         assert_eq!(parsed.len(), 1);
         assert_eq!(parsed[0].id.0, "INT-003");
         assert_eq!(parsed[0].anchor_hash.0, "anchor-abc");
-        assert!(parsed[0].surface_forms.contains(&"1GX".to_string()));
-        assert!(parsed[0].surface_forms.contains(&"Oracle".to_string()));
+        assert!(parsed[0].surface_forms.contains(&"Globex".to_string()));
+        assert!(parsed[0].surface_forms.contains(&"Initech".to_string()));
         assert!(parsed[0]
             .surface_forms
-            .contains(&"Treasury Board".to_string()));
+            .contains(&"Globex Finance".to_string()));
     }
 
     #[test]
@@ -544,7 +544,7 @@ mod tests {
         let mut report = report_with_one_assumption(
             "INT-003",
             "abc",
-            vec!["1GX".into()],
+            vec!["Globex".into()],
         );
         report.claims[0].provenance_mode = ProvenanceMode::AssumptionOrphaned;
         // No Claim provided in `claims` slice — emitter should still

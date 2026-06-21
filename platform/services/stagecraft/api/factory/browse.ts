@@ -105,7 +105,7 @@ function manifestIdentity(
 
 // ---------------------------------------------------------------------------
 // Adapters — manifest-sourced identity (FR-002). The synthetic
-// `aim-vue-node` is gone; whatever adapter-manifest rows the substrate
+// `acme-vue-node` is gone; whatever adapter-manifest rows the substrate
 // carries (any origin) self-declare their identity.
 // ---------------------------------------------------------------------------
 

@@ -1856,7 +1856,7 @@ mod tests {
         fs::create_dir_all(&stage_dir).unwrap();
         fs::write(stage_dir.join("entity-model.json"), b"{}").unwrap();
 
-        let mut state = FactoryPipelineState::new("run-005", "aim-vue-encore");
+        let mut state = FactoryPipelineState::new("run-005", "acme-vue-encore");
         state.transition_to_scaffolding("build-spec-hash-xyz".into());
         state.mark_complete();
 
@@ -2282,7 +2282,7 @@ mod tests {
     }
 
     fn pipeline_state_for_stage_tests() -> FactoryPipelineState {
-        let mut state = FactoryPipelineState::new("tenant-run-1", "aim-vue-encore");
+        let mut state = FactoryPipelineState::new("tenant-run-1", "acme-vue-encore");
         state.transition_to_scaffolding("bs".into());
         state
     }

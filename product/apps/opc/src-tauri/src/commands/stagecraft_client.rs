@@ -1409,7 +1409,7 @@ pub struct OpcBundleCloneToken {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OpcBundleAdmission {
-    /// Factory origin identifier (e.g. `"factory-encore"`).
+    /// Factory origin identifier (e.g. `"factory"`).
     pub origin: String,
     /// Content hash of the admitted factory envelope.
     #[serde(default)]
@@ -1537,7 +1537,7 @@ mod tests {
             "deepLink": "opc://project/open?project_id=p-1&url=https%3A%2F%2Fgithub.com%2Facme%2Ffv.git",
             "adapter": {
                 "id": "a-1",
-                "name": "aim-vue-node",
+                "name": "acme-vue-node",
                 "version": "3.0.0",
                 "sourceSha": "abc",
                 "syncedAt": "2026-04-22T10:00:00.000Z",
@@ -1574,7 +1574,7 @@ mod tests {
         assert_eq!(bundle.project.org_id, "org-1");
         assert_eq!(bundle.repo.as_ref().unwrap().clone_url, "https://github.com/acme/fv.git");
         assert!(bundle.deep_link.is_some());
-        assert_eq!(bundle.adapter.as_ref().unwrap().name, "aim-vue-node");
+        assert_eq!(bundle.adapter.as_ref().unwrap().name, "acme-vue-node");
         assert_eq!(bundle.contracts.len(), 1);
         assert_eq!(bundle.processes.len(), 0);
         assert_eq!(bundle.agents.len(), 1);

@@ -7,7 +7,7 @@
 //! The allowlist is auto-derived per project from five inputs (FR-015):
 //!
 //!   (a) built-in core (jurisdictions, stopwords, common verbs, vendors
-//!       widely used by Government of Alberta projects) — embedded at
+//!       widely used by public-sector and enterprise projects): embedded at
 //!       compile time from `data/core-allowlist.txt`,
 //!   (b) project name + slug + workspace name,
 //!   (c) capitalized-token frequency scan over the typed extraction
@@ -189,7 +189,7 @@ impl EntityPlausibility for CapitalizationHeuristic {
             None => return false,
         };
         if !first.is_ascii_alphabetic() {
-            // Allow leading-digit acronyms like "1GX" if the token has at
+            // Allow leading-digit acronyms like "3Com" if the token has at
             // least one ASCII alphabetic character.
             if !trimmed.chars().any(|c| c.is_ascii_alphabetic()) {
                 return false;
@@ -208,8 +208,8 @@ impl EntityPlausibility for CapitalizationHeuristic {
 
 /// Scan claim text for plausibly-external-entity tokens that are NOT in
 /// the allowlist. Returns sorted, deduplicated surface forms (preserving
-/// original casing in the surface form so the operator sees `"1GX"`,
-/// not `"1gx"`).
+/// original casing in the surface form so the operator sees `"3Com"`,
+/// not `"3com"`).
 pub fn detect_external_entities(
     claim_text: &str,
     allowlist: &Allowlist,
@@ -409,7 +409,7 @@ mod tests {
     fn allowlist_contains_builtin_core_tokens() {
         let allow = derive(&ProjectContext::default());
         // Sample tokens from data/core-allowlist.txt
-        assert!(allow.contains("alberta"));
+        assert!(allow.contains("provincial"));
         assert!(allow.contains("government"));
         assert!(allow.contains("the"));
         assert!(allow.contains("microsoft"));
@@ -419,21 +419,20 @@ mod tests {
     fn allowlist_excludes_unrelated_token() {
         let allow = derive(&ProjectContext::default());
         // A made-up token that should NEVER appear in the core list.
-        assert!(!allow.contains("xyzzyfrobnicate1gxoraclething"));
+        assert!(!allow.contains("xyzzyfrobnicateunlistedthing"));
     }
 
     #[test]
     fn allowlist_contains_project_name_tokens() {
         let allow = derive(&ctx_with(
-            "CFS Emergency Family Violence Services",
-            "cfs-emergency-family-violence-services",
-            "GoA",
+            "Acme Vendor Onboarding Services",
+            "acme-vendor-onboarding-services",
+            "AcmeCorp",
             &[],
         ));
-        assert!(allow.contains("cfs"));
-        assert!(allow.contains("emergency"));
-        assert!(allow.contains("family"));
-        assert!(allow.contains("violence"));
+        assert!(allow.contains("acme"));
+        assert!(allow.contains("vendor"));
+        assert!(allow.contains("onboarding"));
         assert!(allow.contains("services"));
     }
 
@@ -457,24 +456,24 @@ mod tests {
 
     #[test]
     fn allowlist_capitalized_token_frequency_threshold() {
-        let corpus = vec![extraction("Oracle Vendor Vendor Vendor")];
+        let corpus = vec![extraction("Globex Vendor Vendor Vendor")];
         let mut ctx = ctx_with("p", "p", "w", &corpus);
         ctx.capitalized_token_frequency_threshold = 2;
         let allow = derive(&ctx);
         assert!(allow.contains("vendor"));
-        assert!(!allow.contains("oracle"));
+        assert!(!allow.contains("globex"));
     }
 
     #[test]
     fn allowlist_entity_model_yaml_tokens() {
-        let yaml = "entities:\n  - name: Shelter Society Registry\n  - name: \"Funding Approval\"\n";
+        let yaml = "entities:\n  - name: Partner Vendor Registry\n  - name: \"Funding Approval\"\n";
         let ctx = ProjectContext {
             entity_model_yaml: Some(yaml),
             ..Default::default()
         };
         let allow = derive(&ctx);
-        assert!(allow.contains("shelter"));
-        assert!(allow.contains("society"));
+        assert!(allow.contains("partner"));
+        assert!(allow.contains("vendor"));
         assert!(allow.contains("registry"));
         assert!(allow.contains("funding"));
         assert!(allow.contains("approval"));
@@ -552,7 +551,7 @@ mod tests {
     #[test]
     fn detect_external_entities_flags_unlisted() {
         let allow = derive(&ProjectContext::default());
-        let claim = "STK-13 references Treasury Board Integrations and 1GX Oracle ERP.";
+        let claim = "STK-13 references Globex Finance Integrations and Globex Initech ERP.";
         let entities = detect_external_entities(
             claim,
             &allow,
@@ -560,7 +559,7 @@ mod tests {
         );
         // STK-13 is alphanumeric uppercase but contains "stk" which is
         // not in the allowlist. Acceptable as a flagged candidate.
-        assert!(entities.iter().any(|e| e.contains("1GX")));
+        assert!(entities.iter().any(|e| e.contains("Globex")));
         assert!(entities.iter().any(|e| e == "ERP"));
     }
 
@@ -598,16 +597,16 @@ mod tests {
     #[test]
     fn capitalization_heuristic_uppercase_words_qualify() {
         let h = CapitalizationHeuristic;
-        assert!(h.is_plausible_entity("Oracle"));
+        assert!(h.is_plausible_entity("Globex"));
         assert!(h.is_plausible_entity("ERP")); // all-caps acronym
-        assert!(h.is_plausible_entity("1GX")); // alphanumeric with letters
+        assert!(h.is_plausible_entity("3Com")); // alphanumeric with letters
         assert!(h.is_plausible_entity("AzureAD"));
     }
 
     #[test]
     fn capitalization_heuristic_lowercase_or_short_does_not_qualify() {
         let h = CapitalizationHeuristic;
-        assert!(!h.is_plausible_entity("oracle"));
+        assert!(!h.is_plausible_entity("globex"));
         assert!(!h.is_plausible_entity("a"));      // single char
         assert!(!h.is_plausible_entity(""));       // empty
         assert!(!h.is_plausible_entity("123"));    // no alphabetic

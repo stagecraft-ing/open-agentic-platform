@@ -20,7 +20,7 @@ import type { ScaffoldAdapterRef } from "./types";
 // resolved via `factory_upstreams` at warmup / create time.
 const adapter: ScaffoldAdapterRef = {
   id: "00000000-0000-0000-0000-000000000000",
-  name: "aim-vue-encore",
+  name: "acme-vue-encore",
   version: "3.0.0",
   sourceSha: "a".repeat(40),
 };
@@ -32,7 +32,7 @@ describe("buildL0PipelineStateSeed", () => {
     expect(seed.pipeline.status).toBe("pending");
     expect(seed.pipeline.started_at).toBeNull();
     expect(seed.pipeline.adapter).toEqual({
-      name: "aim-vue-encore",
+      name: "acme-vue-encore",
       version: "3.0.0",
       source_sha: "a".repeat(40),
     });
@@ -71,8 +71,8 @@ describe("buildProjectOpenDeepLink", () => {
   });
 });
 
-describe("moduleCatalog — template-encore cutover (spec 199 FR-007)", () => {
-  test("the catalog is exactly template-encore's modules/ directory", () => {
+describe("moduleCatalog — template cutover (spec 199 FR-007)", () => {
+  test("the catalog is exactly template's modules/ directory", () => {
     expect(MODULE_CATALOG.map((m) => m.id).sort()).toEqual([
       "api-gateway",
       "data-postgres",
@@ -218,7 +218,7 @@ describe("spec 112 §10 runtime gate (shape)", () => {
 
 describe("isKnownModule", () => {
   test("recognises catalogued modules", () => {
-    // security-core is a regular opt-in module in template-encore's
+    // security-core is a regular opt-in module in template's
     // catalog (the old always-on framing was template-distributor-era).
     expect(isKnownModule("security-core")).toBe(true);
     expect(isKnownModule("user-management")).toBe(true);

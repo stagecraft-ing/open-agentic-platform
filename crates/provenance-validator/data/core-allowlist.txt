@@ -8,9 +8,9 @@
 # flagged as external entities by the plausibility heuristic. The list is
 # intentionally generous (the operator's directive: "false positives are
 # cheap; missed external entities are catastrophic"). Add common English
-# stopwords, jurisdiction nouns for Government of Alberta projects (the
-# initial deployment context), and widely-used infrastructure / vendor
-# names that any GoA project legitimately interacts with.
+# stopwords, common jurisdiction / domain nouns (generic public-sector and
+# enterprise vocabulary), and widely-used infrastructure / vendor names that
+# a typical project legitimately interacts with.
 #
 # Format: one lowercase token per line. Lines starting with `#` and blank
 # lines are ignored. The file is embedded at compile time via include_str!
@@ -525,13 +525,9 @@ workflow
 workspace
 year
 
-# --- Government of Alberta jurisdiction nouns (initial deployment) ---
-alberta
-canada
-canadian
+# --- Common jurisdiction / domain nouns (generic) ---
 federal
 provincial
-goa
 gov
 government
 ministry

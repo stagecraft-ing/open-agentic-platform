@@ -146,7 +146,7 @@ async function cloneAndTranslate(
           // store from Phase 4 onward; consumers project at read time.
           // Spec 199 FR-003 — origins derive from the configured
           // `factory_upstreams.source_id` (origin-from-source); the static
-          // AIM_VUE_NODE_CONFIG constants no longer reach the write path.
+          // legacy scaffold-config constants no longer reach the write path.
           // Scaffold URLs live in `factory_upstreams` and are resolved at
           // ADMISSION time (spec 198 / 199 FR-009); the admission record is
           // what the create path and scaffold scheduler read.

@@ -696,11 +696,11 @@ mod tests {
             ]),
             &GateConfig::default(),
             &ApprovalLedger::default(),
-            "cfs",
+            "example",
             fixed_now(),
         );
         assert_eq!(r.audit.action, "factory.stage_cd_gate_evaluated");
-        assert_eq!(r.audit.project, "cfs");
+        assert_eq!(r.audit.project, "example");
         assert_eq!(r.audit.diff_counts.wording, 1);
         assert_eq!(r.audit.diff_counts.scope, 1);
         assert_eq!(r.audit.blocking_diffs.len(), 1);

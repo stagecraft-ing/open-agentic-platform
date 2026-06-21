@@ -29,13 +29,13 @@ describe("spec 140 §2.2 — resolveScaffoldUpstream (T030)", () => {
           ON CONFLICT (id) DO NOTHING
       `);
     }
-    // Seed: org A has the template-encore upstream registered.
+    // Seed: org A has the template upstream registered.
     await db.execute(sql`
       INSERT INTO factory_upstreams (
         org_id, source_id, role, repo_url, ref, subpath, created_at, updated_at
       ) VALUES (
-        ${ORG_ID_A}, 'template-encore', 'scaffold',
-        'GovAlta-Pronghorn/template', 'main', NULL, now(), now()
+        ${ORG_ID_A}, 'template', 'scaffold',
+        'Stagecraft-ing/template', 'main', NULL, now(), now()
       )
       ON CONFLICT (org_id, source_id) DO NOTHING
     `);
@@ -55,10 +55,10 @@ describe("spec 140 §2.2 — resolveScaffoldUpstream (T030)", () => {
   it("returns repoUrl + ref when source_id resolves", async () => {
     const result = await resolveScaffoldUpstream(
       ORG_ID_A,
-      "template-encore",
+      "template",
     );
     expect(result).not.toBeNull();
-    expect(result!.repoUrl).toBe("GovAlta-Pronghorn/template");
+    expect(result!.repoUrl).toBe("Stagecraft-ing/template");
     expect(result!.ref).toBe("main");
   });
 
@@ -68,10 +68,10 @@ describe("spec 140 §2.2 — resolveScaffoldUpstream (T030)", () => {
   });
 
   it("returns null when the source_id exists but for a DIFFERENT org (org-scoped lookup)", async () => {
-    // Org B has no template-encore row, even though org A does.
+    // Org B has no template row, even though org A does.
     const result = await resolveScaffoldUpstream(
       ORG_ID_B,
-      "template-encore",
+      "template",
     );
     expect(result).toBeNull();
   });

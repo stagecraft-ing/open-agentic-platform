@@ -382,7 +382,7 @@ pub fn anchor_canonical_tokens(text: &str) -> Vec<String> {
     let nfc: String = lowered.nfc().collect();
 
     // Tokenize: split on whitespace and ASCII hyphens. Hyphenated compound
-    // words (`registered-shelter-society`) split into their component tokens
+    // words (`registered-partner-organization`) split into their component tokens
     // so reword variants align after the sort+dedupe step.
     let mut tokens: Vec<String> = nfc
         .split(|c: char| c.is_whitespace() || c == '-')
@@ -632,13 +632,13 @@ mod tests {
         // bare content tokens only. Equality witnesses every member of the
         // strip set being removed; a regression that adds or removes a
         // member of the strip list would break this test.
-        let bare = anchor_hash("applicant payment shelter");
+        let bare = anchor_hash("applicant payment facility");
         let with_articles =
-            anchor_hash("a applicant the payment an shelter");
+            anchor_hash("a applicant the payment an facility");
         let with_modals = anchor_hash(
-            "applicant must may can will shall payment shelter",
+            "applicant must may can will shall payment facility",
         );
-        let with_copulas = anchor_hash("applicant is are payment shelter");
+        let with_copulas = anchor_hash("applicant is are payment facility");
         assert_eq!(bare, with_articles);
         assert_eq!(bare, with_modals);
         assert_eq!(bare, with_copulas);
@@ -677,11 +677,11 @@ mod tests {
     #[test]
     fn anchor_hash_splits_hyphenated_compounds() {
         // The two-line acceptance scenario for User Story 3 hinges on hyphen
-        // splitting: `registered-shelter-society` must canonicalise to the
-        // same token bag as `registered shelter society`.
+        // splitting: `registered-partner-organization` must canonicalise to the
+        // same token bag as `registered partner organization`.
         assert_eq!(
-            anchor_hash("registered-shelter-society"),
-            anchor_hash("registered shelter society"),
+            anchor_hash("registered-partner-organization"),
+            anchor_hash("registered partner organization"),
         );
     }
 
@@ -699,22 +699,22 @@ mod tests {
         // FR-011 invariant under the canonical reword fixture: article +
         // modal + ordering edits do NOT renumber the claim.
         //
-        // Original: "The applicant must be a registered shelter society."
-        // Reworded: "An applicant shall be the registered shelter society."
+        // Original: "The applicant must be a registered partner organization."
+        // Reworded: "An applicant shall be the registered partner organization."
         //
-        // Both reduce to the token bag {applicant, be, registered, shelter,
-        // society} after the FR-011 pipeline.
+        // Both reduce to the token bag {applicant, be, registered, partner,
+        // organization} after the FR-011 pipeline.
         //
         // Note on the broader semantic-reword case from User Story 3
-        // ("the applying organization is required to hold registered-shelter
-        // -society status"): satisfying that example would require stemming
+        // ("the applying organization is required to hold registered-partner
+        // -organization status"): satisfying that example would require stemming
         // (applicant↔applying), modal-collapse (must↔required), and synonym
         // collapse (organization↔applicant), none of which FR-011 mandates.
         // This test asserts the algorithmic invariant FR-011 actually
         // guarantees; the broader semantic case is left as a future
         // refinement of the strip list / stemming layer.
-        let original = anchor_hash("The applicant must be a registered shelter society.");
-        let reworded = anchor_hash("An applicant shall be the registered shelter society.");
+        let original = anchor_hash("The applicant must be a registered partner organization.");
+        let reworded = anchor_hash("An applicant shall be the registered partner organization.");
         assert_eq!(original, reworded);
     }
 
@@ -767,7 +767,7 @@ mod tests {
     // ----- serde round-trips -----
 
     fn sample_citation() -> Citation {
-        let q = "applicant must be a registered shelter society";
+        let q = "applicant must be a registered partner organization";
         Citation {
             source: PathBuf::from("extracted/business-case.txt"),
             line_range: (21, 23),
@@ -777,7 +777,7 @@ mod tests {
     }
 
     fn sample_claim() -> Claim {
-        let text = "Applicant must be a registered shelter society";
+        let text = "Applicant must be a registered partner organization";
         Claim {
             id: ClaimId("BR-007".into()),
             kind: ClaimKind::Br,

@@ -34,7 +34,7 @@ This is a governed monorepo with three layers:
 | Rust Crates | `crates/` | agent, axiomregent, factory-engine, factory-contracts, featuregraph, orchestrator, policy-kernel, run, skill-factory, tool-registry, xray |
 | Rust Tools | `tools/` | spec-spine CLI (published), spec-lint, policy-compiler, oap-registry-enrich |
 | Desktop App (OPC) | `apps/opc/` | Tauri v2 + React + TypeScript |
-| Factory | `factory/` | Process stages, contract schemas, adapters (aim-vue-node, next-prisma, encore-react, rust-axum) |
+| Factory | `factory/` | Process stages, contract schemas, adapters (acme-vue-node, next-prisma, encore-react, rust-axum) |
 | Platform | `platform/` | Encore.ts (stagecraft), Rust (deployd-api-rs), Terraform, Helm |
 
 Orchestrator rules are in `.claude/rules/orchestrator-rules.md`. Specs are the source of truth — every feature starts as a spec.

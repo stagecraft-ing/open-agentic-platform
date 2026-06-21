@@ -1346,7 +1346,7 @@ Follow-up tracker (parking lot):
       picks the oldest project regardless of whether its
       `object_store_bucket` is valid for S3. On the Hetzner
       cluster (2026-05-08) the oldest project's bucket is 80 chars
-      (`oap-stagecraft-ing-cfs-emergency-family-violence-services-funding-request-portal`),
+      (`oap-stagecraft-ing-acme-example-portal`),
       exceeding S3's 63-char ceiling; `mc share upload` errors with
       "Bucket name cannot be longer than 63 characters" and
       `contract_fail` fires. Fix at the script level: add

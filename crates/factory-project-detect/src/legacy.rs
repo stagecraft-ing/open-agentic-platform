@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
 
-//! Legacy `goa-software-factory` manifest completion assessment.
+//! Legacy `legacy-factory` manifest completion assessment.
 //!
 //! The legacy shape has five numbered stage keys:
 //!
@@ -13,7 +13,7 @@
 //!
 //! A stage counts as terminal-complete iff `status` is a recognised
 //! completion token (`PASSED`, `PASS`, `COMPLETE`, `COMPLETED`). The
-//! `goa-software-factory` writer records the per-stage completion
+//! `legacy-factory` writer records the per-stage completion
 //! timestamp in `requirements/audit/working-state.json` under
 //! `stageHistory[]`, not on the manifest stage object — so requiring
 //! `completedAt` here would reject every real factory output. The
@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn completed_at_is_not_required_per_stage() {
-        // Real `goa-software-factory` output: only top-level
+        // Real `legacy-factory` output: only top-level
         // `completedAt`; per-stage objects carry status + artifacts only.
         let manifest = serde_json::json!({
             "completedAt": "2026-04-25T13:55:00Z",

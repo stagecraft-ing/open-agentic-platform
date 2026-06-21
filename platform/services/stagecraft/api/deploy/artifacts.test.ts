@@ -50,8 +50,8 @@ describe("deriveArtifactRef (spec 213 FR-002)", () => {
 
   it("lowercases org/repo so the ref matches what GHCR accepts", () => {
     expect(
-      deriveArtifactRef({ githubOrg: "GovAlta-EMU", repoName: "My-Service", sha: FULL_SHA }),
-    ).toBe(`ghcr.io/govalta-emu/my-service:sha-${SHORT}`);
+      deriveArtifactRef({ githubOrg: "ACME-OLD", repoName: "My-Service", sha: FULL_SHA }),
+    ).toBe(`ghcr.io/acme-old/my-service:sha-${SHORT}`);
   });
 
   it("never derives a latest tag", () => {

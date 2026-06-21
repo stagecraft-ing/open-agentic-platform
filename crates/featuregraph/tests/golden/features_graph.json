@@ -2679,9 +2679,9 @@
       "violations": []
     },
     {
-      "feature_id": "140-aim-vue-node-scaffold-source-id-cutover",
-      "title": "aim-vue-node manifest cutover to scaffold_source_id (amendment of 139)",
-      "spec_path": "specs/140-aim-vue-node-scaffold-source-id-cutover/spec.md",
+      "feature_id": "140-acme-vue-node-scaffold-source-id-cutover",
+      "title": "acme-vue-node manifest cutover to scaffold_source_id (amendment of 139)",
+      "spec_path": "specs/140-acme-vue-node-scaffold-source-id-cutover/spec.md",
       "status": "approved",
       "implementation": "complete",
       "governance": "low",
@@ -2697,16 +2697,16 @@
       "violations": []
     },
     {
-      "feature_id": "141-aim-vue-node-source-id-template-name-alignment",
-      "title": "Align aim-vue-node scaffold_source_id with template.json::templateName",
-      "spec_path": "specs/141-aim-vue-node-source-id-template-name-alignment/spec.md",
+      "feature_id": "141-acme-vue-node-source-id-template-name-alignment",
+      "title": "Align acme-vue-node scaffold_source_id with template.json::templateName",
+      "spec_path": "specs/141-acme-vue-node-source-id-template-name-alignment/spec.md",
       "status": "approved",
       "implementation": "complete",
       "governance": "low",
       "owner": "bart",
       "group": "",
       "depends_on": [
-        "140-aim-vue-node-scaffold-source-id-cutover"
+        "140-acme-vue-node-scaffold-source-id-cutover"
       ],
       "impl_files": [],
       "test_files": [],
@@ -4030,7 +4030,7 @@
     },
     {
       "feature_id": "214-tenant-app-chart-supersession",
-      "title": "Tenant App Chart Supersession (template-encore scaffold becomes the reference tenant)",
+      "title": "Tenant App Chart Supersession (template scaffold becomes the reference tenant)",
       "spec_path": "specs/214-tenant-app-chart-supersession/spec.md",
       "status": "draft",
       "implementation": "complete",
@@ -4959,7 +4959,7 @@
     {
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
-      "path": "crates/provenance-validator/tests/sc001_cfs_audit.rs",
+      "path": "crates/provenance-validator/tests/sc001_audit.rs",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — SC-001",
       "suggested_fix": "Fix header format"
     },

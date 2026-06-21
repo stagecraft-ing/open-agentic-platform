@@ -125,10 +125,10 @@ summary: >
 > claims here move to non-owning `references: role: historical`; the
 > substrate mirror itself — this spec's core — is unchanged.
 
-> **Amended 2026-05-06 by spec [140](../140-aim-vue-node-scaffold-source-id-cutover/spec.md).**
+> **Amended 2026-05-06 by spec [140](../140-acme-vue-node-scaffold-source-id-cutover/spec.md).**
 > §7.2's `template_remote` → `scaffold_source_id` rename landed for the
 > three OAP-native adapters in Phase 2 but never reached the synthetic
-> `aim-vue-node` adapter that `projection.ts::buildAdapter` emits. Spec
+> `acme-vue-node` adapter that `projection.ts::buildAdapter` emits. Spec
 > 140 finishes the rename and drops the legacy fallback in
 > `scaffoldReadiness.ts`.
 
@@ -163,8 +163,8 @@ landed:
    missing upstream. Orgs cannot diverge from upstream without forking
    the upstream repo.
 4. **OAP-native adapters are vapor on the scaffold side.** Of the four
-   adapters in `factory/adapters/` (`aim-vue-node`, `next-prisma`,
-   `rust-axum`, `encore-react`), only `aim-vue-node` has a real upstream
+   adapters in `factory/adapters/` (`acme-vue-node`, `next-prisma`,
+   `rust-axum`, `encore-react`), only `acme-vue-node` has a real upstream
    scaffold tree (the `template` repo cloned at create-time by
    `templateCache.ts`). The other three ship a `scaffold/README.md`
    placeholder and nothing else. Spec 112 §5.4's runtime gate
@@ -294,7 +294,7 @@ over verbatim, applied to **any** kind).
 factory_upstreams (
   org_id        uuid not null references organizations(id),
   source_id     text not null,          -- see §3.1 — stable per-org identifier for this upstream
-  repo_url      text not null,          -- 'GovAlta-Pronghorn/goa-software-factory'
+  repo_url      text not null,          -- 'Stagecraft-ing/legacy-factory'
   ref           text not null default 'main',
   subpath       text,                   -- optional: 'Factory Agent/' | 'orchestration/' | null for whole repo
   role          text not null,          -- 'orchestration' | 'scaffold' | 'mixed' | 'oap-self'
@@ -306,9 +306,9 @@ Adapter manifests declare which `source_id`s they consume:
 
 ```yaml
 # in a factory_artifact_substrate row of kind='adapter-manifest'
-name: aim-vue-node
-orchestration_source_id: goa-software-factory
-scaffold_source_id: aim-vue-node-template
+name: acme-vue-node
+orchestration_source_id: legacy-factory
+scaffold_source_id: acme-vue-node-template
 ```
 
 For OAP-native adapters, the same shape applies — `orchestration_source_id`
@@ -331,7 +331,7 @@ The sync engine treats both transparently.
 - Per-org override of any artifact body, with three-way merge against
   upstream changes and a `conflict_state` machine.
 - Symmetric scaffold/orchestration sourcing for all four adapters
-  (`aim-vue-node`, `next-prisma`, `rust-axum`, `encore-react`); seed
+  (`acme-vue-node`, `next-prisma`, `rust-axum`, `encore-react`); seed
   three new OAP-controlled upstream sources for the formerly-vapor
   three.
 - Kind-filtered API endpoints (`/api/factory/artifacts?kind=…`) and a
@@ -370,8 +370,8 @@ has its own set:
 
 | Origin example          | Source                                    | Editable per-org? |
 |-------------------------|-------------------------------------------|-------------------|
-| `goa-software-factory`  | upstream Factory repo                     | yes (override)    |
-| `aim-vue-node-template` | upstream Template repo (orchestration only) | yes (override)  |
+| `legacy-factory`  | upstream Factory repo                     | yes (override)    |
+| `acme-vue-node-template` | upstream Template repo (orchestration only) | yes (override)  |
 | `oap-next-prisma`       | OAP-controlled upstream (orchestration)   | yes (override)    |
 | `oap-next-prisma-scaffold` | OAP-controlled upstream (scaffold zip)  | yes (override)    |
 | `oap-rust-axum`         | OAP-controlled upstream                   | yes               |
@@ -414,7 +414,7 @@ listed order; first match wins.
 
 **Sync exclusions (preserved from spec 088 §5 / spec 108 translator).**
 The substrate does **not** ingest `Factory Agent/Orchestrator/scripts/`
-(Python runtime scripts and binary deck assets — GoA-only distribution
+(Python runtime scripts and binary deck assets — org-specific distribution
 tooling, not part of the generalisable factory contract surface). The
 substrate's text-only body columns (§2.1) are sufficient because
 binary content is out of sync scope. If a future spec needs to sync
@@ -527,12 +527,12 @@ resolved within that origin first, falling back to other origins only
 if the process explicitly opts in. Default behaviour: process-local
 resolution, no cross-origin fallback.
 
-A process originating from `goa-software-factory` resolves
+A process originating from `legacy-factory` resolves
 `business-requirements` against rows where
-`origin='goa-software-factory'`. A user-authored process that lists
+`origin='legacy-factory'`. A user-authored process that lists
 `business-requirements` resolves against `origin='user-authored'`
 first, then declines if not found — it does **not** silently fall
-through to `goa-software-factory`. This prevents accidental
+through to `legacy-factory`. This prevents accidental
 override-by-collision.
 
 ### 6.3 Per-skill tier ceiling
@@ -580,7 +580,7 @@ its orchestration files.
 
 | Adapter | Orchestration source | Scaffold source |
 |---|---|---|
-| `aim-vue-node` | `goa-software-factory` (subpath `Factory Agent/`) | `aim-vue-node-template` (subpath `orchestration/` mirrored, scaffold tree clone-at-create) |
+| `acme-vue-node` | `legacy-factory` (subpath `Factory Agent/`) | `acme-vue-node-template` (subpath `orchestration/` mirrored, scaffold tree clone-at-create) |
 | `next-prisma` | `oap-next-prisma` (or `oap-self` subpath) | `oap-next-prisma-scaffold` (or `oap-self` subpath) |
 | `rust-axum` | `oap-rust-axum` (or `oap-self` subpath) | `oap-rust-axum-scaffold` (or `oap-self` subpath) |
 | `encore-react` | `oap-encore-react` (or `oap-self` subpath) | `oap-encore-react-scaffold` (or `oap-self` subpath) |
@@ -593,7 +593,7 @@ sub-path is extracted into a separate repo and the org's
 ### 7.2 Adapter manifest changes
 
 The adapter manifest's `template_remote` field (today only set for
-`aim-vue-node`) is replaced by:
+`acme-vue-node`) is replaced by:
 
 ```yaml
 orchestration_source_id: oap-next-prisma     # required
@@ -775,7 +775,7 @@ template side); the wire shape is preserved byte-stable.
 > deficiencies — and the same-day follow-on commit that closed them —
 > are documented after each criterion below.
 
-- **SC-001 (substrate fidelity):** A sync of `goa-software-factory`
+- **SC-001 (substrate fidelity):** A sync of `legacy-factory`
   produces `factory_artifact_substrate` rows whose `effective_body` content
   hashes equal the upstream file hashes byte-for-byte. No file is
   dropped; no synthetic categorisation reshapes content.
@@ -808,7 +808,7 @@ template side); the wire shape is preserved byte-stable.
   after upstream has moved on. Verified by hash equality on
   rendered prompt strings, not just artifact bodies.
 
-- **SC-004 (OAP-native parity):** All four adapters (`aim-vue-node`,
+- **SC-004 (OAP-native parity):** All four adapters (`acme-vue-node`,
   `next-prisma`, `rust-axum`, `encore-react`) pass
   `scaffoldReadiness.ts` and can scaffold a buildable project.
   No adapter is silently rejected by the runtime gate.
@@ -817,7 +817,7 @@ template side); the wire shape is preserved byte-stable.
     zero production callers; the three OAP-native adapter trees never
     entered the substrate organically.
   - _Post-close gap (Part 2):_ `projection.ts::buildAdapter` was
-    hardcoded to emit a single synthetic `aim-vue-node` row from
+    hardcoded to emit a single synthetic `acme-vue-node` row from
     template-origin content, so even when OAP-native adapter manifests
     were in the substrate they would not surface in the legacy
     `factory_adapters` wire shape; A count would stay at 1.
@@ -828,7 +828,7 @@ template side); the wire shape is preserved byte-stable.
     `kind='adapter-manifest'` substrate row (parsed YAML manifest +
     companion patterns/agents/invariants exposed via `__companion`).
     Updated `countByLegacyKind` to count adapter-manifest rows in
-    addition to the synthetic aim-vue-node count. Adapter source root
+    addition to the synthetic acme-vue-node count. Adapter source root
     resolves via `OAP_NATIVE_ADAPTERS_DIR` env var with walk-up
     fallback to `_tmp/factory/adapters/` (mirrors the
     `OAP_FACTORY_SCHEMAS_DIR` pattern). Per-adapter readiness in
@@ -838,7 +838,7 @@ template side); the wire shape is preserved byte-stable.
     replaced by `orchestration_source_id` + `scaffold_source_id` for
     every adapter, but Phase 2's rename only landed for the OAP-native
     trio (`next-prisma`, `rust-axum`, `encore-react`) via
-    `oapNativeSanitise.ts:96`. The synthetic `aim-vue-node` adapter
+    `oapNativeSanitise.ts:96`. The synthetic `acme-vue-node` adapter
     that `projection.ts::buildAdapter` emits from template-origin
     substrate rows still carried `template_remote` only, and five
     downstream consumers (scheduler, templateCache, create, scaffold
@@ -847,11 +847,11 @@ template side); the wire shape is preserved byte-stable.
     one adapter that originated `template_remote` in the first place
     never made the switch.
   - _Resolution:_ closed by spec
-    [`140-aim-vue-node-scaffold-source-id-cutover`](../140-aim-vue-node-scaffold-source-id-cutover/spec.md)
+    [`140-acme-vue-node-scaffold-source-id-cutover`](../140-acme-vue-node-scaffold-source-id-cutover/spec.md)
     (closed 2026-05-06, three commits on branch
-    `140-aim-vue-node-scaffold-source-id-cutover`). Both projection
+    `140-acme-vue-node-scaffold-source-id-cutover`). Both projection
     paths now emit the §7.2 trio sourced from a single
-    `OAP_NATIVE_ADAPTERS["aim-vue-node"]` constant; the de-dup priority
+    `OAP_NATIVE_ADAPTERS["acme-vue-node"]` constant; the de-dup priority
     in `projectSubstrateToLegacy` is flipped so the `oap-self`
     `adapter-manifest` row wins on collision; the scaffold layer
     resolves the clone target via `factory_upstreams (org_id,
@@ -919,9 +919,9 @@ non-manifest document. This is a guard only — it does not change the
 projection or the substrate.
 
 Known follow-up (NOT in this change): for an org to actually *resolve* a
-real `aim-vue-node` manifest, the substrate must hold its spec-074
+real `acme-vue-node` manifest, the substrate must hold its spec-074
 `manifest.yaml` as an `oap-self` row. That requires (a) un-skipping
-`aim-vue-node` in `loadOapNativeAdapterSubstrateRows` (`oapNativeIngest.ts`,
+`acme-vue-node` in `loadOapNativeAdapterSubstrateRows` (`oapNativeIngest.ts`,
 the `// already in upstream sync` continue), scoped so upstream-mirrored
 orchestration/skills are not duplicated; (b) `sanitiseManifest`
 (`oapNativeSanitise.ts`) to stop deleting the `validation` block, which the

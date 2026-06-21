@@ -106,7 +106,7 @@ mod tests {
         let c = ProvenanceConfig {
             mode: FactoryProvenanceMode::Permissive,
             assumption_budget: 20,
-            reason: "CFS BRD predates spec 121".into(),
+            reason: "the example BRD predates spec 121".into(),
         };
         assert!(c.validate().is_ok());
     }

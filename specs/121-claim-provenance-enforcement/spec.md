@@ -59,7 +59,7 @@ compliance:
     # ASI01 via FR-001/FR-024 (validator + QG-13_ExternalProvenance enforce
     # that every external-entity claim cite the corpus verbatim or carry an
     # ASSUMPTION tag — directly defeats the model-prior-driven fabrication
-    # mode documented in §1's CFS forensic).
+    # mode documented in §1's example forensic).
     # ASI10 via FR-022 (citation drift detection: when extractedCorpusHash
     # changes, every DERIVED claim's quoteHash is re-validated; orphans
     # downgrade — claim-level drift detection).
@@ -71,18 +71,18 @@ compliance:
 **Feature Branch:** `121-claim-provenance-enforcement`
 **Created:** 2026-04-30
 **Status:** Draft
-**Input:** "Stage 1 fabricates IDs that look real (1GX integration, STK-13) and the cascade carries them silently into DDL, zod, and tests. Make every claim prove its source against the extraction corpus or be tagged ASSUMPTION with a named owner."
+**Input:** "Stage 1 fabricates IDs that look real (Globex integration, STK-13) and the cascade carries them silently into DDL, zod, and tests. Make every claim prove its source against the extraction corpus or be tagged ASSUMPTION with a named owner."
 
 ## 1. Problem
 
 Spec 120 closes the raw-bytes-to-typed-extraction seam. It does not enforce that anything downstream of extraction stays anchored to extracted evidence. Today's Factory Phase-1 pipeline does not enforce it either — Stage 1's `business-requirements-analyst` is a single LLM call that emits a 16-section ISO-29148 BRD with `BR-`, `STK-`, `INT-`, `UC-`, `TC-` identifiers, and the only quality gates check internal RTM closure (cross-references inside the BRD itself). They do not check that any claim is backed by extracted evidence.
 
-A forensic on the live CFS project demonstrates the consequence:
+A forensic on a live example project demonstrates the consequence:
 
-- Stage 1 minted `STK-13` (Treasury Board Integrations / 1GX Oracle ERP), `SN-022` (1GX scope), and `INT-003` (1GX integration) with a back-citation to a source that says the **opposite** ("Payment processing — Out of Scope"). No quote from the extracted corpus matches any of the three.
-- The model's training-data prior knew 1GX exists in the Government of Alberta universe, decided it belonged in scope, and produced template-shape claims indistinguishable from the legitimate ones (STK-14 Entra ID, STK-15 CNA — both with real corpus backing).
+- Stage 1 minted `STK-13` (Globex Finance Integrations / Globex Initech ERP), `SN-022` (Globex scope), and `INT-003` (Globex integration) with a back-citation to a source that says the **opposite** ("Payment processing: Out of Scope"). No quote from the extracted corpus matches any of the three.
+- The model's training-data prior knew Globex exists in an enterprise domain it had seen in training, decided it belonged in scope, and produced template-shape claims indistinguishable from the legitimate ones (STK-14 Entra ID, STK-15 Okta, both with real corpus backing).
 - Internal quality gates reported PASS because they have no concept of external provenance.
-- Stage CD then regenerated `requirements/client/project_charter.md` from the contaminated BRD, **inverting** the source charter's "Payment processing (Finance systems) — Out of Scope" into "1GX integration is in scope." The audit trail back to authored stakeholder truth was severed in a single stage.
+- Stage CD then regenerated `requirements/client/project_charter.md` from the contaminated BRD, **inverting** the source charter's "Payment processing (Finance systems): Out of Scope" into "Globex integration is in scope." The audit trail back to authored stakeholder truth was severed in a single stage.
 - By Stage 4 the fabrication had become a `payment_request` table in the DDL, a `createPaymentRequestStub` function, 7 `IntegrationPendingBanner.vue` placements in the UI, and `TC-021/TC-022` test cases that pass forever against `vendor_legal_name: 'TBD'`. Eight artifact families now treat the fabrication as production-bound work.
 
 The same shape will recur on every project. The factory's freedom to "read any format" at Stage 1 is exactly what makes fabrication invisible — closing the freedom is the structural fix.
@@ -101,7 +101,7 @@ This spec introduces the invariant: every claim that names external reality must
 - **`FAC-S1-011` rule and `QG-13` quality gate.** The Stage 1 validation log gains rule `FAC-S1-011` ("every external-entity-naming claim must have provenance") and quality gate `QG-13_ExternalProvenance`. In `STRICT` mode `QG-13` is blocking on any `REJECTED` claim. In `PERMISSIVE` mode it is warning only — used for retrofitting projects whose existing BRDs have not yet been audited. Default for new projects is `STRICT`.
 - **Cross-stage cascade for `ASSUMPTION`.** A separate artifact `assumption-only-manifest.md` lists all `ASSUMPTION`-tagged claims. Stages 4 and 5 read this manifest and emit **spec-only** artifacts for those claims — no DDL tables, no zod schemas, no service stubs, no integration banners, no test fixtures. A claim's promotion from `ASSUMPTION` to `DERIVED` happens only when (a) a citation arrives in the corpus on a subsequent run, OR (b) an operator-signed promotion record is added. Neither path is a silent re-prompt.
 - **Citation drift detection.** When the `extractedCorpusHash` (computed from the spec-120 artifact-store inventory) changes between runs, every `DERIVED` claim's `quoteHash` is re-validated against the new corpus. Citations whose quoted text no longer appears verbatim are auto-downgraded to `ASSUMPTION-orphaned` and surface in a drift report. The corresponding stage cascade reruns under the same gate.
-- **Retroactive audit mode.** The validator runs as a one-shot tool against an existing project's artifacts (without re-running the pipeline) and produces a report of every claim that would be `REJECTED` or downgraded under the rule. This lets contaminated projects (e.g., the current CFS BRD) get a clean punch list without first re-running Stage 1.
+- **Retroactive audit mode.** The validator runs as a one-shot tool against an existing project's artifacts (without re-running the pipeline) and produces a report of every claim that would be `REJECTED` or downgraded under the rule. This lets contaminated projects (e.g., the example BRD) get a clean punch list without first re-running Stage 1.
 
 ## 3. Non-Goals
 
@@ -117,9 +117,9 @@ This spec introduces the invariant: every claim that names external reality must
 
 ### User Story 1 — Stage 1 fabrication is blocked at the gate (Priority: P1)
 
-A factory run on the CFS bundle reaches Stage 1. The LLM mints, among 30 valid claims, an `STK-13` ("Treasury Board Integrations / 1GX Oracle ERP — payment system of record") with no extracted-corpus citation. The validator runs at the Stage 1 gate, detects that `STK-13`'s text names external entities `["1GX", "Oracle ERP", "Treasury Board"]`, walks the corpus for verbatim hits, finds none, and records `STK-13` with `provenanceMode: REJECTED`. `QG-13_ExternalProvenance` reports FAIL. The Stage 1 gate blocks. The factory pipeline halts at Stage 1 (per orchestrator rule 4) and surfaces the rejection in the desktop UI with a remediation prompt: "Either supply a citation by adding an authorizing artifact to the bundle and re-running, OR downgrade STK-13 to ASSUMPTION with a named owner."
+A factory run on the example bundle reaches Stage 1. The LLM mints, among 30 valid claims, an `STK-13` ("Globex Finance Integrations / Globex Initech ERP: payment system of record") with no extracted-corpus citation. The validator runs at the Stage 1 gate, detects that `STK-13`'s text names external entities `["Globex", "Initech ERP", "Globex Finance"]`, walks the corpus for verbatim hits, finds none, and records `STK-13` with `provenanceMode: REJECTED`. `QG-13_ExternalProvenance` reports FAIL. The Stage 1 gate blocks. The factory pipeline halts at Stage 1 (per orchestrator rule 4) and surfaces the rejection in the desktop UI with a remediation prompt: "Either supply a citation by adding an authorizing artifact to the bundle and re-running, OR downgrade STK-13 to ASSUMPTION with a named owner."
 
-**Why this priority:** This is the headline behaviour. Without it, fabrication still cascades through Stages 2–5 and we ship the same eight-artifact-family contamination the CFS forensic identifies. P1 because every other story is a refinement.
+**Why this priority:** This is the headline behaviour. Without it, fabrication still cascades through Stages 2–5 and we ship the same eight-artifact-family contamination the example forensic identifies. P1 because every other story is a refinement.
 
 **Independent Test:** Run a factory pipeline against a fixture bundle that exercises a mock Stage 1 emitting one fabricated claim (`STK-FAKE` naming `XYZ Corp` with no corpus backing). Assert the Stage 1 gate fails with `QG-13` FAIL, the run does not proceed to Stage 2, the desktop UI surfaces the rejection, and `provenance.json` records `STK-FAKE` as `REJECTED`.
 
@@ -134,7 +134,7 @@ A factory run on the CFS bundle reaches Stage 1. The LLM mints, among 30 valid c
 
 ### User Story 2 — `ASSUMPTION`-tagged INT-* produces no code at Stage 4/5 (Priority: P1)
 
-An `INT-003-CANDIDATE` claim is admitted as `ASSUMPTION` with `owner: "CFS Program Director (or delegate)"` and `rationale: "1GX integration plausible Phase-2 scope; pending Treasury Board IT authorization"`. The Stage 1 gate passes; Stages 2–3 process the claim spec-only (data model and API surface include placeholder records); Stage 4 reads `assumption-only-manifest.md`, recognizes `INT-003-CANDIDATE` is `ASSUMPTION`, and emits NO `payment_request` DDL, NO `createPaymentRequestStub` function, NO `IntegrationPendingBanner.vue` placements, NO `TC-021/TC-022` test fixtures. Instead it appends to a sibling `pending-promotion.md` listing what would be emitted on promotion to `DERIVED`. CI for the generated code is green; nothing references `INT-003-CANDIDATE` as a live integration.
+An `INT-003-CANDIDATE` claim is admitted as `ASSUMPTION` with `owner: "Program Director (or delegate)"` and `rationale: "Globex integration plausible Phase-2 scope; pending Globex Finance IT authorization"`. The Stage 1 gate passes; Stages 2–3 process the claim spec-only (data model and API surface include placeholder records); Stage 4 reads `assumption-only-manifest.md`, recognizes `INT-003-CANDIDATE` is `ASSUMPTION`, and emits NO `payment_request` DDL, NO `createPaymentRequestStub` function, NO `IntegrationPendingBanner.vue` placements, NO `TC-021/TC-022` test fixtures. Instead it appends to a sibling `pending-promotion.md` listing what would be emitted on promotion to `DERIVED`. CI for the generated code is green; nothing references `INT-003-CANDIDATE` as a live integration.
 
 **Why this priority:** This is the failure-mode prevention. Without it, the `ASSUMPTION` tag is decorative and code still ships. P1 because every fabrication-class claim that survives Stage 1 must be quarantined.
 
@@ -151,7 +151,7 @@ An `INT-003-CANDIDATE` claim is admitted as `ASSUMPTION` with `owner: "CFS Progr
 
 ### User Story 3 — Charter reword preserves `BR-007` (Priority: P1)
 
-A run completes; `BR-007` ("applicant must be a registered shelter society") has `anchorHash = sha256("requirement:applicant:registered-shelter-society")`. The stakeholder rewords the charter from "applicant must be a registered shelter society" to "the applying organization is required to hold registered-shelter-society status." Stage 1 reruns. The new wording's normalized concept hash is identical to the previous run's. The `id-registry.json` returns `BR-007`. Downstream Stage 4 zod schemas, Stage 5 form bindings, and `TC-` test cases that reference `BR-007` continue to point at the same requirement; cascade re-runs only re-emit the wording on the form label, not the schema or the test.
+A run completes; `BR-007` ("applicant must be a registered partner organization") has `anchorHash = sha256("requirement:applicant:registered-partner-organization")`. The stakeholder rewords the charter from "applicant must be a registered partner organization" to "the applying organization is required to hold registered-partner-organization status." Stage 1 reruns. The new wording's normalized concept hash is identical to the previous run's. The `id-registry.json` returns `BR-007`. Downstream Stage 4 zod schemas, Stage 5 form bindings, and `TC-` test cases that reference `BR-007` continue to point at the same requirement; cascade re-runs only re-emit the wording on the form label, not the schema or the test.
 
 **Why this priority:** Without anchor stability, every charter reword renumbers `BR-NNN` and the cascade re-emits the entire DDL/zod/test set. Hand-fixes downstream are obliterated. P1 because the loop is unusable in practice if every reword is a full reset.
 
@@ -159,20 +159,20 @@ A run completes; `BR-007` ("applicant must be a registered shelter society") has
 
 **Acceptance Scenarios:**
 
-1. **Given** a claim minted by Stage 1 with text "the applying organization is required to hold registered-shelter-society status", **When** the validator computes `anchorHash`, **Then** it normalizes the text (lowercase, strip articles/connectives, sort terms in canonical order, drop modal verbs) before sha256, producing the same hash as for the original wording.
+1. **Given** a claim minted by Stage 1 with text "the applying organization is required to hold registered-partner-organization status", **When** the validator computes `anchorHash`, **Then** it normalizes the text (lowercase, strip articles/connectives, sort terms in canonical order, drop modal verbs) before sha256, producing the same hash as for the original wording.
 2. **Given** an `id-registry.json` with `sha256:abc... → BR-007`, **When** Stage 1 emits a claim with the matching `anchorHash`, **Then** the validator assigns `BR-007` to the new claim, NOT a fresh ID, and records `regeneratedAt` on the registry entry.
 3. **Given** a genuinely-new concept appears in Stage 1 output, **When** the validator computes its `anchorHash`, **Then** the registry assigns the next free `BR-NNN`, and the new entry's `firstMintedAt` is recorded.
 4. **Given** two claims minted in the same run produce the same `anchorHash` (collision), **When** the validator detects the collision, **Then** Stage 1 fails with `provenance.duplicate_anchor` carrying both claim texts; the operator must split or merge before the gate passes.
 
 ---
 
-### User Story 4 — Retroactive audit on contaminated CFS BRD (Priority: P2)
+### User Story 4 — Retroactive audit on contaminated example BRD (Priority: P2)
 
-The current CFS project has a contaminated BRD (`STK-13`, `INT-003`, `OPEN-004`, possibly more). The operator runs `provenance-validator audit --project cfs-emergency-family-violence-services-funding-request-portal` without re-running Stage 1. The tool reads the existing BRD, reads the existing extraction corpus (or builds one from the project's `.artifacts/extracted/` if spec 120 has not yet been retrofitted), and produces `requirements/audit/retroactive-provenance-report.md` listing every claim that would be `REJECTED` under the rule, every borderline claim (single weak hit, fuzzy match), and every `ASSUMPTION` candidate. No code is regenerated; the report is the deliverable.
+The example project has a contaminated BRD (`STK-13`, `INT-003`, `OPEN-004`, possibly more). The operator runs `provenance-validator audit --project acme-example-portal` without re-running Stage 1. The tool reads the existing BRD, reads the existing extraction corpus (or builds one from the project's `.artifacts/extracted/` if spec 120 has not yet been retrofitted), and produces `requirements/audit/retroactive-provenance-report.md` listing every claim that would be `REJECTED` under the rule, every borderline claim (single weak hit, fuzzy match), and every `ASSUMPTION` candidate. No code is regenerated; the report is the deliverable.
 
-**Why this priority:** The contaminated CFS BRD already exists. Forcing a full Stage 1 rerun to discover what's wrong is expensive and delete-and-restart is worse. P2 because new projects benefit from the gate from day one and don't need the audit; existing projects need this once.
+**Why this priority:** The contaminated example BRD already exists. Forcing a full Stage 1 rerun to discover what's wrong is expensive and delete-and-restart is worse. P2 because new projects benefit from the gate from day one and don't need the audit; existing projects need this once.
 
-**Independent Test:** Run `provenance-validator audit` against the current CFS project. Assert the report (a) names `STK-13`, `INT-003`, `SN-022` as `REJECTED`, (b) lists their detected external entities and zero corpus hits, (c) names borderline claims (e.g., single-source citations with weak matches), (d) totals a count of REJECTED + borderline + ASSUMPTION candidates, (e) does NOT modify any artifact.
+**Independent Test:** Run `provenance-validator audit` against the example project. Assert the report (a) names `STK-13`, `INT-003`, `SN-022` as `REJECTED`, (b) lists their detected external entities and zero corpus hits, (c) names borderline claims (e.g., single-source citations with weak matches), (d) totals a count of REJECTED + borderline + ASSUMPTION candidates, (e) does NOT modify any artifact.
 
 **Acceptance Scenarios:**
 
@@ -324,7 +324,7 @@ A project has `BR-031` `DERIVED` from `extracted/Business Case.docx.txt` lines 2
 
 ### Measurable Outcomes
 
-- **SC-001**: Running the validator on the current CFS BRD in `audit` mode reports `STK-13`, `INT-003`, and `SN-022` as `REJECTED`. Verified by a fixture pinned to the current CFS state.
+- **SC-001**: Running the validator on the synthetic fabrication BRD in `audit` mode reports `STK-13`, `INT-003`, and `SN-022` as `REJECTED`. Verified by the synthetic `payment-scope-fabrication` fixture.
 - **SC-002**: A fault-injected Stage 1 mock that emits a fabricated claim (entity not in allowlist, no citation) is blocked at the gate in `STRICT` mode 100% of the time. The pipeline does NOT advance to Stage 2. Verified by an integration test with a fake LLM transport.
 - **SC-003**: An `ASSUMPTION`-tagged `INT-*` claim produces zero references in generated DDL, services, UI, and tests across a fixture project. The `assumption-only-manifest-honored` CI check confirms this.
 - **SC-004**: Re-running Stage 1 on a project whose charter has been reworded (concept unchanged) preserves all `BR-NNN` IDs from the prior run. Verified by a fixture comparing `id-registry.json` before/after.
@@ -335,7 +335,7 @@ A project has `BR-031` `DERIVED` from `extracted/Business Case.docx.txt` lines 2
 - **SC-009**: Anchor-hash collision detection FAILs Stage 1 with `provenance.duplicate_anchor` carrying both claim texts. Verified by fixture.
 - **SC-010**: The validator is byte-deterministic: two runs against the same inputs produce identical `provenance.json` files. Verified by a property test.
 - **SC-011**: Schema parity check (extended from spec 120) FAILs CI on any drift between `provenance.rs` and its TS mirror. Verified by deliberate-drift regression test.
-- **SC-012**: `provenance-validator audit` on a legacy-corpus project (no spec-120 artifacts) produces a report with `synthesizedCorpus: true` flagged in the header and approximately-correct findings. Verified against a frozen CFS snapshot.
+- **SC-012**: `provenance-validator audit` on a legacy-corpus project (no spec-120 artifacts) produces a report with `synthesizedCorpus: true` flagged in the header and approximately-correct findings. Verified against a frozen synthetic snapshot.
 
 ## 7. Open Decisions
 
@@ -358,7 +358,7 @@ A project has `BR-031` `DERIVED` from `extracted/Business Case.docx.txt` lines 2
 - `crates/factory-engine/skills/business-requirements-analyst.md` — annotated with the new validation expectations (Stage 1 MUST emit citations alongside claims).
 - `platform/services/stagecraft/api/governance/provenancePolicy.ts` — reserved path for future TS mirror; the schema parity check from spec 120 extends to cover it.
 - `requirements/audit/retroactive-provenance-report.md` (per-project, audit-mode only) — output path reserved.
-- Forensic record: `_tmp/cfs-1gx-fabrication-forensic.md` (operator's local copy at `/Users/bart/Dev2/cfs-emergency-family-violence-services-funding-request-portal/requirements/debug/Forensic-Analysis_1GX-Integration-Scope-Provenance.md`) — the in-the-wild contamination this spec prevents.
+- Forensic record: `_tmp/acme-fabrication-forensic.md` (operator's local copy at `acme-example-portal/requirements/debug/Forensic-Analysis_ACME-Integration-Scope-Provenance.md`) — the in-the-wild contamination this spec prevents.
 - Spec 120 — typed extraction corpus this validator cites against.
 - Spec 075 — factory-workflow-engine; gate machinery this validator plugs into.
 - Spec 091 — registry-enrichment; eventual home for cross-project `provenance.json` aggregation.

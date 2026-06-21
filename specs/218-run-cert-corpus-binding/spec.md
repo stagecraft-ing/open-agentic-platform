@@ -70,12 +70,12 @@ re-merged.
 
 This spec depends on a data contract owned by a spec in a different corpus: the
 spec-spine ledger-seal spec (filed as `023-ledger-seal` in
-`/Users/bart/DevWork/spec-spine`). That spec owns `CorpusAttestation`, its
+`Work/spec-spine`). That spec owns `CorpusAttestation`, its
 `attestation_hash` shape, and the `verify-attestation` verifier. This OAP spec
 references that hash shape only. The dependency is a data-contract dependency on
 the hash format, not a spec-registry edge: it is intentionally NOT listed in
 `depends_on` (which carries OAP-corpus ids only), and is tracked here in prose
-exactly as spec 209 tracks its template-encore closing legs (spec 209 §refines
+exactly as spec 209 tracks its template closing legs (spec 209 §refines
 note). The cross-repo verifier handoff is recorded in
 `docs/adr/0002-governance-certificate-vended-distributable.md`.
 

@@ -73,7 +73,7 @@ Make Factory a first-class platform feature owned by stagecraft:
    channel that powers workspace sync (`api/sync/duplex.ts`).
 6. **Supersede spec 088** — upstream-map is no longer a YAML file but a
    database-backed config owned by an organisation. The translation protocol
-   itself (how to map `goa-software-factory/*` onto adapters/contracts/
+   itself (how to map `legacy-factory/*` onto adapters/contracts/
    processes) is retained — only the storage layer and trigger mechanism
    change.
 
@@ -90,9 +90,9 @@ Added to `platform/services/stagecraft/api/db/schema.ts`:
 // Replaces upstream-map.yaml.
 factory_upstreams (
   org_id           uuid pk  references organizations(id),
-  factory_source   text not null,  // e.g. "GovAlta-Pronghorn/goa-software-factory"
+  factory_source   text not null,  // e.g. "Stagecraft-ing/legacy-factory"
   factory_ref      text not null default 'main',
-  template_source  text not null,  // e.g. "GovAlta-Pronghorn/template"
+  template_source  text not null,  // e.g. "Stagecraft-ing/template"
   template_ref     text not null default 'main',
   last_synced_at   timestamptz,
   last_sync_sha    jsonb,  // { factory: "abc…", template: "def…" }
@@ -106,7 +106,7 @@ factory_upstreams (
 factory_adapters (
   id          uuid pk default gen_random_uuid(),
   org_id      uuid not null references organizations(id),
-  name        text not null,         // e.g. "aim-vue-node"
+  name        text not null,         // e.g. "acme-vue-node"
   version     text not null,         // upstream tag or sha
   manifest    jsonb not null,        // adapter manifest body
   source_sha  text not null,         // upstream commit sha

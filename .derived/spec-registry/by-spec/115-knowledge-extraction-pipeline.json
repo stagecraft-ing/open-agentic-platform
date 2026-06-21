@@ -142,6 +142,6 @@
     "summary": "Replaces the manual click-through `imported → extracting → extracted` state walk with an automatic, agent-aware extraction pipeline. On upload-confirm and on connector sync the worker dispatches by mime type to a deterministic fast path (plain text, markdown, structured JSON, PDFs with embedded text) or to an LLM-backed extractor (image-only PDFs, scans, images, audio). The extractor writes a typed `extraction_output` payload (text, pages, outline, language, metadata, model provenance), advances state through `extracting → extracted`, audits the run, and surfaces failures as a recoverable state with retry. The dashboard's manual \"Advance to extracting/extracted\" buttons are retired in favour of observational status with a Retry action on failed objects.\n",
     "title": "Knowledge Extraction Pipeline"
   },
-  "shardHash": "73ed398582e869711f0b3c82df795188466b035b19e3e176297196a09ba59574",
+  "shardHash": "e04a64bdc6ac60846d480aaec02d92c4a24049ad176c3182ef6741baa362c458",
   "specVersion": "1.1.0"
 }

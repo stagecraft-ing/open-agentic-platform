@@ -10,20 +10,20 @@ created: "2026-06-09"
 authors: ["open-agentic-platform"]
 language: en
 summary: >
-  Move the stagecraft factory sync off the retired goa-software-factory layout
-  and make it a thin CONSUMER of the owned factory-encore/template-encore
+  Move the stagecraft factory sync off the retired legacy-factory layout
+  and make it a thin CONSUMER of the owned factory/template
   sources. Stagecraft stores upstream content verbatim in the substrate and
   serves it by kind and by the adapter's own (schema-validated) manifest — it
   stops TRANSLATING content OAP authors and controls. Adapter identity comes
-  from the manifest (aim-vue-encore self-declares), substrate origin derives
+  from the manifest (acme-vue-encore self-declares), substrate origin derives
   from the configured source, and the categorical "7-stage-build" projection —
   a stagecraft invention with no contract backing, coupled to the dead
   `Factory Agent/` directory shape — is retired. Process content is served
   opaque by kind; the run's governance lives in the admission envelope
   (spec 198), which this spec consumes. No backward compatibility is preserved;
-  factory-encore/template-encore are the baseline.
+  factory/template are the baseline.
 code_aliases: ["FACTORY_THIN_CONSUMER_SYNC"]
-amends: ["075-factory-workflow-engine", "112-factory-project-lifecycle", "124-opc-factory-run-platform-integration", "139-factory-artifact-substrate", "140-aim-vue-node-scaffold-source-id-cutover", "141-aim-vue-node-source-id-template-name-alignment"]
+amends: ["075-factory-workflow-engine", "112-factory-project-lifecycle", "124-opc-factory-run-platform-integration", "139-factory-artifact-substrate", "140-acme-vue-node-scaffold-source-id-cutover", "141-acme-vue-node-source-id-template-name-alignment"]
 depends_on:
   - "198-factory-governance-envelope"
   - "139-factory-artifact-substrate"
@@ -56,19 +56,19 @@ supersedes:
       wire shape and its translation layer (projection.ts buildProcess /
       buildAdapter). Storage was already retired by spec 139; this retires the
       read-time translation that 139 kept for compat.
-  - spec: "140-aim-vue-node-scaffold-source-id-cutover"
+  - spec: "140-acme-vue-node-scaffold-source-id-cutover"
     scope: partial
     note: >
       Retires §2.2's manifest-carried flat scaffold_source_id (injected at
       ingest by the sanitise layer this spec removes). Replaced by
       resolution-at-admission from the manifest's org-agnostic
       scaffold.source.remote (FR-009).
-  - spec: "141-aim-vue-node-source-id-template-name-alignment"
+  - spec: "141-acme-vue-node-source-id-template-name-alignment"
     scope: partial
     note: >
       Retires §2.1's scaffold_source_id ↔ template.json::templateName
       alignment doctrine. templateName reverts to the template's own name
-      (template-encore); the org-scoped source id is resolved at admission,
+      (template); the org-scoped source id is resolved at admission,
       never carried by upstream content.
 references:
   - role: consumer
@@ -87,13 +87,13 @@ references:
 **Created**: 2026-06-09
 **Status**: Draft
 **Input**: After repointing the factory upstreams to the owned
-`GovAlta-Pronghorn/factory-encore` + `template-encore` repos, the stagecraft
+`Stagecraft-ing/factory` + `template` repos, the stagecraft
 Factory UI shows: Processes count `0` with an empty `7-stage-build` body; the
-Adapters tab fails to load `aim-vue-node` with an internal (500) error; the
-Create New Project adapter dropdown shows a stale `aim-vue-node`. A full
-current-state investigation (`docs/analysis/factory-encore-sync-current-state.md`,
+Adapters tab fails to load `acme-vue-node` with an internal (500) error; the
+Create New Project adapter dropdown shows a stale `acme-vue-node`. A full
+current-state investigation (`docs/analysis/factory-sync-current-state.md`,
 2026-06-09) established a single structural cause: stagecraft still **translates**
-content OAP now **owns**, against the retired `goa-software-factory` directory
+content OAP now **owns**, against the retired `legacy-factory` directory
 layout, while the verbatim-mirror substrate that makes that translation
 unnecessary already exists underneath it.
 
@@ -111,7 +111,7 @@ the open standard never defined.
 
 Non-negotiables fixed before drafting (operator decisions, 2026-06-09):
 
-- **No backward compatibility.** factory-encore/template-encore are the
+- **No backward compatibility.** factory/template are the
   baseline. Current shapes are baseline, not sacred — streamline freely.
 - **Thin consumer, full cutover.** Retire the legacy projection translation
   rather than repointing its predicates.
@@ -136,25 +136,25 @@ it exists only because nothing constrained the input. Define the standard
 
 ## Problem statement (current state)
 
-Authoritative detail: `docs/analysis/factory-encore-sync-current-state.md`.
+Authoritative detail: `docs/analysis/factory-sync-current-state.md`.
 Condensed:
 
-1. **Static origin ids.** `DEFAULT_FACTORY_ORIGIN = "goa-software-factory"`,
-   `DEFAULT_TEMPLATE_ORIGIN = "aim-vue-node"`
+1. **Static origin ids.** `DEFAULT_FACTORY_ORIGIN = "legacy-factory"`,
+   `DEFAULT_TEMPLATE_ORIGIN = "acme-vue-node"`
    (`translator.ts:703-705` ← `oapNativeAdapters.ts:49,53`) do not track the
    configured source. Repointing the GitHub URL leaves a factually-wrong origin
    label on every substrate row.
 2. **Process is a stagecraft invention with no contract schema.**
    `projection.ts::buildProcess` (lines 225-325) re-buckets factory rows using
    old `Factory Agent/…` path predicates (reads `row.path`, not stored `kind`).
-   factory-encore's `process/stages/*.md` match none → empty
+   factory's `process/stages/*.md` match none → empty
    `{orchestrator:null, stages:[], agents:{…empty}, references:[]}`. The
    `"7-stage-build"` name + shape exist only at `translator.ts:249` and
    `projection.ts:305`.
 3. **Real adapter dropped; broken synthetic served.**
-   `projection.ts::buildAdapter` hardcodes `name:"aim-vue-node"` and emits a
+   `projection.ts::buildAdapter` hardcodes `name:"acme-vue-node"` and emits a
    manifest with **no `schema_version`** → `getAdapter` rejects with
-   `APIError.internal` (`browse.ts:109-124`). The real `aim-vue-encore` manifest
+   `APIError.internal` (`browse.ts:109-124`). The real `acme-vue-encore` manifest
    (which carries `schema_version`) lands under the factory origin, which no
    adapter builder reads. `opcBundle.ts:329-365` ships the broken manifest +
    empty process to the OPC desktop with **no** `schema_version` guard.
@@ -175,20 +175,20 @@ synthesize content. Permitted derivations: content-addressed identity, `kind`
 classification, per-org `user_body` overrides, and the admission validation
 defined by spec 198 (enforcement, not compensation — see P-1).
 
-### FR-002 — Adapter identity from the manifest (retire the synthetic `aim-vue-node`)
+### FR-002 — Adapter identity from the manifest (retire the synthetic `acme-vue-node`)
 
 Adapters served by `/api/factory/adapters` (list + detail) MUST derive from
 `adapter-manifest`-kinded substrate rows regardless of origin; `name`,
-`version`, and manifest come from the parsed manifest YAML (factory-encore
-self-declares `aim-vue-encore` + `schema_version: "1.0.0"`). The synthetic
-`aim-vue-node` (`projection.ts::buildAdapter`) and the `name:"aim-vue-node"`
+`version`, and manifest come from the parsed manifest YAML (factory
+self-declares `acme-vue-encore` + `schema_version: "1.0.0"`). The synthetic
+`acme-vue-node` (`projection.ts::buildAdapter`) and the `name:"acme-vue-node"`
 literal (`translator.ts:340`) MUST be removed. `getAdapter`'s `schema_version`
 guard stays (it now passes).
 
 ### FR-003 — Substrate origin derives from the configured source
 
 `DEFAULT_FACTORY_ORIGIN` / `DEFAULT_TEMPLATE_ORIGIN` MUST stop being static
-constants from `AIM_VUE_NODE_CONFIG`. The origin written to substrate rows MUST
+constants from the legacy scaffold config. The origin written to substrate rows MUST
 derive from the configured `factory_upstreams` source; the read path
 (`loadSubstrateForOrg`) MUST resolve origins from configuration. The prune key
 `(orgId, origin, path)` is already origin-parameterized; this removes the
@@ -233,22 +233,22 @@ render the new shapes.
 - Retired example-adapter ingest (`oapNativeIngest` reading
   `_tmp/factory/adapters/`; `next-prisma`/`rust-axum`/`encore-react` in
   `OAP_NATIVE_ADAPTERS`) removed.
-- `moduleCatalog.ts` reconciled against template-encore's actual `modules/`
+- `moduleCatalog.ts` reconciled against template's actual `modules/`
   (or its staleness documented if kept as a validator).
 - `adapter-scopes.json` regenerated as a **derived projection** of the
-  admitted `aim-vue-encore` sub-envelope (spec 198 FR-012): identity + Encore
+  admitted `acme-vue-encore` sub-envelope (spec 198 FR-012): identity + Encore
   output layout flow from the manifest's `governance:` section, never from
   hand-editing. (Until the first admission runs, an interim hand-regeneration
-  to the `aim-vue-encore` identity is acceptable, marked as such.)
+  to the `acme-vue-encore` identity is acceptable, marked as such.)
 - CLAUDE.md's `api/factory/process-stages/*` reference (never created) removed.
 
 ### FR-008 — Classification works for the owned layout without legacy coupling
 
-`classifyArtifactKind` MUST classify factory-encore's 3-layer layout correctly
+`classifyArtifactKind` MUST classify factory's 3-layer layout correctly
 without `Factory Agent/…` dependence; the orchestrator
 (`process/agents/pipeline-orchestrator.md`) MUST be recognizable as the pipeline
 orchestrator. `FACTORY_SOURCE_EXCLUDES` / `TEMPLATE_EXCLUDES` MUST be reviewed
-against the owned repos and stripped of dead goa-only entries.
+against the owned repos and stripped of dead org-specific entries.
 
 ### FR-009 — Preserve the factory↔template split; scaffold source resolved at admission
 
@@ -270,13 +270,13 @@ org-scoped id is org configuration and never enters the open contract (spec
 
 ## Acceptance criteria
 
-- **AC-1 (empty process).** Process content served reflects factory-encore's
+- **AC-1 (empty process).** Process content served reflects factory's
   actual `process/**` by kind; no empty `7-stage-build`, no `Factory Agent/`
   dependence. (FR-004, FR-008)
-- **AC-2 (adapter 500).** `GET /api/factory/adapters/aim-vue-encore` returns the
-  parsed manifest (with `schema_version`), 200; no `aim-vue-node` served.
+- **AC-2 (adapter 500).** `GET /api/factory/adapters/acme-vue-encore` returns the
+  parsed manifest (with `schema_version`), 200; no `acme-vue-node` served.
   (FR-002, FR-005)
-- **AC-3 (stale dropdown).** The Create dropdown lists `aim-vue-encore`
+- **AC-3 (stale dropdown).** The Create dropdown lists `acme-vue-encore`
   (manifest-sourced). (FR-002, FR-006)
 - **AC-4 (origin honesty).** Substrate rows carry an origin derived from the
   configured source; a repoint updates it; a third-party origin id is not
@@ -284,7 +284,7 @@ org-scoped id is org configuration and never enters the open contract (spec
 - **AC-5 (desktop integrity + admission).** The OPC bundle never ships a
   manifest lacking `schema_version`; content from a non-admitted factory (per
   spec 198) is not served/bound. (FR-006)
-- **AC-6 (no translation remains).** `git grep` for `aim-vue-node`,
+- **AC-6 (no translation remains).** `git grep` for `acme-vue-node`,
   `7-stage-build`, `Factory Agent/` in stagecraft source returns only history;
   `projection.ts` translation, the synthetic adapter, `oapNativeSanitise`, and
   the dead example-adapter ingest are gone. (FR-001/004/005/007)
@@ -320,25 +320,25 @@ org-scoped id is org configuration and never enters the open contract (spec
 
 ## Cross-repo coordination
 
-- **factory-encore** ships the `aim-vue-encore` manifest with `schema_version`
+- **factory** ships the `acme-vue-encore` manifest with `schema_version`
   AND files a conformant governance envelope (spec 198) — the latter is the
   admission precondition this spec's serve/bind path enforces. Closes spec
-  197's deferred adapter rename (`aim-vue-node` → `aim-vue-encore`) on the
+  197's deferred adapter rename (`acme-vue-node` → `acme-vue-encore`) on the
   stagecraft side.
-- **template-encore**: the adapter's manifest-declared scaffold source points
+- **template**: the adapter's manifest-declared scaffold source points
   at it (FR-009), and its `template.json::templateName` reverts to its own
-  true name `template-encore` (plus the matching zod default in
+  true name `template` (plus the matching zod default in
   `scripts/lib/template-json.ts`) — the spec-141 alignment doctrine is retired
   by this spec. Authoring dispatched 2026-06-09; merge-safe anytime (nothing
   in stagecraft runtime-reads `templateName`).
 - Sequencing (migration memory `project-template-lineage-research`): lands after
-  the factory-encore POC finalize + Windows handoff settle the owned-repo shape.
+  the factory POC finalize + Windows handoff settle the owned-repo shape.
 
 ## Implementation log
 
 - **2026-06-11 — FR-007 module-catalog cutover; implementation: complete.**
   The last FR-007 hygiene item lands: stagecraft's `moduleCatalog.ts` (and
-  the Create form's inline mirror) now reflect template-encore's real
+  the Create form's inline mirror) now reflect template's real
   `modules/` catalog — five modules, manifest-truthful descriptions,
   empty profile built-ins/presets (profiles select AUTH_DRIVER; modules
   are opt-in `--with` composition), retired `auth-*`/`session-store-*`/
@@ -354,23 +354,23 @@ org-scoped id is org configuration and never enters the open contract (spec
 - **2026-06-11 — first real (and first sealed) ADMIT; runtime-AC evidence.**
   After the FR-014 signing cutover (spec 198 implementation log, same date),
   an org re-sync produced a sealed `admitted` record (0 violations) for
-  `GovAlta-Pronghorn/factory-encore` at sha `cc1139f…`. Evidence against the
+  `Stagecraft-ing/factory` at sha `cc1139f…`. Evidence against the
   runtime ACs: **AC-1** — the factory origin's substrate carries
   `governance-envelope` (1), `process-stage` (8), `adapter-manifest` (1),
   agents (14 digests in the seal), all served by kind; no synthetic
   projection. **AC-4** — origins are `legacy-mixed` / `legacy-template-mixed`
   (source-derived); the stale post-rename source row
-  `aim-vue-node → GovAlta-Pronghorn/template` was deleted (audited
+  `acme-vue-node → Stagecraft-ing/template` was deleted (audited
   `factory.source.deleted`), leaving exactly the two configured sources.
-  **AC-7** — the admission's `scaffold_resolutions` binds `aim-vue-encore`
-  to `legacy-template-mixed` / `GovAlta-Pronghorn/template-encore @ main`,
+  **AC-7** — the admission's `scaffold_resolutions` binds `acme-vue-encore`
+  to `legacy-template-mixed` / `Stagecraft-ing/template @ main`,
   resolved at admission; no flat `scaffold_source_id` involved. **AC-5** —
   a sealed admission now exists for the serve/bind gate to honour
   (unevaluated/unsealed refusal verified during the cutover window).
   **AC-2/AC-3** — operator-verified in the deployed UI (2026-06-11): the
-  Adapters tab serves the parsed `aim-vue-encore` manifest at source sha
+  Adapters tab serves the parsed `acme-vue-encore` manifest at source sha
   `cc1139f…` (200, no synthetic adapter), the Create dropdown lists
-  `aim-vue-encore @ 1.0.0`, and an end-to-end Create succeeded
+  `acme-vue-encore @ 1.0.0`, and an end-to-end Create succeeded
   (test-project-01, commit #1 with seeded pipeline-state). **FR-007
   partial**: the interim hand-regenerated `adapter-scopes.json` is replaced
   by the spec-198 FR-012 derived projection (`adapter-scopes-compiler`,
@@ -378,7 +378,7 @@ org-scoped id is org configuration and never enters the open contract (spec
   same UI verification surfaced the remaining FR-007 hygiene item:
   `moduleCatalog.ts` still mirrors the retired template-distributor
   catalog (10 entries incl. express-session-era `session-store-*` and
-  module-shaped `auth-*` ids) while template-encore's real `modules/`
+  module-shaped `auth-*` ids) while template's real `modules/`
   catalog has 5 (`api-gateway`, `data-postgres`, `data-redis`,
   `security-core`, `user-management`; auth is the `AUTH_DRIVER` profile
   axis, not a module). A Create selecting a phantom module would fail at
@@ -387,27 +387,26 @@ org-scoped id is org configuration and never enters the open contract (spec
 - **2026-06-10 — AC-6 hygiene closure.** The live legacy remnants the
   AC-6 negative grep still caught after the main cutover PR (#313) are
   retired: `translator.ts::selectAdapter` no longer fabricates
-  `aim-vue-node@0.0.0` for an adapter-less org (it throws; `import.ts`
+  `acme-vue-node@0.0.0` for an adapter-less org (it throws; `import.ts`
   already guards that case with `failedPrecondition` before translating),
   `syncPipeline.ts::countByLegacyKind` stops counting the retired
   synthetic template-orchestrator adapter, and `repoInit.ts`'s
-  `VALID_ADAPTERS` carries only the manifest-declared `aim-vue-encore`.
+  `VALID_ADAPTERS` carries only the manifest-declared `acme-vue-encore`.
   Test fixtures, doc-comment examples, the stagecraft CLAUDE.md
   read-path/scheduler narratives, the factory web index tile, root
   README's adapter section, and `docs/factory/{how-to,architecture}.md`
   (historical banners) follow. Remaining matches in stagecraft source are
   history by construction: migrations 36/37, retirement notes, and the
-  explicitly historical `factory-evolution.md` /
-  `adapter-agent-examples.md`. Runtime ACs (AC-1..AC-5) stay gated on the
-  first real ADMIT after the GovAlta-side envelope merge + org re-sync —
+  explicitly historical `adapter-agent-examples.md`. Runtime ACs (AC-1..AC-5) stay gated on the
+  first real ADMIT after the Stagecraft-side envelope merge + org re-sync —
   `implementation:` stays `in-progress`.
 - **2026-06-11 — Rust-side fixture sweep (phasing item 4, FR-007).**
   The "Rust test fixtures" hygiene tail lands for `factory-engine` and
   `factory-contracts`: every LIVE test fixture, doc comment, and CLI
-  help string carrying `aim-vue-node` (or the retired example adapters
+  help string carrying `acme-vue-node` (or the retired example adapters
   `next-prisma`/`rust-axum`/`encore-react` as arbitrary names) now uses
-  the manifest-declared `aim-vue-encore`; the synthetic
-  `aim-vue-node-template` origin fixtures become `template-encore`
+  the manifest-declared `acme-vue-encore`; the synthetic
+  `acme-vue-node-template` origin fixtures become `template`
   (its true post-spec-141-retirement name); one capability-gap fixture
   uses the neutral `single-stack-example` since it deliberately models
   an incompatible adapter. Zero production-code occurrences existed
@@ -424,12 +423,12 @@ org-scoped id is org configuration and never enters the open contract (spec
   leftovers owed to specs 112/124 follow-ups.
 - **2026-06-11 — specs 112/124 fixture follow-up closed.** The owed
   leftovers land: `factory-platform-client` wire mocks use
-  `aim-vue-encore` + a neutral `second-adapter`;
+  `acme-vue-encore` + a neutral `second-adapter`;
   `factory-project-detect` current-protocol fixtures use the live
-  names (`template-encore` scaffold-only, `aim-vue-encore` ACP), while
-  its legacy-detection fixtures KEEP `aim-vue-node` deliberately (they
-  model real goa-factory-produced artifacts; the ACP-precedence test's
+  names (`template` scaffold-only, `acme-vue-encore` ACP), while
+  its legacy-detection fixtures KEEP `acme-vue-node` deliberately (they
+  model real enterprise-factory-produced artifacts; the ACP-precedence test's
   decoy now differs from the ACP adapter name, making the provenance
-  assertion meaningful). With this, `git grep aim-vue-node crates/`
+  assertion meaningful). With this, `git grep acme-vue-node crates/`
   returns only history: dead factory/-guarded tests and the
   legacy-modelling detect fixtures.

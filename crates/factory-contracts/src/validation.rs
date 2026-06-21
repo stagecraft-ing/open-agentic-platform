@@ -573,7 +573,7 @@ auth:
       roles:
         - role_code: applicant
           display_name: Applicant
-          description: A shelter applicant
+          description: A facility applicant
 data_model:
   entities:
     - name: Item
@@ -648,7 +648,7 @@ ui:
     #[test]
     fn test_parse_real_adapter_manifest_example() {
         let path = std::path::Path::new(
-            "../../factory/contract/examples/aim-vue-node.adapter-manifest.yaml",
+            "../../factory/contract/examples/acme-vue-node.adapter-manifest.yaml",
         );
         if path.exists() {
             let result = validate_adapter_manifest(path);
@@ -696,7 +696,7 @@ ui:
             assert!(result.is_ok(), "failed to parse {name}: {:?}", result.err());
         }
 
-        let manifests = ["aim-vue-node.adapter-manifest.yaml"];
+        let manifests = ["acme-vue-node.adapter-manifest.yaml"];
         for name in &manifests {
             let path = examples_dir.join(name);
             assert!(path.exists(), "example file missing: {name}");

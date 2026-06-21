@@ -7,4 +7,4 @@ jobs:
   factory-schema-lockstep:
     runs-on: ubuntu-latest
     steps:
-      - run: ./tools/oap/factory-schema-lockstep/target/release/factory-schema-lockstep --oap-dir standards/schemas/factory --factory-dir .factory-encore/contract/schemas
+      - run: ./tools/oap/factory-schema-lockstep/target/release/factory-schema-lockstep --oap-dir standards/schemas/factory --factory-dir .factory/contract/schemas

@@ -36,7 +36,7 @@ import { _resetOverrideScanPolicyCacheForTesting } from "./overrideScanPolicy";
 const ORG_NO_POLICY = "20020001-0000-0000-0000-000000000001";
 const ORG_POLICY = "20020001-0000-0000-0000-000000000002";
 const USER_ID = "20020001-0000-0000-0000-000000000003";
-const ORIGIN = "factory-encore";
+const ORIGIN = "factory";
 
 const neverInvoke: OverrideScanModelInvoker = async () => {
   throw new Error("model must not be called in this test");

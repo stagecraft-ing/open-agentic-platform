@@ -1,6 +1,6 @@
 // Spec 139 Phase 4 (T091) — substrate-direct browser.
 // Spec 199 FR-003 — origins resolve from the org's `factory_upstreams`
-// configuration (origin-from-source); the static AIM_VUE_NODE_CONFIG
+// configuration (origin-from-source); the static legacy scaffold-config
 // constants no longer reach the read path. A third-party source with its
 // own source_id is therefore never silently filtered.
 //

@@ -141,7 +141,7 @@ jobs:
               - 'platform/services/stagecraft/**'
               - '.github/workflows/ci-stagecraft-encore.yml'
             tenant_app:
-              - 'platform/charts/aim-vue-encore/**'
+              - 'platform/charts/acme-vue-encore/**'
               - '.github/workflows/ci-tenant-app.yml'
 
   # ─── routed by paths-filter ────────────────────────────────────────────
@@ -185,8 +185,8 @@ jobs:
   factory-schema-lockstep:
     needs: changes
     if: github.event_name != 'push' && needs.changes.outputs.factory_schema_lockstep == 'true'
-    # secrets: inherit passes FACTORY_ENCORE_RO_TOKEN to the reusable lane (the
-    # private factory-encore fetch); the lane is fail-visible without it.
+    # secrets: inherit passes UPSTREAM_SOURCES_RO_TOKEN to the reusable lane (the
+    # private factory fetch); the lane is fail-visible without it.
     uses: ./.github/workflows/ci-factory-schema-lockstep.yml
     secrets: inherit
 

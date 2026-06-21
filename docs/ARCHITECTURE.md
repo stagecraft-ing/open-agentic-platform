@@ -69,7 +69,7 @@ manifest content is materialised at runtime via the substrate.
 
 | Adapter | Stack |
 |---------|-------|
-| `aim-vue-node` | Express 5 + Vue 3 |
+| `acme-vue-node` | Express 5 + Vue 3 |
 | `next-prisma` | Next.js 15 + Prisma 5 |
 | `rust-axum` | Axum + HTMX |
 | `encore-react` | Encore.ts + React |

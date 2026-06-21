@@ -31,7 +31,7 @@ import {
 
 const ORG_ID = "20020002-0000-0000-0000-000000000001";
 const USER_ID = "20020002-0000-0000-0000-000000000002";
-const ORIGIN = "factory-encore";
+const ORIGIN = "factory";
 const ENVELOPE_HASH = "e".padStart(64, "0");
 const OVERRIDE_HASH = "20020002a".padStart(64, "0");
 const GATE_VIOLATING_HASH = "20020002b".padStart(64, "0");

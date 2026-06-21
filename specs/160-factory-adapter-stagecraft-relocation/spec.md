@@ -77,7 +77,7 @@ summary: >
 The intent doc §8.1 records the current state honestly:
 
 > *"The four registered adapters referenced in `README.md` and `CLAUDE.md`
-> (`aim-vue-node`, `next-prisma`, `rust-axum`, `encore-react`) had their
+> (`acme-vue-node`, `next-prisma`, `rust-axum`, `encore-react`) had their
 > canonical `manifest.yaml` files in a `factory/` directory that has been
 > **removed from this repo**. The removal is part of a refactor that
 > relocates the factory / adapter machinery into stagecraft as a
@@ -145,7 +145,7 @@ follow this spec, not by spec 160 itself.
   lands does not list any legacy `factory/...` glob as a tracked
   input. The hash of the input set continues to be stable across
   recompiles.
-- **FR-005** The four adapters named in the README (`aim-vue-node`,
+- **FR-005** The four adapters named in the README (`acme-vue-node`,
   `next-prisma`, `rust-axum`, `encore-react`) are either represented
   at the new stagecraft-resident location with their manifest content
   reconstructed, **or** the README is amended to reflect their
@@ -247,7 +247,7 @@ longer hand-regenerated: its content is now the derived projection of the
 admitted adapter sub-envelope (manifest `governance:` section), produced
 by `adapter-scopes-compiler` (spec 105, amended same date) from the
 factory source checkout. First derivation ran against the sealed
-`aim-vue-encore` admission (manifest sha `57f43e1a…`). This spec's
+`acme-vue-encore` admission (manifest sha `57f43e1a…`). This spec's
 residence and indexer-hashing posture are unchanged — only the snapshot's
 provenance upgrades from authored to materialised.
 

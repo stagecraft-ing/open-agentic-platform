@@ -31,7 +31,7 @@ function baseFacts(
         process: {
           schema_version: "1.0.0",
           process: {
-            id: "factory-encore-process",
+            id: "factory-process",
             objective_class: "scaffold",
             goal_identifier_scheme: "build-spec:<project>",
           },
@@ -45,7 +45,7 @@ function baseFacts(
           overrides: { require_verified: true },
         },
         adapters: {
-          "aim-vue-encore": {
+          "acme-vue-encore": {
             governance: {
               max_tier: "tier2",
               file_write_scope: ["src/**", "package.json"],
@@ -71,7 +71,7 @@ function baseFacts(
       },
       {
         id: "row-manifest",
-        path: "adapters/aim-vue-encore/manifest.yaml",
+        path: "adapters/acme-vue-encore/manifest.yaml",
         kind: "adapter-manifest",
         contentHash: MANIFEST_HASH,
       },
@@ -108,12 +108,12 @@ describe("spec 201 FR-001 — assembleApprovalSummaryFromFacts", () => {
         artifactId: "row-manifest",
         contentHash: MANIFEST_HASH,
         kind: "adapter-manifest",
-        path: "adapters/aim-vue-encore/manifest.yaml",
+        path: "adapters/acme-vue-encore/manifest.yaml",
       },
     ]);
     // Plain language grounded in envelope facts — scopes, kinds, counts.
     expect(s.blastRadiusStatement).toContain("src/**");
-    expect(s.blastRadiusStatement).toContain("aim-vue-encore");
+    expect(s.blastRadiusStatement).toContain("acme-vue-encore");
     expect(s.blastRadiusStatement).toContain("build-spec");
     expect(s.blastRadiusStatement).toContain("1 per-org content override");
     expect(s.assembledAt).toBe("2026-06-11T12:00:00.000Z");
@@ -258,7 +258,7 @@ describe("spec 201 FR-001/FR-002 — fail-closed conditions", () => {
     const result = assembleApprovalSummaryFromFacts(facts);
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.reason).toContain("'aim-vue-encore' manifest hash");
+    expect(result.reason).toContain("'acme-vue-encore' manifest hash");
   });
 
   it("does NOT refuse on unverified overrides — that is the surface's", () => {

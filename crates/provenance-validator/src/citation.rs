@@ -421,9 +421,9 @@ mod tests {
     fn search_entity_finds_case_insensitive_hits() {
         let c = corpus_with(&[(
             "a.txt",
-            extraction_with_text("STK-13 references 1GX Oracle ERP."),
+            extraction_with_text("STK-13 references Globex Initech ERP."),
         )]);
-        let r = search_entity(&c, "1gx");
+        let r = search_entity(&c, "globex");
         assert_eq!(r.len(), 1);
         assert_eq!(r[0].hit_count, 1);
     }

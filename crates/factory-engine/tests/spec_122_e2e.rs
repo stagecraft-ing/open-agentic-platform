@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
-// Spec: specs/122-stakeholder-doc-inversion/spec.md — SC-001..SC-012
+// Spec: specs/122-stakeholder-doc-inversion/spec.md (SC-001..SC-012)
 
-//! End-to-end test for spec 122. Drives the CFS-shaped 1GX fixture
+//! End-to-end test for spec 122. Drives the synthetic Globex fixture
 //! through the full Stage CD orchestrator, exercising:
 //!
-//!   * SC-001 — scope-flip pairing via Jaccard ≥ 0.6 + classification
+//!   * SC-001: scope-flip pairing via Jaccard >= 0.6 + classification
 //!     `scope` + gate FAIL.
-//!   * SC-004 — reclassification migration on a pre-spec-122 project
+//!   * SC-004: reclassification migration on a pre-spec-122 project
 //!     shape (legacy `requirements/client/`).
 //!
 //! The remaining SC-002..SC-012 are pinned by per-module unit tests
@@ -34,7 +34,7 @@ fn fixed_now() -> DateTime<Utc> {
 
 fn fixture_root() -> PathBuf {
     let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    crate_dir.join("tests/fixtures/cfs-stage-cd-1gx")
+    crate_dir.join("tests/fixtures/payment-scope-stage-cd")
 }
 
 /// Copy a directory tree recursively into `dst`. The fixture is
@@ -58,21 +58,21 @@ fn copy_tree(src: &Path, dst: &Path) {
     }
 }
 
-/// SC-001 — replicates the CFS forensic in a pinned synthetic
+/// SC-001: replicates the example forensic in a pinned synthetic
 /// fixture. Runs Stage CD against the authored doc + supplies the
 /// pre-built candidate the fixture ships, then asserts:
 ///
 ///   1. The comparator pairs the authored `OUT-SCOPE-3` to the
-///      candidate `IN-SCOPE-7` via Jaccard similarity (≥ 0.6 over the
+///      candidate `IN-SCOPE-7` via Jaccard similarity (>= 0.6 over the
 ///      canonical token bag).
 ///   2. The diff is classified `scope` because the anchor kind
-///      changed (`OUT-SCOPE` → `IN-SCOPE`).
+///      changed (`OUT-SCOPE` to `IN-SCOPE`).
 ///   3. `QG-CD-01_StakeholderDocAlignment` returns FAIL with one
-///      blocking diff for the `OUT-SCOPE-3` → `IN-SCOPE-7` pair.
+///      blocking diff for the `OUT-SCOPE-3` to `IN-SCOPE-7` pair.
 ///   4. The pipeline does NOT advance.
 ///   5. The authored `charter.md` bytes are unchanged after the run.
 #[test]
-fn sc_001_cfs_1gx_scope_flip_blocks_gate() {
+fn sc_001_scope_flip_blocks_gate() {
     let dir = tempfile::tempdir().unwrap();
     copy_tree(&fixture_root(), dir.path());
 
@@ -107,8 +107,8 @@ fn sc_001_cfs_1gx_scope_flip_blocks_gate() {
         mode: ComparatorMode::Standard,
         now: fixed_now(),
         corpus: vec![],
-        project_name: "cfs".into(),
-        project_slug: "cfs".into(),
+        project_name: "example".into(),
+        project_slug: "example".into(),
         workspace_name: "ws".into(),
         known_owners: vec![],
     })
@@ -119,7 +119,7 @@ fn sc_001_cfs_1gx_scope_flip_blocks_gate() {
         .findings
         .iter()
         .find(|f| f.class == "scope")
-        .expect("CFS fixture must surface a scope diff");
+        .expect("synthetic fixture must surface a scope diff");
     assert_eq!(
         scope.pairing, "jaccard",
         "OUT-SCOPE-3 ↔ IN-SCOPE-7 must pair via Jaccard, not exact-anchor: {scope:?}"
@@ -134,13 +134,13 @@ fn sc_001_cfs_1gx_scope_flip_blocks_gate() {
         &diff,
         &GateConfig::default(),
         &ApprovalLedger::default(),
-        "cfs",
+        "example",
         fixed_now(),
     );
     assert_eq!(
         gate.decision,
         GateDecision::Fail,
-        "CFS scope flip must FAIL the gate"
+        "synthetic scope flip must FAIL the gate"
     );
     assert!(
         gate.blocking
@@ -160,7 +160,7 @@ fn sc_001_cfs_1gx_scope_flip_blocks_gate() {
     );
 }
 
-/// SC-001 cont. — verify that `run_stage_cd` driven end-to-end
+/// SC-001 cont.: verify that `run_stage_cd` driven end-to-end
 /// (Phase 1 candidate generation + Phase 2 comparator) surfaces a
 /// scope-class blocker when the BRD encodes a scope flip, regardless
 /// of the specific pairing path taken. The deterministic Phase 1
@@ -171,11 +171,11 @@ fn sc_001_cfs_1gx_scope_flip_blocks_gate() {
 /// gate-blocking; this test pins that whichever clause fires, the
 /// gate evaluates FAIL.
 ///
-/// The test does NOT lock the specific pairing path — that's what
+/// The test does NOT lock the specific pairing path; that's what
 /// the unit tests (`scope_when_anchor_kind_changes` for kind change,
 /// `scope_class_fires_on_body_scope_flip_phrase` for the body
-/// regex) do. This e2e test's job is to prove run_stage_cd →
-/// comparator → gate is honest under realistic generator output.
+/// regex) do. This e2e test's job is to prove run_stage_cd to
+/// comparator to gate is honest under realistic generator output.
 #[tokio::test]
 async fn sc_001_drives_through_run_stage_cd_with_synthetic_brd() {
     let dir = tempfile::tempdir().unwrap();
@@ -184,7 +184,7 @@ async fn sc_001_drives_through_run_stage_cd_with_synthetic_brd() {
     // Synthetic BRD whose `Now in scope.` body triggers the
     // scope-flip phrase regex when paired against an authored body
     // that doesn't contain the phrase.
-    let brd = "# BRD\n\n### In Scope: Payment processing finance 1GX integration\n\nNow in scope.\n";
+    let brd = "# BRD\n\n### In Scope: Payment processing finance Globex integration\n\nNow in scope.\n";
 
     let result = run_stage_cd(&StageCdInputs {
         project: dir.path().to_path_buf(),
@@ -193,8 +193,8 @@ async fn sc_001_drives_through_run_stage_cd_with_synthetic_brd() {
         brd: brd.to_string(),
         now: fixed_now(),
         corpus: vec![],
-        project_name: "cfs".into(),
-        project_slug: "cfs".into(),
+        project_name: "example".into(),
+        project_slug: "example".into(),
         workspace_name: "ws".into(),
         known_owners: vec![],
         agent_resolver: None,
@@ -209,9 +209,9 @@ async fn sc_001_drives_through_run_stage_cd_with_synthetic_brd() {
     let scope_count = diff["counts"]["scope"].as_u64().unwrap_or(0);
     assert!(
         scope_count >= 1,
-        "synthetic BRD with `In Scope: ... 1GX integration` + `Now in scope` body must produce ≥1 scope diff: {raw}"
+        "synthetic BRD with `In Scope: ... Globex integration` + `Now in scope` body must produce >=1 scope diff: {raw}"
     );
-    // Drive through gate evaluation too — SC-001 says the pipeline
+    // Drive through gate evaluation too; SC-001 says the pipeline
     // is blocked, not just that a diff is recorded.
     let parsed_diff: factory_engine::stages::stage_cd_comparator::StageCdDiff =
         serde_json::from_str(&raw).unwrap();
@@ -219,7 +219,7 @@ async fn sc_001_drives_through_run_stage_cd_with_synthetic_brd() {
         &parsed_diff,
         &GateConfig::default(),
         &ApprovalLedger::default(),
-        "cfs",
+        "example",
         fixed_now(),
     );
     assert_eq!(
@@ -229,7 +229,7 @@ async fn sc_001_drives_through_run_stage_cd_with_synthetic_brd() {
     );
 }
 
-/// SC-004 — reclassification migration on a CFS-shaped legacy project
+/// SC-004: reclassification migration on a synthetic legacy project
 /// (files under `requirements/client/`). Asserts:
 ///
 ///   1. Files move to `requirements/stakeholder/`.
@@ -237,11 +237,11 @@ async fn sc_001_drives_through_run_stage_cd_with_synthetic_brd() {
 ///      (FR-029).
 ///   3. Frontmatter carries `migrated: true`, `migratedFrom`.
 ///   4. Migration report at `requirements/audit/stakeholder-doc-
-///      migration.md` lists every section AND flags `1GX` as an
+///      migration.md` lists every section AND flags `Globex` as an
 ///      external-entity finding.
 ///   5. Re-running migration on the result returns `AlreadyMigrated`.
 #[test]
-fn sc_004_reclassification_migration_on_cfs_shape() {
+fn sc_004_reclassification_migration_on_synthetic_shape() {
     let dir = tempfile::tempdir().unwrap();
     let legacy_dir = dir.path().join("requirements/client");
     fs::create_dir_all(&legacy_dir).unwrap();
@@ -263,9 +263,9 @@ Payment processing.
         legacy_dir.join("client-document.md"),
         r#"# Client Document
 
-### 1GX Integration
+### Globex Integration
 
-The system must integrate with 1GX for payments.
+The system must integrate with Globex for payments.
 "#,
     )
     .unwrap();
@@ -274,8 +274,8 @@ The system must integrate with 1GX for payments.
         project: dir.path().to_path_buf(),
         keep_legacy: false,
         corpus: vec![],
-        project_name: "cfs".into(),
-        project_slug: "cfs".into(),
+        project_name: "example".into(),
+        project_slug: "example".into(),
         workspace_name: "ws".into(),
         now: fixed_now(),
     };
@@ -305,15 +305,15 @@ The system must integrate with 1GX for payments.
     assert!(charter.contains("migrated: true"));
     assert!(charter.contains("migratedFrom:"));
 
-    // (4) report lists 1GX
+    // (4) report lists Globex
     let report = fs::read_to_string(&report_path).unwrap();
     assert!(report.contains("# Stakeholder Doc Migration"));
     assert!(
-        report.contains("1GX"),
-        "migration report must flag 1GX as external entity: {report}"
+        report.contains("Globex"),
+        "migration report must flag Globex as external entity: {report}"
     );
 
-    // (5) idempotency — re-run is no-op
+    // (5) idempotency: re-run is no-op
     let again = migrate_stakeholder_docs(&opts).unwrap();
     assert!(matches!(again, MigrationOutcome::AlreadyMigrated { .. }));
 }

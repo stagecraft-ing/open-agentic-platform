@@ -241,7 +241,7 @@ fn spec_168_sc_001_through_005_end_to_end() {
     write_oap_kernel_source(oap_source.path());
     let tenant = tempfile::tempdir().unwrap();
 
-    let registry = AdapterRegistry::from_manifests(vec![minimal_aim_vue_encore_manifest()]);
+    let registry = AdapterRegistry::from_manifests(vec![minimal_acme_vue_encore_manifest()]);
     let cfg = FactoryEngineConfig {
         factory_root: FactoryRoot::Filesystem(PathBuf::from("factory")),
         project_path: PathBuf::from("."),
@@ -252,11 +252,11 @@ fn spec_168_sc_001_through_005_end_to_end() {
 
     let report = engine
         .emit_project_kernel(
-            "aim-vue-encore",
+            "acme-vue-encore",
             tenant.path(),
             oap_source.path(),
             vec!["apps/".into(), "packages/".into()],
-            Some("file://adapter-scopes.json#aim-vue-encore".into()),
+            Some("file://adapter-scopes.json#acme-vue-encore".into()),
             ToolchainMode::PinnedToolchain,
             "fixturecommit".into(),
         )
@@ -370,12 +370,12 @@ fn write_oap_kernel_source(root: &Path) {
     }
 }
 
-fn minimal_aim_vue_encore_manifest() -> AdapterManifest {
+fn minimal_acme_vue_encore_manifest() -> AdapterManifest {
     AdapterManifest {
         schema_version: "1.0.0".into(),
         adapter: AdapterIdentity {
-            name: "aim-vue-encore".into(),
-            display_name: "AIM Vue Node".into(),
+            name: "acme-vue-encore".into(),
+            display_name: "ACME Vue Node".into(),
             version: "0.1.0".into(),
             description: None,
         },

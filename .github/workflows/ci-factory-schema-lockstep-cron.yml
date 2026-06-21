@@ -4,9 +4,9 @@
 #
 # The against-main, human-routed companion to the pinned PR lane
 # (ci-factory-schema-lockstep.yml). The PR lane is deterministic and blocks on
-# the COMMITTED PIN; it structurally cannot see factory-encore moving ahead of
+# the COMMITTED PIN; it structurally cannot see factory moving ahead of
 # that pin. This lane runs on a schedule (+ manual dispatch), fetches
-# factory-encore@main, runs the same lockstep assertion, and on divergence
+# factory@main, runs the same lockstep assertion, and on divergence
 # OPENS or ANNOTATES a single tracking issue ("upstream drifted from pin;
 # reconcile and bump") rather than failing an unrelated PR.
 #
@@ -26,7 +26,7 @@ on:
     - cron: '0 7 * * 1'
   workflow_dispatch:
 
-# The fetch token (FACTORY_ENCORE_RO_TOKEN) is read-only and separate; this
+# The fetch token (UPSTREAM_SOURCES_RO_TOKEN) is read-only and separate; this
 # lane additionally needs issues:write to file/annotate the tracking issue.
 permissions:
   contents: read
@@ -39,7 +39,7 @@ env:
 jobs:
   factory-schema-lockstep-cron:
     runs-on: ubuntu-latest
-    name: factory-schema-lockstep / against factory-encore@main
+    name: factory-schema-lockstep / against factory@main
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
@@ -54,30 +54,35 @@ jobs:
         with:
           shared-key: factory-schema-lockstep
 
-      # Fetch factory-encore@main (NOT the pin) — this lane's whole point is to
+      # Fetch factory@main (NOT the pin) — this lane's whole point is to
       # see upstream move ahead of the committed pin. Fail-visible on a fetch
       # failure (operational, exit ≠ content divergence).
-      - name: Fetch factory-encore contract/schemas at main
+      - name: Fetch factory contract/schemas at main
         env:
-          FACTORY_ENCORE_RO_TOKEN: ${{ secrets.FACTORY_ENCORE_RO_TOKEN }}
+          UPSTREAM_SOURCES_RO_TOKEN: ${{ secrets.UPSTREAM_SOURCES_RO_TOKEN }}
+          UPSTREAM_FACTORY_SOURCE: ${{ variables.UPSTREAM_FACTORY_SOURCE }}
         run: |
           set -euo pipefail
-          if [ -z "${FACTORY_ENCORE_RO_TOKEN:-}" ]; then
-            echo "::error::FACTORY_ENCORE_RO_TOKEN is not set — cannot fetch factory-encore (fail-visible)." >&2
+          if [ -z "${UPSTREAM_SOURCES_RO_TOKEN:-}" ]; then
+            echo "::error::UPSTREAM_SOURCES_RO_TOKEN is not set — cannot fetch factory (fail-visible)." >&2
             exit 1
           fi
-          rm -rf .factory-encore
-          mkdir .factory-encore
-          cd .factory-encore
+           if [ -z "${UPSTREAM_FACTORY_SOURCE:-}" ]; then
+            echo "::error::UPSTREAM_FACTORY_SOURCE is not set — cannot resolve factory (fail-visible)." >&2
+            exit 1
+          fi
+          rm -rf .factory
+          mkdir .factory
+          cd .factory
           git init -q
-          git remote add origin "https://x-access-token:${FACTORY_ENCORE_RO_TOKEN}@github.com/GovAlta-Pronghorn/factory-encore.git"
+          git remote add origin "https://x-access-token:${UPSTREAM_SOURCES_RO_TOKEN}@${UPSTREAM_FACTORY_SOURCE}.git"
           git config core.sparseCheckout true
           git sparse-checkout init --cone
           git sparse-checkout set contract/schemas
           if ! git fetch --depth 1 origin main 2> fetch.err; then
             # Redact any leaked token before surfacing the error (defence-in-depth).
             sed 's#x-access-token:[^@]*@#x-access-token:***@#g' fetch.err >&2
-            echo "::error::cannot fetch factory-encore@main; check FACTORY_ENCORE_RO_TOKEN." >&2
+            echo "::error::cannot fetch factory@main; check UPSTREAM_SOURCES_RO_TOKEN." >&2
             exit 1
           fi
           git checkout -q FETCH_HEAD
@@ -95,7 +100,7 @@ jobs:
           set +e
           ./tools/oap/factory-schema-lockstep/target/release/factory-schema-lockstep \
             --oap-dir standards/schemas/factory \
-            --factory-dir .factory-encore/contract/schemas \
+            --factory-dir .factory/contract/schemas \
             --json > report.json 2> report.err
           code=$?
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
@@ -120,14 +125,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          title="Factory schema lockstep: factory-encore@main has drifted from pin"
+          title="Factory schema lockstep: factory@main has drifted from pin"
           body=$(printf '%s\n' \
             "The scheduled lockstep sweep found a divergence between OAP's canonical" \
-            "\`standards/schemas/factory/**\` and \`factory-encore@main\`'s" \
+            "\`standards/schemas/factory/**\` and \`factory@main\`'s" \
             "\`contract/schemas/**\`." \
             "" \
             "- Committed pin (PR lane): \`${{ steps.pin.outputs.pinned_ref }}\`" \
-            "- factory-encore@main: \`${FACTORY_ENCORE_MAIN_SHA}\`" \
+            "- factory@main: \`${FACTORY_ENCORE_MAIN_SHA}\`" \
             "" \
             "Reconcile the surfaces, then bump \`pinned_ref\` in" \
             "\`specs/212-factory-schema-lockstep-ci/spec.md\` to the new ref" \
@@ -147,7 +152,7 @@ jobs:
             gh issue comment "$existing" --body "$body"
           else
             echo "opening new drift issue"
-            gh label create "$DRIFT_LABEL" --color B60205 --description "factory-encore contract drift (spec 212)" 2>/dev/null || true
+            gh label create "$DRIFT_LABEL" --color B60205 --description "factory contract drift (spec 212)" 2>/dev/null || true
             gh issue create --title "$title" --label "$DRIFT_LABEL" --body "$body"
           fi
 
@@ -160,6 +165,6 @@ jobs:
           set -euo pipefail
           existing=$(gh issue list --state open --label "$DRIFT_LABEL" --json number --jq '.[0].number // empty')
           if [ -n "$existing" ]; then
-            gh issue comment "$existing" --body "factory-encore@main (\`${FACTORY_ENCORE_MAIN_SHA}\`) is back in lockstep with OAP's canonical contract. Closing; bump \`pinned_ref\` to adopt the reconciled ref."
+            gh issue comment "$existing" --body "factory@main (\`${FACTORY_ENCORE_MAIN_SHA}\`) is back in lockstep with OAP's canonical contract. Closing; bump \`pinned_ref\` to adopt the reconciled ref."
             gh issue close "$existing"
           fi

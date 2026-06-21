@@ -46,7 +46,7 @@ refines:
   # The prior `extends: 167 -> tenant-ci.yml.tmpl` edge was dropped when spec
   # 167's PR-2 retired the vendored-binary CI template. 209's enforcing-CI
   # premise targets the npm tenant CI: the prebuilt template's `spec-spine.yml`
-  # (`npx --no-install spec-spine couple`), which lives in template-encore, not
+  # (`npx --no-install spec-spine couple`), which lives in template, not
   # OAP. Those CI gates (FR-001/004/005 + spec 203's parity gate) are the
   # cross-repo closing leg and carry no in-OAP authority target. The in-OAP
   # anchors below are the live production surfaces this spec refines:
@@ -58,7 +58,7 @@ refines:
   #     verification; the OAP half is the `spec_spine_version` field added to
   #     `KernelVersion` so `.kernel-version` round-trips the pin the TS stamp
   #     already writes (kernelVersionStamp.ts). The CI comparison step is the
-  #     template-encore closing leg.
+  #     template closing leg.
   #   * kernel-version-field-propagation: the engine-fallback construction in
   #     emit.rs threads the new `spec_spine_version` field (set to None: the
   #     non-npm path carries no npm pin).

@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { listShapes, selectChart } from "./chartSelector";
 
 describe("chartSelector (spec 136 Phase 2)", () => {
-  it("resolves aim-vue-encore (the factory reference shape, spec 214)", () => {
-    const sel = selectChart({ shape: "aim-vue-encore" });
-    expect(sel.chart).toBe("aim-vue-encore");
+  it("resolves acme-vue-encore (the factory reference shape, spec 214)", () => {
+    const sel = selectChart({ shape: "acme-vue-encore" });
+    expect(sel.chart).toBe("acme-vue-encore");
     expect(sel.version).toBe("0.1.0");
   });
 
@@ -12,12 +12,12 @@ describe("chartSelector (spec 136 Phase 2)", () => {
     expect(() =>
       // Deliberately violate the type to exercise the runtime guard —
       // unknown shapes must fail at deploy time, not silently default.
-      selectChart({ shape: "unknown-shape" as unknown as "aim-vue-encore" }),
+      selectChart({ shape: "unknown-shape" as unknown as "acme-vue-encore" }),
     ).toThrow(/no chart registered for shape/);
   });
 
   it("listShapes enumerates every registered shape", () => {
     const shapes = listShapes();
-    expect(shapes).toEqual(["aim-vue-encore"]);
+    expect(shapes).toEqual(["acme-vue-encore"]);
   });
 });

@@ -326,12 +326,12 @@ mod tests {
     #[tokio::test]
     async fn downgrade_writes_assumption_tag() {
         let dir = tempfile::tempdir().unwrap();
-        write_claim_fixture(dir.path(), "STK-13", "1GX integration");
+        write_claim_fixture(dir.path(), "STK-13", "Globex integration");
         let result = provenance_downgrade_to_assumption(
             dir.path().to_string_lossy().to_string(),
             "STK-13".into(),
             "ops@example.com".into(),
-            "pending Treasury Board".into(),
+            "pending Globex Finance".into(),
             "2027-01-01T00:00:00Z".into(),
         )
         .await

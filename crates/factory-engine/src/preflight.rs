@@ -442,7 +442,7 @@ mod tests {
         let spec_path = std::path::Path::new(
             "../factory/contract/examples/community-grant-portal.build-spec.yaml",
         );
-        let adapter_path = std::path::Path::new("../factory/adapters/aim-vue-node");
+        let adapter_path = std::path::Path::new("../factory/adapters/acme-vue-node");
         if !spec_path.exists() || !adapter_path.exists() {
             eprintln!(
                 "skipping preflight_real_examples — in-tree factory fixtures \

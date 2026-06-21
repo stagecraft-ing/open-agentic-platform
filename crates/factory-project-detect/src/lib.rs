@@ -8,7 +8,7 @@
 //!
 //! - **L0 `ScaffoldOnly`** — template scaffolded (`template.json` present),
 //!   no pipeline run yet.
-//! - **L1 `LegacyProduced`** — `goa-software-factory` 5-stage manifest at
+//! - **L1 `LegacyProduced`** — `legacy-factory` 5-stage manifest at
 //!   `requirements/audit/factory-manifest.json`, pre-ACP shape; needs
 //!   translation before ACP consumers can advance it.
 //! - **L2 `AcpProduced`** — ACP-conformant
@@ -142,7 +142,7 @@ pub fn detect(repo_root: &Path) -> Result<FactoryProject, DetectError> {
         });
     }
 
-    // L1: legacy goa-software-factory manifest.
+    // L1: legacy legacy-factory manifest.
     let legacy_manifest_path = repo_root
         .join("requirements")
         .join("audit")
@@ -245,12 +245,12 @@ mod tests {
         write(
             tmp.path(),
             "template.json",
-            r#"{ "templateName": "template-encore", "baseVersion": "3.0.0" }"#,
+            r#"{ "templateName": "template", "baseVersion": "3.0.0" }"#,
         );
         let result = detect(tmp.path()).unwrap();
         assert_eq!(result.level, DetectionLevel::ScaffoldOnly);
         let adapter = result.adapter_ref.unwrap();
-        assert_eq!(adapter.name, "template-encore");
+        assert_eq!(adapter.name, "template");
         assert_eq!(adapter.version, "3.0.0");
     }
 
@@ -289,14 +289,14 @@ mod tests {
         write(
             tmp.path(),
             "template.json",
-            r#"{ "templateName": "aim-vue-node", "baseVersion": "3.0.0" }"#,
+            r#"{ "templateName": "acme-vue-node", "baseVersion": "3.0.0" }"#,
         );
         let result = detect(tmp.path()).unwrap();
         assert_eq!(result.level, DetectionLevel::LegacyProduced);
         assert_eq!(result.legacy_complete, Some(true));
         assert!(result.legacy_incomplete_stages.is_none());
         assert!(result.legacy_manifest.is_some());
-        assert_eq!(result.adapter_ref.as_ref().unwrap().name, "aim-vue-node");
+        assert_eq!(result.adapter_ref.as_ref().unwrap().name, "acme-vue-node");
     }
 
     #[test]
@@ -340,7 +340,7 @@ mod tests {
                 "started_at": "2026-04-22T00:00:00Z",
                 "updated_at": "2026-04-22T00:00:00Z",
                 "status": "running",
-                "adapter": { "name": "aim-vue-encore", "version": "3.0.0" },
+                "adapter": { "name": "acme-vue-encore", "version": "3.0.0" },
                 "build_spec": { "path": "build-spec.yaml", "hash": "abc" }
             },
             "stages": {}
@@ -367,12 +367,12 @@ mod tests {
         write(
             tmp.path(),
             "template.json",
-            r#"{ "templateName": "aim-vue-node" }"#,
+            r#"{ "templateName": "acme-vue-node" }"#,
         );
         let result = detect(tmp.path()).unwrap();
         assert_eq!(result.level, DetectionLevel::AcpProduced);
         assert!(result.pipeline_state.is_some());
-        assert_eq!(result.adapter_ref.as_ref().unwrap().name, "aim-vue-encore");
+        assert_eq!(result.adapter_ref.as_ref().unwrap().name, "acme-vue-encore");
     }
 
     #[test]

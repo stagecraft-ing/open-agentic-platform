@@ -162,6 +162,6 @@
     "summary": "Spec 112 §5 specified Create at the contract level but left four points where the landed implementation diverged from the literal spec text: (1) the prebuild profile set is stagecraft-owned, not adapter-driven; (2) the Create transaction also inserts an `environments` row; (3) the form gates on a new `GET /api/projects/scaffold-readiness` endpoint; (4) the workspace dir is backed by an RWO PVC. None of these contradicts spec 112's design — they refine load-bearing details the spec deferred. This amendment captures those refinements so spec 112's narrative matches the landed code.\n",
     "title": "Stagecraft Create — realised scaffold subflow (amendment of 112)"
   },
-  "shardHash": "68a84507d6be018a4e5b9855fd6d713ccd15d397b89fb959558b0f23417ec44c",
+  "shardHash": "44c3e78558da420d77b37a463557166eeaccae3f71c4ace4b3526a6eeda7ebdc",
   "specVersion": "1.1.0"
 }

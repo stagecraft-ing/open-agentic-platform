@@ -376,7 +376,7 @@ async function route(
       if (detection.legacy_complete !== true) {
         const incomplete = detection.legacy_incomplete_stages ?? [];
         throw APIError.failedPrecondition(
-          `Legacy pipeline incomplete. Finish these stages in goa-software-factory before importing: ${incomplete.join(", ")}`
+          `Legacy pipeline incomplete. Finish these stages in legacy-factory before importing: ${incomplete.join(", ")}`
         );
       }
       return await importLegacy(

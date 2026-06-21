@@ -67,7 +67,7 @@ journey:
 
 1. Developer runs OPC on a laptop.
 2. OPC drives a factory-engine pipeline against an adapter (e.g.,
-   `aim-vue-node`).
+   `acme-vue-node`).
 3. The adapter emits a Vue/Node scaffold.
 4. The pipeline needs to lint / typecheck / test / `build` the emitted
    code to verify it before the stage marks complete.

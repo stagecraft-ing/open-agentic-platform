@@ -120,7 +120,7 @@ an example of the contract, not the contract itself.
 
 ### What the gap actually is
 
-1. **Factory-engine adapters emit code.** `aim-vue-node` produces
+1. **Factory-engine adapters emit code.** `acme-vue-node` produces
    Vue/Node scaffolds; future adapters produce other shapes. The
    emitted code typically needs lint/test/build cycles to verify
    it before the pipeline marks the stage complete.

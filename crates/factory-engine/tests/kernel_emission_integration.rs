@@ -46,8 +46,8 @@ fn minimal_manifest() -> AdapterManifest {
     AdapterManifest {
         schema_version: "1.0.0".into(),
         adapter: AdapterIdentity {
-            name: "aim-vue-encore".into(),
-            display_name: "AIM Vue Node".into(),
+            name: "acme-vue-encore".into(),
+            display_name: "ACME Vue Node".into(),
             version: "0.1.0".into(),
             description: None,
         },
@@ -166,17 +166,17 @@ fn factory_engine_emits_kernel_for_named_adapter() {
 
     let report = engine
         .emit_project_kernel(
-            "aim-vue-encore",
+            "acme-vue-encore",
             target.path(),
             oap_source.path(),
             vec!["apps/".into(), "packages/".into()],
-            Some("file://adapter-scopes.json#aim-vue-encore".into()),
+            Some("file://adapter-scopes.json#acme-vue-encore".into()),
             ToolchainMode::VendorBinaries,
             "fixturecommit".into(),
         )
         .expect("kernel emission succeeded");
 
-    assert_eq!(report.kernel_version.adapter.id, "aim-vue-encore");
+    assert_eq!(report.kernel_version.adapter.id, "acme-vue-encore");
     assert_eq!(report.kernel_version.adapter.version, "0.1.0");
     assert_eq!(
         report.kernel_version.toolchain_mode,
@@ -202,12 +202,12 @@ fn factory_engine_emits_kernel_for_named_adapter() {
     // The retired vendored-binary surfaces are NOT emitted (spec 167
     // self-amend): the CI workflow template and the scaffold-claim generator.
     assert!(!target.path().join(".github/workflows/ci-spec-code-coupling.yml").exists());
-    assert!(!target.path().join("specs/001-aim-vue-encore-scaffold-claim/spec.md").exists());
+    assert!(!target.path().join("specs/001-acme-vue-encore-scaffold-claim/spec.md").exists());
 
     // `.kernel-version` parses back to the same struct shape.
     let yaml = fs::read_to_string(target.path().join(".kernel-version")).unwrap();
     let parsed = KernelVersion::from_yaml(&yaml).unwrap();
-    assert_eq!(parsed.adapter.id, "aim-vue-encore");
+    assert_eq!(parsed.adapter.id, "acme-vue-encore");
     assert!(!parsed.adapter.manifest_hash.is_empty());
 }
 

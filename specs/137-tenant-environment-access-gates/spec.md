@@ -8,7 +8,7 @@ amended: "2026-06-16"
 amendment_record: |
   Amended 2026-06-16 by 214-tenant-app-chart-supersession (Stage 2): the two
   access-gate co_authority units that pointed at the retired tenant-hello
-  chart files are relocated to the aim-vue-encore chart equivalents
+  chart files are relocated to the acme-vue-encore chart equivalents
   (values.yaml + templates/ingress.yaml, anchor access-gate), co-authored with
   214 (the new chart owner) instead of 136. The gate seam semantics are
   unchanged (FR-011 render parity was proven before the retirement). 214 also
@@ -56,10 +56,10 @@ extends:
 co_authority:
   - with_specs:
       - "214-tenant-app-chart-supersession"
-    unit: { kind: section, file: platform/charts/aim-vue-encore/values.yaml, anchor: access-gate }
+    unit: { kind: section, file: platform/charts/acme-vue-encore/values.yaml, anchor: access-gate }
   - with_specs:
       - "214-tenant-app-chart-supersession"
-    unit: { kind: section, file: platform/charts/aim-vue-encore/templates/ingress.yaml, anchor: access-gate }
+    unit: { kind: section, file: platform/charts/acme-vue-encore/templates/ingress.yaml, anchor: access-gate }
   - with_specs:
       - "073-axiomregent-unification"
       - "136-tenant-hello-demo-service"

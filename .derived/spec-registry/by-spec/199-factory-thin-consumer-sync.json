@@ -5,8 +5,8 @@
       "112-factory-project-lifecycle",
       "124-opc-factory-run-platform-integration",
       "139-factory-artifact-substrate",
-      "140-aim-vue-node-scaffold-source-id-cutover",
-      "141-aim-vue-node-source-id-template-name-alignment"
+      "140-acme-vue-node-scaffold-source-id-cutover",
+      "141-acme-vue-node-source-id-template-name-alignment"
     ],
     "authors": [
       "open-agentic-platform"
@@ -112,7 +112,7 @@
       "Problem statement (current state)",
       "Requirements",
       "FR-001 — Stagecraft is a thin consumer of owned factory content (normative)",
-      "FR-002 — Adapter identity from the manifest (retire the synthetic `aim-vue-node`)",
+      "FR-002 — Adapter identity from the manifest (retire the synthetic `acme-vue-node`)",
       "FR-003 — Substrate origin derives from the configured source",
       "FR-004 — Retire `buildProcess`; serve process content opaque by kind",
       "FR-005 — Serve substrate verbatim by kind (retire the projection translation)",
@@ -128,7 +128,7 @@
     ],
     "specPath": "specs/199-factory-thin-consumer-sync/spec.md",
     "status": "draft",
-    "summary": "Move the stagecraft factory sync off the retired goa-software-factory layout and make it a thin CONSUMER of the owned factory-encore/template-encore sources. Stagecraft stores upstream content verbatim in the substrate and serves it by kind and by the adapter's own (schema-validated) manifest — it stops TRANSLATING content OAP authors and controls. Adapter identity comes from the manifest (aim-vue-encore self-declares), substrate origin derives from the configured source, and the categorical \"7-stage-build\" projection — a stagecraft invention with no contract backing, coupled to the dead `Factory Agent/` directory shape — is retired. Process content is served opaque by kind; the run's governance lives in the admission envelope (spec 198), which this spec consumes. No backward compatibility is preserved; factory-encore/template-encore are the baseline.\n",
+    "summary": "Move the stagecraft factory sync off the retired legacy-factory layout and make it a thin CONSUMER of the owned factory/template sources. Stagecraft stores upstream content verbatim in the substrate and serves it by kind and by the adapter's own (schema-validated) manifest — it stops TRANSLATING content OAP authors and controls. Adapter identity comes from the manifest (acme-vue-encore self-declares), substrate origin derives from the configured source, and the categorical \"7-stage-build\" projection — a stagecraft invention with no contract backing, coupled to the dead `Factory Agent/` directory shape — is retired. Process content is served opaque by kind; the run's governance lives in the admission envelope (spec 198), which this spec consumes. No backward compatibility is preserved; factory/template are the baseline.\n",
     "supersedes": [
       {
         "note": "Retires the categorical factory_{adapters,contracts,processes} projection wire shape and its translation layer (projection.ts buildProcess / buildAdapter). Storage was already retired by spec 139; this retires the read-time translation that 139 kept for compat.\n",
@@ -138,16 +138,16 @@
       {
         "note": "Retires §2.2's manifest-carried flat scaffold_source_id (injected at ingest by the sanitise layer this spec removes). Replaced by resolution-at-admission from the manifest's org-agnostic scaffold.source.remote (FR-009).\n",
         "scope": "partial",
-        "spec": "140-aim-vue-node-scaffold-source-id-cutover"
+        "spec": "140-acme-vue-node-scaffold-source-id-cutover"
       },
       {
-        "note": "Retires §2.1's scaffold_source_id ↔ template.json::templateName alignment doctrine. templateName reverts to the template's own name (template-encore); the org-scoped source id is resolved at admission, never carried by upstream content.\n",
+        "note": "Retires §2.1's scaffold_source_id ↔ template.json::templateName alignment doctrine. templateName reverts to the template's own name (template); the org-scoped source id is resolved at admission, never carried by upstream content.\n",
         "scope": "partial",
-        "spec": "141-aim-vue-node-source-id-template-name-alignment"
+        "spec": "141-acme-vue-node-source-id-template-name-alignment"
       }
     ],
     "title": "Thin-Consumer Factory Sync for Owned Sources"
   },
-  "shardHash": "a3b0f6fccb1abab4dc5e63c34588281fa092e871e91b7ef69c8e4adb9a8840f9",
+  "shardHash": "c63d71b61a4d1c3b7649dfc79642823a300a9ab13a5da7d46ff4b3f00ef74bde",
   "specVersion": "1.1.0"
 }

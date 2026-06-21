@@ -39,7 +39,7 @@ implementation task starts.
       `./tools/spec-spine/spec-compiler/target/release/spec-compiler compile`
       and verify exit 0 + spec 139 appears in
       `.derived/spec-registry/registry.json`.
-- [ ] T002 [P0] Walk `goa-software-factory@<latest>` and
+- [ ] T002 [P0] Walk `legacy-factory@<latest>` and
       `template@<latest>` end-to-end. For every file: classify by §4.2
       kind; record frontmatter quirks; record bundle candidates per
       §4.3. Output to
@@ -223,8 +223,8 @@ gate.
       produces no duplicates.
 - [ ] T055 [P2] Adapter manifest format extension. Add
       `orchestration_source_id` and `scaffold_source_id` fields.
-      `aim-vue-node` carries `goa-software-factory` /
-      `aim-vue-node-template`. The three OAP-native adapters carry
+      `acme-vue-node` carries `legacy-factory` /
+      `acme-vue-node-template`. The three OAP-native adapters carry
       their `oap-*` source ids. Validate via translator on next sync.
 - [ ] T056 [P2] Extend `api/projects/scaffoldReadiness.ts` with
       per-adapter eligibility verdict including

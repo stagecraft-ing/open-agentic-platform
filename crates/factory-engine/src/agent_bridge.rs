@@ -13,7 +13,7 @@ use std::collections::HashSet;
 ///
 /// Agent ID mapping:
 /// - Process agents: `factory-{role}` (e.g., `factory-business-analyst`)
-/// - Scaffold agents: `factory-{role}-{adapter}` (e.g., `factory-api-scaffolder-aim-vue-encore`)
+/// - Scaffold agents: `factory-{role}-{adapter}` (e.g., `factory-api-scaffolder-acme-vue-encore`)
 pub struct FactoryAgentBridge {
     agent_ids: HashSet<String>,
     prompts: Vec<AgentPrompt>,
@@ -111,14 +111,14 @@ mod tests {
             make_agent("factory-data-architect", "data-architect"),
         ];
         let adapter = vec![make_agent(
-            "factory-api-scaffolder-aim-vue-encore",
+            "factory-api-scaffolder-acme-vue-encore",
             "api-scaffolder",
         )];
 
         let bridge = FactoryAgentBridge::new(process, adapter);
         assert_eq!(bridge.len(), 3);
         assert!(bridge.has_agent("factory-business-analyst").await);
-        assert!(bridge.has_agent("factory-api-scaffolder-aim-vue-encore").await);
+        assert!(bridge.has_agent("factory-api-scaffolder-acme-vue-encore").await);
         assert!(!bridge.has_agent("unknown-agent").await);
     }
 

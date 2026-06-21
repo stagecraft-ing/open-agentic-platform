@@ -4,12 +4,12 @@
 > [spec 198](../../specs/198-factory-governance-envelope/spec.md) (resolves its
 > OQ-1..OQ-4) and [spec 199](../../specs/199-factory-thin-consumer-sync/spec.md)
 > (absorbs findings F1/F2), plus authoring worklists for the two owned upstream
-> repos (`factory-encore`, `template-encore`). The law of record is
+> repos (`factory`, `template`). The law of record is
 > `docs/owasp-agentic-top-10-2026.md` (cited below as ASInn mN / principle N).
-> Current-state evidence: `docs/analysis/factory-encore-sync-current-state.md`
+> Current-state evidence: `docs/analysis/factory-sync-current-state.md`
 > and the 2026-06-09 cross-repo verification (findings F1–F5).
 >
-> **Operator decision absorbed:** factory-encore and template-encore are ours
+> **Operator decision absorbed:** factory and template are ours
 > to change. Conformance work lands upstream where the fact lives — OAP never
 > compensates for a missing standard (spec 199 P-1).
 
@@ -24,11 +24,11 @@ load-bearing details.
 LAW        OWASP ASI 2026 (docs/owasp-agentic-top-10-2026.md)
              │  encoded as the OAP-owned, ASI-tagged envelope schema
              ▼  (standards/schemas/factory/governance-envelope.schema.yaml)
-BRIEF      factory-encore files its envelope:
+BRIEF      factory files its envelope:
              • process/governance-envelope.yaml            (the run)
              • adapters/<n>/manifest.yaml `governance:`    (the scaffold boundary)
              • per-agent frontmatter (process AND adapter agents)
-             • pinned scaffold source → template-encore    (the supply-chain edge)
+             • pinned scaffold source → template    (the supply-chain edge)
              ▼
 ADMISSION  OAP (stagecraft) adjudicates fail-closed:
              ⊨ schema  ∧  ⊨ constituents (recompute-and-reconcile)
@@ -50,7 +50,7 @@ same seal, same grants. That is the open standard's teeth (198 FR-001).
 
 ## D-1 — Where the envelope lives (resolves OQ-1; fixes F3, F4)
 
-### D-1.1 Process envelope: `process/governance-envelope.yaml` (factory-encore)
+### D-1.1 Process envelope: `process/governance-envelope.yaml` (factory)
 
 A dedicated file at the process-layer root. There is no existing process-level
 manifest to extend (the layer is `stages/ + agents/ + skills/` only), and the
@@ -82,7 +82,7 @@ Contents (predicate-shaped, P-2; every field ASI-tagged per FR-002):
 
 Bump the adapter-manifest schema **1.0.0 → 1.1.0** (both homes:
 `standards/schemas/factory/adapter-manifest.schema.yaml` canonical,
-factory-encore `contract/schemas/` working copy). The section is part of the
+factory `contract/schemas/` working copy). The section is part of the
 manifest rather than a sibling file because:
 
 1. The manifest **is** the adapter's self-declaration; the sub-envelope is its
@@ -124,8 +124,8 @@ compiler-derived artifact, same as the rest of `.derived/`-style truth.
 
 ### D-1.3 Per-agent frontmatter — **adapter agents get it too** (closes F3)
 
-The six `adapters/aim-vue-encore/agents/*.md` files gain the same frontmatter
-grammar the process agents already carry (this is the factory-encore authoring
+The six `adapters/acme-vue-encore/agents/*.md` files gain the same frontmatter
+grammar the process agents already carry (this is the factory authoring
 precondition for admissibility — today FR-003 has nothing to read for exactly
 the agents that hold `file_write`):
 
@@ -296,12 +296,12 @@ the open contract (spec 197 principle).
 **Template identity (F2).** Spec 141's `scaffoldSourceId ↔
 template.json::templateName` alignment doctrine is superseded by
 resolution-at-admission. `template.json::templateName` reverts to what it
-truthfully is — the template's own name, **`"template-encore"`** — consumed
-only by template-encore's module scripts (also fix the `'aim-vue-node'` zod
+truthfully is — the template's own name, **`"template"`** — consumed
+only by template's module scripts (also fix the `'acme-vue-node'` zod
 default in `scripts/lib/template-json.ts`). Spec 199 therefore declares
 `supersedes: 140 (partial — §2.2 manifest-carried scaffold_source_id)` and
 `supersedes: 141 (partial — §2.1 alignment doctrine)` in its relationship
-graph, and its cross-repo section gains the template-encore rename — "template-encore
+graph, and its cross-repo section gains the template rename — "template
 unaffected" was an understatement and is corrected.
 
 ## D-6 — Mutation grammar (closes F5)
@@ -330,7 +330,7 @@ acknowledging optional stages.
 
 ## Per-repo worklists
 
-**factory-encore** (admissibility preconditions):
+**factory** (admissibility preconditions):
 1. Author `process/governance-envelope.yaml` (D-1.1).
 2. Manifest `governance:` section; schema working-copy bump to 1.1.0 (D-1.2).
 3. Frontmatter for all six adapter agents (D-1.3); normalize
@@ -338,8 +338,8 @@ acknowledging optional stages.
 4. Drop nothing else — `commands:`, `directory_conventions:`, `emits:` are
    already the reconcile evidence.
 
-**template-encore** (one honest rename + hygiene):
-1. `template.json::templateName` → `"template-encore"`; fix the zod default
+**template** (one honest rename + hygiene):
+1. `template.json::templateName` → `"template"`; fix the zod default
    (D-5). No structural changes — its scaffold entry points are already
    declared in the adapter manifest, which D-1.2 elevates to governance facts.
 
@@ -365,9 +365,9 @@ acknowledging optional stages.
   frontmatter reference path (`docs/owasp/…` → `docs/…`).
 - **Spec 199**: D-5 into FR-003/FR-009 (resolution-at-admission; retire
   injected `scaffold_source_id`); add partial supersessions of 140/141;
-  cross-repo section gains the template-encore rename; FR-007's
+  cross-repo section gains the template rename; FR-007's
   `adapter-scopes.json` item updated to "derived projection per 198 D-1.2".
-- **Sequencing** (replaces the implicit bootstrap deadlock): factory-encore
+- **Sequencing** (replaces the implicit bootstrap deadlock): factory
   authors D-1 artifacts → 198 lands schema + admission gate (validate + record
   + revocations; seal in its own phase) → 199 cutover. The signing service
   (D-4) may land after the gate — admission is enforceable before it is

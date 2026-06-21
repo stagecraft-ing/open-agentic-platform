@@ -60,7 +60,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/charts/aim-vue-encore",
+        "path": "platform/charts/acme-vue-encore",
         "source": "spec-edge"
       },
       {
@@ -132,14 +132,14 @@
       {
         "locations": [
           {
-            "file": "platform/charts/aim-vue-encore"
+            "file": "platform/charts/acme-vue-encore"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "directory",
-          "path": "platform/charts/aim-vue-encore"
+          "path": "platform/charts/acme-vue-encore"
         }
       },
       {
@@ -456,5 +456,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "14b51c9dba3034afea6fcadbd67e056a01005e1a97120c2de0b25d6758c8638e"
+  "shardHash": "0ecad8ecefea3784fb6287785b2849ad52f7c4ac66e942b2689734741ed11845"
 }

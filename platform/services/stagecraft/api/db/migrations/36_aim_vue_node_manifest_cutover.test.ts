@@ -2,7 +2,7 @@
 //
 // Asserts:
 //   1. First run inserts exactly one synthetic
-//      `(oap-self, adapter-manifest, adapters/aim-vue-node/manifest.yaml)`
+//      `(oap-self, adapter-manifest, adapters/acme-vue-node/manifest.yaml)`
 //      row per distinct `org_id` already present in the substrate, and
 //      one matching `factory_artifact_substrate_audit` row tagged
 //      `after->>'reason' = 'spec-140-migration-36'`.
@@ -51,8 +51,8 @@ async function countSyntheticRows(): Promise<number> {
       FROM factory_artifact_substrate
      WHERE org_id = ${ORG_ID}
        AND origin = 'oap-self'
-       AND path = 'adapters/aim-vue-node/manifest.yaml'
-       AND upstream_sha = 'oap-self/aim-vue-node/spec-140-migration-36'
+       AND path = 'adapters/acme-vue-node/manifest.yaml'
+       AND upstream_sha = 'oap-self/acme-vue-node/spec-140-migration-36'
   `);
   return Number(result.rows[0]?.count ?? "0");
 }
@@ -79,7 +79,7 @@ describe("spec 140 Phase 1 — migration 36 idempotence (T013)", () => {
     `);
     // Seed at least one substrate row so migration 36's
     // `SELECT DISTINCT s.org_id FROM factory_artifact_substrate s` finds
-    // this org. The seed row uses a non-aim-vue-node path so it does
+    // this org. The seed row uses a non-acme-vue-node path so it does
     // NOT collide with what migration 36 inserts.
     await db.execute(sql`
       INSERT INTO factory_artifact_substrate (
@@ -87,7 +87,7 @@ describe("spec 140 Phase 1 — migration 36 idempotence (T013)", () => {
         upstream_sha, upstream_body, content_hash, conflict_state
       )
       VALUES (
-        ${SEED_ARTIFACT_ID}, ${ORG_ID}, 'goa-software-factory',
+        ${SEED_ARTIFACT_ID}, ${ORG_ID}, 'legacy-factory',
         'Factory Agent/spec140-seed.md', 'skill', 1, 'active',
         'spec140-seed-sha', 'seed body', 'spec140-seed-hash', 'ok'
       )
@@ -106,7 +106,7 @@ describe("spec 140 Phase 1 — migration 36 idempotence (T013)", () => {
       DELETE FROM factory_artifact_substrate
        WHERE org_id = ${ORG_ID}
          AND origin = 'oap-self'
-         AND path = 'adapters/aim-vue-node/manifest.yaml'
+         AND path = 'adapters/acme-vue-node/manifest.yaml'
     `);
   });
 
@@ -158,22 +158,22 @@ describe("spec 140 Phase 1 — migration 36 idempotence (T013)", () => {
         FROM factory_artifact_substrate
        WHERE org_id = ${ORG_ID}
          AND origin = 'oap-self'
-         AND path = 'adapters/aim-vue-node/manifest.yaml'
+         AND path = 'adapters/acme-vue-node/manifest.yaml'
     `);
     expect(result.rows.length).toBe(1);
     const row = result.rows[0];
     expect(row.kind).toBe("adapter-manifest");
-    expect(row.frontmatter.scaffold_source_id).toBe("aim-vue-node-template");
+    expect(row.frontmatter.scaffold_source_id).toBe("acme-vue-node-template");
     expect(row.frontmatter.orchestration_source_id).toBe(
-      "goa-software-factory",
+      "legacy-factory",
     );
     expect(row.frontmatter.scaffold_runtime).toBe("node-24");
     // Body is YAML — substring assert on the canonical lines.
     expect(row.upstream_body).toContain(
-      "scaffold_source_id: aim-vue-node-template",
+      "scaffold_source_id: acme-vue-node-template",
     );
     expect(row.upstream_body).toContain(
-      "orchestration_source_id: goa-software-factory",
+      "orchestration_source_id: legacy-factory",
     );
   });
 });

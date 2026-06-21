@@ -6,11 +6,11 @@
     ],
     "implementingPaths": [
       {
-        "path": "platform/charts/aim-vue-encore/templates/ingress.yaml",
+        "path": "platform/charts/acme-vue-encore/templates/ingress.yaml",
         "source": "spec-edge"
       },
       {
-        "path": "platform/charts/aim-vue-encore/values.yaml",
+        "path": "platform/charts/acme-vue-encore/values.yaml",
         "source": "spec-edge"
       },
       {
@@ -378,7 +378,7 @@
       {
         "locations": [
           {
-            "file": "platform/charts/aim-vue-encore/templates/ingress.yaml",
+            "file": "platform/charts/acme-vue-encore/templates/ingress.yaml",
             "span": {
               "endLine": 25,
               "startLine": 8
@@ -389,14 +389,14 @@
         "sourceField": "co_authority",
         "unit": {
           "anchor": "access-gate",
-          "file": "platform/charts/aim-vue-encore/templates/ingress.yaml",
+          "file": "platform/charts/acme-vue-encore/templates/ingress.yaml",
           "kind": "section"
         }
       },
       {
         "locations": [
           {
-            "file": "platform/charts/aim-vue-encore/values.yaml",
+            "file": "platform/charts/acme-vue-encore/values.yaml",
             "span": {
               "endLine": 58,
               "startLine": 47
@@ -407,7 +407,7 @@
         "sourceField": "co_authority",
         "unit": {
           "anchor": "access-gate",
-          "file": "platform/charts/aim-vue-encore/values.yaml",
+          "file": "platform/charts/acme-vue-encore/values.yaml",
           "kind": "section"
         }
       },
@@ -506,5 +506,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "a01c99e0c58d03a4b33cff4c9a436c59cbb501289fbd0fd5aa321c7c73d01134"
+  "shardHash": "ddc8b9c10e89a1e1eb76c6d09a448ea5e25f8450cb55d54f4636bc0728b47dca"
 }

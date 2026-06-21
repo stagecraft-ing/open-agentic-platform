@@ -13,8 +13,8 @@ import { sha256Hex } from "./substrate";
 // Paths are evaluated against the repo-relative path (POSIX separators).
 //
 // Spec 199 FR-008 — reviewed against the OWNED factory layout
-// (factory-encore: process/ + contract/ + adapters/ + docs/). The dead
-// goa-only entries (eval_framework/, REDTEAM/, Security Agent/,
+// (factory: process/ + contract/ + adapters/ + docs/). The dead
+// org-specific entries (eval_framework/, REDTEAM/, Security Agent/,
 // Factory Agent/…) are stripped with the retired translate-sync. Repo
 // tooling and prose docs are excluded; everything the engine or the
 // admission gate consumes (process/**, contract/**, adapters/**,
@@ -79,10 +79,10 @@ async function readText(abs: string): Promise<string> {
 
 
 // ---------------------------------------------------------------------------
-// Legacy `goa-software-factory` manifest → ACP pipeline-state
+// Legacy `legacy-factory` manifest → ACP pipeline-state
 //
 // Spec 112 §3.4. Bridges the 5-stage legacy manifest produced by
-// `goa-software-factory` into a pipeline-state.schema.yaml-conformant
+// `legacy-factory` into a pipeline-state.schema.yaml-conformant
 // document that ACP consumers can read. Build Spec production is deferred:
 // the legacy split `requirements/{ui,api}/build-spec.json` stay on disk
 // and the first ACP run after translation emits a unified Build Spec
@@ -256,7 +256,7 @@ function pickPipelineTimestamps(
 }
 
 /**
- * Translate a legacy `goa-software-factory` manifest + working-state
+ * Translate a legacy `legacy-factory` manifest + working-state
  * pair into an ACP `pipeline-state.schema.yaml`-conformant document.
  *
  * Pure. Idempotent for the same inputs modulo the generated pipeline
@@ -351,7 +351,7 @@ export function translateLegacyManifest(
       {
         timestamp: ts.updated_at,
         event: "manual_fix_applied",
-        details: "translated-from-goa-software-factory-manifest",
+        details: "translated-from-legacy-factory-manifest",
       },
     ],
   };

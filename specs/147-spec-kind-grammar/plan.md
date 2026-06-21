@@ -126,7 +126,7 @@ enforcement is a distinct constitutional act.
 1. Author three specs (numbered next-available, kind = capability,
    registry, profile respectively). Initial candidates:
    - One registry spec for the auth-driver concept (drawn from
-     aim-vue-node analysis).
+     acme-vue-node analysis).
    - One capability spec for the SAML auth driver implementation.
    - One profile spec for a generic example tenant (no
      jurisdictional content).
@@ -241,7 +241,7 @@ not introduce new producer/consumer artifact dependencies.
 ## Out of scope for this plan
 
 - Authoring the actual capability/registry/profile specs absorbed
-  from goa-software-factory and aim-vue-node. That is downstream
+  from legacy-factory and acme-vue-node. That is downstream
   work enabled by this amendment, not the amendment itself.
 - Implementing the codebase-indexer's primary-owner UI surface.
   Spec 130's UI implications are unchanged; this amendment only

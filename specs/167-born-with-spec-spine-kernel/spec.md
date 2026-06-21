@@ -22,7 +22,7 @@ amendment_record: |
   canonical born-with kernel is the published spec-spine npm distribution
   shape (pinned devDependency + spec-spine.toml + born-clean corpus +
   committed .derived/ + spec-spine.yml CI), proven shipping reality
-  (template-encore PR #56, 2026-06), retiring §2.2's vendored
+  (template PR #56, 2026-06), retiring §2.2's vendored
   tools/spec-spine/ binaries. The emission layer is corrected from the
   dormant factory-engine Rust transition to the live stagecraft prebuilt
   Create flow; the one additive write (the .kernel-version stamp) lands in
@@ -172,7 +172,7 @@ as a kernel and the tenant inherits it as a matter of birth.
 Every project the factory produces ships with a fully-populated
 spec-spine kernel *before* any adapter-specific code lands, in
 the **published `spec-spine` npm distribution shape**. The
-canonical reality (proven by template-encore PR #56, 2026-06)
+canonical reality (proven by template PR #56, 2026-06)
 is a pinned `spec-spine` devDependency that carries the prebuilt
 CLI, a root `spec-spine.toml`, a born-clean `specs/` corpus,
 template-appropriate `standards/spec/`, committed `.derived/`
@@ -191,7 +191,7 @@ realized mode (§2.2).
 ### 2.1 Kernel contents
 
 The emitted kernel — the floor of the adapter's prebuilt template,
-identical in structure to template-encore — includes:
+identical in structure to template — includes:
 
 1. **`<project>/package.json`** — declares the `spec-spine`
    devDependency, **exact-pinned** (e.g. `"spec-spine": "0.1.0"`,
@@ -246,7 +246,7 @@ identical in structure to template-encore — includes:
 #### 2.1.6 Seed-corpus theory
 
 The kernel's seed is the **adapter's own born-clean corpus shipped
-in the prebuilt tree** (the proven template-encore path), copied
+in the prebuilt tree** (the proven template path), copied
 wholesale into the produced project. The factory does *not*
 synthesize a single scaffold-claim draft at emission for npm-shaped
 adapters; the prebuilt corpus is primary.
@@ -267,7 +267,7 @@ draft; it is retired in the follow-up implementation PR. See §7.)
 > emitted as loose files under `<project>/tools/spec-spine/`, with
 > a `pinned-toolchain-reference` alternative left as an
 > implementation choice. That vendored-binary shape is **retired**.
-> The proven shipping reality (template-encore PR #56, 2026-06)
+> The proven shipping reality (template PR #56, 2026-06)
 > carries **no** `tools/spec-spine/` directory: the CLI arrives via
 > the pinned `spec-spine` npm devDependency, which is precisely the
 > `pinned-toolchain` mode the original §2.2 framed as the fallback.
@@ -287,7 +287,7 @@ arm in the shipping shape.
 
 **Distribution shape is adapter-determined.** npm is the first —
 and currently only — realized mode, correct for the current
-npm-shaped adapter (aim-vue-encore). A future non-npm adapter
+npm-shaped adapter (acme-vue-encore). A future non-npm adapter
 (e.g. a Rust-produced project) would carry a `spec-spine` obtained
 through its own ecosystem's pinned-distribution channel (a
 cargo-installed CLI, say), recorded under the same
@@ -414,7 +414,7 @@ scaffold materialization; it copies the prebuilt tree.
 
 ## 4. Success Criteria
 
-- **SC-001** A new project produced from `aim-vue-encore` (or
+- **SC-001** A new project produced from `acme-vue-encore` (or
   any production-supported adapter) contains the full
   kernel at the first commit (pinned `spec-spine` devDep,
   `spec-spine.toml`, born-clean corpus, `standards/spec/`,
@@ -488,7 +488,7 @@ scaffold materialization; it copies the prebuilt tree.
   `spec-spine.toml`, born-clean corpus, committed `.derived/`,
   `spec-spine.yml` invoking `npx --no-install spec-spine
   {compile,lint,index check,couple}`) is the canonical born-with
-  kernel. Proven shipping reality: template-encore PR #56
+  kernel. Proven shipping reality: template PR #56
   (2026-06). The pinned devDependency *is* the pinned-toolchain
   (§2.2).
 - **Spec 000** — bootstrap-spec-system; the conceptual source of
@@ -640,7 +640,7 @@ release-engineering plumbing.
 The amendment lands the contract; the code swap lands next:
 
 - **Template-source obligation (satisfied by construction).** The
-  adapter's prebuilt template (template-encore, PR #56) already
+  adapter's prebuilt template (template, PR #56) already
   carries the full npm spine kernel — `package.json` pinned
   `spec-spine` devDep, `spec-spine.toml`, the born-clean corpus,
   `standards/spec/`, committed `.derived/`, and `spec-spine.yml`.
@@ -702,7 +702,7 @@ committed `.derived/` compiled from the tenant's own corpus, and a
 `spec-spine.yml` CI gate invoking `npx --no-install spec-spine
 {compile,lint,index check,couple}`. The vendored `tools/spec-spine/`
 binary shape (original §2.2) is retired; the proven shipping reality
-is template-encore PR #56 (2026-06), which carries no
+is template PR #56 (2026-06), which carries no
 `tools/spec-spine/` tree. The emission layer is corrected from the
 dormant `factory-engine` Rust transition to the live stagecraft
 prebuilt Create flow (spec 112); the one additive write — the

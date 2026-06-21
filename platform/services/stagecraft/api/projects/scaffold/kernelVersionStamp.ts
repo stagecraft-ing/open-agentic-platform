@@ -37,7 +37,7 @@ export interface KernelVersionStamp {
     emitted_at: string;
   };
   adapter: {
-    /** The adapter SLUG (e.g. "aim-vue-encore"), NOT the factory_adapters DB
+    /** The adapter SLUG (e.g. "acme-vue-encore"), NOT the factory_adapters DB
      *  FK. Matches the Rust `AdapterIdentity.id` semantics, which is also the
      *  manifest's `adapter.name` (engine.rs sets `id: manifest.adapter.name`). */
     id: string;

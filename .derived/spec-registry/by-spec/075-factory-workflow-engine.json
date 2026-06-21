@@ -1,6 +1,6 @@
 {
   "record": {
-    "amendmentRecord": "amended by spec 199 (2026-06-11), editorial: the engine's live test\nfixtures, doc comments, and the factory_run CLI help no longer name\nthe upstream-retired example adapters (aim-vue-node, next-prisma,\nrust-axum, encore-react); they use the manifest-declared\naim-vue-encore (spec 199 FR-007 Rust-fixture hygiene). No contract\nor behavior change: the engine remains adapter-agnostic; adapter\nidentity always came from the manifest. Dead tests guarded on the\nspec-108-retired repo-root factory/ directory keep their historical\nfixture names.\n",
+    "amendmentRecord": "amended by spec 199 (2026-06-11), editorial: the engine's live test\nfixtures, doc comments, and the factory_run CLI help no longer name\nthe upstream-retired example adapters (acme-vue-node, next-prisma,\nrust-axum, encore-react); they use the manifest-declared\nacme-vue-encore (spec 199 FR-007 Rust-fixture hygiene). No contract\nor behavior change: the engine remains adapter-agnostic; adapter\nidentity always came from the manifest. Dead tests guarded on the\nspec-108-retired repo-root factory/ directory keep their historical\nfixture names.\n",
     "authors": [
       "open-agentic-platform"
     ],
@@ -48,6 +48,6 @@
     "summary": "Extends the OAP orchestrator to natively support Factory pipeline workflows including two-phase manifest execution (process stages + dynamic scaffold fan-out), Build Spec to manifest generation, post-step verification hooks, and Rust-native verification harness integration.\n",
     "title": "Factory Workflow Engine — Orchestrator Fan-Out, Manifest Generation, and Verification"
   },
-  "shardHash": "ed0fa2901d96609e239f324fa9e820c0d3a5e23b19ba2edcf74b53c018c00e63",
+  "shardHash": "320fd33a0f8828960c0b12e96c8443dd334ed338b60a9dbd1a7f3c9bcd568fa8",
   "specVersion": "1.1.0"
 }

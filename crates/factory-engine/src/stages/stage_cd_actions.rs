@@ -520,7 +520,7 @@ mod tests {
         let mut diff = diff_with("scope");
         let audit = reject_candidate(
             &mut diff,
-            "cfs",
+            "example",
             "charter.md",
             "OBJ-1",
             "alice",
@@ -537,7 +537,7 @@ mod tests {
         let mut diff = diff_with("scope");
         let err = force_approve(
             &mut diff,
-            "cfs",
+            "example",
             "charter.md",
             "OBJ-1",
             "alice",
@@ -553,7 +553,7 @@ mod tests {
         let mut diff = diff_with("scope");
         let err = force_approve(
             &mut diff,
-            "cfs",
+            "example",
             "charter.md",
             "OBJ-1",
             "alice",
@@ -569,7 +569,7 @@ mod tests {
         let mut diff = diff_with("scope");
         let audit = force_approve(
             &mut diff,
-            "cfs",
+            "example",
             "charter.md",
             "OBJ-1",
             "alice",
@@ -623,7 +623,7 @@ Reworded candidate body.
         let audit = accept_candidate(
             &mut diff,
             &AcceptInputs {
-                project_slug: "cfs",
+                project_slug: "example",
                 authored_path: &authored,
                 candidate_path: &candidate,
                 anchor: "OBJ-1",
@@ -700,7 +700,7 @@ Reworded OBJ-1 body.
         accept_candidate(
             &mut diff,
             &AcceptInputs {
-                project_slug: "cfs",
+                project_slug: "example",
                 authored_path: &authored,
                 candidate_path: &candidate,
                 anchor: "OBJ-1",
@@ -769,7 +769,7 @@ Updated.
         accept_candidate(
             &mut diff,
             &AcceptInputs {
-                project_slug: "cfs",
+                project_slug: "example",
                 authored_path: &authored,
                 candidate_path: &candidate,
                 anchor: "OBJ-1",
@@ -828,7 +828,7 @@ Different.
         let err = accept_candidate(
             &mut diff,
             &AcceptInputs {
-                project_slug: "cfs",
+                project_slug: "example",
                 authored_path: &authored,
                 candidate_path: &candidate,
                 anchor: "OBJ-1",
@@ -880,7 +880,7 @@ Body.
         let err = accept_candidate(
             &mut diff,
             &AcceptInputs {
-                project_slug: "cfs",
+                project_slug: "example",
                 authored_path: &authored,
                 candidate_path: &candidate,
                 anchor: "OBJ-1",

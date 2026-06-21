@@ -70,8 +70,8 @@ latent until a real Create request hit the path —
 ```
 2026-05-06T19:32:45.808Z  level=error  endpoint=createFactoryProject
   Failed query: insert into "scaffold_jobs" (...)
-  params: …, synthetic-adapter-2fb9af44-aim-vue-node, …
-  invalid input syntax for type uuid: "synthetic-adapter-2fb9af44-aim-vue-node"
+  params: …, synthetic-adapter-2fb9af44-acme-vue-node, …
+  invalid input syntax for type uuid: "synthetic-adapter-2fb9af44-acme-vue-node"
 ```
 
 — surfaced to the user as `an internal error occurred` (Encore's
@@ -149,7 +149,7 @@ synthetic IDs. The header documents the limitation.
 
 - Live cluster: POST `/api/projects/factory-create` succeeds end-to-end
   for all three variants (`single-public`, `single-internal`, `dual`)
-  on `aim-vue-node @ e1de48c5e37a`.
+  on `acme-vue-node @ e1de48c5e37a`.
 - `make ci` (warm) is green.
 - `npm test` in `platform/services/stagecraft/` passes, including the
   new migration 38 test.

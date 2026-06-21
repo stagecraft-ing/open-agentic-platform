@@ -11,7 +11,7 @@ kind: process
 domain: platform
 summary: >
   Defines the protocol, mapping manifest, and tooling for translating updates
-  from upstream repositories (goa-software-factory, template) into OAP's
+  from upstream repositories (legacy-factory, template) into OAP's
   factory/ three-layer architecture. Superseded by spec 108: the translation
   protocol in §5 is retained and lifted into the spec 108 sync worker, but
   storage moves from the on-disk factory/ tree to PostgreSQL and the trigger
@@ -26,16 +26,16 @@ depends_on:
 ## 1. Problem Statement
 
 OAP's `factory/` directory is derived from two upstream sources maintained in
-the GovAlta-Pronghorn GitHub organization:
+the Stagecraft-ing GitHub organization:
 
-- **goa-software-factory** (`/Users/bart/Dev2/goa-software-factory`,
-  `GovAlta-Pronghorn/goa-software-factory`) — the upstream production factory
+- **legacy-factory** (`legacy-factory`,
+  `Stagecraft-ing/legacy-factory`) — the upstream production factory
   containing pipeline orchestration skills, controller agents, page type
   definitions, security assessment agents, and an evaluation framework.
   Historically tracked as `the_factory`.
-- **template** (`/Users/bart/Dev2/template`, `GovAlta-Pronghorn/template`) —
-  the upstream enterprise application scaffold that the `aim-vue-node` adapter
-  targets. Historically tracked as `AIM-vue-node-template`.
+- **template** (`template`, `Stagecraft-ing/template`) —
+  the upstream enterprise application scaffold that the `acme-vue-node` adapter
+  targets.
 
 Both upstreams continue to evolve independently. When bugs are discovered during
 real pipeline runs, fixes land in the upstream repos first (where the runs
@@ -44,7 +44,7 @@ translation is reactive and manual — someone notices a pipeline failure, trace
 it to an upstream fix, and manually ports the change. This process is error-prone
 and creates a growing drift between upstream and OAP.
 
-The problem is compounded by **structural divergence**: goa-software-factory
+The problem is compounded by **structural divergence**: legacy-factory
 uses a flat skill-file organization (`Factory Agent/Controllers/api-builder.md`
 at 55KB), while OAP uses a three-layer architecture (`process/stages/`,
 `contract/schemas/`, `adapters/{name}/patterns/`). A single upstream file often
@@ -59,12 +59,12 @@ subtree merges do not work.
    `diffable` (structurally similar, can be diffed) or `restructured` (requires
    human judgment to translate).
 
-2. **Upstream-agnostic protocol.** The same process handles goa-software-factory,
+2. **Upstream-agnostic protocol.** The same process handles legacy-factory,
    template, and any future upstream. Each upstream is a named entry in the
    mapping manifest with its own path, SHA tracking, and mappings.
 
-3. **Client-specific content is filtered.** Government client-specific content
-   (ministry references, IdP-vendor specifics, protected-level classifications,
+3. **Client-specific content is filtered.** Client-specific content
+   (internal references, IdP-vendor specifics, internal classifications,
    client document generation) is excluded during translation. The mapping
    manifest declares what to strip.
 
@@ -179,14 +179,14 @@ For each mapped change:
 
 ## 5. Exclusion Rules
 
-Content that is never translated from goa-software-factory:
+Content that is never translated from legacy-factory:
 
 | Category | Examples | Reason |
 |---|---|---|
-| Ministry references | Ministry names, program codes | Client-specific |
+| Org-specific references | Department names, program codes | Client-specific |
 | IdP-specific auth | Entra ID group claims, SAML assertions | Vendor-specific |
 | Client document generation | docx-generator.py, ppt-generator.py | Client deliverable format |
-| Protected-level classification | Threat models, security clearance levels | Client security classification |
+| Restricted classification | Threat models, internal sensitivity levels | Client security classification |
 | Evaluation framework | eval_framework/, REDTEAM/ | Separate concern, Python-based |
 | Client web standards | api-web-standards.md, api-standards-compliance.md | Client policy documents |
 

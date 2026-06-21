@@ -309,6 +309,6 @@
     "summary": "Replace the spec 108 bucket-blob translator with a content-addressed substrate (`factory_artifact_substrate`) that mirrors upstream Factory and Template repos verbatim, allows per-org override of any file, and generalises spec 111's `agent_catalog` into the same row shape so Adapters, Contracts, Processes, Agents, and Skills become facets over a single store. Symmetrises upstream sourcing across all four adapters (resolves the `next-prisma`/`rust-axum`/`encore-react` \"no upstream scaffold\" gap) and closes spec 108 §7.1 (OPC factory_root checkout punt) by exposing every artifact at a stable `(origin, path, content_hash)` triple.\n",
     "title": "Factory artifact substrate — verbatim mirror, per-org override, unified Agent/Skill/Adapter/Contract storage"
   },
-  "shardHash": "0b02825f8a414fd0878e45ed918a4930cc430f1b3060860012325e8b39bfab32",
+  "shardHash": "c01159e4648ea2ec2e061064bf1a44b5027cdb247bf705e1dfc70a42774d892e",
   "specVersion": "1.1.0"
 }

@@ -29,8 +29,8 @@ schema_version: "1.1.0"
 # IDENTITY
 # ─────────────────────────────────────────────────────────────────────────────
 adapter:
-  name: string                      # Machine-safe identifier (e.g., "aim-vue-node")
-  display_name: string              # Human-readable (e.g., "AIM Vue+Node GoA Template")
+  name: string                      # Machine-safe identifier (e.g., "acme-vue-node")
+  display_name: string              # Human-readable (e.g., "ACME Vue+Node Template")
   version: string                   # SemVer (e.g., "3.0.0")
   description: string               # What this adapter builds
 
@@ -52,7 +52,7 @@ stack:
   frontend:
     framework: string               # e.g., "vue-3", "react-19", "svelte-5", "htmx", "server-rendered"
     state_management: string        # e.g., "pinia", "zustand", "signals", "none"
-    design_system: string           # e.g., "goa-web-components", "shadcn", "none"
+    design_system: string           # e.g., "acme-web-components", "shadcn", "none"
     description: string
 
   database:
@@ -251,7 +251,7 @@ agents:
 # output tree handed to the consumer MUST be VCS-free — no `.git` directory
 # at any depth. Version-control initialisation is the consumer's act, never
 # the scaffold's; machine-driven scaffold entry points MUST NOT run
-# `git init` (template-encore precedent: `--no-git` / `NO_GIT`, implied by
+# `git init` (template precedent: `--no-git` / `NO_GIT`, implied by
 # `noInstall`).
 #
 scaffold:

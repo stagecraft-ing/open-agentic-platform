@@ -1,5 +1,5 @@
 -- Spec 141 rollback — revert the migration-36 substrate row to the
--- pre-amendment literal `aim-vue-node-template` and drop the canonical
+-- pre-amendment literal `acme-vue-node-template` and drop the canonical
 -- sibling `factory_upstreams` row migration 37 added.
 --
 -- The rollback is best-effort: it restores the pre-141 wire shape but
@@ -11,20 +11,20 @@ BEGIN;
 UPDATE factory_artifact_substrate
    SET upstream_body = replace(
            upstream_body,
-           'scaffold_source_id: aim-vue-node',
-           'scaffold_source_id: aim-vue-node-template'),
+           'scaffold_source_id: acme-vue-node',
+           'scaffold_source_id: acme-vue-node-template'),
        frontmatter = jsonb_set(
            frontmatter,
            '{scaffold_source_id}',
-           '"aim-vue-node-template"'::jsonb,
+           '"acme-vue-node-template"'::jsonb,
            false)
  WHERE origin = 'oap-self'
-   AND path = 'adapters/aim-vue-node/manifest.yaml'
-   AND upstream_sha = 'oap-self/aim-vue-node/spec-140-migration-36'
-   AND frontmatter->>'scaffold_source_id' = 'aim-vue-node';
+   AND path = 'adapters/acme-vue-node/manifest.yaml'
+   AND upstream_sha = 'oap-self/acme-vue-node/spec-140-migration-36'
+   AND frontmatter->>'scaffold_source_id' = 'acme-vue-node';
 
 DELETE FROM factory_upstreams
- WHERE source_id = 'aim-vue-node'
+ WHERE source_id = 'acme-vue-node'
    AND role = 'scaffold';
 
 COMMIT;

@@ -453,11 +453,11 @@ A developer runs the factory pipeline to generate a governed application. The go
 
 **Why this priority**: The governance certificate is the single artifact that differentiates OAP from every other system on the market. Without it, OAP is a good tool. With it, OAP is a category of one.
 
-**Independent Test**: Run `factory-run` end-to-end with the `aim-vue-node` adapter and verify certificate output.
+**Independent Test**: Run `factory-run` end-to-end with the `acme-vue-node` adapter and verify certificate output.
 
 **Acceptance Scenarios**:
 
-1. **Given** a configured factory pipeline with the `aim-vue-node` adapter and valid business requirements, **When** the pipeline runs to completion (all stages pass gates), **Then** a `governance-certificate.json` exists in the artifact output directory with a valid schema, containing the requirements hash, Build Spec hash, approval record, all stage results, verification outcomes, proof chain summary, and a self-authenticating `certificateHash`.
+1. **Given** a configured factory pipeline with the `acme-vue-node` adapter and valid business requirements, **When** the pipeline runs to completion (all stages pass gates), **Then** a `governance-certificate.json` exists in the artifact output directory with a valid schema, containing the requirements hash, Build Spec hash, approval record, all stage results, verification outcomes, proof chain summary, and a self-authenticating `certificateHash`.
 
 2. **Given** a completed pipeline run, **When** the governance certificate is read, **Then** the `proofChain.recordCount` is greater than zero, `proofChain.chainIntegrity` is `"verified"`, and every stage in `stages` has a non-empty `artifactHashes` map.
 

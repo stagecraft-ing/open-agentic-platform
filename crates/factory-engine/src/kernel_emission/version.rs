@@ -127,7 +127,7 @@ mod tests {
                 spec_spine_version: Some("0.2.0".into()),
             },
             adapter: AdapterIdentity {
-                id: "aim-vue-encore".into(),
+                id: "acme-vue-encore".into(),
                 version: "0.1.0".into(),
                 manifest_hash: "def456".into(),
             },
@@ -210,7 +210,7 @@ mod tests {
         // Adding `spec_spine_version` lets Rust recognise the pin, but a full
         // Rust read of the TS stamp still fails on the missing required fields.
         // FR-004's vended-tool npm-pin check therefore reads the pin in the
-        // tenant CI (template-encore), NOT via this struct, until a TS<->Rust
+        // tenant CI (template), NOT via this struct, until a TS<->Rust
         // `.kernel-version` schema reconciliation lands. This test pins that
         // boundary so the residual stays visible, not silent.
         let ts_stamp = r#"
@@ -221,7 +221,7 @@ kernel:
   spec_spine_version: "0.2.0"
   emitted_at: "2026-06-15T12:00:00Z"
 adapter:
-  id: "aim-vue-encore"
+  id: "acme-vue-encore"
   version: "0.1.0"
   manifest_hash: "def456"
 "#;

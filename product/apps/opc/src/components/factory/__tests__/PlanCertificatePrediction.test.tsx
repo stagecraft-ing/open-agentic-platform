@@ -16,7 +16,7 @@ import type {
 afterEach(() => cleanup());
 
 const prediction: CertificatePrediction = {
-  adapter: 'aim-vue-node',
+  adapter: 'acme-vue-node',
   stages: [
     {
       id: 's0-preflight',

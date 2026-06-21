@@ -497,7 +497,7 @@ mod tests {
         Utc.with_ymd_and_hms(2026, 4, 30, 12, 0, 0).unwrap()
     }
 
-    fn cfs_brd() -> &'static str {
+    fn example_brd() -> &'static str {
         r#"# BRD
 
 ### Objectives
@@ -523,11 +523,11 @@ PMO.
             project: root.to_path_buf(),
             run_id: "run-001".into(),
             artifact_store: root.join("artifact-store/run-001"),
-            brd: cfs_brd().to_string(),
+            brd: example_brd().to_string(),
             now: fixed_now(),
             corpus: vec![],
-            project_name: "cfs".into(),
-            project_slug: "cfs".into(),
+            project_name: "example".into(),
+            project_slug: "example".into(),
             workspace_name: "ws".into(),
             known_owners: vec![],
             agent_resolver: None,
@@ -618,7 +618,7 @@ Body.
         let stk = dir.path().join("requirements/stakeholder");
         fs::create_dir_all(&stk).unwrap();
         let charter_path = stk.join("charter.md");
-        let original_bytes = b"---\nstatus: authored\nowner: o\nversion: \"1.0.0\"\nkind: charter\n---\n\n### OBJ-1: Reduce form-correction cycles\n\nThe applicant must be a registered shelter society.\n";
+        let original_bytes = b"---\nstatus: authored\nowner: o\nversion: \"1.0.0\"\nkind: charter\n---\n\n### OBJ-1: Reduce form-correction cycles\n\nThe applicant must be a registered partner organization.\n";
         fs::write(&charter_path, original_bytes).unwrap();
 
         let before = fs::read(&charter_path).unwrap();
@@ -692,7 +692,7 @@ kind: charter
 
 ### OBJ-1: Reduce form-correction cycles
 
-The applicant must be a registered shelter society.
+The applicant must be a registered partner organization.
 "#,
         )
         .unwrap();

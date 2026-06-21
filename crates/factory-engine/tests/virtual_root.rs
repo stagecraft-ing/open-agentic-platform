@@ -51,8 +51,8 @@ fn make_fetcher(
 #[tokio::test]
 async fn materialises_artifacts_into_cache_dir() {
     let (fetcher, _manifest) = make_fetcher(&[
-        ("goa-software-factory", "Factory Agent/factory-orchestration.md", "root body", "1"),
-        ("template-encore", "orchestration/template-orchestrator.md", "tpl body", "1"),
+        ("legacy-factory", "Factory Agent/factory-orchestration.md", "root body", "1"),
+        ("template", "orchestration/template-orchestrator.md", "tpl body", "1"),
     ]);
     let cache_dir = TempDir::new().unwrap();
     let vr = VirtualRoot::new(ORG_ID, cache_dir.path().to_path_buf(), fetcher.clone());
@@ -63,13 +63,13 @@ async fn materialises_artifacts_into_cache_dir() {
     // (origin, path). The engine reads them as if they were on-disk.
     let local = vr.local_path();
     let body1 = tokio::fs::read_to_string(
-        local.join("goa-software-factory/Factory Agent/factory-orchestration.md"),
+        local.join("legacy-factory/Factory Agent/factory-orchestration.md"),
     )
     .await
     .expect("file present in cache");
     assert_eq!(body1, "root body");
     let body2 = tokio::fs::read_to_string(
-        local.join("template-encore/orchestration/template-orchestrator.md"),
+        local.join("template/orchestration/template-orchestrator.md"),
     )
     .await
     .expect("file present in cache");
@@ -83,7 +83,7 @@ async fn cache_integrity_check_rejects_hash_drift() {
     // primitive (SC-003).
     let bad_manifest = vec![ArtifactRef {
         artifact_id: "art-1".into(),
-        origin: "goa-software-factory".into(),
+        origin: "legacy-factory".into(),
         path: "Factory Agent/factory-orchestration.md".into(),
         version: 1,
         // Wrong hash on purpose — does NOT match the body the fetcher returns.
@@ -92,7 +92,7 @@ async fn cache_integrity_check_rejects_hash_drift() {
     let mut store = HashMap::new();
     store.insert(
         (
-            "goa-software-factory".to_string(),
+            "legacy-factory".to_string(),
             "Factory Agent/factory-orchestration.md".to_string(),
         ),
         "real body".to_string(),
@@ -111,7 +111,7 @@ async fn cache_integrity_check_rejects_hash_drift() {
 #[tokio::test]
 async fn cache_hit_skips_refetch() {
     let (fetcher, _manifest) = make_fetcher(&[
-        ("goa-software-factory", "a.md", "alpha", "1"),
+        ("legacy-factory", "a.md", "alpha", "1"),
     ]);
     let cache_dir = TempDir::new().unwrap();
     let vr = VirtualRoot::new(ORG_ID, cache_dir.path().to_path_buf(), fetcher.clone());
@@ -128,7 +128,7 @@ async fn cache_hit_skips_refetch() {
 #[tokio::test]
 async fn read_artifact_returns_effective_body_by_origin_path() {
     let (fetcher, _manifest) = make_fetcher(&[
-        ("oap-self", "adapters/aim-vue-encore/manifest.yaml", "manifest content", "1"),
+        ("oap-self", "adapters/acme-vue-encore/manifest.yaml", "manifest content", "1"),
     ]);
     let cache_dir = TempDir::new().unwrap();
     let vr = VirtualRoot::new(ORG_ID, cache_dir.path().to_path_buf(), fetcher);
@@ -136,7 +136,7 @@ async fn read_artifact_returns_effective_body_by_origin_path() {
     vr.materialize().await.unwrap();
 
     let body = vr
-        .read_artifact("oap-self", "adapters/aim-vue-encore/manifest.yaml")
+        .read_artifact("oap-self", "adapters/acme-vue-encore/manifest.yaml")
         .await
         .expect("artifact resolves");
     assert_eq!(body, "manifest content");

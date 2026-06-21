@@ -81,7 +81,7 @@ worker uses `resolveFactoryUpstreamToken` and `withClonedRepo`).
 2. `translateUpstreams(...)` walks the layouts and builds:
    - one `factoryProcesses` row (`7-stage-build`) derived from the factory
      source's Factory Agent tree;
-   - one `factoryAdapters` row (`aim-vue-node`) derived from the template
+   - one `factoryAdapters` row (`acme-vue-node`) derived from the template
      repo's orchestration tree;
    - one `factoryContracts` row per `*.schema.{json,yaml,yml}` discovered.
 3. `applyTranslation(...)` upserts adapters/contracts/processes inside a
@@ -120,7 +120,7 @@ already wired.
 | `product/apps/opc/src-tauri/src/commands/factory.rs:600 resolve_factory_root` | Walks up from the desktop binary's manifest dir to find `factory/adapters/`. | **Punt.** Migration to platform API fetches is out of scope for spec 108; tracked as follow-up. See Punt note below. |
 | `crates/factory-engine/src/engine.rs:54` | Default `FactoryEngineConfig::factory_root = "factory"`. | The engine still takes `factory_root` as input; the type signature does not assume the in-tree path. Punt covers this. |
 | `crates/factory-engine/src/preflight.rs:442` | Test-only path under `#[cfg(test)]` that early-returns when fixture is absent. | No change needed; deletion of `factory/` causes the test to skip cleanly. |
-| `crates/factory-engine/tests/integration_078_e2e.rs:48,98` | Integration tests guarded by `factory_root().join("adapters/aim-vue-node").exists()`. | Skip cleanly on missing dir. |
+| `crates/factory-engine/tests/integration_078_e2e.rs:48,98` | Integration tests guarded by `factory_root().join("adapters/acme-vue-node").exists()`. | Skip cleanly on missing dir. |
 | `crates/factory-contracts/src/adapter_registry.rs:440,456,487` | Three `#[cfg(test)]` real-fixture tests guarded by `if !factory_root.exists() { return; }`. | Skip cleanly. |
 | `crates/factory-contracts/src/agent_loader.rs:6–7`, `crates/factory-contracts/src/adapter_registry.rs:6–7`, `crates/agent-frontmatter/src/types.rs:277` | Doc-comment references describing `factory/` layout. | Update wording so docs no longer claim the path is in-tree. |
 
@@ -132,7 +132,7 @@ a meaningful surface area (auth, caching, run state, offline behaviour).
 Rather than block spec 108 on it, spec 108 §7 carries this punt explicitly:
 the API contract is shipped and ready, and the desktop migration will land
 under a follow-up spec referencing 108 §7. Until then, OPC factory runs
-require a developer to keep a local clone of the `goa-software-factory`
+require a developer to keep a local clone of the `legacy-factory`
 repo and point `resolve_factory_root` at it.
 
 This audit retains the existing `resolve_factory_root` implementation and
@@ -142,7 +142,7 @@ adds a `// TODO(spec-108-§7-punt)` note pointing at the follow-up.
 
 | Spec target | State |
 |-------------|-------|
-| `factory/adapters/**` | present (4 dirs: aim-vue-node, encore-react, next-prisma, rust-axum) |
+| `factory/adapters/**` | present (4 dirs: acme-vue-node, encore-react, next-prisma, rust-axum) |
 | `factory/contract/**` | present |
 | `factory/process/**` | present |
 | `factory/upstream-map.yaml` | present |

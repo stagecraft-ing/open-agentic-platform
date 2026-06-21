@@ -2,7 +2,7 @@
 //! spec 198 FR-012).
 //!
 //! Reads every `<adapters-dir>/*/manifest.yaml` from a factory source
-//! checkout (e.g. factory-encore) and emits the enforcement snapshot
+//! checkout (e.g. factory) and emits the enforcement snapshot
 //! `adapter-scopes.json` as a DERIVED PROJECTION of each adapter's
 //! `governance:` sub-envelope:
 //!
@@ -235,7 +235,7 @@ mod tests {
         let m = manifest(
             r#"
 adapter:
-  name: "aim-vue-encore"
+  name: "acme-vue-encore"
 commands:
   install: "npm install"
   test: "npm test"

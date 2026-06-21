@@ -10,7 +10,7 @@ created: "2026-06-11"
 amended: "2026-06-12"
 amendment_record: |
   self-amended (2026-06-12) — comparison-model correction, implementation PR.
-  A full file-by-file diff against the pinned ref (factory-encore@cc1139f)
+  A full file-by-file diff against the pinned ref (factory@cc1139f)
   falsified the original FIELD-LEVEL structural-parity premise for three of
   the ten lockstep files: adapter-manifest.schema.yaml is adapter-specialised
   by design (spec 197 FR-007 explicitly scoped its richer command/convention
@@ -28,7 +28,7 @@ amendment_record: |
   implementation closes. A live OPC adapter-load failure proved dual_stack is
   cross-repo contract surface, not an adapter-determined detail: OAP's mirror
   (and its Rust parser + consumer) sat on the legacy stack model
-  (audience_to_stack/stacks) while factory-encore's manifest had moved to the
+  (audience_to_stack/stacks) while factory's manifest had moved to the
   variant model (audience_to_variant/variants) — drift the gate could not see
   because §"The lockstep set" excluded dual_stack from the section-scoped
   compare. PR #344 realigned all three OAP artifacts to the variant model;
@@ -37,7 +37,7 @@ amendment_record: |
   §"The lockstep set", FR-001, and AC-2(c) are updated in lockstep with the
   tool's include_top_keys. implementation flipped in-progress → complete
   (evidence in §Implementation log).
-# The factory-encore contract ref the PR lane checks against. Bumping it is a
+# The factory contract ref the PR lane checks against. Bumping it is a
 # coupling-gated spec edit (FR-007). Verified in lockstep at this SHA
 # 2026-06-12 (spec 197 AC-8 / spec 198 admission).
 pinned_ref: "cc1139fc74dfa4c332e25f60cd8ee9840aa78ed0"
@@ -45,12 +45,12 @@ authors: ["open-agentic-platform"]
 language: en
 summary: >
   Spec 197 declares the factory Build Spec an open standard that the owned
-  factory source (factory-encore) mirrors, and spec 197 AC-8 / spec 198
+  factory source (factory) mirrors, and spec 197 AC-8 / spec 198
   both verified that mirror BY HAND ("verified directly against
-  factory-encore origin/main @ cc1139f"). A hand diff is not a gate: the
-  next factory-encore edit, or the next OAP schema bump, can silently
+  factory origin/main @ cc1139f"). A hand diff is not a gate: the
+  next factory edit, or the next OAP schema bump, can silently
   diverge the two contract surfaces and nothing fails. This spec automates
-  the lockstep: an OAP-side enforcing CI job that fetches factory-encore's
+  the lockstep: an OAP-side enforcing CI job that fetches factory's
   contract/schemas/** at a committed pin and asserts structural agreement
   against standards/schemas/factory/** under a three-mode comparison (exact
   parity for the shared surface; a directional floor where OAP fields must
@@ -59,8 +59,8 @@ summary: >
   the surfaces carry divergent comments, additive evolution, and
   adapter-specific sections by design — plus a spec-197 FR-005 guard that no GoA-specific concept entered either
   contract surface. Two lanes: a PR-time check against the committed pin,
-  and a scheduled check against factory-encore@main that catches upstream
-  drift the pin hasn't yet absorbed. factory-encore stays gate-free
+  and a scheduled check against factory@main that catches upstream
+  drift the pin hasn't yet absorbed. factory stays gate-free
   (spec_spine: false); enforcement is unidirectional, OAP-side.
 code_aliases: ["FACTORY_SCHEMA_LOCKSTEP_CI"]
 compliance:
@@ -139,23 +139,23 @@ references:
 **Created**: 2026-06-11
 **Status**: Draft (WS4 of the OAP gap-closure pass)
 **Input**: Spec 197's FR-006 promises the canonical YAML schema and the
-owned factory source (`factory-encore`) stay "in lockstep", and AC-8
+owned factory source (`factory`) stay "in lockstep", and AC-8
 records that lockstep as *verified* — but the verification note reads
-"verified directly against factory-encore `origin/main` @ `cc1139f`",
+"verified directly against factory `origin/main` @ `cc1139f`",
 i.e. a one-time manual diff. Spec 198 §AC closes the first sealed
-admission for `GovAlta-Pronghorn/factory-encore` and likewise leans on a
+admission for `Stagecraft-ing/factory` and likewise leans on a
 hand check. The lockstep that two approved specs depend on has never been
 gated. This spec is that gate.
 
 ## Purpose
 
 The factory Build Spec contract is an open standard (spec 197 FR-001):
-OAP authors it under `standards/schemas/factory/**`, and `factory-encore`
+OAP authors it under `standards/schemas/factory/**`, and `factory`
 mirrors it under `contract/schemas/**` because the owned factory consumes
 the same contract OAP defines. Two approved specs assert the two surfaces
 are identical, and both verified it by eye on a specific SHA.
 
-A hand diff decays the instant either side moves. `factory-encore` is
+A hand diff decays the instant either side moves. `factory` is
 `spec_spine: false` by declaration (`upstream-map.yaml`) — it runs **no**
 spec-spine gates, by design, because it is plain OAP-conformant content,
 not a governed spine. So the only place this lockstep can be enforced is
@@ -170,7 +170,7 @@ applied across the repo boundary: the factory and OAP exchange a typed
 contract, and a silent skew on either side breaks that contract the same
 way a duplex envelope-version skew breaks the desktop↔server stream
 (spec 189). Spec 198 already credits schema-parity (125/191) for ASI07 on
-the Rust↔TS axis; this closes the third axis — OAP↔factory-encore.
+the Rust↔TS axis; this closes the third axis — OAP↔factory.
 
 It is scoped to a **gate over existing artifacts**. It adds no new contract
 field and changes no schema; it asserts that two already-authored surfaces
@@ -200,13 +200,13 @@ is recorded and rejected here.)
 ### Pin source — two lanes (committed pin + cron against main)
 
 **Decision: a committed pin file lives in OAP, read at PR-time; a second
-scheduled lane checks `factory-encore@main` directly.**
+scheduled lane checks `factory@main` directly.**
 
 The admitted `factory_sha` (spec 198) lives in the deployed stagecraft DB,
 which CI cannot reach — rejected as the pin source. Three viable homes for
 a committed pin were weighed:
 
-1. **A standalone pin file** (e.g. `factory/factory-encore.pin`) — rejected:
+1. **A standalone pin file** (e.g. `factory/factory.pin`) — rejected:
    a bare ref in a non-markdown file is exactly the standalone-data channel
    the constitution Principle I forbids for authored truth.
 2. **This spec's own frontmatter** — a single `pinned_ref` field carrying
@@ -215,14 +215,14 @@ a committed pin were weighed:
    a compiler artifact). **Chosen.** Bumping the pin is a spec edit, which
    the coupling gate already governs, so a pin move is reviewable and
    attributable by construction.
-3. **The committed factory-encore checkout** — OAP does not vendor
-   factory-encore; rejected (no such checkout exists, and adding one
+3. **The committed factory checkout** — OAP does not vendor
+   factory; rejected (no such checkout exists, and adding one
    duplicates the contract OAP already authors).
 
 A pin alone catches OAP-side drift but goes stale silently: if
-factory-encore moves ahead, the PR lane keeps passing against the old pin
+factory moves ahead, the PR lane keeps passing against the old pin
 while the real surfaces diverge. So a **second lane** runs on a schedule
-(cron) and on `workflow_dispatch`, fetching `factory-encore@main` and
+(cron) and on `workflow_dispatch`, fetching `factory@main` and
 running the same parity assertion. A red cron lane is the signal "upstream
 moved; bump the pin and reconcile". This is the two-lane design: PR-time is
 **pinned and blocking** (deterministic, no network flake gates a PR on
@@ -232,17 +232,17 @@ to do with the drift).
 
 ### Fetch auth — authenticated cross-org fetch, PAT secret
 
-`gh api repos/GovAlta-Pronghorn/factory-encore` returns **404** for the
+`gh api repos/Stagecraft-ing/factory` returns **404** for the
 authenticated CI identity at spec time — the repo is private or org-gated
 to the stagecraft-ing CI token's scope. The check therefore cannot assume
 anonymous fetch. **Decision:** the workflow fetches via an authenticated
 sparse checkout / `gh api` using a repo-scoped PAT stored as an Actions
-secret (working name `FACTORY_ENCORE_RO_TOKEN`, read-only contents scope on
-`GovAlta-Pronghorn/factory-encore`). If org policy later makes the repo
+secret (working name `UPSTREAM_SOURCES_RO_TOKEN`, read-only contents scope on
+`Stagecraft-ing/factory`). If org policy later makes the repo
 public, the token becomes optional and the workflow falls back to anonymous
 fetch — but the spec assumes private until verified otherwise.
 **Fail-visible:** a missing or unauthorized token fails the job with
-"cannot fetch factory-encore at <ref>; check FACTORY_ENCORE_RO_TOKEN" — it
+"cannot fetch factory at <ref>; check UPSTREAM_SOURCES_RO_TOKEN" — it
 is **never** skipped-green (the spec 200 FR-004 / spec 209 FR-005 posture).
 Only the cron lane needs the network every run; the PR lane needs it only
 when a lockstep-set file actually changed (the route below), bounding the
@@ -253,11 +253,11 @@ secret's blast radius and the flake surface.
 > contract surfaces are in **field-level structural parity**, differing only
 > in comments and free-form example values, and that a single value-ignoring
 > rule covers the lot. A full file-by-file diff against the very pin this
-> spec names (`factory-encore@cc1139f`) falsifies that premise for three of
+> spec names (`factory@cc1139f`) falsifies that premise for three of
 > the ten files, and **spec 197 had already documented why**:
 >
 > - **`adapter-manifest.schema.yaml` is adapter-specialised by design**, not
->   value-divergent. factory-encore's manifest carries Encore-shaped
+>   value-divergent. factory's manifest carries Encore-shaped
 >   `directory_conventions` (`api_service_def`/`bff_proxy`/`db_definition` vs
 >   OAP's generic `api_controller`/`api_route`), a restructured `dual_stack`
 >   (`variants`/`audience_to_variant` vs `stacks`/`audience_to_stack`),
@@ -265,10 +265,10 @@ secret's blast radius and the flake surface.
 >   `commands` (`gen_client`/`generate_keys`/`migrate`/`graph_check`/
 >   `pre_verify`/`post_verify`). These are different *field sets*, and
 >   **spec 197 FR-007 explicitly scoped them out**: "The reference adapter
->   (`aim-vue-encore`) declares a richer command set … **not yet** in OAP's
+>   (`acme-vue-encore`) declares a richer command set … **not yet** in OAP's
 >   canonical manifest schema — explicitly out of this spec's scope."
 > - **`build-spec.schema.yaml` and `stage-outputs/sitemap.schema.json`** —
->   factory-encore has **additively evolved** them: `project.workspace_id`
+>   factory has **additively evolved** them: `project.workspace_id`
 >   and a larger `ui.pages[].page_type` enum (the 24-type service-design
 >   catalog). Both are factory-side *additions* over the OAP open standard.
 > - **What spec 197 AC-8 actually verified** at `cc1139f` is narrow:
@@ -290,7 +290,7 @@ secret's blast radius and the flake surface.
 
 ### Semantic diff — three comparison modes, not one
 
-A full diff of the ten lockstep files against `factory-encore@cc1139f`
+A full diff of the ten lockstep files against `factory@cc1139f`
 (recorded above) shows three distinct relationships, not one. The tool
 parses each file (YAML or JSON), drops comments (YAML parsing discards them)
 and free-form prose values (JSON Schema `description` strings), and compares
@@ -350,7 +350,7 @@ spec, like the pin):
   `patterns`, `agents`, `scaffold`, `validation`) remain **excluded** from
   structural compare, per 197 FR-007.
 
-**Tier B — present-on-OAP, expected-but-absent on factory-encore**
+**Tier B — present-on-OAP, expected-but-absent on factory**
 (`governance-envelope.schema.yaml` today). The gate reports this as a
 **named, expected gap** with the spec-198 obligation cited — advisory in the
 PR lane (it is a known authoring debt, not a regression a PR introduced), and
@@ -378,7 +378,7 @@ taxonomy). Spec 197 AC-6 already asserts no such token appears in
 `standards/schemas/factory/` or `crates/factory-contracts/src/` — but only
 for the OAP side, and only by intent. **Decision:** a denylist token scan
 (case-insensitive, word-boundary) over **both** the OAP and the fetched
-factory-encore contract surfaces, with the denylist defined by citation to
+factory contract surfaces, with the denylist defined by citation to
 spec 197 FR-005 (the enumerated label set and
 service-catalogue identifiers). The label set is covered in two forms:
 `Protected\s+[ABC]` verbatim (unambiguous), and `Public` only
@@ -409,7 +409,7 @@ review note.
 - **FR-001 — Cross-repo lockstep check (the tool).** A small OAP-side
   checker (binary `factory-schema-lockstep`, a sibling Rust crate under
   `tools/oap/`, **not** an extension of the JS `schema-parity-check` per §4)
-  that, given a local factory-encore contract tree, parses each lockstep file
+  that, given a local factory contract tree, parses each lockstep file
   on both sides and asserts structural agreement **under the per-file mode
   the spec assigns** (§"The lockstep set"): *exact parity* for the shared
   surface, *directional floor* for `build-spec`/`sitemap` (OAP fields must
@@ -428,13 +428,13 @@ review note.
   naming file:line and the spec-197 FR-005 clause it violates.
 - **FR-003 — PR lane (pinned, blocking).** A reusable workflow dispatched
   from the spec-177 orchestrator on the lockstep route (defined above)
-  sparse-fetches ONLY `contract/schemas/**` from factory-encore at the pin
+  sparse-fetches ONLY `contract/schemas/**` from factory at the pin
   in this spec's frontmatter (`pinned_ref`) — never a full clone,
   runs FR-001/FR-002, and blocks the PR on any compare-mode divergence or a
   spec-197 FR-005 guard hit. Runs identically in `merge_group`. SHA-pinned action refs
   (spec 158). Fail-visible on fetch/auth failure (never skipped-green).
 - **FR-004 — Cron lane (against main, human-routed).** A scheduled
-  (+ `workflow_dispatch`) lane sparse-fetches `factory-encore@main`, runs
+  (+ `workflow_dispatch`) lane sparse-fetches `factory@main`, runs
   the same assertions, and on divergence opens/annotates a tracking issue
   ("upstream drifted from pin `<ref>`; reconcile and bump") rather than
   failing an unrelated PR. Catches the stale-pin failure mode the PR lane
@@ -453,7 +453,7 @@ review note.
   unless the fetch is cheap enough and reliable enough for the ~5-minute
   budget, with the measurement recorded (the spec 211 FR-002 rule).
 - **FR-007 — Pin lives in frontmatter (Principle I).** The checked
-  factory-encore ref is a `pinned_ref` field in this spec's frontmatter, not
+  factory ref is a `pinned_ref` field in this spec's frontmatter, not
   a standalone data file. Bumping it is a coupling-gated spec edit, so a pin
   move is attributable and reviewable.
 
@@ -479,16 +479,16 @@ review note.
   identifier from spec 197 FR-005) introduced into either contract surface fails the
   guard naming file:line and the FR-005 clause.
 - **AC-4.** `governance-envelope.schema.yaml` present on OAP and absent on
-  factory-encore is reported as a named Tier-B expected gap citing spec 198
+  factory is reported as a named Tier-B expected gap citing spec 198
   — advisory in the PR lane — and does not mask a real compare-mode
   divergence in the same run (gap classification is per-file, proven by a
   fixture that pairs a Tier-B gap with an exact/floor break and asserts the
   run still fails on the break).
-- **AC-5.** The cron lane, run against a `factory-encore@main` that has
+- **AC-5.** The cron lane, run against a `factory@main` that has
   drifted ahead of the pin, opens/annotates a tracking issue and does not
   fail an unrelated PR; bumping `pinned_ref` to the new ref turns the PR
   lane green again.
-- **AC-6.** A missing/unauthorized `FACTORY_ENCORE_RO_TOKEN` fails the job
+- **AC-6.** A missing/unauthorized `UPSTREAM_SOURCES_RO_TOKEN` fails the job
   with the fetch diagnostic — never skipped-green (spec 200 FR-004 posture).
 - **AC-7.** `ci-parity-check` is green with the new workflow classified
   enforcing: the Makefile mirror exists token-for-token, and the divergent
@@ -501,11 +501,11 @@ review note.
 
 - **Contract field changes.** This gate watches the contract; specs
   074/197/198/210 own its shape. It adds and removes no field.
-- **factory-encore-side CI.** factory-encore is `spec_spine: false` by
+- **factory-side CI.** factory is `spec_spine: false` by
   declaration; enforcement is unidirectional, OAP-side. This spec does not
-  add gates to factory-encore.
+  add gates to factory.
 - **The Rust↔TS structural-parity gate** (specs 125/191) — a different axis
-  on different files; this spec adds the third (OAP↔factory-encore) axis and
+  on different files; this spec adds the third (OAP↔factory) axis and
   does not touch the first.
 - **Admitted-`factory_sha` reconciliation** (spec 198). The deployed
   admission SHA is a runtime fact in the stagecraft DB; this gate's pin is a
@@ -524,7 +524,7 @@ only at verified existing paths; the `establishes:` edges for the new tool,
 the workflow file, and the parity fixtures ride the implementation PR that
 creates them (the spec 191 precedent). The `pinned_ref` field is added to
 this spec's frontmatter when the implementation lands, pinned to the then-
-current factory-encore contract SHA. Two implementation-PR obligations
+current factory contract SHA. Two implementation-PR obligations
 the AI review surfaced, recorded so they are not rediscovered: (a) adding
 `pinned_ref` to this frontmatter and the `establishes:` edges is a spec
 edit riding the implementation PR — which the coupling gate then accepts
@@ -548,14 +548,14 @@ precedent).
   sparse fetch at the pin, and the compare end-to-end.
 - **2026-06-12 — Cron lane first live run (FR-004 mechanics).** Manual
   `workflow_dispatch` of the cron lane (run 27412429070): authenticated
-  sparse fetch of `factory-encore@main`, full check green, no tracking
+  sparse fetch of `factory@main`, full check green, no tracking
   issue filed — the fetch-auth, compare, and quiet-when-aligned paths are
   live-verified. The drift→issue path (AC-5) remains fixture/code-reviewed
   only until upstream actually drifts; the lane is active on its schedule.
 - **2026-06-12 — dual_stack widening; implementation → complete.** With the
   widened `include_top_keys` and OAP's mirror still on the legacy stack
   model (pre-#344 main), the local gate run against the pinned tree
-  (`factory-encore@cc1139f`) failed naming exactly the live drift:
+  (`factory@cc1139f`) failed naming exactly the live drift:
   `dual_stack.audience_to_stack` and `dual_stack.stacks` present in OAP
   only — the widened gate detects the drift class that caused the OPC
   adapter-load failure. After PR #344's variant-model realignment the same

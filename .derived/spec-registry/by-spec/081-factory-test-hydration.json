@@ -57,6 +57,6 @@
     "summary": "Adds a test data hydration layer to the Factory pipeline, enabling adapters to generate seed SQL for reference/lookup tables, realistic development fixtures for all domain entities, and a shared test fixture module consumed by both unit and integration tests. Closes the gap between schema-only DDL output and a runnable application with meaningful data.\n",
     "title": "Factory Test Data Hydration"
   },
-  "shardHash": "41ad7b48b8657d8477812da8531c50fdb08be2959e7e8f95b5b72371db1815b6",
+  "shardHash": "a2080530937cd1d88da005d903c9a4f0cffb5c5193d3b71a4e028f5250195077",
   "specVersion": "1.1.0"
 }

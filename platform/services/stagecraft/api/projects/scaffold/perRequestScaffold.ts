@@ -83,7 +83,7 @@ export async function scaffoldFromPrebuilt(
   // Scaffold-output invariant (spec 112 §5.3): the tree handed to
   // gitInitAndPush is VCS-free — repo initialization belongs to commit #1.
   // Template generators run `git init` in their output for developer use
-  // (template-encore's dual profile does so PER VARIANT), and an embedded
+  // (template's dual profile does so PER VARIANT), and an embedded
   // commit-less repo makes `git add -A` fail with "does not have a commit
   // checked out". Strip `.git` at any depth, regardless of generator.
   // Rejecting a directory by basename is sufficient at any depth: fs.cp

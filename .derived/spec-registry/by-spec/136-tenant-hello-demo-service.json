@@ -1,6 +1,6 @@
 {
   "record": {
-    "amendmentRecord": "Amended 2026-06-16 by 214-tenant-app-chart-supersession (Stage 2): records\nthe partial supersession of the tenant-hello service, chart, and CI/CD\nworkflows (declared in 214's supersedes) now that aim-vue-encore is the sole\ntenant shape, and refines the C-004 statelessness clause to \"stateless pods;\ndurable state lives only in the declared database\" (FR-012) so the contract\nmatches the real database-backed template shape. The C-001..C-005 contract\ntext otherwise stands as the tenant-codebase reference.\n",
+    "amendmentRecord": "Amended 2026-06-16 by 214-tenant-app-chart-supersession (Stage 2): records\nthe partial supersession of the tenant-hello service, chart, and CI/CD\nworkflows (declared in 214's supersedes) now that acme-vue-encore is the sole\ntenant shape, and refines the C-004 statelessness clause to \"stateless pods;\ndurable state lives only in the declared database\" (FR-012) so the contract\nmatches the real database-backed template shape. The C-001..C-005 contract\ntext otherwise stands as the tenant-codebase reference.\n",
     "created": "2026-05-04",
     "dependsOn": [
       "087-unified-workspace-architecture",
@@ -130,6 +130,6 @@
     "summary": "Document `platform/services/tenant-hello` as the deliberately-minimal reference of what a project codebase looks like when stagecraft is responsible for deploying it. The express service itself is trivial; the spec exists to pin the contract a tenant codebase must honour to round-trip through stagecraft (containerised entrypoint, health probe, port-from-env, no privileged dependencies) and to call out the current gap between \"tenant codebase exists\" and \"stagecraft can deploy it end-to-end.\"\n",
     "title": "Tenant-hello — stagecraft-deployable tenant reference service"
   },
-  "shardHash": "02f5e3be7f990b270c4b26b3a2cdf07ac7948c630b289a755c8e6fb84a0f810b",
+  "shardHash": "0910973171720f14294c1232ef3da8744b97bf86e1b8c25ed9f8fb92489ce4cb",
   "specVersion": "1.1.0"
 }

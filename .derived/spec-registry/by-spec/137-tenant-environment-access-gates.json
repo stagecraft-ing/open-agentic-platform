@@ -1,11 +1,11 @@
 {
   "record": {
-    "amendmentRecord": "Amended 2026-06-16 by 214-tenant-app-chart-supersession (Stage 2): the two\naccess-gate co_authority units that pointed at the retired tenant-hello\nchart files are relocated to the aim-vue-encore chart equivalents\n(values.yaml + templates/ingress.yaml, anchor access-gate), co-authored with\n214 (the new chart owner) instead of 136. The gate seam semantics are\nunchanged (FR-011 render parity was proven before the retirement). 214 also\nlocks the tenant hostname convention (FR-007), resolving this spec's\nClarification 4 sketch: a single DNS label {org}--{project}--{env} under\ntenants.{base}, the single-level wildcard cert being the binding constraint.\n",
+    "amendmentRecord": "Amended 2026-06-16 by 214-tenant-app-chart-supersession (Stage 2): the two\naccess-gate co_authority units that pointed at the retired tenant-hello\nchart files are relocated to the acme-vue-encore chart equivalents\n(values.yaml + templates/ingress.yaml, anchor access-gate), co-authored with\n214 (the new chart owner) instead of 136. The gate seam semantics are\nunchanged (FR-011 render parity was proven before the retirement). 214 also\nlocks the tenant hostname convention (FR-007), resolving this spec's\nClarification 4 sketch: a single DNS label {org}--{project}--{env} under\ntenants.{base}, the single-level wildcard cert being the binding constraint.\n",
     "coAuthority": [
       {
         "unit": {
           "anchor": "access-gate",
-          "file": "platform/charts/aim-vue-encore/values.yaml",
+          "file": "platform/charts/acme-vue-encore/values.yaml",
           "kind": "section"
         },
         "with_specs": [
@@ -15,7 +15,7 @@
       {
         "unit": {
           "anchor": "access-gate",
-          "file": "platform/charts/aim-vue-encore/templates/ingress.yaml",
+          "file": "platform/charts/acme-vue-encore/templates/ingress.yaml",
           "kind": "section"
         },
         "with_specs": [
@@ -209,6 +209,6 @@
     "summary": "Per-environment access gating for projects deployed via deployd-api, applied above the tenant app so tenant codebases carry no auth logic. Passwordless OIDC via our existing Rauthy instance is the only mode — users authenticate by magic link or federated upstream IdP (Google, Microsoft Entra, GitHub, generic OIDC). Stagecraft and Rauthy clients for tenant gates are configured to refuse password login outright; the platform never sees, stores, or relays a password.\n",
     "title": "Tenant environment access gates — passwordless OIDC via Rauthy"
   },
-  "shardHash": "445f1063ab0d119f6ff8fc3ad5aeee858209b90bbe3d15f0cd1e4490dd8ba255",
+  "shardHash": "02c27a5894966ab86d96fc5378b86c3c361c2d38517ce6bed1e197898e0f9c23",
   "specVersion": "1.1.0"
 }

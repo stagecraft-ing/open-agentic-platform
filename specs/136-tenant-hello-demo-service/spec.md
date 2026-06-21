@@ -11,7 +11,7 @@ amended: "2026-06-16"
 amendment_record: |
   Amended 2026-06-16 by 214-tenant-app-chart-supersession (Stage 2): records
   the partial supersession of the tenant-hello service, chart, and CI/CD
-  workflows (declared in 214's supersedes) now that aim-vue-encore is the sole
+  workflows (declared in 214's supersedes) now that acme-vue-encore is the sole
   tenant shape, and refines the C-004 statelessness clause to "stateless pods;
   durable state lives only in the declared database" (FR-012) so the contract
   matches the real database-backed template shape. The C-001..C-005 contract
@@ -85,8 +85,8 @@ regression-test) the tenant-deploy pipeline.
 
 > **Amended by spec 214 (2026-06-16, Stage 2).** The tenant-hello service,
 > Helm chart, and `ci-tenant-hello.yml` / `cd-tenant-hello.yml` workflows are
-> superseded (partial) by spec 214: the factory's own template-encore scaffold
-> (`aim-vue-encore`) is now the reference tenant, so the surface CI proves and
+> superseded (partial) by spec 214: the factory's own template scaffold
+> (`acme-vue-encore`) is now the reference tenant, so the surface CI proves and
 > the surface tenants run are the same artifact. The C-001..C-005 tenant
 > codebase contract below remains the authoritative reference; spec 214 FR-012
 > refines C-004 (see the note on that clause). The deleted directories live on

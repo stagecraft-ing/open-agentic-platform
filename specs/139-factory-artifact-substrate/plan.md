@@ -57,7 +57,7 @@ macOS (Apple Silicon only per project memory) and Linux/Windows.
 **Project Type**: Full-stack web service + Rust library + desktop app —
 the cross-cutting nature of the change is the entire reason this spec
 exists.
-**Performance Goals**: Sync of `goa-software-factory` (≈ 122 files) under
+**Performance Goals**: Sync of `legacy-factory` (≈ 122 files) under
 10 s wall-time. Per-artifact path read from the substrate under 50 ms p95
 (API + cache lookup). VirtualRoot first-use under 2 s for an entire run
 manifest fetch.
@@ -66,7 +66,7 @@ contracts,processes}`) must remain backward-compatible across Phases 1–3.
 No live consumer breaks until Phase 4. Migration of historical
 `factory_runs` audit rows must not invalidate them.
 **Scale/Scope**: Today's corpus: 1 active org, ≈ 122 artifacts after
-sync of `goa-software-factory` + `template`. Design accepts 10× corpus
+sync of `legacy-factory` + `template`. Design accepts 10× corpus
 growth and 100× org count without restructuring.
 
 ## Constitution Check
@@ -163,8 +163,8 @@ The new files are scoped to existing module boundaries.
 migration ordering.
 
 P0.1 **Walk the upstream end-to-end.** Clone
-`GovAlta-Pronghorn/goa-software-factory@<latest>` and
-`GovAlta-Pronghorn/template@<latest>` into a scratch dir. For every
+`Stagecraft-ing/legacy-factory@<latest>` and
+`Stagecraft-ing/template@<latest>` into a scratch dir. For every
 file:
 - Compute `kind` per the §4.2 predicates from the spec.
 - Record any file that does not classify into a kind (the spec
@@ -341,8 +341,8 @@ Order:
    under `origin='oap-self'`, `path='adapters/<name>/<rel>'`.
 6. **Adapter manifest format extension.** Add
    `orchestration_source_id` and `scaffold_source_id` to the manifest
-   shape. `aim-vue-node` carries `goa-software-factory` /
-   `aim-vue-node-template`. The three OAP-native adapters carry their
+   shape. `acme-vue-node` carries `legacy-factory` /
+   `acme-vue-node-template`. The three OAP-native adapters carry their
    `oap-*` source ids.
 7. **`scaffoldReadiness.ts` extension.** The endpoint now returns a
    per-adapter eligibility verdict that includes

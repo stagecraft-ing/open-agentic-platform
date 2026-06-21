@@ -402,11 +402,11 @@ mod tests {
 
     #[test]
     fn test_capabilities_match_dual_supported() {
-        let manifest = minimal_manifest("aim-vue-encore", true);
+        let manifest = minimal_manifest("acme-vue-encore", true);
         let registry = AdapterRegistry::from_manifests(vec![manifest]);
         let spec = minimal_build_spec(Variant::Dual, AudienceMethod::Saml);
 
-        let report = registry.capabilities_match("aim-vue-encore", &spec);
+        let report = registry.capabilities_match("acme-vue-encore", &spec);
         assert!(report.compatible, "Gaps: {:?}", report.gaps);
     }
 
@@ -453,7 +453,7 @@ mod tests {
         names.sort();
         assert_eq!(
             names,
-            vec!["aim-vue-node", "encore-react", "next-prisma", "rust-axum"]
+            vec!["acme-vue-node", "encore-react", "next-prisma", "rust-axum"]
         );
     }
 
@@ -470,11 +470,11 @@ mod tests {
         let spec =
             crate::validation::validate_build_spec(&spec_path).expect("Failed to parse build spec");
 
-        // aim-vue-node should be compatible with community-grant-portal (dual, saml+oidc)
-        let report = registry.capabilities_match("aim-vue-node", &spec);
+        // acme-vue-node should be compatible with community-grant-portal (dual, saml+oidc)
+        let report = registry.capabilities_match("acme-vue-node", &spec);
         assert!(
             report.compatible,
-            "aim-vue-node should be compatible. Gaps: {:?}",
+            "acme-vue-node should be compatible. Gaps: {:?}",
             report.gaps
         );
 
@@ -487,8 +487,8 @@ mod tests {
     }
 
     #[test]
-    fn test_aim_vue_node_declares_spec_112_scaffold_extension() {
-        // Spec 112 Phase 4 exit criteria: aim-vue-node's manifest declares the new
+    fn test_acme_vue_node_declares_spec_112_scaffold_extension() {
+        // Spec 112 Phase 4 exit criteria: acme-vue-node's manifest declares the new
         // scaffold block with entry_point, runtime, profiles, and emits populated.
         let factory_root = std::path::Path::new("../../factory");
         if !factory_root.exists() {
@@ -497,8 +497,8 @@ mod tests {
         let registry =
             AdapterRegistry::discover(factory_root).expect("Failed to discover adapters");
         let manifest = registry
-            .get("aim-vue-node")
-            .expect("aim-vue-node adapter should be discovered");
+            .get("acme-vue-node")
+            .expect("acme-vue-node adapter should be discovered");
         let scaffold = &manifest.scaffold;
         assert_eq!(scaffold.entry_point.as_deref(), Some("scripts/setup-app.ts"));
         assert_eq!(scaffold.runtime.as_deref(), Some("node-24"));

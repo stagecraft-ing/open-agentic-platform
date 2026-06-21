@@ -34,7 +34,7 @@ function isKnownShape(s: string): s is TenantShape {
  * Resolve the tenant chart shape for a dispatch (FR-002).
  *
  * Sole-shape mapping: any factory-created project (a non-empty
- * `factoryAdapterId`) deploys as `aim-vue-encore`, the one real post-cutover
+ * `factoryAdapterId`) deploys as `acme-vue-encore`, the one real post-cutover
  * shape. The spec hand-authors one chart for the one active adapter;
  * per-adapter chart generation is out of scope until a second real shape
  * exists, so the project's synthetic adapter id need not be decoded here, only
@@ -48,7 +48,7 @@ export function resolveTenantShape(
   explicitChart?: string,
 ): TenantShape | null {
   if (explicitChart && isKnownShape(explicitChart)) return explicitChart;
-  if (factoryAdapterId && factoryAdapterId.length > 0) return "aim-vue-encore";
+  if (factoryAdapterId && factoryAdapterId.length > 0) return "acme-vue-encore";
   return null;
 }
 

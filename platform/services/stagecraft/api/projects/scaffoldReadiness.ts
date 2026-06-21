@@ -34,7 +34,7 @@ export { resolveBlocker } from "./scaffoldReadinessBlocker";
 export type AdapterReadinessVerdict = {
   /** Adapter row id (matches factory_adapters.id). */
   id: string;
-  /** Adapter name (manifest-declared, e.g. `aim-vue-encore`). */
+  /** Adapter name (manifest-declared, e.g. `acme-vue-encore`). */
   name: string;
   /** True iff the manifest declares a `scaffold.source` (spec 199 FR-009). */
   declaresScaffoldSource: boolean;

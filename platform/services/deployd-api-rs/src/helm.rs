@@ -33,27 +33,27 @@ use std::sync::OnceLock;
 // block + the materialiser arm in `write_chart`.
 // ---------------------------------------------------------------------------
 
-// Spec 214: aim-vue-encore reference chart (the template-encore scaffold
+// Spec 214: acme-vue-encore reference chart (the template scaffold
 // shape) is the sole tenant shape. Spec 214 Stage 2 retired the synthetic
 // reference that spec 136 shipped, leaving this as the only registered
 // tenant chart. The eight consts mirror the chart directory; the materialiser
 // arm lives in `write_chart`.
-const AIM_VUE_ENCORE_CHART_YAML: &str =
-    include_str!("../../../charts/aim-vue-encore/Chart.yaml");
-const AIM_VUE_ENCORE_VALUES_YAML: &str =
-    include_str!("../../../charts/aim-vue-encore/values.yaml");
-const AIM_VUE_ENCORE_HELPERS_TPL: &str =
-    include_str!("../../../charts/aim-vue-encore/templates/_helpers.tpl");
-const AIM_VUE_ENCORE_DEPLOYMENT_YAML: &str =
-    include_str!("../../../charts/aim-vue-encore/templates/deployment.yaml");
-const AIM_VUE_ENCORE_SERVICE_YAML: &str =
-    include_str!("../../../charts/aim-vue-encore/templates/service.yaml");
-const AIM_VUE_ENCORE_INGRESS_YAML: &str =
-    include_str!("../../../charts/aim-vue-encore/templates/ingress.yaml");
-const AIM_VUE_ENCORE_SA_YAML: &str =
-    include_str!("../../../charts/aim-vue-encore/templates/serviceaccount.yaml");
-const AIM_VUE_ENCORE_POSTGRES_YAML: &str =
-    include_str!("../../../charts/aim-vue-encore/templates/postgres.yaml");
+const ACME_VUE_ENCORE_CHART_YAML: &str =
+    include_str!("../../../charts/acme-vue-encore/Chart.yaml");
+const ACME_VUE_ENCORE_VALUES_YAML: &str =
+    include_str!("../../../charts/acme-vue-encore/values.yaml");
+const ACME_VUE_ENCORE_HELPERS_TPL: &str =
+    include_str!("../../../charts/acme-vue-encore/templates/_helpers.tpl");
+const ACME_VUE_ENCORE_DEPLOYMENT_YAML: &str =
+    include_str!("../../../charts/acme-vue-encore/templates/deployment.yaml");
+const ACME_VUE_ENCORE_SERVICE_YAML: &str =
+    include_str!("../../../charts/acme-vue-encore/templates/service.yaml");
+const ACME_VUE_ENCORE_INGRESS_YAML: &str =
+    include_str!("../../../charts/acme-vue-encore/templates/ingress.yaml");
+const ACME_VUE_ENCORE_SA_YAML: &str =
+    include_str!("../../../charts/acme-vue-encore/templates/serviceaccount.yaml");
+const ACME_VUE_ENCORE_POSTGRES_YAML: &str =
+    include_str!("../../../charts/acme-vue-encore/templates/postgres.yaml");
 
 // region: gate-overlay
 // Spec 137 — oauth2-proxy-gate chart (per-environment passwordless OIDC gate).
@@ -575,15 +575,15 @@ fn write_chart(name: &str, dir: &Path) -> Result<(), HelmError> {
             ("templates/configmap.yaml", OAUTH2_PROXY_GATE_CONFIGMAP_YAML),
             ("templates/serviceaccount.yaml", OAUTH2_PROXY_GATE_SA_YAML),
         ],
-        "aim-vue-encore" => &[
-            ("Chart.yaml", AIM_VUE_ENCORE_CHART_YAML),
-            ("values.yaml", AIM_VUE_ENCORE_VALUES_YAML),
-            ("templates/_helpers.tpl", AIM_VUE_ENCORE_HELPERS_TPL),
-            ("templates/deployment.yaml", AIM_VUE_ENCORE_DEPLOYMENT_YAML),
-            ("templates/service.yaml", AIM_VUE_ENCORE_SERVICE_YAML),
-            ("templates/ingress.yaml", AIM_VUE_ENCORE_INGRESS_YAML),
-            ("templates/serviceaccount.yaml", AIM_VUE_ENCORE_SA_YAML),
-            ("templates/postgres.yaml", AIM_VUE_ENCORE_POSTGRES_YAML),
+        "acme-vue-encore" => &[
+            ("Chart.yaml", ACME_VUE_ENCORE_CHART_YAML),
+            ("values.yaml", ACME_VUE_ENCORE_VALUES_YAML),
+            ("templates/_helpers.tpl", ACME_VUE_ENCORE_HELPERS_TPL),
+            ("templates/deployment.yaml", ACME_VUE_ENCORE_DEPLOYMENT_YAML),
+            ("templates/service.yaml", ACME_VUE_ENCORE_SERVICE_YAML),
+            ("templates/ingress.yaml", ACME_VUE_ENCORE_INGRESS_YAML),
+            ("templates/serviceaccount.yaml", ACME_VUE_ENCORE_SA_YAML),
+            ("templates/postgres.yaml", ACME_VUE_ENCORE_POSTGRES_YAML),
         ],
         other => return Err(HelmError::UnknownChart(other.to_string())),
     };
@@ -611,13 +611,13 @@ mod tests {
     #[test]
     fn build_values_splits_image_ref_at_colon() {
         let v = build_values(
-            "ghcr.io/org/aim-vue-encore:v1.2.3",
+            "ghcr.io/org/acme-vue-encore:v1.2.3",
             "myapp-prod",
             &[],
             None,
             &DeployExtras::default(),
         );
-        assert_eq!(v["image"]["repository"], "ghcr.io/org/aim-vue-encore");
+        assert_eq!(v["image"]["repository"], "ghcr.io/org/acme-vue-encore");
         assert_eq!(v["image"]["tag"], "v1.2.3");
         assert_eq!(v["fullnameOverride"], "myapp-prod");
         assert!(v.get("ingress").is_none(), "no routes ⇒ no ingress block");
@@ -627,20 +627,20 @@ mod tests {
     #[test]
     fn build_values_handles_tagless_image_ref() {
         let v = build_values(
-            "ghcr.io/org/aim-vue-encore",
+            "ghcr.io/org/acme-vue-encore",
             "myapp-prod",
             &[],
             None,
             &DeployExtras::default(),
         );
-        assert_eq!(v["image"]["repository"], "ghcr.io/org/aim-vue-encore");
+        assert_eq!(v["image"]["repository"], "ghcr.io/org/acme-vue-encore");
         assert_eq!(v["image"]["tag"], "latest");
     }
 
     #[test]
     fn build_values_enables_ingress_when_route_present() {
         let v = build_values(
-            "ghcr.io/org/aim-vue-encore:v1",
+            "ghcr.io/org/acme-vue-encore:v1",
             "myapp-prod",
             &[("app.example.com".into(), "/".into())],
             None,
@@ -774,7 +774,7 @@ mod tests {
     fn build_values_skips_gate_block_when_descriptor_disabled() {
         let d = sample_descriptor(false);
         let v = build_values(
-            "ghcr.io/org/aim-vue-encore:v1",
+            "ghcr.io/org/acme-vue-encore:v1",
             "myapp-prod",
             &[("acme.tenants.test".into(), "/".into())],
             Some(&d),
@@ -790,7 +790,7 @@ mod tests {
     fn build_values_emits_gate_block_when_descriptor_enabled() {
         let d = sample_descriptor(true);
         let v = build_values(
-            "ghcr.io/org/aim-vue-encore:v1",
+            "ghcr.io/org/acme-vue-encore:v1",
             "myapp-prod",
             &[("acme.tenants.test".into(), "/".into())],
             Some(&d),
@@ -942,18 +942,18 @@ mod tests {
     }
 
     #[test]
-    fn template_renders_aim_vue_encore_without_ingress() {
+    fn template_renders_acme_vue_encore_without_ingress() {
         if !helm_available() {
             eprintln!("skipping: helm binary not in PATH");
             return;
         }
         let runner = HelmRunner::from_env();
         let req = InstallRequest {
-            chart: "aim-vue-encore".into(),
+            chart: "acme-vue-encore".into(),
             namespace: "myapp-prod".into(),
             release: "myapp".into(),
             values: build_values(
-                "ghcr.io/org/aim-vue-encore:v1.2.3",
+                "ghcr.io/org/acme-vue-encore:v1.2.3",
                 "myapp-prod",
                 &[],
                 None,
@@ -970,7 +970,7 @@ mod tests {
             "Ingress should be absent when no route is supplied"
         );
         assert!(
-            rendered.contains("ghcr.io/org/aim-vue-encore"),
+            rendered.contains("ghcr.io/org/acme-vue-encore"),
             "image repo flowed through"
         );
         assert!(rendered.contains("v1.2.3"), "image tag flowed through");
@@ -1003,13 +1003,13 @@ mod tests {
     }
 
     // ---------------------------------------------------------------------
-    // Spec 214: aim-vue-encore chart materialisation + render smokes.
+    // Spec 214: acme-vue-encore chart materialisation + render smokes.
     // ---------------------------------------------------------------------
 
     #[test]
-    fn prepare_chart_materialises_aim_vue_encore_files() {
+    fn prepare_chart_materialises_acme_vue_encore_files() {
         let runner = HelmRunner::from_env();
-        let dir = runner.prepare_chart("aim-vue-encore").expect("prepare");
+        let dir = runner.prepare_chart("acme-vue-encore").expect("prepare");
         for rel in [
             "Chart.yaml",
             "values.yaml",
@@ -1028,7 +1028,7 @@ mod tests {
     }
 
     #[test]
-    fn template_renders_aim_vue_encore_with_tls_and_pull_secret() {
+    fn template_renders_acme_vue_encore_with_tls_and_pull_secret() {
         if !helm_available() {
             eprintln!("skipping: helm binary not in PATH");
             return;
@@ -1040,11 +1040,11 @@ mod tests {
             ..Default::default()
         };
         let req = InstallRequest {
-            chart: "aim-vue-encore".into(),
+            chart: "acme-vue-encore".into(),
             namespace: "acme-dev".into(),
             release: "acme-p-dev".into(),
             values: build_values(
-                "ghcr.io/org/aim-vue-encore:sha-abc123",
+                "ghcr.io/org/acme-vue-encore:sha-abc123",
                 "acme-p-dev",
                 &[("acme--p--dev.tenants.test".into(), "/".into())],
                 None,
@@ -1087,14 +1087,14 @@ mod tests {
     }
 
     #[test]
-    fn template_renders_aim_vue_encore_preview_database_when_enabled() {
+    fn template_renders_acme_vue_encore_preview_database_when_enabled() {
         if !helm_available() {
             eprintln!("skipping: helm binary not in PATH");
             return;
         }
         let runner = HelmRunner::from_env();
         let mut values = build_values(
-            "ghcr.io/org/aim-vue-encore:sha-abc123",
+            "ghcr.io/org/acme-vue-encore:sha-abc123",
             "acme-p-dev",
             &[],
             None,
@@ -1106,7 +1106,7 @@ mod tests {
         // merges this onto the chart's previewDatabase defaults.
         values["previewDatabase"] = serde_json::json!({ "enabled": true });
         let req = InstallRequest {
-            chart: "aim-vue-encore".into(),
+            chart: "acme-vue-encore".into(),
             namespace: "acme-dev".into(),
             release: "acme-p-dev".into(),
             values,

@@ -15,8 +15,8 @@
       "112-factory-project-lifecycle",
       "124-opc-factory-run-platform-integration",
       "139-factory-artifact-substrate",
-      "140-aim-vue-node-scaffold-source-id-cutover",
-      "141-aim-vue-node-source-id-template-name-alignment"
+      "140-acme-vue-node-scaffold-source-id-cutover",
+      "141-acme-vue-node-source-id-template-name-alignment"
     ],
     "dependsOn": [
       "198-factory-governance-envelope",
@@ -193,5 +193,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "257896d20cbeaa60613a114376a2da850305a5b090dbfa999504cfc42179b985"
+  "shardHash": "fbc1ab7085578453d51b5266144d2015209d4431c35e02be0a72ac55696de025"
 }

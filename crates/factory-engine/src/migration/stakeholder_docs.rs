@@ -758,7 +758,7 @@ mod tests {
         Utc.with_ymd_and_hms(2026, 4, 30, 12, 0, 0).unwrap()
     }
 
-    fn cfs_charter() -> &'static str {
+    fn example_charter() -> &'static str {
         r#"# Project Charter
 
 ## Background
@@ -787,7 +787,7 @@ Free-form notes.
 "#
     }
 
-    fn cfs_client_document() -> &'static str {
+    fn example_client_document() -> &'static str {
         r#"# Client Document
 
 ### Outcomes
@@ -798,17 +798,17 @@ Reduced cycle time.
 
 Schedule slip.
 
-### 1GX Integration
+### Globex Integration
 
-The system must integrate with 1GX for payments.
+The system must integrate with Globex for payments.
 "#
     }
 
     fn make_legacy_project(root: &Path) {
         let dir = root.join("requirements/client");
         fs::create_dir_all(&dir).unwrap();
-        fs::write(dir.join("charter.md"), cfs_charter()).unwrap();
-        fs::write(dir.join("client-document.md"), cfs_client_document()).unwrap();
+        fs::write(dir.join("charter.md"), example_charter()).unwrap();
+        fs::write(dir.join("client-document.md"), example_client_document()).unwrap();
     }
 
     fn opts_for(root: &Path, keep_legacy: bool) -> MigrateOptions {
@@ -816,8 +816,8 @@ The system must integrate with 1GX for payments.
             project: root.to_path_buf(),
             keep_legacy,
             corpus: vec![],
-            project_name: "cfs".into(),
-            project_slug: "cfs".into(),
+            project_name: "example".into(),
+            project_slug: "example".into(),
             workspace_name: "ws".into(),
             now: fixed_now(),
         }
@@ -965,17 +965,16 @@ The system must integrate with 1GX for payments.
                         )
                     })
                     .collect();
-                // `1GX` from the client-document body is the canonical
-                // CFS forensic fabrication that this finding must
-                // surface.
+                // `Globex` from the client-document body is the synthetic
+                // fabrication that this finding must surface.
                 let detail_text = entity_findings
                     .iter()
                     .map(|f| f.detail.clone())
                     .collect::<Vec<_>>()
                     .join("\n");
                 assert!(
-                    detail_text.contains("1GX"),
-                    "expected '1GX' to surface in findings, got {detail_text}"
+                    detail_text.contains("Globex"),
+                    "expected 'Globex' to surface in findings, got {detail_text}"
                 );
             }
             other => panic!("expected Migrated, got {other:?}"),

@@ -326,7 +326,7 @@ mod tests {
         GovernanceEnvelope {
             schema_version: GOVERNANCE_ENVELOPE_SCHEMA_VERSION.to_string(),
             process: ProcessIdentity {
-                id: "factory-encore-process".into(),
+                id: "factory-process".into(),
                 objective_class: "Produce a frozen Build Specification".into(),
                 goal_identifier_scheme: "build-spec:<project>".into(),
             },
@@ -527,7 +527,7 @@ mod tests {
         let env = envelope(SafetyTier::Tier1, MutationCapability::ScopedWrite);
         let yaml = serde_yaml::to_string(&env).unwrap();
         let back: GovernanceEnvelope = serde_yaml::from_str(&yaml).unwrap();
-        assert_eq!(back.process.id, "factory-encore-process");
+        assert_eq!(back.process.id, "factory-process");
         assert_eq!(back.ceilings.max_tier, SafetyTier::Tier1);
         assert!(!back.overrides.require_verified);
     }

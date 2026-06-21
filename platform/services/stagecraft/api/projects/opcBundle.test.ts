@@ -11,21 +11,21 @@ const SYNCED = new Date("2026-04-22T10:00:00.000Z");
 
 const baseProject = {
   id: "11111111-1111-1111-1111-111111111111",
-  name: "Family Violence Portal",
+  name: "Vendor Portal",
   slug: "fv-portal",
   orgId: "33333333-3333-3333-3333-333333333333",
   factoryAdapterId: "44444444-4444-4444-4444-444444444444",
 };
 
 const baseRepo = {
-  githubOrg: "GovAlta-Pronghorn",
-  repoName: "cfs-emergency-family-violence-services-funding-request-portal",
+  githubOrg: "Stagecraft-ing",
+  repoName: "acme-example-portal",
   defaultBranch: "main",
 };
 
 const baseAdapter = {
   id: "44444444-4444-4444-4444-444444444444",
-  name: "aim-vue-encore",
+  name: "acme-vue-encore",
   version: "3.0.0",
   sourceSha: "abc123",
   syncedAt: SYNCED,
@@ -78,7 +78,7 @@ describe("buildOpcBundle", () => {
     });
     expect(bundle.repo).toEqual({
       cloneUrl:
-        "https://github.com/GovAlta-Pronghorn/cfs-emergency-family-violence-services-funding-request-portal.git",
+        "https://github.com/Stagecraft-ing/acme-example-portal.git",
       githubOrg: baseRepo.githubOrg,
       repoName: baseRepo.repoName,
       defaultBranch: "main",
@@ -90,7 +90,7 @@ describe("buildOpcBundle", () => {
     );
     expect(bundle.adapter).toMatchObject({
       id: baseAdapter.id,
-      name: "aim-vue-encore",
+      name: "acme-vue-encore",
       syncedAt: SYNCED.toISOString(),
     });
     expect(bundle.contracts).toHaveLength(1);
@@ -228,7 +228,7 @@ describe("buildOpcBundle", () => {
     const consumedOverrides = [
       {
         artifactId: "11111111-2222-3333-4444-555555555555",
-        path: "adapters/aim-vue-encore/agents/scaffolder.md",
+        path: "adapters/acme-vue-encore/agents/scaffolder.md",
         contentHash: "ab".repeat(32),
         author: "66666666-0000-0000-0000-000000000003",
         modifiedAt: "2026-06-10T00:00:00.000Z",
@@ -245,7 +245,7 @@ describe("buildOpcBundle", () => {
       agents: [],
       cloneToken: null,
       admission: {
-        origin: "factory-encore",
+        origin: "factory",
         envelopeHash: "e3b0c44298fc1c149afbf4c8996fb924",
         sealJws: "eyJhbGciOiJFZERTQSJ9.eyJvcmlnaW4iOiJmIn0.c2ln",
         consumedOverrides,
@@ -253,7 +253,7 @@ describe("buildOpcBundle", () => {
     });
 
     expect(bundle.admission).toEqual({
-      origin: "factory-encore",
+      origin: "factory",
       envelopeHash: "e3b0c44298fc1c149afbf4c8996fb924",
       sealJws: "eyJhbGciOiJFZERTQSJ9.eyJvcmlnaW4iOiJmIn0.c2ln",
       consumedOverrides,
@@ -339,7 +339,7 @@ describe("opc deep-link projection (spec 112 §6.3)", () => {
     });
 
     expect(lightweight.deepLink).toBeNull();
-    expect(lightweight.adapter?.name ?? null).toBe("aim-vue-encore");
+    expect(lightweight.adapter?.name ?? null).toBe("acme-vue-encore");
   });
 });
 

@@ -31,9 +31,9 @@ describe("isReservedConfigRefKey (spec 214 FR-004)", () => {
 });
 
 describe("resolveTenantShape (spec 214 FR-002, sole-shape mapping)", () => {
-  it("maps any factory-created project (synthetic adapter id) to aim-vue-encore", () => {
+  it("maps any factory-created project (synthetic adapter id) to acme-vue-encore", () => {
     expect(resolveTenantShape("synthetic-adapter-abcd1234-my-app")).toBe(
-      "aim-vue-encore",
+      "acme-vue-encore",
     );
   });
 
@@ -44,31 +44,31 @@ describe("resolveTenantShape (spec 214 FR-002, sole-shape mapping)", () => {
   });
 
   it("honours an explicit registered chart name", () => {
-    expect(resolveTenantShape("synthetic-adapter-x", "aim-vue-encore")).toBe(
-      "aim-vue-encore",
+    expect(resolveTenantShape("synthetic-adapter-x", "acme-vue-encore")).toBe(
+      "acme-vue-encore",
     );
-    expect(resolveTenantShape(null, "aim-vue-encore")).toBe("aim-vue-encore");
+    expect(resolveTenantShape(null, "acme-vue-encore")).toBe("acme-vue-encore");
   });
 
   it("ignores an unknown explicit chart and falls back to the adapter", () => {
     expect(resolveTenantShape("synthetic-adapter-x", "not-a-real-chart")).toBe(
-      "aim-vue-encore",
+      "acme-vue-encore",
     );
     expect(resolveTenantShape(null, "not-a-real-chart")).toBeNull();
   });
 });
 
 describe("resolveChartSelection (spec 214 FR-002)", () => {
-  it("resolves a factory project to the aim-vue-encore chart selection", () => {
+  it("resolves a factory project to the acme-vue-encore chart selection", () => {
     expect(resolveChartSelection("synthetic-adapter-x")).toEqual({
-      chart: "aim-vue-encore",
+      chart: "acme-vue-encore",
       version: "0.1.0",
     });
   });
 
   it("resolves an explicit registered chart override", () => {
-    expect(resolveChartSelection(null, "aim-vue-encore")).toEqual({
-      chart: "aim-vue-encore",
+    expect(resolveChartSelection(null, "acme-vue-encore")).toEqual({
+      chart: "acme-vue-encore",
       version: "0.1.0",
     });
   });

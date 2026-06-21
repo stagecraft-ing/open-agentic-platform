@@ -29,9 +29,9 @@ schema_version: "1.1.0"
 #
 project:
   # Required fields
-  name: string                    # Machine-safe slug (e.g., "cfs-womens-shelter-funding-portal")
-  display_name: string            # Human-readable (e.g., "CFS Women's Shelter Funding Portal")
-  org: string                     # Organization slug (e.g., "goa-cfs")
+  name: string                    # Machine-safe slug (e.g., "acme-vendor-onboarding-portal")
+  display_name: string            # Human-readable (e.g., "Acme Vendor Onboarding Portal")
+  org: string                     # Organization slug (e.g., "acme-corp")
   description: string             # One-paragraph purpose statement
 
   # Variant determines deployment topology
@@ -67,8 +67,8 @@ auth:
       provisioning_model:                        # REQUIRED
         enum: [admin-only, open-authenticated]   # admin-only: pre-provisioned by admin + user-management page; open-authenticated: auto-create on first login, no user-management page
       roles:
-        - role_code: string       # Machine-safe (e.g., "cfs-analyst")
-          display_name: string    # Human-readable (e.g., "CFS Funding Analyst")
+        - role_code: string       # Machine-safe (e.g., "onboarding-analyst")
+          display_name: string    # Human-readable (e.g., "Onboarding Analyst")
           description: string     # What this role can do
           permissions: [string]   # Abstract permission labels (e.g., "assess:write", "decision:write")
 

@@ -30,7 +30,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const baseProps = {
   artifactStore: "/p/runs/run-001",
-  projectSlug: "cfs",
+  projectSlug: "example",
   authoredCharter: "/p/requirements/stakeholder/charter.md",
   authoredClientDocument: "/p/requirements/stakeholder/client-document.md",
   candidateCharter: "/p/runs/run-001/stage-cd/charter.candidate.md",

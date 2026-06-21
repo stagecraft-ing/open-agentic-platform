@@ -40,7 +40,7 @@ summary: >
 
 OAP today binds identity to Rauthy directly (spec 106). Tenant
 environments increasingly demand pluggable identity-provider
-integrations — SAML 2.0 for Government-of-Canada tenants, custom OIDC
+integrations: SAML 2.0 for regulated-industry tenants, custom OIDC
 for partner orgs, and mock drivers for proving-ground tests. The
 auth-driver registry formalises this extension point as typed truth in
 the spec spine, so capability membership is enforceable at compile

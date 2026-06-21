@@ -12,7 +12,7 @@
 // repo-root location so they continue to exercise the engine when a developer
 // keeps a local checkout there, but skip cleanly when the directory is
 // absent (CI, fresh clones). The proper fixture for these flows lives
-// upstream in `goa-software-factory` and lands in `factory_adapters` rows
+// upstream in `legacy-factory` and lands in `factory_adapters` rows
 // via the platform sync worker (spec 108 §5); a future spec will let this
 // test materialise a fixture from those rows instead of the filesystem.
 
@@ -54,9 +54,9 @@ fn populate_artifacts(
 #[test]
 fn noop_e2e_phase1_generates_six_process_stages() {
     let factory_root = factory_root();
-    if !factory_root.join("adapters/aim-vue-node").exists() {
+    if !factory_root.join("adapters/acme-vue-node").exists() {
         eprintln!(
-            "skipping: in-tree factory/adapters/aim-vue-node fixture not present \
+            "skipping: in-tree factory/adapters/acme-vue-node fixture not present \
              (retired by spec 108 §8; the test runs only when a developer keeps a \
              local checkout)"
         );
@@ -75,7 +75,7 @@ fn noop_e2e_phase1_generates_six_process_stages() {
     // Use the community-grant-portal example business doc path as input.
     let biz_doc = build_spec_example();
     let result = engine
-        .start_pipeline("aim-vue-node", &[biz_doc], None)
+        .start_pipeline("acme-vue-node", &[biz_doc], None)
         .expect("start_pipeline should succeed");
 
     // Phase 1 manifest has 6 stages (s0–s5).
@@ -108,9 +108,9 @@ fn noop_e2e_phase1_generates_six_process_stages() {
 #[test]
 fn noop_e2e_full_pipeline_dispatch() {
     let factory_root = factory_root();
-    if !factory_root.join("adapters/aim-vue-node").exists() {
+    if !factory_root.join("adapters/acme-vue-node").exists() {
         eprintln!(
-            "skipping: in-tree factory/adapters/aim-vue-node fixture not present \
+            "skipping: in-tree factory/adapters/acme-vue-node fixture not present \
              (retired by spec 108 §8; the test runs only when a developer keeps a \
              local checkout)"
         );
@@ -132,7 +132,7 @@ fn noop_e2e_full_pipeline_dispatch() {
     // ── Phase 1: Process stages ──────────────────────────────────────────
     let biz_doc = build_spec_example();
     let start = engine
-        .start_pipeline("aim-vue-node", &[biz_doc], None)
+        .start_pipeline("acme-vue-node", &[biz_doc], None)
         .expect("start_pipeline should succeed");
 
     let run_id = start.run_id;
@@ -165,7 +165,7 @@ fn noop_e2e_full_pipeline_dispatch() {
     let mut pipeline_state = start.pipeline_state;
     let transition = engine
         .transition_to_scaffolding(
-            "aim-vue-node",
+            "acme-vue-node",
             &build_spec_artifact,
             &mut pipeline_state,
             None,
@@ -182,7 +182,7 @@ fn noop_e2e_full_pipeline_dispatch() {
         transition
             .policy_bundle
             .shards
-            .contains_key("factory:aim-vue-node"),
+            .contains_key("factory:acme-vue-node"),
         "policy bundle should have adapter-scoped shard"
     );
 

@@ -1,6 +1,6 @@
 //! `factory-schema-lockstep` — CLI for the cross-repo factory contract gate
 //! (spec 212). Compares OAP's canonical contract surface against a local
-//! factory-encore `contract/schemas/**` checkout under the three-mode
+//! factory `contract/schemas/**` checkout under the three-mode
 //! structural compare + the spec-197 FR-005 GoA-concept guard.
 //!
 //! Exit codes:
@@ -24,7 +24,7 @@ struct Cli {
     #[arg(long, default_value = "standards/schemas/factory")]
     oap_dir: PathBuf,
 
-    /// Local factory-encore contract/schemas tree (the fetched far side).
+    /// Local factory contract/schemas tree (the fetched far side).
     #[arg(long)]
     factory_dir: PathBuf,
 

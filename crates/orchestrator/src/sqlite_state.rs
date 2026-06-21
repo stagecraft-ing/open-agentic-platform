@@ -1646,7 +1646,7 @@ mod tests {
 
         let workflow_id = Uuid::new_v4();
         let session_id = Uuid::new_v4().to_string();
-        let project_path = "/Users/bart/Dev/open-agentic-platform";
+        let project_path = "open-agentic-platform";
 
         seed_workflow_with_origin(
             &store,
@@ -1675,8 +1675,8 @@ mod tests {
         let db_path = tmp.path().join("state.sqlite");
         let store = SqliteWorkflowStore::open(&db_path).expect("open sqlite store");
 
-        let project_path = "/Users/bart/Dev/open-agentic-platform";
-        let other_path = "/Users/bart/Dev/other-repo";
+        let project_path = "open-agentic-platform";
+        let other_path = "other-repo";
 
         // Two OPC sessions for the same project — represents the spec 157
         // multi-session-per-path discipline.
@@ -1840,7 +1840,7 @@ mod tests {
         // The new consumer surface does not match this row but does not
         // panic — proving the column was added cleanly to the legacy table.
         let empty = store
-            .list_workflows_by_project_path("/Users/bart/Dev/open-agentic-platform", None)
+            .list_workflows_by_project_path("open-agentic-platform", None)
             .await
             .expect("list_workflows_by_project_path on legacy DB");
         assert!(empty.is_empty());

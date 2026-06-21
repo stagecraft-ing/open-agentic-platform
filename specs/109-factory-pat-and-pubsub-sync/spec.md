@@ -12,7 +12,7 @@ summary: >
   Finishes spec 108 §10 by making Factory sync asynchronous (PubSub-driven) and
   wires Personal Access Tokens into the two repo access surfaces the platform
   owns: (a) org-level PAT for the Factory upstream sources
-  (goa-software-factory + template), and (b) per-project PAT for project repos
+  (legacy-factory + template), and (b) per-project PAT for project repos
   that live outside the org and cannot be reached via the OAP GitHub App.
   Resolves the spec 108 §10 inline-vs-PubSub open question.
 depends_on:
@@ -48,12 +48,12 @@ Spec 108 shipped Factory as a platform feature but left two gaps:
    burns an HTTP request slot, collapses the UI into a spinner, and has no
    retry story. Spec 108 §10 flagged this as an open question with the
    default "inline for Phase 3, revisit if syncs exceed 30s." Reality has
-   caught up — `goa-software-factory` is large enough that admins see the
+   caught up — `legacy-factory` is large enough that admins see the
    request hang.
 2. **No PAT pathway into repo access.** The sync worker resolves tokens only
    via `brokerInstallationToken` against the org's `github_installations`
    row. This is fine *if and only if* the factory upstream org has installed
-   the OAP GitHub App. It never has, and it won't — `GovAlta-Pronghorn` is a
+   the OAP GitHub App. It never has, and it won't — `Stagecraft-ing` is a
    third-party source controlled by another team. The silent anonymous
    fallback in `api/factory/sync.ts::resolveInstallationToken` covers public
    repos but dies on private ones. The same gap exists for project repos

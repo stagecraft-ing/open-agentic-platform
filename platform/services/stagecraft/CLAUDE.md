@@ -57,8 +57,8 @@ stagecraft side by a pure selector and passed across the wire by name.
 - `api/deploy/chartSelector.ts` — pure function `selectChart({shape})` returns
   `{chart, version}` from `CHART_REGISTRY`. Unknown shapes throw — there is no
   silent fallback chart. After the spec 214 retirement the sole registered
-  shape is `"aim-vue-encore"` → `{ chart: "aim-vue-encore", version: "0.1.0" }`,
-  which corresponds to the Helm chart at `platform/charts/aim-vue-encore/`.
+  shape is `"acme-vue-encore"` → `{ chart: "acme-vue-encore", version: "0.1.0" }`,
+  which corresponds to the Helm chart at `platform/charts/acme-vue-encore/`.
   Adding a shape means landing
   a chart under `platform/charts/<shape>/`, embedding its files in
   `platform/services/deployd-api-rs/src/helm.rs` via `include_str!`, and
@@ -74,7 +74,7 @@ accepts two optional fields that flow directly from `selectChart`:
 ```jsonc
 {
   // ...existing fields (tenant_id, app_id, env_id, release_sha, artifact_ref, lane, ...)
-  "chart": "aim-vue-encore",      // optional; default "aim-vue-encore"
+  "chart": "acme-vue-encore",      // optional; default "acme-vue-encore"
   "chart_version": "0.1.0"        // optional; advisory — bundled chart is image-pinned
 }
 ```
@@ -106,7 +106,7 @@ spec 111/123 content). The spec 108 legacy projection
 (FR-005): substrate rows are served verbatim by kind via
 `api/factory/substrateBrowser.ts::loadSubstrateForOrg` +
 `api/factory/adapterView.ts`, with adapter identity coming from the
-parsed manifest (`aim-vue-encore`).
+parsed manifest (`acme-vue-encore`).
 `api/agents/{catalog,bindings}.ts` and `api/factory/runAgentRefs.ts`
 read+write the substrate directly. The OPC desktop's factory_root
 materialises through the substrate-aware `VirtualRoot`
@@ -123,7 +123,7 @@ materialises through the substrate-aware `VirtualRoot`
   - `perRequestScaffold.ts` — copies the chosen prebuilt tree into a per-request temp dir, runs `tsx add-module.ts <id>` for each user-selected extra, refreshes the lockfile via `npm install --package-lock-only`, writes `.factory/pipeline-state.json`.
   - `gitInitAndPush.ts` — `git init -b <branch>` → `add` → `commit` → token-injected push, then `git remote set-url origin <bare>` so the token does not survive in `.git/config`. Subprocess output is token-redacted before any error surface.
   - `githubRepoCreate.ts` — wraps `createGitHubRepo` with `autoInit: false` so commit #1 is the scaffold tree, not an auto-generated README.
-  - `moduleCatalog.ts` — pure data + helpers: `MODULE_CATALOG`, `PROFILE_MODULES`, `INSTALL_ORDER`, `PRESETS`, `pickProfileFromModules(variant, modules)`, `extrasFor(profile, selected)`, `isKnownModule(id)`. Mirrors template-encore's `modules/` directory (five opt-in modules; profiles select AUTH_DRIVER and ship no modules by default — spec 199 FR-007 cutover, 2026-06-11; the template-distributor shape and `detectProfile` are retired).
+  - `moduleCatalog.ts` — pure data + helpers: `MODULE_CATALOG`, `PROFILE_MODULES`, `INSTALL_ORDER`, `PRESETS`, `pickProfileFromModules(variant, modules)`, `extrasFor(profile, selected)`, `isKnownModule(id)`. Mirrors template's `modules/` directory (five opt-in modules; profiles select AUTH_DRIVER and ship no modules by default — spec 199 FR-007 cutover, 2026-06-11; the template-distributor shape and `detectProfile` are retired).
   - `seedPipelineState.ts`, `deepLink.ts`, `artifactExtract.ts`, `types.ts` — pure helpers consumed by `create.ts`.
 
 The `template-distributor` external service is retired — all scaffold work for newly-created factory projects happens in-process here under the org's existing GitHub App installation, backed by the workspace PVC declared in `platform/charts/stagecraft/templates/workspace-pvc.yaml`.

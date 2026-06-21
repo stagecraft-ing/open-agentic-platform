@@ -47,7 +47,7 @@ const RUN_B = "55555555-0000-0000-0000-0000000000c2";
 const RUN_C = "55555555-0000-0000-0000-0000000000c3";
 const RUN_D = "55555555-0000-0000-0000-0000000000c4";
 
-const ORIGIN = "factory-encore-grant-test";
+const ORIGIN = "factory-grant-test";
 const ENVELOPE_HASH = "envhash-grant-test-aaa";
 const CTX = { orgId: ORG_ID, userId: USER_ID };
 
@@ -150,7 +150,7 @@ beforeAll(async () => {
     orgId: ORG_ID,
     sourceId: ORIGIN,
     role: "orchestration",
-    repoUrl: "https://github.com/example/factory-encore-grant-test.git",
+    repoUrl: "https://github.com/example/factory-grant-test.git",
     ref: "main",
   });
   await db.insert(factoryAdmissions).values({
@@ -161,7 +161,7 @@ beforeAll(async () => {
     composed: {
       process: null,
       adapters: {
-        "aim-vue-encore": {
+        "acme-vue-encore": {
           governance: {},
           manifestHash: "manifesthash-grant-test",
         },

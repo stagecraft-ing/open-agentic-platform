@@ -172,7 +172,7 @@ commit; `make ci` for the Rust legs (pr-prep alone misses clippy).
 | AC-11 (gate + provenance + require_verified refusal) | PR-B phases D–E |
 
 End-to-end runtime verification (first real ADMIT → sealed grant chain →
-countersigned certificate) additionally requires the GovAlta-side
+countersigned certificate) additionally requires the Stagecraft-side
 `chore/envelope-schema-1.0.0-v2` merge + org re-sync — user-side
 preconditions tracked outside this plan. Until then the admission gate
 correctly REFUSES, and all new paths are covered by handler/engine tests.

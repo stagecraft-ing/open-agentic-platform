@@ -47,7 +47,7 @@ describe("spec 139 Phase 1 — substrate state machine (T011)", () => {
   test("initial row from sync has conflict_state='ok' and version=1", () => {
     const row = initialRow({
       orgId: "00000000-0000-0000-0000-000000000001",
-      origin: "goa-software-factory",
+      origin: "legacy-factory",
       path: "Factory Agent/factory-orchestration.md",
       kind: "pipeline-orchestrator",
       upstreamSha: "a".repeat(40),
@@ -65,7 +65,7 @@ describe("spec 139 Phase 1 — substrate state machine (T011)", () => {
   test("sync no-change is a no-op (I-S3)", () => {
     let row = initialRow({
       orgId: "00000000-0000-0000-0000-000000000001",
-      origin: "goa-software-factory",
+      origin: "legacy-factory",
       path: "p",
       kind: "skill",
       upstreamSha: "a".repeat(40),
@@ -85,7 +85,7 @@ describe("spec 139 Phase 1 — substrate state machine (T011)", () => {
   test("sync that changes body without user override fast-forwards version", () => {
     let row = initialRow({
       orgId: "00000000-0000-0000-0000-000000000001",
-      origin: "goa-software-factory",
+      origin: "legacy-factory",
       path: "p",
       kind: "skill",
       upstreamSha: "a".repeat(40),
@@ -109,7 +109,7 @@ describe("spec 139 Phase 1 — substrate state machine (T011)", () => {
   test("override + sync-unchanged preserves user_body", () => {
     let row = initialRow({
       orgId: "00000000-0000-0000-0000-000000000001",
-      origin: "goa-software-factory",
+      origin: "legacy-factory",
       path: "p",
       kind: "skill",
       upstreamSha: "a".repeat(40),
@@ -138,7 +138,7 @@ describe("spec 139 Phase 1 — substrate state machine (T011)", () => {
   test("override + sync-changed sets diverged and preserves user_body (I-S4)", () => {
     let row = initialRow({
       orgId: "00000000-0000-0000-0000-000000000001",
-      origin: "goa-software-factory",
+      origin: "legacy-factory",
       path: "p",
       kind: "skill",
       upstreamSha: "a".repeat(40),

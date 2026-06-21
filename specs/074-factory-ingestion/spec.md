@@ -82,7 +82,7 @@ factory/
     stages/            ← Stage definitions (00-06)
     agents/            ← Process agent prompts (7 agents)
   adapters/
-    aim-vue-node/      ← Express 5 + Vue 3 adapter
+    acme-vue-node/      ← Express 5 + Vue 3 adapter
     next-prisma/       ← Next.js 15 + Prisma adapter
     encore-react/      ← Encore.ts + React adapter
     rust-axum/         ← Axum + HTMX adapter
@@ -374,7 +374,7 @@ containers.
 
 - **SC-001**: All four Factory contract examples parse without error into Rust types
 - **SC-002**: `AdapterRegistry::discover()` finds all 4 adapters and validates their manifests
-- **SC-003**: `capabilities_match()` correctly identifies capability gaps (e.g., `aim-vue-node` supports `dual`, `next-prisma` does not)
+- **SC-003**: `capabilities_match()` correctly identifies capability gaps (e.g., `acme-vue-node` supports `dual`, `next-prisma` does not)
 - **SC-004**: Round-trip `YAML → Rust → YAML` produces semantically identical output for Build Spec examples
 - **SC-005**: `cargo build --release` succeeds for `crates/factory-contracts/`
 

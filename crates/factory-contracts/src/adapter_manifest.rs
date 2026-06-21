@@ -131,7 +131,7 @@ pub struct FrontendSpec {
     pub framework: String,
     /// e.g., "pinia", "zustand", "signals", "none"
     pub state_management: String,
-    /// e.g., "goa-web-components", "shadcn", "none"
+    /// e.g., "acme-web-components", "shadcn", "none"
     pub design_system: String,
     pub description: String,
 }
@@ -597,9 +597,9 @@ pub enum Severity {
 // ── Dual Stack (variant model) ─────────────────────────────────────────
 //
 // A "variant" is a standalone top-level copy of the base scaffold (not an
-// in-tree stack). This mirrors the canonical factory-encore adapter-manifest
+// in-tree stack). This mirrors the canonical factory adapter-manifest
 // schema (`contract/schemas/adapter-manifest.schema.yaml`); the legacy
-// `audience_to_stack`/`stacks` naming was the pre-factory-encore shape.
+// `audience_to_stack`/`stacks` naming was the pre-factory shape.
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DualStack {
