@@ -201,21 +201,29 @@ export const projects = pgTable(
 // Project Repos
 // ---------------------------------------------------------------------------
 
-export const projectRepos = pgTable("project_repos", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  projectId: uuid("project_id").notNull(),
-  githubOrg: text("github_org").notNull(),
-  repoName: text("repo_name").notNull(),
-  defaultBranch: text("default_branch").notNull().default("main"),
-  isPrimary: boolean("is_primary").notNull().default(false),
-  githubInstallId: bigint("github_install_id", { mode: "number" }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const projectRepos = pgTable(
+  "project_repos",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    githubOrg: text("github_org").notNull(),
+    repoName: text("repo_name").notNull(),
+    defaultBranch: text("default_branch").notNull().default("main"),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    githubInstallId: bigint("github_install_id", { mode: "number" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  // Spec 213 FR-009: one GitHub repo maps to exactly one project. A build
+  // event's owning project is derived from this row (FR-006 findRepoRow), so
+  // the (org, repo) -> project edge must be 1:1 or the build is attributed to
+  // an arbitrary project and the deploy path resolves the wrong image.
+  (t) => [unique().on(t.githubOrg, t.repoName)]
+);
 
 // ---------------------------------------------------------------------------
 // Environments
