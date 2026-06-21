@@ -148,6 +148,6 @@
     "summary": "Meta-spec that formalises the refinement of OAP from a working governed platform into the definitive governed operating system for AI-native delivery. Central deliverable: a Governance Certificate — a single JSON artifact proving the full intent-to-spec-to-code-to-audit chain. Closes ten validated gaps across factory compilation, certificate output, stage gate configs, tool-registry policy bridge, compliance mapping, traceability unification, OWASP ASI 2026 coverage, policy composition, registry freshness, and platform policy seams.\n",
     "title": "Governed Excellence — Production Hardening for the Best Governed OS for AI-Native Delivery"
   },
-  "shardHash": "4591968870e36c49ca322d870159f08569d5c968e79fb1a7191cb62086d649b4",
+  "shardHash": "d4017190b401ee62d602d99b835a837e01d4f22587bef814e1e8571128fc3a0e",
   "specVersion": "1.1.0"
 }

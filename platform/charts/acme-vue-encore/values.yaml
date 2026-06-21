@@ -1,0 +1,145 @@
+# Spec: 214-tenant-app-chart-supersession
+#
+# Default values for the acme-vue-encore reference chart. stagecraft +
+# deployd-api (helm.rs build_values) overlay per deployment: image
+# repo/tag from the tenant build (spec 213 artifact ref), ingress.host
+# from hostname.ts (FR-007), tls/gate/extraEnv/imagePullSecrets/namespace
+# from the dispatch contract. The chart renders cleanly with defaults so
+# `helm template`/`helm lint` work without a live cluster.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  # Overlaid by build_values with the tenant's spec-213 artifact ref.
+  # The default points nowhere; `helm install` without an override is not
+  # a supported flow.
+  repository: ghcr.io/your-org/acme-vue-encore
+  tag: dev
+  pullPolicy: IfNotPresent
+
+# Spec 214 FR-005: private GHCR pulls. deployd sets this to
+# [{ name: <image_pull_secret_name> }] (default ghcr-pull), a
+# dockerconfigjson secret reflected into the namespace like the wildcard
+# TLS secret. Empty by default so test renders need no secret.
+imagePullSecrets: []
+
+replicaCount: 1
+
+# The Encore API container port. The scaffold's Encore gateway listens on
+# 4000 (template apps/api). Injected as PORT for parity with the
+# tenant runtime.
+service:
+  type: ClusterIP
+  port: 4000
+
+# Ingress is opt-in: deployd enables it with the hostname.ts-derived host
+# (FR-007) at deploy time. Off by default for test renders.
+ingress:
+  enabled: false
+  className: nginx
+  host: ""
+  annotations: {}
+  tls:
+    enabled: false
+    secretName: ""
+
+# region: access-gate
+# Spec 137: per-environment access gate. Ported from the prior chart's gate
+# seam so the FR-011 render-parity check passed: when `gate.enabled` is true the
+# Ingress emits the same auth-url / auth-signin / auth-response-headers
+# annotations chaining to the per-environment oauth2-proxy rendered by the
+# `oauth2-proxy-gate` chart in the same namespace (a separate,
+# shape-independent release installed alongside).
+gate:
+  enabled: false
+  proxyServiceName: ""
+  proxyServicePort: 4180
+# endregion access-gate
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# Stateless-by-policy (spec 136 C-001, refined by 214 FR-012: durable state
+# lives only in the declared database).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Clarification 1: the template scaffold serves /health/liveness and
+# /health/readiness (NOT /healthz). Probe paths are chart values so a tenant
+# that adds /healthz can override.
+readinessProbe:
+  httpGet:
+    path: /health/readiness
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+livenessProbe:
+  httpGet:
+    path: /health/liveness
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+podLabels: {}
+podAnnotations: {}
+
+# Spec 214 FR-004: config_refs land here as plain container env vars
+# (Encore resolves $env markers in its baked infra.config.json at start;
+# there is no mounted Encore config, per Clarification 2). deployd rejects
+# reserved ENCORE_/KUBERNETES_ prefixes before they reach this list.
+extraEnv: []
+
+# region: preview-database
+# Spec 214 FR-006: preview-grade Postgres. Single replica, no HA, no
+# backups, small PVC. When enabled the chart renders a StatefulSet +
+# headless Service + generated-credentials Secret and injects the DB
+# connection env into the app container. Explicitly NOT production-grade
+# (production DB provisioning is a named deferral). When disabled,
+# `database.externalSecretName` MUST name a Secret carrying the connection
+# env, else the deploy proxy rejects the dispatch up front (User Story 2,
+# scenario 2).
+previewDatabase:
+  enabled: false
+  image: postgres:16-alpine
+  storage: 1Gi
+  database: app
+  user: app
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+database:
+  # Secret carrying DB connection env (POSTGRES_* keys) when previewDatabase
+  # is disabled. Empty when the chart provisions the preview DB itself.
+  externalSecretName: ""
+# endregion preview-database

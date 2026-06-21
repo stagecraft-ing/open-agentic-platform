@@ -3,7 +3,7 @@ ci-axiomregent:
 	cargo test --manifest-path crates/axiomregent/Cargo.toml
 
 factory-schema-lockstep:
-	./tools/oap/factory-schema-lockstep/target/release/factory-schema-lockstep --oap-dir standards/schemas/factory --factory-dir .factory-encore/contract/schemas
+	./tools/oap/factory-schema-lockstep/target/release/factory-schema-lockstep --oap-dir standards/schemas/factory --factory-dir .factory/contract/schemas
 
 ci-stagecraft-encore:
 	node scripts/encore-test-lane.mjs list > /tmp/encore-lane-files.txt

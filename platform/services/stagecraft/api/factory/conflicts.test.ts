@@ -44,7 +44,7 @@ describe("spec 139 — conflict state machine over the live DB (T012)", () => {
   it("override survives a sync of the same body (no-op fast-forward)", async () => {
     const initial = await syncSubstrateRowCore({
       orgId: ORG_ID,
-      origin: "goa-software-factory",
+      origin: "legacy-factory",
       path: "Factory Agent/test/no-change.md",
       kind: "skill",
       upstreamSha: "a".repeat(40),
@@ -67,7 +67,7 @@ describe("spec 139 — conflict state machine over the live DB (T012)", () => {
 
     const afterSync = await syncSubstrateRowCore({
       orgId: ORG_ID,
-      origin: "goa-software-factory",
+      origin: "legacy-factory",
       path: "Factory Agent/test/no-change.md",
       kind: "skill",
       upstreamSha: "a".repeat(40),
@@ -84,7 +84,7 @@ describe("spec 139 — conflict state machine over the live DB (T012)", () => {
   it("override + upstream change → conflict_state='diverged', user_body untouched", async () => {
     const initial = await syncSubstrateRowCore({
       orgId: ORG_ID,
-      origin: "goa-software-factory",
+      origin: "legacy-factory",
       path: "Factory Agent/test/diverge.md",
       kind: "skill",
       upstreamSha: "a".repeat(40),
@@ -104,7 +104,7 @@ describe("spec 139 — conflict state machine over the live DB (T012)", () => {
 
     const afterChangedSync = await syncSubstrateRowCore({
       orgId: ORG_ID,
-      origin: "goa-software-factory",
+      origin: "legacy-factory",
       path: "Factory Agent/test/diverge.md",
       kind: "skill",
       upstreamSha: "b".repeat(40),
@@ -132,7 +132,7 @@ describe("spec 139 — conflict state machine over the live DB (T012)", () => {
   it("retire preserves user_body and forbids new bindings", async () => {
     const row = await syncSubstrateRowCore({
       orgId: ORG_ID,
-      origin: "goa-software-factory",
+      origin: "legacy-factory",
       path: "Factory Agent/test/will-be-retired.md",
       kind: "skill",
       upstreamSha: "a".repeat(40),

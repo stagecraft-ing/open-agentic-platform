@@ -1,8 +1,8 @@
 // Spec 112 §5.3 — module catalog; spec 138 realised-scaffold surface.
 // Cut over 2026-06-11 (spec 199 FR-007 hygiene) from the retired
-// template-distributor catalog to template-encore's real `modules/`
+// template-distributor catalog to template's real `modules/`
 // directory: descriptors mirror each module's `manifest.json` (the catalog
-// add-module.ts actually composes). Two template-encore facts shape this
+// add-module.ts actually composes). Two template facts shape this
 // file (scripts/setup-app.ts header):
 //
 //   1. Profiles select the default AUTH_DRIVER — auth is NOT a module.
@@ -92,7 +92,7 @@ export const PROFILES: ReadonlyArray<Profile> = [
   "dual",
 ];
 
-// Empty by design (template-encore fact 2): profiles select AUTH_DRIVER
+// Empty by design (template fact 2): profiles select AUTH_DRIVER
 // only; no module ships as part of a profile. Kept as a map so `extrasFor`
 // keeps its shape if a future template version reintroduces built-ins.
 export const PROFILE_MODULES: Record<Profile, string[]> = {
@@ -113,7 +113,7 @@ export const INSTALL_ORDER: string[] = [
 ];
 
 // User-selectable pre-checked presets per profile — empty by design
-// (template-encore fact 2): modules are opt-in composition, never implied
+// (template fact 2): modules are opt-in composition, never implied
 // by the variant. The auth axis the old presets encoded lives in
 // AUTH_DRIVER now.
 export const PRESETS: Record<Profile, string[]> = {
@@ -133,7 +133,7 @@ export const PRESETS: Record<Profile, string[]> = {
  *
  * Modules no longer participate: the retired catalog inferred the profile
  * from `auth-*` module ids, but auth is the AUTH_DRIVER profile axis, not
- * a module (template-encore fact 1).
+ * a module (template fact 1).
  */
 export function pickProfileFromModules(
   variant: string,

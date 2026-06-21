@@ -69,6 +69,6 @@
     "summary": "Spec 139 Phase 4 cut over to substrate-projected adapter/process records whose runtime IDs are deterministic synthetic strings of the form `synthetic-adapter-<orgId8>-<name>` and `synthetic-process-<orgId8>-<name>-<version>`. Migration 34 dropped the legacy FK constraints on `projects.factory_adapter_id`, `scaffold_jobs.factory_adapter_id`, `factory_runs.adapter_id`, and `factory_runs.process_id`, but left the columns typed as `uuid`. Every Create attempt against the live cluster therefore fails the `scaffold_jobs` insert with `invalid input syntax for type uuid: \"synthetic-adapter-…\"`, surfaced to the UI as Encore's generic \"an internal error occurred\" 500. This spec ships migration 38 to ALTER the four columns to `text` and switches the Drizzle schema to match, completing the substrate cutover.\n",
     "title": "Align factory adapter/process ID column types with substrate-projected synthetic IDs"
   },
-  "shardHash": "82b3d410280691abfdec3b6bcea0aab27f31f0f404f7679e64c01feba6da8322",
+  "shardHash": "4a303594ebb477f752ab23b55f027de71eb708168190fa191293cfd574849aa5",
   "specVersion": "1.1.0"
 }

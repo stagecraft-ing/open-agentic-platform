@@ -27,7 +27,7 @@ import { APIError } from "encore.dev/api";
 const ORG_ID = "77777777-0000-0000-0000-000000000001";
 const USER_ID = "77777777-0000-0000-0000-000000000002";
 const ADMIN_ID = "77777777-0000-0000-0000-000000000003";
-const ORIGIN = "factory-encore";
+const ORIGIN = "factory";
 
 let artifactId: string;
 

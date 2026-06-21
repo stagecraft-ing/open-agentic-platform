@@ -48,7 +48,7 @@ describe("spec 139 — /api/factory/artifacts (T013)", () => {
         INSERT INTO factory_artifact_substrate
           (org_id, origin, path, kind, version, status, upstream_sha, upstream_body, content_hash, frontmatter, conflict_state)
         VALUES
-          (${ORG_ID}::uuid, 'goa-software-factory',
+          (${ORG_ID}::uuid, 'legacy-factory',
            ${`Factory Agent/Controllers/api-skill-${i}.md`},
            'skill', 1, 'active',
            ${"a".repeat(40)}, ${`skill ${i} body`},
@@ -61,7 +61,7 @@ describe("spec 139 — /api/factory/artifacts (T013)", () => {
         INSERT INTO factory_artifact_substrate
           (org_id, origin, path, kind, version, status, upstream_sha, upstream_body, content_hash, frontmatter, conflict_state)
         VALUES
-          (${ORG_ID}::uuid, 'goa-software-factory',
+          (${ORG_ID}::uuid, 'legacy-factory',
            ${`Factory Agent/Requirements/Service/sitemap-${i}.json`},
            'reference-data', 1, 'active',
            ${"a".repeat(40)}, ${`{"v":${i}}`},
@@ -73,7 +73,7 @@ describe("spec 139 — /api/factory/artifacts (T013)", () => {
       INSERT INTO factory_artifact_substrate
         (org_id, origin, path, kind, version, status, upstream_sha, upstream_body, content_hash, frontmatter, conflict_state)
       VALUES
-        (${ORG_ID}::uuid, 'goa-software-factory',
+        (${ORG_ID}::uuid, 'legacy-factory',
          'Factory Agent/contracts/build-spec.schema.json',
          'contract-schema', 1, 'active',
          ${"a".repeat(40)}, '{"type":"object"}',
@@ -84,7 +84,7 @@ describe("spec 139 — /api/factory/artifacts (T013)", () => {
       INSERT INTO factory_artifact_substrate
         (org_id, origin, path, kind, version, status, upstream_sha, upstream_body, content_hash, frontmatter, conflict_state)
       VALUES
-        (${ORG_ID}::uuid, 'template-encore',
+        (${ORG_ID}::uuid, 'template',
          'orchestration/contracts/pipeline-state.schema.yaml',
          'contract-schema', 1, 'active',
          ${"e".repeat(40)}, 'type: object',
@@ -96,7 +96,7 @@ describe("spec 139 — /api/factory/artifacts (T013)", () => {
       INSERT INTO factory_artifact_substrate
         (org_id, origin, path, kind, version, status, upstream_sha, upstream_body, content_hash, frontmatter, conflict_state)
       VALUES
-        (${FOREIGN_ORG}::uuid, 'goa-software-factory',
+        (${FOREIGN_ORG}::uuid, 'legacy-factory',
          'Factory Agent/Controllers/foreign-skill.md',
          'skill', 1, 'active',
          ${"a".repeat(40)}, 'foreign body',
@@ -168,7 +168,7 @@ describe("spec 139 — /api/factory/artifacts (T013)", () => {
 
   it("by-path returns effective body and content_hash", async () => {
     const row = await getArtifactByPathCore(ORG_CTX, {
-      origin: "goa-software-factory",
+      origin: "legacy-factory",
       path: "Factory Agent/Controllers/api-skill-2.md",
     });
     expect(row.path).toBe("Factory Agent/Controllers/api-skill-2.md");
@@ -179,7 +179,7 @@ describe("spec 139 — /api/factory/artifacts (T013)", () => {
   it("by-path 404s on missing (origin, path)", async () => {
     await expect(
       getArtifactByPathCore(ORG_CTX, {
-        origin: "goa-software-factory",
+        origin: "legacy-factory",
         path: "no/such/path.md",
       }),
     ).rejects.toThrow(APIError);
@@ -188,7 +188,7 @@ describe("spec 139 — /api/factory/artifacts (T013)", () => {
   it("by-path is org-scoped — cannot reach foreign rows", async () => {
     await expect(
       getArtifactByPathCore(ORG_CTX, {
-        origin: "goa-software-factory",
+        origin: "legacy-factory",
         path: "Factory Agent/Controllers/foreign-skill.md",
       }),
     ).rejects.toThrow(APIError);

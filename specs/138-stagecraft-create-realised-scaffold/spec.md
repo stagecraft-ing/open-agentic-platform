@@ -109,7 +109,7 @@ template repo's `setup-*.ts` shape (Node-24 only, §10). Profiles are
 inherent to that shape; the adapter manifest's `scaffold.profiles` field
 is a forward-compat declaration for adapters that may someday point at
 a different upstream template repo with a different profile vocabulary.
-Today there is one such adapter (`aim-vue-node`) and one such template
+Today there is one such adapter (`acme-vue-node`) and one such template
 repo, so the hardcoded set is the source of truth.
 
 **Manifest §8 status:** unchanged. `scaffold.profiles` remains a
@@ -238,10 +238,10 @@ Spec 112's overall design is unchanged:
   form's inline mirror in `app.projects.new.tsx` — stop describing the
   retired template-distributor catalog (10 entries incl.
   express-session-era `session-store-*` and module-shaped `auth-*` ids)
-  and mirror template-encore's real `modules/` directory: `security-core`,
+  and mirror template's real `modules/` directory: `security-core`,
   `api-gateway` (requires security-core), `data-postgres`, `data-redis`,
   `user-management`, with manifest-truthful descriptions. Two
-  template-encore facts reshape the helpers: profiles select AUTH_DRIVER
+  template facts reshape the helpers: profiles select AUTH_DRIVER
   (auth is not a module) and no module ships by default — so
   `PROFILE_MODULES`/`PRESETS` are empty by design, `detectProfile` (which
   keyed on the retired `auth-*` ids) is removed, and

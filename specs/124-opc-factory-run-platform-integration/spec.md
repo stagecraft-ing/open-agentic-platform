@@ -11,8 +11,8 @@ amended: "2026-06-11"
 amendment_record: |
   amended by spec 199 (2026-06-11), editorial: the platform-client
   wire-format test mocks (adapter list envelope/id-default round-trip)
-  use the manifest-declared aim-vue-encore plus a neutral
-  second-adapter instead of the upstream-retired aim-vue-node /
+  use the manifest-declared acme-vue-encore plus a neutral
+  second-adapter instead of the upstream-retired acme-vue-node /
   next-prisma. Pure fixture rename; no wire-contract change.
 kind: platform
 domain: opc
@@ -45,7 +45,7 @@ extends:
 # 124 — OPC Factory-Run Platform Integration
 
 > **Amended by spec 199 (2026-06-11), editorial.** The platform-client
-> wire-format test mocks now use the manifest-declared `aim-vue-encore`
+> wire-format test mocks now use the manifest-declared `acme-vue-encore`
 > (plus a neutral `second-adapter`) instead of the upstream-retired
 > example adapter names. No wire-contract change.
 
@@ -63,7 +63,7 @@ spec 108 and remain unaddressed:
    resolves `factory_root` by walking up from `CARGO_MANIFEST_DIR` to find
    an in-tree `factory/adapters/`. After §8 that path no longer exists in
    the repo; the desktop's factory-run command therefore requires a
-   developer to keep a separate clone of `goa-software-factory` somewhere
+   developer to keep a separate clone of `legacy-factory` somewhere
    on disk. This is brittle, undocumented, and inverts the spec 108
    ownership story — OPC executes runs but the platform is supposed to
    be the source of truth for the definitions.

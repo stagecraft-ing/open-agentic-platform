@@ -166,19 +166,19 @@ mod tests {
              - **owner**: ops\n\
              - **rationale**: x\n\
              - **expiresAt**: 2026-07-30T00:00:00Z\n\
-             - **extractedEntityCandidates**: `1GX`\n\
+             - **extractedEntityCandidates**: `Globex`\n\
              - **pendingPromotionPath**: `pending-promotion.md`\n\
              \n",
         )
         .unwrap();
         let gen_dir = proj.join("generated");
         std::fs::create_dir_all(&gen_dir).unwrap();
-        std::fs::write(gen_dir.join("a.sql"), "CREATE TABLE 1gx_x ();\n")
+        std::fs::write(gen_dir.join("a.sql"), "CREATE TABLE globex_x ();\n")
             .unwrap();
 
         let s = run(dir.path());
         assert_eq!(s.manifests_scanned, 1);
         assert_eq!(s.violations.len(), 1);
-        assert_eq!(s.violations[0].surface_form, "1GX");
+        assert_eq!(s.violations[0].surface_form, "Globex");
     }
 }

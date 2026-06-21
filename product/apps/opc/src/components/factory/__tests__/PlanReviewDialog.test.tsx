@@ -63,7 +63,7 @@ function makePlan(overrides: Partial<AgentPlan> = {}): AgentPlan {
 }
 
 const prediction: CertificatePrediction = {
-  adapter: 'aim-vue-node',
+  adapter: 'acme-vue-node',
   stages: [
     { id: 's0-preflight', name: 'Pre-flight', artifacts: ['preflight.json'] },
   ],

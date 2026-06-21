@@ -82,7 +82,7 @@ staged-verify-sbom scope. This spec vends the verification surface that exists.
 
 ADR 0002 §6 sketched the cert tool as an OAP-internal crate. The grounded
 decision is different and is recorded here as the reality the rest of the spec
-rests on: **tenant-tail is its OWN repository** (`/Users/bart/DevWork/tenant-tail`),
+rests on: **tenant-tail is its OWN repository** (`tenant-tail`),
 mirroring spec-spine's repo/crate/npm shape (a Cargo workspace of typed/core/cli
 crates, an `npm/` wrapper with `@<scope>/cli-<os>-<cpu>` optionalDependencies, a
 release workflow, and a `specs/` corpus governed by spec-spine as a dev-time npm
@@ -93,7 +93,7 @@ Consequences for this OAP spec's authority graph:
 
 - The tenant-tail crate, npm wrapper, release matrix, and its own `specs/` corpus
   live in the tenant-tail repository, so they are NOT OAP registry edges. They
-  are tracked in prose here, exactly as spec 209 tracks its template-encore
+  are tracked in prose here, exactly as spec 209 tracks its template
   closing legs (there is no in-OAP authority target to claim). The tenant-tail
   repo's internal structure is governed by tenant-tail's OWN specs/ corpus, the
   same dogfooding pattern by which spec-spine's distribution is governed by
@@ -199,7 +199,7 @@ candidate verify core against the actual code:
   (line 26) is retired/rewritten to the npm-pin model: it presumes a tenant Rust
   toolchain the npm migration deleted. This realizes 168 FR-001 and 121's
   tenant-side reach and supplies the integrity model 209 FR-004's owed rewrite
-  targets. (The template-encore pin + CI step is the cross-repo closing leg; no
+  targets. (The template pin + CI step is the cross-repo closing leg; no
   in-OAP authority target.)
 
 ## Staged third verb (verify-sbom)

@@ -176,7 +176,7 @@ distinct `RunBudget*` prefix to avoid collision.
   same PR; the version is a compile-time const, so a mismatch fails at
   parse. Lockstep posture: `governance-envelope.schema.yaml` is Tier B in
   the spec 212 checker, so the addition is OAP-unilateral and
-  factory-encore adopts on its own schedule.
+  factory adopts on its own schedule.
 - **FR-002 — Engine-side metering and circuit break.** A run-level
   `RunBudgetMeter` accumulates the per-step actuals the orchestrator
   already collects (§Code reality 2), one accumulator per admitted axis.

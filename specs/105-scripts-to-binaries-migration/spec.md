@@ -24,7 +24,7 @@ amendment_record: |
   stagecraft snapshot (the legacy `build/adapter-scopes.json` copy is
   retired, with the ci-parity-check PRODUCERS rule repointed under the
   spec 104 amendment of the same date). First derivation ran 2026-06-11
-  against the admitted aim-vue-encore manifest
+  against the admitted acme-vue-encore manifest
   (sha256 57f43e1a8908…, matching the sealed admission record's
   adapter_manifest_hashes). The governed-binary venue split this spec
   establishes is unchanged.

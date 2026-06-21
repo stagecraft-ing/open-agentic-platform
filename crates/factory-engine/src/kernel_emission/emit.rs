@@ -251,12 +251,12 @@ mod tests {
             source: KernelSource::from_repo_root(source_root.to_path_buf()),
             target_root,
             adapter: AdapterIdentity {
-                id: "aim-vue-encore".into(),
+                id: "acme-vue-encore".into(),
                 version: "0.1.0".into(),
                 manifest_hash: "abc".into(),
             },
             scaffolded_paths: vec!["apps/".into(), "packages/".into()],
-            adapter_manifest_uri: Some("file://adapter-scopes.json#aim-vue-encore".into()),
+            adapter_manifest_uri: Some("file://adapter-scopes.json#acme-vue-encore".into()),
             toolchain_mode: ToolchainMode::VendorBinaries,
             source_commit: "deadbeefcafef00d".into(),
             emitted_at: Some(fixed_timestamp()),
@@ -291,14 +291,14 @@ mod tests {
         // The retired surfaces are NOT emitted (spec 167 self-amend): the
         // vendored-binary CI workflow and the synthetic scaffold-claim spec.
         assert!(!target.path().join(".github/workflows/ci-spec-code-coupling.yml").exists());
-        assert!(!target.path().join("specs/001-aim-vue-encore-scaffold-claim/spec.md").exists());
+        assert!(!target.path().join("specs/001-acme-vue-encore-scaffold-claim/spec.md").exists());
 
         // `.kernel-version` round-trips back to the struct we wrote.
         let yaml = fs::read_to_string(target.path().join(".kernel-version")).unwrap();
         let parsed = KernelVersion::from_yaml(&yaml).unwrap();
         assert_eq!(parsed.kernel.source_commit, "deadbeefcafef00d");
         assert_eq!(parsed.kernel.source_hash, report.kernel_hash);
-        assert_eq!(parsed.adapter.id, "aim-vue-encore");
+        assert_eq!(parsed.adapter.id, "acme-vue-encore");
         assert_eq!(parsed.toolchain_mode, ToolchainMode::VendorBinaries);
     }
 

@@ -52,9 +52,9 @@ selects-target validity) against the new `kind: profile` contract.
 This spec satisfies that requirement with a generic, jurisdiction-free
 profile that selects the proving-ground SAML capability.
 
-A real tenant profile would carry concrete jurisdictional data — for
-example, `jurisdiction: "CA-AB"` for Government of Alberta — and the
-profile would be the binding document declaring which capabilities
+A real tenant profile would carry concrete jurisdictional data, for
+example, a concrete ISO 3166 region code for the tenant's jurisdiction,
+and the profile would be the binding document declaring which capabilities
 the tenant relies on. The example profile uses ISO 3166 sentinel
 value `XX` (officially "user-assigned, reserved for testing") to
 make the placeholder nature explicit.

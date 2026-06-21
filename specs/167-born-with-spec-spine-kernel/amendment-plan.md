@@ -14,10 +14,10 @@
 Spec 167's §2.2 ("tenant-resident binaries"), its §2.1.5 GitHub-workflow shape,
 and FR-005 ("vendor binaries OR pinned-toolchain reference") were authored
 (2026-05-22/23) *before* the `spec-spine` npm package existed and before
-template-encore proved the distribution shape. The spec still describes the
+template proved the distribution shape. The spec still describes the
 kernel as a tree of pre-compiled Rust binaries under `<project>/tools/spec-spine/`
 plus a tenant CI that `exec`s them directly. The proven, shipping reality
-(template-encore PR #56, 2026-06) is the *opposite*: a `spec-spine` npm
+(template PR #56, 2026-06) is the *opposite*: a `spec-spine` npm
 devDependency (pinned, prebuilt-binary-bearing), a root `spec-spine.toml`, a
 born-clean `specs/` corpus, `standards/spec/`, committed `.derived/` artifacts,
 and a `spec-spine.yml` CI gate invoking `npx --no-install spec-spine {compile,lint,index check,couple}`.
@@ -54,11 +54,11 @@ contradicts it.
 > emitted under `<project>/tools/spec-spine/`."*
 
 Contradicted by the published package. `spec-spine`'s npm shim
-(`/Users/bart/DevWork/spec-spine/npm/package.json`) ships the prebuilt binary
+(`spec-spine/npm/package.json`) ships the prebuilt binary
 through `optionalDependencies` (`@spec-spine/cli-{darwin-arm64,…}`) and a
 `bin: { "spec-spine": "bin/spec-spine.js" }` launcher. The tenant gets one CLI
 on `PATH` via `npm ci`; it does **not** receive four loose binaries under
-`tools/spec-spine/`. template-encore carries **no** `tools/spec-spine/`
+`tools/spec-spine/`. template carries **no** `tools/spec-spine/`
 directory (confirmed: `ls` shows none; the binary arrives via
 `node_modules/.bin/spec-spine`). §2.2's "Alternative: pinned-toolchain
 reference" is the closest to reality but is framed as a fallback, not the
@@ -74,7 +74,7 @@ The emitted template (`crates/factory-engine/templates/kernel/tenant-ci.yml.tmpl
 hard-codes a "Verify tenant-resident spine binaries exist" step that loops over
 `codebase-indexer spec-code-coupling-check spec-compiler spec-lint` under
 `@@binaries_dir@@` and `exec`s them. The proven shape
-(`/Users/bart/DevWork/template-encore/.github/workflows/spec-spine.yml:34–60`) is
+(`template/.github/workflows/spec-spine.yml:34–60`) is
 `npm ci` then `npx --no-install spec-spine {compile,lint --fail-on-warn,index check,couple}`.
 Subcommand names also drifted: 167 emits `spec-code-coupling-check`; the npm CLI
 uses `spec-spine couple`. Workflow filename drifted too:
@@ -86,7 +86,7 @@ uses `spec-spine couple`. Workflow filename drifted too:
 > references a pinned-version OAP toolchain distribution. The chosen mode is
 > recorded in `.kernel-version`."*
 
-The `vendor-binaries` arm is now dead — nothing ships it and template-encore
+The `vendor-binaries` arm is now dead — nothing ships it and template
 never used it. Reality is a single mode: an npm devDependency pinned to an exact
 `spec-spine` version. Recommendation: keep the *mechanism* of recording a mode
 in `.kernel-version` (forward-compat; cheap), but the canonical value becomes a
@@ -101,10 +101,10 @@ serde break.
 
 Two problems. (a) **Wrong spec 000.** OAP's `specs/000-bootstrap-spec-system/spec.md`
 is OAP's *internal substrate* bootstrap; a produced npm project does not want
-OAP's substrate-flavoured spec 000. template-encore authored a *different*,
+OAP's substrate-flavoured spec 000. template authored a *different*,
 project-appropriate `000-bootstrap` (id `"000-bootstrap"`, title "Bootstrap: the
 spec-spine governance contract for **this template**",
-`/Users/bart/DevWork/template-encore/specs/000-bootstrap/spec.md`) whose body
+`template/specs/000-bootstrap/spec.md`) whose body
 explicitly says governance comes from the published npm package. (b) **The
 verbatim-copy/`gather.rs` path** (`crates/factory-engine/src/kernel_emission/gather.rs:36–52,82–129`)
 reads OAP's own `standards/spec/` and OAP's own compiled
@@ -117,7 +117,7 @@ project's `spec-spine.toml`. The proven shape ships template-appropriate
 ### S5 — §2.1 missing `spec-spine.toml` (spec.md:127–157) — OMISSION
 
 The proven shape's load-bearing config file —
-`/Users/bart/DevWork/template-encore/spec-spine.toml` (declares `[domains].allowed`,
+`template/spec-spine.toml` (declares `[domains].allowed`,
 `[kind].allowed`, `[layout]`, `[index].extra_hashed_inputs`, `[coupling]`,
 `[branding]`) — is **absent** from 167's kernel-contents list entirely. Without
 it the tenant CLI has no taxonomy/layout config and cannot run `--fail-on-warn`.
@@ -127,8 +127,8 @@ This is the single most important addition.
 
 167 emits one synthetic draft `specs/001-<adapter>-scaffold-claim/spec.md`
 (`crates/factory-engine/src/kernel_emission/adapter_specs.rs:45–121`,
-slug `aim-vue-encore-scaffold-claim`, owner `tenant`, status `draft`). The proven
-shape instead ships a **born-clean 21-spec corpus** (template-encore PR #56
+slug `acme-vue-encore-scaffold-claim`, owner `tenant`, status `draft`). The proven
+shape instead ships a **born-clean 21-spec corpus** (template PR #56
 "born-clean 21-spec corpus") where `000-bootstrap` is approved and `001…020`
 describe the actual scaffolded architecture. These are not contradictory but
 they are different theories of "what the kernel seeds." Decision needed (see
@@ -178,7 +178,7 @@ correction).
 ## Replacement design
 
 The born-with kernel emits the **npm spec-spine distribution shape**, identical
-in structure to template-encore. Concretely, a produced project's commit #1
+in structure to template. Concretely, a produced project's commit #1
 carries:
 
 | Artifact | Source | Replaces (167) |
@@ -188,8 +188,8 @@ carries:
 | `standards/spec/{constitution.md,contract.md,templates/*}` | template-appropriate standards | §2.1.2 (was verbatim OAP copy) |
 | `specs/` born-clean corpus (`000-bootstrap` approved + adapter-described specs) | the prebuilt template's corpus | §2.1.1 + §2.1.6 synthetic draft |
 | `.derived/{spec-registry/registry.json,spec-registry/build-meta.json,codebase-index/index.json}` compiled **from the tenant's own corpus** | `npx spec-spine compile && spec-spine index compile` over the tenant tree | §2.1.3 (was OAP's registry copied) |
-| `.github/workflows/spec-spine.yml` invoking `npx --no-install spec-spine {compile,lint --fail-on-warn,index check,couple}` | template-encore's proven workflow | §2.1.5 + tenant-ci.yml.tmpl |
-| `Makefile` `pr-prep` target driving the same npm CLI | template-encore's Makefile | §2.1.5 |
+| `.github/workflows/spec-spine.yml` invoking `npx --no-install spec-spine {compile,lint --fail-on-warn,index check,couple}` | template's proven workflow | §2.1.5 + tenant-ci.yml.tmpl |
+| `Makefile` `pr-prep` target driving the same npm CLI | template's Makefile | §2.1.5 |
 | `.kernel-version` marker (kept) with `toolchain_mode: pinned-toolchain` (the OQ-4 option-1 enum value; the npm devDep IS the pinned toolchain — see E2 note under Toolchain mode) and the pinned `spec-spine` version | emitter | §2.3 (mode semantics re-documented) |
 | `.factory/toolchain.yaml` + `.factory/pipeline-state.json` L0 seed | spec 168 + spec 112 (already shipping) | unchanged |
 
@@ -226,7 +226,7 @@ draft of this plan contradicted itself here; resolved to option 1 throughout.
 ### What the kernel seeds as the project's first spec(s)
 
 The proven answer is **the prebuilt template's born-clean corpus travels with
-the template** (template-encore ships `000-bootstrap` … `020-…`). The
+the template** (template ships `000-bootstrap` … `020-…`). The
 emitter does not synthesize a scaffold-claim spec in the npm path. The spec
 should state: the kernel's seed corpus is the adapter's own curated corpus
 shipped in the prebuilt tree, with `000-bootstrap` (approved, governance kind)
@@ -241,19 +241,19 @@ non-empty authority, but make the prebuilt-corpus path primary.
 
 The task brief notes spec-spine v0.2.0 adds `[coupling] auto_waive_dependency_only`
 and governance-projection hashing of npm manifests. **Caveat from the read:** the
-checkout at `/Users/bart/DevWork/spec-spine` is still `0.1.0` (Cargo.toml:14,
+checkout at `spec-spine` is still `0.1.0` (Cargo.toml:14,
 npm/package.json version 0.1.0); the v0.2.0 features are *not yet present* in
 that tree (grep for `auto_waive`/`governance-projection` found only `PR5-HANDOFF.md`).
 So this is a *future* pin. The amendment should:
 
 - Pin the emitted devDep to the version that is actually published when the
-  implementation PR lands (today that is `0.1.0`, as template-encore pins; the
+  implementation PR lands (today that is `0.1.0`, as template pins; the
   brief says "soon 0.2.0"). Do **not** hard-code `0.2.0` in the spec; state the
   pin-source rule (below) instead.
 - When 0.2.0 publishes, the emitted `spec-spine.toml` should default
   `[coupling].auto_waive_dependency_only = true` (so a lockfile-only dependency
   bump does not trip the tenant coupling gate — the exact dependabot-vs-coupling
-  pain recorded for template-encore) and rely on governance-projection hashing
+  pain recorded for template) and rely on governance-projection hashing
   of npm manifests for the index inputs. These are *emitted-config* defaults,
   not 167 contract clauses — name them in the spec as "recommended emitted
   defaults, tracked to the spec-spine version pinned."
@@ -265,8 +265,8 @@ template's own `package.json`**. Because the npm shape's kernel *is* the prebuil
 template tree (copied wholesale by `perRequestScaffold.ts`), the pin the tenant
 receives is whatever the warmed prebuilt template declares. That means:
 
-- The pin is governed at the template-encore (adapter source) level, exact-pinned
-  (`"spec-spine": "0.1.0"`, not `^`/`~`), consistent with template-encore today.
+- The pin is governed at the template (adapter source) level, exact-pinned
+  (`"spec-spine": "0.1.0"`, not `^`/`~`), consistent with template today.
 - `.kernel-version` records the resolved pin (read from the scaffolded
   `package.json`) so propagation/audit can see which CLI version a tenant was
   born under. This replaces 167's `factory_engine_version` as the load-bearing
@@ -308,7 +308,7 @@ npm model is a property of the warmed template, copied to the project by
 prebuilt dir into `destDir`). The required wiring is therefore:
 
 1. **Template-source obligation (primary).** The adapter's prebuilt template
-   (template-encore) MUST carry the full npm spine kernel (it already does, PR
+   (template) MUST carry the full npm spine kernel (it already does, PR
    #56). The warmup path (`scheduler.ts` / `templateCache.ts`) materializes the
    prebuilt tree *including* `specs/`, `standards/spec/`, `spec-spine.toml`,
    `.github/workflows/spec-spine.yml`, and committed `.derived/`. Spec 167's
@@ -336,7 +336,7 @@ prebuilt dir into `destDir`). The required wiring is therefore:
    adapter identity + repo SHA are only known then.)
 
 3. **Re-compile `.derived/` against the tenant corpus (optional, decision).**
-   template-encore commits `.derived/` built from its own corpus. If the
+   template commits `.derived/` built from its own corpus. If the
    produced project's corpus == the template's corpus verbatim (no per-project
    spec injection at scaffold time), the committed `.derived/` is already
    correct and no recompile is needed. If the Create flow injects/edits any spec
@@ -507,7 +507,7 @@ Per the task constraint and the live frontmatter:
     pinned-toolchain binaries"), FR-009 (deterministic emission re-anchors to
     prebuilt-template content + a stamp whose `emitted_at`/source SHA
     legitimately vary — "hash-equal `.kernel-version`" must be reworded), and
-    SC-001 (names retired `aim-vue-node`). Audit the full FR/SC list during
+    SC-001 (names retired `acme-vue-node`). Audit the full FR/SC list during
     authoring; do not stop at the S1–S8 anchors.
   - Keep all `establishes:` rows pointing at still-present files (the template
     swap happens in PR 2).
@@ -547,7 +547,7 @@ the template.
 ## Open questions
 
 - **OQ-1 (seed corpus theory).** Does born-with seed (a) the full born-clean
-  corpus that travels with the prebuilt template (the proven template-encore
+  corpus that travels with the prebuilt template (the proven template
   path), or (b) the single synthetic `scaffold-claim` draft from
   `adapter_specs.rs`? Plan's recommendation: (a) primary, (b) retained as a
   code fallback. **Dev2's leaner read:** tie to OQ-6 — retire the generator
@@ -582,7 +582,7 @@ the template.
   adapter/template `package.json` (single source of truth), exact-pinned, with
   `.kernel-version` recording the resolved value. And confirm whether the
   implementation PR should land against the currently-published `spec-spine`
-  `0.1.0` (what `/Users/bart/DevWork/spec-spine` and template-encore are at
+  `0.1.0` (what `spec-spine` and template are at
   today) and *follow up* for 0.2.0's `auto_waive_dependency_only` +
   governance-projection defaults — since v0.2.0 is not yet present in the
   spec-spine checkout. Recommendation: land against the published version at
@@ -596,7 +596,7 @@ the template.
   reference? This matters because not every future adapter is npm-shaped — a
   Rust-produced project would want a Cargo/`spec-spine` (cargo-installed) shape,
   not an npm devDep. The npm shape is correct for the *current* adapter
-  (aim-vue-encore); the spec should say "npm distribution for npm-shaped
+  (acme-vue-encore); the spec should say "npm distribution for npm-shaped
   adapters; the distribution shape is adapter-determined" rather than "npm
   always." **This is the deepest design question** — it decides whether 167
   becomes "npm-only" or "distribution-shape is per-adapter, npm is the first

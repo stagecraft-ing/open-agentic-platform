@@ -562,7 +562,7 @@ prominently; it MUST NOT escalate to forced Quit.
 > silent retry creates a confusing wall — the user doesn't know
 > whether to wait, restart, or check logs. Explicit retry teaches
 > the failure-mode pattern (boot blocked → user acts) and matches
-> the Government-of-Alberta-class real failure modes (corporate
+> the real-world-class failure modes (corporate
 > proxy ate the request, port collision, ghost process) where the
 > user is the right authority on whether to give up.
 

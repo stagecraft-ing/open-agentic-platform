@@ -38,7 +38,7 @@ function ghHeaders(token: string): Record<string, string> {
 export interface OpenImportPrOptions {
   /** App-installation or PAT token with `contents:write` + `pull_requests:write`. */
   token: string;
-  /** Full repo path, e.g. `GovAlta-Pronghorn/cfs-…`. */
+  /** Full repo path, e.g. `Stagecraft-ing/example-…`. */
   fullName: string;
   /** Default branch the PR targets (e.g. `main`). */
   baseBranch: string;

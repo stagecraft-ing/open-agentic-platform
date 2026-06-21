@@ -10,7 +10,7 @@ use std::process::ExitCode;
     about = "Project the admitted adapter sub-envelope(s) (manifest governance: \
              sections) into adapter-scopes.json (spec 105, derivation per spec 198 FR-012).",
     after_help = "EXAMPLE (from the OAP repo root, factory checkout as sibling):\n  \
-                  adapter-scopes-compiler --repo . --adapters-dir ../factory-encore/adapters"
+                  adapter-scopes-compiler --repo . --adapters-dir ../factory/adapters"
 )]
 struct Cli {
     /// Repository root. The tool writes outputs relative to this.
@@ -18,7 +18,7 @@ struct Cli {
     repo: Option<PathBuf>,
 
     /// Adapters directory of a factory source checkout (e.g.
-    /// `../factory-encore/adapters`). Required: the in-repo
+    /// `../factory/adapters`). Required: the in-repo
     /// `factory/adapters` directory was retired by spec 108.
     #[arg(long)]
     adapters_dir: PathBuf,

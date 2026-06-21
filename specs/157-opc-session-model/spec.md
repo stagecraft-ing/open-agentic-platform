@@ -76,7 +76,7 @@ The gap is concrete:
 - **A future refactor of `decode_project_path` could silently widen
   or narrow the encoding scheme** with no spec edit to compare
   against. The encoding is the load-bearing detail that lets two
-  developers' sessions for `/Users/bart/Dev2/oap` show up together
+  developers' sessions for `oap` show up together
   in the OPC project list.
 - **A future contributor reading `claude.rs::list_projects`** has no
   documented reason for the JSONL-content-over-directory-name
@@ -171,7 +171,7 @@ non-enforcement is the contract.
 
 The project's filesystem path appears in two places:
 
-1. **Encoded into the directory name** (`/Users/bart/Dev2/...` →
+1. **Encoded into the directory name** (`...` →
    `-Users-bart-Dev2-...`).
 2. **Recorded inside each session's JSONL content** by Claude Code
    when the session was first written.

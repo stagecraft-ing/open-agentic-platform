@@ -148,13 +148,13 @@ scaffolding:
 
 ---
 
-## Phase 2: Adapter Implementation (aim-vue-node)
+## Phase 2: Adapter Implementation (acme-vue-node)
 
 **Goal:** Create the missing pattern file and new agent, update the manifest.
 
 ### Step 2.1 — Create seed pattern file
 
-**New file:** `factory/adapters/aim-vue-node/patterns/data/seed.md`
+**New file:** `factory/adapters/acme-vue-node/patterns/data/seed.md`
 
 This is the missing file that `PF-006` would fail on. Content:
 
@@ -243,7 +243,7 @@ console.log('Seed complete.');
 
 ### Step 2.2 — Create fixture factory pattern file
 
-**New file:** `factory/adapters/aim-vue-node/patterns/data/fixture-factory.md`
+**New file:** `factory/adapters/acme-vue-node/patterns/data/fixture-factory.md`
 
 Content:
 
@@ -291,11 +291,11 @@ export function createSample{Entity}(
 
 ### Step 2.3 — Create seed generator agent
 
-**New file:** `factory/adapters/aim-vue-node/agents/seed-generator.md`
+**New file:** `factory/adapters/acme-vue-node/agents/seed-generator.md`
 
 ```markdown
 ---
-id: aim-vue-node-seed-generator
+id: acme-vue-node-seed-generator
 role: Seed & Fixture Generator
 context_budget: "~25K tokens"
 ---
@@ -364,9 +364,9 @@ When `hydration.type` is not set on an entity, infer:
 
 ---
 
-### Step 2.4 — Update aim-vue-node manifest
+### Step 2.4 — Update acme-vue-node manifest
 
-**File:** `factory/adapters/aim-vue-node/manifest.yaml`
+**File:** `factory/adapters/acme-vue-node/manifest.yaml`
 
 **Changes:**
 
@@ -403,7 +403,7 @@ When `hydration.type` is not set on an entity, infer:
 
 ### Step 2.5 — Update API test pattern to use fixture imports
 
-**File:** `factory/adapters/aim-vue-node/patterns/api/test.md`
+**File:** `factory/adapters/acme-vue-node/patterns/api/test.md`
 
 **Change:** Replace the inline `const sample{Entity}` declaration with an import from the fixture module.
 
@@ -495,7 +495,7 @@ Update pipeline state: record files created, entities seeded, profiles generated
 
 **New file:** `factory/adapters/next-prisma/agents/seed-generator.md`
 
-Same structure as aim-vue-node but with Prisma-specific output:
+Same structure as acme-vue-node but with Prisma-specific output:
 - Extends `prisma/seed.ts` (not separate SQL files)
 - Uses `prisma.{entity}.upsert()` for reference data
 - Uses `if (process.env.NODE_ENV !== "production")` guard for fixtures
@@ -505,7 +505,7 @@ Same structure as aim-vue-node but with Prisma-specific output:
 
 **New file:** `factory/adapters/next-prisma/patterns/data/fixture-factory.md`
 
-Same as aim-vue-node version but with `src/lib/fixtures/` path and Prisma-generated types imports.
+Same as acme-vue-node version but with `src/lib/fixtures/` path and Prisma-generated types imports.
 
 ### Step 4.3 — Update next-prisma manifest
 
@@ -518,7 +518,7 @@ Add `seed_generator` agent, `fixture_module` directory convention, `fixture_fact
 
 **File:** `factory/adapters/next-prisma/patterns/api/test.md`
 
-Same fixture import change as aim-vue-node Step 2.5.
+Same fixture import change as acme-vue-node Step 2.5.
 
 ---
 
@@ -541,9 +541,9 @@ Phase 1 (parallel)          Phase 2 (parallel)          Phase 3 (sequential)    
 
 | # | File | Phase |
 |---|------|-------|
-| 1 | `factory/adapters/aim-vue-node/patterns/data/seed.md` | 2.1 |
-| 2 | `factory/adapters/aim-vue-node/patterns/data/fixture-factory.md` | 2.2 |
-| 3 | `factory/adapters/aim-vue-node/agents/seed-generator.md` | 2.3 |
+| 1 | `factory/adapters/acme-vue-node/patterns/data/seed.md` | 2.1 |
+| 2 | `factory/adapters/acme-vue-node/patterns/data/fixture-factory.md` | 2.2 |
+| 3 | `factory/adapters/acme-vue-node/agents/seed-generator.md` | 2.3 |
 | 4 | `factory/adapters/next-prisma/agents/seed-generator.md` | 4.1 |
 | 5 | `factory/adapters/next-prisma/patterns/data/fixture-factory.md` | 4.2 |
 
@@ -555,8 +555,8 @@ Phase 1 (parallel)          Phase 2 (parallel)          Phase 3 (sequential)    
 | 2 | `factory/contract/schemas/adapter-manifest.schema.yaml` | 1.2 | Add `seed` command, `seed_generator` agent, `fixture_module` convention |
 | 3 | `factory/contract/schemas/pipeline-state.schema.yaml` | 1.3 | Add `scaffolding.seed` progress block |
 | 4 | `factory/contract/schemas/verification.schema.yaml` | 1.4 | Add SF-SEED-001–004, FV-P-006–007 |
-| 5 | `factory/adapters/aim-vue-node/manifest.yaml` | 2.4 | Add seed command, seed_generator agent, fixture_module, fixture_factory pattern |
-| 6 | `factory/adapters/aim-vue-node/patterns/api/test.md` | 2.5 | Replace inline sample data with fixture import |
+| 5 | `factory/adapters/acme-vue-node/manifest.yaml` | 2.4 | Add seed command, seed_generator agent, fixture_module, fixture_factory pattern |
+| 6 | `factory/adapters/acme-vue-node/patterns/api/test.md` | 2.5 | Replace inline sample data with fixture import |
 | 7 | `factory/process/stages/06-adapter-handoff.md` | 3.1 | Add 6b-seed sub-step |
 | 8 | `factory/process/agents/scaffolding-orchestrator.md` | 3.2 | Add seed generation to orchestration sequence |
 | 9 | `factory/adapters/next-prisma/manifest.yaml` | 4.3 | Add seed_generator, fixture_module, fixture_factory |
@@ -565,10 +565,10 @@ Phase 1 (parallel)          Phase 2 (parallel)          Phase 3 (sequential)    
 
 After all changes, verify:
 
-- [ ] `PF-006` passes — `patterns/data/seed.md` now exists for aim-vue-node
+- [ ] `PF-006` passes — `patterns/data/seed.md` now exists for acme-vue-node
 - [ ] `SF-SEED-001–004` defined in verification contract
 - [ ] `FV-P-006–007` defined in verification contract
-- [ ] aim-vue-node manifest references all new files at correct paths
+- [ ] acme-vue-node manifest references all new files at correct paths
 - [ ] next-prisma manifest references all new files at correct paths
 - [ ] Stage 06 documents 6b-seed in correct position (after 6b, before 6c)
 - [ ] Pipeline state schema tracks seed progress

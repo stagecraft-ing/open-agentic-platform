@@ -2,7 +2,7 @@
 //!
 //! Compares OAP's canonical factory contract surface
 //! (`standards/schemas/factory/**`) against the owned factory source
-//! (`factory-encore`'s `contract/schemas/**`) under the **three-mode**
+//! (`factory`'s `contract/schemas/**`) under the **three-mode**
 //! comparison spec 212 defines, plus the spec-197 FR-005 GoA-concept guard.
 //!
 //! The three modes (see spec 212 §"Semantic diff" / §"The lockstep set"):
@@ -57,7 +57,7 @@ pub struct LockstepFile {
 
 /// The authored lockstep set (spec 212 §"The lockstep set"). The relative
 /// paths are identical on both sides (OAP `standards/schemas/factory/` and
-/// factory-encore `contract/schemas/`).
+/// factory `contract/schemas/`).
 pub fn lockstep_files() -> Vec<LockstepFile> {
     use Format::*;
     use Mode::*;
@@ -88,7 +88,7 @@ pub fn lockstep_files() -> Vec<LockstepFile> {
     ]
 }
 
-/// Files present on OAP but expected-absent on factory-encore today
+/// Files present on OAP but expected-absent on factory today
 /// (spec 212 Tier B). Reported as an advisory gap, never a hard failure.
 pub const TIER_B_FILES: &[&str] = &["governance-envelope.schema.yaml"];
 
@@ -481,14 +481,14 @@ impl Report {
 }
 
 /// Run the full lockstep check. `oap_dir` is `standards/schemas/factory`;
-/// `factory_dir` is the fetched factory-encore `contract/schemas` tree.
+/// `factory_dir` is the fetched factory `contract/schemas` tree.
 pub fn run_check(oap_dir: &Path, factory_dir: &Path) -> Result<Report, OpError> {
     if !oap_dir.is_dir() {
         return Err(OpError(format!("OAP schema dir not found: {}", oap_dir.display())));
     }
     if !factory_dir.is_dir() {
         return Err(OpError(format!(
-            "factory-encore schema dir not found: {} (fetch failed? check FACTORY_ENCORE_RO_TOKEN)",
+            "factory schema dir not found: {} (fetch failed? check UPSTREAM_SOURCES_RO_TOKEN)",
             factory_dir.display()
         )));
     }
@@ -512,7 +512,7 @@ pub fn run_check(oap_dir: &Path, factory_dir: &Path) -> Result<Report, OpError> 
             report.divergences.push(Divergence {
                 file: f.rel_path.to_string(),
                 path: String::new(),
-                detail: "lockstep file present on OAP, absent on factory-encore (not a Tier-B gap)".into(),
+                detail: "lockstep file present on OAP, absent on factory (not a Tier-B gap)".into(),
             });
             continue;
         }
@@ -547,8 +547,8 @@ pub fn run_check(oap_dir: &Path, factory_dir: &Path) -> Result<Report, OpError> 
         }
         match (oap_path.exists(), fac_path.exists()) {
             (true, false) => report.tier_b_gaps.push(format!(
-                "{tb}: present on OAP, absent on factory-encore — expected Tier-B gap \
-                 (spec 198 §AC: factory-encore must file a conformant envelope)"
+                "{tb}: present on OAP, absent on factory — expected Tier-B gap \
+                 (spec 198 §AC: factory must file a conformant envelope)"
             )),
             (true, true) => report.notes.push(format!(
                 "{tb}: now present on BOTH sides — Tier-B gap closed; graduate it to a \

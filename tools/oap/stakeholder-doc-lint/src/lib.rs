@@ -640,7 +640,7 @@ kind: charter
 
 ### OBJ-1: Reduce form-correction cycles by 50%
 
-The applicant must be a registered shelter society.
+The applicant must be a registered partner organization.
 
 ### IN-SCOPE-1: Online application
 
@@ -817,7 +817,7 @@ Body.
     fn w_122_005_fires_on_unallowed_external_entity() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("requirements/stakeholder/charter.md");
-        // `1GX` is the canonical external entity from the CFS forensic
+        // `Globex` is the canonical external entity from the example forensic
         // and is not in the core allowlist.
         write(
             &path,
@@ -828,9 +828,9 @@ version: "1.0.0"
 kind: charter
 ---
 
-### IN-SCOPE-1: 1GX integration
+### IN-SCOPE-1: Globex integration
 
-The system must integrate with 1GX for payments.
+The system must integrate with Globex for payments.
 "#,
         );
         let corpus_dir = dir.path().join("artifact-store");
@@ -849,9 +849,9 @@ The system must integrate with 1GX for payments.
             .collect();
         assert!(
             !entity_hits.is_empty(),
-            "expected W-122-005 for 1GX, got {warnings:?}"
+            "expected W-122-005 for Globex, got {warnings:?}"
         );
-        assert!(entity_hits[0].message.contains("1GX"));
+        assert!(entity_hits[0].message.contains("Globex"));
     }
 
     #[test]

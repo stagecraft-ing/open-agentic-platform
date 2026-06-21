@@ -128,7 +128,7 @@ export default function FactoryOverview() {
             repo={upstream?.factorySource ?? null}
             ref={upstream?.factoryRef ?? null}
             sha={upstream?.lastSyncSha?.factory ?? null}
-            placeholder="GovAlta-Pronghorn/goa-software-factory"
+            placeholder="Stagecraft-ing/legacy-factory"
           />
           <UpstreamCard
             title="Template source"
@@ -136,7 +136,7 @@ export default function FactoryOverview() {
             repo={upstream?.templateSource ?? null}
             ref={upstream?.templateRef ?? null}
             sha={upstream?.lastSyncSha?.template ?? null}
-            placeholder="GovAlta-Pronghorn/template"
+            placeholder="Stagecraft-ing/template"
           />
         </div>
 
@@ -150,7 +150,7 @@ export default function FactoryOverview() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Tile
           title="Adapters"
-          description="Pluggable tech stacks — manifest-declared adapters (aim-vue-encore today)."
+          description="Pluggable tech stacks — manifest-declared adapters (acme-vue-encore today)."
           count={counts.adapters}
         />
         <Tile

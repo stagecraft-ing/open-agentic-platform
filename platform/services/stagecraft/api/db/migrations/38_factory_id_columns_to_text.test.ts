@@ -25,7 +25,7 @@ import { db } from "../drizzle";
 
 const ORG_ID = "70142142-0000-0000-0000-000000000001";
 const USER_ID = "70142142-0000-0000-0000-000000000002";
-const SYNTHETIC_ADAPTER_ID = "synthetic-adapter-70142142-aim-vue-node";
+const SYNTHETIC_ADAPTER_ID = "synthetic-adapter-70142142-acme-vue-node";
 
 type ColumnInfo = {
   data_type: string;

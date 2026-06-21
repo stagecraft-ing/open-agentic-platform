@@ -9,7 +9,7 @@
 
 ### Clarification 1: build context for dual variants (RESOLVED)
 
-The dual-profile tree is produced by template-encore's
+The dual-profile tree is produced by template's
 `scripts/setup-dual-app.ts`, which copies the **full** template base into
 `<root>/public/` and `<root>/internal/` (each its own `apps/api`,
 `apps/api/Dockerfile.base`, `package.json` workspaces, and `.github/`).
@@ -26,7 +26,7 @@ both shapes.
 The seeded workflow authenticates to GHCR with the job's `GITHUB_TOKEN`
 and `permissions: packages: write`. This suffices for first-publish of a
 package owned by the same repo's org in the common case. Org-restricted
-package creation (GovAlta-EMU style) is handled by a documented fallback:
+package creation (ACME-OLD style) is handled by a documented fallback:
 an org-level PAT seeded as a repo secret (`GHCR_PUBLISH_TOKEN`); the
 workflow prefers it when present, else falls back to `GITHUB_TOKEN`. The
 PAT fallback widens blast radius and is called out at review (spec 213
@@ -34,7 +34,7 @@ Clarification 2; spec 202 blast-radius posture).
 
 ### Build shape (DECIDED 2026-06-15: full canonical build)
 
-The seeded `oap-build.yml` mirrors template-encore's *real* build
+The seeded `oap-build.yml` mirrors template's *real* build
 sequence rather than the bare `encore build docker --base` of FR-001's
 prose, because the bare form bundles only the committed placeholder SPA
 (`apps/api/web/build/index.html`, a spec 053 placeholder) and is not a

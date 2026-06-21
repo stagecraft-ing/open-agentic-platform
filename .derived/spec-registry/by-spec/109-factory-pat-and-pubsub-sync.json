@@ -85,9 +85,9 @@
     ],
     "specPath": "specs/109-factory-pat-and-pubsub-sync/spec.md",
     "status": "approved",
-    "summary": "Finishes spec 108 §10 by making Factory sync asynchronous (PubSub-driven) and wires Personal Access Tokens into the two repo access surfaces the platform owns: (a) org-level PAT for the Factory upstream sources (goa-software-factory + template), and (b) per-project PAT for project repos that live outside the org and cannot be reached via the OAP GitHub App. Resolves the spec 108 §10 inline-vs-PubSub open question.\n",
+    "summary": "Finishes spec 108 §10 by making Factory sync asynchronous (PubSub-driven) and wires Personal Access Tokens into the two repo access surfaces the platform owns: (a) org-level PAT for the Factory upstream sources (legacy-factory + template), and (b) per-project PAT for project repos that live outside the org and cannot be reached via the OAP GitHub App. Resolves the spec 108 §10 inline-vs-PubSub open question.\n",
     "title": "Factory PAT Broker + PubSub Sync Worker"
   },
-  "shardHash": "7bdda5294e9ba1fd4e32921139e6dbc16760d219a7c6b9961dc81737bb7be605",
+  "shardHash": "724be2ad835b31ea93f90276bb238b269a85e9b7448b22f34bdcd051520e8323",
   "specVersion": "1.1.0"
 }

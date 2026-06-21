@@ -111,7 +111,7 @@ pub enum AudienceMethod {
 }
 
 /// How a principal of an audience obtains an application account (spec 197).
-/// Generalizes the GoA-observed app-level `provisioningModel` to a per-audience
+/// Generalizes the observed app-level `provisioningModel` to a per-audience
 /// concept without coupling the contract to any org.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]

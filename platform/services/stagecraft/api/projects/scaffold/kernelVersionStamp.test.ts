@@ -14,7 +14,7 @@ import {
 
 const ADAPTER = {
   id: "adapter-id",
-  name: "aim-vue-encore",
+  name: "acme-vue-encore",
   version: "0.1.0",
   sourceSha: "cc1139fcc1139fcc1139fcc1139fcc1139fcc113",
 };
@@ -62,14 +62,14 @@ describe("buildKernelVersionStamp", () => {
   test("records the pin, adapter identity, and pinned-toolchain mode", () => {
     const stamp = buildKernelVersionStamp({
       adapter: ADAPTER,
-      manifest: { adapter: { name: "aim-vue-encore" } },
+      manifest: { adapter: { name: "acme-vue-encore" } },
       specSpineVersion: "0.2.0",
       now: "2026-06-12T00:00:00.000Z",
     });
     expect(stamp.toolchain_mode).toBe("pinned-toolchain");
     expect(stamp.kernel.spec_spine_version).toBe("0.2.0");
     expect(stamp.kernel.source_commit).toBe(ADAPTER.sourceSha);
-    expect(stamp.adapter.id).toBe("aim-vue-encore");
+    expect(stamp.adapter.id).toBe("acme-vue-encore");
     expect(stamp.adapter.manifest_hash).toMatch(/^[0-9a-f]{64}$/);
     // The YAML form carries the kebab-case toolchain_mode the Rust enum reads.
     expect(serializeKernelVersionStamp(stamp)).toContain("toolchain_mode: pinned-toolchain");

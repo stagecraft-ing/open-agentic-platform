@@ -19,9 +19,9 @@ purpose: >
 
 ## Sources
 
-- **Repo A** — `/Users/bart/Dev2/goa-software-factory` @ `eca9b5a` (HEAD on `main` at audit time), in-scope subpath `Factory Agent/`.
-- **Repo B** — `/Users/bart/Dev2/template` @ `e1de48c`, in-scope subpath `orchestration/` only (per spec 139 §3.2 non-goal "Mirroring the template scaffold tree").
-- **OAP-native adapters** — `/Users/bart/Dev2/open-agentic-platform/_tmp/factory/adapters/{next-prisma,rust-axum,encore-react}/`.
+- **Repo A** — `legacy-factory` @ `eca9b5a` (HEAD on `main` at audit time), in-scope subpath `Factory Agent/`.
+- **Repo B** — `template` @ `e1de48c`, in-scope subpath `orchestration/` only (per spec 139 §3.2 non-goal "Mirroring the template scaffold tree").
+- **OAP-native adapters** — `open-agentic-platform/_tmp/factory/adapters/{next-prisma,rust-axum,encore-react}/`.
 - **agent_catalog schema** — `platform/services/stagecraft/api/db/schema.ts:1098-1168` + migration `30_agent_catalog_org_rescope.up.sql`.
 - **factory-engine** — `crates/factory-engine/` (and surrounding `factory-contracts`, `factory-platform-client`, `factory-project-detect`, `artifact-extract` crates).
 
@@ -31,7 +31,7 @@ purpose: >
 
 ### 1.1 Inventory totals
 
-**Repo A (`goa-software-factory/Factory Agent/`)** — 118 in-scope files:
+**Repo A (`legacy-factory/Factory Agent/`)** — 118 in-scope files:
 
 | Kind | Count |
 |---|---|
@@ -121,7 +121,7 @@ The §4.2 `sample-html` predicate (`**/samples/*.html`) and the bundle-derivatio
 
 ### 1.6 Adapter manifest realities
 
-**Neither upstream repo contains an `adapters/<name>/manifest.yaml` file** in the in-scope subpaths. The `adapter-manifest` kind is entirely a spec 139 net-new artifact shape — not a translation of an existing upstream concept. The `aim-vue-node` manifest referenced in spec §4.3 must be authored as part of spec 139 delivery (Phase 2 T055), not synced from upstream.
+**Neither upstream repo contains an `adapters/<name>/manifest.yaml` file** in the in-scope subpaths. The `adapter-manifest` kind is entirely a spec 139 net-new artifact shape — not a translation of an existing upstream concept. The `acme-vue-node` manifest referenced in spec §4.3 must be authored as part of spec 139 delivery (Phase 2 T055), not synced from upstream.
 
 The closest existing analog is `template-orchestrator.md` (Repo B) frontmatter, which uses `id`, `name`, `description`, `type`, `scope`, `references`, `skills_dir`, `defers_to`. None of `template_remote`, `orchestration_source_id`, `scaffold_source_id`, `scaffold_runtime` exist anywhere in either repo.
 
@@ -343,5 +343,5 @@ D-2, D-3, D-4 are recommendations awaiting confirmation but do not themselves bl
 1. **Migration sequence number is 32.** The next migration filename is `32_factory_artifact_substrate.up.sql` (current head is `31_create_factory_runs`). Phase 1 T020 uses this number.
 2. **Phase 2 audit-action mapping (OQ-1).** `agent_catalog_audit.action: "fork"` has no clean target in §6.4. T051 must adjudicate.
 3. **Phase 3 root-question (§4.3).** Spec §8 needs clarification on whether `LocalArtifactStore` and `StageCdInputs.artifact_store` are also virtualised or only `factory_root` proper. Recommendation: only `factory_root` proper.
-4. **`adapter-manifest` is net-new.** No upstream `adapters/<name>/manifest.yaml` exists in either repo. T055 authors `aim-vue-node`'s manifest from scratch (not from upstream translation).
+4. **`adapter-manifest` is net-new.** No upstream `adapters/<name>/manifest.yaml` exists in either repo. T055 authors `acme-vue-node`'s manifest from scratch (not from upstream translation).
 5. **Spec 139's frontmatter `code_aliases: ["FACTORY_ARTIFACT_SUBSTRATE"]`** has no current consumer; CONST-005 not affected.

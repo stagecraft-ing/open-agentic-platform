@@ -2,8 +2,8 @@
 
 > Investigation date: 2026-06-09. Scope: how the stagecraft factory
 > sync/projection layer operates **today** after the upstream sources were
-> repointed to the owned `GovAlta-Pronghorn/factory-encore` +
-> `template-encore` repos. Lens: the operator's thesis that **stagecraft
+> repointed to the owned `Stagecraft-ing/factory` +
+> `template` repos. Lens: the operator's thesis that **stagecraft
 > should be a thin consumer of owned content, not a translator** — and that
 > the "encore" suffix is a greenfield to set an OAP-controlled, future-proof
 > open standard. No backward-compat weight; current shapes are baseline,
@@ -15,9 +15,9 @@
 
 ## 0. One-sentence diagnosis
 
-The GitHub **sources** were switched to the owned factory-encore/template-encore
+The GitHub **sources** were switched to the owned factory/template
 repos, but the stagecraft **translation + projection layer was never moved off
-the dead `goa-software-factory` layout** — so stagecraft is still *translating*
+the dead `legacy-factory` layout** — so stagecraft is still *translating*
 (re-bucketing, synthesizing, hardcoding identities for) content it now *owns*,
 against a directory shape that no longer exists, while the verbatim-mirror
 substrate that should make all of that translation unnecessary already exists
@@ -40,24 +40,24 @@ transactional upsert+prune (`applySubstrateRowsTx`) → counts + last-sync stamp
 Two facts dominate everything downstream:
 
 - **Origin ids are static constants, not derived from the repo.**
-  `DEFAULT_FACTORY_ORIGIN = "goa-software-factory"`,
-  `DEFAULT_TEMPLATE_ORIGIN = "aim-vue-node"`
+  `DEFAULT_FACTORY_ORIGIN = "legacy-factory"`,
+  `DEFAULT_TEMPLATE_ORIGIN = "acme-vue-node"`
   (`translator.ts:703-705` ← `oapNativeAdapters.ts:49,53`). Repointing the
   GitHub URL does **not** change the origin written to substrate rows. After a
-  factory-encore sync, every row's `origin` still says `goa-software-factory`,
+  factory sync, every row's `origin` still says `legacy-factory`,
   which is now factually wrong but functionally inert (the prune key is
   `(orgId, origin, path)`, so old `Factory Agent/...` paths are retired and new
   `process/…` paths inserted — no corruption, just a lying label).
 
 - **The walk classifies each file into one of 11 `ArtifactKind`s**
-  (`translator.ts::classifyArtifactKind:773-860`). For factory-encore the
+  (`translator.ts::classifyArtifactKind:773-860`). For factory the
   predicates that *do* fire correctly: `contract-schema` (suffix match),
   `adapter-manifest` (`adapters/<n>/manifest.yaml`), `pattern`, `invariant`,
   and — notably — `process-stage` via `/^process\/stages\/.+\.md$/` (line 796,
   added prospectively for the new layout). The predicate that **does not** fire:
   `pipeline-orchestrator` — it only matches `Factory Agent/factory-orchestration.md`,
   `orchestration/template-orchestrator.md`, or `factory-orchestration.md`
-  (lines 784-788). factory-encore's orchestrator is
+  (lines 784-788). factory's orchestrator is
   `process/agents/pipeline-orchestrator.md`, which has no `type:` frontmatter,
   so it classifies as `skill`.
 
@@ -91,14 +91,14 @@ spec-108 categorical shape:
 **old `Factory Agent/...` path predicates** (`stageId`, `isFactoryControllers`,
 `isFactoryReqSystem`, …, lines 35-70). It reads `row.path`, **not** the stored
 `kind` — so even though the substrate has correct `process-stage` rows,
-`buildProcess` matches none of factory-encore's `process/stages/*.md` and emits
+`buildProcess` matches none of factory's `process/stages/*.md` and emits
 `{ orchestrator: null, stages: [], agents: {all empty}, references: [] }`.
 
-`buildAdapter` (`projection.ts:189-223`) hardcodes `name: "aim-vue-node"`
+`buildAdapter` (`projection.ts:189-223`) hardcodes `name: "acme-vue-node"`
 (line 218) and emits a manifest with **no `schema_version`** (keys:
 `entry/orchestrator/skills/orchestration_source_id/scaffold_source_id/scaffold_runtime`).
 
-The real `adapters/aim-vue-encore/manifest.yaml` (which *does* carry
+The real `adapters/acme-vue-encore/manifest.yaml` (which *does* carry
 `schema_version: "1.0.0"`) lands under the **factory** origin — and **no adapter
 builder reads the factory origin**. `buildOapNativeAdapters` reads only
 `oap-self`; `buildAdapter` reads only the template origin. So the real adapter
@@ -111,12 +111,12 @@ is stored in the substrate and then **dropped on the floor** by the projection.
 prebuilt variant → apply extras → write `.factory/pipeline-state.json` seed →
 GitHub repo create + commit #1 + push (`gitInitAndPush.ts`).
 
-This path consumes **only template-encore** (clone target resolved via
+This path consumes **only template** (clone target resolved via
 `scaffold_source_id` → `factory_upstreams(org, source_id)` → `(repo, ref)`,
-`scheduler.ts:64-85`). factory-encore contributes **zero bytes** to scaffolding.
+`scheduler.ts:64-85`). factory contributes **zero bytes** to scaffolding.
 The `scaffold_source_id` itself is injected by stagecraft at sync time as the
-literal `"aim-vue-node"` (`oapNativeSanitise.ts:65` / `translator.ts:336`), not
-read from factory-encore's manifest.
+literal `"acme-vue-node"` (`oapNativeSanitise.ts:65` / `translator.ts:336`), not
+read from factory's manifest.
 
 ### 1.5 Consumers of the projected shape
 
@@ -124,7 +124,7 @@ read from factory-encore's manifest.
   `loadLatestContracts` all call `loadSubstrateForOrg` + `projectSubstrateToLegacy`
   and ship the result to the **OPC desktop**. `loadAdapter` keys on
   `synthesiseAdapterId(orgId, name) === project.factoryAdapterId` (line 331),
-  finds the synthetic `aim-vue-node`, and ships its `schema_version`-less
+  finds the synthetic `acme-vue-node`, and ships its `schema_version`-less
   manifest + empty process into the bundle. This is precisely the cryptic
   startup failure the `browse.ts:108-124` guard was added to pre-empt — except
   the bundle path has **no such guard**.
@@ -140,11 +140,11 @@ read from factory-encore's manifest.
 
 | Symptom (screenshot) | Mechanism |
 |---|---|
-| **Processes = 0** in the sync count | `countByLegacyKind` sets `processes = 1` only if a **factory-origin `pipeline-orchestrator`** row exists (`syncPipeline.ts:186-194`). factory-encore's orchestrator is `process/agents/pipeline-orchestrator.md` → classified `skill`, not `pipeline-orchestrator` → P=0. |
-| **`7-stage-build` body empty** (orchestrator null, stages `[]`) | `buildProcess` uses old `Factory Agent/...` path predicates (`projection.ts:241-287`); factory-encore's `process/stages/*.md` match none → empty definition. |
-| **"Failed to load aim-vue-node" / internal error** | The shown adapter is the synthetic `aim-vue-node` (`projection.ts:218`) with no `schema_version`; `getAdapter` rejects it with `APIError.internal` (`browse.ts:109-124`). The real `aim-vue-encore` manifest is never projected. |
-| **Create form shows stale `aim-vue-node`** | Same source — the dropdown lists the only adapter the projection emits, the broken synthetic one. |
-| `A 2 / C 23 / P 0` count vs `1 adapter / 14 contracts / 1 process` shown | Count A=2 = template-origin orchestrator (template-encore still has the legacy `orchestration/template-orchestrator.md`) + factory-encore's `aim-vue-encore` manifest. Projection shows 1 (the synthetic), hides the real one. C=23→14 = dedup of factory-encore working-copy schemas vs `oap-self` canonical schemas. |
+| **Processes = 0** in the sync count | `countByLegacyKind` sets `processes = 1` only if a **factory-origin `pipeline-orchestrator`** row exists (`syncPipeline.ts:186-194`). factory's orchestrator is `process/agents/pipeline-orchestrator.md` → classified `skill`, not `pipeline-orchestrator` → P=0. |
+| **`7-stage-build` body empty** (orchestrator null, stages `[]`) | `buildProcess` uses old `Factory Agent/...` path predicates (`projection.ts:241-287`); factory's `process/stages/*.md` match none → empty definition. |
+| **"Failed to load acme-vue-node" / internal error** | The shown adapter is the synthetic `acme-vue-node` (`projection.ts:218`) with no `schema_version`; `getAdapter` rejects it with `APIError.internal` (`browse.ts:109-124`). The real `acme-vue-encore` manifest is never projected. |
+| **Create form shows stale `acme-vue-node`** | Same source — the dropdown lists the only adapter the projection emits, the broken synthetic one. |
+| `A 2 / C 23 / P 0` count vs `1 adapter / 14 contracts / 1 process` shown | Count A=2 = template-origin orchestrator (template still has the legacy `orchestration/template-orchestrator.md`) + factory's `acme-vue-encore` manifest. Projection shows 1 (the synthetic), hides the real one. C=23→14 = dedup of factory working-copy schemas vs `oap-self` canonical schemas. |
 
 ---
 
@@ -158,11 +158,11 @@ read from factory-encore's manifest.
 | `FACTORY_SOURCE_EXCLUDES` / `TEMPLATE_EXCLUDES` walk filter | `translator.ts:77-107` | **translate** (decides inclusion; written for old layout) |
 | `classifyArtifactKind` | `translator.ts:773-860` | **translate** (stagecraft vocabulary, load-bearing) |
 | body + sha + contentHash | `translator.ts:893-903` | **mirror** |
-| origin id assignment | `translator.ts:883-884` | **translate** (static `goa-software-factory`/`aim-vue-node`) |
+| origin id assignment | `translator.ts:883-884` | **translate** (static `legacy-factory`/`acme-vue-node`) |
 | OAP contract schema ingest | `oapContracts.ts:95-125` | **mirror** |
 | OAP-native manifest sanitise (runtime bump, key inject, validation strip) | `oapNativeSanitise.ts:49-96` | **translate** (mutates body) |
 | upsert/prune | `syncPipeline.ts:278-351` | mirror/coordination |
-| `buildAdapter` synthetic `aim-vue-node` | `projection.ts:189-223` | **full synthesis** |
+| `buildAdapter` synthetic `acme-vue-node` | `projection.ts:189-223` | **full synthesis** |
 | `buildProcess` re-bucket | `projection.ts:225-325` | **translate** (old-layout coupled) |
 | `buildContracts` dedup | `projection.ts:327-378` | **re-bucket** |
 | `effectiveBody`→`upstreamBody` fold | `substrateBrowser.ts:101` | translate (transparent override) |
@@ -173,7 +173,7 @@ Every step from substrate → wire response for an owned source is re-derivation
 ### 3.2 The projection invents shape the contract does not define
 
 The factory **contract** (`standards/schemas/factory/`, canonical; mirrored into
-factory-encore's `contract/schemas/` working copy) defines nine schemas:
+factory's `contract/schemas/` working copy) defines nine schemas:
 `build-spec` (1.1.0), `adapter-manifest` (1.0.0), `pipeline-state` (1.0.0),
 `verification` (1.0.0), and five `stage-outputs/*`. The Rust twins live in
 `crates/factory-contracts/src/` (`build_spec.rs` pins `BUILD_SPEC_SCHEMA_VERSION
@@ -211,7 +211,7 @@ A thin-consumer target, stated structurally:
 
 - **Adapters**: serve the `adapter-manifest` substrate row's parsed YAML
   verbatim (it already carries `schema_version` and the full spec-074 shape).
-  Drop `buildAdapter`'s synthesis and the hardcoded `aim-vue-node`.
+  Drop `buildAdapter`'s synthesis and the hardcoded `acme-vue-node`.
 - **Processes**: either (a) drop the categorical process entirely and let the
   OPC factory engine read `process/**` rows by `kind` + manifest, or (b) if a
   "process" wire object is still wanted, define it in the **contract** and
@@ -222,20 +222,20 @@ A thin-consumer target, stated structurally:
 
 ## 5. The factory ↔ template question (can they merge?)
 
-- **Scaffolding needs only template-encore.** The entire Create flow (warmup,
-  prebuild, per-request copy, commit #1) reads template-encore; factory-encore
-  contributes nothing (§1.4). If template-encore were the only repo, the
+- **Scaffolding needs only template.** The entire Create flow (warmup,
+  prebuild, per-request copy, commit #1) reads template; factory
+  contributes nothing (§1.4). If template were the only repo, the
   scaffold path is unchanged.
-- **The pipeline-run path needs factory-encore.** `process/{stages,agents,skills}`
+- **The pipeline-run path needs factory.** `process/{stages,agents,skills}`
   + `adapters/<n>/manifest.yaml` + `contract/schemas` are consumed at pipeline
   execution time by the **OPC desktop factory engine** (via the substrate /
   bundle), not by stagecraft's scaffold path.
 - **Therefore the split is load-bearing only for pipeline execution**, and even
-  there the boundary is "process/contract/adapter content (factory-encore)" vs
-  "the app skeleton that gets cloned (template-encore)." Merging is *possible*
+  there the boundary is "process/contract/adapter content (factory)" vs
+  "the app skeleton that gets cloned (template)." Merging is *possible*
   (one repo with a `process/` + `contract/` + `adapters/` tree alongside an
   `app/` skeleton), but the two have genuinely different lifecycles:
-  factory-encore is OAP-authored governance content; template-encore is a
+  factory is OAP-authored governance content; template is a
   full buildable app (Cargo/npm workspace, specs, CI). Collapsing them couples
   a governance-standard repo to an app's build graph. **Open design question,
   not a forced move.**
@@ -246,10 +246,10 @@ A thin-consumer target, stated structurally:
 
 Confirmed (deep traces), highest blast radius first:
 
-| Site | Reads | Failure under factory-encore |
+| Site | Reads | Failure under factory |
 |---|---|---|
 | `projection.ts::buildProcess` | factory rows by old paths | empty process (root cause of empty `7-stage-build`) |
-| `projection.ts::buildAdapter` + `browse.ts::getAdapter` guard | synthetic `aim-vue-node`, no `schema_version` | adapter detail 500; real `aim-vue-encore` dropped |
+| `projection.ts::buildAdapter` + `browse.ts::getAdapter` guard | synthetic `acme-vue-node`, no `schema_version` | adapter detail 500; real `acme-vue-encore` dropped |
 | `opcBundle.ts:329-365` | same projection, **no schema_version guard** | ships hollow process + invalid manifest to OPC desktop → engine startup failure |
 | `substrateBrowser.ts` / `loadSubstrateForOrg` | static `DEFAULT_*_ORIGIN` | a future template repo using a different origin id is silently filtered out |
 | `countByLegacyKind` | factory `pipeline-orchestrator` | P=0 (informational only) |
@@ -265,18 +265,18 @@ Stale/dead surfaced (lower stakes):
 - `moduleCatalog.ts` (`MODULE_CATALOG`, `PROFILE_MODULES`, `PRESETS`) is a legacy
   Express artifact; several listed modules (`auth-saml`, `auth-entra-id`,
   `session-store-*`, `service-auth`, `api-docs`) **don't exist** in
-  template-encore's `modules/` (which has `api-gateway`, `data-postgres`,
+  template's `modules/` (which has `api-gateway`, `data-postgres`,
   `data-redis`, `security-core`, `user-management`). Inert today because
   `extrasFor` filters profile built-ins before `add-module.ts` runs, but
   misleading.
-- `adapter-scopes.json` keyed on `aim-vue-node` with `file_write_scope`
+- `adapter-scopes.json` keyed on `acme-vue-node` with `file_write_scope`
   including `scripts/` (not an Encore output dir).
 - CLAUDE.md references `api/factory/process-stages/*` — **never created**.
-- The naming divergence `aim-vue-node` (everything stagecraft injects/hardcodes)
-  vs `aim-vue-encore` (factory-encore's actual adapter name) is live and
+- The naming divergence `acme-vue-node` (everything stagecraft injects/hardcodes)
+  vs `acme-vue-encore` (factory's actual adapter name) is live and
   pervasive.
 - Rust test fixtures (`run_replay.rs`, `kernel_emission_integration.rs`,
-  `integration_078_e2e.rs`, `virtual_root.rs`) hardcode `aim-vue-node` / old
+  `integration_078_e2e.rs`, `virtual_root.rs`) hardcode `acme-vue-node` / old
   origins — will need fixture updates on cutover.
 
 ---
@@ -296,13 +296,13 @@ Surfaced for discussion — not decisions:
 
 2. **Origin identity should track the source, not a constant.** If a third party
    registers their own factory repo, the substrate origin should derive from the
-   `factory_upstreams` source, not from `AIM_VUE_NODE_CONFIG`. The
+   `factory_upstreams` source, not from the legacy scaffold config. The
    `(orgId, origin, path)` prune key is already origin-parameterized — only the
    default constants are the problem.
 
 3. **Adapter identity should come from the manifest, not from stagecraft.** The
-   manifest already declares `adapter.name: aim-vue-encore` and `schema_version`.
-   Stagecraft hardcoding `aim-vue-node` is the single largest source of the
+   manifest already declares `adapter.name: acme-vue-encore` and `schema_version`.
+   Stagecraft hardcoding `acme-vue-node` is the single largest source of the
    user-visible breakage.
 
 4. **"Owned source" ⇒ no sanitise step.** `oapNativeSanitise` mutates manifests

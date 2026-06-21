@@ -88,14 +88,14 @@ fn t01_byte_determinism_two_runs_identical() {
         make_claim(
             "BR-001",
             ClaimKind::Br,
-            "applicants must be registered shelter societies",
+            "applicants must be registered partner organizations",
             vec![],
             None,
         ),
         make_claim(
             "STK-001",
             ClaimKind::Stk,
-            "Treasury Board reviews applications quarterly",
+            "Globex Finance reviews applications quarterly",
             vec![],
             Some(AssumptionTag {
                 owner: "ops".into(),
@@ -126,7 +126,7 @@ fn t02_fabrication_claim_no_citation_rejected() {
     let claim = make_claim(
         "STK-13-FAKE",
         ClaimKind::Stk,
-        "1GX Oracle ERP integration via Treasury Board",
+        "Globex Initech ERP integration via Globex Finance",
         vec![],
         None,
     );
@@ -156,7 +156,7 @@ fn t02_fabrication_claim_no_citation_rejected() {
 
 #[test]
 fn t03_anchor_hash_collision_both_rejected() {
-    let text = "applicants must be registered shelter societies";
+    let text = "applicants must be registered partner organizations";
     let a = make_claim("BR-001", ClaimKind::Br, text, vec![], None);
     let b = make_claim("BR-002", ClaimKind::Br, text, vec![], None);
     assert_eq!(a.anchor_hash, b.anchor_hash);
@@ -184,7 +184,7 @@ fn t03_anchor_hash_collision_both_rejected() {
 fn t04_assumption_budget_cap_at_one() {
     let tag = AssumptionTag {
         owner: "ops".into(),
-        rationale: "pending Treasury Board authorization".into(),
+        rationale: "pending Globex Finance authorization".into(),
         expires_at: Utc.with_ymd_and_hms(2027, 1, 1, 0, 0, 0).unwrap(),
         tagged_at: fixed_now(),
     };
@@ -355,7 +355,7 @@ fn t10_audit_synthesis_from_txt_flags_synthesized() {
     std::fs::create_dir_all(&extracted).unwrap();
     std::fs::write(
         extracted.join("business-case.txt"),
-        "Applicants must hold registered status.\nThe program funds shelter societies.\n",
+        "Applicants must hold registered status.\nThe program funds partner organizations.\n",
     )
     .unwrap();
 
@@ -500,13 +500,13 @@ fn t13_audit_counts_unparsed_inline_refs() {
 }
 
 // ---------------------------------------------------------------------------
-// T-14 SC-001 retroactive audit reports REJECTED on synthetic CFS shape
+// T-14 SC-001 retroactive audit reports REJECTED on synthetic fabrication shape
 // ---------------------------------------------------------------------------
 
 #[test]
-fn t14_retroactive_audit_rejects_synthetic_cfs_fabrication() {
-    // Synthetic CFS-shaped fabrication: BRD claims STK-13/INT-003/SN-022
-    // referencing 1GX with no corpus backing; corpus says payment
+fn t14_retroactive_audit_rejects_synthetic_fabrication() {
+    // Synthetic fabrication: BRD claims STK-13/INT-003/SN-022
+    // referencing Globex with no corpus backing; corpus says payment
     // processing is OUT OF SCOPE. Mirrors the structural pattern Phase
     // 7 will exercise as a fixture; this test pins the SC-001 path.
     let dir = tempfile::tempdir().unwrap();
@@ -517,14 +517,14 @@ fn t14_retroactive_audit_rejects_synthetic_cfs_fabrication() {
         req.join("business-requirements-document.md"),
         "# Business Requirements Document\n\
          \n\
-         ### STK-13 Treasury Board / 1GX Oracle ERP\n\
-         Treasury Board Integrations operate the 1GX payment system.\n\
+         ### STK-13 Globex Finance / Globex ERP\n\
+         Globex Finance Integrations operate the Globex payment system.\n\
          \n\
-         ### INT-003 1GX integration\n\
-         The portal integrates with 1GX for payment processing.\n\
+         ### INT-003 Globex integration\n\
+         The portal integrates with Globex for payment processing.\n\
          \n\
-         ### SN-022 1GX scope inclusion\n\
-         1GX integration is in scope for Phase 1.\n",
+         ### SN-022 Globex scope inclusion\n\
+         Globex integration is in scope for Phase 1.\n",
     )
     .unwrap();
     let extracted = project.join(".artifacts/extracted");

@@ -615,7 +615,7 @@ mod tests {
     fn budget_one_two_assumptions_fails_in_strict() {
         let tag = AssumptionTag {
             owner: "ops".into(),
-            rationale: "pending Treasury Board".into(),
+            rationale: "pending Globex Finance".into(),
             expires_at: Utc.with_ymd_and_hms(2027, 1, 1, 0, 0, 0).unwrap(),
             tagged_at: fixed_now(),
         };

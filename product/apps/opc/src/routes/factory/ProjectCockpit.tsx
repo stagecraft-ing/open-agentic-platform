@@ -356,7 +356,7 @@ const LegacyIncompleteNotice: React.FC<{ stages: string[] }> = ({ stages }) => (
       Legacy pipeline incomplete
     </div>
     <div className="text-muted-foreground">
-      Finish the upstream `goa-software-factory` run before importing this
+      Finish the upstream `legacy-factory` run before importing this
       project into stagecraft. Incomplete stages:
     </div>
     <ul className="list-disc pl-5 font-mono">

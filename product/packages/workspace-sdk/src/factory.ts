@@ -94,7 +94,7 @@ export interface FactoryArtifact {
 // ---------------------------------------------------------------------------
 
 export const KNOWN_ADAPTERS = [
-  "aim-vue-node",
+  "acme-vue-node",
   "encore-react",
   "next-prisma",
   "rust-axum",

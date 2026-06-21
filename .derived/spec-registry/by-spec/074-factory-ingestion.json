@@ -61,6 +61,6 @@
     "summary": "Ingest the Factory software factory framework into OAP as a first-class citizen, providing the delivery methodology layer that transforms OAP from a governed orchestration engine into a complete AI software factory. Defines directory structure, Rust contract types, adapter registry, and integration seams.\n",
     "title": "Factory Ingestion as First-Class Delivery Engine"
   },
-  "shardHash": "2564003e57257ead7d67fc3b12f1564ab1155a0e46e41e594915b91c9f653ee5",
+  "shardHash": "936bdee417ae0bc6b38e1315581b553ac8866a8225821e66b8bb2341f73c56f3",
   "specVersion": "1.1.0"
 }

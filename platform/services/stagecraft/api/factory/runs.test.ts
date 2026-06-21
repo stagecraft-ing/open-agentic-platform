@@ -48,8 +48,8 @@ const FOREIGN_ORG = "33333333-0000-0000-0000-0000000000a1";
 // Substrate-derived identity (spec 199): the origin that factory_upstreams
 // points at, the adapter name the manifest declares, and the process id the
 // governance envelope declares.
-const ORIGIN = "factory-encore-runs-test";
-const ADAPTER_NAME = "aim-vue-encore";
+const ORIGIN = "factory-runs-test";
+const ADAPTER_NAME = "acme-vue-encore";
 const PROCESS_NAME = "seven-stage-build";
 const FACTORY_SHA = "a".repeat(40);
 
@@ -88,7 +88,7 @@ describe("spec 124 — /api/factory/runs", () => {
     await db.execute(sql`
       INSERT INTO factory_upstreams (org_id, source_id, role, repo_url, ref)
         VALUES (${ORG_ID}, ${ORIGIN}, 'orchestration',
-                'https://github.com/example/factory-encore-runs-test.git', 'main')
+                'https://github.com/example/factory-runs-test.git', 'main')
         ON CONFLICT (org_id, source_id) DO NOTHING
     `);
 
@@ -99,9 +99,9 @@ describe("spec 124 — /api/factory/runs", () => {
         (org_id, origin, path, kind, version, status, upstream_sha, upstream_body, content_hash, conflict_state)
       VALUES
         (${ORG_ID}, ${ORIGIN},
-         'adapters/aim-vue-encore/adapter.yaml', 'adapter-manifest', 1, 'active',
+         'adapters/acme-vue-encore/adapter.yaml', 'adapter-manifest', 1, 'active',
          ${FACTORY_SHA},
-         ${'adapter:\n  name: aim-vue-encore\n  version: "1.0.0"\n'},
+         ${'adapter:\n  name: acme-vue-encore\n  version: "1.0.0"\n'},
          ${"1".padStart(64, "0")}, 'ok')
       ON CONFLICT (org_id, origin, path, version) DO NOTHING
     `);
@@ -129,7 +129,7 @@ describe("spec 124 — /api/factory/runs", () => {
     const composed = JSON.stringify({
       process: null,
       adapters: {
-        "aim-vue-encore": { governance: {}, manifestHash: "manifest-hash-runs-test" },
+        "acme-vue-encore": { governance: {}, manifestHash: "manifest-hash-runs-test" },
       },
       agentDigests: {},
       agentIds: {},
@@ -324,7 +324,7 @@ describe("spec 124 — /api/factory/runs", () => {
     await db.execute(sql`
       INSERT INTO factory_upstreams (org_id, source_id, role, repo_url, ref)
         VALUES (${inadmissibleOrg}, ${ORIGIN}, 'orchestration',
-                'https://github.com/example/factory-encore-runs-test.git', 'main')
+                'https://github.com/example/factory-runs-test.git', 'main')
         ON CONFLICT (org_id, source_id) DO NOTHING
     `);
     await db.execute(sql`
@@ -332,9 +332,9 @@ describe("spec 124 — /api/factory/runs", () => {
         (org_id, origin, path, kind, version, status, upstream_sha, upstream_body, content_hash, conflict_state)
       VALUES
         (${inadmissibleOrg}, ${ORIGIN},
-         'adapters/aim-vue-encore/adapter.yaml', 'adapter-manifest', 1, 'active',
+         'adapters/acme-vue-encore/adapter.yaml', 'adapter-manifest', 1, 'active',
          ${FACTORY_SHA},
-         ${'adapter:\n  name: aim-vue-encore\n  version: "1.0.0"\n'},
+         ${'adapter:\n  name: acme-vue-encore\n  version: "1.0.0"\n'},
          ${"a".padStart(64, "0")}, 'ok'),
         (${inadmissibleOrg}, ${ORIGIN},
          'process/governance-envelope.yaml', 'governance-envelope', 1, 'active',

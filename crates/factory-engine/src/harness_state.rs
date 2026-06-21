@@ -312,7 +312,7 @@ mod tests {
     fn init_creates_file() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join(".factory/pipeline-state.json");
-        let state = init_state("aim-vue-encore", "1.0.0", "spec.yaml", "abc123", &path).unwrap();
+        let state = init_state("acme-vue-encore", "1.0.0", "spec.yaml", "abc123", &path).unwrap();
         assert!(path.exists());
         assert_eq!(state.pipeline.status, PipelineStatus::Running);
         assert!(!state.pipeline.id.is_empty());

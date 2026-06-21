@@ -175,7 +175,7 @@ fn build_cli_bundles(paths: &[PathBuf]) -> std::io::Result<Vec<KnowledgeBundleRe
     about = "Run a full Factory pipeline with real agent dispatch"
 )]
 struct Cli {
-    /// Adapter name (e.g., aim-vue-encore)
+    /// Adapter name (e.g., acme-vue-encore)
     #[arg(long)]
     adapter: String,
 
@@ -199,7 +199,7 @@ struct Cli {
     #[arg(long, default_value_t = 100)]
     max_turns: u32,
 
-    /// Organisation slug (e.g. goa-cfs). Injected into the Build Spec if the
+    /// Organisation slug (e.g. acme-corp). Injected into the Build Spec if the
     /// agent did not produce one.
     #[arg(long)]
     org: Option<String>,

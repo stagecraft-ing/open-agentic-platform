@@ -38,7 +38,7 @@ describe("ProvenanceHealthPanel", () => {
       <ProvenanceHealthPanel
         aggregation={{
           projectId: "p",
-          projectSlug: "cfs",
+          projectSlug: "example",
           latestRunAt: "2026-05-01T00:00:00Z",
           runCount: 3,
           rejectionRateSeries: [],
@@ -47,7 +47,7 @@ describe("ProvenanceHealthPanel", () => {
       />,
     );
     expect(screen.getByTestId("provenance-health")).toBeInTheDocument();
-    expect(screen.getByText(/cfs/)).toBeInTheDocument();
+    expect(screen.getByText(/example/)).toBeInTheDocument();
     expect(screen.getByText(/3 run/)).toBeInTheDocument();
   });
 });

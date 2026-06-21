@@ -11,7 +11,7 @@ import {
 const agent = (content: string): OverrideGateInput => ({
   content,
   kind: "agent",
-  path: "adapters/aim-vue-encore/agents/scaffolder.md",
+  path: "adapters/acme-vue-encore/agents/scaffolder.md",
 });
 
 type Refusal = { ok: false; ruleId: string; detail: string };

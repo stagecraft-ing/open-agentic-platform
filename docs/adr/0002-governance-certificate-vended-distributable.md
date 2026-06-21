@@ -2,10 +2,10 @@
 
 - **Status:** Proposed (investigation memo, 2026-06-15). Not ratified. Not committed by the investigation.
 - **Scope:** Where the governance-certificate emitter/verifier should live so the tenant-side legs of specs 168, 203, 209, 210 become reachable.
-- **Author:** Architecture investigation (read-only across OAP, `spec-spine`, `template-encore`).
+- **Author:** Architecture investigation (read-only across OAP, `spec-spine`, `template`).
 - **Verdict:** Hypothesis CONFIRMED. The certificate is run-provenance, not spec-spine's authority-ledger domain. The fix is a second vended distributable (the cert emitter/verifier extracted from factory-engine and published like spec-spine), pinned and integrity-checked in the tenant alongside spec-spine. Do NOT add cert subcommands to spec-spine.
 
-> Every architectural claim below cites `path:line`. Paths are relative to the repo each fact lives in: OAP = `/Users/bart/DevWork/open-agentic-platform`, spec-spine = `/Users/bart/DevWork/spec-spine`, template-encore = `/Users/bart/DevGovAlta/template-encore`.
+> Every architectural claim below cites `path:line`. Paths are relative to the repo each fact lives in: OAP = `open-agentic-platform`, spec-spine = `spec-spine`, template = `template`.
 
 ---
 
@@ -103,27 +103,27 @@ Spec 102 already anticipated this exact home: FR-007 specifies "`verify-certific
 
 ## 4. Tenant distribution, pinning, and integrity
 
-### How spec-spine is vended and integrity-checked today (template-encore)
+### How spec-spine is vended and integrity-checked today (template)
 
-Premise correction (this strengthens the hypothesis): the OAP kernel template `crates/factory-engine/templates/kernel/toolchain.yaml.tmpl` describes two modes (vendor-binaries and pinned-toolchain) and installs the cert binaries via `cargo install --git ... --bin build-certificate --bin verify-certificate` (OAP `toolchain.yaml.tmpl:8-16, 22-26`). But the actual production tenant template has moved past that file. template-encore has no `toolchain.yaml`, no `.tmpl`, and no `.kernel-version`; it deleted the vendored Rust toolchain and migrated to the published spec-spine npm package (template-encore migration commit `e0b947b`; `specs/000-bootstrap/spec.md:63-64` "Governance is provided by the published `spec-spine` npm package ... prebuilt binaries, no extra toolchain required").
+Premise correction (this strengthens the hypothesis): the OAP kernel template `crates/factory-engine/templates/kernel/toolchain.yaml.tmpl` describes two modes (vendor-binaries and pinned-toolchain) and installs the cert binaries via `cargo install --git ... --bin build-certificate --bin verify-certificate` (OAP `toolchain.yaml.tmpl:8-16, 22-26`). But the actual production tenant template has moved past that file. template has no `toolchain.yaml`, no `.tmpl`, and no `.kernel-version`; it deleted the vendored Rust toolchain and migrated to the published spec-spine npm package (template migration commit `e0b947b`; `specs/000-bootstrap/spec.md:63-64` "Governance is provided by the published `spec-spine` npm package ... prebuilt binaries, no extra toolchain required").
 
-In template-encore today:
+In template today:
 
-- **Pin:** exact version in devDependencies, `"spec-spine": "0.2.0"` (template-encore `package.json:68`).
+- **Pin:** exact version in devDependencies, `"spec-spine": "0.2.0"` (template `package.json:68`).
 - **Distribution shape (mirror target):** the main `spec-spine` npm package carries no binary; it declares five `optionalDependencies` `@spec-spine/cli-<platform>` keyed by `os`/`cpu`, and a pure exec-and-forward launcher `bin/spec-spine.js` resolves the platform package and runs it (spec-spine `npm/package.json:27-29, 44-50`; `npm/bin/spec-spine.js`; `npm/lib/platform.js`; platform packages assembled at publish time by `npm/scripts/generate-platform-packages.js`, never committed). Governed by spec-spine `specs/007-distribution/spec.md` (Python mirror: `008-python-distribution`).
-- **Integrity:** npm-standard. `package-lock.json` carries `sha512` `integrity` for `spec-spine` and for each `@spec-spine/cli-*` platform package; `npm ci` verifies every locked package against its hash before install and aborts on mismatch (template-encore `package-lock.json`; `.github/workflows/spec-spine.yml:35` `run: npm ci`). This mechanism is generic over every dependency, not spec-spine-specific.
-- **CI enforcement:** `.github/workflows/spec-spine.yml` runs `npm ci` then `npx --no-install spec-spine {compile, lint --fail-on-warn, index check, couple}` (template-encore `spec-spine.yml:35-60`), dispatched always-on from `ci.yml:105-107`. The `index check` staleness gate is parameterized by `spec-spine.toml [index] extra_hashed_inputs` (template-encore `spec-spine.toml:37-45`).
+- **Integrity:** npm-standard. `package-lock.json` carries `sha512` `integrity` for `spec-spine` and for each `@spec-spine/cli-*` platform package; `npm ci` verifies every locked package against its hash before install and aborts on mismatch (template `package-lock.json`; `.github/workflows/spec-spine.yml:35` `run: npm ci`). This mechanism is generic over every dependency, not spec-spine-specific.
+- **CI enforcement:** `.github/workflows/spec-spine.yml` runs `npm ci` then `npx --no-install spec-spine {compile, lint --fail-on-warn, index check, couple}` (template `spec-spine.yml:35-60`), dispatched always-on from `ci.yml:105-107`. The `index check` staleness gate is parameterized by `spec-spine.toml [index] extra_hashed_inputs` (template `spec-spine.toml:37-45`).
 
 ### Where a second vended tool slots in, and the 209 FR-004 question
 
 A second npm-published cert tool slots into four existing anchors with no new mechanism:
 
-1. **Pin:** add `"<cert-tool>": "<version>"` to template-encore `package.json` devDependencies, next to `spec-spine` (`package.json:68`).
+1. **Pin:** add `"<cert-tool>": "<version>"` to template `package.json` devDependencies, next to `spec-spine` (`package.json:68`).
 2. **Integrity:** automatic. `npm install` writes `sha512` `integrity` for the tool and its `@scope/cli-<platform>` subpackages into `package-lock.json`; `npm ci` verifies them. This directly answers investigation point 4: yes, the existing integrity check already covers a second binary, because it is npm's generic lockfile verification, not a spec-spine-specific or single-tool check.
 3. **CI invocation:** add `npx --no-install <cert-tool> verify-certificate ...` (and the emit call in the pipeline) to `spec-spine.yml` or a sibling workflow.
 4. **Staleness (optional):** if the tool gains its own config file, add its path to `spec-spine.toml [index] extra_hashed_inputs`. spec-spine's `contentHash` gate does not cover a second tool's binary, and it does not need to: binary integrity is npm's job.
 
-Premise correction on `.kernel-version`: 209 FR-004 specifies integrity "against `.kernel-version` (spec 167 FR-005's pinned-toolchain record)" (OAP `specs/209-tenant-kernel-ci-enforcement/spec.md:114-120`). That mechanism belongs to the retired vendor-binaries world. template-encore has no `.kernel-version`; the live equivalent is the npm lockfile `integrity` field. 209's own frontmatter already records this owed rewrite: "the full premise rewrite (advisory to blocking on the npm CI; the `vended-binary-integrity` aspect to npm-pin/lockfile/provenance) is owed when 209 leaves draft" (OAP `209 spec.md:47-53`), and "209's enforcing-CI premise now targets the npm tenant CI ... which lives in template-encore, not OAP" (`209 spec.md:44-54`). So the second-binary integrity story is already converging on the npm-lockfile model that covers it for free.
+Premise correction on `.kernel-version`: 209 FR-004 specifies integrity "against `.kernel-version` (spec 167 FR-005's pinned-toolchain record)" (OAP `specs/209-tenant-kernel-ci-enforcement/spec.md:114-120`). That mechanism belongs to the retired vendor-binaries world. template has no `.kernel-version`; the live equivalent is the npm lockfile `integrity` field. 209's own frontmatter already records this owed rewrite: "the full premise rewrite (advisory to blocking on the npm CI; the `vended-binary-integrity` aspect to npm-pin/lockfile/provenance) is owed when 209 leaves draft" (OAP `209 spec.md:47-53`), and "209's enforcing-CI premise now targets the npm tenant CI ... which lives in template, not OAP" (`209 spec.md:44-54`). So the second-binary integrity story is already converging on the npm-lockfile model that covers it for free.
 
 ---
 
@@ -140,7 +140,7 @@ Premise correction on `.kernel-version`: 209 FR-004 specifies integrity "against
 One-line loss reasons:
 
 - **B** lost because it pushes run-provenance into the exact bounded context spec-spine is actively shrinking (spec-spine `docs/design/00-architecture.md:658-663`; OAP `217 spec.md:80-84`).
-- **C** lost because it depends on a tenant Rust toolchain the npm migration removed (template-encore has no `rust-toolchain`, no `Cargo.toml`; `package.json:68` is the only governance pin).
+- **C** lost because it depends on a tenant Rust toolchain the npm migration removed (template has no `rust-toolchain`, no `Cargo.toml`; `package.json:68` is the only governance pin).
 - **D** lost because there is no second tenant-side tool to host it; spec-spine is the only one, so D reduces to B.
 - **E** lost because co-shipping re-merges the two bounded contexts at the package boundary and drags spec-spine's repo and release cadence onto a run-provenance binary it has no reason to build.
 
@@ -155,7 +155,7 @@ One-line loss reasons:
 1. **Extract / confirm a standalone-buildable cert crate.** The core is already crypto+serde only (§2). The only decoupling work is the optional `validate_spec_id_resolution` seam and the thin `FactoryPipelineState` carrier. Decide: drop the seam for tenants, gate it behind a flag, or re-point it at `spec-spine-core::load_registry` (already the 217 target).
 2. **Build and release per-platform binaries.** This leg is NOT done today. `release-tools.yml` historically built `spec-compiler`, `registry-consumer`, `spec-lint`, `codebase-indexer` (spec 217: `spec-compiler`, `registry-consumer`, `codebase-indexer` are now the published `spec-spine` CLI; only `spec-lint` remains in the OAP tools bundle). The cert binaries are not built or attached to any release. Add the two cert binaries to a release matrix (their own archive or a new `oap-cert-<triple>` artifact), with the same SBOM + SLSA attestation treatment the tools archive already gets (`release-tools.yml:246-268`).
 3. **Author the npm wrapper packages.** Main package + `@scope/cli-<platform>` optionalDependencies + exec-forward launcher + a `generate-platform-packages.js` equivalent, copied from spec-spine's `npm/` (spec-spine `npm/package.json:44-50`, `npm/scripts/generate-platform-packages.js`).
-4. **Pin in template-encore.** Add the devDependency and the CI invocation to `spec-spine.yml` (template-encore `package.json:68`, `spec-spine.yml:35-60`). Integrity is automatic via `npm ci`.
+4. **Pin in template.** Add the devDependency and the CI invocation to `spec-spine.yml` (template `package.json:68`, `spec-spine.yml:35-60`). Integrity is automatic via `npm ci`.
 5. **Activate 209 enforcement** once the tool is pinned and emitting.
 
 **Does this need its own spec?** Yes, a small one. The cert format and contract are already owned (102, 168, 198, 170); the unowned concern is the distribution/packaging/pinning of a second tenant tool, which is precisely the slice spec-spine handles in its own `007-distribution`. The new spec should be the cert analogue of `007-distribution`: it extends 102 FR-007 (which already blessed the standalone binary) and 168 FR-001 (emitter+verifier shipped to the tenant), formally retires the stale `cargo install --git` path in `toolchain.yaml.tmpl`, and re-expresses 209 FR-004's `.kernel-version` integrity against the npm-lockfile model. Authoring it does not require re-litigating the cert format.
@@ -183,7 +183,7 @@ Once the second vended cert tool exists (npm-published, pinned in the tenant, in
 Residuals after the tool exists:
 
 - The optional `validate_spec_id_resolution` seam: decide keep-flag / drop / re-point (§6 step 1).
-- Retire or rewrite `toolchain.yaml.tmpl`'s `cargo install --git` path to the npm model (it currently contradicts template-encore's npm-only reality).
+- Retire or rewrite `toolchain.yaml.tmpl`'s `cargo install --git` path to the npm model (it currently contradicts template's npm-only reality).
 - 210's SDK-watchlist home and watchlist-miss are a pre-existing stated residual unrelated to tool home (`210 spec.md:108-115`).
 - The spec 198 FR-014 platform-seal verify path needs a JWKS (network or `--platform-jwks` file). That is opt-in and does not break the offline artifact-chain contract (OAP `verify_certificate.rs:48-62, 119`).
 
@@ -198,7 +198,7 @@ The hypothesis assumed the tenant residual is currently "mis-filed as spec-spine
 - **Home:** a standalone, OAP-owned cert crate extracted from factory-engine, shipped as its own per-platform binaries and an npm wrapper package. Not spec-spine subcommands.
 - **Packaging:** mirror spec-spine exactly: main npm package with `@scope/cli-<platform>` optionalDependencies (os/cpu match) and an exec-forward launcher, assembled from release archives at publish time.
 - **Pin and integrity:** exact-version devDependency in the tenant `package.json`; integrity via the existing `npm ci` lockfile `sha512` verification, which already covers a second binary generically. No `.kernel-version` needed.
-- **Sequencing:** extract crate -> add cert binaries to the release matrix (not built today) -> author npm wrapper -> pin in template-encore + wire CI -> activate 209 enforcement.
+- **Sequencing:** extract crate -> add cert binaries to the release matrix (not built today) -> author npm wrapper -> pin in template + wire CI -> activate 209 enforcement.
 - **New spec:** yes, a small distribution spec (the cert analogue of spec-spine `007-distribution`) that extends 102 FR-007 and 168 FR-001, retires the `cargo install --git` template path, and re-expresses 209 FR-004 against the npm-pin model.
 
 Rejected, one line each: **B** (spec-spine subcommands) pollutes the bounded context spec-spine is actively shrinking; **C** (`cargo install --git`) needs a tenant Rust toolchain the npm migration deleted; **D** (subcommand on another tenant tool) has no second tool, so it collapses to B; **E** (co-ship in spec-spine packages) re-merges the two contexts at the package boundary and drags spec-spine's repo and cadence onto a run-provenance binary.
@@ -210,4 +210,4 @@ Rejected, one line each: **B** (spec-spine subcommands) pollutes the bounded con
 - Whether the cert crate extraction can shed `FactoryPipelineState` cleanly or whether that type carries factory-engine-internal coupling beyond the plain state fields used by `generate_certificate_*` (OAP `governance_certificate.rs:889-998`). Needs a read of `pipeline_state.rs`, not opened here.
 - The exact npm scope/name and publish account for the new package (org policy; not in any repo read).
 - Whether spec 193 (paired-release-cadence) intends to bind the cert tool's release to spec-spine's or to OAP's desktop/tools cadence. Referenced but not opened.
-- Whether the tenant pipeline that would call `build-certificate --tenant-mode` exists yet in template-encore (no pipeline-run harness was found there; only the spec-spine governance CI). The emit leg may depend on tenant-side pipeline work tracked elsewhere.
+- Whether the tenant pipeline that would call `build-certificate --tenant-mode` exists yet in template (no pipeline-run harness was found there; only the spec-spine governance CI). The emit leg may depend on tenant-side pipeline work tracked elsewhere.

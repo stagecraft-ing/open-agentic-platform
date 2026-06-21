@@ -104,6 +104,6 @@
     "summary": "Unified architecture connecting web and desktop planes into one system with a first-class knowledge intake domain and project-scoped entity hierarchy. §5.3 adds the duplex sync substrate contract (FR-SYNC-001..010). Originally authored as \"Unified Workspace Architecture\" (2026-04-09); amended by spec 119 (2026-04-29) when the workspace layer was collapsed into project, by spec 143 (2026-05-08) to add the browser-reachability requirement to NF-002 for the object-store endpoint backing presigned uploads, and by spec 183 (2026-06-07) adding FR-SYNC-011 — the stream-identity-scoped reconnect teardown that closes the server-side duplex reconnect race wedging the boot gate.\n",
     "title": "Unified Project Architecture"
   },
-  "shardHash": "152791cd7a7212b37d45be8f0bdd05f17b8ec022579530e1d27399ca212b4218",
+  "shardHash": "b8ca2e77687c6d0a4010f676dca9e23c10aafbb139ebd22fdf064e209e1026a2",
   "specVersion": "1.1.0"
 }

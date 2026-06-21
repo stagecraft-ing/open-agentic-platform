@@ -17,7 +17,7 @@ summary: >
   a runnable application with meaningful data.
 code_aliases: ["FACTORY_HYDRATION", "TEST_SEED"]
 # implements: cleared by spec 108 §8. The seed-pattern work landed inside the
-# upstream factory repo (`GovAlta-Pronghorn/goa-software-factory`); the
+# upstream factory repo (`Stagecraft-ing/legacy-factory`); the
 # in-tree `factory/adapters/*` directories no longer exist after spec 108
 # moved factory state into `factory_adapters` / `factory_contracts` /
 # `factory_processes` and removed the in-tree mirror.
@@ -36,7 +36,7 @@ The Factory pipeline currently produces schema-only DDL migrations. No seed data
 2. **Integration tests have no data.** `docs/TESTING.md` recommends integration tests against a real PostgreSQL instance, but no fixture mechanism exists to populate the test database.
 3. **Unit test data is scattered.** Each `*.service.test.ts` file defines its own inline `const sample*` objects. There is no shared fixture module, leading to duplication and drift between test files.
 
-The `aim-vue-node` adapter manifest already declares `seed: "database/seeds/{name}.sql"` and `patterns.data.seed: "patterns/data/seed.md"`, but neither the pattern file nor the seed output is produced. The `next-prisma` adapter has a complete seed pattern (`prisma/seed.ts`) but no fixture module. This spec fills both gaps across all adapters.
+The `acme-vue-node` adapter manifest already declares `seed: "database/seeds/{name}.sql"` and `patterns.data.seed: "patterns/data/seed.md"`, but neither the pattern file nor the seed output is produced. The `next-prisma` adapter has a complete seed pattern (`prisma/seed.ts`) but no fixture module. This spec fills both gaps across all adapters.
 
 ## Scope
 
@@ -47,7 +47,7 @@ The `aim-vue-node` adapter manifest already declares `seed: "database/seeds/{nam
 - **FR-008–010**: Shared test fixture module generation
 - **FR-011–013**: Pipeline integration (new sub-step 6b-seed, verification gates)
 - **FR-014–015**: Build Spec extension with hydration hints
-- Adapter implementations for `aim-vue-node` and `next-prisma`
+- Adapter implementations for `acme-vue-node` and `next-prisma`
 
 ### Out of Scope
 
@@ -92,7 +92,7 @@ For `reference` type entities, the agent MUST derive seed values from:
 
 #### Seed Data Generation
 
-**FR-004: aim-vue-node seed file**
+**FR-004: acme-vue-node seed file**
 Produce `database/seeds/reference-data.sql` containing:
 - `INSERT ... ON CONFLICT DO NOTHING` statements for idempotency
 - Dependency-ordered inserts (parent tables before children)
@@ -116,11 +116,11 @@ Extend `prisma/seed.ts` generation to include reference data `upsert` calls deri
 
 **FR-006: Seed run command**
 Each adapter manifest MUST declare a `seed` command in the `commands` section:
-- `aim-vue-node`: `"psql $DATABASE_URL -f database/seeds/reference-data.sql"`
+- `acme-vue-node`: `"psql $DATABASE_URL -f database/seeds/reference-data.sql"`
 - `next-prisma`: `"npx prisma db seed"` (already configured via `package.json`)
 
 **FR-007: Docker Compose seed integration**
-For `aim-vue-node`, add a `db-seed` service to the generated `docker-compose.yml` that runs the seed command after the `db` service is healthy:
+For `acme-vue-node`, add a `db-seed` service to the generated `docker-compose.yml` that runs the seed command after the `db` service is healthy:
 
 ```yaml
 db-seed:
@@ -141,12 +141,12 @@ db-seed:
 #### Development Fixture Generation
 
 **FR-008: Fixture SQL file**
-Produce `database/seeds/dev-fixtures.sql` (aim-vue-node) or extend `prisma/seed.ts` dev block (next-prisma) containing:
+Produce `database/seeds/dev-fixtures.sql` (acme-vue-node) or extend `prisma/seed.ts` dev block (next-prisma) containing:
 - Realistic sample data for every transactional entity
 - `fixture_count` rows per entity (default 3)
 - State machine coverage: at least one fixture per terminal state and one per non-terminal state
 - Referential integrity: fixture FKs reference seed data or other fixtures
-- Guarded by environment: `aim-vue-node` uses a wrapper script that checks `NODE_ENV`; `next-prisma` uses inline `if (process.env.NODE_ENV !== "production")` guard
+- Guarded by environment: `acme-vue-node` uses a wrapper script that checks `NODE_ENV`; `next-prisma` uses inline `if (process.env.NODE_ENV !== "production")` guard
 
 **FR-009: Fixture profile generation**
 When `fixture_profiles` are declared, generate named fixtures that match the profile's `field_overrides`. When not declared, the agent MUST auto-generate profiles from state machine business rules:
@@ -159,7 +159,7 @@ Development fixtures for user-like entities MUST align with the mock auth driver
 #### Shared Test Fixture Module
 
 **FR-011: Fixture factory module**
-Generate `packages/shared/src/fixtures/index.ts` (aim-vue-node) or `src/lib/fixtures/index.ts` (next-prisma) exporting:
+Generate `packages/shared/src/fixtures/index.ts` (acme-vue-node) or `src/lib/fixtures/index.ts` (next-prisma) exporting:
 - One factory function per entity: `createSample{Entity}(overrides?: Partial<{Entity}Row>): {Entity}Row`
 - Default values that produce a valid, internally-consistent entity instance
 - Override support for test-specific variations
@@ -264,7 +264,7 @@ per_data_seed:
 All seed and fixture SQL MUST be idempotent. Running seeds multiple times must produce the same result. Use `ON CONFLICT DO NOTHING` (raw SQL) or `upsert` (Prisma).
 
 **NF-002: Environment safety**
-Development fixtures MUST never be loadable in production. The `aim-vue-node` seed runner script MUST check `NODE_ENV !== 'production'` before executing `dev-fixtures.sql`. The `next-prisma` seed MUST use the inline guard.
+Development fixtures MUST never be loadable in production. The `acme-vue-node` seed runner script MUST check `NODE_ENV !== 'production'` before executing `dev-fixtures.sql`. The `next-prisma` seed MUST use the inline guard.
 
 **NF-003: Deterministic output**
 Seed and fixture data MUST be deterministic (no `random()`, no `gen_random_uuid()` in VALUES). UUIDs in fixtures use well-known test constants (e.g., `00000000-0000-0000-0000-000000000001`).
@@ -327,9 +327,9 @@ directory_conventions:
 
 1. Extend `build-spec.schema.yaml` with `hydration` block on entities
 2. Extend `adapter-manifest.schema.yaml` with `seed` command and `seed_generator` agent
-3. Create `patterns/data/seed.md` for `aim-vue-node` adapter
-4. Create `agents/seed-generator.md` for `aim-vue-node` adapter
-5. Update `aim-vue-node/manifest.yaml` with new fields
+3. Create `patterns/data/seed.md` for `acme-vue-node` adapter
+4. Create `agents/seed-generator.md` for `acme-vue-node` adapter
+5. Update `acme-vue-node/manifest.yaml` with new fields
 
 ### Phase 2: Pipeline Integration (~2 days)
 
@@ -339,7 +339,7 @@ directory_conventions:
 
 ### Phase 3: Fixture Module & Test Pattern (~2 days)
 
-9. Create fixture module pattern: `patterns/data/fixture-factory.md` for `aim-vue-node`
+9. Create fixture module pattern: `patterns/data/fixture-factory.md` for `acme-vue-node`
 10. Update API test pattern (`patterns/api/test.md`) to import from fixture module
 11. Repeat patterns for `next-prisma` adapter
 

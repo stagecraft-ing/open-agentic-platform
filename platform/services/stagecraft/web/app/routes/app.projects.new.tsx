@@ -110,7 +110,7 @@ const MODULE_CATALOG: ModuleDescriptor[] = [
   },
 ];
 
-// Empty by design: template-encore profiles select AUTH_DRIVER (auth is not
+// Empty by design: template profiles select AUTH_DRIVER (auth is not
 // a module) and no module ships by default — selected modules are composed
 // server-side on top of the prebuilt tree (spec 199 FR-007 cutover,
 // 2026-06-11).

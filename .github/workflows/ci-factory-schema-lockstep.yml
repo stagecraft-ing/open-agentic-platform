@@ -6,14 +6,14 @@
 # Factory schema lockstep — enforcing PR-lane workflow (spec 212 FR-003).
 #
 # Asserts the cross-repo contract surfaces agree: OAP's canonical
-# standards/schemas/factory/** vs the owned factory source factory-encore's
+# standards/schemas/factory/** vs the owned factory source factory's
 # contract/schemas/** at the COMMITTED PIN (specs/212-*/spec.md `pinned_ref`),
 # under the three-mode structural compare + the spec-197 FR-005 GoA-concept
-# guard. factory-encore is `spec_spine: false`; enforcement is unidirectional,
+# guard. factory is `spec_spine: false`; enforcement is unidirectional,
 # OAP-side.
 #
-# Fetch is authenticated (factory-encore is private): a repo-scoped read-only
-# PAT in the FACTORY_ENCORE_RO_TOKEN secret. FAIL-VISIBLE — a missing or
+# Fetch is authenticated (factory is private): a repo-scoped read-only
+# PAT in the UPSTREAM_SOURCES_RO_TOKEN secret. FAIL-VISIBLE — a missing or
 # unauthorized token fails the job; it is NEVER skipped-green
 # (spec 212 FR-003 / AC-6, the spec 200 FR-004 posture).
 #
@@ -61,16 +61,21 @@ jobs:
       - name: Tool tests
         run: cargo test --manifest-path tools/oap/factory-schema-lockstep/Cargo.toml --target-dir tools/oap/factory-schema-lockstep/target
 
-      # Sparse-fetch ONLY contract/schemas/** from factory-encore at the pinned
+      # Sparse-fetch ONLY contract/schemas/** from factory at the pinned
       # ref (spec 212 FR-003 / FR-007). The pin lives in the spec frontmatter —
       # authored markdown source, not a derived artifact. Fail-visible.
-      - name: Fetch factory-encore contract/schemas at the pinned ref
+      - name: Fetch factory contract/schemas at the pinned ref
         env:
-          FACTORY_ENCORE_RO_TOKEN: ${{ secrets.FACTORY_ENCORE_RO_TOKEN }}
+          UPSTREAM_SOURCES_RO_TOKEN: ${{ secrets.UPSTREAM_SOURCES_RO_TOKEN }}
+          UPSTREAM_FACTORY_SOURCE: ${{ vars.UPSTREAM_FACTORY_SOURCE }}
         run: |
           set -euo pipefail
-          if [ -z "${FACTORY_ENCORE_RO_TOKEN:-}" ]; then
-            echo "::error::FACTORY_ENCORE_RO_TOKEN is not set — cannot fetch factory-encore. This gate is fail-visible, never skipped-green (spec 212 FR-003 / AC-6)." >&2
+          if [ -z "${UPSTREAM_SOURCES_RO_TOKEN:-}" ]; then
+            echo "::error::UPSTREAM_SOURCES_RO_TOKEN is not set — cannot fetch factory. This gate is fail-visible, never skipped-green (spec 212 FR-003 / AC-6)." >&2
+            exit 1
+          fi
+          if [ -z "${UPSTREAM_FACTORY_SOURCE:-}" ]; then
+            echo "::error::UPSTREAM_FACTORY_SOURCE is not set — cannot resolve factory. This gate is fail-visible, never skipped-green (spec 212 FR-003 / AC-6)." >&2
             exit 1
           fi
           pin=$(grep -E '^pinned_ref:' specs/212-factory-schema-lockstep-ci/spec.md | head -1 | sed -E 's/^pinned_ref:[[:space:]]*"?([0-9a-fA-F]+)"?.*/\1/')
@@ -78,12 +83,12 @@ jobs:
             echo "::error::could not read pinned_ref from specs/212-factory-schema-lockstep-ci/spec.md frontmatter" >&2
             exit 1
           fi
-          echo "pinned factory-encore ref: $pin"
-          rm -rf .factory-encore
-          mkdir .factory-encore
-          cd .factory-encore
+          echo "pinned factory ref: $pin"
+          rm -rf .factory
+          mkdir .factory
+          cd .factory
           git init -q
-          git remote add origin "https://x-access-token:${FACTORY_ENCORE_RO_TOKEN}@github.com/GovAlta-Pronghorn/factory-encore.git"
+          git remote add origin "https://x-access-token:${UPSTREAM_SOURCES_RO_TOKEN}@${UPSTREAM_FACTORY_SOURCE}.git"
           git config core.sparseCheckout true
           git sparse-checkout init --cone
           git sparse-checkout set contract/schemas
@@ -92,7 +97,7 @@ jobs:
             # error (defence-in-depth; git already strips userinfo, and Actions
             # masks the secret, but never echo a credential-bearing URL raw).
             sed 's#x-access-token:[^@]*@#x-access-token:***@#g' fetch.err >&2
-            echo "::error::cannot fetch factory-encore at $pin; check FACTORY_ENCORE_RO_TOKEN (read-only contents scope on GovAlta-Pronghorn/factory-encore)." >&2
+            echo "::error::cannot fetch factory at $pin; check UPSTREAM_SOURCES_RO_TOKEN (read-only contents scope on Stagecraft-ing/factory)." >&2
             exit 1
           fi
           git checkout -q FETCH_HEAD
@@ -102,4 +107,4 @@ jobs:
         run: cargo build --release --manifest-path tools/oap/factory-schema-lockstep/Cargo.toml --target-dir tools/oap/factory-schema-lockstep/target
 
       - name: Assert cross-repo contract lockstep
-        run: ./tools/oap/factory-schema-lockstep/target/release/factory-schema-lockstep --oap-dir standards/schemas/factory --factory-dir .factory-encore/contract/schemas
+        run: ./tools/oap/factory-schema-lockstep/target/release/factory-schema-lockstep --oap-dir standards/schemas/factory --factory-dir .factory/contract/schemas

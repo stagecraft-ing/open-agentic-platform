@@ -354,7 +354,7 @@ refinement is the pre-implementation step the draft staged for itself
 eligible the moment the gate discharges.
 
 **Gate discharged (2026-06-12, later the same day):** spec 198 flipped
-`implementation: complete` (its tasks.md gate — GovAlta-side envelope
+`implementation: complete` (its tasks.md gate — Stagecraft-side envelope
 merge + first real ADMIT — was met by the sealed admission above; the
 flip records AC-5's bundle-boundary posture and the live-run AC-4
 caveat honestly in its implementation log). Implementation proceeded in

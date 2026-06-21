@@ -1,9 +1,9 @@
 ---
 id: "214-tenant-app-chart-supersession"
-title: "Tenant App Chart Supersession (template-encore scaffold becomes the reference tenant)"
+title: "Tenant App Chart Supersession (template scaffold becomes the reference tenant)"
 feature_branch: "feat/214-tenant-app-chart-supersession"
 status: draft
-implementation: complete  # Stage 1 (additive aim-vue-encore deploy path) landed via #365; Stage 2 (tenant-hello retirement) landed 2026-06-16: chart-registry cutover to the sole aim-vue-encore shape, deployd default flip, ci.yml/ci-tenant-app.yml rewire, specs 136/137 amended; all locally-verifiable gates green (coupling, spec-lint, deployd cargo 35 tests + clippy, stagecraft tsc + vitest, helm lint + renders, FR-011 gate-seam parity proven in Stage 1, featuregraph golden). DEFERRED (deploy-time / operational, not resolvable in-repo): FR-010's cd-tenant-app.yml reference-image build is workflow_dispatch-gated and fails loud until the cross-repo template-encore source (vars.TENANT_APP_TEMPLATE_REPO/REF + read token) is wired; SC-001/SC-003/SC-005 need a live cluster (TLS endpoint, DB write round-trip, private-image pull) per the plan's Verification split.
+implementation: complete  # Stage 1 (additive acme-vue-encore deploy path) landed via #365; Stage 2 (tenant-hello retirement) landed 2026-06-16: chart-registry cutover to the sole acme-vue-encore shape, deployd default flip, ci.yml/ci-tenant-app.yml rewire, specs 136/137 amended; all locally-verifiable gates green (coupling, spec-lint, deployd cargo 35 tests + clippy, stagecraft tsc + vitest, helm lint + renders, FR-011 gate-seam parity proven in Stage 1, featuregraph golden). DEFERRED (deploy-time / operational, not resolvable in-repo): FR-010's cd-tenant-app.yml reference-image build is workflow_dispatch-gated and fails loud until the cross-repo template source (vars.TENANT_APP_TEMPLATE_REPO/REF + read token) is wired; SC-001/SC-003/SC-005 need a live cluster (TLS endpoint, DB write round-trip, private-image pull) per the plan's Verification split.
 kind: platform
 domain: platform
 created: "2026-06-12"
@@ -11,13 +11,13 @@ authors: ["open-agentic-platform"]
 language: en
 summary: >
   Supersede tenant-hello as the platform's reference tenant: the canonical
-  deployable shape becomes the factory's own template-encore scaffold
-  (aim-vue-encore), so the surface CI proves and the surface tenants run
+  deployable shape becomes the factory's own template scaffold
+  (acme-vue-encore), so the surface CI proves and the surface tenants run
   are the same artifact. Today the chart registry has exactly one synthetic
   shape, the dispatch wire cannot carry application config, a pull secret,
   or the stored namespace, and an Encore.ts app deployed as-is would have
   no runtime infra config and no database. This spec adds the
-  aim-vue-encore chart (single image serving the Encore API and bundled
+  acme-vue-encore chart (single image serving the Encore API and bundled
   SPA, ConfigMap-mounted runtime config, opt-in preview-grade Postgres),
   extends the deployd dispatch contract (config_refs semantics,
   image_pull_secret_name, namespace forwarding), locks the tenant hostname
@@ -47,7 +47,7 @@ extends:
   - spec: "136-tenant-hello-demo-service"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/deploy/chartSelector.ts }
-  # The chartSelector test gains the aim-vue-encore listShapes case alongside
+  # The chartSelector test gains the acme-vue-encore listShapes case alongside
   # the selector change; claimed additively so this path carries a 214
   # authority (spec 160's full-id migration now resolves the test's authority).
   - spec: "136-tenant-hello-demo-service"
@@ -88,7 +88,7 @@ establishes:
   # ghcr-pull reflector secret are net-new in Stage 1; cd-tenant-app.yml is
   # net-new in Stage 2 (the build+push workflow).
   - unit: { kind: file, path: .github/workflows/cd-tenant-app.yml }
-  - unit: { kind: directory, path: platform/charts/aim-vue-encore }
+  - unit: { kind: directory, path: platform/charts/acme-vue-encore }
   - unit: { kind: file, path: platform/services/stagecraft/api/deploy/hostname.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/deploy/hostname.test.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/deploy/deployResolve.ts }
@@ -128,9 +128,9 @@ references:
 **Status**: Draft (second of the three deploy-path specs; siblings are 213
 tenant-repo-image-build and 215 stagecraft-deploy-trigger-ux)
 **Input**: The 2026-06-12 deploy-path survey plus user direction of the
-same day: rather than adding the aim-vue-encore chart alongside
+same day: rather than adding the acme-vue-encore chart alongside
 tenant-hello and maintaining two tenant shapes forever, supersede
-tenant-hello so the reference tenant IS the template-encore scaffold,
+tenant-hello so the reference tenant IS the template scaffold,
 "retro-fitting what's needed into what is" and eliminating the
 two-surface drift class demonstrated that morning by the `dual_stack`
 manifest skew (an installed OPC binary parsing yesterday's schema against
@@ -148,7 +148,7 @@ manifest-contract lockstep a CI property between the factory repos; this
 spec extends the same philosophy to the deploy path by making the
 deployable reference and the factory output the same artifact.
 
-A real factory-produced app (aim-vue-encore: Encore.ts API on port 4000,
+A real factory-produced app (acme-vue-encore: Encore.ts API on port 4000,
 Vue SPA bundled into the same image via `bundle_source: true`) needs four
 things the mechanism does not yet provide: a chart for its shape, runtime
 configuration reaching the pod, a database, and a hostname that the
@@ -189,7 +189,7 @@ CI fixture of FR-010 covers this spec's own verification needs).
   live-cluster gate test is bound to them; spec 137's gate verification
   was cluster-side. The hello service itself is a Dockerfile,
   package.json, and src/.
-- The platform already materialises template-encore trees: the
+- The platform already materialises template trees: the
   `_prebuilt-{minimal,public,internal,dual}` profile trees built by
   `templateCache.ts` (spec 138 lineage) are the same artifact the Create
   path copies into new tenant repos. The reference fixture of FR-010 is
@@ -206,7 +206,7 @@ CI fixture of FR-010 covers this spec's own verification needs).
 
 Given an existing image for the scaffolded commit (spec 213, or the
 FR-010 fixture in CI), a dispatch through stagecraft's deploy proxy
-installs the aim-vue-encore chart into the environment's namespace, and
+installs the acme-vue-encore chart into the environment's namespace, and
 the returned endpoint URL serves the Vue SPA with the Encore API
 answering behind it.
 
@@ -214,13 +214,13 @@ answering behind it.
 project as-is on deployd-api".
 
 **Independent Test**: POST a deployment for a built scaffold image with
-shape `aim-vue-encore`; curl the returned endpoint; the SPA shell loads
+shape `acme-vue-encore`; curl the returned endpoint; the SPA shell loads
 (HTTP 200) and the API health endpoint answers.
 
 **Acceptance Scenarios**:
 
 1. **Given** a built `public`-variant image, **When** dispatched with
-   shape `aim-vue-encore`, **Then** helm exits 0, the pod passes
+   shape `acme-vue-encore`, **Then** helm exits 0, the pod passes
    readiness, and `endpoints[0]` serves the app over TLS under
    `tenants.{base}`.
 2. **Given** the same dispatch repeated (same `{app_id}|{env_id}|
@@ -298,7 +298,7 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
 2. **Given** the implementing PR, **Then** `platform/services/
    tenant-hello/`, `platform/charts/tenant-hello/`, and both
    tenant-hello workflows are deleted in it, and `CHART_REGISTRY`
-   contains `aim-vue-encore` as the sole shape.
+   contains `acme-vue-encore` as the sole shape.
 3. **Given** the retirement, **Then** spec 136 carries the supersession
    callout and spec 137 carries the gate-anchor amendment, both landing
    in the same PR per the amendment convention.
@@ -327,7 +327,7 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
 
 ### Functional Requirements
 
-- **FR-001**: New chart `platform/charts/aim-vue-encore/`: Deployment
+- **FR-001**: New chart `platform/charts/acme-vue-encore/`: Deployment
   (one container, port 4000, liveness/readiness probes, non-root,
   `readOnlyRootFilesystem` with writable `/tmp`, resource requests and
   limits), Service, per-release ServiceAccount, Ingress gated on
@@ -335,8 +335,8 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
   preserved. The probe path defaults to `/healthz` and is a chart value
   (see Clarification 1).
 - **FR-002**: Chart registry cutover: `CHART_REGISTRY` in
-  `chartSelector.ts` gains `"aim-vue-encore" -> { chart:
-  "aim-vue-encore", version: "0.1.0" }` and drops `"tenant-hello"` in the
+  `chartSelector.ts` gains `"acme-vue-encore" -> { chart:
+  "acme-vue-encore", version: "0.1.0" }` and drops `"tenant-hello"` in the
   retirement step of the same PR; the new chart's files are embedded in
   `helm.rs` and the tenant-hello embedding is removed. Shape selection at
   dispatch time derives from the project's `factoryAdapterId`; unknown
@@ -395,13 +395,13 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
   template` renders of the new chart, default and gate-enabled) and
   `cd-tenant-app.yml` (build and push the reference image to GHCR),
   replacing the two tenant-hello workflows. The fixture tree is a
-  materialised template-encore profile from the same template version
+  materialised template profile from the same template version
   `templateCache.ts` pins for the scaffold path, so template upgrades
   and deploy-path verification move in lockstep (Clarification 4 decides
   the materialisation mode).
 - **FR-011**: Supersession with parity evidence: before the retirement
   lands, a render-parity check MUST demonstrate the gate seam carries
-  over: `helm template` of tenant-hello and of aim-vue-encore against
+  over: `helm template` of tenant-hello and of acme-vue-encore against
   the spec 137 gate fixture values produce equivalent gate-relevant
   output (auth-url/auth-signin annotations, gate release wiring, TLS
   secret reference). The implementing PR then deletes
@@ -410,7 +410,7 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
   tenant-hello chart embedding from `helm.rs`, and records the
   supersession callout on spec 136 plus the gate-anchor amendment on
   spec 137 (its `co_authority` units move from the tenant-hello chart
-  files to the aim-vue-encore equivalents).
+  files to the acme-vue-encore equivalents).
 - **FR-012**: Tenant contract refinement: spec 136's statelessness
   requirement is refined to "stateless pods; durable state lives only in
   the declared database" so the contract matches the real template
@@ -420,9 +420,9 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
 
 ### Key Entities
 
-- **aim-vue-encore chart**: the Helm shape for factory-produced
+- **acme-vue-encore chart**: the Helm shape for factory-produced
   Encore + Vue apps; the sole entry in the chart registry after cutover.
-- **Reference fixture**: a materialised template-encore profile tree
+- **Reference fixture**: a materialised template profile tree
   built in CI; the deployable artifact that proves the chart against the
   exact template version the scaffold path ships.
 - **Dispatch contract additions**: `config_refs` (env injection),
@@ -448,7 +448,7 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
   cert-covered hostnames (property test on `hostname.ts`).
 - **SC-005**: Private-image deploys succeed in a fresh namespace with no
   per-namespace manual secret creation.
-- **SC-006**: A template-encore version bump that changes the app's
+- **SC-006**: A template version bump that changes the app's
   deploy-relevant shape (port, health path, build output) fails
   `ci-tenant-app.yml` before any tenant deploy can hit it (the lockstep
   property, extending the spec 212 philosophy to the deploy path).
@@ -487,9 +487,9 @@ than discovering them on a tenant's first deploy.
 ## Clarifications
 
 1. **Health endpoint of the scaffolded app**: the tenant contract (spec
-   136 C-002) requires `/healthz`; verify the aim-vue-encore scaffold
+   136 C-002) requires `/healthz`; verify the acme-vue-encore scaffold
    actually serves it (Encore default health surface vs an explicit
-   endpoint in template-encore) and pin the chart default accordingly.
+   endpoint in template) and pin the chart default accordingly.
 2. **Encore self-hosted runtime config mechanism**: pin the exact
    file-path/env-var contract (`encore build docker` runtime config
    consumption) against Encore's self-hosting documentation for the

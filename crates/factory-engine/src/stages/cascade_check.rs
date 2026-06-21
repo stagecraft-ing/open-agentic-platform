@@ -305,7 +305,7 @@ mod tests {
         let (claim, record) = assumption_claim(
             "INT-003",
             "anchor-abc",
-            vec!["1GX".into()],
+            vec!["Globex".into()],
         );
         build_manifest_at(dir.path(), vec![record], vec![claim]);
 
@@ -332,7 +332,7 @@ mod tests {
         let (claim, record) = assumption_claim(
             "INT-003",
             "anchor-abc",
-            vec!["1GX".into()],
+            vec!["Globex".into()],
         );
         build_manifest_at(dir.path(), vec![record], vec![claim]);
 
@@ -340,7 +340,7 @@ mod tests {
         std::fs::create_dir_all(&gen_dir).unwrap();
         std::fs::write(
             gen_dir.join("payment_request.sql"),
-            "CREATE TABLE 1gx_payment_request (id UUID);\n",
+            "CREATE TABLE globex_payment_request (id UUID);\n",
         )
         .unwrap();
 
@@ -353,7 +353,7 @@ mod tests {
         match r {
             CascadeCheckOutcome::Violations(v) => {
                 assert_eq!(v.len(), 1);
-                assert_eq!(v[0].surface_form, "1GX");
+                assert_eq!(v[0].surface_form, "Globex");
                 assert_eq!(v[0].claim_id.0, "INT-003");
                 assert_eq!(v[0].anchor_hash.0, "anchor-abc");
                 assert_eq!(v[0].line_number, 1);
@@ -368,15 +368,15 @@ mod tests {
         let (claim, record) = assumption_claim(
             "INT-003",
             "anchor-abc",
-            vec!["1GX".into()],
+            vec!["Globex".into()],
         );
         build_manifest_at(dir.path(), vec![record], vec![claim]);
 
-        // pending-promotion.md mentions the surface form — that is
+        // pending-promotion.md mentions the surface form; that is
         // exactly its purpose. The check must NOT flag it.
         std::fs::write(
             dir.path().join("pending-promotion.md"),
-            "## INT-003\n- wouldEmit: payment_request table for 1GX integration\n",
+            "## INT-003\n- wouldEmit: payment_request table for Globex integration\n",
         )
         .unwrap();
 
@@ -394,7 +394,7 @@ mod tests {
 
     #[test]
     fn cascade_check_excludes_assumption_manifest_md() {
-        // The manifest itself contains the surface forms as data — a
+        // The manifest itself contains the surface forms as data; a
         // file at path != generated_dir should never be scanned.
         // Confirm by placing a generated file with a vendor ref AND
         // a manifest file with the same ref; the violation count
@@ -403,12 +403,12 @@ mod tests {
         let (claim, record) = assumption_claim(
             "INT-003",
             "anchor-abc",
-            vec!["1GX".into()],
+            vec!["Globex".into()],
         );
         build_manifest_at(dir.path(), vec![record], vec![claim]);
         let gen_dir = dir.path().join("generated");
         std::fs::create_dir_all(&gen_dir).unwrap();
-        std::fs::write(gen_dir.join("a.sql"), "1gx is here\n").unwrap();
+        std::fs::write(gen_dir.join("a.sql"), "globex is here\n").unwrap();
         let r = check_assumption_only_cascade(
             &gen_dir,
             &dir.path().join("assumption-only-manifest.md"),
@@ -423,7 +423,7 @@ mod tests {
 
     #[test]
     fn per_anchor_invariant_rename_still_flagged() {
-        // Operator renames INT-003 → INT-004 in the manifest but keeps
+        // Operator renames INT-003 to INT-004 in the manifest but keeps
         // the same anchor_hash. The cascade check still flags surface
         // forms because the match key is the anchor's surface forms,
         // not the literal claim ID.
@@ -431,12 +431,12 @@ mod tests {
         let (claim, record) = assumption_claim(
             "INT-004",
             "anchor-abc", // same anchor as before
-            vec!["1GX".into()],
+            vec!["Globex".into()],
         );
         build_manifest_at(dir.path(), vec![record], vec![claim]);
         let gen_dir = dir.path().join("generated");
         std::fs::create_dir_all(&gen_dir).unwrap();
-        std::fs::write(gen_dir.join("a.sql"), "CREATE TABLE 1gx_x ();\n").unwrap();
+        std::fs::write(gen_dir.join("a.sql"), "CREATE TABLE globex_x ();\n").unwrap();
         let r = check_assumption_only_cascade(
             &gen_dir,
             &dir.path().join("assumption-only-manifest.md"),
@@ -462,12 +462,12 @@ mod tests {
         let (claim, record) = assumption_claim(
             "INT-003",
             "abc",
-            vec!["1GX".into()],
+            vec!["Globex".into()],
         );
         build_manifest_at(dir.path(), vec![record], vec![claim]);
         let gen_dir = dir.path().join("generated");
         std::fs::create_dir_all(&gen_dir).unwrap();
-        std::fs::write(gen_dir.join("art.bin"), b"raw bytes 1GX hidden").unwrap();
+        std::fs::write(gen_dir.join("art.bin"), b"raw bytes Globex hidden").unwrap();
         let r = check_assumption_only_cascade(
             &gen_dir,
             &dir.path().join("assumption-only-manifest.md"),

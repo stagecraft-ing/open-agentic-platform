@@ -3,7 +3,7 @@ id: "197-factory-contract-open-standard-extensions"
 title: "Open-Standard Factory Contract Extensions (Build Spec 1.1.0)"
 feature_branch: "feat/197-factory-contract-open-standard-extensions"
 status: approved
-implementation: complete # AC-1..AC-7 landed via PR #312 (squash 81566933, 2026-06-09) with Rust+YAML+tests, commands.seed typed, SCHEMA_VERSION consts, provisioning_model REQUIRED. AC-8 closed 2026-06-10: factory-encore origin/main @ cc1139f verified directly — contract/schemas/build-spec.schema.yaml declares schema_version "1.1.0" with field definitions identical to standards/schemas/factory/build-spec.schema.yaml (provisioning_model required, enum [admin-only, open-authenticated]; implementation_status optional, enum [live, stub, deferred]). The POC leg collapsed into the factory-encore leg: factory-encore-poc was absorbed into factory-encore main by the 2026-06-09 handoff (#1 three-layer shape), so one verified surface covers both. See §AC-8 verification note.
+implementation: complete # AC-1..AC-7 landed via PR #312 (squash 81566933, 2026-06-09) with Rust+YAML+tests, commands.seed typed, SCHEMA_VERSION consts, provisioning_model REQUIRED. AC-8 closed 2026-06-10: factory origin/main @ cc1139f verified directly — contract/schemas/build-spec.schema.yaml declares schema_version "1.1.0" with field definitions identical to standards/schemas/factory/build-spec.schema.yaml (provisioning_model required, enum [admin-only, open-authenticated]; implementation_status optional, enum [live, stub, deferred]). The POC leg collapsed into the factory leg: factory-poc was absorbed into factory main by the 2026-06-09 handoff (#1 three-layer shape), so one verified surface covers both. See §AC-8 verification note.
 amended: "2026-06-10"
 amendment_record: |
   self-amended (2026-06-10) — AC-8 verification recorded; cross-repo
@@ -24,7 +24,7 @@ summary: >
   external service catalog) are explicitly kept OUT of the contract, in the
   adapter/org layer. Aligns the canonical schema in standards/schemas/factory/
   and the factory-contracts Rust types, fixes the manifest commands drift,
-  and is mirrored by the owned factory source (factory-encore) and its POC.
+  and is mirrored by the owned factory source (factory) and its POC.
 code_aliases: ["BUILD_SPEC_OPEN_STANDARD_EXT"]
 extends:
   - spec: "074-factory-ingestion"
@@ -50,8 +50,8 @@ references:
 **Created**: 2026-06-08
 **Status**: Approved
 **Input**: OAP is replacing its factory dependency. The upstream
-`goa-software-factory` fold-in is retired; the owned factory source
-(`factory-encore`, scaffolding `template-encore`) is authored directly from
+`legacy-factory` fold-in is retired; the owned factory source
+(`factory`, scaffolding `template`) is authored directly from
 OAP's needs. That swap surfaced two questions about the Build Spec contract
 established by [spec 074](../074-factory-ingestion/spec.md): (1) the owned
 factory ships a *live* permission-provisioning capability the 1.0.0 contract
@@ -78,7 +78,7 @@ contract that:
   `factory-contracts` Rust types in lockstep (FR-006).
 - Fixes a pre-existing **manifest commands drift** as contract hygiene (FR-007).
 
-Non-goals: renaming the adapter (`aim-vue-node` → `aim-vue-encore`), reducing
+Non-goals: renaming the adapter (`acme-vue-node` → `acme-vue-encore`), reducing
 `adapter-scopes.json`, or any factory-engine runtime behaviour change beyond
 honouring the new optional fields. Those are tracked separately.
 
@@ -181,7 +181,7 @@ their correct home recorded:
   Stage 2, this is not a compatibility break in practice; `schema_version`
   increments to 1.1.0 and lets future consumers gate. A strict-semver reading
   (required-field addition ⇒ 2.0.0) is deferred pending real external adoption.
-- The owned factory source (`factory-encore`) and its POC mirror this exact
+- The owned factory source (`factory`) and its POC mirror this exact
   delta; this spec text is the canonical definition both consume. The stage-output
   `audiences.schema.json` lists `provisioning_model` in its `required` set.
 
@@ -193,7 +193,7 @@ the untyped `#[serde(flatten)] extra` map and is invisible to the engine. Add
 `seed` as a typed optional field so an adapter that relies on it is honoured
 (AC-7).
 
-The reference adapter (`aim-vue-encore`) declares a richer command set
+The reference adapter (`acme-vue-encore`) declares a richer command set
 (`gen_client`, `generate_keys`, `migrate`, `graph_check`, `pre_verify`,
 `post_verify`) that is **not yet** in OAP's canonical manifest schema —
 explicitly out of this spec's scope. *(Amended 2026-06-10: the original
@@ -230,13 +230,13 @@ the other two remain `"1.0.0"` (untouched).
   `crates/factory-contracts/src/`.
 - **AC-7**: A manifest declaring `commands.seed` resolves it as a typed field,
   not via `extra`.
-- **AC-8**: The POC and factory-encore Build Spec schemas declare
+- **AC-8**: The POC and factory Build Spec schemas declare
   `schema_version: "1.1.0"` and carry the identical field definitions to this
   spec (cross-repo conformance; verified when those repos land).
-  *(Verified 2026-06-10 against factory-encore `origin/main` @ `cc1139f`:
+  *(Verified 2026-06-10 against factory `origin/main` @ `cc1139f`:
   `schema_version: "1.1.0"`, `provisioning_model` required with the
   identical enum, `implementation_status` optional with the identical
-  enum. The POC surface no longer exists separately — factory-encore main
+  enum. The POC surface no longer exists separately — factory main
   absorbed it via the 2026-06-09 handoff — so the two legs collapsed into
   the one verified surface.)*
 
@@ -247,18 +247,18 @@ mirror it:
 
 1. **OAP (here)** — `standards/schemas/factory/*` + `crates/factory-contracts/src/*`
    + tests. (This spec's implementation track.)
-2. **factory-encore-poc** — `contract/schemas/build-spec.schema.yaml` + the
+2. **factory-poc** — `contract/schemas/build-spec.schema.yaml` + the
    adapter authorization pattern + examples + docs. (A dedicated CC agent
    working in that repo, briefed from this spec.)
-3. **factory-encore** — inherits the POC shape during its refactor (deferred
+3. **factory** — inherits the POC shape during its refactor (deferred
    until the POC is final).
 
 *(Resolved 2026-06-10: surface 3 happened — the 2026-06-09 Windows handoff
-mirrored the finalized POC into factory-encore main, after which the POC
+mirrored the finalized POC into factory main, after which the POC
 ceased to exist as a separate checkout. Surfaces 2 and 3 are now the same
 repo, verified conformant under AC-8.)*
 
 The adapter authorization *enforcement* (zero-role denial, case-insensitive
 email lookup, server-side nav construction) is adapter-layer content keyed off
-`provisioning_model`; it is honoured in the `aim-vue-encore` adapter, not in
+`provisioning_model`; it is honoured in the `acme-vue-encore` adapter, not in
 this contract.

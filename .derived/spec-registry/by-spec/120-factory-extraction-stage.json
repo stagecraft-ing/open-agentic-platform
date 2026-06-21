@@ -119,6 +119,6 @@
     "summary": "Promote the orphan `crates/artifact-extract` to a canonical, deterministic pre-stage of the Factory Phase 1 pipeline. Mirror stagecraft's `ExtractionOutput` (spec 115) as Rust serde types in `factory-contracts` so the Rust producer and TypeScript consumer share one schema. Add an `s-1-extract` stage to `crates/factory-engine` that consumes the `KnowledgeBundle[]` delivered by the duplex envelope (spec 110), produces one typed `extraction-output.json` per object into the unified artifact store (spec 094), and posts the same payload back to a new content-addressed stagecraft endpoint. Stage 1's business-requirements-analyst consumes the typed structure (text, pages, outline, language, agent provenance) instead of flat `.txt` paths, closing the raw-bytes-to-stage-1 reinterpretation seam. This spec is the carrier for spec 121 (claim provenance enforcement) and spec 122 (stakeholder-doc inversion); it does NOT enforce per-claim citations or invert Stage CD.\n",
     "title": "Factory Extraction Stage"
   },
-  "shardHash": "81387b8005b475075bb341ddd2b44058d814f2603dac060d1d5efbd8559224e2",
+  "shardHash": "c00a6a2c9df947b43724c9ef5f5b71379592ea016c0502da69bdcb47158c1919",
   "specVersion": "1.1.0"
 }

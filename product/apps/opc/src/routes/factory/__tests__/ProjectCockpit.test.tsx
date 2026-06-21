@@ -19,7 +19,7 @@ afterEach(() => {
 function makeAcpProject(): FactoryProject {
   return {
     level: 'acp_produced',
-    adapter_ref: { name: 'aim-vue-node', version: '3.0.0' },
+    adapter_ref: { name: 'acme-vue-node', version: '3.0.0' },
     pipeline_state: {
       schema_version: '1.0.0',
       pipeline: {
@@ -28,7 +28,7 @@ function makeAcpProject(): FactoryProject {
         started_at: '2026-04-22T00:00:00Z',
         updated_at: '2026-04-22T00:00:00Z',
         status: 'running',
-        adapter: { name: 'aim-vue-node', version: '3.0.0' },
+        adapter: { name: 'acme-vue-node', version: '3.0.0' },
         build_spec: { path: 'build-spec.yaml', hash: 'abc' },
       },
       stages: {
@@ -57,7 +57,7 @@ describe('ProjectCockpit', () => {
     apiCallMock.mockResolvedValue({ ok: true, project: makeAcpProject() });
     render(<ProjectCockpit projectPath="/tmp/proj" />);
     await waitFor(() => {
-      expect(screen.getByText(/aim-vue-node/)).toBeInTheDocument();
+      expect(screen.getByText(/acme-vue-node/)).toBeInTheDocument();
     });
     expect(screen.getByText('pre-flight')).toBeInTheDocument();
     expect(screen.getByText('business-requirements')).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('ProjectCockpit', () => {
       ok: true,
       project: {
         level: 'legacy_produced',
-        adapter_ref: { name: 'aim-vue-node', version: '3.0.0' },
+        adapter_ref: { name: 'acme-vue-node', version: '3.0.0' },
         legacy_complete: false,
         legacy_incomplete_stages: ['stage3_databaseDesign', 'stage4_apiControllers'],
       },

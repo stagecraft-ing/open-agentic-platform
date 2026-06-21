@@ -57,7 +57,7 @@
         "role_code": {
           "type": "string",
           "minLength": 1,
-          "description": "Machine-safe role identifier (e.g. \"cfs-analyst\")."
+          "description": "Machine-safe role identifier (e.g. \"onboarding-analyst\")."
         },
         "display_name": {
           "type": "string",

@@ -83,9 +83,9 @@
     ],
     "specPath": "specs/197-factory-contract-open-standard-extensions/spec.md",
     "status": "approved",
-    "summary": "Evolve the factory Build Spec contract from 1.0.0 to 1.1.0 with two generalizable fields — a REQUIRED per-audience provisioning_model and an optional per-integration implementation_status — under a governing principle: the factory contract is an open, reusable standard, so only org-agnostic concepts may enter it. GoA-specific concepts (classification labels, the external service catalog) are explicitly kept OUT of the contract, in the adapter/org layer. Aligns the canonical schema in standards/schemas/factory/ and the factory-contracts Rust types, fixes the manifest commands drift, and is mirrored by the owned factory source (factory-encore) and its POC.\n",
+    "summary": "Evolve the factory Build Spec contract from 1.0.0 to 1.1.0 with two generalizable fields — a REQUIRED per-audience provisioning_model and an optional per-integration implementation_status — under a governing principle: the factory contract is an open, reusable standard, so only org-agnostic concepts may enter it. GoA-specific concepts (classification labels, the external service catalog) are explicitly kept OUT of the contract, in the adapter/org layer. Aligns the canonical schema in standards/schemas/factory/ and the factory-contracts Rust types, fixes the manifest commands drift, and is mirrored by the owned factory source (factory) and its POC.\n",
     "title": "Open-Standard Factory Contract Extensions (Build Spec 1.1.0)"
   },
-  "shardHash": "bf8475b004d533b7c640dbf4b360b6b6432d8711726892dc1cbc2196c0ec1f65",
+  "shardHash": "2c9a50e96b6b5761f1b99704f9023935a2177a40f01af5872db73393a1ab1295",
   "specVersion": "1.1.0"
 }

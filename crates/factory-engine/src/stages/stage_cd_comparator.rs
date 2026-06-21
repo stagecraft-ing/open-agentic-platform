@@ -961,8 +961,8 @@ mod tests {
             mode: ComparatorMode::Standard,
             now: fixed_now(),
             corpus: vec![],
-            project_name: "cfs".into(),
-            project_slug: "cfs".into(),
+            project_name: "example".into(),
+            project_slug: "example".into(),
             workspace_name: "ws".into(),
             known_owners: vec![],
         }
@@ -1042,7 +1042,7 @@ kind: charter
         write(
             &dir.path().join("requirements/stakeholder/charter.md"),
             &authored_with(
-                "### OBJ-1: Reduce form-correction cycles\n\nThe applicant must be a registered shelter society.",
+                "### OBJ-1: Reduce form-correction cycles\n\nThe applicant must be a registered partner organization.",
             ),
         );
         write(
@@ -1050,7 +1050,7 @@ kind: charter
                 "artifact-store/run-001/stage-cd/charter.candidate.md",
             ),
             &candidate_with(
-                "### OBJ-1: Reduce form-correction cycles\n\nAn applicant shall be the registered shelter society.",
+                "### OBJ-1: Reduce form-correction cycles\n\nAn applicant shall be the registered partner organization.",
             ),
         );
         write(
@@ -1067,7 +1067,7 @@ kind: charter
 
     #[test]
     fn scope_when_anchor_kind_changes() {
-        // CFS 1GX scenario: authored says OUT-SCOPE, candidate says
+        // Synthetic Globex scenario: authored says OUT-SCOPE, candidate says
         // IN-SCOPE for a paired concept.
         let dir = tempfile::tempdir().unwrap();
         write(
@@ -1081,7 +1081,7 @@ kind: charter
                 "artifact-store/run-001/stage-cd/charter.candidate.md",
             ),
             &candidate_with(
-                "### IN-SCOPE-7: Payment processing finance 1GX integration\n\nNow included.",
+                "### IN-SCOPE-7: Payment processing finance Globex integration\n\nNow included.",
             ),
         );
         write(
@@ -1093,12 +1093,12 @@ kind: charter
         let diff = run(&make_inputs(dir.path())).unwrap();
         assert_eq!(
             diff.counts.scope, 1,
-            "CFS 1GX scope flip must be paired and classified as scope"
+            "synthetic Globex scope flip must be paired and classified as scope"
         );
         // Specifically: pairing path is `jaccard` since the anchor IDs
-        // differ but the heading tokens overlap ≥ 0.6 (payment,
+        // differ but the heading tokens overlap >= 0.6 (payment,
         // processing, finance, integration vs payment, processing,
-        // finance, 1gx, integration).
+        // finance, globex, integration).
         let scope_finding = diff.findings.iter().find(|f| f.class == "scope").unwrap();
         assert_eq!(scope_finding.pairing, "jaccard");
     }
@@ -1150,7 +1150,7 @@ kind: charter
                 "artifact-store/run-001/stage-cd/charter.candidate.md",
             ),
             &candidate_with(
-                "### OBJ-1: Reduce cycles\n\nThe system must integrate with 1GX.",
+                "### OBJ-1: Reduce cycles\n\nThe system must integrate with Globex.",
             ),
         );
         write(
@@ -1162,7 +1162,7 @@ kind: charter
         let diff = run(&make_inputs(dir.path())).unwrap();
         assert!(
             diff.counts.external_entity >= 1,
-            "1GX in candidate body must surface as external-entity: {diff:?}"
+            "Globex in candidate body must surface as external-entity: {diff:?}"
         );
     }
 
@@ -1256,7 +1256,7 @@ Body.
                 "artifact-store/run-001/stage-cd/charter.candidate.md",
             ),
             &candidate_with(
-                "### OBJ-1: Reduce form-correction cycles\n\nReworded body.\n\n### IN-SCOPE-7: Payment processing finance 1GX integration\n\nNow included.",
+                "### OBJ-1: Reduce form-correction cycles\n\nReworded body.\n\n### IN-SCOPE-7: Payment processing finance Globex integration\n\nNow included.",
             ),
         );
         write(
@@ -1358,7 +1358,7 @@ kind: charter
   quoteHash: "deadbeef"
 ```
 
-the applicant must be a registered shelter society.
+the applicant must be a registered partner organization.
 "#;
         write(
             &dir.path().join("requirements/stakeholder/charter.md"),
@@ -1369,7 +1369,7 @@ the applicant must be a registered shelter society.
                 "artifact-store/run-001/stage-cd/charter.candidate.md",
             ),
             &candidate_with(
-                "### OBJ-1: Reduce cycles\n\nthe applicant must be a registered shelter society.",
+                "### OBJ-1: Reduce cycles\n\nthe applicant must be a registered partner organization.",
             ),
         );
         write(

@@ -163,8 +163,8 @@ references:
 **Feature Branch**: `198-factory-governance-envelope`
 **Created**: 2026-06-09
 **Status**: Draft
-**Input**: Establishing the owned factory sources (factory-encore +
-template-encore) as an OAP-controlled open standard forced a foundational
+**Input**: Establishing the owned factory sources (factory +
+template) as an OAP-controlled open standard forced a foundational
 question: when stagecraft consumes a factory, what must it *understand and
 enforce* versus merely *store*? The answer is a governance envelope — a
 contract the factory files and OAP validates fail-closed before admitting any
@@ -594,7 +594,7 @@ flip is gated on its AC suites running in CI, not just locally).
 1. **Schema + Rust twin.** `governance-envelope.schema.yaml`, the contract
    type, SCHEMA_VERSION, inline ASI tags; **adapter-manifest schema 1.1.0**
    with the `governance:` section (FR-012) and `factory-contracts` acceptance
-   of 1.1.0 manifests — this is the merge unblock for the factory-encore
+   of 1.1.0 manifests — this is the merge unblock for the factory
    authoring branch. Schema-parity green.
 2. **Admission gate.** Two-sided fail-closed validation in the sync/bind path
    (`syncPipeline.ts` / bind); recompute-and-reconcile from agent frontmatter
@@ -615,7 +615,7 @@ flip is gated on its AC suites running in CI, not just locally).
 
 ## Cross-repo coordination
 
-- **factory-encore** must file a conformant envelope. The authoring work is
+- **factory** must file a conformant envelope. The authoring work is
   **dispatched** (2026-06-09, branch `feat/governance-envelope` upstream):
   `process/governance-envelope.yaml`, the manifest `governance:` section at
   schema 1.1.0, frontmatter for all six adapter agents, and the cd
@@ -658,13 +658,13 @@ the FRs:
   `FACTORY_SIGNING_KID` (`fk-2026-06`, Ed25519) under the documented
   K8s-Secret custody profile; the keyset serves at
   `/api/factory/.well-known/jwks.json`. The next org re-sync produced the
-  first sealed admission for `GovAlta-Pronghorn/factory-encore`
+  first sealed admission for `Stagecraft-ing/factory`
   (record `7cf82fae…`, factory sha `cc1139f…`, envelope hash `549c1350…`,
   14 agent digests, 0 violations). The seal's compact JWS
   (`typ: oap-admission-seal+jws`) was verified independently against the
   published JWKS — signature valid, claims bind the envelope hash, the
-  `aim-vue-encore` manifest hash (`57f43e1a…`), every agent digest, and the
-  scaffold resolution to `GovAlta-Pronghorn/template-encore @ main`. Three
+  `acme-vue-encore` manifest hash (`57f43e1a…`), every agent digest, and the
+  scaffold resolution to `Stagecraft-ing/template @ main`. Three
   earlier admissions (2026-06-10/11) were admitted-but-UNSEALED — exactly
   the fail-closed posture this FR prescribes for the engine side.
 - **2026-06-11 — FR-012 enforcement: snapshot-absent adapters fail closed.**
@@ -687,12 +687,12 @@ the FRs:
 - **2026-06-12 — adapter-manifest `dual_stack` realigned to the canonical
   variant model.** The `adapter-manifest.schema.yaml` this spec refines
   carried a legacy `dual_stack` section (`audience_to_stack` / `stacks`,
-  the pre-factory-encore "in-tree stack" shape) that diverged from the
+  the pre-factory "in-tree stack" shape) that diverged from the
   owned upstream's canonical schema (`audience_to_variant` / `variants`,
   where a variant is a standalone top-level copy with its own `dir`,
   `auth_driver`, and `env_example`). OPC's live adapter fetch surfaced
   the drift as a hard parse failure — `missing field 'audience_to_stack'`
-  at the fetched `aim-vue-encore/manifest.yaml` — because the Rust
+  at the fetched `acme-vue-encore/manifest.yaml` — because the Rust
   `DualStack` deserializer (`crates/factory-contracts/src/adapter_manifest.rs`)
   shared the stale naming. Realigned all three OAP-side artifacts (Rust
   type, its sole consumer in `factory-engine/manifest_gen.rs`, and this
@@ -704,9 +704,9 @@ the FRs:
   its coverage; widening that coverage is deferred (a spec-212 decision,
   not taken in this pass).
 - **2026-06-12 — `implementation: complete` flip.** The tasks.md
-  completion gate ("runtime AC verification after the GovAlta-side
+  completion gate ("runtime AC verification after the Stagecraft-side
   envelope merge + org re-sync (first real ADMIT)") is discharged: the
-  GovAlta-side envelope merge is on `factory-encore` main
+  Stagecraft-side envelope merge is on `factory` main
   (`process/governance-envelope.yaml`, manifest 1.1.0 `governance:`
   section, all 14 agents carrying `safety_tier`/`mutation` frontmatter),
   and the first real ADMIT is the sealed admission `7cf82fae…` recorded

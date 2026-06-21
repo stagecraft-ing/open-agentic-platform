@@ -17,7 +17,7 @@ summary: |
   tags) as new universal frontmatter dimensions. Introduces three new kinds —
   capability, registry, profile — with per-kind structural fields, enabling
   the spec spine to absorb capability-and-profile composition (the model
-  surfaced by surveys of goa-software-factory and aim-vue-node). Promotes
+  surfaced by surveys of legacy-factory and acme-vue-node). Promotes
   `implements:` to registry-serialized output and adds a `primary` flag to
   implements claims, resolving spec 130 OQ-1. Introduces governance-lifecycle
   fields (`supersedes`, `superseded_by`, `retirement_rationale`) that
@@ -117,8 +117,8 @@ Three surveys conducted in sequence converged on the same finding:
    13 empirical values with no enforcement.
 
 2. Two external dependencies of open-agentic-platform —
-   `goa-software-factory` (a markdown-skill-driven Claude agent
-   framework) and `aim-vue-node` (a monorepo enterprise application
+   `legacy-factory` (a markdown-skill-driven Claude agent
+   framework) and `acme-vue-node` (a monorepo enterprise application
    template) — encode capability-and-profile composition in bespoke
    ways that resist absorption into OAP because the spine has no
    vocabulary to express them. Their absorption is the long-term
@@ -309,7 +309,7 @@ Required fields:
 
 - `identity: { name, jurisdiction, citizen_term, contacts, urls }` —
   structured identity record. Consolidates the brand-string leak
-  sites surveyed in aim-vue-node.
+  sites surveyed in acme-vue-node.
 - `selects: { <registry-id>: <capability-id> }` — map of registry
   spec-id to chosen capability spec-id. Top-level (not under
   `composition:`); see §`composition:` namespace above.

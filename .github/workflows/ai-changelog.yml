@@ -18,7 +18,7 @@ permissions:
 
 env:
   # Pinned to npm `stable` dist-tag value. Bump in lockstep with ai-pr-review.yml.
-  CLAUDE_CLI_VERSION: '2.1.116'
+  CLAUDE_CLI_VERSION: '2.1.185'
 
 jobs:
   changelog:

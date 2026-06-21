@@ -8,9 +8,9 @@ amended: "2026-06-12"
 amendment_record: |
   amended by spec 199 (2026-06-11), editorial: factory-project-detect's
   current-protocol test fixtures use the live names (templateName
-  "template-encore" for scaffold-only; adapter "aim-vue-encore" in ACP
+  "template" for scaffold-only; adapter "acme-vue-encore" in ACP
   pipeline-state). The legacy-detection fixtures intentionally KEEP
-  "aim-vue-node": they model real-world goa-factory-produced artifacts
+  "acme-vue-node": they model real-world enterprise-factory-produced artifacts
   whose template.json genuinely carries that name, and the ACP-precedence
   test's decoy marker now differs from the ACP adapter name, making its
   provenance assertion meaningful. No detection behavior change.
@@ -51,7 +51,7 @@ summary: >
   Stagecraft imports an existing GitHub repo and registers it in the
   workspace. Anchors detection on the ACP contract layer (spec 074) and
   extends the translator (spec 108) to bridge legacy
-  `goa-software-factory`-shaped manifests. Absorbs the scaffold/push
+  `legacy-factory`-shaped manifests. Absorbs the scaffold/push
   capability currently in the external `template-distributor` repo into
   stagecraft; template-distributor is discontinued as a separate service.
 depends_on:
@@ -101,8 +101,8 @@ refines:
 
 > **Amended by spec 199 (2026-06-11), editorial.** The
 > factory-project-detect current-protocol fixtures use the live names
-> (`template-encore`, `aim-vue-encore`); legacy-detection fixtures keep
-> `aim-vue-node` deliberately, modelling real goa-factory-produced
+> (`template`, `acme-vue-encore`); legacy-detection fixtures keep
+> `acme-vue-node` deliberately, modelling real enterprise-factory-produced
 > artifacts. No detection behavior change.
 
 ## 1. Problem
@@ -111,9 +111,9 @@ refines:
 
 Two upstream repositories produce every project we Import:
 
-- `GovAlta-Pronghorn/goa-software-factory` — the 5-stage AI factory (mirror
-  of `GovAlta-EMU/the_factory`).
-- `GovAlta-Pronghorn/template` — the scaffold template the factory writes
+- `Stagecraft-ing/legacy-factory` — the 5-stage AI factory (mirror
+  of `ACME-OLD/the_factory`).
+- `Stagecraft-ing/template` — the scaffold template the factory writes
   into.
 
 The same two upstreams also feed spec 108's **factory sync** that
@@ -121,7 +121,7 @@ populates the org's `factory_adapters` / `factory_contracts` /
 `factory_processes` rows. Import and ACP are therefore not parallel
 pipelines — they are the same upstream projected twice: once as a
 fully-produced Stage-5 project (the Import target, e.g.
-`GovAlta-Pronghorn/cfs-emergency-family-violence-services-funding-request-portal`),
+`Stagecraft-ing/acme-example-portal`),
 once as the Adapters/Contracts/Processes (the modular flow the imported
 project is re-driven through after import). The lifecycle terminus is a
 deployd-api deployment via a future ACP "deploy" stage — out of scope for
@@ -144,14 +144,14 @@ Today there are three de-facto paths, none governed:
    in OPC (spec 076) assumes state it cannot detect.
 
 2. **External `template-distributor` service.** A separate Express app in
-   `GovAlta-Pronghorn/template-distributor` provides an ad-hoc web UI for
+   `Stagecraft-ing/template-distributor` provides an ad-hoc web UI for
    cloning the `template` repo, applying a profile, creating a GitHub repo,
    and pushing. It is not integrated with stagecraft — no workspace binding,
    no policy gate, no audit, no adapter identity beyond the copied
    `template.json`.
 
-3. **`goa-software-factory` 5-stage pipeline.** The upstream AI factory
-   (`GovAlta-EMU/the_factory`, mirrored at `GovAlta-Pronghorn/goa-software-factory`)
+3. **`legacy-factory` 5-stage pipeline.** The upstream AI factory
+   (`ACME-OLD/the_factory`, mirrored at `Stagecraft-ing/legacy-factory`)
    produces `requirements/` + code directly into a template-scaffolded repo.
    Its output shape — `requirements/audit/factory-manifest.json` (5 stages),
    `requirements/audit/working-state.json`, ad-hoc `requirements/{ui,api}/build-spec.json`
@@ -160,7 +160,7 @@ Today there are three de-facto paths, none governed:
 
 Symptoms:
 
-- Opening `/Users/bart/Dev2/cfs-womens-shelter-funding-portal` in OPC shows
+- Opening `acme-vendor-onboarding-portal` in OPC shows
   no factory cockpit even though it is a fully-produced factory project.
 - Stagecraft cannot list the projects it owns in a workspace until they are
   manually registered.
@@ -191,7 +191,7 @@ three converge on the same state representation: a
    installation); clone server-side, detect, translate legacy → ACP,
    register; OPC claims it on local open. **Scope bound (MVP):** Import
    accepts only fully-executed legacy projects — `LegacyProduced` with
-   `legacy_complete == true` (all 5 `goa-software-factory` stages marked
+   `legacy_complete == true` (all 5 `legacy-factory` stages marked
    complete). ACP-native (L2) detection is retained for forward
    compatibility but Import does not exercise it as a primary branch in
    this spec; no upstream ACP producers exist in the wild yet (the only
@@ -246,7 +246,7 @@ New crate `crates/factory-project-detect/`:
 pub enum DetectionLevel {
     NotFactory,
     ScaffoldOnly,      // L0 — template scaffolded, no pipeline run yet
-    LegacyProduced,    // L1 — goa-software-factory 5-stage manifest, needs translation
+    LegacyProduced,    // L1 — legacy-factory 5-stage manifest, needs translation
     AcpProduced,       // L2 — pipeline-state.json present and conformant
 }
 
@@ -325,7 +325,7 @@ lifecycle can advance. The scaffold writer (§4.2) writes:
     "factory_version": "<semver>",
     "started_at": null,
     "status": "pending",
-    "adapter": { "name": "aim-vue-node", "version": "3.0.0", "source_sha": "..." },
+    "adapter": { "name": "acme-vue-node", "version": "3.0.0", "source_sha": "..." },
     "build_spec": { "path": null, "hash": null }
   },
   "stages": {}
@@ -563,13 +563,13 @@ the code.
   (concurrency-safe, multi-tenant, audit-traceable).
 - `opc://` deep-link on the success response (§5.4).
 
-**Scaffold-output invariant (amended 2026-06-09, template-encore
+**Scaffold-output invariant (amended 2026-06-09, template
 cutover):** the tree operation 3 hands to operation 5 is **VCS-free** —
 repository initialization belongs exclusively to operation 5
 (`gitInitAndPush` owns commit #1 on a tree with no prior git state).
 Template generators MAY run `git init` in their own output for
 manual/developer use (the legacy template did so at the destination root;
-template-encore's `setup-dual-app.ts` does so per variant directory), so
+template's `setup-dual-app.ts` does so per variant directory), so
 the per-request copy strips `.git` entries at **any depth**, alongside
 `node_modules`. Failure mode this guards: a per-variant `git init` plants
 an embedded commit-less repository inside the project tree, and operation
@@ -684,7 +684,7 @@ Flow:
      or run the legacy pipeline upstream to completion before
      importing.
    - **LegacyProduced**: enforce `legacy_complete == true` (all 5
-     `goa-software-factory` stages marked complete in
+     `legacy-factory` stages marked complete in
      `factory-manifest.json`). If incomplete, reject with a message
      identifying which stages are incomplete and instructing the user
      to finish the legacy run upstream before re-importing. If
@@ -933,7 +933,7 @@ GITHUB_TOKEN=<clone_token.value>
 in the subprocess environment, scoped to that subprocess only.
 `crates/factory-engine/` does not touch `GITHUB_TOKEN` directly; the
 engine launches axiomregent and inherits the env. Adapters (e.g.
-`aim-vue-node`) that shell out to `git` for sub-operations get the
+`acme-vue-node`) that shell out to `git` for sub-operations get the
 same env via standard subprocess inheritance.
 
 For long-running pipelines whose total runtime may exceed the
@@ -1035,16 +1035,16 @@ Each phase is independently mergeable and ends in a runnable state.
 - Land `crates/factory-project-detect/` with the detection algorithm and
   a CLI bin for external consumers.
 - Unit tests over three fixture repos: AcpProduced, LegacyProduced (use
-  cfs-womens-shelter as reference), ScaffoldOnly.
+  acme-vendor-onboarding as reference), ScaffoldOnly.
 - Exit criteria: `factory-project-detect inspect <path> --json` returns
   correct level for all three fixtures.
 
 **Phase 2 — Translator extension.**
 - Extend `platform/services/stagecraft/api/factory/translator.ts` with
   `translateLegacyManifest`.
-- Integration test reads the cfs repo via a fixture and verifies the
+- Integration test reads the example repo via a fixture and verifies the
   output conforms to `pipeline-state.schema.yaml`.
-- Exit criteria: translator round-trips cfs manifest → pipeline-state
+- Exit criteria: translator round-trips example manifest → pipeline-state
   without loss of stage completion timestamps or artifact references.
 
 **Phase 3 — OPC Open path.**
@@ -1053,14 +1053,14 @@ Each phase is independently mergeable and ends in a runnable state.
 - Build `product/apps/opc/src/routes/factory/ProjectCockpit.tsx` with the
   timeline and action buttons. Actions dispatch via the existing spec 110
   envelope.
-- Exit criteria: opening cfs-womens-shelter in OPC shows a populated
+- Exit criteria: opening acme-vendor-onboarding in OPC shows a populated
   cockpit.
 
 **Phase 4 — Adapter manifest scaffold extension.**
 - Extend `adapter-manifest.schema.yaml` per §8.
-- Update the `aim-vue-node` adapter manifest to declare `scaffold.*`
+- Update the `acme-vue-node` adapter manifest to declare `scaffold.*`
   fields pointing at its `setup-app.ts` / `setup-dual-app.ts`.
-- Exit criteria: `registry-consumer show aim-vue-node` (or equivalent)
+- Exit criteria: `registry-consumer show acme-vue-node` (or equivalent)
   shows the new scaffold block and validates.
 
 **Phase 5 — Stagecraft Create.**
@@ -1113,10 +1113,10 @@ Each phase is independently mergeable and ends in a runnable state.
 
 **Phase 7 — Stagecraft Import.**
 - Land `api/projects/import.ts` and the `/app/projects/import` route.
-- Exit criteria: importing cfs-womens-shelter (fully executed — all 5
+- Exit criteria: importing acme-vendor-onboarding (fully executed — all 5
   legacy stages marked complete) via the web UI produces a `projects`
   row with `detection_level = "legacy_produced"` and a PR opened
-  against the cfs repo adding `.factory/pipeline-state.json`. Importing
+  against the example repo adding `.factory/pipeline-state.json`. Importing
   an in-progress legacy project (any stage incomplete) is rejected at
   step 4 with an actionable error naming the incomplete stages.
   Importing a scaffold-only or non-factory repo is rejected. Importing
@@ -1259,7 +1259,7 @@ this tree reads them.
 - **Local-only projects (no GitHub).** Create and Import both assume a
   GitHub remote. A "pure local" mode is plausible but not in scope.
 - **Cross-adapter migration.** Moving a project from one adapter to
-  another (e.g. `aim-vue-node` → `rust-axum`) is not addressed. The
+  another (e.g. `acme-vue-node` → `rust-axum`) is not addressed. The
   pipeline-state's `adapter` field is informational; migration would be
   a separate spec.
 - **Factory run execution changes.** Runs continue to dispatch per spec
@@ -1267,7 +1267,7 @@ this tree reads them.
 - **Partial legacy imports.** Projects with an incomplete
   `factory-manifest.json` (any of the 5 stages not marked complete)
   are not importable. Users must finish the legacy run upstream in
-  `goa-software-factory` before importing. Rationale: translation of a
+  `legacy-factory` before importing. Rationale: translation of a
   partial manifest produces a pipeline-state with holes the ACP engine
   cannot reconcile from, and the platform has no interest in resuming
   legacy execution.
@@ -1310,7 +1310,7 @@ this tree reads them.
 - **L0 / L1 / L2** — Detection levels: ScaffoldOnly / LegacyProduced /
   AcpProduced.
 - **Legacy factory manifest** — `requirements/audit/factory-manifest.json`
-  produced by `goa-software-factory` (5 stages).
+  produced by `legacy-factory` (5 stages).
 - **ACP pipeline-state** — `.factory/pipeline-state.json` conformant to
   `pipeline-state.schema.yaml` (7 stages).
 - **Scaffold** — the act of materialising an adapter's base template into
@@ -1322,7 +1322,7 @@ this tree reads them.
 
 **Amendment 2026-06-11 (record: 138 audit trail, spec 199 FR-007).**
 The §5.3 module catalog this spec established was cut over from the
-retired template-distributor shape to template-encore's real `modules/`
+retired template-distributor shape to template's real `modules/`
 directory — five opt-in modules, empty profile built-ins/presets
 (profiles select AUTH_DRIVER; auth is not a module), `detectProfile`
 removed. Full rationale and the module descriptors live in spec 138's

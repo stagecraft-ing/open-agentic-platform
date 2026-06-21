@@ -20,7 +20,7 @@ import {
 
 const ORG_ID = "88888888-0000-0000-0000-000000000001";
 const USER_ID = "88888888-0000-0000-0000-000000000002";
-const ORIGIN = "factory-encore";
+const ORIGIN = "factory";
 const ENVELOPE_HASH = "3".padStart(64, "0");
 
 let overriddenId: string;
@@ -83,7 +83,7 @@ describe("spec 201 — /api/factory/artifacts/:id/approval-summary (encore test)
       process: {
         schema_version: "1.0.0",
         process: {
-          id: "factory-encore-process",
+          id: "factory-process",
           objective_class: "scaffold",
           goal_identifier_scheme: "uuid",
         },
@@ -112,7 +112,7 @@ describe("spec 201 — /api/factory/artifacts/:id/approval-summary (encore test)
         org_id, source_id, role, repo_url, ref, subpath, created_at, updated_at
       ) VALUES (
         ${ORG_ID}::uuid, ${ORIGIN}, 'orchestration',
-        'GovAlta-Pronghorn/factory-encore', 'main', NULL, now(), now()
+        'Stagecraft-ing/factory', 'main', NULL, now(), now()
       )
       ON CONFLICT (org_id, source_id) DO NOTHING
     `);

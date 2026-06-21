@@ -1,6 +1,6 @@
 // Spec 112 §5.3 — scaffold-output invariant: the per-request copy hands
 // gitInitAndPush a VCS-free tree. Regression for the 2026-06-09 production
-// create failure: template-encore's dual generator runs `git init` per
+// create failure: template's dual generator runs `git init` per
 // variant, and the embedded commit-less repos made `git add -A` fail with
 // "'internal/' does not have a commit checked out".
 //
@@ -62,11 +62,11 @@ describe("scaffoldFromPrebuilt — VCS-free output (spec 112 §5.3)", () => {
         pipelineStateSeed: { level: "L0" },
         adapter: {
           id: "adapter-id",
-          name: "aim-vue-encore",
+          name: "acme-vue-encore",
           version: "0.1.0",
           sourceSha: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
         },
-        manifest: { adapter: { name: "aim-vue-encore", version: "0.1.0" } },
+        manifest: { adapter: { name: "acme-vue-encore", version: "0.1.0" } },
       });
       expect(result.destDir).toBe(dest);
 
@@ -99,7 +99,7 @@ describe("scaffoldFromPrebuilt — VCS-free output (spec 112 §5.3)", () => {
       const stamp = readFileSync(stampPath, "utf8");
       expect(stamp).toContain("toolchain_mode: pinned-toolchain");
       expect(stamp).toContain("spec_spine_version: 0.2.0");
-      expect(stamp).toContain("aim-vue-encore");
+      expect(stamp).toContain("acme-vue-encore");
     } finally {
       rmSync(ws, { recursive: true, force: true });
     }

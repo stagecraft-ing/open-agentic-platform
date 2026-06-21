@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn initial_state() {
-        let state = FactoryPipelineState::new("run-123", "aim-vue-encore");
+        let state = FactoryPipelineState::new("run-123", "acme-vue-encore");
         assert_eq!(state.phase, FactoryPhase::Process);
         assert!(state.build_spec_hash.is_none());
         assert!(state.scaffolding.is_none());
@@ -233,7 +233,7 @@ mod tests {
 
     #[test]
     fn phase_transitions() {
-        let mut state = FactoryPipelineState::new("run-123", "aim-vue-encore");
+        let mut state = FactoryPipelineState::new("run-123", "acme-vue-encore");
 
         state.transition_to_scaffolding("abc123def".into());
         assert_eq!(state.phase, FactoryPhase::Scaffolding);
@@ -271,7 +271,7 @@ mod tests {
 
     #[test]
     fn round_trip_serialization() {
-        let mut state = FactoryPipelineState::new("run-456", "aim-vue-encore");
+        let mut state = FactoryPipelineState::new("run-456", "acme-vue-encore");
         state.transition_to_scaffolding("hash".into());
         state.entity_completed("Widget");
         state.add_tokens(5000);

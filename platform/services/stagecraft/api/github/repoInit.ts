@@ -141,9 +141,9 @@ export async function createGitHubRepo(
 
 // The owned factory self-declares its adapter identity in its manifest
 // (spec 199 FR-002); the retired example adapters (encore-react,
-// next-prisma, rust-axum) and the legacy aim-vue-node name were removed
+// next-prisma, rust-axum) and the legacy acme-vue-node name were removed
 // upstream (spec 199 FR-007).
-const VALID_ADAPTERS = new Set(["aim-vue-encore"]);
+const VALID_ADAPTERS = new Set(["acme-vue-encore"]);
 
 /**
  * Seed the repo with a minimal adapter README via the GitHub Contents API.
@@ -335,7 +335,7 @@ export async function createOapWorkflow(
 export const OAP_BUILD_WORKFLOW_NAME = "oap-build";
 
 // The active container-build workflow seeded into created repos (spec 213
-// FR-001/FR-002/FR-003/FR-004). It mirrors template-encore's real build
+// FR-001/FR-002/FR-003/FR-004). It mirrors template's real build
 // (npm ci -> npm run build -> encore CLI -> encore build docker --base),
 // detects single vs dual-profile trees at runtime and builds from the
 // variant root, tags `sha-{short12}[-variant]` on every push and adds the

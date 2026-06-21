@@ -38,7 +38,7 @@ describe("classifyArtifactKind (owned layout)", () => {
     ).toBe("agent");
     expect(
       classifyArtifactKind(
-        "adapters/aim-vue-encore/agents/api-scaffolder.md",
+        "adapters/acme-vue-encore/agents/api-scaffolder.md",
         null,
       ),
     ).toBe("agent");
@@ -55,17 +55,17 @@ describe("classifyArtifactKind (owned layout)", () => {
 
   test("adapter manifest, patterns, invariants, contracts", () => {
     expect(
-      classifyArtifactKind("adapters/aim-vue-encore/manifest.yaml", null),
+      classifyArtifactKind("adapters/acme-vue-encore/manifest.yaml", null),
     ).toBe("adapter-manifest");
     expect(
       classifyArtifactKind(
-        "adapters/aim-vue-encore/patterns/api/endpoint.md",
+        "adapters/acme-vue-encore/patterns/api/endpoint.md",
         null,
       ),
     ).toBe("pattern");
     expect(
       classifyArtifactKind(
-        "adapters/aim-vue-encore/validation/invariants.yaml",
+        "adapters/acme-vue-encore/validation/invariants.yaml",
         null,
       ),
     ).toBe("invariant");
@@ -92,8 +92,8 @@ describe("translateUpstreamsToSubstrate (origin-from-source)", () => {
       "process/governance-envelope.yaml": 'schema_version: "1.0.0"\n',
       "process/agents/pipeline-orchestrator.md":
         "---\nid: pipeline-orchestrator\nsafety_tier: tier1\nmutation: read-only\n---\nbody\n",
-      "adapters/aim-vue-encore/manifest.yaml":
-        'schema_version: "1.1.0"\nadapter:\n  name: aim-vue-encore\n  version: "1.0.0"\n',
+      "adapters/acme-vue-encore/manifest.yaml":
+        'schema_version: "1.1.0"\nadapter:\n  name: acme-vue-encore\n  version: "1.0.0"\n',
       "docs/architecture.md": "excluded prose\n",
       "README.md": "excluded\n",
     });
@@ -122,7 +122,7 @@ describe("translateUpstreamsToSubstrate (origin-from-source)", () => {
       .filter((r) => r.origin === "my-factory-source")
       .map((r) => r.path);
     expect(factoryPaths).toContain("process/governance-envelope.yaml");
-    expect(factoryPaths).toContain("adapters/aim-vue-encore/manifest.yaml");
+    expect(factoryPaths).toContain("adapters/acme-vue-encore/manifest.yaml");
     expect(factoryPaths).not.toContain("docs/architecture.md");
     expect(factoryPaths).not.toContain("README.md");
     const envelope = result.rows.find(
@@ -134,7 +134,7 @@ describe("translateUpstreamsToSubstrate (origin-from-source)", () => {
 
 describe("translateLegacyManifest", () => {
   const aimAdapter: FactoryAdapterRow = {
-    name: "aim-vue-encore",
+    name: "acme-vue-encore",
     version: "3.0.0",
     sourceSha: "a".repeat(40),
   };
@@ -191,7 +191,7 @@ describe("translateLegacyManifest", () => {
     const out = translateLegacyManifest(fullyExecutedManifest(), workingState, [aimAdapter]);
     expect(out.schema_version).toBe("1.0.0");
     expect(out.pipeline.status).toBe("completed");
-    expect(out.pipeline.adapter.name).toBe("aim-vue-encore");
+    expect(out.pipeline.adapter.name).toBe("acme-vue-encore");
     expect(out.pipeline.adapter.version).toBe("3.0.0");
     // Seven stages: pre-flight + 5 mapped + adapter-handoff.
     expect(Object.keys(out.stages).sort()).toEqual(

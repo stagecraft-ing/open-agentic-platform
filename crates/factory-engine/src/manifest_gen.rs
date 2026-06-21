@@ -23,7 +23,7 @@ pub struct FactoryManifestMetadata {
     /// Always `"factory"`.
     #[serde(rename = "type")]
     pub workflow_type: String,
-    /// Adapter name (e.g., `"aim-vue-encore"`).
+    /// Adapter name (e.g., `"acme-vue-encore"`).
     pub adapter: String,
     /// Step ID that produces the frozen Build Spec.
     pub build_spec_step: String,

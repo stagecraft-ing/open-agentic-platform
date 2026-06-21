@@ -26,7 +26,7 @@ summary: >
   through spec 121's validator on the same `FAC-S1-011 / QG-13`
   invariant. A `seed-once` bootstrap path produces initial templates
   for projects without authored docs; a one-shot reclassification
-  migration moves existing CFS-shaped projects' Stage CD outputs into
+  migration moves existing projects' Stage CD outputs into
   the authored channel with provenance trail.
 depends_on:
   - "075-factory-workflow-engine"  # factory-workflow-engine (Stage CD lifecycle)
@@ -57,17 +57,17 @@ extends:
 **Feature Branch:** `122-stakeholder-doc-inversion`
 **Created:** 2026-04-30
 **Status:** Draft
-**Input:** "Charter and client-document are currently Stage CD outputs and they get overwritten on every run. The 1GX forensic shows this is the contamination amplifier. Make them authored inputs and invert Stage CD into a comparator."
+**Input:** "Charter and client-document are currently Stage CD outputs and they get overwritten on every run. The Globex forensic shows this is the contamination amplifier. Make them authored inputs and invert Stage CD into a comparator."
 
 ## 1. Problem
 
 The Factory's Stage CD ("Client Document") today writes `requirements/client/project_charter.md` and `requirements/client/client-document.md` from the BRD as terminal client-facing artifacts. They sit under `requirements/client/` but they are **outputs** — the pipeline produces them; nothing consumes them.
 
-The CFS forensic (recorded in spec 121) demonstrates the failure mode:
+The example project forensic (recorded in spec 121) demonstrates the failure mode:
 
-- Stage 1 fabricated `STK-13 / 1GX` with no corpus citation.
+- Stage 1 fabricated `STK-13 / Globex` with no corpus citation.
 - Quality gates passed because they checked internal RTM closure, not external provenance (this is what spec 121 fixes).
-- Stage CD then **regenerated** `project_charter.md` from the contaminated BRD. The source charter on disk had said "Payment processing (Finance systems) — Out of Scope"; the regenerated charter said "1GX integration is in scope". The regeneration was a silent overwrite. The audit trail back to authored stakeholder truth was severed in a single stage.
+- Stage CD then **regenerated** `project_charter.md` from the contaminated BRD. The source charter on disk had said "Payment processing (Finance systems) - Out of Scope"; the regenerated charter said "Globex integration is in scope". The regeneration was a silent overwrite. The audit trail back to authored stakeholder truth was severed in a single stage.
 - Stages 4–5 then consumed the contaminated Stage CD output (where downstream skills look for "current" client-facing scope) as authoritative, locking the fabrication into DDL, services, UI, and tests.
 
 Spec 121 catches the original fabrication at the Stage 1 gate. But it does not catch contamination introduced at Stage CD by an over-permissive regenerator that is allowed to invert scope, name new external systems, or reassign owners without review. As long as Stage CD is a generator, every regeneration is a re-interpretation that can drift in either direction — even a clean Stage 1 output can be rewritten by Stage CD into something the operator never authored.
@@ -93,7 +93,7 @@ This spec inverts Stage CD: the stakeholder docs become **authored inputs** with
 - **Citation validation reuses spec 121.** Authored docs MAY cite extracted spans using the same `{source, lineRange, quote, quoteHash}` shape as `provenance.json`. The spec-121 validator runs over those citations; an authored charter that cites a quote not in the corpus fails the same `FAC-S1-011` rule the BRD does. The charter cannot fabricate either.
 - **Anchor preservation.** Section anchors (`OBJ-1`, `STAKEHOLDER-3`, `IN-SCOPE-2`) are the comparator's pairing keys. Authored sections carry their anchors as inline markers. Candidate sections are paired by anchor where the BRD explicitly references one, and by best-fit `anchorHash` similarity (using spec 121's `anchor_hash` function) where they don't. A wording reword keeps the anchor; a new concept produces a new anchor.
 - **`seed-once` bootstrap.** New projects with no authored stakeholder docs run Stage CD in `seed` mode for one run: it generates the documents from the BRD, the operator reviews and commits them as authored, and on subsequent runs the stage operates in `compare` mode. Operators may also author the docs from scratch and skip seed entirely.
-- **Reclassification migration.** Existing projects (CFS) whose Stage CD already produced output files run a one-shot migration that moves the files into the authored channel, computes initial anchors, runs the spec-121 validator on the initial state to surface fabrications, and writes a migration provenance record. After the migration, those files are authored.
+- **Reclassification migration.** Existing projects whose Stage CD already produced output files run a one-shot migration that moves the files into the authored channel, computes initial anchors, runs the spec-121 validator on the initial state to surface fabrications, and writes a migration provenance record. After the migration, those files are authored.
 - **No silent re-import.** Authored docs do NOT re-flow into the BRD on the next run. A change to the charter does not retroactively rewrite Stage 1 output. Operators who want a new BRD must re-run Stage 1; the cascade rule from spec 121 then applies. This stops the loop from being a one-way ratchet of changes from charter to code without operator volition.
 
 ## 3. Non-Goals
@@ -112,15 +112,15 @@ This spec inverts Stage CD: the stakeholder docs become **authored inputs** with
 
 ### User Story 1 — Scope inversion is blocked at the comparator gate (Priority: P1)
 
-A factory run on a project with an authored `charter.md` (which says `OUT-SCOPE-3: Payment processing (Finance systems)`) produces a Stage 1 BRD. The BRD's claims pass spec 121's gate. Stage CD runs. Its candidate-charter generator (the same logic that previously wrote the file directly) produces `charter.candidate.md` with `IN-SCOPE-7: 1GX integration` — an inversion of the authored `OUT-SCOPE-3`. The comparator pairs the candidate's `IN-SCOPE-7` with the authored `OUT-SCOPE-3` by `anchorHash` similarity, classifies the diff as `scope`, and the comparator gate `QG-CD-01_StakeholderDocAlignment` returns FAIL. The pipeline halts at Stage CD. The desktop UI surfaces a side-by-side: authored "Payment processing — Out of Scope" vs candidate "1GX integration — In Scope" with the diff class label and a one-click "Open Stage 1 review" action.
+A factory run on a project with an authored `charter.md` (which says `OUT-SCOPE-3: Payment processing (Finance systems)`) produces a Stage 1 BRD. The BRD's claims pass spec 121's gate. Stage CD runs. Its candidate-charter generator (the same logic that previously wrote the file directly) produces `charter.candidate.md` with `IN-SCOPE-7: Globex integration` (an inversion of the authored `OUT-SCOPE-3`). The comparator pairs the candidate's `IN-SCOPE-7` with the authored `OUT-SCOPE-3` by `anchorHash` similarity, classifies the diff as `scope`, and the comparator gate `QG-CD-01_StakeholderDocAlignment` returns FAIL. The pipeline halts at Stage CD. The desktop UI surfaces a side-by-side: authored "Payment processing - Out of Scope" vs candidate "Globex integration - In Scope" with the diff class label and a one-click "Open Stage 1 review" action.
 
-**Why this priority:** This is the headline behaviour. Without it, even a spec-121-clean BRD can be rewritten by Stage CD into something the operator never authored. The 1GX forensic showed exactly this happening at Stage CD, after Stage 1's gates reported PASS. P1 because the gate's failure mode here is silent contamination, the worst kind.
+**Why this priority:** This is the headline behaviour. Without it, even a spec-121-clean BRD can be rewritten by Stage CD into something the operator never authored. The Globex forensic showed exactly this happening at Stage CD, after Stage 1's gates reported PASS. P1 because the gate's failure mode here is silent contamination, the worst kind.
 
-**Independent Test:** Seed a project with an authored `charter.md` declaring `OUT-SCOPE-3: Payment processing`. Inject a Stage 1 mock that produces a clean BRD with one drift: a candidate charter line claiming `IN-SCOPE-7: 1GX integration`. Run Stage CD. Assert (a) the comparator pairs the two anchors, (b) the diff is classified `scope`, (c) `QG-CD-01` returns FAIL, (d) the pipeline does NOT advance to Stage 4, (e) the desktop UI surfaces the diff.
+**Independent Test:** Seed a project with an authored `charter.md` declaring `OUT-SCOPE-3: Payment processing`. Inject a Stage 1 mock that produces a clean BRD with one drift: a candidate charter line claiming `IN-SCOPE-7: Globex integration`. Run Stage CD. Assert (a) the comparator pairs the two anchors, (b) the diff is classified `scope`, (c) `QG-CD-01` returns FAIL, (d) the pipeline does NOT advance to Stage 4, (e) the desktop UI surfaces the diff.
 
 **Acceptance Scenarios:**
 
-1. **Given** an authored stakeholder doc with anchor `OUT-SCOPE-3: Payment processing (Finance systems)` and `anchorHash = sha256("scope:payment-processing-finance-systems")`, **When** the candidate doc contains anchor `IN-SCOPE-7: 1GX integration` whose `anchorHash` is sufficiently similar (Jaccard ≥ 0.6 over normalized tokens) to the authored `OUT-SCOPE-3`, **Then** the comparator pairs them and classifies the diff as `scope` (because the section heading kind changed from `OUT-SCOPE` to `IN-SCOPE`).
+1. **Given** an authored stakeholder doc with anchor `OUT-SCOPE-3: Payment processing (Finance systems)` and `anchorHash = sha256("scope:payment-processing-finance-systems")`, **When** the candidate doc contains anchor `IN-SCOPE-7: Globex integration` whose `anchorHash` is sufficiently similar (Jaccard ≥ 0.6 over normalized tokens) to the authored `OUT-SCOPE-3`, **Then** the comparator pairs them and classifies the diff as `scope` (because the section heading kind changed from `OUT-SCOPE` to `IN-SCOPE`).
 2. **Given** any `scope`-classified diff exists in `stage-cd-diff.json`, **When** `QG-CD-01_StakeholderDocAlignment` evaluates, **Then** it returns FAIL with a typed `qg_cd_01_scope_drift` error carrying the affected anchor pairs.
 3. **Given** the gate is blocked, **When** the desktop UI renders the review surface, **Then** it shows (a) the authored section, (b) the candidate section, (c) the diff class, (d) a remediation prompt with three actions: `Reject candidate (preserve authored)`, `Accept candidate (apply to authored — requires confirmation)`, `Open Stage 1 review (likely the upstream cause)`.
 4. **Given** the operator rejects the candidate, **When** the gate re-evaluates, **Then** the diff is dismissed for this run (recorded in `stage-cd-diff.json` with `resolution: rejected, actor, rejectedAt`); the gate passes; the pipeline advances; the authored doc is unchanged.
@@ -162,13 +162,13 @@ A new project has just had its first Stage 1 run produce a clean BRD. There is n
 
 ---
 
-### User Story 4 — Reclassification migration on existing CFS-shaped projects (Priority: P1)
+### User Story 4 - Reclassification migration on existing projects (Priority: P1)
 
-A project (CFS) was running under the old Stage CD generator. Its `requirements/client/charter.md` and `requirements/client/client-document.md` exist as Stage CD outputs and reflect a contaminated BRD. The operator runs `factory migrate stakeholder-docs --project <path>`. The migration: (a) moves the files from `requirements/client/` to the canonical authored path, (b) computes initial anchors and adds them to the file (operator-reviewable), (c) runs spec 121's validator over the migrated content, (d) emits a migration report listing every section without a citation, every section that names an unknown external entity, and every section whose content contradicts the extracted corpus, (e) writes a migration provenance record in the artifact store. After migration, those files are authored — Stage CD will operate in `compare` mode and immediately surface drift between the authored (contaminated) state and a candidate generated from a freshly-validated BRD.
+The example project was running under the old Stage CD generator. Its `requirements/client/charter.md` and `requirements/client/client-document.md` exist as Stage CD outputs and reflect a contaminated BRD. The operator runs `factory migrate stakeholder-docs --project <path>`. The migration: (a) moves the files from `requirements/client/` to the canonical authored path, (b) computes initial anchors and adds them to the file (operator-reviewable), (c) runs spec 121's validator over the migrated content, (d) emits a migration report listing every section without a citation, every section that names an unknown external entity, and every section whose content contradicts the extracted corpus, (e) writes a migration provenance record in the artifact store. After migration, those files are authored: Stage CD will operate in `compare` mode and immediately surface drift between the authored (contaminated) state and a candidate generated from a freshly-validated BRD.
 
-**Why this priority:** Without a migration path, existing projects (CFS today) cannot adopt 122 without manual reconstruction. The migration must be a single command, idempotent, and must produce a clean punch list of contamination for the operator to clean up. P1 because retrofit is mandatory for any project mid-flight.
+**Why this priority:** Without a migration path, existing projects cannot adopt 122 without manual reconstruction. The migration must be a single command, idempotent, and must produce a clean punch list of contamination for the operator to clean up. P1 because retrofit is mandatory for any project mid-flight.
 
-**Independent Test:** On a snapshot of the current CFS project, run `factory migrate stakeholder-docs`. Assert (a) the files move to the canonical path with `status: authored, migrated: true, migratedFrom: <old-path>` frontmatter, (b) initial anchors are inserted, (c) the migration report names sections without citations and sections naming `1GX`/`Treasury Board Integrations` as `migration-flagged: external-entity`, (d) the project's first Stage CD run after migration produces a non-empty `stage-cd-diff.json` reflecting the contamination, (e) the migration is idempotent — re-running produces no further changes.
+**Independent Test:** On a snapshot of the example project, run `factory migrate stakeholder-docs`. Assert (a) the files move to the canonical path with `status: authored, migrated: true, migratedFrom: <old-path>` frontmatter, (b) initial anchors are inserted, (c) the migration report names sections without citations and sections naming `Globex`/`Globex Finance Integrations` as `migration-flagged: external-entity`, (d) the project's first Stage CD run after migration produces a non-empty `stage-cd-diff.json` reflecting the contamination, (e) the migration is idempotent: re-running produces no further changes.
 
 **Acceptance Scenarios:**
 
@@ -324,10 +324,10 @@ The operator authors a charter that cites an extracted quote (`source: "extracte
 
 ### Measurable Outcomes
 
-- **SC-001**: A factory run with an authored `OUT-SCOPE-3: Payment processing` and a candidate `IN-SCOPE-7: 1GX integration` (paired by `anchorHash` similarity ≥ 0.6) is blocked at `QG-CD-01` 100% of the time. Verified by fixture replicating the CFS forensic.
+- **SC-001**: A factory run with an authored `OUT-SCOPE-3: Payment processing` and a candidate `IN-SCOPE-7: Globex integration` (paired by `anchorHash` similarity ≥ 0.6) is blocked at `QG-CD-01` 100% of the time. Verified by fixture replicating the example project forensic.
 - **SC-002**: A `wording`-only diff (anchorHash matches, body reword without scope/entity/owner/citation deltas) passes the gate without operator action 100% of the time. Verified by fixture covering several reword shapes.
 - **SC-003**: Bootstrap on a fresh project with no authored docs runs Stage CD in `seed` mode, produces both candidate documents to the artifact store, and does NOT block the gate.
-- **SC-004**: Reclassification migration on the current CFS project moves the two files to the canonical path, inserts anchors, runs spec-121 validation, and produces a non-empty migration report flagging `1GX`-class fabrications. Verified by fixture pinned to the current CFS state.
+- **SC-004**: Reclassification migration on the example project moves the two files to the canonical path, inserts anchors, runs spec-121 validation, and produces a non-empty migration report flagging `Globex`-class fabrications. Verified by fixture pinned to the current example project state.
 - **SC-005**: An authored citation whose `quoteHash` no longer matches the corpus is detected as orphaned, the diff is classified `citation`, and the gate blocks. Verified by replacing a cited file with a reworded version.
 - **SC-006**: Diff classification is deterministic: two comparator runs against the same `(authored, candidate)` pair produce byte-identical `stage-cd-diff.json`. Verified by property test.
 - **SC-007**: An operator's `Force approve` action requires a non-empty reason and is audit-logged with full identity. Verified by integration test asserting empty-reason force approvals are rejected.
@@ -339,7 +339,7 @@ The operator authors a charter that cites an extracted quote (`source: "extracte
 
 ## 7. Open Decisions
 
-- **Canonical path: `requirements/stakeholder/` vs `requirements/client/`.** The CFS project uses `requirements/client/` and other projects likely follow. Moving to `stakeholder/` is cleaner (the docs are *by* stakeholders, not *for* clients) but breaks existing repo paths. V1 chooses `requirements/stakeholder/` and migrates; an alternative is to keep `requirements/client/` and just add frontmatter to flip the meaning. Open for plan.md.
+- **Canonical path: `requirements/stakeholder/` vs `requirements/client/`.** The example project uses `requirements/client/` and other projects likely follow. Moving to `stakeholder/` is cleaner (the docs are *by* stakeholders, not *for* clients) but breaks existing repo paths. V1 chooses `requirements/stakeholder/` and migrates; an alternative is to keep `requirements/client/` and just add frontmatter to flip the meaning. Open for plan.md.
 - **Whether `seed-once` can produce both docs in one run or one at a time.** V1: both at once. Operators may want to seed only the charter and author client-document from scratch. Decision deferred to plan.md based on operator feedback.
 - **Force-approve co-approval requirement.** V1 reserves the workspace-policy hook (FR-026) but does not require co-approval by default. Regulated workspaces will likely want to enable it; default is single-approver to stay practical.
 - **Whether the comparator should suggest an apply (auto-merge proposal) for accepted diffs.** V1: no, operator manually applies via the desktop action. A future iteration may add a generated patch that the operator can `git apply`.
@@ -358,7 +358,7 @@ The operator authors a charter that cites an extracted quote (`source: "extracte
 - `product/apps/opc/src/components/factory/StageCdReview.tsx` — new UI surface for diff review.
 - `requirements/stakeholder/charter.md`, `requirements/stakeholder/client-document.md` — canonical authored paths reserved by spec.
 - `requirements/audit/stakeholder-doc-migration.md` — migration provenance path.
-- Forensic record: `requirements/debug/Forensic-Analysis_1GX-Integration-Scope-Provenance.md` (project-local at the operator's CFS workspace) — documents the Stage CD overwrite this spec prevents.
+- Forensic record: `requirements/debug/Forensic-Analysis_Globex-Integration-Scope-Provenance.md` (project-local at the example project workspace) - documents the Stage CD overwrite this spec prevents.
 - Spec 120 — typed extraction corpus underwriting authored-doc citations.
 - Spec 121 — validator + allowlist + `anchor_hash` reused at the comparator gate; same `FAC-S1-011` invariant applied to authored docs.
 - Spec 075 — factory-workflow-engine; Stage CD lifecycle this spec inverts.
