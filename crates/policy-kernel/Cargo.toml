@@ -13,6 +13,11 @@ crate-type = ["lib", "cdylib"]
 name = "verify_proof_chain"
 path = "src/bin/verify_proof_chain.rs"
 
+# Spec 207 FR-003: independent audit-chain verifier (sister to verify_proof_chain).
+[[bin]]
+name = "verify_audit_chain"
+path = "src/bin/verify_audit_chain.rs"
+
 [features]
 default = ["native"]
 native = ["dep:notify"]

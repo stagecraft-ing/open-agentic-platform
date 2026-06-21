@@ -3,7 +3,7 @@ id: "207-tamper-evident-audit-chain"
 title: "Tamper-Evident Audit Log Chain (ASI observability principle)"
 feature_branch: "feat/207-tamper-evident-audit-chain"
 status: draft
-implementation: pending
+implementation: in-progress
 kind: governance
 domain: tooling
 created: "2026-06-11"
@@ -34,22 +34,77 @@ depends_on:
   - "068-permission-runtime"
   - "102-governed-excellence"
   - "198-factory-governance-envelope"
+establishes:
+  # FR-003 (Phase 1): the independent audit-chain verifier. Its home was left
+  # open at filing ("home decided in plan.md") and is decided in plan.md: a
+  # sister binary to verify_proof_chain, in policy-kernel.
+  - unit: { kind: file, path: crates/policy-kernel/src/bin/verify_audit_chain.rs }
+  # FR-003 end-to-end coverage: the verifier CLI exit-code contract (clean
+  # exits 0, tampered exits non-zero naming the record, no-arg exits usage).
+  - unit: { kind: file, path: crates/policy-kernel/tests/verify_audit_chain_cli.rs }
+  # FR-002 (Phase 2a, AC-3): the run-audit chain writer (factory run audit
+  # serialized as a hash-chained segment, reusing the policy-kernel primitive).
+  - unit: { kind: file, path: crates/factory-engine/src/run_audit_chain.rs }
+  # AC-3 end-to-end: anchored segment is tamper-evident under verify_certificate.
+  - unit: { kind: file, path: crates/factory-engine/tests/run_audit_anchoring.rs }
+  # FR-002 (Phase 2b, AC-4): the stagecraft session-audit countersign handler
+  # (platform seals a submitted segment head; spec 198 FR-014 keyless-local).
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/auditSegmentHandlers.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/auditSegmentHandlers.test.ts }
+  # The session-audit-seal table (one countersigned-segment row per
+  # org/session/segment; idempotent on resubmission).
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.down.sql }
 extends:
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+  # Phase 1: the new [[bin]] target for verify_audit_chain is an additive
+  # extension of the spec-047-owned policy-kernel manifest.
+  - spec: "047-governance-control-plane"
+    nature: additive
+    unit: { kind: file, path: crates/policy-kernel/Cargo.toml }
+  # Phase 2b (AC-4): the new "oap-audit-segment-countersign+jws" type is an
+  # additive member of the FactoryJwsTyp union that spec 198 FR-014 owns. 207
+  # uses the signing authority; it does not evolve 198's authority.
+  - spec: "198-factory-governance-envelope"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/signing-pure.ts }
 refines:
   - aspect: "hash-chained-audit-records"
     unit: { kind: file, path: crates/policy-kernel/src/audit.rs }
   - aspect: "chain-reuse-for-audit"
     unit: { kind: file, path: crates/policy-kernel/src/proof_chain.rs }
+  # Phase 2a (AC-3): emit_certificate writes + anchors the run-audit segment,
+  # and the run accrues phase confirmations into a local audit trail.
+  - aspect: "run-audit-emission-and-anchoring"
+    unit: { kind: file, path: crates/factory-engine/src/bin/factory_run.rs }
+  # Module registration for the run-audit chain writer.
+  - aspect: "run-audit-module-registration"
+    unit: { kind: file, path: crates/factory-engine/src/lib.rs }
+  # Phase 2b (AC-4): the duplex audit.segment.countersign_request contract.
+  - aspect: "audit-segment-countersign-contract"
+    unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }
+  # Phase 2b (AC-4): dispatch routing for the countersign request.
+  - aspect: "audit-segment-countersign-dispatch"
+    unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
+  # Phase 2b (AC-4): the session-audit-seal Drizzle table definition.
+  - aspect: "session-audit-seal-table"
+    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+  # Phase 2b (AC-4): the FACTORY_AUDIT_SEGMENT_COUNTERSIGNED audit action
+  # (upgraded from a context reference, since 207 now authors this constant).
+  - aspect: "audit-segment-countersign-action"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
+  # Phase 2b (AC-4): auditSegmentHandlers.test.ts is DB-bound, so it joins the
+  # spec 211 encore-test lane (the vite.config.ts exclude list IS the lane
+  # assignment; bare vitest would fail it on a missing ENCORE_RUNTIME_LIB).
+  - aspect: "encore-test-lane-assignment"
+    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
 references:
   - role: machinery
     unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.ts }
-  - role: context
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
   - role: context
     unit: { kind: file, path: docs/owasp-agentic-top-10-2026.md }
 ---
@@ -79,7 +134,13 @@ the rogue agent can edit the review's input.
 The fix is the discipline OAP already owns, applied uniformly: chain,
 anchor, verify independently.
 
-## Functional requirements (sketch — refine before implementation)
+## Functional requirements
+
+> Refined from the filing sketch per the spec's own instruction; the
+> plan.md decisions are folded in. Phase 1 (this implementation) lands
+> FR-001, FR-003, and the LOCAL half of FR-002. Phase 2 lands the
+> cross-repo anchoring (run certificate + platform countersign). See
+> Sequencing and the Implementation log.
 
 - **FR-001 — Hash-chained records.** Every audit record carries the hash
   of its predecessor (genesis-marked per segment), reusing the spec 047
@@ -110,7 +171,23 @@ anchor, verify independently.
   the spec records this as the accepted residual rather than implying
   tamper-proofness (the ASI08 residual-statement discipline).
 
-## Acceptance criteria (sketch)
+> **Refinement (Phase 1 honesty).** "Detects modification" holds only
+> against the external anchor. A self-referential chain catches edits that
+> do NOT recompute downstream hashes (in-place edits, mid-segment deletion,
+> reordering). It does NOT, on its own, catch an edit that re-establishes
+> internal consistency: a writer of an OPEN, not-yet-anchored segment can
+> re-genesis and recompute every `record_hash` (whole-segment rewrite,
+> head-prefix deletion, tail deletion) and the walker passes. That entire
+> class is the Phase 1 residual until FR-002 anchoring (run certificate /
+> platform countersign, Phase 2) supplies the external trust root. The
+> residual is therefore broader than tail deletion alone; it is bounded by
+> the anchoring cadence, not eliminated by the chain.
+
+## Acceptance criteria
+
+> Phase 1 satisfies AC-1, AC-2, AC-5 (local, offline, deterministic,
+> covered by `crates/policy-kernel` unit + CLI tests). AC-3 and AC-4
+> (cross-repo anchoring) are Phase 2.
 
 - **AC-1.** Flipping one byte in record N of a segment: the verifier
   exits non-zero naming record N.
@@ -143,3 +220,103 @@ FR-001 and FR-003 are implementable now (policy-kernel is local and the
 chain shape exists). FR-002's countersign anchoring follows spec 198
 phase 4 machinery (landed) and should ride the same key infrastructure,
 not duplicate it.
+
+## Implementation log
+
+**Phase 1 (2026-06-19).** Local chain + independent verifier, in
+`crates/policy-kernel`. Plan and decisions: `plan.md`.
+
+- **FR-001 (done).** The spec 047 record-hash linkage was extracted into a
+  content-agnostic primitive `proof_chain::link_record_hash(value,
+  hash_field)`; `compute_record_hash` is now a thin wrapper over it
+  (behaviour byte-identical, guarded by the existing spec 047 chain
+  tests). `audit::AuditLogger` writes each JSONL record with
+  `previous_record_hash` + `record_hash` computed through that primitive;
+  a fresh segment is genesis-marked, and a process restart on a non-empty
+  file recovers the chain head and continues unbroken.
+- **FR-002 (local half done; cross-repo deferred).** Rotation closes a
+  segment with a `segment_head` record (`segment_id`, `record_count`,
+  first/last timestamp); the head hash becomes the next segment's genesis
+  binding (continuity), and the `record_count` is the closed-segment
+  truncation tripwire. Run-certificate and platform-countersign anchoring
+  (AC-3, AC-4) are Phase 2.
+- **FR-003 (done).** `verify_audit_chain` binary (sister to
+  `verify_proof_chain`): walks a segment, recomputes hashes, checks links,
+  validates a trailing head's count, and exits non-zero naming the first
+  broken record. `verify_audit_chain(records, expected_genesis)` is the
+  unit-testable core; the binary is a thin CLI shell.
+- **FR-004 (stated).** Until FR-002 anchoring lands (Phase 2), the open
+  not-yet-anchored segment is the residual: any internally-consistent
+  rewrite (whole-segment re-hash, head-prefix deletion, tail deletion)
+  passes the self-referential walker. The chain catches only edits that
+  fail to recompute downstream hashes. The 10 MB rotation size bounds the
+  unanchored window; the external anchor closes the class. See the FR-004
+  refinement note above (corrected after local review).
+
+Carve-out (plan.md decision 3): stagecraft database-resident audit rows
+(`auditActions.ts`) are NOT file-chained; their honest anchoring story is
+the platform countersign plus append-only DB posture, not the per-record
+file chain. No stagecraft code changes in Phase 1.
+
+Coupling note: the implementation PR adds `establishes:` edges for the new
+verifier binary and its CLI test, and an additive `extends:` edge on the
+spec-047-owned `crates/policy-kernel/Cargo.toml` for the new `[[bin]]`
+target, per the spec-196 "edge lands with the code" precedent.
+
+**Phase 2a (2026-06-19, PR A): run-certificate anchoring (AC-3).** Factory
+runs now emit a hash-chained run-audit segment, anchored into the run
+governance certificate so `verify-certificate` catches tampering.
+
+- **Chain (FR-001).** `crates/factory-engine/src/run_audit_chain.rs`
+  serializes the run's audit trail to `<run_dir>/run-audit/run-audit.jsonl`,
+  each record carrying `previous_record_hash` + `record_hash` via the SAME
+  `policy_kernel::proof_chain::link_record_hash` primitive (genesis link
+  `genesis:<run_id>`). `verify_audit_chain` (content-agnostic) validates it.
+- **Anchor (FR-002, AC-3).** `factory-run`'s `emit_certificate` writes the
+  segment then builds the certificate with stage list `OAP_STAGE_IDS +
+  "run-audit"`, so the existing `stage_record_for` scan binds the segment
+  file's SHA-256 into the cert and the existing `verify_certificate`
+  artifact-hash loop catches any tamper. No bespoke certificate code: the
+  segment is a stage artifact. Proven end-to-end by
+  `tests/run_audit_anchoring.rs` (clean verifies; tampered segment fails,
+  diagnostic names the segment).
+- **Population.** The CLI's `FactoryPipelineState` is distinct from the
+  harness `PipelineState` that carries the OPC-side audit vec (which is why
+  `record_audit` was never wired), so the run audit is a binary-local
+  `Vec<AuditEntry>` accruing a `StageConfirmed` per phase boundary
+  (phase-1 / transition / phase-2). Per-gate recording inside the dispatch
+  path is a deliberate follow-up; the mechanism is complete and anchored.
+- **Coupling:** `establishes:` the new writer + anchoring test; `refines:`
+  `factory_run.rs` + the factory-engine `lib.rs` module registration. No
+  `governance_certificate.rs` change (the stage-scan is reused as-is).
+
+**Phase 2b server side (2026-06-19, PR B1): platform countersign (AC-4,
+stagecraft half).** Stagecraft can now seal a session-scoped audit segment
+head (spec 198 FR-014: the platform signs, the local side is keyless).
+
+- A new duplex message `audit.segment.countersign_request` carries
+  `{sessionId, segmentId, segmentHeadHash, segmentRecordCount, first/lastRecordAt}`;
+  `auditSegmentHandlers.ts` (mirroring `countersignRunCertificate`) signs the
+  head with a new domain typ `oap-audit-segment-countersign+jws` via the
+  existing `signFactoryJws`, and persists a row in the new
+  `factory_session_audit_seals` table, idempotent on
+  `(org_id, session_id, segment_id)` so reconnect resubmission is safe.
+- The seal attests "the platform observed this segment head from this
+  org/session at iat"; it does not gate on factory admission (unlike the
+  run-grant countersign), because audit sealing is a universal observability
+  capability, not an execution grant. The submitted head hash is taken on
+  trust (the platform attests observation, not content; the local chain still
+  has to match the head). The duplex auth layer supplies the authenticated
+  org/session.
+- The new typ is an additive member of the spec-198-owned `FactoryJwsTyp`
+  (declared via an additive `extends` edge on 198). Tests:
+  `auditSegmentHandlers.test.ts` (5 cases: positive, idempotent resubmit,
+  distinct segments/sessions, refusal when unconfigured); grant tests
+  unchanged (17/17).
+
+**Phase 2b client side (PR B2, deferred): OPC-side consumption.** The local
+side accumulates unanchored segment heads, submits them over the duplex
+channel at reconnect, stores the returned countersignatures, and exposes the
+unanchored window. This completes AC-4 end-to-end. Sequenced after the active
+stagecraft (215) deploy/verify settles to avoid duplex-surface runtime
+ambiguity. Design in `plan.md` (Phase 2b).

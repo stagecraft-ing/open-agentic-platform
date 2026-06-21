@@ -1,10 +1,32 @@
-import { api } from "encore.dev/api";
+import { api, APIError } from "encore.dev/api";
 import log from "encore.dev/log";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
+import { getAuthData } from "~encore/auth";
 import { db } from "../db/drizzle";
-import { environments, projects, organizations } from "../db/schema";
+import {
+  auditLog,
+  environments,
+  projectArtifacts,
+  projects,
+  organizations,
+  type DeploymentStatus,
+  type EnvironmentDeployment,
+} from "../db/schema";
+import { validateM2mRequest } from "../auth/m2mAuth.js";
 import { readSecretFromDir } from "./secrets";
-import { getCachedDeploydAuthHeader } from "./oidcM2m";
+import {
+  DEPLOYD_URL,
+  dispatchDeployment,
+  getDeploydAuthHeader,
+  getDeploymentStatus,
+} from "./deploydClient";
+import {
+  createDeploymentRecord,
+  getLatestDeploymentForEnv,
+  mapDeploydStatus,
+  updateDeploymentByReleaseId,
+  updateDeploymentRecord,
+} from "./deployments";
 import { loadDeployDescriptorForEnv } from "../environments/accessGatesDeploy";
 import {
   resolveChartSelection,
@@ -19,11 +41,9 @@ import type { HostVariant } from "./hostname";
 // during codegen and crashes on `TsFnOrConstructorType` — see
 // `api/knowledge/extractionOutput.ts` for the longer explanation.
 
-const DEPLOYD_URL =
-  process.env.DEPLOYD_URL ?? "http://deployd-api.deployd-system.svc.cluster.local";
-const OIDC_ENDPOINT = process.env.OIDC_ENDPOINT ?? process.env.LOGTO_ENDPOINT ?? "";
-const DEPLOYD_AUDIENCE = process.env.DEPLOYD_AUDIENCE ?? "";
-const DEPLOYD_SCOPE = process.env.DEPLOYD_SCOPE ?? "";
+// DEPLOYD_URL and getDeploydAuthHeader are imported from ./deploydClient: the
+// single deployd client module (spec 215 FR-007). The M2M token endpoint
+// (OIDC_ENDPOINT), audience, and scope are resolved there, not here.
 // Spec 137 — Rauthy issuer URL passed through to deployd-api so the
 // rendered oauth2-proxy points at our identity provider. Distinct from
 // OIDC_ENDPOINT (which is the M2M token endpoint used to call deployd-api).
@@ -219,43 +239,37 @@ function safeJson(s: string): unknown {
   }
 }
 
-async function getDeploydAuthHeader(): Promise<string> {
-  if (!OIDC_ENDPOINT || !DEPLOYD_AUDIENCE) {
-    throw new Error("Missing OIDC_ENDPOINT or DEPLOYD_AUDIENCE");
-  }
-
-  const clientId =
-    (await readSecretFromDir("OIDC_M2M_CLIENT_ID")) ??
-    process.env.OIDC_M2M_CLIENT_ID ??
-    (await readSecretFromDir("LOGTO_M2M_CLIENT_ID")) ??
-    process.env.LOGTO_M2M_CLIENT_ID ??
-    "";
-  const clientSecret =
-    (await readSecretFromDir("OIDC_M2M_CLIENT_SECRET")) ??
-    process.env.OIDC_M2M_CLIENT_SECRET ??
-    (await readSecretFromDir("LOGTO_M2M_CLIENT_SECRET")) ??
-    process.env.LOGTO_M2M_CLIENT_SECRET ??
-    "";
-
-  if (!clientId || !clientSecret) {
-    throw new Error(
-      "Missing OIDC_M2M_CLIENT_ID or OIDC_M2M_CLIENT_SECRET in secrets mount or env"
-    );
-  }
-
-  return getCachedDeploydAuthHeader({
-    oidcEndpoint: OIDC_ENDPOINT,
-    resource: DEPLOYD_AUDIENCE,
-    scope: DEPLOYD_SCOPE || undefined,
-    clientId,
-    clientSecret,
-    skewSeconds: 30,
-  });
-}
-
 export const createDeployment = api.raw(
+  // Spec 215 FR-006: `auth: false` keeps the Encore gateway's user-session
+  // handler off this seam, but the handler now requires a valid Rauthy M2M
+  // JWT carrying `platform:deploy:write`. Browser-reachable anonymity ends;
+  // machine callers present a client_credentials token (validateM2mRequest).
   { expose: true, path: "/v1/deployments", method: "POST", auth: false },
   async (req, res) => {
+    // FR-006: validate the M2M bearer before doing any work. In a raw handler
+    // a thrown APIError is not auto-rendered, so map its code to a status and
+    // write the response ourselves.
+    try {
+      const authHeader =
+        typeof req.headers["authorization"] === "string"
+          ? req.headers["authorization"]
+          : undefined;
+      await validateM2mRequest(authHeader, "platform:deploy:write");
+    } catch (err) {
+      const code = err instanceof APIError ? err.code : "internal";
+      const status =
+        code === "unauthenticated" ? 401 : code === "permission_denied" ? 403 : 500;
+      res.statusCode = status;
+      res.setHeader("Content-Type", "application/json");
+      res.end(
+        JSON.stringify({
+          error: String(code),
+          message: err instanceof Error ? err.message : "authentication failed",
+        })
+      );
+      return;
+    }
+
     let body: unknown;
     try {
       const chunks: Buffer[] = [];
@@ -491,4 +505,412 @@ export const healthz = api.raw(
     res.statusCode = 200;
     res.end("ok");
   }
+);
+
+// ===========================================================================
+// Spec 215 FR-002 / FR-006 / FR-008: authenticated deploy trigger + status.
+// ===========================================================================
+//
+// Two session-authed endpoints used by the project UI. The web tier never
+// calls deployd-api directly; it calls these, which use the consolidated
+// deployd client (FR-007). `auth: true` plus the org-scoped environment
+// lookup below is the FR-006 membership gate: a caller may only act on an
+// environment whose project lives in the caller's active org.
+
+const HELM_TIMEOUT_SEC = Number(process.env.DEPLOYD_HELM_TIMEOUT_SEC ?? "300");
+
+export interface DeploymentView {
+  id: string;
+  environmentId: string;
+  projectId: string;
+  releaseId: string | null;
+  releaseSha: string;
+  artifactRef: string;
+  variant: string;
+  status: DeploymentStatus;
+  endpoints: string[];
+  dispatchedBy: string;
+  diagnostic: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function toDeploymentView(d: EnvironmentDeployment): DeploymentView {
+  return {
+    id: d.id,
+    environmentId: d.environmentId,
+    projectId: d.projectId,
+    releaseId: d.releaseId,
+    releaseSha: d.releaseSha,
+    artifactRef: d.artifactRef,
+    variant: d.variant,
+    status: d.status,
+    endpoints: d.endpoints,
+    dispatchedBy: d.dispatchedBy,
+    diagnostic: d.diagnostic,
+    createdAt: d.createdAt.toISOString(),
+    updatedAt: d.updatedAt.toISOString(),
+  };
+}
+
+interface DeployEnvContext {
+  envId: string;
+  projectId: string;
+  envName: string;
+  k8sNamespace: string | null;
+  requiresApproval: boolean;
+  projectSlug: string;
+  orgId: string;
+  orgSlug: string;
+  factoryAdapterId: string | null;
+}
+
+/**
+ * Resolve the environment, its project, and the owning org, scoped to the
+ * caller's active org (FR-006). Throws NotFound when the environment is not in
+ * the caller's org or the (projectId, envId) pair does not line up: the same
+ * org-scoping contract the access-gate endpoints enforce (spec 137).
+ */
+async function loadDeployEnvContext(
+  projectId: string,
+  envId: string,
+  orgId: string,
+): Promise<DeployEnvContext> {
+  const [row] = await db
+    .select({
+      envId: environments.id,
+      projectId: environments.projectId,
+      envName: environments.name,
+      k8sNamespace: environments.k8sNamespace,
+      requiresApproval: environments.requiresApproval,
+      projectSlug: projects.slug,
+      orgId: projects.orgId,
+      orgSlug: organizations.slug,
+      factoryAdapterId: projects.factoryAdapterId,
+    })
+    .from(environments)
+    .innerJoin(projects, eq(projects.id, environments.projectId))
+    .innerJoin(organizations, eq(organizations.id, projects.orgId))
+    .where(
+      and(
+        eq(environments.id, envId),
+        eq(environments.projectId, projectId),
+        eq(projects.orgId, orgId),
+      ),
+    )
+    .limit(1);
+  if (!row) {
+    throw APIError.notFound("environment not found in this org");
+  }
+  return row;
+}
+
+/** Lowercase DNS label for host derivation (env name to a single label). */
+function hostLabel(s: string): string {
+  return (
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 63) || "env"
+  );
+}
+
+interface ResolvedArtifact {
+  releaseSha: string;
+  artifactRef: string;
+  variant: string;
+}
+
+/**
+ * Resolve the image to deploy from the project's artifact record (spec 213).
+ * Picks the newest built artifact in the deployable set (public for dual-
+ * profile trees, root for single-variant). The internal variant is a separate
+ * action (spec 214 FR-009 / this spec's edge cases). Returns null when no
+ * image has been published yet, which the caller surfaces as not-built.
+ */
+async function resolveLatestArtifact(
+  projectId: string,
+): Promise<ResolvedArtifact | null> {
+  const [row] = await db
+    .select({
+      releaseSha: projectArtifacts.releaseSha,
+      imageRef: projectArtifacts.imageRef,
+      variant: projectArtifacts.variant,
+    })
+    .from(projectArtifacts)
+    .where(
+      and(
+        eq(projectArtifacts.projectId, projectId),
+        inArray(projectArtifacts.variant, ["public", "root"]),
+      ),
+    )
+    .orderBy(desc(projectArtifacts.builtAt))
+    .limit(1);
+  if (!row) return null;
+  return {
+    releaseSha: row.releaseSha,
+    artifactRef: row.imageRef,
+    variant: row.variant,
+  };
+}
+
+type BuildBodyResult =
+  | { ok: true; body: Record<string, unknown> }
+  | { ok: false; message: string };
+
+/**
+ * Assemble the deployd-api dispatch body for a UI-triggered deploy, enriched
+ * from stagecraft's own records (spec 214): chart from the project's adapter,
+ * namespace from the environment, tenant host derived from org/project/env
+ * slugs, and the per-env access-gate descriptor. Mirrors the enrichment the
+ * raw /v1/deployments proxy does inline for external callers; kept separate
+ * because the trigger derives every field rather than accepting overrides.
+ */
+async function buildTriggerDeploydBody(
+  ctx: DeployEnvContext,
+  artifact: ResolvedArtifact,
+): Promise<BuildBodyResult> {
+  const hostVariant: HostVariant | undefined =
+    artifact.variant === "internal"
+      ? "internal"
+      : artifact.variant === "public"
+        ? "public"
+        : undefined;
+
+  let access_gate: Awaited<ReturnType<typeof loadDeployDescriptorForEnv>> = null;
+  try {
+    access_gate = await loadDeployDescriptorForEnv(ctx.envId, RAUTHY_ISSUER_URL);
+  } catch (e: unknown) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+  if (access_gate?.enabled && !RAUTHY_ISSUER_URL) {
+    return {
+      ok: false,
+      message:
+        "RAUTHY_ISSUER_URL is required when a tenant access gate is enabled",
+    };
+  }
+
+  const chartSelection = resolveChartSelection(ctx.factoryAdapterId, undefined);
+  const desiredRoutes = TENANTS_BASE_DOMAIN
+    ? [
+        {
+          host: deriveHost({
+            orgSlug: ctx.orgSlug,
+            projectSlug: ctx.projectSlug,
+            envSlug: hostLabel(ctx.envName),
+            variant: hostVariant,
+            baseDomain: TENANTS_BASE_DOMAIN,
+          }),
+          path: "/",
+        },
+      ]
+    : [];
+
+  return {
+    ok: true,
+    body: {
+      tenant_id: ctx.orgSlug,
+      app_id: ctx.projectId,
+      app_slug: ctx.projectSlug,
+      env_id: ctx.envId,
+      env_slug: hostLabel(ctx.envName),
+      release_sha: artifact.releaseSha,
+      artifact_ref: artifact.artifactRef,
+      lane: "LANE_A",
+      config_refs: {},
+      desired_routes: desiredRoutes,
+      access_gate,
+      chart: chartSelection?.chart,
+      chart_version: chartSelection?.version,
+      image_pull_secret_name: "ghcr-pull",
+      namespace: ctx.k8sNamespace ?? undefined,
+    },
+  };
+}
+
+export interface TriggerDeploymentRequest {
+  projectId: string;
+  envId: string;
+}
+
+export interface TriggerDeploymentResponse {
+  deployment: DeploymentView;
+  /** true when an existing ROLLED_OUT record at this commit was returned. */
+  alreadyDeployed: boolean;
+}
+
+/**
+ * POST /api/projects/:projectId/envs/:envId/deployments (spec 215 FR-001/002).
+ * Resolve the built image (FR-001/213), refuse approval-gated environments
+ * (FR-006), record the dispatch (FR-003), enrich + dispatch via the
+ * consolidated client (FR-002/007), and reconcile the record from the
+ * synchronous deployd response.
+ */
+export const triggerDeployment = api(
+  {
+    expose: true,
+    auth: true,
+    method: "POST",
+    path: "/api/projects/:projectId/envs/:envId/deployments",
+  },
+  async (req: TriggerDeploymentRequest): Promise<TriggerDeploymentResponse> => {
+    const auth = getAuthData()!;
+    const ctx = await loadDeployEnvContext(req.projectId, req.envId, auth.orgId);
+
+    // FR-006: requiresApproval environments refuse direct dispatch; the
+    // approval flow itself stays with the spec 087 promotion vision.
+    if (ctx.requiresApproval) {
+      throw APIError.failedPrecondition(
+        "environment requires approval; direct deploy is not permitted",
+      );
+    }
+
+    // FR-001 / spec 213: the image must exist before we can deploy it.
+    const artifact = await resolveLatestArtifact(ctx.projectId);
+    if (!artifact) {
+      throw APIError.failedPrecondition("image not built yet for this project");
+    }
+
+    // FR-001 scenario 3: idempotent replay. If the latest deployment already
+    // rolled out this exact commit + variant, return it without re-rolling.
+    const latest = await getLatestDeploymentForEnv(ctx.envId);
+    if (
+      latest &&
+      latest.status === "ROLLED_OUT" &&
+      latest.releaseSha === artifact.releaseSha &&
+      latest.variant === artifact.variant
+    ) {
+      return { deployment: toDeploymentView(latest), alreadyDeployed: true };
+    }
+
+    // Record the dispatch up-front (FR-003) so a crash mid-dispatch still
+    // leaves a row; status starts PENDING and is reconciled from the response.
+    const record = await createDeploymentRecord({
+      environmentId: ctx.envId,
+      projectId: ctx.projectId,
+      releaseSha: artifact.releaseSha,
+      artifactRef: artifact.artifactRef,
+      variant: artifact.variant,
+      status: "PENDING",
+      dispatchedBy: auth.userID,
+    });
+
+    const built = await buildTriggerDeploydBody(ctx, artifact);
+    if (!built.ok) {
+      await updateDeploymentRecord(record.id, {
+        status: "FAILED",
+        diagnostic: built.message,
+      });
+      throw APIError.internal(built.message);
+    }
+
+    let updated: EnvironmentDeployment | undefined;
+    try {
+      const result = await dispatchDeployment(built.body);
+      if (result.ok) {
+        const mapped = mapDeploydStatus(result.status);
+        updated = await updateDeploymentRecord(record.id, {
+          status: mapped,
+          releaseId: result.releaseId,
+          endpoints: result.endpoints,
+          diagnostic:
+            mapped === "FAILED" ? "deployd reported FAILED (see deployd logs)" : null,
+        });
+      } else {
+        updated = await updateDeploymentRecord(record.id, {
+          status: "FAILED",
+          releaseId: result.releaseId,
+          diagnostic: result.diagnostic,
+        });
+      }
+    } catch (err: unknown) {
+      // Transport down (deployd unreachable): REQUEST_FAILED, no phantom PENDING.
+      updated = await updateDeploymentRecord(record.id, {
+        status: "REQUEST_FAILED",
+        diagnostic: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    const view = toDeploymentView(updated ?? record);
+    await db.insert(auditLog).values({
+      actorUserId: auth.userID,
+      action: "deploy.triggered",
+      targetType: "environment",
+      targetId: ctx.envId,
+      metadata: {
+        projectId: ctx.projectId,
+        releaseSha: artifact.releaseSha,
+        variant: artifact.variant,
+        status: view.status,
+        releaseId: view.releaseId,
+      },
+    });
+
+    return { deployment: view, alreadyDeployed: false };
+  },
+);
+
+export interface GetLatestDeploymentRequest {
+  projectId: string;
+  envId: string;
+}
+
+export interface GetLatestDeploymentResponse {
+  deployment: DeploymentView | null;
+}
+
+/**
+ * GET /api/projects/:projectId/envs/:envId/deployments/latest (FR-004/008).
+ * Returns the latest record for the environment, or null for the never-
+ * deployed empty state. A PENDING record older than the helm timeout is
+ * lazily reconciled against deployd-api status before answering (FR-008; no
+ * background poller).
+ */
+export const getLatestDeployment = api(
+  {
+    expose: true,
+    auth: true,
+    method: "GET",
+    path: "/api/projects/:projectId/envs/:envId/deployments/latest",
+  },
+  async (
+    req: GetLatestDeploymentRequest,
+  ): Promise<GetLatestDeploymentResponse> => {
+    const auth = getAuthData()!;
+    await loadDeployEnvContext(req.projectId, req.envId, auth.orgId);
+
+    let latest = await getLatestDeploymentForEnv(req.envId);
+    if (!latest) {
+      return { deployment: null };
+    }
+
+    if (
+      latest.status === "PENDING" &&
+      latest.releaseId &&
+      Date.now() - latest.updatedAt.getTime() > HELM_TIMEOUT_SEC * 1000
+    ) {
+      try {
+        const remote = await getDeploymentStatus(latest.releaseId);
+        if (remote) {
+          const mapped = mapDeploydStatus(remote.status);
+          if (mapped !== latest.status) {
+            const reconciled = await updateDeploymentByReleaseId(
+              latest.releaseId,
+              { status: mapped },
+            );
+            if (reconciled) latest = reconciled;
+          }
+        }
+      } catch (e: unknown) {
+        log.warn("deploy.reconcile.failed", {
+          releaseId: latest.releaseId,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+
+    return { deployment: toDeploymentView(latest) };
+  },
 );

@@ -4,14 +4,18 @@
 //! `factory-run` CLI — runs a full Factory pipeline with real agent dispatch.
 //! Supports `--resume <run-id>` to continue a previously failed pipeline.
 
+use chrono::Utc;
 use clap::Parser;
+use factory_contracts::pipeline_state::{AuditEntry, AuditEvent};
 use factory_engine::governance_certificate::{CertificateBuilder, IntentRecord};
 use factory_engine::inter_stage_manifest::generate_chain_from_run_dir;
+use factory_engine::run_audit_chain;
 use factory_engine::stages::s_minus_1_extract::{KnowledgeBundleRef, sniff_mime_or_fallback};
 use factory_engine::{
     FactoryAgentBridge, FactoryEngine, FactoryEngineConfig, FactoryPipelineState,
-    FactoryStandardsResolver, InterStageChainRecord, generate_certificate, persist_certificate,
-    validate_spec_id_resolution, write_validation_warnings,
+    FactoryStandardsResolver, InterStageChainRecord, OAP_STAGE_IDS,
+    generate_certificate_with_stage_ids, persist_certificate, validate_spec_id_resolution,
+    write_validation_warnings,
 };
 use orchestrator::{
     AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, ClaudeCodeExecutor, CliGateHandler,
@@ -49,11 +53,31 @@ fn emit_certificate(
     am: &ArtifactManager,
     run_id: Uuid,
     pipeline_state: &FactoryPipelineState,
+    run_audit: &[AuditEntry],
     requirements_hash: &str,
     repo_root: &std::path::Path,
 ) {
     let run_dir = am.run_dir(run_id);
-    let base_cert = generate_certificate(pipeline_state, requirements_hash, &run_dir, None);
+
+    // Spec 207 AC-3: serialize the run audit as a hash-chained segment under
+    // <run_dir>/run-audit/ and anchor it by scanning it as a certificate
+    // stage. The cert's artifact-hash check then catches any tamper of the
+    // segment (verify-certificate fails). Failure to write the segment is
+    // surfaced but never blocks emission (an audit artifact is best-effort).
+    if let Err(e) =
+        run_audit_chain::write_run_audit_segment(&run_dir, &run_id.to_string(), run_audit)
+    {
+        eprintln!("Warning: failed to write run-audit segment: {e}");
+    }
+    let mut stage_ids: Vec<&str> = OAP_STAGE_IDS.to_vec();
+    stage_ids.push(run_audit_chain::RUN_AUDIT_STAGE_ID);
+    let base_cert = generate_certificate_with_stage_ids(
+        pipeline_state,
+        requirements_hash,
+        &run_dir,
+        None,
+        &stage_ids,
+    );
 
     // Spec 170 FR-007 — attach the signed inter-stage manifest chain
     // built from the artifacts persisted under <run_dir>/. Failures are
@@ -533,6 +557,13 @@ async fn main() -> ExitCode {
 
     eprintln!("\nDispatching Phase 1...\n");
 
+    // Spec 207 AC-3: the run's audit trail, accumulated across phases and
+    // serialized as a hash-chained, cert-anchored segment at every emission
+    // (success or halt). Kept binary-local: the factory-run CLI's
+    // FactoryPipelineState is distinct from the harness PipelineState that
+    // carries the OPC-side audit vec.
+    let mut run_audit: Vec<AuditEntry> = Vec::new();
+
     let summary1 = match dispatch_manifest(
         &am,
         run_id,
@@ -548,12 +579,28 @@ async fn main() -> ExitCode {
             eprintln!("\nPhase 1 dispatch failed: {e}");
             eprintln!("To resume, re-run with: --resume {run_id}");
             pipeline_state.mark_failed();
-            emit_certificate(&am, run_id, &pipeline_state, &requirements_hash, &repo_root);
+            emit_certificate(
+                &am,
+                run_id,
+                &pipeline_state,
+                &run_audit,
+                &requirements_hash,
+                &repo_root,
+            );
             return ExitCode::FAILURE;
         }
     };
 
     let phase1_tokens: u64 = summary1.steps.iter().filter_map(|s| s.tokens_used).sum();
+    // Spec 207 AC-3: record the phase confirmation into the run audit trail
+    // (chained + cert-anchored at emission). Coarse by design here; per-gate
+    // recording in the dispatch path is a follow-up.
+    run_audit.push(AuditEntry {
+        timestamp: Utc::now(),
+        event: AuditEvent::StageConfirmed,
+        stage: Some("phase-1".into()),
+        details: Some(format!("{} steps", summary1.steps.len())),
+    });
     eprintln!(
         "\nPhase 1 complete: {} steps, {} tokens",
         summary1.steps.len(),
@@ -571,7 +618,14 @@ async fn main() -> ExitCode {
     if !build_spec_path.exists() {
         eprintln!("Build Spec not found at {}", build_spec_path.display());
         pipeline_state.mark_failed();
-        emit_certificate(&am, run_id, &pipeline_state, &requirements_hash, &repo_root);
+        emit_certificate(
+            &am,
+            run_id,
+            &pipeline_state,
+            &run_audit,
+            &requirements_hash,
+            &repo_root,
+        );
         return ExitCode::FAILURE;
     }
 
@@ -586,11 +640,24 @@ async fn main() -> ExitCode {
         Err(e) => {
             eprintln!("Phase transition failed: {e}");
             pipeline_state.mark_failed();
-            emit_certificate(&am, run_id, &pipeline_state, &requirements_hash, &repo_root);
+            emit_certificate(
+                &am,
+                run_id,
+                &pipeline_state,
+                &run_audit,
+                &requirements_hash,
+                &repo_root,
+            );
             return ExitCode::FAILURE;
         }
     };
 
+    run_audit.push(AuditEntry {
+        timestamp: Utc::now(),
+        event: AuditEvent::StageConfirmed,
+        stage: Some("transition".into()),
+        details: Some(format!("{} phase-2 steps", transition.manifest.steps.len())),
+    });
     eprintln!(
         "  Phase 2 manifest: {} steps",
         transition.manifest.steps.len()
@@ -606,7 +673,14 @@ async fn main() -> ExitCode {
     {
         eprintln!("Failed to materialize Phase 2 run directory: {e}");
         pipeline_state.mark_failed();
-        emit_certificate(&am, run_id, &pipeline_state, &requirements_hash, &repo_root);
+        emit_certificate(
+            &am,
+            run_id,
+            &pipeline_state,
+            &run_audit,
+            &requirements_hash,
+            &repo_root,
+        );
         return ExitCode::FAILURE;
     }
 
@@ -665,12 +739,25 @@ async fn main() -> ExitCode {
             eprintln!("\nPhase 2 dispatch failed: {e}");
             eprintln!("To resume, re-run with: --resume {run_id}");
             pipeline_state.mark_failed();
-            emit_certificate(&am, run_id, &pipeline_state, &requirements_hash, &repo_root);
+            emit_certificate(
+                &am,
+                run_id,
+                &pipeline_state,
+                &run_audit,
+                &requirements_hash,
+                &repo_root,
+            );
             return ExitCode::FAILURE;
         }
     };
 
     let phase2_tokens: u64 = summary2.steps.iter().filter_map(|s| s.tokens_used).sum();
+    run_audit.push(AuditEntry {
+        timestamp: Utc::now(),
+        event: AuditEvent::StageConfirmed,
+        stage: Some("phase-2".into()),
+        details: Some(format!("{} steps", summary2.steps.len())),
+    });
     eprintln!(
         "\nPhase 2 complete: {} steps, {} tokens",
         summary2.steps.len(),
@@ -700,7 +787,14 @@ async fn main() -> ExitCode {
 
     // Spec 102 FR-003 / FR-009 — emit governance certificate at the end of
     // every successful pipeline run.
-    emit_certificate(&am, run_id, &pipeline_state, &requirements_hash, &repo_root);
+    emit_certificate(
+        &am,
+        run_id,
+        &pipeline_state,
+        &run_audit,
+        &requirements_hash,
+        &repo_root,
+    );
 
     ExitCode::SUCCESS
 }

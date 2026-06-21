@@ -3,7 +3,7 @@ id: "215-stagecraft-deploy-trigger-ux"
 title: "Stagecraft Deploy Trigger UX (Preview in Deployd / View Deployd)"
 feature_branch: "feat/215-stagecraft-deploy-trigger-ux"
 status: draft
-implementation: pending
+implementation: complete  # All five FRs landed in one PR: deployd client consolidation + environment_deployments record module + M2M proxy guard (215b); authenticated trigger + latest endpoints with lazy reconciliation (215c); webhook preview-destroy fix keyed to the stored release id (215d); success-page row + env deployment UI + web client (215e). Locally verified: stagecraft tsc clean (api/), pure deploy vitest (34) green, deployments.test.ts registered in the spec-211 encore lane. DEFERRED (deploy-time / live-cluster, not resolvable in-repo): SC-001/SC-002/SC-004 need a live cluster + a built image (helm rollout, preview destroy, endpoint URLs); the automated factory terminal deploy stage remains the spec 112 §11 deferral.
 kind: platform
 domain: platform
 created: "2026-06-12"
@@ -27,6 +27,14 @@ depends_on:
   - "214-tenant-app-chart-supersession"
   - "112-factory-project-lifecycle"
   - "137-tenant-environment-access-gates"
+establishes:
+  # FR-003 record module + its migration (49), and the FR-002/FR-008 endpoint
+  # test. The owning edges land with the implementation PR per the draft's
+  # planned-establishes note (spec 200 precedent).
+  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/deployments.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/deploy/deployments.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/49_environment_deployments.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/49_environment_deployments.down.sql }
 extends:
   - spec: "112-factory-project-lifecycle"
     nature: additive
@@ -43,6 +51,13 @@ extends:
   - spec: "137-tenant-environment-access-gates"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.tsx }
+  # Post-merge fix: register the env-detail route so FR-004 (deployment card)
+  # and FR-006 (trigger), plus spec 137's access-gate UI, are reachable. The
+  # detail file existed since 137 but was never wired into the route table, so
+  # /deploys/:envId 404'd. Extends the app route table established by spec 087.
+  - spec: "087-unified-workspace-architecture"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes.ts }
   # Same precedent as specs 202, 196, 194, 193, 187, 183: a new spec adds a
   # row to the featuregraph golden.
   - spec: "034-featuregraph-registry-scanner-fix"
@@ -57,14 +72,11 @@ refines:
     unit: { kind: file, path: platform/services/stagecraft/api/deploy/deploydClient.ts }
   - aspect: "deployd-client-consolidation"
     unit: { kind: file, path: platform/services/stagecraft/api/deploy/oidcM2m.ts }
+  # AC: deployments.test.ts joins the spec 211 encore-test lane (the
+  # vite.config.ts exclude list IS the lane assignment).
+  - aspect: "encore-test-lane-assignment"
+    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
 references:
-  # Planned-establishes: the owning `establishes:` edges for these
-  # not-yet-existing files land with the implementation PR (drafts claim
-  # only existing paths; spec 200 precedent).
-  - role: planned-establishes
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/deployments.ts }
-  - role: planned-establishes
-    unit: { kind: file, path: platform/services/stagecraft/api/deploy/deployments.test.ts }
   - role: deferral-source
     unit: { kind: file, path: specs/112-factory-project-lifecycle/spec.md }
   - role: ux-precedent

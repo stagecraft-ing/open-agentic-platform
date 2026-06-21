@@ -64,10 +64,19 @@ pub const NF004_MAX_BYTES_EXCLUDING_CONTEXT: usize = 1024;
 pub enum ProofChainError {
     EmptyChain,
     FirstPreviousNotBundleHash,
-    PolicyBundleHashMismatch { index: usize },
-    RecordHashMismatch { index: usize },
-    BrokenLink { index: usize },
-    Nf004Exceeded { index: usize, bytes: usize },
+    PolicyBundleHashMismatch {
+        index: usize,
+    },
+    RecordHashMismatch {
+        index: usize,
+    },
+    BrokenLink {
+        index: usize,
+    },
+    Nf004Exceeded {
+        index: usize,
+        bytes: usize,
+    },
     /// FR-009.2: chain genesis anchor signature did not verify, or anchor
     /// is unsigned when the verifier required a signature. The diagnostic
     /// distinguishes the two cases.
@@ -109,14 +118,25 @@ impl std::fmt::Display for ProofChainError {
 
 impl std::error::Error for ProofChainError {}
 
+/// Generic hash-chain linkage shared by the spec 047 policy proof chain and
+/// the spec 207 audit chain (FR-001: reuse the linkage discipline, do not
+/// invent a second chain shape). Computes `sha256:<hex>` over the canonical
+/// JSON of `value` with `hash_field` removed, so a record never hashes its
+/// own hash field. Both chains compute their record hash through this one
+/// function, differing only in the record body and the field name.
+pub fn link_record_hash(mut value: Value, hash_field: &str) -> String {
+    if let Value::Object(ref mut m) = value {
+        m.remove(hash_field);
+    }
+    sha256_hex(canonical_json_sorted(value).as_bytes())
+}
+
 /// `record_hash = SHA-256(canonical_json(record without record_hash field))` per spec.
 pub fn compute_record_hash(record: &ProofRecord) -> String {
-    let mut v = serde_json::to_value(record).expect("proof record json");
-    if let Value::Object(ref mut m) = v {
-        m.remove("record_hash");
-    }
-    let s = canonical_json_sorted(v);
-    sha256_hex(s.as_bytes())
+    link_record_hash(
+        serde_json::to_value(record).expect("proof record json"),
+        "record_hash",
+    )
 }
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
@@ -185,9 +205,8 @@ impl ProofChainAnchor {
     pub fn compute_signature(&self, key: &SigningKey) -> String {
         let mut a = self.clone();
         a.genesis_signature = String::new();
-        let canonical = canonical_json_sorted(
-            serde_json::to_value(&a).expect("anchor serialises to JSON"),
-        );
+        let canonical =
+            canonical_json_sorted(serde_json::to_value(&a).expect("anchor serialises to JSON"));
         let sig: Signature = key.sign(canonical.as_bytes());
         B64.encode(sig.to_bytes())
     }
@@ -296,11 +315,7 @@ impl ProofChainWriter {
     /// gives an external verifier something to anchor trust to beyond
     /// the chain's own self-referential hashes. Signing key resolved via
     /// `resolve_signing_material()`.
-    pub fn build_anchor(
-        &self,
-        chain_id: String,
-        genesis_timestamp: String,
-    ) -> ProofChainAnchor {
+    pub fn build_anchor(&self, chain_id: String, genesis_timestamp: String) -> ProofChainAnchor {
         let (key, attestation) = resolve_signing_material();
         let public_key_b64 = B64.encode(key.verifying_key().to_bytes());
         let mut anchor = ProofChainAnchor {
@@ -558,7 +573,10 @@ mod tests {
             },
         };
         let err = anchor.verify_signature().unwrap_err();
-        assert!(err.contains("unsigned"), "expected unsigned diagnostic; got: {err}");
+        assert!(
+            err.contains("unsigned"),
+            "expected unsigned diagnostic; got: {err}"
+        );
     }
 
     #[test]

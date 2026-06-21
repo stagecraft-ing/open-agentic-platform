@@ -340,6 +340,67 @@ export type ProjectArtifact = typeof projectArtifacts.$inferSelect;
 export type ProjectArtifactInsert = typeof projectArtifacts.$inferInsert;
 
 // ---------------------------------------------------------------------------
+// Environment Deployments (spec 215 FR-003)
+// ---------------------------------------------------------------------------
+//
+// Stagecraft's durable record of every deploy dispatch (UI trigger or PR
+// webhook), keyed to deployd-api's release id. Source of truth for the env
+// page (FR-004) and the destroy path's release-id lookup (FR-005). Migration
+// 49 owns the table; the status / variant CHECK constraints live in SQL.
+export const deploymentStatusValues = [
+  "REQUESTED",
+  "PENDING",
+  "ROLLED_OUT",
+  "FAILED",
+  "REQUEST_FAILED",
+  "DESTROYED",
+] as const;
+// Explicit union, NOT `(typeof deploymentStatusValues)[number]`: Encore.ts's
+// TS parser rejects that indexed-access-on-typeof-array form ("unsupported
+// indexed access type operation") and fails service compilation. Keep this
+// union in sync with deploymentStatusValues above (and migration 49's CHECK).
+export type DeploymentStatus =
+  | "REQUESTED"
+  | "PENDING"
+  | "ROLLED_OUT"
+  | "FAILED"
+  | "REQUEST_FAILED"
+  | "DESTROYED";
+
+export const environmentDeployments = pgTable(
+  "environment_deployments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    environmentId: uuid("environment_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    releaseId: text("release_id"),
+    releaseSha: text("release_sha").notNull(),
+    artifactRef: text("artifact_ref").notNull(),
+    variant: text("variant").notNull().default("public"),
+    status: text("status").$type<DeploymentStatus>().notNull(),
+    endpoints: jsonb("endpoints").$type<string[]>().notNull().default([]),
+    dispatchedBy: text("dispatched_by").notNull(),
+    diagnostic: text("diagnostic"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("idx_environment_deployments_env_created").on(
+      t.environmentId,
+      t.createdAt,
+    ),
+  ],
+);
+
+export type EnvironmentDeployment = typeof environmentDeployments.$inferSelect;
+export type EnvironmentDeploymentInsert =
+  typeof environmentDeployments.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // Project Members
 // ---------------------------------------------------------------------------
 
@@ -1549,4 +1610,37 @@ export const projectSpecGroupNames = pgTable(
     primaryKey({ columns: [t.projectId, t.groupId] }),
     index("project_spec_group_names_by_project").on(t.projectId),
   ],
+);
+
+// ---------------------------------------------------------------------------
+// Spec 207 AC-4: session-scoped audit segment countersign seals.
+//
+// One row per countersigned segment head submitted over the duplex channel.
+// Stagecraft is the sole signing authority (spec 198 FR-014 posture). The
+// upsert is idempotent on (org_id, session_id, segment_id) to handle
+// at-least-once reconnect re-submission.
+// ---------------------------------------------------------------------------
+
+export const factorySessionAuditSeals = pgTable(
+  "factory_session_audit_seals",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orgId: uuid("org_id").notNull(),
+    sessionId: text("session_id").notNull(),
+    segmentId: text("segment_id").notNull(),
+    segmentHeadHash: text("segment_head_hash").notNull(),
+    segmentRecordCount: integer("segment_record_count").notNull(),
+    firstRecordAt: timestamp("first_record_at", { withTimezone: true }),
+    lastRecordAt: timestamp("last_record_at", { withTimezone: true }),
+    // A row is only created once countersigned, so unanchored defaults false.
+    // The local side tracks its own unanchored state.
+    unanchored: boolean("unanchored").notNull().default(false),
+    countersignJws: text("countersign_jws"),
+    countersignKid: text("countersign_kid"),
+    countersignedAt: timestamp("countersigned_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique().on(t.orgId, t.sessionId, t.segmentId)],
 );

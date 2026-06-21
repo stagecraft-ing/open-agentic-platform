@@ -24,11 +24,14 @@ import { requireUser } from "../lib/auth.server";
 import { listEnvironments } from "../lib/projects-api.server";
 import {
   addAllowlistEntry,
+  createDeployment,
   getAccessGate,
+  getLatestDeployment,
   putAccessGate,
   removeAllowlistEntry,
   type AccessGateAllowlistEntry,
   type AccessGateRead,
+  type DeploymentView,
   type FederatedProvider,
 } from "../lib/projects-api.server";
 
@@ -39,6 +42,7 @@ type LoaderData = {
   envKind: string;
   k8sNamespace: string | null;
   gate: AccessGateRead;
+  deployment: DeploymentView | null;
 };
 
 type ActionData =
@@ -72,6 +76,13 @@ export async function loader({
   }
 
   const gate = await getAccessGate(request, params.envId);
+  // FR-004/008: latest deployment (null = never deployed). The endpoint lazily
+  // reconciles a stale PENDING record against deployd-api before answering.
+  const { deployment } = await getLatestDeployment(
+    request,
+    params.projectId,
+    params.envId,
+  );
 
   return {
     projectId: params.projectId,
@@ -80,6 +91,7 @@ export async function loader({
     envKind: env.kind,
     k8sNamespace: env.k8sNamespace,
     gate,
+    deployment,
   };
 }
 
@@ -148,6 +160,14 @@ export async function action({
       return { ok: true, intent };
     }
 
+    if (intent === "deploy.trigger") {
+      // FR-001/002: trigger a deploy of the project's latest built image.
+      // A not-built / approval-required / transport error throws in the
+      // client (apiFetch); the catch below surfaces it inline as the reason.
+      await createDeployment(request, params.projectId, params.envId);
+      return { ok: true, intent };
+    }
+
     return { ok: false, intent, error: `unknown intent: ${intent}` };
   } catch (e) {
     return {
@@ -173,11 +193,24 @@ const ENV_KIND_COLORS: Record<string, string> = {
     "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 };
 
+const DEPLOY_STATUS_COLORS: Record<string, string> = {
+  REQUESTED: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+  PENDING:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+  ROLLED_OUT:
+    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  FAILED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  REQUEST_FAILED:
+    "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  DESTROYED: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+};
+
 export default function EnvironmentDetail() {
-  const { projectId, envId, envName, envKind, k8sNamespace, gate } =
+  const { projectId, envId, envName, envKind, k8sNamespace, gate, deployment } =
     useLoaderData<LoaderData>();
   const gateFetcher = useFetcher();
   const allowlistFetcher = useFetcher();
+  const deployFetcher = useFetcher<ActionData>();
 
   // Optimistic enabled state: if the user just submitted gate.save, render
   // the value they're submitting rather than the stale loader data, so the
@@ -214,6 +247,113 @@ export default function EnvironmentDetail() {
           </p>
         )}
       </header>
+
+      {/* Spec 215 FR-004: deployment state + trigger. */}
+      <section
+        className="rounded-lg border border-gray-200 dark:border-gray-800 p-5 space-y-4"
+        aria-labelledby="deployment-heading"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 id="deployment-heading" className="text-base font-semibold">
+              Deployment
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Deploy this project's latest built image to {envName}.
+            </p>
+          </div>
+          <deployFetcher.Form method="post">
+            <input type="hidden" name="intent" value="deploy.trigger" />
+            <button
+              type="submit"
+              disabled={deployFetcher.state !== "idle"}
+              className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {deployFetcher.state !== "idle"
+                ? "Deploying..."
+                : deployment
+                  ? "Redeploy"
+                  : "Preview in Deployd"}
+            </button>
+          </deployFetcher.Form>
+        </div>
+
+        {deployFetcher.data &&
+          deployFetcher.data.ok === false &&
+          deployFetcher.data.intent === "deploy.trigger" && (
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {deployFetcher.data.error}
+            </p>
+          )}
+
+        {!deployment ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Never deployed.
+          </p>
+        ) : (
+          <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 text-sm">
+            <dt className="text-gray-500 dark:text-gray-400">Status</dt>
+            <dd>
+              <span
+                className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                  DEPLOY_STATUS_COLORS[deployment.status] ??
+                  "bg-gray-100 text-gray-800"
+                }`}
+              >
+                {deployment.status}
+              </span>
+            </dd>
+
+            <dt className="text-gray-500 dark:text-gray-400">Commit</dt>
+            <dd className="font-mono text-xs">{deployment.releaseSha}</dd>
+
+            <dt className="text-gray-500 dark:text-gray-400">Image</dt>
+            <dd className="font-mono text-xs break-all">
+              {deployment.artifactRef}
+            </dd>
+
+            <dt className="text-gray-500 dark:text-gray-400">By</dt>
+            <dd>{deployment.dispatchedBy}</dd>
+
+            <dt className="text-gray-500 dark:text-gray-400">Updated</dt>
+            <dd>{new Date(deployment.updatedAt).toLocaleString()}</dd>
+
+            {deployment.endpoints.length > 0 && (
+              <>
+                <dt className="text-gray-500 dark:text-gray-400">URLs</dt>
+                <dd className="space-y-0.5">
+                  {deployment.endpoints.map((url) => (
+                    <a
+                      key={url}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-blue-600 dark:text-blue-400 hover:underline break-all"
+                    >
+                      {url}
+                    </a>
+                  ))}
+                </dd>
+              </>
+            )}
+
+            {deployment.diagnostic &&
+              (deployment.status === "FAILED" ||
+                deployment.status === "REQUEST_FAILED") && (
+                <>
+                  <dt className="text-gray-500 dark:text-gray-400">
+                    Diagnostic
+                  </dt>
+                  <dd>
+                    <pre className="whitespace-pre-wrap break-all text-xs text-red-600 dark:text-red-400">
+                      {deployment.diagnostic}
+                    </pre>
+                  </dd>
+                </>
+              )}
+          </dl>
+        )}
+      </section>
 
       <section
         className="rounded-lg border border-gray-200 dark:border-gray-800 p-5 space-y-4"

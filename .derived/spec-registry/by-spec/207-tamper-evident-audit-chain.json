@@ -14,6 +14,40 @@
       "198-factory-governance-envelope"
     ],
     "domain": "tooling",
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "crates/policy-kernel/src/bin/verify_audit_chain.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/policy-kernel/tests/verify_audit_chain_cli.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/factory-engine/src/run_audit_chain.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/factory-engine/tests/run_audit_anchoring.rs"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/auditSegmentHandlers.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/auditSegmentHandlers.test.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.up.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.down.sql"
+      }
+    ],
     "extends": [
       {
         "nature": "additive",
@@ -21,6 +55,22 @@
         "unit": {
           "kind": "file",
           "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "047-governance-control-plane",
+        "unit": {
+          "kind": "file",
+          "path": "crates/policy-kernel/Cargo.toml"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "198-factory-governance-envelope",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/signing-pure.ts"
         }
       }
     ],
@@ -38,7 +88,7 @@
     },
     "featureBranch": "feat/207-tamper-evident-audit-chain",
     "id": "207-tamper-evident-audit-chain",
-    "implementation": "pending",
+    "implementation": "in-progress",
     "kind": "governance",
     "references": [
       {
@@ -46,13 +96,6 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/factory/signing.ts"
-        }
-      },
-      {
-        "role": "context",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
         }
       },
       {
@@ -77,21 +120,71 @@
           "kind": "file",
           "path": "crates/policy-kernel/src/proof_chain.rs"
         }
+      },
+      {
+        "aspect": "run-audit-emission-and-anchoring",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/bin/factory_run.rs"
+        }
+      },
+      {
+        "aspect": "run-audit-module-registration",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/lib.rs"
+        }
+      },
+      {
+        "aspect": "audit-segment-countersign-contract",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/sync/types.ts"
+        }
+      },
+      {
+        "aspect": "audit-segment-countersign-dispatch",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/sync/service.ts"
+        }
+      },
+      {
+        "aspect": "session-audit-seal-table",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/schema.ts"
+        }
+      },
+      {
+        "aspect": "audit-segment-countersign-action",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+        }
+      },
+      {
+        "aspect": "encore-test-lane-assignment",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/vite.config.ts"
+        }
       }
     ],
     "sectionHeadings": [
       "Feature Specification: Tamper-Evident Audit Log Chain",
       "Purpose",
-      "Functional requirements (sketch — refine before implementation)",
-      "Acceptance criteria (sketch)",
+      "Functional requirements",
+      "Acceptance criteria",
       "Out of scope",
-      "Sequencing"
+      "Sequencing",
+      "Implementation log"
     ],
     "specPath": "specs/207-tamper-evident-audit-chain/spec.md",
     "status": "draft",
     "summary": "Extend the proof-chain discipline from policy decisions to the audit surfaces themselves. Spec 047 hash-chains policy decision proofs, but the JSONL audit logs the platform actually accumulates (permission decisions per spec 068 NF-003, session activity, factory run logs) are plain append-only files: deletable, editable, and unanchored — failing the cross-cutting ASI 2026 observability principle (\"immutable, signed, tamper-evident logs\") and the ASI08/ASI10 logging mitigations that every incident reconstruction depends on. This spec chains audit records (each record carries the previous record's hash), anchors segment heads at rotation — run-scoped logs into the governance certificate's artifact list, session-scoped logs via the spec 198 FR-014 platform countersign when connected, locally chained when offline — and ships an independent verifier that does not trust the producer. Honest scope: a chain makes tampering EVIDENT, not impossible; anchoring bounds (not eliminates) silent-truncation.\n",
     "title": "Tamper-Evident Audit Log Chain (ASI observability principle)"
   },
-  "shardHash": "03db1609948681fa146bd68ef98e6018abcbbdc66dc85c28dff57075c78898ac",
+  "shardHash": "2463444b4e34604b0c7b6844086a4fc22e5369c47ec4047cd8947d180718f8ce",
   "specVersion": "1.1.0"
 }

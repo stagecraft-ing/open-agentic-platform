@@ -14,6 +14,24 @@
       "137-tenant-environment-access-gates"
     ],
     "domain": "platform",
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/deploy/deployments.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/deploy/deployments.test.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/49_environment_deployments.up.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/49_environment_deployments.down.sql"
+      }
+    ],
     "extends": [
       {
         "nature": "additive",
@@ -57,6 +75,14 @@
       },
       {
         "nature": "additive",
+        "spec": "087-unified-workspace-architecture",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/routes.ts"
+        }
+      },
+      {
+        "nature": "additive",
         "spec": "034-featuregraph-registry-scanner-fix",
         "unit": {
           "kind": "file",
@@ -69,23 +95,9 @@
     },
     "featureBranch": "feat/215-stagecraft-deploy-trigger-ux",
     "id": "215-stagecraft-deploy-trigger-ux",
-    "implementation": "pending",
+    "implementation": "complete",
     "kind": "platform",
     "references": [
-      {
-        "role": "planned-establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deployments.ts"
-        }
-      },
-      {
-        "role": "planned-establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deployments.test.ts"
-        }
-      },
       {
         "role": "deferral-source",
         "unit": {
@@ -136,6 +148,13 @@
           "kind": "file",
           "path": "platform/services/stagecraft/api/deploy/oidcM2m.ts"
         }
+      },
+      {
+        "aspect": "encore-test-lane-assignment",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/vite.config.ts"
+        }
       }
     ],
     "sectionHeadings": [
@@ -161,6 +180,6 @@
     "summary": "Give the project-created page its deployment row: \"Preview in Deployd\" dispatches the scaffolded commit to the auto-provisioned development environment, and \"View Deployd\" lands on an environment page that shows real deployment state and the live URL. Underneath the buttons: a createDeployment client path, a stagecraft-side record of every dispatch (fixing the preview-destroy release-id bug, where the webhook deletes a release id it never stored), authorization on the deploy proxy (today auth: false), and one consolidated deployd client replacing the two parallel M2M implementations. This is the manual precursor of the factory pipeline's automated terminal deploy stage, which remains the deferral recorded in spec 112 §11.\n",
     "title": "Stagecraft Deploy Trigger UX (Preview in Deployd / View Deployd)"
   },
-  "shardHash": "5be569094d90a54477679b40b3c672bdcfe925dbff35bdb09a0eaec63823cef6",
+  "shardHash": "4f80c7490902b36ea4649ef466b7bfab494f72d1d2ea4b97f68575c19e3e7d72",
   "specVersion": "1.1.0"
 }

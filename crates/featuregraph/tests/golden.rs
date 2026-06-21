@@ -13,8 +13,16 @@ fn test_golden_graph() {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     let repo_root = Path::new(&manifest_dir).parent().unwrap().parent().unwrap();
 
-    // Ensure we are in the right repo (compiled registry and/or legacy yaml)
-    if !(repo_root.join(".derived/spec-registry/registry.json").exists()
+    // Ensure we are in the right repo. Accept the sharded registry tree
+    // (`.derived/spec-registry/by-spec/`, the spec 217 post-collapse layout
+    // the scanner actually reads), the legacy singular `registry.json`, or
+    // the pre-compiler `spec/features.yaml`. Checking only the singular file
+    // made this test silently skip after spec 217 (the file is no longer
+    // emitted), so the golden gate was dormant; the scanner reads the shards.
+    if !(repo_root.join(".derived/spec-registry/by-spec").is_dir()
+        || repo_root
+            .join(".derived/spec-registry/registry.json")
+            .exists()
         || repo_root.join("spec/features.yaml").exists())
     {
         eprintln!(
