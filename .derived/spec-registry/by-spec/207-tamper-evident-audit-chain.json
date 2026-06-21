@@ -92,7 +92,7 @@
     },
     "featureBranch": "feat/207-tamper-evident-audit-chain",
     "id": "207-tamper-evident-audit-chain",
-    "implementation": "in-progress",
+    "implementation": "complete",
     "kind": "governance",
     "references": [
       {
@@ -187,6 +187,20 @@
           "kind": "file",
           "path": "crates/axiomregent/src/main.rs"
         }
+      },
+      {
+        "aspect": "audit-segment-countersign-client",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/sync_client.rs"
+        }
+      },
+      {
+        "aspect": "audit-segment-countersign-command-registration",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/lib.rs"
+        }
       }
     ],
     "sectionHeadings": [
@@ -203,6 +217,6 @@
     "summary": "Extend the proof-chain discipline from policy decisions to the audit surfaces themselves. Spec 047 hash-chains policy decision proofs, but the JSONL audit logs the platform actually accumulates (permission decisions per spec 068 NF-003, session activity, factory run logs) are plain append-only files: deletable, editable, and unanchored — failing the cross-cutting ASI 2026 observability principle (\"immutable, signed, tamper-evident logs\") and the ASI08/ASI10 logging mitigations that every incident reconstruction depends on. This spec chains audit records (each record carries the previous record's hash), anchors segment heads at rotation — run-scoped logs into the governance certificate's artifact list, session-scoped logs via the spec 198 FR-014 platform countersign when connected, locally chained when offline — and ships an independent verifier that does not trust the producer. Honest scope: a chain makes tampering EVIDENT, not impossible; anchoring bounds (not eliminates) silent-truncation.\n",
     "title": "Tamper-Evident Audit Log Chain (ASI observability principle)"
   },
-  "shardHash": "d697e62e1ceb3eb54f918bcdad517132aeb6aae49e50320a7dd52056206b33d8",
+  "shardHash": "4474a049021ca36e6f3aa3b35fb55e791dc4aa622084116d37d3f4abf47cbdf4",
   "specVersion": "1.1.0"
 }
