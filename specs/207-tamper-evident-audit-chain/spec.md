@@ -2,7 +2,7 @@
 id: "207-tamper-evident-audit-chain"
 title: "Tamper-Evident Audit Log Chain (ASI observability principle)"
 feature_branch: "feat/207-tamper-evident-audit-chain"
-status: draft
+status: approved
 implementation: complete  # All five ACs landed across four PRs: Phase 1 local chain + independent verifier (AC-1/AC-2/AC-5, policy-kernel); Phase 2a run-certificate anchoring (AC-3, factory-engine); Phase 2b server countersign + seal table (AC-4 server, stagecraft) and producer session-audit chain (axiomregent); Phase 2b client (this PR, AC-4 close): the OPC duplex consumer reads closed segment heads off the shared chain dir, submits each over audit.segment.countersign_request at reconnect, stores the countersignature, and exposes the unanchored window via the audit_unanchored_window command. Locally verified: cargo check (opc lib) clean, 46 sync_client unit tests green (8 new for the AC-4 client). Hardened after adversarial review: single-flight sweep guard (no overlapping sweeps on reconnect churn), blocking file I/O offloaded to spawn_blocking, atomic seal-store write (temp+rename) that reports persist success, and a read size cap. FR-004 is the stated, bounded residual (not eliminated): the open segment plus closed-but-uncountersigned segments are the unanchored window.
 kind: governance
 domain: tooling

@@ -2,7 +2,7 @@
 id: "214-tenant-app-chart-supersession"
 title: "Tenant App Chart Supersession (template scaffold becomes the reference tenant)"
 feature_branch: "feat/214-tenant-app-chart-supersession"
-status: draft
+status: approved
 implementation: complete  # Stage 1 (additive acme-vue-encore deploy path) landed via #365; Stage 2 (tenant-hello retirement) landed 2026-06-16: chart-registry cutover to the sole acme-vue-encore shape, deployd default flip, ci.yml/ci-tenant-app.yml rewire, specs 136/137 amended; all locally-verifiable gates green (coupling, spec-lint, deployd cargo 35 tests + clippy, stagecraft tsc + vitest, helm lint + renders, FR-011 gate-seam parity proven in Stage 1, featuregraph golden). DEFERRED (deploy-time / operational, not resolvable in-repo): FR-010's cd-tenant-app.yml reference-image build is workflow_dispatch-gated and fails loud until the cross-repo template source (vars.TENANT_APP_TEMPLATE_REPO/REF + read token) is wired; SC-001/SC-003/SC-005 need a live cluster (TLS endpoint, DB write round-trip, private-image pull) per the plan's Verification split.
 kind: platform
 domain: platform

@@ -190,8 +190,8 @@
       }
     ],
     "specId": "199-factory-thin-consumer-sync",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "fbc1ab7085578453d51b5266144d2015209d4431c35e02be0a72ac55696de025"
+  "shardHash": "d9904fbf00bba9e6c80e2341be7c2fb6d19f3b24e013e4f38160d16922aaa9ac"
 }

@@ -945,8 +945,8 @@
       }
     ],
     "specId": "198-factory-governance-envelope",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "1330893a7bf1a063eb60a52edd40487d4b4e3676eb02ab279963d1ddbc56c24b"
+  "shardHash": "131ac049e4dc00d3ac0e3e741ab3fba7fcd348d97cb7603eb6e10957e0780e1f"
 }

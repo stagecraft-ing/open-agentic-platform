@@ -2,7 +2,7 @@
 id: "200-substrate-override-async-scanner"
 title: "Substrate Override Async Scanner (ASI06 model-assisted detection)"
 feature_branch: "200-override-async-scanner"
-status: draft
+status: approved
 implementation: complete
 kind: platform
 domain: platform

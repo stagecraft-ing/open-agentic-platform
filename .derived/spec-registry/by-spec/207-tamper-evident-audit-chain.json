@@ -213,10 +213,10 @@
       "Implementation log"
     ],
     "specPath": "specs/207-tamper-evident-audit-chain/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "Extend the proof-chain discipline from policy decisions to the audit surfaces themselves. Spec 047 hash-chains policy decision proofs, but the JSONL audit logs the platform actually accumulates (permission decisions per spec 068 NF-003, session activity, factory run logs) are plain append-only files: deletable, editable, and unanchored — failing the cross-cutting ASI 2026 observability principle (\"immutable, signed, tamper-evident logs\") and the ASI08/ASI10 logging mitigations that every incident reconstruction depends on. This spec chains audit records (each record carries the previous record's hash), anchors segment heads at rotation — run-scoped logs into the governance certificate's artifact list, session-scoped logs via the spec 198 FR-014 platform countersign when connected, locally chained when offline — and ships an independent verifier that does not trust the producer. Honest scope: a chain makes tampering EVIDENT, not impossible; anchoring bounds (not eliminates) silent-truncation.\n",
     "title": "Tamper-Evident Audit Log Chain (ASI observability principle)"
   },
-  "shardHash": "4474a049021ca36e6f3aa3b35fb55e791dc4aa622084116d37d3f4abf47cbdf4",
+  "shardHash": "6578008587b9fcb5c13e02c15c7e06d92081a6d68a1e130c7c0f9d3f60b4a389",
   "specVersion": "1.1.0"
 }

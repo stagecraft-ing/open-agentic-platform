@@ -2,8 +2,8 @@
 id: "218-run-cert-corpus-binding"
 title: "Run Certificate Corpus Binding (chain edge to the ledger seal)"
 feature_branch: "feat/218-run-cert-corpus-binding"
-status: draft
-implementation: pending
+status: approved
+implementation: complete  # Shipped and merged via PR #402 (c380f79d): additive corpus_binding field in the cert hash+signature (1.5.0 -> 1.6.0), OAP_CORPUS_ATTESTATION_PATH read path, four-outcome --corpus-attestation verifier, two-layer read-never-recompute boundary; FR-002 amended to post-217 reality.
 kind: capability
 domain: platform
 created: "2026-06-16"

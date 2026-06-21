@@ -218,10 +218,10 @@
       "Implementation log"
     ],
     "specPath": "specs/200-substrate-override-async-scanner/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "The model-assisted leg of the substrate override-write contract (spec 198 FR-013 d, ASI06 m2): an asynchronous scanner that inspects user_body revisions for poisoning patterns the deterministic gate cannot express as rules, and quarantines suspect artifacts via the spec 198 FR-010 revocation machinery pending human review. The cross-cutting principle is preserved verbatim: a model may DETECT, only rules may BLOCK — the scanner never rejects a write synchronously and never lifts its own quarantines.\n",
     "title": "Substrate Override Async Scanner (ASI06 model-assisted detection)"
   },
-  "shardHash": "df587a6c7976b671c63a5d55f01d6d7dbc339f8f8de04ad6279c9beef200258d",
+  "shardHash": "f852b5ceaee8cf915c9103e8efd07e01e28de620f1367b7024c5801e4f787369",
   "specVersion": "1.1.0"
 }

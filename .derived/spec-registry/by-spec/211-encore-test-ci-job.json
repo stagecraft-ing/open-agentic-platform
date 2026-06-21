@@ -137,10 +137,10 @@
       "FR-005 discharged (2026-06-12, completion flip)"
     ],
     "specPath": "specs/211-encore-test-ci-job/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "Close the encore-test CI gap: the bare-vitest exclude list in stagecraft's vite.config.ts assigns 22 DB-bound test files (specs 115, 124, 137, 139–143, 198, 201) to the `encore test` lane, but no CI job runs that lane — CI runs bare vitest only, so DB-bound acceptance suites never execute before merge. The gap already shipped a real violation invisibly (spec 198's FR-013 correction note: audit INSERTs violating a live check constraint, covered by a test CI never ran). This spec adds an enforcing encore-test CI job dispatched from the spec-177 orchestrator, a Makefile mirror per the spec-104 parity contract, and a lane-coverage guard so a file excluded from bare vitest cannot silently skip both lanes. Its completion is the named trigger for spec 198's ASI09 row flipping to \"Solid\" and spec 201's implementation flipping to complete.\n",
     "title": "Encore-Test CI Job (ASI09 verification integrity — the encore-test CI gap, closed)"
   },
-  "shardHash": "ccbda9f139d4a495d3b30033db6bb8857223776b832af46b31670d269a5a0ea3",
+  "shardHash": "ef5a9f8d1dbf600e58a38744ae0c9eb8bc221292c93a04b9edd6fc1a7ceedefe",
   "specVersion": "1.1.0"
 }

@@ -250,8 +250,8 @@
       }
     ],
     "specId": "212-factory-schema-lockstep-ci",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "b9eff70f8da46de78fbe541053d97107961202ab99c466b0ed78f5dccb074548"
+  "shardHash": "1a0888cc7f5cb20cace9168d108205b5b0f37922e1c527b0350409e9f9e5ea22"
 }

@@ -128,8 +128,8 @@
       }
     ],
     "specId": "218-run-cert-corpus-binding",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "ac6bd07e8fa4fe06f1fdd48fc5f0aaca845711f0e3ee23c5ce1c09e4c4fba594"
+  "shardHash": "b82797eade7ec752f2a2a6bae2d7a34a0c6bdd4efd1bdbf097db674d8f132af1"
 }

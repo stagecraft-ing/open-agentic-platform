@@ -176,10 +176,10 @@
       "Dependencies and sequencing"
     ],
     "specPath": "specs/215-stagecraft-deploy-trigger-ux/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "Give the project-created page its deployment row: \"Preview in Deployd\" dispatches the scaffolded commit to the auto-provisioned development environment, and \"View Deployd\" lands on an environment page that shows real deployment state and the live URL. Underneath the buttons: a createDeployment client path, a stagecraft-side record of every dispatch (fixing the preview-destroy release-id bug, where the webhook deletes a release id it never stored), authorization on the deploy proxy (today auth: false), and one consolidated deployd client replacing the two parallel M2M implementations. This is the manual precursor of the factory pipeline's automated terminal deploy stage, which remains the deferral recorded in spec 112 §11.\n",
     "title": "Stagecraft Deploy Trigger UX (Preview in Deployd / View Deployd)"
   },
-  "shardHash": "4f80c7490902b36ea4649ef466b7bfab494f72d1d2ea4b97f68575c19e3e7d72",
+  "shardHash": "05e2aacba736d82dd28a48e8907c17d0e0502e387285a5e88260c5d58f1a3fce",
   "specVersion": "1.1.0"
 }
