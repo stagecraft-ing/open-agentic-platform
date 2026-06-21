@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:be2175e4f3c75e8382e57120f37b4c6efc0d11dac26f50d8d9023879aad4916a",
+  "graph_fingerprint": "sha256:6dedf09177eb73f503d8f76fd692bfc78b0e0a73938912c3c28d80d5273672ad",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4666,7 +4666,7 @@
       "code": "INVALID_HEADER_FORMAT",
       "severity": "error",
       "path": "crates/factory-engine/tests/spec_122_e2e.rs",
-      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md — SC-001..SC-012",
+      "message": "Malformed Spec directive: // Spec: specs/122-stakeholder-doc-inversion/spec.md (SC-001..SC-012)",
       "suggested_fix": "Fix header format"
     },
     {
