@@ -6,7 +6,11 @@
     ],
     "implementingPaths": [
       {
-        "path": "crates/factory-engine/Cargo.toml",
+        "path": "clippy.toml",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/src/bin/factory_run.rs",
         "source": "spec-edge"
       },
       {
@@ -22,11 +26,28 @@
         "source": "spec-edge"
       },
       {
+        "path": "deny.toml",
+        "source": "spec-edge"
+      },
+      {
         "path": "docs/adr/0002-governance-certificate-vended-distributable.md",
         "source": "spec-edge"
       }
     ],
     "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "clippy.toml"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "clippy.toml"
+        }
+      },
       {
         "locations": [
           {
@@ -56,14 +77,27 @@
       {
         "locations": [
           {
-            "file": "crates/factory-engine/Cargo.toml"
+            "file": "deny.toml"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "deny.toml"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/bin/factory_run.rs"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "crates/factory-engine/Cargo.toml"
+          "path": "crates/factory-engine/src/bin/factory_run.rs"
         }
       },
       {
@@ -97,5 +131,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "212fad85688b100e69bb90d4511d73528e20dfdce3cd93270e88af046982dff6"
+  "shardHash": "ac6bd07e8fa4fe06f1fdd48fc5f0aaca845711f0e3ee23c5ce1c09e4c4fba594"
 }

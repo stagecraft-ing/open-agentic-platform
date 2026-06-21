@@ -97,7 +97,15 @@ allow-wildcard-paths = true
 # Crates we have explicitly chosen NOT to use. Empty on day 1; populate
 # via follow-up PRs as architectural decisions land (e.g. "use tracing,
 # not log").
-deny = []
+deny = [
+    # Spec 218 FR-002 (read, never recompute): factory-engine may depend on
+    # spec-spine-core (for the reader-side attestation_hash, registry reads, and
+    # type deserialisation) but MUST NOT depend on the spec-spine CLI binary
+    # crate, which carries the full corpus-compile / attestation-emit surface.
+    # This is the crate-level layer of the FR-002 boundary; the symbol-level
+    # layer is clippy.toml's disallowed-methods ban on attest/verify_recompute.
+    { name = "spec-spine-cli", reason = "spec 218 FR-002: read the attestation hash, never depend on the emit CLI" },
+]
 # Skip multiple-version warnings for these crates (use sparingly,
 # document why with an inline comment).
 skip = []

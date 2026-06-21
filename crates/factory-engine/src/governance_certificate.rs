@@ -50,7 +50,17 @@ use std::path::Path;
 /// state, inside the hash + signature. Empty lists are skipped in
 /// serialization so override-free certificates stay byte-identical to
 /// 1.4.0 payloads (only the version string differs).
-pub const CERTIFICATE_VERSION: &str = "1.5.0";
+///
+/// 1.6.0 (spec 218 FR-001) added the optional `corpusBinding` block
+/// `{ corpusAttestationHash, specSpineVersion }`, recording by reference the
+/// spec-spine ledger-seal attestation (spec 023-ledger-seal) in effect at run
+/// emission. It sits INSIDE the hash + signature (bound at emission, like
+/// `admittedEnvelopeHash`), so tampering with the binding is caught by the
+/// cert's own signature check. Absent certs still verify; absent is the named
+/// "unbound" state, never silently equivalent to bound-and-verified. Skipped in
+/// serialization when absent so unbound certs stay byte-identical to 1.5.0
+/// payloads (only the version string differs).
+pub const CERTIFICATE_VERSION: &str = "1.6.0";
 
 /// Environment-variable name carrying a base64-encoded 32-byte Ed25519 seed
 /// (FR-008.1). Operator-supplied keys outside the agent's write scope.
@@ -123,6 +133,16 @@ pub struct GovernanceCertificate {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub consumed_overrides: Vec<ConsumedOverride>,
 
+    /// Spec 218 FR-001: chain edge to the spec-spine ledger seal. The cert
+    /// builder populates this from a hash it is GIVEN (read from an upstream
+    /// attestation artifact via `OAP_CORPUS_ATTESTATION_PATH`); the cert crate
+    /// never recomputes the corpus. Inside the hash + signature (bound at
+    /// emission). Absent = the named "unbound" state, never silently equivalent
+    /// to bound-and-verified. Skipped when absent so unbound certs stay
+    /// byte-identical to pre-1.6.0 payloads.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub corpus_binding: Option<CorpusBinding>,
+
     /// SHA-256 of the canonical JSON of this certificate with `certificate_hash`
     /// AND `cert_signature` set to empty string. Content-binding fingerprint
     /// inside the signed payload — not the authoritative provenance check
@@ -166,6 +186,31 @@ pub struct PlatformCountersign {
     pub countersign_jws: String,
     pub kid: String,
     pub countersigned_at: DateTime<Utc>,
+}
+
+/// Spec 218 FR-001: the corpus attestation binding.
+///
+/// Records, by reference, the spec-spine ledger-seal attestation (spec
+/// 023-ledger-seal) in effect when the run certificate was emitted. The
+/// `corpus_attestation_hash` is the SHA-256 of the canonical `CorpusAttestation`
+/// JSON, produced by calling `spec_spine_core::attest::attestation_hash` on the
+/// supplied attestation (a pure payload hash, NOT a corpus recompute). The
+/// `spec_spine_version` is the tool version stamp embedded in the attestation's
+/// `tool.version` field, recorded so a `--recompute` verify is meaningful only
+/// under the same tool version.
+///
+/// This field is INSIDE `certificate_hash` and `cert_signature` (bound at
+/// emission), so tampering with the binding is caught by the cert's own
+/// signature check. Contrast with `platform_countersign`, which is applied
+/// POST-emission on sync-back and is explicitly EXCLUDED from both the hash and
+/// the signature by zeroing it before canonicalisation.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CorpusBinding {
+    /// SHA-256 hex of the canonical `CorpusAttestation` JSON.
+    pub corpus_attestation_hash: String,
+    /// `spec-spine` tool version that produced the attestation.
+    pub spec_spine_version: String,
 }
 
 /// Spec 198 FR-013(c) — one override of admitted factory content the run
@@ -538,6 +583,7 @@ pub struct CertificateBuilder {
     goal_id: Option<String>,
     intent_capsule_hash: Option<String>,
     consumed_overrides: Vec<ConsumedOverride>,
+    corpus_binding: Option<CorpusBinding>,
 }
 
 impl CertificateBuilder {
@@ -569,6 +615,7 @@ impl CertificateBuilder {
             goal_id: None,
             intent_capsule_hash: None,
             consumed_overrides: Vec::new(),
+            corpus_binding: None,
         }
     }
 
@@ -648,6 +695,24 @@ impl CertificateBuilder {
         self
     }
 
+    /// Spec 218 FR-001: bind the corpus attestation hash and the spec-spine
+    /// tool version into the certificate (inside hash + signature). The hash is
+    /// the SHA-256 of the canonical `CorpusAttestation` JSON, produced by the
+    /// caller via `spec_spine_core::attest::attestation_hash` on the attestation
+    /// object. The builder DOES NOT call `attest` or `verify_recompute`; the
+    /// hash is always a supplied value (read, never recompute).
+    pub fn corpus_binding(
+        mut self,
+        hash: impl Into<String>,
+        spec_spine_version: impl Into<String>,
+    ) -> Self {
+        self.corpus_binding = Some(CorpusBinding {
+            corpus_attestation_hash: hash.into(),
+            spec_spine_version: spec_spine_version.into(),
+        });
+        self
+    }
+
     /// Fallible build path for tenant emission (spec 168 §FR-007).
     ///
     /// Returns [`CertificateBuildError::MissingSigner`] when no
@@ -698,6 +763,7 @@ impl CertificateBuilder {
             goal_id: self.goal_id,
             intent_capsule_hash: self.intent_capsule_hash,
             consumed_overrides: self.consumed_overrides,
+            corpus_binding: self.corpus_binding,
             certificate_hash: String::new(),
             signing_public_key: public_key_b64,
             cert_signature: String::new(),
@@ -1348,6 +1414,63 @@ pub fn verify_certificate_with_platform(
 
     result.valid = result.errors.is_empty();
     result
+}
+
+/// Spec 218 FR-003 / FR-004: the outcome of checking a certificate's corpus
+/// binding against a supplied attestation artifact.
+#[derive(Debug, PartialEq, Eq)]
+pub enum CorpusBindingOutcome {
+    /// No `corpus_binding` field on the cert: the named "unbound" state.
+    Unbound,
+    /// `corpus_binding` present and its hash matches the supplied attestation.
+    Verified { hash: String },
+}
+
+/// Spec 218 FR-003 / FR-004: verify the corpus binding link by reference,
+/// offline, without recomputing the corpus.
+///
+/// Outcomes:
+/// - Absent binding: `Ok(CorpusBindingOutcome::Unbound)` (a notice, not error).
+/// - Present + attestation supplied + hashes match: `Ok(Verified)`.
+/// - Present + attestation supplied + mismatch: `Err(...)` with a named diagnostic.
+/// - Present + no attestation supplied: `Err(...)` "PRESENT-BUT-UNVERIFIED"
+///   (fail-closed; skip-as-pass is forbidden, per the spec 200 FR-004 posture).
+///
+/// This function calls ONLY `spec_spine_core::attest::attestation_hash`, a pure
+/// hash over the SUPPLIED attestation payload. It never calls `attest` or
+/// `verify_recompute`: verifying the attestation's OWN truth (corpus recompute
+/// or detached seal) is delegated to `spec-spine verify-attestation`. Two
+/// verifiers, two responsibilities, composed by reference (FR-003 / AC-5).
+pub fn verify_corpus_binding(
+    cert: &GovernanceCertificate,
+    attestation_path: Option<&Path>,
+) -> Result<CorpusBindingOutcome, String> {
+    match (&cert.corpus_binding, attestation_path) {
+        (None, _) => Ok(CorpusBindingOutcome::Unbound),
+        (Some(binding), Some(path)) => {
+            let raw = std::fs::read_to_string(path).map_err(|e| {
+                format!("cannot read corpus attestation {}: {e}", path.display())
+            })?;
+            let attestation: spec_spine_types::attest::CorpusAttestation =
+                serde_json::from_str(&raw)
+                    .map_err(|e| format!("invalid CorpusAttestation JSON: {e}"))?;
+            let actual_hash = spec_spine_core::attest::attestation_hash(&attestation)
+                .map_err(|e| format!("attestation_hash failed: {e}"))?;
+            if actual_hash == binding.corpus_attestation_hash {
+                Ok(CorpusBindingOutcome::Verified { hash: actual_hash })
+            } else {
+                Err(format!(
+                    "corpus binding hash mismatch: cert claims {}, supplied attestation hashes to {}",
+                    binding.corpus_attestation_hash, actual_hash
+                ))
+            }
+        }
+        (Some(_), None) => Err(
+            "corpus binding present but PRESENT-BUT-UNVERIFIED: supply --corpus-attestation <file> \
+             to verify the link (spec-spine verify-attestation verifies the attestation's own truth)"
+                .into(),
+        ),
+    }
 }
 
 // ── Cut D W-10: spec_id resolution validation (spec 102 G-2) ─────────
@@ -2424,5 +2547,162 @@ mod tests {
         assert!(!json.contains("consumedOverrides"));
         let restored: GovernanceCertificate = serde_json::from_str(&json).unwrap();
         assert!(restored.consumed_overrides.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod corpus_binding_tests {
+    //! Spec 218 (run-cert corpus binding) AC-1 through AC-5.
+    use super::*;
+    use spec_spine_types::attest::{
+        CompileVerdict, CorpusAttestation, LintVerdict, ToolStamp, Verdicts,
+    };
+
+    fn sample_attestation(registry_hash: &str) -> CorpusAttestation {
+        CorpusAttestation {
+            schema_version: spec_spine_types::attest::ATTESTATION_SCHEMA_VERSION.into(),
+            tool: ToolStamp {
+                name: "spec-spine".into(),
+                version: "0.8.0".into(),
+            },
+            inputs_manifest_hash: "inputs-abc".into(),
+            registry_hash: registry_hash.into(),
+            verdicts: Verdicts {
+                compile: CompileVerdict { ok: true },
+                lint: LintVerdict {
+                    ok: true,
+                    findings_hash: "findings-0".into(),
+                },
+                couple: None,
+            },
+        }
+    }
+
+    fn cert_with_binding(binding: Option<(&str, &str)>) -> GovernanceCertificate {
+        let mut b = CertificateBuilder::new(
+            "run-218",
+            IntentRecord {
+                requirements_hash: "req".into(),
+                spec_id: None,
+                spec_hash: None,
+            },
+        )
+        .build_spec_hash("spec-hash");
+        if let Some((hash, ver)) = binding {
+            b = b.corpus_binding(hash, ver);
+        }
+        b.build()
+    }
+
+    /// AC-1: the binding is INSIDE the content-binding hash + signature, and it
+    /// serialises camelCase as `corpusBinding`.
+    #[test]
+    fn binding_is_inside_hash_and_serialises_camel_case() {
+        let bound = cert_with_binding(Some(("deadbeef", "0.8.0")));
+        let unbound = cert_with_binding(None);
+        assert_ne!(
+            bound.certificate_hash, unbound.certificate_hash,
+            "binding must change the content-binding hash (proves it is inside the hash)"
+        );
+        let json = serde_json::to_string(&bound).unwrap();
+        assert!(json.contains("corpusBinding"));
+        assert!(json.contains("corpusAttestationHash"));
+        assert!(json.contains("specSpineVersion"));
+        // The bound cert still verifies cleanly (the signature spans the binding).
+        let result = verify_certificate(&bound, None);
+        assert!(
+            result.valid,
+            "bound cert must verify; errors: {:?}",
+            result.errors
+        );
+    }
+
+    /// AC-2: the four verify outcomes (verified / mismatch / present-but-unverified / unbound).
+    #[test]
+    fn verify_outcomes_cover_supply_mismatch_and_absence() {
+        let dir = tempfile::tempdir().unwrap();
+        let att = sample_attestation("registry-1");
+        let expected = spec_spine_core::attest::attestation_hash(&att).unwrap();
+        let att_path = dir.path().join("attestation.json");
+        std::fs::write(&att_path, serde_json::to_string(&att).unwrap()).unwrap();
+
+        let bound = cert_with_binding(Some((expected.as_str(), "0.8.0")));
+
+        // (a) matching attestation -> Verified
+        match verify_corpus_binding(&bound, Some(&att_path)) {
+            Ok(CorpusBindingOutcome::Verified { hash }) => assert_eq!(hash, expected),
+            other => panic!("expected Verified, got {other:?}"),
+        }
+
+        // (b) mismatched attestation -> Err naming the mismatch
+        let other_att = sample_attestation("registry-DIFFERENT");
+        let other_path = dir.path().join("other.json");
+        std::fs::write(&other_path, serde_json::to_string(&other_att).unwrap()).unwrap();
+        let err = verify_corpus_binding(&bound, Some(&other_path)).unwrap_err();
+        assert!(err.contains("mismatch"), "got: {err}");
+
+        // (c) binding present, no attestation supplied -> PRESENT-BUT-UNVERIFIED (fail-closed)
+        let err = verify_corpus_binding(&bound, None).unwrap_err();
+        assert!(err.contains("PRESENT-BUT-UNVERIFIED"), "got: {err}");
+
+        // (d) no binding, no attestation -> Unbound (notice, not error)
+        let unbound = cert_with_binding(None);
+        assert_eq!(
+            verify_corpus_binding(&unbound, None).unwrap(),
+            CorpusBindingOutcome::Unbound
+        );
+    }
+
+    /// AC-3 / AC-4: additive and byte-identical when absent; an unbound cert
+    /// (no `corpusBinding` key, the pre-1.6.0 shape) round-trips and verifies.
+    #[test]
+    fn absent_binding_is_skipped_and_legacy_certs_verify() {
+        let unbound = cert_with_binding(None);
+        let json = serde_json::to_string(&unbound).unwrap();
+        assert!(
+            !json.contains("corpusBinding"),
+            "absent binding must be skipped in serialisation"
+        );
+        let restored: GovernanceCertificate = serde_json::from_str(&json).unwrap();
+        assert!(restored.corpus_binding.is_none());
+        let result = verify_certificate(&restored, None);
+        assert!(
+            result.valid,
+            "unbound cert must verify; errors: {:?}",
+            result.errors
+        );
+    }
+
+    /// AC-5: the verify path re-hashes the SUPPLIED attestation payload only,
+    /// via `attestation_hash`. It never calls `attest` / `verify_recompute`
+    /// (enforced structurally by clippy.toml disallowed-methods; documented
+    /// here for readers).
+    #[test]
+    fn verify_uses_payload_hash_not_corpus_recompute() {
+        let dir = tempfile::tempdir().unwrap();
+        let att = sample_attestation("registry-ac5");
+        let att_path = dir.path().join("a.json");
+        std::fs::write(&att_path, serde_json::to_string(&att).unwrap()).unwrap();
+        let hash = spec_spine_core::attest::attestation_hash(&att).unwrap();
+        let bound = cert_with_binding(Some((hash.as_str(), "0.8.0")));
+        assert!(matches!(
+            verify_corpus_binding(&bound, Some(&att_path)),
+            Ok(CorpusBindingOutcome::Verified { .. })
+        ));
+    }
+
+    /// Spec 218 FR-002 durability guard. clippy only WARNS (never errors) on a
+    /// `disallowed-methods` path that stops resolving, so a future spec-spine
+    /// rename would silently make the attestation-emit ban inert; factory-engine
+    /// never references those functions, so nothing else would catch it. These
+    /// imports fail to COMPILE if any banned path stops resolving, forcing
+    /// `clippy.toml` to be updated in lockstep. Importing (not calling) does not
+    /// trip `disallowed_methods`, which is call-site only.
+    #[test]
+    fn banned_attestation_emit_paths_still_resolve() {
+        #[allow(unused_imports)]
+        use spec_spine_core::attest::{attest, verify_recompute};
+        #[allow(unused_imports)]
+        use spec_spine_core::{attest_json, verify_attestation_json};
     }
 }

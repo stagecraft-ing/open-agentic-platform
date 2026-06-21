@@ -7,7 +7,7 @@
 use chrono::Utc;
 use clap::Parser;
 use factory_contracts::pipeline_state::{AuditEntry, AuditEvent};
-use factory_engine::governance_certificate::{CertificateBuilder, IntentRecord};
+use factory_engine::governance_certificate::{CertificateBuilder, CorpusBinding, IntentRecord};
 use factory_engine::inter_stage_manifest::generate_chain_from_run_dir;
 use factory_engine::run_audit_chain;
 use factory_engine::stages::s_minus_1_extract::{KnowledgeBundleRef, sniff_mime_or_fallback};
@@ -41,6 +41,49 @@ fn compute_requirements_hash(paths: &[PathBuf]) -> String {
         }
     }
     format!("{:x}", hasher.finalize())
+}
+
+/// Env var carrying the path to a spec-spine `CorpusAttestation` JSON
+/// artifact (spec 218 FR-002). Read, never recompute: when set, the cert is
+/// bound to the attestation's hash; when unset, the cert is emitted unbound.
+/// Same late-bound, operator-supplied-artifact pattern as `OAP_SIGNING_KEY_PATH`.
+const ENV_CORPUS_ATTESTATION_PATH: &str = "OAP_CORPUS_ATTESTATION_PATH";
+
+/// Spec 218 FR-002: resolve the corpus binding from the attestation artifact
+/// named by `OAP_CORPUS_ATTESTATION_PATH`. Reads the artifact and hashes the
+/// supplied `CorpusAttestation` payload via
+/// `spec_spine_core::attest::attestation_hash` (a pure payload hash, never a
+/// corpus recompute). Returns `None` (cert stays unbound) when the var is unset
+/// or the artifact is unreadable / malformed; failures warn but never block
+/// emission (an unbound cert is better than no cert).
+fn resolve_corpus_binding() -> Option<CorpusBinding> {
+    let path = std::env::var(ENV_CORPUS_ATTESTATION_PATH).ok()?;
+    let raw = match std::fs::read_to_string(&path) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Warning: {ENV_CORPUS_ATTESTATION_PATH}={path} unreadable: {e} (cert unbound)");
+            return None;
+        }
+    };
+    let attestation: spec_spine_types::attest::CorpusAttestation = match serde_json::from_str(&raw) {
+        Ok(a) => a,
+        Err(e) => {
+            eprintln!(
+                "Warning: {ENV_CORPUS_ATTESTATION_PATH}={path} is not a CorpusAttestation: {e} (cert unbound)"
+            );
+            return None;
+        }
+    };
+    match spec_spine_core::attest::attestation_hash(&attestation) {
+        Ok(hash) => Some(CorpusBinding {
+            corpus_attestation_hash: hash,
+            spec_spine_version: attestation.tool.version,
+        }),
+        Err(e) => {
+            eprintln!("Warning: attestation_hash failed: {e} (cert unbound)");
+            None
+        }
+    }
 }
 
 /// Generate and persist a governance certificate for the current pipeline state.
@@ -83,34 +126,49 @@ fn emit_certificate(
     // built from the artifacts persisted under <run_dir>/. Failures are
     // surfaced but do not block certificate emission; the unsigned cert
     // remains better than no audit artifact at all.
-    let cert = match generate_chain_from_run_dir(&run_id.to_string(), &run_dir) {
+    // Rebuild via the builder so the inter-stage chain AND the corpus binding
+    // are bound into the certificate's content-hash + signature.
+    //
+    // Spec 218 FR-001/FR-002: resolve the corpus binding ONCE (read, never
+    // recompute) and apply it regardless of the chain outcome. A failure to
+    // generate the inter-stage chain must NOT silently drop an operator-
+    // configured binding, so binding happens on the rebuilt cert on both the
+    // chain-success and chain-failure paths.
+    let corpus = resolve_corpus_binding();
+    if corpus.is_none() {
+        eprintln!(
+            "notice: corpus binding UNBOUND (set {ENV_CORPUS_ATTESTATION_PATH} to a spec-spine attestation artifact to bind this run cert to the corpus)"
+        );
+    }
+    let mut builder = CertificateBuilder::new(
+        base_cert.pipeline_run_id.clone(),
+        IntentRecord {
+            requirements_hash: base_cert.intent.requirements_hash.clone(),
+            spec_id: base_cert.intent.spec_id.clone(),
+            spec_hash: base_cert.intent.spec_hash.clone(),
+        },
+    )
+    .build_spec_hash(base_cert.build_spec.hash.clone())
+    .stages(base_cert.stages.clone())
+    .verification(base_cert.verification.clone())
+    .proof_chain(base_cert.proof_chain.clone());
+    // Spec 170 FR-007: attach the signed inter-stage manifest chain when it
+    // builds; on failure the cert degrades to no chain but still emits.
+    match generate_chain_from_run_dir(&run_id.to_string(), &run_dir) {
         Ok((signer, manifests)) => {
-            let chain_record = InterStageChainRecord {
+            builder = builder.inter_stage_chain(InterStageChainRecord {
                 key_chain: signer.finalize(),
                 manifests,
-            };
-            // Rebuild via the builder so the chain is bound into the
-            // certificate's content-hash + signature.
-            CertificateBuilder::new(
-                base_cert.pipeline_run_id.clone(),
-                IntentRecord {
-                    requirements_hash: base_cert.intent.requirements_hash.clone(),
-                    spec_id: base_cert.intent.spec_id.clone(),
-                    spec_hash: base_cert.intent.spec_hash.clone(),
-                },
-            )
-            .build_spec_hash(base_cert.build_spec.hash.clone())
-            .stages(base_cert.stages.clone())
-            .verification(base_cert.verification.clone())
-            .proof_chain(base_cert.proof_chain.clone())
-            .inter_stage_chain(chain_record)
-            .build()
+            });
         }
         Err(e) => {
             eprintln!("Warning: failed to generate signed inter-stage manifest chain: {e}");
-            base_cert
         }
-    };
+    }
+    if let Some(cb) = corpus {
+        builder = builder.corpus_binding(cb.corpus_attestation_hash, cb.spec_spine_version);
+    }
+    let cert = builder.build();
     let cert_path = run_dir.join("governance-certificate.json");
     match persist_certificate(&cert, &run_dir) {
         Ok(()) => eprintln!(

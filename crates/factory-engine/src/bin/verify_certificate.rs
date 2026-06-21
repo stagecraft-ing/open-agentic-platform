@@ -20,7 +20,8 @@
 
 use clap::Parser;
 use factory_engine::governance_certificate::{
-    GovernanceCertificate, verify_certificate_with_platform,
+    CorpusBindingOutcome, GovernanceCertificate, verify_certificate_with_platform,
+    verify_corpus_binding,
 };
 use factory_engine::platform_jws::PlatformJwks;
 use factory_engine::{validate_spec_id_resolution, write_validation_warnings};
@@ -59,6 +60,15 @@ struct Cli {
     /// visible notice with exit 0.
     #[arg(long)]
     require_sealed: bool,
+
+    /// Path to a CorpusAttestation JSON file (spec-spine ledger-seal output,
+    /// spec 218 FR-003). Cert has binding + this file matches: reports VERIFIED.
+    /// Matches the wrong attestation: fails (exit 1). Cert has binding but no
+    /// file supplied: fails PRESENT-BUT-UNVERIFIED (exit 1). Cert has no
+    /// binding: reports UNBOUND (notice, exit 0). The attestation's OWN truth
+    /// is verified by `spec-spine verify-attestation`, not by this tool (AC-5).
+    #[arg(long)]
+    corpus_attestation: Option<PathBuf>,
 }
 
 fn load_jwks(cli: &Cli) -> Option<PlatformJwks> {
@@ -116,12 +126,34 @@ fn main() {
     };
 
     let jwks = load_jwks(&cli);
-    let result = verify_certificate_with_platform(
+    let mut result = verify_certificate_with_platform(
         &cert,
         cli.artifact_dir.as_deref(),
         jwks.as_ref(),
         cli.require_sealed,
     );
+
+    // Spec 218 FR-003 / FR-004: adjudicate the corpus binding against the
+    // supplied attestation. Folds into the same notice/error channels so the
+    // exit status reflects a mismatched or present-but-unverified binding.
+    let corpus_label = match verify_corpus_binding(&cert, cli.corpus_attestation.as_deref()) {
+        Ok(CorpusBindingOutcome::Unbound) => {
+            result.notices.push("corpus binding: UNBOUND".into());
+            "UNBOUND".to_string()
+        }
+        Ok(CorpusBindingOutcome::Verified { hash }) => {
+            let short = &hash[..16.min(hash.len())];
+            result
+                .notices
+                .push(format!("corpus binding: VERIFIED (attestation hash {short})"));
+            format!("VERIFIED ({short})")
+        }
+        Err(e) => {
+            result.errors.push(e);
+            "INVALID".to_string()
+        }
+    };
+    result.valid = result.errors.is_empty();
 
     let repo_root = cli
         .repo_root
@@ -162,6 +194,7 @@ fn main() {
                 "ABSENT (unsealed)"
             }
         );
+        eprintln!("  corpus binding: {corpus_label}");
         std::process::exit(0);
     } else {
         eprintln!(
@@ -171,6 +204,7 @@ fn main() {
         for err in &result.errors {
             eprintln!("  - {err}");
         }
+        eprintln!("  corpus binding: {corpus_label}");
         std::process::exit(1);
     }
 }
