@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:28cf40621ad03d84c6d98794bcc09c61c7ed3684b48ed528d203f898366f98cd",
+  "graph_fingerprint": "sha256:b27366cba49c5949e086324eb6ff88a6012918a89f418e9b18e64539cb227051",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4116,8 +4116,8 @@
       "feature_id": "218-run-cert-corpus-binding",
       "title": "Run Certificate Corpus Binding (chain edge to the ledger seal)",
       "spec_path": "specs/218-run-cert-corpus-binding/spec.md",
-      "status": "approved",
-      "implementation": "complete",
+      "status": "draft",
+      "implementation": "pending",
       "governance": "",
       "owner": "",
       "group": "",

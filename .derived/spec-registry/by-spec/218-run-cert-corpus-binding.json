@@ -49,7 +49,7 @@
     },
     "featureBranch": "feat/218-run-cert-corpus-binding",
     "id": "218-run-cert-corpus-binding",
-    "implementation": "complete",
+    "implementation": "pending",
     "kind": "capability",
     "references": [
       {
@@ -87,10 +87,10 @@
       "Sequencing"
     ],
     "specPath": "specs/218-run-cert-corpus-binding/spec.md",
-    "status": "approved",
+    "status": "draft",
     "summary": "The governance run certificate (specs 102/168) already embeds spec-state hashes computed by re-reading the registry. The spec-spine ledger-seal capability (its own corpus, spec 023-ledger-seal) produces a reproducible, independently-verifiable CorpusAttestation over the spec corpus, with its own attestation_hash. This spec adds the chain edge: an additive, optional corpus_binding block on the run certificate that references that attestation_hash by value, forming a two-link audit chain. The corpus link is reproducible by any third party (spec-spine, per commit); the run link is signed but not reproducible (factory-engine, per run). The load-bearing requirement is structural, not a field: the cert builder populates the binding from a hash it is GIVEN (read from an upstream attestation artifact) and the cert crate is forbidden from depending on any corpus-compile or attestation-emit path. Read, never recompute. The boundary is enforced as a dependency-graph deny-rule, so it is a compile-time fact rather than a review convention.\n",
     "title": "Run Certificate Corpus Binding (chain edge to the ledger seal)"
   },
-  "shardHash": "6f461b41a41435c66e2817ae127ad33e489f4e4e7514bc6e397de3eea77338db",
+  "shardHash": "cbfde375ab18186b7eb7110cf37039997d4c72c6e5ac179ed5a49b457aa9dbd9",
   "specVersion": "1.1.0"
 }
