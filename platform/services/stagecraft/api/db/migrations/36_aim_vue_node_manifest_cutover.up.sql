@@ -1,15 +1,15 @@
 -- Spec 140 §2.4 — backfill synthetic oap-self adapter-manifest row per
--- org so existing substrate emits acme-vue-node with the §7.2
+-- org so existing substrate emits aim-vue-node with the §7.2
 -- `scaffold_source_id` manifest shape without waiting on /factory-sync.
 --
 -- For every distinct `org_id` already present in
 -- `factory_artifact_substrate`, insert one row at
---   (org_id, origin='oap-self', path='adapters/acme-vue-node/manifest.yaml',
+--   (org_id, origin='oap-self', path='adapters/aim-vue-node/manifest.yaml',
 --    kind='adapter-manifest', version=1)
 -- carrying the canonical §7.2-compliant manifest body. The projection's
 -- de-dup priority (spec 140 §2.4 / projection.ts:118 post-§2.1) prefers
 -- the `oap-self` row over the template-origin synthetic, so this row
--- becomes the authoritative manifest for acme-vue-node.
+-- becomes the authoritative manifest for aim-vue-node.
 --
 -- **Idempotence:** safe to re-run.
 --   * Substrate insert: `ON CONFLICT (org_id, origin, path, version) DO NOTHING`.
@@ -22,9 +22,9 @@
 --
 -- **`orchestration_source_id` value:** spec 140 §2.1 directs that the
 -- canonical Factory Agent upstream `source_id` is used; per
--- `OAP_NATIVE_ADAPTERS["acme-vue-node"].orchestrationSourceId` and spec
--- 139 §7.1 row 1 that value is `legacy-factory`. The literal
--- `acme-vue-node-orchestration` shown in spec 140 §2.1's example block is
+-- `OAP_NATIVE_ADAPTERS["aim-vue-node"].orchestrationSourceId` and spec
+-- 139 §7.1 row 1 that value is `goa-software-factory`. The literal
+-- `aim-vue-node-orchestration` shown in spec 140 §2.1's example block is
 -- the placeholder its inline annotation already disambiguates.
 
 BEGIN;
@@ -45,17 +45,17 @@ INSERT INTO factory_artifact_substrate (
 SELECT DISTINCT
     s.org_id,
     'oap-self'                                  AS origin,
-    'adapters/acme-vue-node/manifest.yaml'       AS path,
+    'adapters/aim-vue-node/manifest.yaml'       AS path,
     'adapter-manifest'                          AS kind,
     1                                            AS version,
     'active'                                     AS status,
-    'oap-self/acme-vue-node/spec-140-migration-36' AS upstream_sha,
+    'oap-self/aim-vue-node/spec-140-migration-36' AS upstream_sha,
     -- Canonical §7.2 manifest body. The shape mirrors what the projection
     -- emits at read time (see `api/factory/projection.ts::buildAdapter`)
     -- so the de-dup pick is consistent regardless of which side wins.
-    E'adapter:\n  name: acme-vue-node\norchestration_source_id: legacy-factory\nscaffold_source_id: acme-vue-node-template\nscaffold_runtime: node-24\n'
+    E'adapter:\n  name: aim-vue-node\norchestration_source_id: goa-software-factory\nscaffold_source_id: aim-vue-node-template\nscaffold_runtime: node-24\n'
                                                 AS upstream_body,
-    -- Precomputed sha256 of the marker `spec-140-migration-36-acme-vue-node-v1`.
+    -- Precomputed sha256 of the marker `spec-140-migration-36-aim-vue-node-v1`.
     -- Hardcoded (not `sha256(...)`/`md5(...)`) because the cluster Postgres
     -- runs against a FIPS-mode OpenSSL where `md5()` returns
     -- `could not compute MD5 hash: unsupported`. The runtime substrate
@@ -63,9 +63,9 @@ SELECT DISTINCT
     -- api/projects/importArtifacts.ts), so the value also matches convention.
     '4ba0ff1737fe3fc0dc6c16587805fc7b27dec769686d95f4b46c109283130798' AS content_hash,
     jsonb_build_object(
-        'adapter', jsonb_build_object('name', 'acme-vue-node'),
-        'orchestration_source_id', 'legacy-factory',
-        'scaffold_source_id', 'acme-vue-node-template',
+        'adapter', jsonb_build_object('name', 'aim-vue-node'),
+        'orchestration_source_id', 'goa-software-factory',
+        'scaffold_source_id', 'aim-vue-node-template',
         'scaffold_runtime', 'node-24'
     )                                            AS frontmatter,
     'ok'                                         AS conflict_state
@@ -90,14 +90,14 @@ SELECT
     NULL,
     jsonb_build_object(
         'origin', 'oap-self',
-        'path', 'adapters/acme-vue-node/manifest.yaml',
+        'path', 'adapters/aim-vue-node/manifest.yaml',
         'kind', 'adapter-manifest',
         'reason', 'spec-140-migration-36'
     )
 FROM factory_artifact_substrate s
 WHERE s.origin = 'oap-self'
-  AND s.path = 'adapters/acme-vue-node/manifest.yaml'
-  AND s.upstream_sha = 'oap-self/acme-vue-node/spec-140-migration-36'
+  AND s.path = 'adapters/aim-vue-node/manifest.yaml'
+  AND s.upstream_sha = 'oap-self/aim-vue-node/spec-140-migration-36'
   AND NOT EXISTS (
         SELECT 1
         FROM factory_artifact_substrate_audit a

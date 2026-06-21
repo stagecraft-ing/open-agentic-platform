@@ -2,10 +2,10 @@
 //
 // Asserts:
 //   1. After migration 36 inserts a synthetic substrate row carrying
-//      `acme-vue-node-template`, migration 37 rewrites it to
-//      `acme-vue-node` in both `upstream_body` and `frontmatter`.
+//      `aim-vue-node-template`, migration 37 rewrites it to
+//      `aim-vue-node` in both `upstream_body` and `frontmatter`.
 //   2. Migration 37 inserts a sibling `factory_upstreams` row keyed
-//      `(org_id, 'acme-vue-node')` from the existing
+//      `(org_id, 'aim-vue-node')` from the existing
 //      `legacy-template-mixed` row, with role='scaffold' and matching
 //      repo_url/ref.
 //   3. Re-running migration 37 is a no-op (idempotence) — the UPDATE
@@ -51,7 +51,7 @@ async function readManifest(): Promise<{
       FROM factory_artifact_substrate
      WHERE org_id = ${ORG_ID}
        AND origin = 'oap-self'
-       AND path = 'adapters/acme-vue-node/manifest.yaml'
+       AND path = 'adapters/aim-vue-node/manifest.yaml'
   `);
   return result.rows[0] ?? null;
 }
@@ -71,7 +71,7 @@ async function readCanonicalUpstream(): Promise<{
     SELECT source_id, role, repo_url, ref
       FROM factory_upstreams
      WHERE org_id = ${ORG_ID}
-       AND source_id = 'acme-vue-node'
+       AND source_id = 'aim-vue-node'
   `);
   return result.rows[0] ?? null;
 }
@@ -102,7 +102,7 @@ describe("spec 141 — migration 37 (T-mig37)", () => {
         upstream_sha, upstream_body, content_hash, conflict_state
       )
       VALUES (
-        ${SEED_ARTIFACT_ID}, ${ORG_ID}, 'legacy-factory',
+        ${SEED_ARTIFACT_ID}, ${ORG_ID}, 'goa-software-factory',
         'Factory Agent/spec141-seed.md', 'skill', 1, 'active',
         'spec141-seed-sha', 'seed body', 'spec141-seed-hash', 'ok'
       )
@@ -115,7 +115,7 @@ describe("spec 141 — migration 37 (T-mig37)", () => {
         org_id, source_id, role, repo_url, ref, subpath
       ) VALUES (
         ${ORG_ID}, 'legacy-template-mixed', 'scaffold',
-        'Stagecraft-ing/template', 'main', NULL
+        'GovAlta-Pronghorn/template', 'main', NULL
       )
       ON CONFLICT (org_id, source_id) DO NOTHING
     `);
@@ -131,16 +131,16 @@ describe("spec 141 — migration 37 (T-mig37)", () => {
       DELETE FROM factory_artifact_substrate
        WHERE org_id = ${ORG_ID}
          AND origin = 'oap-self'
-         AND path = 'adapters/acme-vue-node/manifest.yaml'
+         AND path = 'adapters/aim-vue-node/manifest.yaml'
     `);
     await db.execute(sql`
       DELETE FROM factory_upstreams
        WHERE org_id = ${ORG_ID}
-         AND source_id = 'acme-vue-node'
+         AND source_id = 'aim-vue-node'
     `);
 
     // Run migration 36 (immutable — inserts the row with the
-    // pre-amendment literal `acme-vue-node-template`).
+    // pre-amendment literal `aim-vue-node-template`).
     await runMigration(MIGRATION_36);
   });
 
@@ -162,9 +162,9 @@ describe("spec 141 — migration 37 (T-mig37)", () => {
   it("migration 36 leaves the row at the pre-amendment literal", async () => {
     const m = await readManifest();
     expect(m).not.toBeNull();
-    expect(m!.scaffold_source_id).toBe("acme-vue-node-template");
+    expect(m!.scaffold_source_id).toBe("aim-vue-node-template");
     expect(m!.upstream_body).toContain(
-      "scaffold_source_id: acme-vue-node-template",
+      "scaffold_source_id: aim-vue-node-template",
     );
   });
 
@@ -173,12 +173,12 @@ describe("spec 141 — migration 37 (T-mig37)", () => {
 
     const m = await readManifest();
     expect(m).not.toBeNull();
-    expect(m!.scaffold_source_id).toBe("acme-vue-node");
+    expect(m!.scaffold_source_id).toBe("aim-vue-node");
     // Body carries the new literal AND no longer carries the old one
     // (replace, not append).
-    expect(m!.upstream_body).toContain("scaffold_source_id: acme-vue-node\n");
+    expect(m!.upstream_body).toContain("scaffold_source_id: aim-vue-node\n");
     expect(m!.upstream_body).not.toContain(
-      "scaffold_source_id: acme-vue-node-template",
+      "scaffold_source_id: aim-vue-node-template",
     );
 
     expect(await countSpec141Audits()).toBe(1);
@@ -187,9 +187,9 @@ describe("spec 141 — migration 37 (T-mig37)", () => {
   it("migration 37 promotes legacy-template-mixed to a sibling source-id-keyed row", async () => {
     const sibling = await readCanonicalUpstream();
     expect(sibling).not.toBeNull();
-    expect(sibling!.source_id).toBe("acme-vue-node");
+    expect(sibling!.source_id).toBe("aim-vue-node");
     expect(sibling!.role).toBe("scaffold");
-    expect(sibling!.repo_url).toBe("Stagecraft-ing/template");
+    expect(sibling!.repo_url).toBe("GovAlta-Pronghorn/template");
     expect(sibling!.ref).toBe("main");
   });
 
