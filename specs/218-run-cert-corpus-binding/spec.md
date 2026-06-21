@@ -38,15 +38,33 @@ extends:
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+  # FR-002 crate-level boundary: the cargo-deny ban on the spec-spine CLI crate.
+  # deny.toml is establishes:-owned by spec 116; its ban list is the designed
+  # extension point (deny.toml comment, "populate via follow-up PRs"), so this
+  # is an additive extends edge, not a refines.
+  - spec: "116-supply-chain-policy-gates"
+    nature: additive
+    unit: { kind: file, path: deny.toml }
+establishes:
+  # FR-002 symbol-level boundary: clippy disallowed-methods forbids the
+  # attestation-emit functions (attest, attest_json, verify_recompute,
+  # verify_attestation_json) while allowing the reader seam (attestation_hash).
+  # Workspace-wide config, but these functions are factory-engine-exclusive so it
+  # constrains the cert crate alone. The corpus-compile leg (compile/compile_json)
+  # is NOT banned: opc-decomposition-pipeline legitimately compiles the corpus
+  # (accepted residual, see "The invariant"). New file this spec brings into
+  # existence; rides the existing -D warnings clippy gate.
+  - unit: { kind: file, path: clippy.toml }
 refines:
   # Verify checks the LINK (claimed hash == supplied attestation hash), offline,
   # without recomputing the corpus.
   - aspect: "corpus-binding-verify"
     unit: { kind: file, path: crates/factory-engine/src/bin/verify_certificate.rs }
-  # The structural boundary: the cert crate's dependency manifest. The deny-rule
-  # lands here (reader allowed, emit/compile forbidden).
-  - aspect: "read-not-recompute-dependency-gate"
-    unit: { kind: file, path: crates/factory-engine/Cargo.toml }
+  # FR-002 runtime read path: factory_run.rs reads OAP_CORPUS_ATTESTATION_PATH,
+  # hashes the supplied attestation via attestation_hash, and binds it into the
+  # cert (read, never recompute).
+  - aspect: "corpus-binding-read-path"
+    unit: { kind: file, path: crates/factory-engine/src/bin/factory_run.rs }
 references:
   - role: context
     unit: { kind: file, path: docs/adr/0002-governance-certificate-vended-distributable.md }
@@ -109,15 +127,51 @@ reads that hash and never recomputes it.** The clean CI sequence is: step 1,
 factory run reads that hash and writes it into `corpus_binding`. factory-engine
 reads; spec-spine computes.
 
-This is enforced structurally, not by convention. Per ADR 0002 §2 the cert crate
-already depends only on the registry reader
-(`open_agentic_spec_registry_reader`, the consumer API: `load` + `find_by_id`,
-declared at `crates/factory-engine/Cargo.toml:18-20`), never on the compiler.
-This spec makes that boundary a guarded invariant: the cert crate may keep the
-reader dependency but is forbidden a dependency on any corpus-compile or
-attestation-emit crate. A dependency deny-rule in CI fails the build if such an
-edge is added. Recompute is therefore not a thing a reviewer must catch: it is a
-thing the dependency graph makes impossible to compile.
+This is enforced structurally, not by convention.
+
+> **Amendment (2026-06-21, implementation refinement).** The original draft said
+> the cert crate "already depends only on the registry reader
+> (`open_agentic_spec_registry_reader`)". That is stale post-spec-217 (engine
+> swap): there is no separate reader crate. factory-engine now depends on the
+> published `spec-spine-core` (`crates/factory-engine/Cargo.toml`), which exports
+> from a single crate BOTH the reader seam (`attestation_hash`,
+> `load_committed_registry`) AND the corpus-compile / attestation-emit functions
+> (`attest`, `attest_json`, `verify_recompute`, `verify_attestation_json`,
+> `compile`, `compile_json`). A crate-level deny-rule cannot distinguish
+> functions inside one crate, so the boundary is enforced in two complementary
+> layers below.
+
+Per ADR 0002 §2 the cert crate reads spec state through the published
+`spec-spine` library and never drives the compiler. This spec makes that a
+guarded invariant in two layers, neither sufficient alone:
+
+1. **Crate level (`deny.toml`).** A cargo-deny ban forbids factory-engine from
+   depending on the `spec-spine-cli` binary crate, which carries the full
+   corpus-compile / attestation-emit surface. (Extends spec 116's ban list.)
+2. **Symbol level (`clippy.toml`).** clippy `disallowed-methods` forbids
+   calling the attestation-emit functions (`attest`, `attest_json`,
+   `verify_recompute`, `verify_attestation_json`) while permitting the reader
+   seam (`attestation_hash`, the pure payload hash). clippy resolves by
+   canonical path (the `*_json` variants are crate-root, the others
+   module-level), so it is a compile-time fact promoted to a hard error by the
+   existing `-D warnings` gate. The config is workspace-wide (clippy.toml is
+   per-workspace, not per-crate); these four functions are used by no crate
+   other than factory-engine, so the ban effectively constrains the cert crate
+   alone.
+
+**Accepted residual: the corpus-compile leg is not symbol-banned.** FR-002 also
+names "corpus-compile" (`compile` / `compile_json`). Those cannot be banned by
+the workspace-wide `clippy.toml` because `crates/opc-decomposition-pipeline`
+legitimately compiles the corpus (`promotion.rs` calls `spec_spine_core::compile`).
+factory-engine's non-recompute is instead assured architecturally: it reads the
+committed registry via `load_committed_registry` and never calls `compile`, and
+the cargo-deny ban keeps the emit CLI out of its graph. A factory-engine-scoped
+compile guard would need a per-crate mechanism (e.g. a CI grep over
+`crates/factory-engine/src/`), deferred as not worth the second mechanism here.
+
+Recompute is therefore not a thing a reviewer must catch for the attestation-emit
+surface: it is a thing the lint config makes impossible to compile-clean. The
+corpus-compile surface is an architectural assurance, not a lint.
 
 ## Functional requirements (sketch, refine before implementation)
 
@@ -133,15 +187,27 @@ thing the dependency graph makes impossible to compile.
   `governance_certificate.rs:21-52`).
 - **FR-002 (builder reads, never recomputes: the boundary gate).** The cert
   builder populates `corpus_binding` from a value it is GIVEN
-  (`corpus_attestation_hash`), sourced from reading the upstream attestation
-  artifact. The cert crate MUST NOT depend on any corpus-compile or
-  attestation-emit path; the registry-reader seam is permitted. Enforced as a
-  dependency deny-rule (compile-time boundary), not review.
+  (`corpus_attestation_hash`): at run time `factory_run.rs` reads the upstream
+  attestation artifact named by `OAP_CORPUS_ATTESTATION_PATH` (the same
+  late-bound, operator-supplied-artifact pattern as `OAP_SIGNING_KEY_PATH`),
+  deserialises the `CorpusAttestation`, and hashes it via
+  `spec_spine_core::attest::attestation_hash`. The cert crate MUST NOT depend on
+  any corpus-compile or attestation-emit path; the published-library reader seam
+  (`attestation_hash`) is permitted. Enforced as a compile-time boundary in two
+  layers (not review): a cargo-deny crate ban on `spec-spine-cli` (`deny.toml`)
+  and a clippy `disallowed-methods` ban on the attestation-emit functions
+  (`attest`, `attest_json`, `verify_recompute`, `verify_attestation_json`)
+  (`clippy.toml`). The corpus-compile leg (`compile` / `compile_json`) is an
+  accepted residual, not symbol-banned, because another workspace crate
+  legitimately compiles the corpus; see "The invariant" for that residual and
+  for why both layers are required post-spec-217.
 - **FR-003 (verify checks the link by reference, offline).** `verify-certificate`
   (`crates/factory-engine/src/bin/verify_certificate.rs`) validates
   `corpus_binding` by checking the cert's claimed `corpus_attestation_hash`
-  equals the hash of an attestation it is supplied (or one named in the run dir),
-  without recomputing the corpus. Verifying the attestation's own truth
+  equals the hash of an attestation it is supplied via `--corpus-attestation
+  <file>`, without recomputing the corpus. The attestation is an external
+  artifact (the run does not write it into the run dir), so it is supplied
+  explicitly, not auto-discovered. Verifying the attestation's own truth
   (recompute / signature) is delegated to spec-spine's `verify-attestation`. Two
   verifiers, two responsibilities, composed by reference; the run-cert verifier
   never invokes corpus recompute.
