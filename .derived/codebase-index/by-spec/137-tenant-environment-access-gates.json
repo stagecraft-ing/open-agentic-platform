@@ -488,8 +488,8 @@
           {
             "file": "platform/services/stagecraft/api/deploy/deploy.ts",
             "span": {
-              "endLine": 420,
-              "startLine": 313
+              "endLine": 434,
+              "startLine": 327
             }
           }
         ],
@@ -506,5 +506,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "ddc8b9c10e89a1e1eb76c6d09a448ea5e25f8450cb55d54f4636bc0728b47dca"
+  "shardHash": "5a2155fb5c21f7379e73ac6646712b0f0cba3547cf3c328eb770afbedba43253"
 }

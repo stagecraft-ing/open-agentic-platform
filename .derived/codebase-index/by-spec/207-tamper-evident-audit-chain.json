@@ -8,7 +8,27 @@
     ],
     "implementingPaths": [
       {
+        "path": "crates/factory-engine/src/bin/factory_run.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/src/lib.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/src/run_audit_chain.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/tests/run_audit_anchoring.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/featuregraph/tests/golden/features_graph.json",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/policy-kernel/Cargo.toml",
         "source": "spec-edge"
       },
       {
@@ -16,7 +36,15 @@
         "source": "spec-edge"
       },
       {
+        "path": "crates/policy-kernel/src/bin/verify_audit_chain.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/policy-kernel/src/proof_chain.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/policy-kernel/tests/verify_audit_chain_cli.rs",
         "source": "spec-edge"
       },
       {
@@ -24,15 +52,155 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.down.sql",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.up.sql",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/db/schema.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/factory/auditActions.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/auditSegmentHandlers.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/auditSegmentHandlers.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/signing-pure.ts",
         "source": "spec-edge"
       },
       {
         "path": "platform/services/stagecraft/api/factory/signing.ts",
         "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/sync/service.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/sync/types.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/vite.config.ts",
+        "source": "spec-edge"
       }
     ],
     "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/run_audit_chain.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/run_audit_chain.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/tests/run_audit_anchoring.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/tests/run_audit_anchoring.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/policy-kernel/src/bin/verify_audit_chain.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/policy-kernel/src/bin/verify_audit_chain.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/policy-kernel/tests/verify_audit_chain_cli.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/policy-kernel/tests/verify_audit_chain_cli.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.down.sql"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.down.sql"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.up.sql"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.up.sql"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/auditSegmentHandlers.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/auditSegmentHandlers.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/auditSegmentHandlers.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/auditSegmentHandlers.ts"
+        }
+      },
       {
         "locations": [
           {
@@ -44,6 +212,58 @@
         "unit": {
           "kind": "file",
           "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/policy-kernel/Cargo.toml"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/policy-kernel/Cargo.toml"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/signing-pure.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/signing-pure.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/bin/factory_run.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/bin/factory_run.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/lib.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/lib.rs"
         }
       },
       {
@@ -75,14 +295,14 @@
       {
         "locations": [
           {
-            "file": "docs/owasp-agentic-top-10-2026.md"
+            "file": "platform/services/stagecraft/api/db/schema.ts"
           }
         ],
-        "ownership": false,
-        "sourceField": "references",
+        "ownership": true,
+        "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "docs/owasp-agentic-top-10-2026.md"
+          "path": "platform/services/stagecraft/api/db/schema.ts"
         }
       },
       {
@@ -91,11 +311,63 @@
             "file": "platform/services/stagecraft/api/factory/auditActions.ts"
           }
         ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/sync/service.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/sync/service.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/sync/types.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/sync/types.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/vite.config.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/vite.config.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "docs/owasp-agentic-top-10-2026.md"
+          }
+        ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+          "path": "docs/owasp-agentic-top-10-2026.md"
         }
       },
       {
@@ -116,5 +388,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "45aea0f6dc7ae326127dd32805a2844e77cb5d81e902243c3024a4adf04fbf1d"
+  "shardHash": "bc4b67b3a87f89efb9099c58399d538b280c55df4ca61f4f701b889b9cbb5813"
 }
