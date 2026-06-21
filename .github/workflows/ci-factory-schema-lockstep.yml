@@ -67,7 +67,7 @@ jobs:
       - name: Fetch factory contract/schemas at the pinned ref
         env:
           UPSTREAM_SOURCES_RO_TOKEN: ${{ secrets.UPSTREAM_SOURCES_RO_TOKEN }}
-          UPSTREAM_FACTORY_SOURCE: ${{ variables.UPSTREAM_FACTORY_SOURCE }}
+          UPSTREAM_FACTORY_SOURCE: ${{ vars.UPSTREAM_FACTORY_SOURCE }}
         run: |
           set -euo pipefail
           if [ -z "${UPSTREAM_SOURCES_RO_TOKEN:-}" ]; then
