@@ -1,51 +1,51 @@
-# spec 168 — per-project governance certificate toolchain reference
+# spec 168 / 219: per-project governance certificate toolchain reference
 #
-# This file pins the emitter and verifier binaries the tenant project
-# uses to produce and check its own governance certificates. Identity
-# of these binaries plus their pinned factory-engine version is what
-# the substrate's `.kernel-version` records (FR-001 / FR-008).
+# This file records the toolchain a tenant project uses to produce and check
+# its own governance certificates, and where each half comes from.
 #
-# Two distribution modes are supported (spec 167 FR-005):
+# Distribution (spec 219 FR-006): the VERIFIER is vended over npm as the
+# `tenant-tail` package, pinned as an exact-version devDependency next to
+# spec-spine. There is no tenant Rust toolchain (the npm migration removed it),
+# so the historical source-install path that built the verifier from the OAP git
+# repository is retired. `npm ci` sha512 lockfile verification is the integrity
+# surface, and one pin covers every tenant-tail verb.
 #
-# - vendor-binaries: tenant ships actual binaries under
-#   @@binaries_dir@@. The `install` block below is then advisory — the
-#   binaries are already present and the tenant CI calls them directly.
+# The EMITTER (build-certificate) is NOT vended here. It is identity-bearing and
+# harness-bound, and ships with its firing and signer identity in the emit spec
+# (spec 220, residual R-2). Until that lands, a tenant inherits the ability to
+# verify a certificate, not to emit one.
 #
-# - pinned-toolchain: tenant CI installs the binaries on demand. The
-#   `install` block is the exact `cargo install` invocation that
-#   reproduces the pinned versions.
-#
-# Spec 168 FR-009 — the binaries are deterministic; pinning by factory-
-# engine version is sufficient to guarantee identical certificate hash
-# inputs for identical artifact inputs.
+# `mode` and `binaries_dir` describe the adapter-determined fallback path (spec
+# 167 OQ-6) for any tenant-resident binaries. They are recorded as provenance
+# and do NOT govern the npm-vended verifier, which is mode-independent.
 
 mode: "@@toolchain_mode@@"
+binaries_dir: "@@binaries_dir@@"
 
 factory_engine:
+  # The factory-engine version whose behaviour the pinned toolchain vouches for
+  # (spec 168 FR-009: the binaries are deterministic; pinning by version is
+  # sufficient to guarantee identical certificate hash inputs).
   version: "@@factory_engine_version@@"
-  install: "cargo install --git https://github.com/stagecraft-ing/open-agentic-platform.git --tag v@@factory_engine_version@@ --bin build-certificate --bin verify-certificate"
 
-binaries:
-  emitter:
-    name: build-certificate
-    invoke: "@@binaries_dir@@/build-certificate"
-    docs: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/crates/factory-engine/src/bin/build_certificate.rs"
-  verifier:
-    name: verify-certificate
-    invoke: "@@binaries_dir@@/verify-certificate"
-    docs: "https://github.com/stagecraft-ing/open-agentic-platform/blob/main/crates/factory-engine/src/bin/verify_certificate.rs"
+verifier:
+  # Vended via the tenant-tail npm pin (spec 219 FR-006 / AC-8). Offline-capable,
+  # identity-free: spec 102 do-not-trust-the-producer turned tenant-ward.
+  name: verify-certificate
+  package: "tenant-tail"
+  invoke: "npx --no-install tenant-tail verify-certificate"
+  docs: "https://github.com/bartekus/tenant-tail#readme"
 
-# Tenant-emit invocation (spec 168 FR-002): produce a governance
-# certificate at the end of every pipeline run, with the principal's
-# identity bound into the `signer` field (FR-003 / FR-007).
+emitter:
+  # Deferred to spec 220 (residual R-2): the emitter, its firing, and the tenant
+  # signer identity ship together. build-certificate is not vended by spec 219.
+  name: build-certificate
+  status: pending-spec-220
+
+# Tenant-verify invocation (spec 168 FR-004 / FR-005, vended via spec 219):
 #
-#   @@binaries_dir@@/build-certificate <run-dir> --tenant-mode \
-#     --signer-subject <subject> \
-#     --signer-identity-provider <provider> \
-#     [--signer-session-id <id>] \
-#     [--stage-ids <comma-separated>|auto]
-#
-# Tenant-verify invocation (spec 168 FR-004 / FR-005):
-#
-#   @@binaries_dir@@/verify-certificate <cert-path> \
+#   npx --no-install tenant-tail verify-certificate <cert-path> \
 #     [--artifact-dir <run-dir>]
+#
+# Tenant-emit invocation: pending spec 220 (residual R-2). When the emit leg
+# lands, the emitter and its signer-identity flags are documented there.

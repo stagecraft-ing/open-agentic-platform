@@ -2,8 +2,8 @@
 id: "219-tenant-tail-verifier-toolkit"
 title: "Tenant-Tail Verifier Toolkit (the vended tenant verification surface)"
 feature_branch: "feat/219-tenant-tail-verifier-toolkit"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 kind: capability
 domain: platform
 created: "2026-06-16"
@@ -49,9 +49,16 @@ extends:
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   # FR-006: the stale cargo-install template path is retired in favour of the
-  # tenant-tail npm pin. This is the one certain OAP-side code change.
+  # tenant-tail npm pin.
   - aspect: "retire-cargo-install-path"
     unit: { kind: file, path: crates/factory-engine/templates/kernel/toolchain.yaml.tmpl }
+  # FR-006 footprint (plan.md Decision 1): the template rewrite breaks the render
+  # tests in kernel_emission/templates.rs, which assert the cargo-install `--tag`
+  # line and the `@@binaries_dir@@/verify-certificate` invoke path. Those tests
+  # move to the npm-pin verifier invocation in lockstep with the template; this
+  # edge declares the authority that makes the test change coupling-gate clean.
+  - aspect: "toolchain-render-tests-npm-pin"
+    unit: { kind: file, path: crates/factory-engine/src/kernel_emission/templates.rs }
 references:
   # Extraction SOURCES (context, not authority): the cores stay in OAP and keep
   # working; tenant-tail carries a standalone copy kept in behavior parity. These
@@ -72,11 +79,34 @@ references:
 **Feature Branch**: `feat/219-tenant-tail-verifier-toolkit` (shares the physical
 branch `feat/218-219-cert-vending` with spec 218, filed together)
 **Created**: 2026-06-16
-**Status**: Draft (supersedes the cert-only distribution sketch in ADR 0002)
+**Status**: Approved, implementation complete (supersedes the cert-only distribution sketch in ADR 0002)
 **Input**: ADR 0002 found the run certificate un-vended and recommended a second
 distributable. The R-1 read (residuals note, 2026-06-16) confirmed which cores
 actually exist and extract cleanly, and the user chose the two-verbs-now /
 staged-verify-sbom scope. This spec vends the verification surface that exists.
+
+## Grounding note (status: complete, 2026-06-21)
+
+The cross-repo bulk shipped. The `tenant-tail` repository
+(`github.com/bartekus/tenant-tail`, npm `tenant-tail@0.1.0`, Apache-2.0) carries
+both verify cores and verbs (`verify-certificate`, `verify-provenance`), the npm
+wrapper, full spec-spine CI parity, and its own dogfooded `specs/` corpus. A
+read-only re-verification on 2026-06-21 confirmed the standalone three-crate
+workspace, both verbs present, and no `build-certificate` verb or factory-engine
+dependency anywhere (AC-1, AC-6). That satisfies FR-001 through FR-005 and AC-1
+through AC-7 in the tenant-tail repo, the cross-repo posture "Repository topology"
+records.
+
+The OAP-side leg is **FR-006 / AC-8** only, landed in this change: the
+`toolchain.yaml.tmpl` cargo-install path is retired and the verifier homed on the
+`tenant-tail` npm pin. Grounding that edit showed FR-006's footprint is two OAP
+files, not one: the template plus the render tests in
+`kernel_emission/templates.rs` that assert the retired cargo-install text. A
+second `refines` edge (`toolchain-render-tests-npm-pin`) is added for that file;
+`version.rs` is unchanged because the recorded verb name `verify-certificate`
+survives the npm pin. The emitter (`build-certificate`) is deferred to spec 220
+(R-2) and is named as pending in the template, not prescribed here. Decisions are
+recorded in `plan.md`.
 
 ## Repository topology (grounded, supersedes the ADR 0002 OAP-internal-crate sketch)
 
@@ -98,8 +128,11 @@ Consequences for this OAP spec's authority graph:
   repo's internal structure is governed by tenant-tail's OWN specs/ corpus, the
   same dogfooding pattern by which spec-spine's distribution is governed by
   spec-spine's own `007-distribution`, not by an OAP spec.
-- This spec's only certain OAP-side code change is retiring the cargo-install
-  template path (FR-006, the one `refines` edge). The verify cores
+- This spec's OAP-side code change is retiring the cargo-install template path
+  (FR-006), which spans two `refines` edges: the template
+  (`toolchain.yaml.tmpl`) and the render tests in `kernel_emission/templates.rs`
+  that assert its content (see the Grounding note for why the test edit is part
+  of the footprint). The verify cores
   (`governance_certificate.rs`, `crates/provenance-validator`) are referenced as
   extraction SOURCES (context), not claimed as authority: OAP keeps them and
   their behavior is preserved (behavior parity, FR-001), so there is nothing for
@@ -153,7 +186,7 @@ candidate verify core against the actual code:
   third standalone core. verify-sbom is therefore staged (see "Staged third
   verb"), not shipped in this spec.
 
-## Functional requirements (sketch, refine before implementation)
+## Functional requirements (refined in plan.md; FR-006 / AC-8 landed)
 
 - **FR-001 (tenant-tail toolkit: two verify cores, one CLI).** The tenant-tail
   repository hosts a standalone, verify-only CLI exposing two verbs:
@@ -223,7 +256,7 @@ copyright, "Bartek Kus"). The tenant-tail repository is therefore Apache-2.0; th
 relicense of the extracted source is an explicit, owner-authorized act recorded
 in the tenant-tail handoff, not an oversight.
 
-## Acceptance criteria (sketch)
+## Acceptance criteria (refined in plan.md; verify legs satisfied cross-repo, AC-8 landed here)
 
 - **AC-1.** tenant-tail builds standalone (its CLI, no factory-engine in the
   path); both verbs present; each accepts what its in-tree counterpart accepts
@@ -271,10 +304,14 @@ in the tenant-tail handoff, not an oversight.
 
 ## Sequencing
 
-FR-001 (extraction into the tenant-tail repo) is the prerequisite for everything
-and is unblocked: the R-1 read confirmed both cores extract cleanly and the seam
-is removable. Then FR-004 (release matrix) then FR-005 (npm wrapper) then FR-006
-(tenant pin + retire the template path). The verify surface becomes reachable at
-FR-006, which homes 209 FR-001's implemented gate set and is the real precondition
-for 209 AC-1. The emit half (168 FR-002 / 209 FR-003) stays in R-2 and is not
-delivered here. verify-sbom stays staged until spec 203 is implemented.
+Realized (all legs landed): FR-001 (extraction) through FR-005 (npm wrapper)
+shipped in the tenant-tail repo; FR-006 (retire the template path) landed in this
+OAP change. The original sequence and its rationale follow.
+
+FR-001 (extraction into the tenant-tail repo) was the prerequisite for everything
+and was unblocked: the R-1 read confirmed both cores extract cleanly and the seam
+is removable. Then FR-004 (release matrix), FR-005 (npm wrapper), FR-006 (tenant
+pin + retire the template path). The verify surface became reachable at FR-006,
+which homes 209 FR-001's implemented gate set and is the real precondition for 209
+AC-1. The emit half (168 FR-002 / 209 FR-003) stays in R-2 and is not delivered
+here. verify-sbom stays staged until spec 203 is implemented.

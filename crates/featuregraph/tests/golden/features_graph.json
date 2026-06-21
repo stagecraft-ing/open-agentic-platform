@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:9a624667a9a0d79be079a54cf67131609c3e6f21c970f6ea80af6cea94077013",
+  "graph_fingerprint": "sha256:0164004053a46fd2875f4edded2a39a0cd6f5447c93d71b272d55c8e84bdf3af",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4133,8 +4133,8 @@
       "feature_id": "219-tenant-tail-verifier-toolkit",
       "title": "Tenant-Tail Verifier Toolkit (the vended tenant verification surface)",
       "spec_path": "specs/219-tenant-tail-verifier-toolkit/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",

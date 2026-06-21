@@ -171,9 +171,13 @@ mod tests {
         let out = render_tenant_toolchain(&ctx).unwrap();
         assert!(out.contains("mode: \"pinned-toolchain\""));
         assert!(out.contains("version: \"1.4.2\""));
-        assert!(out.contains("--tag v1.4.2"));
-        assert!(out.contains("invoke: \"tools/spec-spine/build-certificate\""));
-        assert!(out.contains("invoke: \"tools/spec-spine/verify-certificate\""));
+        // Spec 219 FR-006 / AC-8: the verifier is the tenant-tail npm pin; the
+        // cargo-install path (and its `--tag`) is retired.
+        assert!(out.contains("npx --no-install tenant-tail verify-certificate"));
+        assert!(!out.contains("cargo install"));
+        assert!(!out.contains("--tag"));
+        // The emitter is deferred to spec 220 (residual R-2), not vended here.
+        assert!(out.contains("pending-spec-220"));
         assert!(!out.contains("@@"));
     }
 
@@ -186,7 +190,11 @@ mod tests {
         let ctx = TenantToolchainContext::new(&gate, "0.9.0", "vendor-binaries");
         let out = render_tenant_toolchain(&ctx).unwrap();
         assert!(out.contains("mode: \"vendor-binaries\""));
-        assert!(out.contains("invoke: \"vendor/spine/build-certificate\""));
+        // `binaries_dir` is still substituted (provenance / spec 167 fallback path).
+        assert!(out.contains("binaries_dir: \"vendor/spine\""));
+        // Spec 219 FR-006: the npm-vended verifier is mode-independent (the same
+        // invocation renders under vendor-binaries as under pinned-toolchain).
+        assert!(out.contains("npx --no-install tenant-tail verify-certificate"));
         assert!(!out.contains("@@"));
     }
 }
