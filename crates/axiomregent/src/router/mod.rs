@@ -4,6 +4,7 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::lease::{LeaseStore, StaleLeaseError};
@@ -132,6 +133,14 @@ pub struct Router {
     tool_registry: crate::registry_bridge::AsyncToolRegistryHandle,
     /// 098 Slice 4: optional featuregraph mutation preflight checker.
     preflight_checker: Option<Arc<dyn MutationPreflight>>,
+    /// Spec 207 FR-001/FR-002: session-scoped tamper-evident audit chain. Every
+    /// governed tool dispatch decision (allowed / denied / policy_denied) is
+    /// hash-chained into a rotating JSONL segment under the agent data dir, in
+    /// addition to the Seam-B forward. Closed segment heads are submitted for
+    /// platform countersign by the OPC duplex client (spec 207 AC-4). `None`
+    /// when no audit dir was supplied or the chain could not be opened (audit
+    /// must never block or panic a tool dispatch).
+    audit_chain: Option<Arc<open_agentic_policy_kernel::audit::AuditLogger>>,
 }
 
 /// Spec 093: extract file paths that will be affected by a tool call.
@@ -233,12 +242,49 @@ impl Router {
             platform_config: platform_cfg,
             tool_registry,
             preflight_checker,
+            audit_chain: None,
         }
     }
 
     /// 098 Slice 4: setter to configure the mutation preflight checker after construction.
     pub fn set_preflight_checker(&mut self, checker: Arc<dyn MutationPreflight>) {
         self.preflight_checker = Some(checker);
+    }
+
+    /// Spec 207 FR-001/FR-002: open the session-scoped tamper-evident audit
+    /// chain under `<audit_dir>/permissions.jsonl` (mirrors the
+    /// `set_preflight_checker` post-construction setter). The OPC sidecar
+    /// passes `<AXIOMREGENT_DATA_DIR>/audit`, a path the desktop side can
+    /// recompute to read closed segment heads for platform countersign (AC-4).
+    /// An open failure disables the chain rather than aborting startup;
+    /// auditing must never block or panic the host.
+    pub fn set_audit_chain(&mut self, audit_dir: PathBuf) {
+        // Stderr writes must be best-effort: the OPC sidecar (and the
+        // stdio_integrity test) stop reading stderr after the startup banner,
+        // so a later write hits a broken pipe. `eprintln!` PANICS on write
+        // failure, which would abort the host mid-startup; mirror the
+        // error-ignoring `let _ = writeln!(stderr, …)` discipline in main.rs.
+        use std::io::Write as _;
+        let chain_path = audit_dir.join("permissions.jsonl");
+        self.audit_chain =
+            match open_agentic_policy_kernel::audit::AuditLogger::new(chain_path.clone()) {
+                Ok(logger) => {
+                    let _ = writeln!(
+                        std::io::stderr(),
+                        "[platform] session audit chain → {}",
+                        chain_path.display()
+                    );
+                    Some(Arc::new(logger))
+                }
+                Err(e) => {
+                    let _ = writeln!(
+                        std::io::stderr(),
+                        "[platform] session audit chain disabled (open failed: {e}) → {}",
+                        chain_path.display()
+                    );
+                    None
+                }
+            };
     }
 
     /// Spec 093: sync lookup of feature context for a tool call's affected paths.
@@ -260,6 +306,18 @@ impl Router {
     fn maybe_forward_audit(&self, payload: &serde_json::Value) {
         if let Some(fwd) = &self.audit_forwarder {
             fwd.forward(payload.clone());
+        }
+    }
+
+    /// Record a tool-dispatch audit payload on every governed path (spec 207
+    /// FR-001): forward it to the platform (Seam B) AND append it to the local
+    /// tamper-evident session chain when configured. Both are best-effort and
+    /// independent: a disabled forwarder or chain is a silent no-op, and the
+    /// chain write never blocks or panics the dispatch.
+    fn record_audit(&self, payload: &serde_json::Value) {
+        self.maybe_forward_audit(payload);
+        if let Some(chain) = &self.audit_chain {
+            chain.log_value(payload.clone());
         }
     }
 
@@ -374,7 +432,7 @@ impl Router {
                         "allowed",
                         lease_id_str,
                     );
-                    self.maybe_forward_audit(&audit);
+                    self.record_audit(&audit);
                     self.policy_preflight_response(id, tool_name, args, lease_id_str)
                 }
                 Err(e) => {
@@ -384,7 +442,7 @@ impl Router {
                         "denied",
                         lease_id_str,
                     );
-                    self.maybe_forward_audit(&audit);
+                    self.record_audit(&audit);
                     Some(json_rpc_permission_denied(id, &e.to_string()))
                 }
             },
@@ -398,7 +456,7 @@ impl Router {
                             "allowed_no_lease",
                             None,
                         );
-                        self.maybe_forward_audit(&audit);
+                        self.record_audit(&audit);
                         self.policy_preflight_response(id, tool_name, args, None)
                     }
                     Err(e) => {
@@ -408,7 +466,7 @@ impl Router {
                             "denied_no_lease",
                             None,
                         );
-                        self.maybe_forward_audit(&audit);
+                        self.record_audit(&audit);
                         Some(json_rpc_permission_denied(id, &e.to_string()))
                     }
                 }
@@ -443,7 +501,7 @@ impl Router {
             "policy_denied",
             lease_id_for_audit,
         );
-        self.maybe_forward_audit(&audit);
+        self.record_audit(&audit);
         let msg = format!("{} {:?}", decision.reason, decision.rule_ids);
         Some(json_rpc_policy_denied(id, &msg))
     }

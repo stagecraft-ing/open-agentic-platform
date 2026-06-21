@@ -124,8 +124,23 @@ impl AuditLogger {
         dirs::home_dir().map(|h| h.join(".claude").join("audit").join("permissions.jsonl"))
     }
 
-    /// Log a permission decision, chained to its predecessor.
+    /// Log a permission decision, chained to its predecessor. Thin typed
+    /// wrapper over [`Self::log_value`]: the `AuditEntry` is serialised and
+    /// chained identically to any other JSON record (spec 207 FR-001).
     pub fn log(&self, entry: AuditEntry) {
+        let body = serde_json::to_value(&entry).expect("audit entry serialises to JSON");
+        self.log_value(body);
+    }
+
+    /// Append an arbitrary JSON object to the chain (spec 207 FR-001,
+    /// content-agnostic). Reuses the spec 047 [`link_record_hash`] linkage so
+    /// any producer (the permission audit writer here; the axiomregent
+    /// tool-dispatch audit) hardens its records with the same chain shape
+    /// rather than inventing a second. The record gains `timestamp`,
+    /// `previous_record_hash`, and `record_hash` fields. A non-object value
+    /// cannot carry chain fields and is dropped (auditing must never panic the
+    /// host).
+    pub fn log_value(&self, mut record: Value) {
         let timestamp = Utc::now().to_rfc3339();
 
         // Recover a poisoned lock rather than dropping every future record
@@ -137,19 +152,45 @@ impl AuditLogger {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
 
-        // Build the record body, hash it, then write the hash-bearing line.
-        let mut body = build_record(&timestamp, &entry, &guard.last_hash);
-        let record_hash = link_record_hash(body.clone(), "record_hash");
-        if let Value::Object(ref mut m) = body {
+        // Inject the timestamp + predecessor link, then hash and stamp the
+        // record hash. Canonical-JSON hashing is key-order-independent, so the
+        // field insertion order here does not affect the chain.
+        match record {
+            Value::Object(ref mut m) => {
+                m.insert("timestamp".into(), Value::String(timestamp.clone()));
+                m.insert(
+                    "previous_record_hash".into(),
+                    Value::String(guard.last_hash.clone()),
+                );
+            }
+            _ => return,
+        }
+        let record_hash = link_record_hash(record.clone(), "record_hash");
+        if let Value::Object(ref mut m) = record {
             m.insert("record_hash".into(), Value::String(record_hash.clone()));
         }
 
-        // Advance the chain head ONLY if the record was durably written. If
-        // the write fails (disk full, etc.) the on-disk tail stays the chain
-        // head; otherwise the next record would reference a record that never
-        // landed and the verifier would report a false tamper.
+        if !self.write_and_advance(&mut guard, &record, record_hash, &timestamp) {
+            return;
+        }
+        self.maybe_rotate(&mut guard);
+    }
+
+    /// Durably write a fully-formed record line (already carrying its
+    /// `record_hash`) and advance the chain head, segment count, and time
+    /// range. Returns false when the write fails (disk full, no writer): the
+    /// on-disk tail stays the chain head so the next record links the last
+    /// record that actually landed, never a phantom (otherwise the verifier
+    /// would report a false tamper).
+    fn write_and_advance(
+        &self,
+        guard: &mut LoggerState,
+        record: &Value,
+        record_hash: String,
+        timestamp: &str,
+    ) -> bool {
         let written = if let Some(writer) = guard.writer.as_mut() {
-            match serde_json::to_string(&body) {
+            match serde_json::to_string(record) {
                 Ok(line) => writeln!(writer, "{line}")
                     .and_then(|()| writer.flush())
                     .is_ok(),
@@ -159,17 +200,16 @@ impl AuditLogger {
             false
         };
         if !written {
-            return;
+            return false;
         }
 
         guard.last_hash = record_hash;
         guard.record_count += 1;
         if guard.first_ts.is_none() {
-            guard.first_ts = Some(timestamp.clone());
+            guard.first_ts = Some(timestamp.to_string());
         }
-        guard.last_ts = Some(timestamp);
-
-        self.maybe_rotate(&mut guard);
+        guard.last_ts = Some(timestamp.to_string());
+        true
     }
 
     fn maybe_rotate(&self, guard: &mut LoggerState) {
@@ -234,7 +274,10 @@ impl AuditLogger {
 
 /// Build the canonical record body for an entry (timestamp + entry fields +
 /// the predecessor link). The `record_hash` is added by the caller after
-/// hashing this body.
+/// hashing this body. Test-only since [`AuditLogger::log`] now delegates to
+/// the content-agnostic [`AuditLogger::log_value`]; retained for the
+/// deterministic `ChainBuilder` test fixture.
+#[cfg(test)]
 fn build_record(timestamp: &str, entry: &AuditEntry, previous_hash: &str) -> Value {
     let mut v = serde_json::to_value(entry).expect("audit entry serialises to JSON");
     if let Value::Object(ref mut m) = v {
@@ -539,6 +582,59 @@ mod tests {
         // Record 1 binds record 0.
         assert_eq!(recs[1]["previous_record_hash"], recs[0]["record_hash"]);
         verify_audit_chain(&recs, None).expect("clean chain verifies");
+    }
+
+    /// Spec 207 FR-001: `log_value` chains an arbitrary JSON object and the
+    /// content-agnostic verifier accepts it. The axiomregent tool-dispatch
+    /// audit feeds records this way (not via the typed `AuditEntry`).
+    #[test]
+    fn log_value_chains_arbitrary_records() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("dispatch.jsonl");
+        let logger = AuditLogger::new(path.clone()).unwrap();
+
+        logger.log_value(json!({
+            "op": "axiomregent.tool_audit", "tool": "read_file", "decision": "allowed"
+        }));
+        logger.log_value(json!({
+            "op": "axiomregent.tool_audit", "tool": "write_file", "decision": "denied"
+        }));
+
+        let recs = read_records(&path);
+        assert_eq!(recs.len(), 2);
+        assert_eq!(recs[0]["tool"], "read_file");
+        assert!(recs[0]["timestamp"].as_str().is_some());
+        assert!(
+            recs[0]["previous_record_hash"]
+                .as_str()
+                .unwrap()
+                .starts_with("genesis:")
+        );
+        assert_eq!(recs[1]["previous_record_hash"], recs[0]["record_hash"]);
+        verify_audit_chain(&recs, None).expect("arbitrary-record chain verifies");
+    }
+
+    /// A non-object value cannot carry chain fields; it is dropped without
+    /// panicking or advancing the chain head, so the next object still binds
+    /// the genesis marker.
+    #[test]
+    fn log_value_non_object_is_dropped() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("d.jsonl");
+        let logger = AuditLogger::new(path.clone()).unwrap();
+
+        logger.log_value(json!("not-an-object"));
+        logger.log_value(json!({ "tool": "x", "decision": "allowed" }));
+
+        let recs = read_records(&path);
+        assert_eq!(recs.len(), 1, "the scalar was dropped; the object landed");
+        assert!(
+            recs[0]["previous_record_hash"]
+                .as_str()
+                .unwrap()
+                .starts_with("genesis:")
+        );
+        verify_audit_chain(&recs, None).expect("chain intact after dropped scalar");
     }
 
     /// AC-1: flipping one byte in record N is caught, naming N.

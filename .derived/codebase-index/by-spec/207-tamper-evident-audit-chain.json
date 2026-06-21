@@ -8,6 +8,18 @@
     ],
     "implementingPaths": [
       {
+        "path": "crates/axiomregent/src/main.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/axiomregent/src/router/mod.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/axiomregent/tests/session_audit_chain_test.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/factory-engine/src/bin/factory_run.rs",
         "source": "spec-edge"
       },
@@ -97,6 +109,19 @@
       }
     ],
     "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "crates/axiomregent/tests/session_audit_chain_test.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/axiomregent/tests/session_audit_chain_test.rs"
+        }
+      },
       {
         "locations": [
           {
@@ -238,6 +263,32 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/factory/signing-pure.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/axiomregent/src/main.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/axiomregent/src/main.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/axiomregent/src/router/mod.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/axiomregent/src/router/mod.rs"
         }
       },
       {
@@ -388,5 +439,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "bc4b67b3a87f89efb9099c58399d538b280c55df4ca61f4f701b889b9cbb5813"
+  "shardHash": "13cb248b2cea2271bf1e7f8c6c72693f76696db82d7aaf4d8f348279d5afc2bb"
 }
