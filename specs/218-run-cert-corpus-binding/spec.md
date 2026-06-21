@@ -2,8 +2,8 @@
 id: "218-run-cert-corpus-binding"
 title: "Run Certificate Corpus Binding (chain edge to the ledger seal)"
 feature_branch: "feat/218-run-cert-corpus-binding"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 kind: capability
 domain: platform
 created: "2026-06-16"
@@ -75,8 +75,11 @@ references:
 **Feature Branch**: `feat/218-run-cert-corpus-binding` (shares the physical
 branch `feat/218-219-cert-vending` with spec 219, filed together)
 **Created**: 2026-06-16
-**Status**: Draft (the OAP half of the seam; spec-spine corpus 023-ledger-seal is
-the other)
+**Status**: Approved / implementation complete (the OAP half of the seam;
+spec-spine corpus 023-ledger-seal is the other). Landed via #402; the FR-002
+crate-level (`deny.toml`) and symbol-level (`clippy.toml`) guards are in main and
+the corpus-binding behaviors are covered by `corpus_binding_tests` in
+`governance_certificate.rs`.
 **Input**: ADR 0002 untangled two objects the cert discussion had conflated. The
 run certificate (run-provenance) is factory-engine's; a reproducible attestation
 over the spec corpus is spec-spine's. The spec-spine ledger-seal spec
@@ -173,7 +176,7 @@ Recompute is therefore not a thing a reviewer must catch for the attestation-emi
 surface: it is a thing the lint config makes impossible to compile-clean. The
 corpus-compile surface is an architectural assurance, not a lint.
 
-## Functional requirements (sketch, refine before implementation)
+## Functional requirements
 
 - **FR-001 (corpus binding field, additive, optional).** The run cert gains an
   additive `corpus_binding` block recording, by reference, the corpus attestation
@@ -218,7 +221,7 @@ corpus-compile surface is an architectural assurance, not a lint.
   passed. Skip-as-pass is forbidden, consistent with the cert's fail-closed
   posture (the spec 200 FR-004 stance).
 
-## Acceptance criteria (sketch)
+## Acceptance criteria
 
 - **AC-1.** A run cert built with an upstream attestation present carries
   `corpus_binding.corpus_attestation_hash` equal to that attestation's hash.
