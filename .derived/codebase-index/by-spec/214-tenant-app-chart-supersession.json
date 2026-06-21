@@ -453,8 +453,8 @@
       }
     ],
     "specId": "214-tenant-app-chart-supersession",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "0ecad8ecefea3784fb6287785b2849ad52f7c4ac66e942b2689734741ed11845"
+  "shardHash": "14c800506875d56f67dd9f94f287167e00e3d1ae830c365b86e81eaf97dce1e3"
 }

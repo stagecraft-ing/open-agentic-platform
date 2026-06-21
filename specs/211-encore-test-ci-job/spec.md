@@ -2,7 +2,7 @@
 id: "211-encore-test-ci-job"
 title: "Encore-Test CI Job (ASI09 verification integrity — the encore-test CI gap, closed)"
 feature_branch: "feat/211-encore-test-ci-job"
-status: draft
+status: approved
 implementation: complete
 kind: governance
 domain: tooling

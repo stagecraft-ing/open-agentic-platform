@@ -470,8 +470,8 @@
       }
     ],
     "specId": "207-tamper-evident-audit-chain",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "89cceaee0d18aa21a48053e5029154bc55280f28bb64c3b6a589b98c2692ed0d"
+  "shardHash": "1e2ca736f5d4b8f349a03b77d743c8858b52f206e84b9ed93b0c10098ada53ab"
 }

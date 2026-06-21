@@ -2,7 +2,7 @@
 id: "215-stagecraft-deploy-trigger-ux"
 title: "Stagecraft Deploy Trigger UX (Preview in Deployd / View Deployd)"
 feature_branch: "feat/215-stagecraft-deploy-trigger-ux"
-status: draft
+status: approved
 implementation: complete  # All five FRs landed in one PR: deployd client consolidation + environment_deployments record module + M2M proxy guard (215b); authenticated trigger + latest endpoints with lazy reconciliation (215c); webhook preview-destroy fix keyed to the stored release id (215d); success-page row + env deployment UI + web client (215e). Locally verified: stagecraft tsc clean (api/), pure deploy vitest (34) green, deployments.test.ts registered in the spec-211 encore lane. DEFERRED (deploy-time / live-cluster, not resolvable in-repo): SC-001/SC-002/SC-004 need a live cluster + a built image (helm rollout, preview destroy, endpoint URLs); the automated factory terminal deploy stage remains the spec 112 §11 deferral.
 kind: platform
 domain: platform

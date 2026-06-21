@@ -2,7 +2,7 @@
 id: "201-anti-blind-approval-ui"
 title: "Anti-Blind-Approval UI (ASI09 human-agent trust surfaces)"
 feature_branch: "feat/201-anti-blind-approval-ui"
-status: draft
+status: approved
 implementation: complete
 kind: platform
 domain: platform
@@ -33,6 +33,12 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummaryEndpoint.test.ts }
   - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/approval-basis-helpers.ts }
   - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/approval-basis-helpers.test.ts }
+extends:
+  # Status flips move this spec's featuregraph golden entry; carry the edge so
+  # the golden change is coupling-clean (same precedent as 198/207/214/215).
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
   - aspect: "hitl-approval-presentation"
     unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.factory.runs.$runId.tsx }

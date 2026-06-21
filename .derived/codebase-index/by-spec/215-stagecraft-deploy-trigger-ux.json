@@ -334,8 +334,8 @@
       }
     ],
     "specId": "215-stagecraft-deploy-trigger-ux",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "3442560c0627a6990f107c096ef50ef43b6321ae662bd4eca84998d5b7745313"
+  "shardHash": "4d91e67736b1529f48091f73dd4310e9c828ac4b1ba84570ae727dcec3fdaf7f"
 }
