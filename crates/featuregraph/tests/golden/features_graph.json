@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:8555d228d3c2b31c9a400d0ad060289c0a809ea820b9a91e00d027c009295e39",
+  "graph_fingerprint": "sha256:1e5a498b0e47a933476c2e3b997e4da11850d17555de974fbbb3725c015a2baa",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4166,6 +4166,27 @@
         "209-tenant-kernel-ci-enforcement",
         "218-run-cert-corpus-binding",
         "219-tenant-tail-verifier-toolkit"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "221-oap-instance-bootstrap-cli",
+      "title": "OAP fork-parameterization + oap-bootstrap pointer (FR-040)",
+      "spec_path": "specs/221-oap-instance-bootstrap-cli/spec.md",
+      "status": "draft",
+      "implementation": "in-progress",
+      "governance": "medium",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "106-rauthy-native-oidc-and-membership",
+        "151-declarative-cluster-reconciliation",
+        "137-tenant-environment-access-gates",
+        "143-presigned-upload-public-endpoint",
+        "072-multi-cloud-k8s-portability",
+        "116-supply-chain-policy-gates"
       ],
       "impl_files": [],
       "test_files": [],

@@ -202,10 +202,14 @@ ok "Non-master node ready"
 # while the Secret carries the raw bytes.
 # ---------------------------------------------------------------------------
 info "Bootstrapping Flux v2..."
+# FLUX_OWNER / FLUX_REPO / FLUX_BRANCH let a fork point Flux at its own repo so
+# the GitOps loop reconciles from the fork, not upstream (spec 221 FR-040). They
+# default to the upstream owner/repo/branch, so an unset .env behaves exactly as
+# before.
 flux bootstrap github \
-  --owner=stagecraft-ing \
-  --repo=open-agentic-platform \
-  --branch=main \
+  --owner="${FLUX_OWNER:-stagecraft-ing}" \
+  --repo="${FLUX_REPO:-open-agentic-platform}" \
+  --branch="${FLUX_BRANCH:-main}" \
   --path=platform/gitops/clusters/hetzner-prod \
   --personal=false \
   --network-policy=true
