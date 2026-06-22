@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:28cf40621ad03d84c6d98794bcc09c61c7ed3684b48ed528d203f898366f98cd",
+  "graph_fingerprint": "sha256:8555d228d3c2b31c9a400d0ad060289c0a809ea820b9a91e00d027c009295e39",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4164,6 +4164,7 @@
         "167-born-with-spec-spine-kernel",
         "198-factory-governance-envelope",
         "209-tenant-kernel-ci-enforcement",
+        "218-run-cert-corpus-binding",
         "219-tenant-tail-verifier-toolkit"
       ],
       "impl_files": [],

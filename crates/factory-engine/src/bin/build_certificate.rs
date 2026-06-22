@@ -28,6 +28,17 @@
 //!     trigger filesystem discovery (lexicographic order over
 //!     `<run-dir>/`'s subdirectories).
 //!
+//! Spec 220 (tenant emit, R-2):
+//!   - `--require-operator-key` refuses the ephemeral signing-key fallback:
+//!     the binary exits non-zero if signing material resolves to an
+//!     ephemeral key rather than an operator-supplied one (OAP_SIGNING_KEY
+//!     / OAP_SIGNING_KEY_PATH). Production tenant emission must pass this;
+//!     OAP's own dev runs do not (FR-003).
+//!   - `--corpus-attestation <path>` (or the OAP_CORPUS_ATTESTATION_PATH env
+//!     var) binds a spec-spine CorpusAttestation into the certificate by
+//!     hash (read, never recompute), mirroring the factory_run.rs read-path
+//!     (spec 218 FR-002). Applied on the tenant (signer) build path (FR-007).
+//!
 //! Usage:
 //!   build-certificate <run-dir> \
 //!     [--adapter <name>] [--requirements-hash <hash>] \
@@ -42,8 +53,8 @@ use factory_engine::{
     CertificateBuilder, CertificateBuildError, FactoryPipelineState, OAP_STAGE_IDS, Signer,
     generate_certificate_with_stage_ids,
     governance_certificate::{
-        ChainIntegrity, IntentRecord, ProofChainSummary, VerificationOutcome, VerificationRecord,
-        sha256_file,
+        ChainIntegrity, CorpusBinding, IntentRecord, ProofChainSummary, SigningAttestationKind,
+        VerificationOutcome, VerificationRecord, sha256_file,
     },
     persist_certificate, validate_spec_id_resolution, write_validation_warnings,
 };
@@ -110,6 +121,22 @@ struct Cli {
     /// lexicographic). Omit to use OAP's default s0..s5 list.
     #[arg(long)]
     stage_ids: Option<String>,
+
+    /// Spec 220 FR-003: refuse the ephemeral signing-key fallback. When set,
+    /// the binary exits non-zero (code 2) if signing material resolves to an
+    /// ephemeral key rather than an operator-supplied one (OAP_SIGNING_KEY /
+    /// OAP_SIGNING_KEY_PATH). A production tenant emission must pass this so
+    /// it can never silently emit an untrusted certificate; OAP's own dev /
+    /// CI runs leave it off.
+    #[arg(long, default_value_t = false)]
+    require_operator_key: bool,
+
+    /// Spec 220 FR-007: path to a spec-spine CorpusAttestation JSON to bind
+    /// into the certificate by hash (read, never recompute). Falls back to
+    /// the OAP_CORPUS_ATTESTATION_PATH env var. Applied on the tenant
+    /// (signer) build path; mirrors the factory_run.rs read-path.
+    #[arg(long)]
+    corpus_attestation: Option<PathBuf>,
 }
 
 fn main() {
@@ -180,13 +207,29 @@ fn main() {
         std::process::exit(2);
     }
 
-    let cert = match build_certificate(&cli, &state, &requirements_hash, signer) {
+    let corpus_binding = resolve_corpus_binding(&cli);
+
+    let cert = match build_certificate(&cli, &state, &requirements_hash, signer, corpus_binding) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("error: {e}");
             std::process::exit(2);
         }
     };
+
+    // Spec 220 FR-003: a production tenant emission must use an operator key.
+    // The cert is built but not yet persisted, so exiting here writes nothing.
+    if cli.require_operator_key
+        && matches!(cert.signing_attestation.kind, SigningAttestationKind::Ephemeral)
+    {
+        eprintln!(
+            "error: --require-operator-key was set but the signing material \
+             resolved to an ephemeral key (spec 220 FR-003). A production \
+             tenant emission must supply an operator key via OAP_SIGNING_KEY \
+             or OAP_SIGNING_KEY_PATH; refusing to emit an untrusted certificate."
+        );
+        std::process::exit(2);
+    }
 
     let out_dir = match cli.out.as_ref() {
         Some(p) => p
@@ -230,6 +273,52 @@ fn main() {
     }
 }
 
+/// Env var carrying the path to a spec-spine `CorpusAttestation` JSON
+/// (spec 220 FR-007, mirroring factory_run.rs / spec 218 FR-002). When set
+/// (or `--corpus-attestation` is passed), the cert is bound to the
+/// attestation's hash; when unset, the cert is emitted unbound.
+const ENV_CORPUS_ATTESTATION_PATH: &str = "OAP_CORPUS_ATTESTATION_PATH";
+
+/// Spec 220 FR-007: resolve the corpus binding from `--corpus-attestation`
+/// or the `OAP_CORPUS_ATTESTATION_PATH` env var. Read, never recompute: the
+/// supplied `CorpusAttestation` payload is hashed via the public
+/// `spec_spine_core::attest::attestation_hash` reader seam; the emitter never
+/// compiles or re-attests the corpus. Returns `None` (cert stays unbound)
+/// when no path is given or the artifact is unreadable / malformed; failures
+/// warn but never block emission (an unbound cert beats no cert).
+fn resolve_corpus_binding(cli: &Cli) -> Option<CorpusBinding> {
+    let path: String = cli
+        .corpus_attestation
+        .as_ref()
+        .map(|p| p.to_string_lossy().into_owned())
+        .or_else(|| std::env::var(ENV_CORPUS_ATTESTATION_PATH).ok())?;
+    let raw = match std::fs::read_to_string(&path) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("warning: corpus attestation {path} unreadable: {e} (cert unbound)");
+            return None;
+        }
+    };
+    let attestation: spec_spine_types::attest::CorpusAttestation =
+        match serde_json::from_str(&raw) {
+            Ok(a) => a,
+            Err(e) => {
+                eprintln!("warning: {path} is not a CorpusAttestation: {e} (cert unbound)");
+                return None;
+            }
+        };
+    match spec_spine_core::attest::attestation_hash(&attestation) {
+        Ok(hash) => Some(CorpusBinding {
+            corpus_attestation_hash: hash,
+            spec_spine_version: attestation.tool.version,
+        }),
+        Err(e) => {
+            eprintln!("warning: attestation_hash failed: {e} (cert unbound)");
+            None
+        }
+    }
+}
+
 /// Parse the signer flags, returning `Ok(None)` when no signer was supplied,
 /// `Ok(Some(_))` when fully populated, and an error string when partial.
 fn build_signer(cli: &Cli) -> Result<Option<Signer>, String> {
@@ -264,7 +353,16 @@ fn build_certificate(
     state: &FactoryPipelineState,
     requirements_hash: &str,
     signer: Option<Signer>,
+    corpus_binding: Option<CorpusBinding>,
 ) -> Result<factory_engine::GovernanceCertificate, String> {
+    if signer.is_none() && corpus_binding.is_some() {
+        eprintln!(
+            "warning: a corpus attestation was supplied but no signer; corpus \
+             binding is applied only on the tenant (signer) build path (spec \
+             220 FR-007). Emitting without corpus binding."
+        );
+    }
+
     let stage_ids_owned: Option<Vec<String>> = cli
         .stage_ids
         .as_deref()
@@ -321,12 +419,18 @@ fn build_certificate(
             typecheck: VerificationOutcome::Skipped,
             security_scan: VerificationOutcome::Skipped,
         };
-        let signed = CertificateBuilder::new(&state.pipeline_id, intent)
+        let mut builder = CertificateBuilder::new(&state.pipeline_id, intent)
             .build_spec_hash(state.build_spec_hash.clone().unwrap_or_default())
             .stages(cert.stages.clone())
             .verification(verification)
             .proof_chain(proof_chain)
-            .signer(signer)
+            .signer(signer);
+        // Spec 220 FR-007: bind the tenant's corpus attestation (read, never
+        // recompute) when one was supplied.
+        if let Some(cb) = corpus_binding {
+            builder = builder.corpus_binding(cb.corpus_attestation_hash, cb.spec_spine_version);
+        }
+        let signed = builder
             .build_tenant()
             .map_err(|e: CertificateBuildError| e.to_string())?;
         return Ok(signed);

@@ -9,6 +9,7 @@
       "167-born-with-spec-spine-kernel",
       "198-factory-governance-envelope",
       "209-tenant-kernel-ci-enforcement",
+      "218-run-cert-corpus-binding",
       "219-tenant-tail-verifier-toolkit"
     ],
     "implementingPaths": [
@@ -22,6 +23,10 @@
       },
       {
         "path": "crates/factory-engine/src/platform_jws.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/tests/tenant_emission_integration.rs",
         "source": "spec-edge"
       },
       {
@@ -45,14 +50,14 @@
       {
         "locations": [
           {
-            "file": "crates/featuregraph/tests/golden/features_graph.json"
+            "file": "crates/factory-engine/src/bin/build_certificate.rs"
           }
         ],
         "ownership": true,
         "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "crates/featuregraph/tests/golden/features_graph.json"
+          "path": "crates/factory-engine/src/bin/build_certificate.rs"
         }
       },
       {
@@ -61,11 +66,37 @@
             "file": "crates/factory-engine/src/bin/build_certificate.rs"
           }
         ],
-        "ownership": false,
-        "sourceField": "references",
+        "ownership": true,
+        "sourceField": "extends",
         "unit": {
           "kind": "file",
           "path": "crates/factory-engine/src/bin/build_certificate.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/tests/tenant_emission_integration.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/tests/tenant_emission_integration.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/featuregraph/tests/golden/features_graph.json"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/featuregraph/tests/golden/features_graph.json"
         }
       },
       {
@@ -138,5 +169,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "ca53263548bde2d7e032fe2d8691ed20e8778cda5efa9eec4678acad32595dce"
+  "shardHash": "cce10eaf412b9864f9ebb76a49ce7b4c2debd3d8fdd9fac61929dea2328d25d7"
 }

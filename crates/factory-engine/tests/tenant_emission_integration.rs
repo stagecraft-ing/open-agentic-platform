@@ -11,6 +11,7 @@ use factory_contracts::AdapterRegistry;
 use factory_contracts::adapter_manifest::*;
 use factory_engine::factory_root::FactoryRoot;
 use factory_engine::kernel_emission::ToolchainMode;
+use factory_engine::governance_certificate::SigningAttestationKind;
 use factory_engine::{FactoryEngine, FactoryEngineConfig, GovernanceCertificate};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -496,5 +497,160 @@ fn partial_signer_flags_are_rejected_explicitly() {
     assert!(
         stderr.contains("requires --signer-identity-provider"),
         "stderr did not name the partial-flag requirement: {stderr}"
+    );
+}
+
+/// Spec 220 FR-003: with `--require-operator-key` set and no operator key in
+/// the environment, the binary refuses to emit an ephemeral-signed (untrusted)
+/// certificate. It exits 2 and writes nothing.
+#[test]
+fn require_operator_key_halts_on_ephemeral_fr003() {
+    let tmp = tempfile::tempdir().unwrap();
+    write_stage_artifact(tmp.path(), "tenant-codegen", "app.rs", b"fn main() {}");
+
+    let output = Command::new(bin_path("build-certificate"))
+        .arg(tmp.path())
+        .args(["--tenant-mode"])
+        .args(["--signer-subject", "alice@tenant.example"])
+        .args(["--signer-identity-provider", "rauthy@tenant-org"])
+        .args(["--stage-ids", "tenant-codegen"])
+        .arg("--require-operator-key")
+        // Force the ephemeral path regardless of the ambient environment.
+        .env_remove("OAP_SIGNING_KEY")
+        .env_remove("OAP_SIGNING_KEY_PATH")
+        .output()
+        .expect("spawn build-certificate");
+
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "require-operator-key with an ephemeral key must exit 2; stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--require-operator-key") && stderr.contains("ephemeral"),
+        "stderr did not surface the FR-003 operator-key diagnostic: {stderr}"
+    );
+    assert!(
+        !tmp.path().join("governance-certificate.json").exists(),
+        "no certificate may be written when the operator-key guard fires"
+    );
+}
+
+/// Spec 220 FR-003: with an operator-supplied `OAP_SIGNING_KEY` present,
+/// `--require-operator-key` is satisfied and emission proceeds with an
+/// Operator signing attestation.
+#[test]
+fn require_operator_key_passes_with_operator_key_fr003() {
+    let tmp = tempfile::tempdir().unwrap();
+    write_stage_artifact(tmp.path(), "tenant-codegen", "app.rs", b"fn main() {}");
+
+    // A valid base64 32-byte Ed25519 seed (32 zero bytes => 43 'A' + '=').
+    let operator_seed = format!("{}=", "A".repeat(43));
+
+    let output = Command::new(bin_path("build-certificate"))
+        .arg(tmp.path())
+        .args(["--tenant-mode"])
+        .args(["--signer-subject", "alice@tenant.example"])
+        .args(["--signer-identity-provider", "rauthy@tenant-org"])
+        .args(["--stage-ids", "tenant-codegen"])
+        .arg("--require-operator-key")
+        .env("OAP_SIGNING_KEY", &operator_seed)
+        .env_remove("OAP_SIGNING_KEY_PATH")
+        .output()
+        .expect("spawn build-certificate");
+
+    assert!(
+        output.status.success(),
+        "require-operator-key with an operator key must succeed; stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let cert = read_certificate(&tmp.path().join("governance-certificate.json"));
+    assert!(
+        matches!(cert.signing_attestation.kind, SigningAttestationKind::Operator),
+        "expected Operator signing attestation, got {:?}",
+        cert.signing_attestation.kind
+    );
+}
+
+/// Spec 220 FR-007 + AC-8: a supplied corpus attestation is bound into the
+/// tenant certificate by hash (read, never recompute), and the round-trip
+/// verifies: `verify-certificate --corpus-attestation` accepts the matching
+/// attestation and rejects a mismatched one.
+#[test]
+fn corpus_binding_round_trips_fr007() {
+    let tmp = tempfile::tempdir().unwrap();
+    write_stage_artifact(tmp.path(), "tenant-codegen", "app.rs", b"fn main() {}");
+
+    // A minimal but valid spec-spine CorpusAttestation (camelCase wire shape).
+    let attestation = r#"{
+        "schemaVersion": "0.1.0",
+        "tool": { "name": "spec-spine", "version": "0.8.0" },
+        "inputsManifestHash": "inputs-abc",
+        "registryHash": "registry-1",
+        "verdicts": {
+            "compile": { "ok": true },
+            "lint": { "ok": true, "findingsHash": "findings-0" }
+        }
+    }"#;
+    let att_path = tmp.path().join("attestation.json");
+    std::fs::write(&att_path, attestation).unwrap();
+
+    let build = Command::new(bin_path("build-certificate"))
+        .arg(tmp.path())
+        .args(["--tenant-mode"])
+        .args(["--signer-subject", "alice@tenant.example"])
+        .args(["--signer-identity-provider", "rauthy@tenant-org"])
+        .args(["--stage-ids", "tenant-codegen"])
+        .args(["--corpus-attestation", att_path.to_str().unwrap()])
+        .output()
+        .expect("spawn build-certificate");
+    assert!(
+        build.status.success(),
+        "corpus-bound emission failed: {}",
+        String::from_utf8_lossy(&build.stderr)
+    );
+
+    let cert_path = tmp.path().join("governance-certificate.json");
+    let cert = read_certificate(&cert_path);
+    let binding = cert
+        .corpus_binding
+        .as_ref()
+        .expect("corpus_binding must be present (FR-007)");
+    assert!(
+        !binding.corpus_attestation_hash.is_empty(),
+        "corpus_attestation_hash must be populated"
+    );
+    assert_eq!(binding.spec_spine_version, "0.8.0");
+
+    // AC-8: the verifier accepts the matching attestation (round-trip).
+    let ok = Command::new(bin_path("verify-certificate"))
+        .arg(&cert_path)
+        .args(["--artifact-dir", tmp.path().to_str().unwrap()])
+        .args(["--corpus-attestation", att_path.to_str().unwrap()])
+        .output()
+        .expect("spawn verify-certificate (matching)");
+    assert!(
+        ok.status.success(),
+        "verifier rejected a matching corpus attestation; stderr: {}; stdout: {}",
+        String::from_utf8_lossy(&ok.stderr),
+        String::from_utf8_lossy(&ok.stdout),
+    );
+
+    // AC-8: a mismatched attestation fails verification.
+    let other = attestation.replace("registry-1", "registry-DIFFERENT");
+    let other_path = tmp.path().join("other.json");
+    std::fs::write(&other_path, other).unwrap();
+    let bad = Command::new(bin_path("verify-certificate"))
+        .arg(&cert_path)
+        .args(["--artifact-dir", tmp.path().to_str().unwrap()])
+        .args(["--corpus-attestation", other_path.to_str().unwrap()])
+        .output()
+        .expect("spawn verify-certificate (mismatch)");
+    assert!(
+        !bad.status.success(),
+        "verifier accepted a mismatched corpus attestation; stdout: {}",
+        String::from_utf8_lossy(&bad.stdout)
     );
 }
