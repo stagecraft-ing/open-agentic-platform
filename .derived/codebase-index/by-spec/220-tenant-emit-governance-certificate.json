@@ -26,6 +26,10 @@
         "source": "spec-edge"
       },
       {
+        "path": "crates/factory-engine/tests/tenant_emission_integration.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/featuregraph/tests/golden/features_graph.json",
         "source": "spec-edge"
       },
@@ -67,6 +71,19 @@
         "unit": {
           "kind": "file",
           "path": "crates/factory-engine/src/bin/build_certificate.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/tests/tenant_emission_integration.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/tests/tenant_emission_integration.rs"
         }
       },
       {
@@ -152,5 +169,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "2107732277d1c5519531f7d5b51a901ea92bd74d71fbce0ba38479b7bf4eb987"
+  "shardHash": "cce10eaf412b9864f9ebb76a49ce7b4c2debd3d8fdd9fac61929dea2328d25d7"
 }

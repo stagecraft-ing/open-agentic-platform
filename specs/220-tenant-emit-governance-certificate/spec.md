@@ -67,6 +67,12 @@ extends:
   - spec: "218-run-cert-corpus-binding"
     nature: additive
     unit: { kind: file, path: crates/factory-engine/src/bin/build_certificate.rs }
+  # 220 adds its operator-key (FR-003) and corpus-binding (FR-007) tests to
+  # 168's tenant-emission integration suite, the shared file 168 established
+  # for these tests. Additive: new test fns, no change to 168's own cases.
+  - spec: "168-per-project-governance-certificate"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/tests/tenant_emission_integration.rs }
 amends:
   # Clarification (not supersession): 168 FR-001/FR-002 (a tenant ships and fires
   # the emitter, automatic at completion) were capability-complete in-engine under
