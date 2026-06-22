@@ -73,6 +73,22 @@ extends:
   - spec: "168-per-project-governance-certificate"
     nature: additive
     unit: { kind: file, path: crates/factory-engine/tests/tenant_emission_integration.rs }
+refines:
+  # Leg 3 (kernel wiring): 220 fills the emitter slot spec 219 left deferred
+  # (`status: pending-spec-220`). The born-with kernel toolchain manifest now
+  # pins the released `tenant-emit` npm package and its `build-certificate`
+  # invoke, mirroring the tenant-tail verifier block 219 landed in this same
+  # file (FR-001 "kernel-pinned next to tenant-tail and spec-spine"). Same
+  # `refines:`-by-aspect authority pattern 219 used for the toolchain template.
+  - aspect: "emitter-pin-tenant-emit"
+    unit: { kind: file, path: crates/factory-engine/templates/kernel/toolchain.yaml.tmpl }
+  # The render test in kernel_emission/templates.rs asserts the deferred
+  # `pending-spec-220` marker; filling the slot flips that assertion to the
+  # pinned tenant-emit emitter block in lockstep with the template. This edge
+  # makes the test change coupling-gate clean (mirroring 219's
+  # `toolchain-render-tests-npm-pin` edge for the same file).
+  - aspect: "toolchain-render-tests-emitter-pin"
+    unit: { kind: file, path: crates/factory-engine/src/kernel_emission/templates.rs }
 amends:
   # Clarification (not supersession): 168 FR-001/FR-002 (a tenant ships and fires
   # the emitter, automatic at completion) were capability-complete in-engine under

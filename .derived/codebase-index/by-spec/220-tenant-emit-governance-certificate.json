@@ -22,7 +22,15 @@
         "source": "spec-edge"
       },
       {
+        "path": "crates/factory-engine/src/kernel_emission/templates.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/factory-engine/src/platform_jws.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl",
         "source": "spec-edge"
       },
       {
@@ -102,6 +110,32 @@
       {
         "locations": [
           {
+            "file": "crates/factory-engine/src/kernel_emission/templates.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/kernel_emission/templates.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/templates/kernel/toolchain.yaml.tmpl"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/factory-engine/src/governance_certificate.rs"
           }
         ],
@@ -169,5 +203,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "cce10eaf412b9864f9ebb76a49ce7b4c2debd3d8fdd9fac61929dea2328d25d7"
+  "shardHash": "5efc2e3e245521097ac5718fd081fc781d01c5d64ac5cc465e4c20ec658fc3da"
 }
