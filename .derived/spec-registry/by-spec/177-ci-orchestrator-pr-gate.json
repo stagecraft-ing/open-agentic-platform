@@ -157,13 +157,14 @@
       "6. Migration",
       "7. Operator note — branch protection",
       "8. Why this fits OAP's posture",
-      "Amendment — 2026-06-10: push-trim, config-hash fold, ai-review verifier mode"
+      "Amendment — 2026-06-10: push-trim, config-hash fold, ai-review verifier mode",
+      "Amendment (2026-06-23): ai-review API-failure resilience"
     ],
     "specPath": "specs/177-ci-orchestrator-pr-gate/spec.md",
     "status": "approved",
     "summary": "Replace the 14-workflow PR-gate fleet's implicit merge contract — \"whatever workflows happen to fire on `pull_request` plus whatever the branch- protection UI lists\" — with one declared, hashable orchestrator at `.github/workflows/ci.yml`. Each existing `ci-*.yml` and `spec-conformance.yml` is converted to `workflow_call:` (preserving `workflow_dispatch:` and the supply-chain `schedule:` cron). The orchestrator runs a `dorny/paths-filter` job, dispatches each reusable workflow conditionally on its file-paths surface, and ends in a single `ci-gate` aggregator. Constitutional gates — `spec-conformance`, `ci-spec-code-coupling`, `ci-supply-chain`, `ci-codebase-index` — run unconditionally regardless of path-filter outputs. Branch protection's required-check surface shrinks from \"fourteen names + whatever's in the UI\" to one: `ci-gate`.\n",
     "title": "CI orchestrator — collapse PR-gate workflow fleet behind a single ci-gate"
   },
-  "shardHash": "fe05b6bbaa45d00449af61ce5faade21e6b3c9d8b40fcbad70a9cc47489e7bb3",
+  "shardHash": "c0d076c0086b6f8c31d868978f91972d614eae831bea90c16fc227beceb631e9",
   "specVersion": "1.1.0"
 }
