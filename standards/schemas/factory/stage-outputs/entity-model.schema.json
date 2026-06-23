@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "entity-model.schema.json",
-  "title": "Entity Model — Stage 1 Output",
+  "title": "Entity Model - Stage 1 Output",
   "description": "Every noun that represents a data object the system must track, extracted from business documents.",
   "type": "object",
   "required": ["entities"],

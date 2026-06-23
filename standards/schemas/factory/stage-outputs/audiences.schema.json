@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "audiences.schema.json",
-  "title": "Audiences — Stage 2 Output",
+  "title": "Audiences - Stage 2 Output",
   "description": "Who uses the system: audience groups, authentication methods, and role-permission mappings.",
   "type": "object",
   "required": ["audiences"],
