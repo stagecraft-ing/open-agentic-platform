@@ -7,7 +7,7 @@ implementation: complete
 kind: governance
 domain: tooling
 created: "2026-06-11"
-amended: "2026-06-12"
+amended: "2026-06-23"
 amendment_record: |
   self-amended (2026-06-12) — comparison-model correction, implementation PR.
   A full file-by-file diff against the pinned ref (factory@cc1139f)
@@ -37,31 +37,48 @@ amendment_record: |
   §"The lockstep set", FR-001, and AC-2(c) are updated in lockstep with the
   tool's include_top_keys. implementation flipped in-progress → complete
   (evidence in §Implementation log).
-# The factory contract ref the PR lane checks against. Bumping it is a
-# coupling-gated spec edit (FR-007). Verified in lockstep at this SHA
-# 2026-06-12 (spec 197 AC-8 / spec 198 admission).
-pinned_ref: "cc1139fc74dfa4c332e25f60cd8ee9840aa78ed0"
+
+  self-amended (2026-06-23, third): pin bump + name-agnostic reshape. The
+  upstream contract source was rebuilt clean-room and the
+  UPSTREAM_FACTORY_SOURCE variable repointed (2026-06-21); pinned_ref moves
+  cc1139f -> 427f499, the current upstream contract commit, re-verified in
+  lockstep here (parity holds on every mode). The spec's live-mechanism prose
+  is de-named: repo identity (org-qualified paths, repo@ref syntax) is
+  operational config resolved from UPSTREAM_FACTORY_SOURCE, not spec truth, so
+  a future rename is a zero-spec-edit variable flip and only a clean-room
+  content change bumps the pin (this one). Adds §"Upstream source identity is
+  operational, not spec truth". Five stage-output schema titles are
+  de-em-dashed (em-dash to hyphen) to restore exact parity with the upstream
+  mirror and clear a house-style violation; no contract-shape change. Dated
+  historical verification notes (@cc1139f) are left intact as records.
+# The upstream-contract ref the PR lane checks against; the repo itself is
+# resolved operationally from the UPSTREAM_FACTORY_SOURCE variable, not named
+# here (see §"Upstream source identity is operational, not spec truth").
+# Bumping it is a coupling-gated spec edit (FR-007). Re-verified in lockstep at
+# this SHA 2026-06-23 against the configured upstream source; the prior pin
+# (cc1139f) was verified 2026-06-12 (spec 197 AC-8 / spec 198 admission).
+pinned_ref: "427f49960cb4976b19036dc076fa3b7e1026070b"
 authors: ["open-agentic-platform"]
 language: en
 summary: >
   Spec 197 declares the factory Build Spec an open standard that the owned
-  factory source (factory) mirrors, and spec 197 AC-8 / spec 198
-  both verified that mirror BY HAND ("verified directly against
-  factory origin/main @ cc1139f"). A hand diff is not a gate: the
-  next factory edit, or the next OAP schema bump, can silently
-  diverge the two contract surfaces and nothing fails. This spec automates
-  the lockstep: an OAP-side enforcing CI job that fetches factory's
-  contract/schemas/** at a committed pin and asserts structural agreement
-  against standards/schemas/factory/** under a three-mode comparison (exact
-  parity for the shared surface; a directional floor where OAP fields must
-  persist on the factory side but factory additions pass; a section-scoped
-  floor for the adapter-specialised manifest) — byte-equality is impossible,
-  the surfaces carry divergent comments, additive evolution, and
-  adapter-specific sections by design — plus a spec-197 FR-005 guard that no GoA-specific concept entered either
-  contract surface. Two lanes: a PR-time check against the committed pin,
-  and a scheduled check against factory@main that catches upstream
-  drift the pin hasn't yet absorbed. factory stays gate-free
-  (spec_spine: false); enforcement is unidirectional, OAP-side.
+  upstream source mirrors, and spec 197 AC-8 / spec 198 both verified that
+  mirror BY HAND ("verified directly against factory origin/main @ cc1139f").
+  A hand diff is not a gate: the next upstream-source edit, or the next OAP
+  schema bump, can silently diverge the two contract surfaces and nothing
+  fails. This spec automates the lockstep: an OAP-side enforcing CI job that
+  fetches the configured upstream source's contract/schemas/** at a committed
+  pin and asserts structural agreement against standards/schemas/factory/**
+  under a three-mode comparison (exact parity for the shared surface; a
+  directional floor where OAP fields must persist on the upstream side but
+  upstream additions pass; a section-scoped floor for the adapter-specialised
+  manifest). Byte-equality is impossible: the surfaces carry divergent
+  comments, additive evolution, and adapter-specific sections by design. A
+  spec-197 FR-005 guard additionally asserts no GoA-specific concept entered
+  either contract surface. Two lanes: a PR-time check against the committed
+  pin, and a scheduled check against the upstream source @ main that catches
+  upstream drift the pin hasn't yet absorbed. The upstream source stays
+  gate-free (spec_spine: false); enforcement is unidirectional, OAP-side.
 code_aliases: ["FACTORY_SCHEMA_LOCKSTEP_CI"]
 compliance:
   - framework: "owasp-asi-2026"
@@ -126,9 +143,12 @@ references:
   # tool never parses standards/schemas/factory/*.yaml; see §4).
   - role: context
     unit: { kind: directory, path: tools/oap/schema-parity-check }
-  # The owned factory source whose contract/schemas/** are the far side of
-  # the lockstep. spec_spine: false by declaration (upstream-map.yaml) — no
-  # gates run there; this check is the OAP-side enforcement.
+  # The original owned upstream source that seeded this lockstep's far side.
+  # The live source is now resolved operationally from UPSTREAM_FACTORY_SOURCE
+  # (see §"Upstream source identity is operational, not spec truth");
+  # spec_spine: false by declaration (upstream-map.yaml), so no gates run there
+  # and this check is the OAP-side enforcement. Retained as a historical
+  # reference, not the live target.
   - role: historical
     unit: { kind: directory, path: factory }
 ---
@@ -139,23 +159,23 @@ references:
 **Created**: 2026-06-11
 **Status**: Draft (WS4 of the OAP gap-closure pass)
 **Input**: Spec 197's FR-006 promises the canonical YAML schema and the
-owned factory source (`factory`) stay "in lockstep", and AC-8
+owned upstream source stay "in lockstep", and AC-8
 records that lockstep as *verified* — but the verification note reads
 "verified directly against factory `origin/main` @ `cc1139f`",
 i.e. a one-time manual diff. Spec 198 §AC closes the first sealed
-admission for `Stagecraft-ing/factory` and likewise leans on a
+admission for the owned upstream source and likewise leans on a
 hand check. The lockstep that two approved specs depend on has never been
 gated. This spec is that gate.
 
 ## Purpose
 
 The factory Build Spec contract is an open standard (spec 197 FR-001):
-OAP authors it under `standards/schemas/factory/**`, and `factory`
-mirrors it under `contract/schemas/**` because the owned factory consumes
+OAP authors it under `standards/schemas/factory/**`, and the upstream
+source mirrors it under `contract/schemas/**` because the owned factory consumes
 the same contract OAP defines. Two approved specs assert the two surfaces
 are identical, and both verified it by eye on a specific SHA.
 
-A hand diff decays the instant either side moves. `factory` is
+A hand diff decays the instant either side moves. The upstream source is
 `spec_spine: false` by declaration (`upstream-map.yaml`) — it runs **no**
 spec-spine gates, by design, because it is plain OAP-conformant content,
 not a governed spine. So the only place this lockstep can be enforced is
@@ -197,10 +217,39 @@ is recorded and rejected here.)
 
 ## Key design positions
 
+### Upstream source identity is operational, not spec truth
+
+What this gate enforces is **contract structure** (the schema shape and the
+folder layout of `contract/schemas/**`), not the identity of the repository
+that carries it. The repo is resolved at runtime from the
+`UPSTREAM_FACTORY_SOURCE` Actions variable (today
+`stagecraft-ing/factory-encore`); the spec deliberately does not name it. The
+name is irrelevant: today it is `factory-encore`, tomorrow it may be `factory`
+again, and the gate behaves identically either way as long as the schema set
+and folder structure agree.
+
+Two consequences follow, and they are the whole point of this section:
+
+- **A rename is a zero-spec-edit change.** If the upstream repo is renamed
+  (same git history), the `pinned_ref` SHA stays valid and only the variable
+  flips: no spec edit, no coupling-gate fire. Repo identity lives in
+  operational config, where churn belongs.
+- **Only a clean-room content change bumps the pin.** A brand-new contract
+  source with fresh history (as the 2026-06-21 `factory-encore` rebuild was)
+  changes the SHA, so `pinned_ref` moves. That is precisely the case worth a
+  visible, coupling-gated review (FR-007): a new contract source is itself a
+  contract-surface event.
+
+Accordingly the prose below speaks of "the configured upstream source" and
+"the upstream source @ main" rather than a hardcoded repo path. Dated
+historical notes (e.g. "verified @ `cc1139f`") keep their original repo
+wording because they record what was true at a past commit, not the live
+mechanism.
+
 ### Pin source — two lanes (committed pin + cron against main)
 
 **Decision: a committed pin file lives in OAP, read at PR-time; a second
-scheduled lane checks `factory@main` directly.**
+scheduled lane checks the upstream source @ main directly.**
 
 The admitted `factory_sha` (spec 198) lives in the deployed stagecraft DB,
 which CI cannot reach — rejected as the pin source. Three viable homes for
@@ -220,9 +269,9 @@ a committed pin were weighed:
    duplicates the contract OAP already authors).
 
 A pin alone catches OAP-side drift but goes stale silently: if
-factory moves ahead, the PR lane keeps passing against the old pin
+the upstream source moves ahead, the PR lane keeps passing against the old pin
 while the real surfaces diverge. So a **second lane** runs on a schedule
-(cron) and on `workflow_dispatch`, fetching `factory@main` and
+(cron) and on `workflow_dispatch`, fetching the upstream source @ main and
 running the same parity assertion. A red cron lane is the signal "upstream
 moved; bump the pin and reconcile". This is the two-lane design: PR-time is
 **pinned and blocking** (deterministic, no network flake gates a PR on
@@ -232,13 +281,13 @@ to do with the drift).
 
 ### Fetch auth — authenticated cross-org fetch, PAT secret
 
-`gh api repos/Stagecraft-ing/factory` returns **404** for the
+A `gh api` fetch of the configured upstream source returns **404** for the
 authenticated CI identity at spec time — the repo is private or org-gated
 to the stagecraft-ing CI token's scope. The check therefore cannot assume
 anonymous fetch. **Decision:** the workflow fetches via an authenticated
 sparse checkout / `gh api` using a repo-scoped PAT stored as an Actions
 secret (working name `UPSTREAM_SOURCES_RO_TOKEN`, read-only contents scope on
-`Stagecraft-ing/factory`). If org policy later makes the repo
+the configured upstream source). If org policy later makes the repo
 public, the token becomes optional and the workflow falls back to anonymous
 fetch — but the spec assumes private until verified otherwise.
 **Fail-visible:** a missing or unauthorized token fails the job with
@@ -434,7 +483,7 @@ review note.
   spec-197 FR-005 guard hit. Runs identically in `merge_group`. SHA-pinned action refs
   (spec 158). Fail-visible on fetch/auth failure (never skipped-green).
 - **FR-004 — Cron lane (against main, human-routed).** A scheduled
-  (+ `workflow_dispatch`) lane sparse-fetches `factory@main`, runs
+  (+ `workflow_dispatch`) lane sparse-fetches the upstream source @ main, runs
   the same assertions, and on divergence opens/annotates a tracking issue
   ("upstream drifted from pin `<ref>`; reconcile and bump") rather than
   failing an unrelated PR. Catches the stale-pin failure mode the PR lane
@@ -484,7 +533,7 @@ review note.
   divergence in the same run (gap classification is per-file, proven by a
   fixture that pairs a Tier-B gap with an exact/floor break and asserts the
   run still fails on the break).
-- **AC-5.** The cron lane, run against a `factory@main` that has
+- **AC-5.** The cron lane, run against the upstream source @ main when it has
   drifted ahead of the pin, opens/annotates a tracking issue and does not
   fail an unrelated PR; bumping `pinned_ref` to the new ref turns the PR
   lane green again.
