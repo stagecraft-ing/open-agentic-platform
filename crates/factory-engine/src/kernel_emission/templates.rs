@@ -176,8 +176,12 @@ mod tests {
         assert!(out.contains("npx --no-install tenant-tail verify-certificate"));
         assert!(!out.contains("cargo install"));
         assert!(!out.contains("--tag"));
-        // The emitter is deferred to spec 220 (residual R-2), not vended here.
-        assert!(out.contains("pending-spec-220"));
+        // Spec 220 FR-001: the emitter is now vended via the tenant-emit npm pin
+        // (the emit-side counterpart of the verifier block above); the
+        // `pending-spec-220` deferral 219 left is gone.
+        assert!(out.contains("npx --no-install tenant-emit build-certificate"));
+        assert!(out.contains("package: \"tenant-emit\""));
+        assert!(!out.contains("pending-spec-220"));
         assert!(!out.contains("@@"));
     }
 
@@ -195,6 +199,10 @@ mod tests {
         // Spec 219 FR-006: the npm-vended verifier is mode-independent (the same
         // invocation renders under vendor-binaries as under pinned-toolchain).
         assert!(out.contains("npx --no-install tenant-tail verify-certificate"));
+        // Spec 220 FR-001: the npm-vended emitter is mode-independent too; the
+        // tenant-emit pin renders identically under vendor-binaries.
+        assert!(out.contains("npx --no-install tenant-emit build-certificate"));
+        assert!(!out.contains("pending-spec-220"));
         assert!(!out.contains("@@"));
     }
 }
