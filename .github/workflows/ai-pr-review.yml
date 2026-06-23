@@ -117,6 +117,7 @@ jobs:
       # H3 fix: prompt prelude is fed via -p; the diff is piped to stdin.
       # No shell interpolation of contributor-controlled content occurs.
       - name: Run AI Review
+        id: aireview
         if: steps.diff.outputs.skip != 'true' && steps.evidence.outputs.verified != 'true'
         env:
           # Subscription-backed auth via the Claude Code OAuth token, NOT an
@@ -141,21 +142,44 @@ jobs:
           4. Performance concerns
 
           Be concise. Focus on issues, not praise. Format as markdown with ## sections.'
-          # No `|| echo` swallow: let claude's real exit code and stderr
-          # surface in the runner log so an auth failure can't masquerade as
-          # a green check. On failure this step exits non-zero and the
-          # "Post review comment" step (implicit success() in its `if`) is
-          # skipped — yielding a red check + visible stderr, never a
-          # misleading "passed" comment. Promoting this into the required
-          # `ci-gate` is a deliberate follow-up, gated on first confirming a
-          # review genuinely runs under the OAuth token.
-          claude -p "$PROMPT" --output-format text < /tmp/pr-diff.txt > /tmp/review.md
+          # API-failure resilience (spec 177, 2026-06-23 amendment): a Claude
+          # API outage must not block merges, but a pass must never be silent.
+          # Capture claude's exit + output, then classify the failure:
+          #   - secret unset (handled above) -> hard fail (config bug).
+          #   - auth / permission error -> hard fail: a broken token must be
+          #     fixed, not masked (preserves the ~#220/#265 anti-silent-green
+          #     guard against a green-but-dead review).
+          #   - anything else (overloaded_error, rate_limit_error, 5xx,
+          #     timeout, network, unclassified) -> PASS, with a LOUD
+          #     ::warning:: and a PR notice, so a third-party API incident
+          #     rides through instead of red-gating every PR. The pass is
+          #     visible (a comment is posted), never silent.
+          if claude -p "$PROMPT" --output-format text < /tmp/pr-diff.txt > /tmp/review.md 2> /tmp/review.err; then
+            echo "review_status=ok" >> "$GITHUB_OUTPUT"
+          else
+            rc=$?
+            err="$(cat /tmp/review.err /tmp/review.md 2>/dev/null)"
+            echo "claude exited ${rc}; captured output follows:" >&2
+            printf '%s\n' "$err" >&2
+            if printf '%s' "$err" | grep -qiE 'authentication_error|permission_error|invalid[^a-z]*(x-)?api[^a-z]*key|unauthorized|forbidden|oauth[^a-z]*(token)?[^a-z]*(invalid|expired|revoked|missing)'; then
+              echo "::error::AI review could not authenticate (not an API outage); fix CLAUDE_CODE_OAUTH_TOKEN. Details above."
+              exit 1
+            fi
+            excerpt="$(printf '%s' "$err" | tr '\n\r\t' '   ' | sed 's/  */ /g' | cut -c1-280)"
+            [ -z "$excerpt" ] && excerpt="claude CLI exited ${rc} with no captured output"
+            {
+              echo "review_status=api_failure"
+              echo "api_rc=${rc}"
+              echo "api_excerpt=${excerpt}"
+            } >> "$GITHUB_OUTPUT"
+            echo "::warning::AI review could not run due to a Claude API failure (rc=${rc}): ${excerpt}. Passing ci-gate so the API incident does not block merges; re-run once the API recovers."
+          fi
 
       - name: Post review comment
         # Explicit success() (raised by the AI review on #265): the post step
         # must run only when Run AI Review succeeded, so a future
         # `continue-on-error` can't let it post a partial/empty review.
-        if: success() && steps.diff.outputs.skip != 'true' && steps.evidence.outputs.verified != 'true'
+        if: success() && steps.diff.outputs.skip != 'true' && steps.evidence.outputs.verified != 'true' && steps.aireview.outputs.review_status == 'ok'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -175,6 +199,33 @@ jobs:
             echo "::warning::comment post failed (attempt ${attempt}) — retrying"
             sleep 20
           done
+
+      - name: Post API-failure notice (review could not run; make the pass VISIBLE)
+        # spec 177 (2026-06-23): a Claude API outage must not block merges, but
+        # the pass must never be silent. Run AI Review classified the failure as
+        # an API outage (review_status=api_failure) and exited 0; surface that
+        # here so a human sees the review did NOT happen and ci-gate passed
+        # anyway. Same posture as the oversized-diff skip notice below.
+        if: steps.aireview.outputs.review_status == 'api_failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          API_RC: ${{ steps.aireview.outputs.api_rc }}
+          API_EXCERPT: ${{ steps.aireview.outputs.api_excerpt }}
+        run: |
+          echo "::warning::AI review SKIPPED due to a Claude API failure (rc=${API_RC}); ci-gate passes so the incident does not block merges. Re-run after recovery."
+          {
+            echo "## AI Code Review: SKIPPED (Claude API failure)"
+            echo ""
+            echo "The automated AI review could **not** run because the Claude API failed (\`rc=${API_RC}\`)."
+            echo ""
+            echo "Error excerpt:"
+            echo ""
+            printf '> %s\n' "${API_EXCERPT}"
+            echo ""
+            echo "\`ci-gate\` is passing anyway so a transient Anthropic API incident does not block merges (spec 177 API-failure resilience). A green \`ci-gate\` here does **not** imply an AI review happened: re-run this job once the API recovers, or attach local review evidence via \`/ship\`."
+          } > /tmp/api-fail-comment.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/api-fail-comment.md || echo "::warning::could not post API-failure notice comment"
 
       - name: Skip notice (oversized diff — make the skip VISIBLE, not silent)
         # When the diff exceeds DIFF_SIZE_CAP the review can't run, but the

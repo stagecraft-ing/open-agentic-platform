@@ -363,3 +363,34 @@ pre-amendment state where it conflicts.
    verifier-mode binding means evidence for any other head or diff
    falls back to a full scan — the verifier does not trust the
    producer (spec 102 FR-007 posture).
+
+## Amendment (2026-06-23): ai-review API-failure resilience
+
+A Claude API outage (the 2026-06-23 "elevated error rate" incident,
+14:19-14:53 UTC) made `ai-pr-review.yml`'s `claude -p` call exit non-zero,
+which under the 2026-05-31 fold turned `ci-gate` red and blocked merges on
+any PR whose diff was scanned during the window. A third-party API incident
+must not gate this repo's merges.
+
+The "Run AI Review" step now classifies a claude failure instead of failing
+blindly:
+
+- **Secret unset** (the pre-existing explicit check) still hard-fails: a
+  missing `CLAUDE_CODE_OAUTH_TOKEN` is a config error, not an outage.
+- **Auth / permission failure** (`authentication_error`, `permission_error`,
+  401/403, invalid or expired token) still hard-fails. A broken token must
+  be fixed, not masked; this preserves the anti-silent-green guard the
+  2026-05-31 fold installed against the ~#220 "green-but-dead" review.
+- **Any other claude failure** (`overloaded_error`, `rate_limit_error`, 5xx,
+  timeout, network, or unclassified) is treated as a transient API outage:
+  the step emits a loud `::warning::` and posts a PR comment stating the
+  review could not run and why, then **passes** so the incident does not
+  block merges.
+
+The ci-gate claim gains a fourth disjunct. Green `ci-gate` now means:
+reviewed locally with adversarial verification, OR scanned by the CI review,
+OR visibly-skipped-as-oversized, OR **visibly-passed-because-the-Claude-API-
+failed** (with a PR comment recording the failure). The pass is loud, never
+silent, exactly as with the oversized-diff escape hatch: a human still sees
+the review did not run. Re-running the job after the API recovers, or
+attaching `Local-Review-Evidence`, restores a real review.
