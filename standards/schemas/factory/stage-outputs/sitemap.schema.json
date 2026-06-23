@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "sitemap.schema.json",
-  "title": "Sitemap — Stage 2 Output",
+  "title": "Sitemap - Stage 2 Output",
   "description": "Every page the application needs, with routing, audience, and data-source bindings.",
   "type": "object",
   "required": ["variant", "pages"],

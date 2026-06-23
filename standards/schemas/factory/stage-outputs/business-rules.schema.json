@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "business-rules.schema.json",
-  "title": "Business Rules — Stage 1 Output",
+  "title": "Business Rules - Stage 1 Output",
   "description": "Every constraint, validation, computation, state machine, and authorization rule extracted from business documents.",
   "type": "object",
   "required": ["rules"],
