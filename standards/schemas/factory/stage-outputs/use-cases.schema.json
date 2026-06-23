@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "use-cases.schema.json",
-  "title": "Use Cases — Stage 1 Output",
+  "title": "Use Cases - Stage 1 Output",
   "description": "Every action a user or system performs, extracted from business documents.",
   "type": "object",
   "required": ["use_cases"],
