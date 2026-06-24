@@ -44,7 +44,7 @@
     },
     "featureBranch": "feat/209-tenant-kernel-ci-enforcement",
     "id": "209-tenant-kernel-ci-enforcement",
-    "implementation": "in-progress",
+    "implementation": "complete",
     "kind": "capability",
     "references": [
       {
@@ -95,10 +95,10 @@
       "Open questions"
     ],
     "specPath": "specs/209-tenant-kernel-ci-enforcement/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "Convert the produced application from ASI-aware to ASI-enforcing. The born-with kernel (spec 167) seeds every produced project with the spec spine, validators, and a tenant CI workflow — but the machinery is carried, not wired: kernel emission does not auto-fire from pipeline transitions, tenant runs do not auto-emit governance certificates (spec 168's tenant-emit leg), and the seeded CI does not actually run the inherited gates (registry compile, spec-lint, coupling gate, provenance validator, certificate verify). A produced app that makes an unprovenance claim or drifts spec-from-code is not structurally prevented from merging it — the gates only fire on OAP's side. This spec is the activation: the seeded CI becomes enforcing (fail-the-PR, not advisory), emission and certificate auto-fire close the documented deferrals of specs 167/168, and the tenant CI verifies vended-tool integrity against .kernel-version before trusting any vended binary.\n",
     "title": "Tenant Kernel CI Enforcement Activation (ASI04 continuous validation)"
   },
-  "shardHash": "f68bdcf94f5d6bcbdabeec22da33948161c88d1d89d20b358538b48c2006d370",
+  "shardHash": "ba005d69fb1257e6eb5faf934571d9ca8b3f546d127bb3c14c5e2013630e3883",
   "specVersion": "1.1.0"
 }
