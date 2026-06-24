@@ -10,6 +10,16 @@
 > not sacred.
 >
 > This is an analysis artifact, not a spec. File:line citations throughout.
+>
+> **SUPERSEDED 2026-06-24. Historical snapshot, retained for provenance;
+> do not read its findings as current state.** Both axes it analysed have
+> since moved: (1) the stagecraft projection bugs (synthetic `acme-vue-node`,
+> hardcoded origins, dropped `acme-vue-encore`) were fixed by the spec 199
+> thin-consumer cutover (`projection.ts` deleted; adapters served by their
+> own manifest identity; `adapter-scopes.json` keyed on `acme-vue-encore`),
+> verified 2026-06-24; and (2) the section 5 factory-vs-template question
+> was resolved by the generator/product split recorded in
+> [`acme-vue-encore-generator-product-split.md`](./acme-vue-encore-generator-product-split.md).
 
 ---
 
