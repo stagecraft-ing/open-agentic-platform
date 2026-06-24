@@ -89,16 +89,25 @@
     "sectionHeadings": [
       "Feature Specification: Org-Wide Agent Kill Switch and Quarantine",
       "Purpose",
-      "Functional requirements (sketch — refine before implementation)",
-      "Acceptance criteria (sketch)",
+      "Design model: composition over a new mechanism",
+      "State machine",
+      "Scope lattice",
+      "Functional requirements",
+      "FR-001: Halt verb",
+      "FR-002: Credential revocation propagation",
+      "FR-003: Propagation bound, stated and measured",
+      "FR-004: Quarantine record and reintegration",
+      "FR-005: Drill requirement",
+      "Acceptance criteria",
       "Out of scope",
-      "Sequencing"
+      "Dependencies and sequencing",
+      "Phasing (proposed; refine in plan.md)"
     ],
     "specPath": "specs/208-org-agent-kill-switch/spec.md",
     "status": "draft",
-    "summary": "Containment today is precise but narrow: an operator can force-disconnect one session (spec 172), the four-key revocation lattice quarantines factory content (spec 198 FR-010), and Rauthy sessions can be revoked one principal at a time. What does not exist is the emergency stop ASI10 m4 and ASI04 m8 require: one admin-gated action that halts agent execution org-wide — pausing in-flight runs at the next boundary, refusing new sessions and grant issuance, revoking agent credentials — with propagation inside a stated bound, a quarantine record, and reintegration that requires fresh validation plus human approval. The switch composes the levers that already exist (grant renewal, duplex channels, revocation rows, session force-disconnect) rather than adding a parallel mechanism, and it is drilled: a kill switch that has never been pulled is decoration, so exercising it is an acceptance criterion, not an operational afterthought.\n",
+    "summary": "Containment today is precise but narrow: an operator can force-disconnect one session (spec 172), the four-key revocation lattice quarantines factory content (spec 198 FR-010), and Rauthy sessions can be revoked one principal at a time. What does not exist is the emergency stop ASI10 m4 and ASI04 m8 require: one admin-gated action that halts agent execution org-wide (pausing in-flight runs at the next boundary, refusing new sessions and grant issuance, revoking agent credentials) with propagation inside a stated bound, a quarantine record, and reintegration that requires fresh validation plus human approval. The switch composes the levers that already exist (grant renewal, duplex channels, revocation rows, session force-disconnect) rather than adding a parallel mechanism, and it is drilled: a kill switch that has never been pulled is decoration, so exercising it is an acceptance criterion, not an operational afterthought.\n",
     "title": "Org-Wide Agent Kill Switch and Quarantine (ASI10 containment)"
   },
-  "shardHash": "0239e6bfa1cfdf51d6f10336eccab84a8ccb09b2ad3e2b6942ebf3151a9a60dc",
+  "shardHash": "c3232c1d3b04f704c0ea310eb160e179708642390a4864be028a45e6f7918594",
   "specVersion": "1.1.0"
 }
