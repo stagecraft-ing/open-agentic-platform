@@ -79,7 +79,7 @@ walkdir = "2"
 serde_yaml = "0.9"
 axum = { version = "0.8", features = ["ws"] }
 tower = "0.5"
-tower-http = { version = "0.6", features = ["fs", "cors"] }
+tower-http = { version = "0.7", features = ["fs", "cors"] }
 clap = { version = "4.6", features = ["derive"] }
 futures-util = "0.3"
 image = "0.25"
