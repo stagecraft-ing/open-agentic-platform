@@ -71,6 +71,12 @@ function sha256hex(data: string): string {
 interface HandlerCtx {
   orgId: string;
   userId: string;
+  // Spec 205 FR-005: when the requesting session is an agent NHI, these
+  // carry the two principals onto every audit row this handler writes.
+  // Undefined for ordinary human sessions (Phase 0 plumbing; Phase 1
+  // populates them at mint).
+  nhiSub?: string | null;
+  onBehalfOf?: string | null;
 }
 
 export type GrantReply = Omit<ServerFactoryRunGrant, "meta">;
@@ -248,6 +254,8 @@ async function signAndPersistGrant(
   });
   await db.insert(auditLog).values({
     actorUserId: ctx.userId,
+    nhiSub: ctx.nhiSub ?? null,
+    onBehalfOf: ctx.onBehalfOf ?? null,
     action: FACTORY_RUN_GRANT_ISSUED,
     targetType: "factory_runs",
     targetId: facts.runId,
@@ -291,6 +299,8 @@ async function refuseGrant(
   });
   await db.insert(auditLog).values({
     actorUserId: ctx.userId,
+    nhiSub: ctx.nhiSub ?? null,
+    onBehalfOf: ctx.onBehalfOf ?? null,
     action: FACTORY_RUN_GRANT_REFUSED,
     targetType: "factory_runs",
     targetId: facts.runId,
@@ -704,6 +714,8 @@ export async function countersignRunCertificate(
     .where(eq(factoryRuns.id, evt.runId));
   await db.insert(auditLog).values({
     actorUserId: ctx.userId,
+    nhiSub: ctx.nhiSub ?? null,
+    onBehalfOf: ctx.onBehalfOf ?? null,
     action: FACTORY_RUN_COUNTERSIGNED,
     targetType: "factory_runs",
     targetId: evt.runId,
