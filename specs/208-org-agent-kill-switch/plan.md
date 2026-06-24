@@ -172,9 +172,10 @@ connected engines per org for the broadcast and ack collection.
   (new sessions and grants refused) until its staged re-admission
   completes, and the re-halt gap above leans on exactly that property to
   argue a second halt during reintegration stays fail-closed. AC-2
-  asserts that refusal for the `halted` state, but no AC asserts it for
-  `reintegrating`, so the invariant the safety argument rests on is
-  currently prose, not a test. Carrier: add an AC extending the AC-2
+  asserts refusal during a halt, but no AC unambiguously extends that to
+  the `reintegrating` phase: the State machine states the property in
+  prose, separately from AC-2, so the invariant the safety argument
+  rests on is currently untested. Carrier: add an AC extending the AC-2
   assertion (grant issuance, grant renewal, and new session registration
   in scope are refused) to the `reintegrating` state, written alongside
   the FR-004 reintegration tasks. Closing it also grounds the re-halt
