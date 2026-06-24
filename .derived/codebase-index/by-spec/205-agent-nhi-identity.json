@@ -15,6 +15,14 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/audit/audit.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/audit/auditTwoPrincipal.test.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/auth/rauthy.ts",
         "source": "spec-edge"
       },
@@ -23,7 +31,27 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.down.sql",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.up.sql",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/db/schema.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/sync/service.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/vite.config.ts",
         "source": "spec-edge"
       },
       {
@@ -35,6 +63,45 @@
       {
         "locations": [
           {
+            "file": "platform/services/stagecraft/api/audit/auditTwoPrincipal.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/audit/auditTwoPrincipal.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.down.sql"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.down.sql"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.up.sql"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.up.sql"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/featuregraph/tests/golden/features_graph.json"
           }
         ],
@@ -43,6 +110,19 @@
         "unit": {
           "kind": "file",
           "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/audit/audit.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/audit/audit.ts"
         }
       },
       {
@@ -74,14 +154,14 @@
       {
         "locations": [
           {
-            "file": "docs/owasp-agentic-top-10-2026.md"
+            "file": "platform/services/stagecraft/api/db/schema.ts"
           }
         ],
-        "ownership": false,
-        "sourceField": "references",
+        "ownership": true,
+        "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "docs/owasp-agentic-top-10-2026.md"
+          "path": "platform/services/stagecraft/api/db/schema.ts"
         }
       },
       {
@@ -90,11 +170,50 @@
             "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
           }
         ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/sync/service.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/sync/service.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/vite.config.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/vite.config.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "docs/owasp-agentic-top-10-2026.md"
+          }
+        ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+          "path": "docs/owasp-agentic-top-10-2026.md"
         }
       },
       {
@@ -115,5 +234,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "2ae33969294bd127509f74e6007cb4f461da8136dac4286cf7970c468bf99f61"
+  "shardHash": "e5e66be09667b3d8c187f35c832ff45a0de97ddd23c14698e1826e3295c7f10e"
 }

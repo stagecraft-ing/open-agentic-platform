@@ -67,6 +67,11 @@ export interface InboundContext {
   orgId: string;
   clientId: string;
   userId: string;
+  // Spec 205 FR-005: two-principal attribution for agent (NHI) sessions.
+  // Undefined for ordinary human sessions (Phase 0 plumbing; Phase 1
+  // populates them when the duplex session is an agent NHI).
+  nhiSub?: string | null;
+  onBehalfOf?: string | null;
 }
 
 export type InboundResult =
@@ -160,6 +165,8 @@ export async function handleInbound(
       // actor_user_id or the timestamp.
       await db.insert(auditLog).values({
         actorUserId: ctx.userId,
+        nhiSub: ctx.nhiSub ?? null,
+        onBehalfOf: ctx.onBehalfOf ?? null,
         action: `opc.${evt.action}`,
         targetType: evt.targetType,
         targetId: evt.targetId,
@@ -311,7 +318,14 @@ async function grantDispatch(
   evt: ClientEnvelope,
 ): Promise<InboundResult> {
   try {
-    const handlerCtx = { orgId: ctx.orgId, userId: ctx.userId };
+    // Spec 205 FR-005: forward the two-principal fields so the grant-path
+    // audit inserts receive them once Phase 1 populates the session ctx.
+    const handlerCtx = {
+      orgId: ctx.orgId,
+      userId: ctx.userId,
+      nhiSub: ctx.nhiSub,
+      onBehalfOf: ctx.onBehalfOf,
+    };
     const outcome =
       evt.kind === "factory.run.grant_request"
         ? await handleGrantRequest(evt, handlerCtx)
@@ -488,6 +502,10 @@ async function runDispatch(
           const countersign = await countersignRunCertificate(evt, {
             orgId: ctx.orgId,
             userId: ctx.userId,
+            // Spec 205 FR-005: countersign rows carry the two principals
+            // once Phase 1 populates the session ctx.
+            nhiSub: ctx.nhiSub,
+            onBehalfOf: ctx.onBehalfOf,
           });
           if (countersign) {
             await sendTargetedServerEvent(ctx.orgId, ctx.clientId, countersign, {

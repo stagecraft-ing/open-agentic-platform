@@ -13,6 +13,20 @@
       "198-factory-governance-envelope"
     ],
     "domain": "platform",
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.up.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.down.sql"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/audit/auditTwoPrincipal.test.ts"
+      }
+    ],
     "extends": [
       {
         "nature": "additive",
@@ -40,13 +54,6 @@
     "implementation": "pending",
     "kind": "platform",
     "references": [
-      {
-        "role": "analog",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
-        }
-      },
       {
         "role": "context",
         "unit": {
@@ -76,6 +83,41 @@
           "kind": "file",
           "path": "platform/services/stagecraft/api/auth/rauthy.ts"
         }
+      },
+      {
+        "aspect": "audit-attribution",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/schema.ts"
+        }
+      },
+      {
+        "aspect": "audit-attribution",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/audit/audit.ts"
+        }
+      },
+      {
+        "aspect": "audit-attribution",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/sync/service.ts"
+        }
+      },
+      {
+        "aspect": "audit-attribution",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+        }
+      },
+      {
+        "aspect": "audit-attribution",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/vite.config.ts"
+        }
       }
     ],
     "sectionHeadings": [
@@ -91,6 +133,6 @@
     "summary": "Give agents a governed identity distinct from the human who launched them. Today every agent session rides the user's Rauthy JWT: agent actions audit to the human, agent access cannot be revoked without killing the human's session, and least privilege per agent is structurally impossible — the exact \"attribution gap\" ASI03 names as the root cause of identity and privilege abuse. Factory runs already have the right fabric in miniature: spec 198 FR-005 run-grants are short-lived, audience-bound, stage-renewed credentials. This spec extends that fabric to interactive agent sessions: a per-agent-session non-human identity (NHI) minted through the platform, a recorded on-behalf-of delegation chain whose effective scope is the intersection of the human's scopes and the agent's admitted profile (never inheritance, ASI03 m7), task-scoped short-TTL tokens, and revocation that is independent in both directions.\n",
     "title": "Per-Agent Non-Human Identity and Task-Scoped Credentials (ASI03)"
   },
-  "shardHash": "f55a729750d161432478b787aec57c097cb0553383bfff51046ddbd3ba9f24eb",
+  "shardHash": "cd7608140c0e446ded9897cee63398d7ce79230c9ebbb219cac150f7e37067b4",
   "specVersion": "1.1.0"
 }

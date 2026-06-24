@@ -436,6 +436,12 @@ export const projectMembers = pgTable(
 export const auditLog = pgTable("audit_log", {
   id: uuid("id").defaultRandom().primaryKey(),
   actorUserId: uuid("actor_user_id").notNull(),
+  // Spec 205 FR-005: two-principal attribution. When an agent acts, nhiSub
+  // is the non-human identity that acted and onBehalfOf is the human it
+  // acted for; actorUserId continues to hold the human. Both NULL for
+  // ordinary (non-agent) writes.
+  nhiSub: text("nhi_sub"),
+  onBehalfOf: text("on_behalf_of"),
   action: text("action").notNull(),
   targetType: text("target_type").notNull(),
   targetId: text("target_id").notNull(),

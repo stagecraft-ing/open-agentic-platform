@@ -32,6 +32,12 @@ depends_on:
   - "106-rauthy-native-oidc-and-membership"
   - "137-tenant-environment-access-gates"
   - "198-factory-governance-envelope"
+establishes:
+  # Phase 0 (FR-005): the two-principal audit migration and its forensic
+  # query test are brought into existence by this spec.
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/52_audit_two_principal.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/52_audit_two_principal.down.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/audit/auditTwoPrincipal.test.ts }
 extends:
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
@@ -43,9 +49,21 @@ refines:
     unit: { kind: file, path: platform/services/stagecraft/api/auth/sessionMint.ts }
   - aspect: "nhi-lifecycle"
     unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthy.ts }
-references:
-  - role: analog
+  # Phase 0 (FR-005) audit-attribution: the two-principal columns on
+  # audit_log and the agent-context write sites threaded to carry them.
+  # grantDuplexHandlers.ts graduates from analog reference to a refined
+  # path now that Phase 0 edits its audit write sites.
+  - aspect: "audit-attribution"
+    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+  - aspect: "audit-attribution"
+    unit: { kind: file, path: platform/services/stagecraft/api/audit/audit.ts }
+  - aspect: "audit-attribution"
+    unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
+  - aspect: "audit-attribution"
     unit: { kind: file, path: platform/services/stagecraft/api/factory/grantDuplexHandlers.ts }
+  - aspect: "audit-attribution"
+    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+references:
   - role: context
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/live_sessions.rs }
   - role: context

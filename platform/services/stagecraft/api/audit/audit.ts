@@ -13,6 +13,11 @@ type IngestAuditRequest = {
   targetType: string;
   targetId: string;
   metadata?: Record<string, unknown>;
+  // Spec 205 FR-005: when an agent NHI generates the record (via OPC
+  // axiomregent), it passes both principals: the NHI subject and the
+  // human it acts for. Populated onto the row when present, NULL otherwise.
+  nhiSub?: string;
+  onBehalfOf?: string;
 };
 
 type IngestAuditResponse = { ok: true };
@@ -28,6 +33,8 @@ export const ingestAuditRecord = api(
 
     await db.insert(auditLog).values({
       actorUserId: SYSTEM_USER_ID,
+      nhiSub: req.nhiSub ?? null,
+      onBehalfOf: req.onBehalfOf ?? null,
       action: req.action,
       targetType: req.targetType,
       targetId: req.targetId,

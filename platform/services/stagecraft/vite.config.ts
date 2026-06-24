@@ -140,6 +140,9 @@ export default defineConfig({
       // Spec 207 AC-4: platform countersign of audit segments mutates
       // audit_log + org/user fixtures via the live DB; runs under encore test.
       "**/factory/auditSegmentHandlers.test.ts",
+      // Spec 205 FR-005 / AC-4: two-principal audit attribution forensic
+      // query seeds + reads audit_log + org/user fixtures via the live DB.
+      "**/audit/auditTwoPrincipal.test.ts",
       // Spec 213 FR-009: project_repos one-repo-one-project unique index
       // (migration 51) + findRepoRow resolution; live Postgres.
       "**/github/webhook.test.ts",
