@@ -5187,6 +5187,7 @@ dependencies = [
  "cron",
  "dashmap",
  "dirs",
+ "factory-contracts",
  "futures-util",
  "hiqlite",
  "provider-registry",
