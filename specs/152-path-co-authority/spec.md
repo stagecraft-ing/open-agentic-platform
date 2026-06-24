@@ -7,8 +7,10 @@ implementation: complete
 owner: bart
 created: "2026-05-19"
 approved: "2026-05-19"
-amended: "2026-05-24"
-amendment_record: "176-amends-aware-section-satisfaction-parity"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-05-24 by spec 176 (amends-aware-section-satisfaction-parity): fixed the section-scoped satisfaction predicate in check_coupling_section_aware to also honour amends:/amendmentRecord: substitutes, matching whole-file coupling behaviour.
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-code-coupling-check that implemented section-matching was deleted; that logic is now in spec-spine-core. The extends-133 coupling-check edge and co_authority section unit on the deleted path are stripped; this spec's surviving authority is the spec-types overlay (extends-130, the named-anchor grammar).
 kind: governance
 domain: substrate
 risk: low

@@ -7,6 +7,9 @@ implementation: complete
 owner: bart
 created: "2026-05-02"
 approved: "2026-05-19"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-code-coupling-check binary was deleted; the gate algorithm is now spec-spine-core::couple_with, invoked as `spec-spine couple`. The crate-unit is stripped (path deleted); the CI workflow and Makefile coupling section this spec governs survive, with only the binary invocation changed.
 kind: governance
 domain: tooling
 risk: medium

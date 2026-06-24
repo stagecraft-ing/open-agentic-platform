@@ -61,11 +61,12 @@
       }
     ],
     "extraFrontmatter": {
+      "approved": "2026-06-24",
       "language": "en"
     },
     "featureBranch": "feat/217-spec-spine-engine-swap-collapse",
     "id": "217-spec-spine-engine-swap-collapse",
-    "implementation": "pending",
+    "implementation": "complete",
     "kind": "migration",
     "sectionHeadings": [
       "Feature Specification: Spec-Spine Engine Swap and Collapse",
@@ -96,7 +97,7 @@
       "8. Success Criteria"
     ],
     "specPath": "specs/217-spec-spine-engine-swap-collapse/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "Delete OAP's in-tree generic spec-spine engine (spec-compiler, registry-consumer, codebase-indexer, spec-code-coupling-check, and the generic half of spec-lint) and replace it with the published external spec-spine library (spec-spine-types, spec-spine-core, spec-spine-cli). OAP retains only its overlay: the 16-kind enum, shape/category, compliance, factory/OWASP machinery, capability/registry/profile, stagecraft:// provenance, and the OAP-domain lint codes. The engine swap is mechanical and corpus-governance work, not a research problem: the library compiled OAP's full 217-spec corpus with zero errors on 2026-06-15. A supersession and amendment wave retires the establishing specs for the deleted crates and repoints the surviving overlay specs to the library seam. Done when OAP's own coupling gate is spec-spine couple (green in CI), compile/ lint/index run via the library, and zero generic engine code remains in-tree.\n",
     "supersedes": [
       "001-spec-compiler-mvp",
@@ -133,6 +134,6 @@
     ],
     "title": "Spec-Spine Engine Swap and Collapse: replace OAP's in-tree generic engine with the published spec-spine library"
   },
-  "shardHash": "4b9b0f6adc7c5491c840c36af1c7b4a6f8805830b1d026216c14aac91d722a11",
+  "shardHash": "a2b3082e01d738301a398dc27b6923bbed5ba1a5d12a5d4f012c0e5ac0587a51",
   "specVersion": "1.1.0"
 }

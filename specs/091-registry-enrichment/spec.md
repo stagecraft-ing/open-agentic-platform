@@ -5,6 +5,9 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-11"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler that parsed and emitted the enriched fields (depends_on, owner, risk) was deleted; that logic is now in spec-spine-core. The spec-compiler edge is stripped (path deleted); the featuregraph reader edges survive.
 kind: tooling
 domain: tooling
 risk: low

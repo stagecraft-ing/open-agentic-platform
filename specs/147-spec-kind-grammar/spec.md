@@ -4,6 +4,9 @@ title: "Spec-kind grammar: typed kinds, shape and category dimensions, governanc
 status: approved
 created: "2026-05-13"
 approved: "2026-05-17"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler and codebase-indexer that implemented the kind-grammar parse (V-012..V-019) and scanner were deleted; those checks moved to spec-spine-core. The spec-compiler, codebase-indexer spec_scanner, and codebase-indexer lib edges are stripped (paths deleted); the surviving spec-lint overlay edge (W-130/131/132) and the registry.schema.json edge are retained.
 authors: ["open-agentic-platform"]
 kind: amendment
 domain: substrate

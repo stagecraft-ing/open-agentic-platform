@@ -4,7 +4,7 @@ slug: spec-relationship-graph
 title: "Spec Relationship Graph — eight first-class edges between specs and code"
 status: approved
 implementation: complete
-amended: "2026-06-14"
+amended: "2026-06-18"
 amendment_record: |
   Amended 2026-05-20 by 153-invariant-freeze-additive-evolution.
   Re-amended 2026-06-14 by 216-spec-spine-library-grammar-adoption on two
@@ -15,6 +15,7 @@ amendment_record: |
   collapse. §2.4: Phase 2a reconciles the `supersedes` doc-template `paths:` to
   the canonical `unit:` form (spec 154 §6), and converges the compiler to emit
   the structured partial form with a malformed entry rejected by V-034.
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler and codebase-indexer that parsed and emitted the relationship graph were deleted; that logic is now in spec-spine-core. Both extends code-units are stripped (paths deleted); the establishes edges (spec-types overlay and registry.schema.json) and constrains edge (frozen schema) survive.
 owner: bart
 created: "2026-05-02"
 approved: "2026-05-19"

@@ -7,6 +7,9 @@ implementation: complete
 owner: bart
 created: "2026-05-22"
 approved: "2026-05-22"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler that enforced V-004 was deleted; that enforcement is now in spec-spine-core. The implementation code-unit is stripped (path deleted); this spec's authority is its amends-000 refinement of the V-004 scan-path policy, which persists in the library.
 closed: "2026-05-22"
 kind: governance
 domain: substrate

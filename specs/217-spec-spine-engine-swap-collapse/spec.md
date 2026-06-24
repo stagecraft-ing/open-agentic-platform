@@ -2,11 +2,12 @@
 id: "217-spec-spine-engine-swap-collapse"
 title: "Spec-Spine Engine Swap and Collapse: replace OAP's in-tree generic engine with the published spec-spine library"
 feature_branch: "feat/217-spec-spine-engine-swap-collapse"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 kind: migration
 domain: tooling
 created: "2026-06-15"
+approved: "2026-06-24"
 authors: ["open-agentic-platform"]
 language: en
 summary: >
@@ -149,7 +150,7 @@ amends:
 
 **Feature Branch**: `feat/217-spec-spine-engine-swap-collapse`
 **Created**: 2026-06-15
-**Status**: Draft
+**Status**: Approved (implementation complete; engine deleted in PR #387, lifecycle reconciled 2026-06-24)
 **Predecessor**: spec 216 (grammar adoption), which completed the grammar-convergence
 prerequisite; this spec initiates the mechanical deletion and call-site rewiring.
 
@@ -191,12 +192,24 @@ OAP-specific typed modelling layered on `spec-spine-types` primitives.
 
 **The overlay binary that replaces `registry-consumer`** for
 authority-resolver queries is `oap-registry-enrich` (already at
-`tools/oap/oap-registry-enrich`). The OAP-specific verbs
-(`by-authority`, `validate-graph`, `show-relationships`,
-`show-supersession-chain`, `show-constraints-on`) fold into
-`oap-registry-enrich`, which reads the registry via
-`spec-spine-core::load_registry`. Generic verbs (`list`, `show`,
-`status-report`, `relationships`) are served by `spec-spine registry`.
+`tools/oap/oap-registry-enrich`). The OAP-specific authority verbs land
+there, reading the registry via `spec-spine-core::load_committed_registry`.
+Generic verbs (`list`, `show`, `status-report`, `relationships`) are
+served by `spec-spine registry`.
+
+**Verb-home reconciliation (2026-06-24, implementation).** The original
+five-verb enumeration collapsed once measured against what the library
+already serves and what the corpus actually calls. The delivered surface:
+`by-authority` and `validate-graph` are implemented in
+`oap-registry-enrich`; `show-relationships` is served by the library's
+generic `spec-spine registry relationships`; `show-supersession-chain`
+and `show-constraints-on` are retired (zero callers across the governed
+surface, and the supersession / constraint data is readable via
+`spec-spine registry show`). `validate-graph` is kept as the explicit,
+registry-reading restatement of the dangling-reference rejection that
+`spec-spine compile` already performs (the pre-PR check the architect
+workflow recommends), plus a supersession-cycle guard; exit 0 when the
+graph is well-formed, 1 otherwise.
 
 **The gate is a confirmed drop-in.** `spec-spine couple` replicates OAP's
 gate's exit-code contract (0=clean, 1=drift; no branching on any other
@@ -479,10 +492,10 @@ into spec-spine.)
 **Function-name correction to the Phase 2 / overview tables.** The
 committed-shard readers are `spec-spine-core::load_committed_registry` and
 `load_committed_index` (they assemble the `by-spec` / `by-package` shard
-trees). The `load_registry` / `load_index` names used in section 1 and the
-Phase 2 table are the in-memory bytes-parsers, not the path loaders; read
-those entries as `load_committed_registry` / `load_committed_index`. The gate
-uses `couple` (IO + freshness-guarded) or `couple_with` (pure).
+trees). The bare `load_registry` / `load_index` names are the in-memory
+bytes-parsers, not the path loaders; this spec's tables name the committed
+variants (`load_committed_registry` / `load_committed_index`) throughout. The
+gate uses `couple` (IO + freshness-guarded) or `couple_with` (pure).
 
 **Consumer 1 of 8 is verified green.** featuregraph was repointed end to end
 on 0.7.0: `registry_source` to `load_committed_registry`, `index_bridge` to
@@ -639,18 +652,18 @@ in-tree crates is repointed:
 
 | Consumer crate | Old dep | New dep |
 |---|---|---|
-| `oap-registry-enrich` | `registry-consumer` + `spec-types` | `spec-spine-core::load_registry` + overlay types |
-| `oap-code-index-enrich` | `codebase-indexer` + `spec-types` | `spec-spine-core::load_index` + overlay types |
+| `oap-registry-enrich` | `registry-consumer` + `spec-types` | `spec-spine-core::load_committed_registry` + overlay types |
+| `oap-code-index-enrich` | `codebase-indexer` + `spec-types` | `spec-spine-core::load_committed_index` + overlay types |
 | `policy-compiler` | `spec-types` | overlay types |
 | `spec-code-coupling-check` | both + `spec-types` | `spec-spine-core::couple_with` + overlay types |
-| `featuregraph` | `registry-consumer` | `spec-spine-core::load_registry` (index_bridge.rs also moves from hand-rolled JSON to `load_index`) |
-| `factory-engine` | `registry-consumer` | `spec-spine-core::load_registry` |
+| `featuregraph` | `registry-consumer` | `spec-spine-core::load_committed_registry` (index_bridge.rs also moves from hand-rolled JSON to `load_committed_index`) |
+| `factory-engine` | `registry-consumer` | `spec-spine-core::load_committed_registry` |
 | `opc-decomposition-pipeline` | `spec-compiler` + `spec-lint` | `spec-spine-core::compile` (caller writes) + overlay lint |
-| `product/apps/opc/src-tauri` | `registry-consumer` | `spec-spine-core::load_registry` |
+| `product/apps/opc/src-tauri` | `registry-consumer` | `spec-spine-core::load_committed_registry` |
 
 The one raw artifact reader (`crates/featuregraph/src/index_bridge.rs`)
 moves from hand-rolled `serde_json::from_str` to
-`spec-spine-core::load_index`. `opc-decomposition-pipeline/promotion.rs`
+`spec-spine-core::load_committed_index`. `opc-decomposition-pipeline/promotion.rs`
 moves from `spec_compiler::compile_and_write` to
 `spec_spine_core::compile` plus a caller-side write (the library returns
 `CompileOutcome`).
@@ -669,7 +682,7 @@ disk. The in-tree `spec_compiler::compile_and_write` entry point is no
 longer called.
 
 **FR-203 (raw-reader elimination).** `crates/featuregraph/src/index_bridge.rs`
-uses `spec-spine-core::load_index` exclusively. Zero direct
+uses `spec-spine-core::load_committed_index` exclusively. Zero direct
 `serde_json::from_str` calls against `.derived/**/*.json` remain in any
 consumer crate (governed-reads principle, spec 103).
 
@@ -706,21 +719,29 @@ is DROPPED in favour of spec-spine's shard schemas (1.0.0); the OAP overlay
 enrich reads via `load_committed_index`.
 
 `oap-registry-enrich` absorbs the OAP-specific authority-resolver verbs
-previously in `registry-consumer`. The `by-authority`, `validate-graph`,
-`show-relationships`, `show-supersession-chain`, and
-`show-constraints-on` subcommands are implemented there, reading via
-`spec-spine-core::load_registry`.
+previously in `registry-consumer`. The `by-authority` and
+`validate-graph` subcommands are implemented there, reading via
+`spec-spine-core::load_committed_registry`. `show-relationships` is served
+by the library's generic `spec-spine registry relationships`;
+`show-supersession-chain` and `show-constraints-on` are retired (zero
+callers; the data is readable via `spec-spine registry show`). See the
+verb-home reconciliation in section 1.
 
 **FR-301 (deletion).** All four generic engine crates are deleted from
 `tools/spec-spine/`. No `Cargo.toml` in the workspace retains a
 `path = "tools/spec-spine/<name>"` dependency after this phase.
 
 **FR-302 (oap-registry-enrich authority verbs).** `oap-registry-enrich`
-exposes `by-authority <path>`, `validate-graph`, `show-relationships`,
-`show-supersession-chain`, and `show-constraints-on` subcommands. The
-authority logic from spec 181 is re-implemented here, reading the
-registry via `spec-spine-core::load_registry`. Exit codes and output
-format are preserved (callers are unaffected).
+exposes `by-authority <path>` and `validate-graph` subcommands, reading
+the registry via `spec-spine-core::load_committed_registry`. The spec-181
+authority logic is re-implemented behind `by-authority` (exit codes and
+output format preserved, so callers are unaffected). `validate-graph`
+reports dangling relationship references and supersession cycles (exit 0
+well-formed, 1 otherwise). The three remaining verbs of the original
+enumeration are reconciled per section 1: `show-relationships` is served
+by the library's `spec-spine registry relationships`;
+`show-supersession-chain` and `show-constraints-on` are retired (zero
+callers, data readable via `spec-spine registry show`).
 
 **FR-303 (codebase-index artifact is the committed shard tree).** `spec-spine
 index` emits the per-unit index shard tree (`by-spec/<id>.json` +
@@ -752,7 +773,7 @@ Every invocation of the deleted binaries is replaced:
 - **Makefile**: `make registry`, `make ci`, `make ci-strict`,
   `make pr-prep`, `make setup`, and all spec-compiler/indexer/coupling-
   check/registry-consumer invocations repoint to `spec-spine compile`,
-  `spec-spine index compile`, `spec-spine index check`, `spec-spine
+  `spec-spine index`, `spec-spine index check`, `spec-spine
   couple`, `spec-spine registry list`, etc., plus `oap-registry-enrich`
   for the OAP authority verbs. The Makefile section co-authority owners
   (~8 specs) whose sections are edited are in the diff per their
@@ -864,15 +885,15 @@ Full CI pass on the combined deletion + wave PR:
 
 - `spec-spine compile` exits 0; registry byte-identical to pre-deletion
   (same grammar, same corpus, same library version).
-- `spec-spine index compile` + `spec-spine index check` exit 0; fresh
-  `index.json` committed.
+- `spec-spine index` + `spec-spine index check` exit 0; fresh
+  index shards committed.
 - `spec-spine couple` exits 0 on the PR diff.
 - `spec-spine lint` exits 0 (OAP overlay lint appends clean).
 - `oap-registry-enrich enrich` (compliance/OWASP report) emits; the
   report output is non-empty and structurally valid.
 - Featuregraph golden regenerated (registry compiled first; per session
   memory pattern `feedback_golden_after_registry`).
-- OPC reads the registry via `spec-spine-core::load_registry`; the
+- OPC reads the registry via `spec-spine-core::load_committed_registry`; the
   desktop app starts and governs correctly.
 
 ---
@@ -886,8 +907,8 @@ Full CI pass on the combined deletion + wave PR:
 | FR-102 | 1 | Overlay lint compiles; OAP-domain codes preserved |
 | FR-201 | 2 | All 8 consumer crates compile against library seam |
 | FR-202 | 2 | opc-decomposition-pipeline uses spec-spine-core::compile |
-| FR-203 | 2 | featuregraph index_bridge uses spec-spine-core::load_index |
-| FR-210 | 2 | oap-registry-enrich by-authority reads via load_registry |
+| FR-203 | 2 | featuregraph index_bridge uses spec-spine-core::load_committed_index |
+| FR-210 | 2 | oap-registry-enrich by-authority reads via load_committed_registry |
 | FR-301 | 3 | All four generic engine crates deleted from workspace |
 | FR-302 | 3 | oap-registry-enrich exposes authority-resolver verbs |
 | FR-303 | 3 | .derived/codebase-index/ artifact shape preserved |
@@ -1012,7 +1033,7 @@ seam change.
 | 154-logical-unit-ownership-grammar | unit grammar + indexer | AMEND | Unit-grammar field definitions in overlay spec-types, `codebase-index.schema.json` | Spec 154's value (the unit grammar and the index schema) survives; only the producing binary is deleted. Amend 154 to record that the indexer source is now spec-spine-core. |
 | 155-logical-unit-resolution-semantics | unit resolution precision | AMEND | V-024 and the unit-resolution fixes move to spec-spine-types | The precision fixes (V-024, module/directory/symbol resolution rules) are in the library. Amend 155 to record the re-homing; the spec's design rationale remains valid. |
 | 161-knowledge-requirements-provenance-emission | W-161 decomposition-origin lint | AMEND | W-161 survives in OAP overlay lint | The W-161 code is an OAP-domain code (decomposition-origin provenance); it stays in the overlay lint. Amend 161 to record that its in-tree lint surface is now the overlay binary. |
-| 179-domain-frontmatter-field | domain field + V-030/V-031 | AMEND | V-030/V-031 survive in OAP overlay; domain field grammar survives in overlay types | The domain field and OAP-domain validation codes are OAP-specific; they stay in the overlay. The `registry-consumer --domain` filter moves to `spec-spine registry list --domain`. Amend 179 to record the filter migration. |
+| 179-domain-frontmatter-field | domain field + V-030/V-031 | AMEND | V-030/V-031 survive in OAP overlay; domain field grammar survives in overlay types | The domain field and OAP-domain validation codes are OAP-specific; they stay in the overlay. The `registry-consumer --domain` list filter has no `spec-spine registry list` equivalent (zero callers); a `--domain` filter would be added to `oap-registry-enrich` if a consumer needs it. Amend 179 to record the filter's retirement. |
 
 ### 6.3 Minor amendment (binary name change only)
 
@@ -1198,5 +1219,5 @@ against the library-compiled registry. The golden is regenerated in the
 landing commit with the registry compiled first.
 
 **SC-007 (OPC desktop app).** The OPC desktop app builds and reads the
-registry via `spec-spine-core::load_registry`. The governance panel
+registry via `spec-spine-core::load_committed_registry`. The governance panel
 hydrates correctly from the library-produced registry.

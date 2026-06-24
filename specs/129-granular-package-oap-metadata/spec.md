@@ -7,6 +7,9 @@ implementation: complete
 owner: bart
 created: "2026-05-02"
 approved: "2026-05-02"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree codebase-indexer that parsed file-level `// Spec:` headers was deleted; that logic is now in spec-spine-core. The codebase-indexer crate-unit is stripped (path deleted); the spec re-anchors onto the surviving OAP overlay schema codebase-index-oap.schema.json (the in-tree codebase-index.schema.json was dropped by Workstream D).
 kind: governance
 domain: tooling
 risk: medium

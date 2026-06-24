@@ -52,6 +52,17 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Validate the spec relationship graph (spec 217 FR-302): every spec id
+    /// named by a relationship edge resolves, and the supersession graph is
+    /// acyclic. Reads the committed registry via
+    /// `spec-spine-core::load_committed_registry`. Exit 0 when well-formed, 1
+    /// otherwise. The dangling-reference check restates, over the committed
+    /// registry, the rejection `spec-spine compile` already performs.
+    ValidateGraph {
+        /// Emit structured JSON.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -198,6 +209,45 @@ fn main() -> ExitCode {
                 }
             }
             ExitCode::SUCCESS
+        }
+        Command::ValidateGraph { json } => {
+            let registry = match open_agentic_registry_enrich::load_registry(&repo_root) {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("oap-registry-enrich: registry read failed: {e}");
+                    return ExitCode::from(3);
+                }
+            };
+            let report =
+                open_agentic_registry_enrich::validate_graph::validate_graph(&registry);
+            if json {
+                match serde_json::to_string_pretty(&report) {
+                    Ok(s) => println!("{s}"),
+                    Err(e) => {
+                        eprintln!("oap-registry-enrich: {e}");
+                        return ExitCode::from(3);
+                    }
+                }
+            } else if report.ok {
+                println!(
+                    "validate-graph: OK: {} spec(s), graph well-formed (edges resolve, supersession acyclic).",
+                    report.spec_count
+                );
+            } else {
+                eprintln!(
+                    "validate-graph: {} finding(s) over {} spec(s):",
+                    report.findings.len(),
+                    report.spec_count
+                );
+                for f in &report.findings {
+                    eprintln!("  [{}] {}", f.code, f.message);
+                }
+            }
+            if report.ok {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
         }
     }
 }

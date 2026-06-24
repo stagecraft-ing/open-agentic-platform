@@ -7,6 +7,9 @@ implementation: complete
 owner: bart
 created: "2026-05-22"
 approved: "2026-05-22"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler and codebase-indexer that parsed and resolved the references-edge provenance grammar were deleted; that logic is now in spec-spine-core. The spec-compiler and codebase-indexer edges are stripped (paths deleted); the surviving edges (spec-types overlay, registry schema, featuregraph golden) carry this spec's authority, and the codebase-index schema edge is dropped with the in-tree codebase-index.schema.json (Workstream D).
 kind: governance
 domain: substrate
 risk: low

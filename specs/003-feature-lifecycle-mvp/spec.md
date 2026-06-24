@@ -7,6 +7,9 @@ implementation: complete
 kind: platform
 domain: substrate
 created: "2026-03-22"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler and registry-consumer that enforced the lifecycle status model were deleted; enforcement is now in spec-spine-core. The implementation code-units are stripped (paths deleted); the authored status-semantics model (draft/active/superseded/retired) remains this spec's contribution.
 authors:
   - "open-agentic-platform"
 language: en

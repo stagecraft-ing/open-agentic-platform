@@ -6,8 +6,10 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-05-29"
-amended: "2026-06-15"
-amendment_record: "216-spec-spine-library-grammar-adoption"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-15 by spec 216 (spec-spine-library-grammar-adoption, Phase 2b): bumped the broad index schema 3.0.0 -> 3.1.0 (additive `traceMapping.supersedes` field for coupling-gate supersession filtering); the narrow config-hash gate and "broad index carries nothing governed" invariant are unchanged.
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler, codebase-indexer, and spec-code-coupling-check that this spec's index serialization extended were deleted; their edges are stripped (paths deleted). Workstream D also dropped the in-tree codebase-index.schema.json, removing that extends-101 schema edge. Spec 217 adds an amends-188 edge: Workstream D re-commits the sharded index/registry trees (conflict-free per-spec form), restoring present-on-clone (spec 101 SC-06) and superseding this spec's Phase 4b de-commit of the monolithic index.json.
 kind: governance
 shape: mechanism-add
 risk: medium

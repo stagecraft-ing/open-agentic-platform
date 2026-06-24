@@ -16,7 +16,7 @@ language: en
 code_aliases:
   - MCP_CONFIG_PATH
   - CLAUDE_SETTINGS_PATH
-amended: "2026-05-30"
+amended: "2026-06-18"
 amendment_record: |
   amended by spec 188 (2026-05-30, Phase 4a) — the guarantee's STORAGE
   moved, behavior bit-for-bit unchanged. The `claudeConfigHash` slice that
@@ -45,6 +45,8 @@ amendment_record: |
   signed-commits protection), so nothing on `main` regenerates-and-commits
   the index — there is no healer that could absorb drift. AC-4 and AC-7
   below carry inline notes recording the mechanism change.
+
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree codebase-indexer that provided the config-hash slice (check-config) was deleted; that logic is now in spec-spine-core (`spec-spine index check --slice claude-config`). The codebase-indexer edge is stripped (path deleted); this spec's authority over the hashed inputs (.mcp.json, .claude/settings.json) survives.
 amends:
   - "101-codebase-index-mvp"
 # 217 deleted the in-tree codebase-indexer; the config-hash slice (check-config) is

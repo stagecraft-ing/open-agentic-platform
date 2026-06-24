@@ -25,6 +25,7 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 pub mod authority;
+pub mod validate_graph;
 
 #[derive(Debug)]
 pub enum EnrichError {

@@ -1,5 +1,6 @@
 {
   "record": {
+    "amendmentRecord": "amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler that parsed and emitted codeAliases was deleted; that logic is now in spec-spine-core. The spec-compiler edge is stripped (path deleted); the surviving registry.schema.json edge (the codeAliases schema field) is retained.\n",
     "authors": [
       "open-agentic-platform"
     ],
@@ -16,6 +17,7 @@
       }
     ],
     "extraFrontmatter": {
+      "amended": "2026-06-18",
       "language": "en"
     },
     "featureBranch": "039-feature-id-reconciliation",
@@ -46,6 +48,6 @@
     "summary": "Bridge the dual identity system — kebab spec IDs and UPPERCASE code attribution tokens — by adding an optional codeAliases field to the compiled registry schema, spec-compiler, and featuregraph scanner. Implements ADR 0001.\n",
     "title": "Feature ID reconciliation (codeAliases)"
   },
-  "shardHash": "d0ed2010a5b15ba29099011c93577a8f7c7179f7bf9272c04d05df477d8d13fc",
+  "shardHash": "32b32300e5646b503df6b9340b5be7061572e8923b211266656cd60517da5af2",
   "specVersion": "1.1.0"
 }

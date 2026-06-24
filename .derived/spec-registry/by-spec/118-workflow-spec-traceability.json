@@ -1,5 +1,6 @@
 {
   "record": {
+    "amendmentRecord": "amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree codebase-indexer that scanned workflow headers was deleted; that logic is now in spec-spine-core. The codebase-indexer crate-unit is stripped (path deleted); this spec's authority over the `# Spec:` workflow-header convention (.github/workflows) survives.\n",
     "codeAliases": [
       "WORKFLOW_TRACEABILITY"
     ],
@@ -11,6 +12,7 @@
     ],
     "domain": "tooling",
     "extraFrontmatter": {
+      "amended": "2026-06-18",
       "slug": "workflow-spec-traceability"
     },
     "id": "118-workflow-spec-traceability",
@@ -57,6 +59,6 @@
     "summary": "Adopt a header-line convention `# Spec: NNN-slug` in every .github/workflows/*.yml. Extend tools/spec-spine/codebase-indexer to scan workflow files for the convention and emit a `workflow_traceability` block in index.json, rendered as a new \"Layer 5: CI Workflow Traceability\" section of CODEBASE-INDEX.md. Closes the gap where Rust crates trace to specs via `[package.metadata.oap]` but workflows have no equivalent.\n",
     "title": "Workflow-to-Spec Traceability — surface \"# Spec:\" headers in the codebase index"
   },
-  "shardHash": "ff5ecf07d9e62ba8a7d39113248eb4847851808ec1f0aaafffb211d944943a63",
+  "shardHash": "b7ee6eabbcfdde981333c52ecf1265e2e6b3545ce80833e166bd3be187826efb",
   "specVersion": "1.1.0"
 }

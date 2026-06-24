@@ -1,5 +1,6 @@
 {
   "record": {
+    "amendmentRecord": "amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree codebase-indexer that hashed the skills surface this spec extended was deleted; that hashing is now in spec-spine-core. The codebase-indexer edge is stripped (path deleted); this spec's authority is the .claude/skills/** surface it establishes.\n",
     "amends": [
       "071-skill-command-factory",
       "101-codebase-index-mvp",
@@ -96,6 +97,7 @@
       }
     ],
     "extraFrontmatter": {
+      "amended": "2026-06-18",
       "approved": "2026-05-26",
       "language": "en",
       "slug": "claude-skills-migration"
@@ -143,6 +145,6 @@
     "summary": "Mechanical migration of the ten single-file commands under `.claude/commands/` to the modern Claude Code skills surface at `.claude/skills/<name>/SKILL.md`. Per the current Claude Code docs, \"commands and skills are now the same mechanism\" and skills are the recommended successor because they support bundling supporting files alongside the SKILL.md entrypoint. Today the ten OAP commands (`init`, `setup`, `commit`, `code-review`, `review-branch`, `implement-plan`, `research`, `validate-and-fix`, `cleanup`, `refactor-claude-md`) are inline single-file prompts; migrating to the folder-per-skill form is the precondition for splitting their inline checklists, fixture references, and protocol bodies out as sibling files where it makes the prompt clearer. Behavior is unchanged: each `/name` invocation continues to resolve to the same prompt body. The migration touches two other specs: 101 (indexer's hashed-input set adds `.claude/skills/`) and 071 (acknowledges skills as the primary surface). AGENTS.md is **preserved unchanged** as the canonical cross-agent session-init protocol authority — it is now an open standard stewarded by the Linux Foundation's Agentic AI Foundation (AAIF) and is read by OpenAI Codex, Cursor, GitHub Copilot, and other agents in addition to Claude Code. Spec 103's `establishes:` over AGENTS.md stays unmodified. The new `.claude/skills/init/SKILL.md` is a thin Claude-Code-specific dispatcher that reads AGENTS.md and executes the protocol described there; the protocol body's canonical location does not change.\n",
     "title": "Migrate .claude/commands/ to .claude/skills/ (modern Claude Code surface)"
   },
-  "shardHash": "96d090588e7702120c2a2921ff6bd5eaee223fc490ba11a7d75f3cd9d7e9e456",
+  "shardHash": "726ce79a1acac7918fdfec753bc82c34716b6b9802cc327d6f55d0b99d5c6c72",
   "specVersion": "1.1.0"
 }
