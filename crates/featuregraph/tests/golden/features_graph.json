@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:a0f41cb48adad0ee168cab9ffdbbc00efed79eae0075262f8109b7507fe440c0",
+  "graph_fingerprint": "sha256:66aff49d4ed8fa43de285a240f95c8e65aedca03a2616eb6c4008966ad944e4f",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4892,6 +4892,13 @@
       "severity": "error",
       "path": "crates/orchestrator/src/artifact.rs",
       "message": "Malformed Spec directive: // Spec: specs/044-multi-agent-orchestration/spec.md, specs/094-unified-artifact-store/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/orchestrator/src/budget_gate.rs",
+      "message": "Malformed Spec directive: // Spec: specs/202-run-blast-radius-governor/spec.md (FR-002, AC-1, AC-5)",
       "suggested_fix": "Fix header format"
     },
     {

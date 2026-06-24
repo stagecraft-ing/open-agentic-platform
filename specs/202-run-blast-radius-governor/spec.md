@@ -38,6 +38,8 @@ establishes:
   - unit: { kind: file, path: crates/factory-contracts/src/run_budget.rs }
   # Slice A (FR-001): governance_envelope gains budgets: field
   - unit: { kind: file, path: crates/factory-contracts/src/governance_envelope.rs }
+  # Slice B (FR-002): run-level meter + budget PreStepGate + gate chain
+  - unit: { kind: file, path: crates/orchestrator/src/budget_gate.rs }
 extends:
   # Budget declarations are an additive, ASI08-tagged section of the
   # envelope schema spec 198 establishes.
@@ -52,6 +54,10 @@ extends:
 refines:
   - aspect: "run-budget-metering"
     unit: { kind: file, path: crates/orchestrator/src/lib.rs }
+  # Slice B (FR-002): orchestrator takes a factory-contracts dependency for the
+  # RunBudget* meter types consumed by budget_gate.rs.
+  - aspect: "run-budget-metering"
+    unit: { kind: file, path: crates/orchestrator/Cargo.toml }
   # Slice A (FR-001): factory-contracts re-exports the new RunBudget* types.
   - aspect: "run-budget-contract-exports"
     unit: { kind: file, path: crates/factory-contracts/src/lib.rs }

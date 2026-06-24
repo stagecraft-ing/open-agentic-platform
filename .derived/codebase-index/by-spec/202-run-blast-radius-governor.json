@@ -36,6 +36,14 @@
         "source": "spec-edge"
       },
       {
+        "path": "crates/orchestrator/Cargo.toml",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/orchestrator/src/budget_gate.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/orchestrator/src/circuit_breaker.rs",
         "source": "spec-edge"
       },
@@ -90,6 +98,19 @@
       {
         "locations": [
           {
+            "file": "crates/orchestrator/src/budget_gate.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/orchestrator/src/budget_gate.rs"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/featuregraph/tests/golden/features_graph.json"
           }
         ],
@@ -137,6 +158,19 @@
         "unit": {
           "kind": "file",
           "path": "crates/factory-contracts/src/lib.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/orchestrator/Cargo.toml"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/orchestrator/Cargo.toml"
         }
       },
       {
@@ -235,5 +269,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "461902660146a24e26812e1c1fb4ddd73487da6f3b3d50d8b38c6df4a87c5f1f"
+  "shardHash": "ccb491cda7cf1a33e48e17cb2e5b9ebb520e537c903cd7cb6f42bd9391c5ad3b"
 }

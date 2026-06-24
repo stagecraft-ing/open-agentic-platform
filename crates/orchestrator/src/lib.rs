@@ -11,6 +11,7 @@
 
 pub mod agent_identity;
 pub mod artifact;
+pub mod budget_gate;
 pub mod circuit_breaker;
 pub mod claude_executor;
 pub mod cli_gate;
@@ -40,6 +41,7 @@ pub use artifact::{
     ArtifactLineage, ArtifactManager, ArtifactRecord, CasArtifact, ContentAddressedStore,
     DEFAULT_ARTIFACT_DIR, DEFAULT_CAS_DIR, LineageRelation,
 };
+pub use budget_gate::{BudgetBreach, BudgetGate, ChainedPreStepGate, RunBudgetMeter};
 pub use claude_executor::{
     AgentPromptLookup, ClaudeCodeExecutor, StandardsResolver, StepEvent, StepEventHandler,
     ThinkingLevel,
@@ -160,6 +162,23 @@ fn is_zero(v: &u32) -> bool {
     *v == 0
 }
 
+/// Per-step actuals handed to a [`PreStepGate`] after a step completes, so a
+/// metering gate (spec 202 FR-002 `BudgetGate`) can accumulate run-level
+/// consumption. This is a thin projection of the metrics the dispatch loop
+/// already records; it is not persisted (the canonical record stays
+/// [`StepSummaryEntry`]).
+#[derive(Clone, Debug, Default)]
+pub struct StepActuals {
+    pub step_id: String,
+    pub tokens_used: Option<u64>,
+    pub cost_usd: Option<f64>,
+    pub duration_ms: Option<u64>,
+    pub num_turns: Option<u32>,
+    /// Whether the step reached `Success` (used by the FR-003b oscillation
+    /// detector in a later slice; recorded here so the hook is stable).
+    pub success: bool,
+}
+
 #[derive(Clone, Debug)]
 pub struct DispatchResult {
     pub tokens_used: Option<u64>,
@@ -220,6 +239,13 @@ pub trait GovernedExecutor: Send + Sync {
 #[async_trait]
 pub trait PreStepGate: Send + Sync {
     async fn before_step(&self, step_id: &str) -> Result<(), String>;
+
+    /// Called after each step completes, letting a metering gate accumulate
+    /// run-level consumption (spec 202 FR-002). The default is a no-op, so
+    /// non-metering gates (e.g. `GrantRenewalGate`) are unaffected and need no
+    /// change. The dispatch loop invokes this on the success path with the
+    /// just-completed step's actuals.
+    async fn after_step(&self, _actuals: &StepActuals) {}
 }
 
 /// Optional dispatch configuration for gates and verification (052/075).
@@ -1297,6 +1323,21 @@ pub async fn dispatch_manifest(
                 num_turns[idx] = metrics.num_turns;
                 retry_counts[idx] = metrics.retry_count;
 
+                // Spec 202 FR-002: feed the just-completed step's actuals to
+                // any metering gate so run-level budgets accumulate (a no-op
+                // for non-metering gates such as GrantRenewalGate).
+                if let Some(ref gate) = options.pre_step {
+                    gate.after_step(&StepActuals {
+                        step_id: step.id.clone(),
+                        tokens_used: tokens_used[idx],
+                        cost_usd: costs_usd[idx],
+                        duration_ms: durations_ms[idx],
+                        num_turns: num_turns[idx],
+                        success: is_success,
+                    })
+                    .await;
+                }
+
                 // Hash output artifacts (082 FR-003).
                 if is_success {
                     let mut hashes = HashMap::new();
@@ -2114,6 +2155,21 @@ pub async fn dispatch_manifest_persisted(
                 durations_ms[idx] = metrics.duration_ms;
                 num_turns[idx] = metrics.num_turns;
                 retry_counts[idx] = metrics.retry_count;
+
+                // Spec 202 FR-002: feed the just-completed step's actuals to
+                // any metering gate so run-level budgets accumulate (a no-op
+                // for non-metering gates such as GrantRenewalGate).
+                if let Some(ref gate) = options.pre_step {
+                    gate.after_step(&StepActuals {
+                        step_id: step.id.clone(),
+                        tokens_used: tokens_used[idx],
+                        cost_usd: costs_usd[idx],
+                        duration_ms: durations_ms[idx],
+                        num_turns: num_turns[idx],
+                        success: is_success,
+                    })
+                    .await;
+                }
 
                 // Hash output artifacts (082 FR-003).
                 if is_success {
@@ -3322,5 +3378,79 @@ steps:
         .await
         .unwrap();
         assert!(matches!(summary.steps[0].status, StepStatus::Success));
+    }
+
+    // --- Spec 202 FR-002: after_step delivers per-step actuals to the gate ---
+
+    #[derive(Default)]
+    struct RecordingGate {
+        recorded: std::sync::Mutex<Vec<(String, Option<u64>)>>,
+    }
+
+    #[async_trait]
+    impl PreStepGate for RecordingGate {
+        async fn before_step(&self, _step_id: &str) -> Result<(), String> {
+            Ok(())
+        }
+        async fn after_step(&self, actuals: &StepActuals) {
+            self.recorded
+                .lock()
+                .unwrap()
+                .push((actuals.step_id.clone(), actuals.tokens_used));
+        }
+    }
+
+    #[tokio::test]
+    async fn after_step_receives_actuals_for_each_completed_step() {
+        let tmp = tempfile::tempdir().unwrap();
+        let am = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+        let mk = |id: &str, out: &str| WorkflowStep {
+            id: id.into(),
+            agent: "agent-a".into(),
+            effort: EffortLevel::Quick,
+            inputs: vec![],
+            outputs: vec![out.into()],
+            instruction: "work".into(),
+            gate: None,
+            pre_verify: None,
+            post_verify: None,
+            max_retries: None,
+        };
+        let manifest = WorkflowManifest {
+            steps: vec![mk("s1", "out1.md"), mk("s2", "out2.md")],
+            project_id: None,
+        };
+        materialize_run_directory(&am, run_id, &manifest).unwrap();
+        let gate = Arc::new(RecordingGate::default());
+        let gate_dyn: Arc<dyn PreStepGate> = gate.clone();
+        let options = DispatchOptions {
+            pre_step: Some(gate_dyn),
+            ..DispatchOptions::default()
+        };
+        dispatch_manifest(
+            &am,
+            run_id,
+            &manifest,
+            Arc::new(AlwaysPresentRegistryForGate),
+            Arc::new(WritingExecutorForGate),
+            &options,
+        )
+        .await
+        .unwrap();
+        let recorded = gate.recorded.lock().unwrap();
+        assert_eq!(
+            recorded.len(),
+            2,
+            "after_step must fire once per completed step"
+        );
+        let ids: Vec<&str> = recorded.iter().map(|(id, _)| id.as_str()).collect();
+        assert!(ids.contains(&"s1"), "missing s1: {ids:?}");
+        assert!(ids.contains(&"s2"), "missing s2: {ids:?}");
+        // WritingExecutorForGate reports 10 tokens per step.
+        assert!(
+            recorded.iter().all(|(_, t)| *t == Some(10)),
+            "actuals must carry per-step tokens: {recorded:?}"
+        );
     }
 }
