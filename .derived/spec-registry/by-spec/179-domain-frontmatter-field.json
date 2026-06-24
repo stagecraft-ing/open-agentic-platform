@@ -1,5 +1,6 @@
 {
   "record": {
+    "amendmentRecord": "amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler and registry-consumer that implemented the domain-field parse (V-030) and the --domain filter were deleted; those moved to spec-spine-core. The spec-compiler and registry-consumer test units are stripped (paths deleted); the surviving spec-lint V-031 presence test is retained.\n",
     "amends": [
       "000-bootstrap-spec-system"
     ],
@@ -48,6 +49,7 @@
       }
     ],
     "extraFrontmatter": {
+      "amended": "2026-06-18",
       "approved": "2026-05-24",
       "shape": "mechanism-add",
       "slug": "domain-frontmatter-field"
@@ -94,6 +96,6 @@
     "summary": "Adds a `domain:` frontmatter field to the universal spec grammar. The field is a single closed-enum string (`opc | platform | substrate | tooling`) declaring which tract owns a spec's authority. Strictly a *lens*, not a partition — the corpus stays one unified spine; `domain:` enables scoped enforcement rules and scoped consumer queries (e.g. \"specs with `domain: opc` and `kind: invariant-freeze` declaring a perf budget must reference a bench file\") that the unified-but-unindexed corpus cannot express. Required on new specs (V-031, warning until backfill is promoted); backfilled across the 179-spec corpus in the same PR. The spec-compiler parses `domain:` and emits V-030 on invalid enum values; registry-consumer exposes a `--domain <value>` filter on `list` / `status-report` and surfaces `domain:` in `show`; spec-lint emits V-031 at warning severity when the field is absent. Composes with spec 147 as the sibling field-grammar amendment of spec 000; future amendments may widen the enum.\n",
     "title": "Domain frontmatter field — tract authority lens over the unified spec spine"
   },
-  "shardHash": "f2dc6403f1c084f1504d9feb0bf436452c3d04456e6ffcaa8873916c797cec6d",
+  "shardHash": "0be1bcc2b65560b02398da29094ff6ade428521702dd92885ecfffd018f552b3",
   "specVersion": "1.1.0"
 }

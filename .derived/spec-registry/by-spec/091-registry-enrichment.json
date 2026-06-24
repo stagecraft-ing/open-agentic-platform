@@ -1,5 +1,6 @@
 {
   "record": {
+    "amendmentRecord": "amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler that parsed and emitted the enriched fields (depends_on, owner, risk) was deleted; that logic is now in spec-spine-core. The spec-compiler edge is stripped (path deleted); the featuregraph reader edges survive.\n",
     "codeAliases": [
       "REGISTRY_ENRICHMENT"
     ],
@@ -26,6 +27,9 @@
         }
       }
     ],
+    "extraFrontmatter": {
+      "amended": "2026-06-18"
+    },
     "id": "091-registry-enrichment",
     "implementation": "complete",
     "kind": "tooling",
@@ -49,6 +53,6 @@
     "summary": "Promote depends_on, owner, and risk from extra frontmatter to first-class spec compiler fields. Validate risk enum values. Update featuregraph to read enriched fields from the compiled registry, enabling downstream spec-driven gating.\n",
     "title": "Spec Registry Enrichment"
   },
-  "shardHash": "0b78ab817fb2507ec777a2a5f80e883856ca8ecf181609cbbac7bb76ee0b409c",
+  "shardHash": "afd86aa95bb3f1456765e80ee1f27cb0a3866028ac57391da795f829ff849e3e",
   "specVersion": "1.1.0"
 }

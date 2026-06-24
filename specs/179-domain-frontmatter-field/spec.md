@@ -7,6 +7,9 @@ implementation: complete
 owner: bart
 created: "2026-05-24"
 approved: "2026-05-24"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler and registry-consumer that implemented the domain-field parse (V-030) and the --domain filter were deleted; those moved to spec-spine-core. The spec-compiler and registry-consumer test units are stripped (paths deleted); the surviving spec-lint V-031 presence test is retained.
 kind: amendment
 shape: mechanism-add
 risk: low

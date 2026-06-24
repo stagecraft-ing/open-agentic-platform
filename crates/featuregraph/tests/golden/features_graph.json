@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:1542b8ceda8d33e1d6a2b6af3e63a8121085912f251e7fc64a5cbf1dc10166e6",
+  "graph_fingerprint": "sha256:8b02145c1b1e7fb4e4ed89a15ef8115a4b7631a9e9a05eba0041fd354000f882",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4092,8 +4092,8 @@
       "feature_id": "217-spec-spine-engine-swap-collapse",
       "title": "Spec-Spine Engine Swap and Collapse: replace OAP's in-tree generic engine with the published spec-spine library",
       "spec_path": "specs/217-spec-spine-engine-swap-collapse/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",

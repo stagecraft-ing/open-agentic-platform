@@ -7,6 +7,9 @@ implementation: complete
 owner: bart
 created: "2026-05-25"
 approved: "2026-05-26"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree codebase-indexer that hashed the skills surface this spec extended was deleted; that hashing is now in spec-spine-core. The codebase-indexer edge is stripped (path deleted); this spec's authority is the .claude/skills/** surface it establishes.
 kind: migration
 domain: tooling
 risk: low

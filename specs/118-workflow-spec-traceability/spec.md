@@ -6,6 +6,9 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-28"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree codebase-indexer that scanned workflow headers was deleted; that logic is now in spec-spine-core. The codebase-indexer crate-unit is stripped (path deleted); this spec's authority over the `# Spec:` workflow-header convention (.github/workflows) survives.
 kind: governance
 domain: tooling
 risk: low

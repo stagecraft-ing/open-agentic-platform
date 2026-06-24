@@ -7,7 +7,7 @@ owner: bart
 created: "2026-04-14"
 kind: tooling
 domain: tooling
-amended: "2026-05-30"
+amended: "2026-06-18"
 amendment_record: |
   amended by spec 188 (2026-05-30, Phase 4a) — the narrow config-slice hash
   is RE-HOMED out of the broad index. It lived at `build.claudeConfigHash`
@@ -61,6 +61,8 @@ amendment_record: |
   closing the self-governance loop for the PostToolUse hook glob
   that guards every other hashed input. Spec 184 establishes
   authority over both files.
+
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree codebase-indexer this spec established was deleted; the index producer is now spec-spine-core (`spec-spine index`), emitting per-unit shards. The codebase-indexer source units and monolithic index.json reference are stripped (paths deleted); spec 101 continues to govern the codebase-index contract via the surviving OAP overlay schema codebase-index-oap.schema.json.
 summary: >
   A deterministic indexer tool that walks the repository tree, parses manifest files
   and spec frontmatter, and emits a governed .derived/codebase-index/index.json artifact.

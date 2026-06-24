@@ -1,5 +1,6 @@
 {
   "record": {
+    "amendmentRecord": "amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler that provided the registry-freshness seam this spec extended was deleted; that logic is now in spec-spine-core. The spec-compiler edge is stripped (path deleted); all other extends edges (factory-engine, tool-registry, policy-kernel, orchestrator) survive.\n",
     "coAuthority": [
       {
         "unit": {
@@ -77,6 +78,7 @@
       }
     ],
     "extraFrontmatter": {
+      "amended": "2026-06-18",
       "compliance": [
         {
           "controls": [
@@ -148,6 +150,6 @@
     "summary": "Meta-spec that formalises the refinement of OAP from a working governed platform into the definitive governed operating system for AI-native delivery. Central deliverable: a Governance Certificate — a single JSON artifact proving the full intent-to-spec-to-code-to-audit chain. Closes ten validated gaps across factory compilation, certificate output, stage gate configs, tool-registry policy bridge, compliance mapping, traceability unification, OWASP ASI 2026 coverage, policy composition, registry freshness, and platform policy seams.\n",
     "title": "Governed Excellence — Production Hardening for the Best Governed OS for AI-Native Delivery"
   },
-  "shardHash": "d4017190b401ee62d602d99b835a837e01d4f22587bef814e1e8571128fc3a0e",
+  "shardHash": "c710cdb07199f13a2b38126b9c2da90cff6e7ebd5124995607ab77bc0b7c46d9",
   "specVersion": "1.1.0"
 }

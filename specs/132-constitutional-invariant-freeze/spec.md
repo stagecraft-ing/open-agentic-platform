@@ -5,8 +5,10 @@ title: "Constitutional invariant freeze — `unamendable` anchors and V-011"
 status: approved
 implementation: complete
 amends: ["000-bootstrap-spec-system"]
-amended: "2026-05-13"
-amendment_record: "147-spec-kind-grammar"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-05-13 by spec 147 (spec-kind-grammar): bumped the registry schema 1.4.0 -> 1.5.0 with kind-grammar field declarations; spec 132's unamendable list is unchanged.
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler that enforced V-011 (unamendable-anchor enforcement) was deleted; that check is now in spec-spine-core. The spec_compiler crate-unit is stripped (path deleted); the frozen-schema invariant (constrains edge) survives unchanged.
 owner: bart
 created: "2026-05-02"
 approved: "2026-05-02"

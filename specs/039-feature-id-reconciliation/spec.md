@@ -7,6 +7,9 @@ implementation: complete
 kind: platform
 domain: tooling
 created: "2026-03-29"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler that parsed and emitted codeAliases was deleted; that logic is now in spec-spine-core. The spec-compiler edge is stripped (path deleted); the surviving registry.schema.json edge (the codeAliases schema field) is retained.
 authors:
   - "open-agentic-platform"
 language: en

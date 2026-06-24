@@ -14,6 +14,9 @@ amends_sections:
 owner: bart
 created: "2026-05-21"
 approved: "2026-05-21"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler that housed the V-024 unit-resolution predicate was deleted; that logic is now in spec-spine-core/types. The spec-compiler test edge is stripped (path deleted); the spec-types overlay edge (where the resolution rules live) survives.
 kind: governance
 domain: substrate
 risk: low

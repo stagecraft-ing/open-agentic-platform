@@ -75,8 +75,8 @@
       }
     ],
     "specId": "217-spec-spine-engine-swap-collapse",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "1a3f19798b313f9e48565025be60f0aedfe4c5d9bacfa728aa952dfa14587b20"
+  "shardHash": "adf855db004b4c0f6d7773b1a1491708b7691951fa53ec91735765d0046a5a6d"
 }

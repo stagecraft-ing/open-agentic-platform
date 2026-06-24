@@ -8,7 +8,7 @@ closed: "2026-05-22"
 owner: bart
 created: "2026-05-20"
 approved: "2026-05-20"
-amended: "2026-06-15"
+amended: "2026-06-18"
 amendment_record: |
   Amended 2026-05-24 by 155-logical-unit-resolution-semantics.
   Re-amended 2026-06-14 by 216-spec-spine-library-grammar-adoption: the
@@ -25,6 +25,7 @@ amendment_record: |
   3.0.0 -> 3.1.0 (additive; `codebase-index.schema.json` widened), and the
   indexer's `unit:`-to-path resolution (spec_scanner) is reused for the new
   field. FR-010 of spec 216.
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler, codebase-indexer, and spec-code-coupling-check that implemented unit-grammar resolution were deleted; that logic is now in spec-spine-core. All edges on those deleted paths are stripped; the surviving edges (registry schema, spec-lint overlay, featuregraph golden) carry this spec's live authority, and the codebase-index schema edge is dropped with the in-tree codebase-index.schema.json (Workstream D).
 kind: governance
 domain: substrate
 risk: medium

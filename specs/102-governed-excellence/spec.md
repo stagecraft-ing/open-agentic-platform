@@ -5,6 +5,9 @@ status: approved
 implementation: complete
 owner: bart
 created: "2026-04-14"
+amended: "2026-06-18"
+amendment_record: |
+  amended 2026-06-18 by spec 217 (engine-swap collapse): the in-tree spec-compiler that provided the registry-freshness seam this spec extended was deleted; that logic is now in spec-spine-core. The spec-compiler edge is stripped (path deleted); all other extends edges (factory-engine, tool-registry, policy-kernel, orchestrator) survive.
 kind: process
 domain: platform
 risk: high
