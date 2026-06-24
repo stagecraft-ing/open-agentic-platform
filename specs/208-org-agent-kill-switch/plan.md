@@ -139,9 +139,9 @@ connected engines per org for the broadcast and ack collection.
   existing registry limitation and is out of scope here (it is a
   registry-wide concern, not a halt-specific one).
 - **Migration number.** The highest landed migration as of 2026-06-24 is
-  `51_project_repos_unique_repo` (47-51 landed since the spec 198 log's
-  "46" baseline, which is now stale). Spec 208's migration is the
-  next-free number determined at landing (52 today); do not hard-code,
+  `52_audit_two_principal` (spec 205 Phase 0, #419; migrations 47-52
+  landed since the spec 198 log's "46" baseline). Spec 208's migration is
+  the next-free number determined at landing (53 today); do not hard-code,
   confirm next-free at landing.
 
 ## Constitution Check

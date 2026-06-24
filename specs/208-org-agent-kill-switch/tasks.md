@@ -19,9 +19,9 @@ Phase 4 = PR-4 (`feat/208-credential-closure`); Phase 5 = PR-5
   `nhi_delegation_index` and the revocation cascade must exist. Spec 205
   T023 is the handoff contract this phase consumes.
 - **Migration number** is the next-free number at landing. The highest
-  landed migration as of 2026-06-24 is `51_project_repos_unique_repo`
-  (47-51 landed since the spec 198 log's "46" baseline, which is now
-  stale), so the next-free is 52 today. Do not hard-code; confirm
+  landed migration as of 2026-06-24 is `52_audit_two_principal` (spec 205
+  Phase 0, #419; migrations 47-52 landed since the spec 198 log's "46"
+  baseline), so the next-free is 53 today. Do not hard-code; confirm
   next-free at landing (called `NN` below).
 
 ## Pre-implementation decisions (2026-06-24 seam survey)
