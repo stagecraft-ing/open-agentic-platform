@@ -15,16 +15,16 @@ summary: >
   lattice quarantines factory content (spec 198 FR-010), and Rauthy
   sessions can be revoked one principal at a time. What does not exist
   is the emergency stop ASI10 m4 and ASI04 m8 require: one
-  admin-gated action that halts agent execution org-wide — pausing
+  admin-gated action that halts agent execution org-wide (pausing
   in-flight runs at the next boundary, refusing new sessions and grant
-  issuance, revoking agent credentials — with propagation inside a
-  stated bound, a quarantine record, and reintegration that requires
-  fresh validation plus human approval. The switch composes the levers
-  that already exist (grant renewal, duplex channels, revocation rows,
-  session force-disconnect) rather than adding a parallel mechanism,
-  and it is drilled: a kill switch that has never been pulled is
-  decoration, so exercising it is an acceptance criterion, not an
-  operational afterthought.
+  issuance, revoking agent credentials) with propagation inside a stated
+  bound, a quarantine record, and reintegration that requires fresh
+  validation plus human approval. The switch composes the levers that
+  already exist (grant renewal, duplex channels, revocation rows,
+  session force-disconnect) rather than adding a parallel mechanism, and
+  it is drilled: a kill switch that has never been pulled is decoration,
+  so exercising it is an acceptance criterion, not an operational
+  afterthought.
 code_aliases: ["ORG_AGENT_KILL_SWITCH"]
 compliance:
   - framework: "owasp-asi-2026"
@@ -62,7 +62,9 @@ references:
 
 **Feature Branch**: `208-org-agent-kill-switch`
 **Created**: 2026-06-11
-**Status**: Draft (follow-on filed by the ASI gap-closure pass)
+**Status**: Draft (refined to implementable 2026-06-24; the sequencing
+gate spec 198 `implementation: complete` is now satisfied, so the FRs and
+ACs below are normative and testable, no longer a sketch)
 **Input**: The ASI 2026 gap analysis (2026-06-10) found: "Four-key
 revocation covers factory content; there is no 'halt all agents / revoke
 all agent credentials org-wide' lever. Per-session force-disconnect (172)
@@ -75,84 +77,232 @@ compromise.
 The incident that motivates this spec is the one OAP's posture already
 assumes possible: a supply-chain compromise (ASI04) or rogue-agent
 divergence (ASI10) discovered *while agents are running across the org*.
-The operator's first question is not "which session?" — it is "how do I
+The operator's first question is not "which session?", it is "how do I
 stop everything, now, without losing forensic state?" Today the honest
-answer is a loop over sessions and a prayer that nothing re-connects.
+answer is a loop over sessions and a hope that nothing re-connects.
 
 The design constraint is composition: every primitive the switch needs
 exists. Grant renewal (198 FR-005) gives a natural pause boundary;
 revocation rows (198 FR-010) give fail-closed serve/bind/renewal checks;
 the duplex channel reaches every connected engine; force-disconnect (172)
 terminates an unresponsive one; checkpointing preserves state at the
-kill. The switch is the org-scoped composition of these, plus the
-state machine (active → halted → reintegrating) and its audit story.
+kill. The switch is the org-scoped composition of these, plus the state
+machine (active, halted, reintegrating) and its audit story.
 
-## Functional requirements (sketch — refine before implementation)
+## Design model: composition over a new mechanism
 
-- **FR-001 — Halt verb.** An admin-gated platform action sets org halt.
-  While active: new agent sessions are refused, new run-grants and grant
-  renewals are refused (in-flight runs therefore pause at the next stage
-  boundary, the 198 FR-005 semantics), and a halt notice is pushed over
-  every connected duplex channel so engines pause at the next
-  instruction boundary without waiting for renewal. Engines checkpoint
-  on halt (the 172 force-disconnect sequence) — containment must not
-  destroy the forensic state it exists to protect.
-- **FR-002 — Credential revocation propagation.** Halt revokes
-  outstanding run-grants (serve-time checks refuse them immediately;
-  renewal refusal catches the rest) and, once spec 205 lands, agent
-  NHIs via the delegation index. Scope lattice: the verb takes `org`,
-  `project`, or `agent-profile` scope — the ASI10 quarantine case is
-  rarely all-or-nothing, and a narrower halt that works beats a broad
-  one nobody dares pull.
-- **FR-003 — Propagation bound, stated and measured.** The halt
-  contract states its bound (connected engines: next instruction
-  boundary; disconnected engines: at reconnect handshake, which checks
-  halt state fail-closed before any other traffic). The audit record
-  captures per-engine acknowledgment timestamps so the realized bound is
-  measurable after every pull, drill or real.
-- **FR-004 — Quarantine record and reintegration.** The halt writes a
-  quarantine record (who pulled it, why, scope, evidence links). Lifting
-  follows the spec 198 FR-010 lift contract verbatim: fresh two-sided
-  validation of the affected factories plus an explicit human actor id —
-  a service identity cannot lift (the spec 200 AC-4 pattern), and
-  reintegration is staged (sessions re-admitted per scope, not a global
-  flip).
-- **FR-005 — Drill requirement.** The e2e harness (spec 187 territory)
-  exercises the full pull-and-lift cycle on every release candidate:
-  halt during a seeded multi-session run, assert the propagation bound,
-  lift, assert staged reintegration. ASI01 m8's "verify rollback works"
-  applied to containment.
+The switch adds no parallel control plane. It is a thin org-scoped verb
+over five primitives that already ship, each at its established home:
 
-## Acceptance criteria (sketch)
+| Primitive | Home (existing) | What the switch reuses it for |
+|---|---|---|
+| Revocation rows, fail-closed at serve / bind / grant | `api/factory/revocations.ts` (198 FR-010) | The halt reuses these fail-closed check sites (serve / bind / grant); each consults the halt record for scopes `org` / `project` / `agent-profile`. Whether the halt record lives in `factory_revocations` or a sibling table is the storage decision resolved in plan.md |
+| Run-grant issue / renew over duplex | `api/factory/grantDuplexHandlers.ts` (198 FR-005) | Halt makes grant issuance and per-stage renewal refuse, which is how in-flight runs pause at the next stage boundary |
+| Org-scoped duplex channel | `api/sync/service.ts` (one connection observes every project in the org) | The halt notice is broadcast to every connected engine; this is the `org-halt-propagation` seam |
+| Session force-disconnect + checkpoint | `product/apps/opc/src-tauri/src/commands/live_sessions.rs` (172) | The graceful halt path checkpoints at the next boundary before the engine yields; an engine that does not acknowledge is force-disconnected as the fallback (172 itself kills then checkpoints). This is the `halt-aware-session-termination` seam |
+| Agent NHI delegation/revocation index | spec 205 `nhi_delegation_index` (in progress) | FR-002 consumes it to revoke agent credentials org-wide; until 205 lands, the switch degrades to grant + session revocation (see Dependencies) |
+
+The contract this spec locks is the *verb, scope lattice, state machine,
+propagation bound, quarantine record, and drill*. The *storage shape*
+(reuse `factory_revocations` with new scope kinds versus a sibling
+`org_halts` table consulted by the same check sites) and the *duplex
+frame shape* are mechanism decisions resolved in `plan.md`, in the
+spec-205 precedent of deferring mechanism to the plan.
+
+## State machine
+
+Each halt scope is a state machine; lifting is staged, never a global
+flip.
+
+```text
+   active ──[admin pulls halt: FR-001]──▶ halted
+      ▲                                     │
+      │                                     │ [admin initiates lift:
+      │ [every affected scope               │  human actor id + fresh
+      │  re-admitted & validated;           │  two-sided validation: FR-004]
+      │  quarantine record closed]          ▼
+      └──────────────────────────── reintegrating
+```
+
+- **active to halted** is set by the admin-gated halt verb (FR-001). The
+  transition is atomic at the platform: the halt record is written before
+  the broadcast, so a grant renewal racing the broadcast still fails
+  closed.
+- **halted to reintegrating** requires an explicit human actor id and
+  fresh two-sided validation of every affected factory (FR-004); a
+  service identity cannot initiate it (the spec 200 AC-4 pattern).
+- **reintegrating to active** completes only when every affected scope
+  has re-admitted and re-validated. Reintegration is staged: sessions are
+  re-admitted per scope, not by one org-wide enable.
+
+The diagram is the *scope* state. The halt *record* progresses `halted`
+to `reintegrating` to `lifted` (the storage shape resolved in plan.md /
+tasks.md PD-E); a scope is `active` exactly when it has no non-`lifted`
+halt record, so the loop back to active is the record reaching `lifted`.
+A `reintegrating` scope is still enforced (new sessions and grants
+refused) until its staged re-admission completes.
+
+## Scope lattice
+
+The verb takes one of three scopes. The ASI10 quarantine case is rarely
+all-or-nothing; a narrower halt that an operator dares to pull beats a
+broad one nobody will.
+
+- **`org`** halts all agent execution for the organisation: every
+  project, every session, every agent profile.
+- **`project`** halts a single project. Sibling projects keep running
+  (proven by AC-3). Run-grants are already project-bound (they carry
+  project + run id), so project-scoped grant refusal is exact.
+- **`agent-profile`** halts every session of a named agent profile across
+  the org (the surgical case: one compromised profile, the rest of the
+  fleet untouched).
+
+Scopes compose by union: an `org` halt subsumes any narrower active halt;
+lifting the `org` halt does not lift an independently-pulled `project`
+halt.
+
+## Functional requirements
+
+### FR-001: Halt verb
+
+An admin-gated platform action sets a halt for one scope (the scope
+lattice above). It requires the `factory:configure` org permission (the
+`revocations.ts` precedent) and a non-empty reason (the reason is audit
+evidence, not a toggle). While a halt is active for a scope:
+
+- new agent sessions in that scope are refused at duplex registration;
+- new run-grants and grant renewals in that scope are refused, so
+  in-flight runs pause at the next stage boundary (the 198 FR-005
+  semantics, not a forced mid-stage kill);
+- a halt notice is pushed over every connected duplex channel in scope so
+  engines pause at the next instruction boundary without waiting for the
+  next renewal;
+- engines checkpoint on halt: the halt-aware path checkpoints at the next
+  boundary before the engine yields (the 172 force-disconnect, which kills
+  then checkpoints, is the no-ack fallback). Containment must not destroy
+  the forensic state it exists to protect.
+
+### FR-002: Credential revocation propagation
+
+Halt revokes outstanding run-grants in scope (serve-time and
+issuance/renewal checks refuse them immediately) and, where spec 205 has
+landed, agent NHIs via the `nhi_delegation_index` (an org / project /
+agent-profile predicate over the index, the cascade spec 205 FR-004 / T021
+exposes). Until spec 205 lands, FR-002 degrades to grant + session
+revocation, which is sufficient for AC-1/AC-2 because OPC and every agent
+are keyless (198 FR-014): a halted session holds only short-TTL grants and
+a revocable Rauthy session, and loses all standing one stage boundary
+after the grant refusal.
+
+### FR-003: Propagation bound, stated and measured
+
+The halt contract states its bound, and the realized bound is measurable
+after every pull:
+
+- **connected engines**: paused at the next instruction boundary
+  (acknowledged over duplex);
+- **disconnected engines**: refused at the reconnect handshake, which
+  checks halt state fail-closed before any other traffic is served.
+
+The quarantine record (FR-004) captures a per-engine acknowledgment
+timestamp for the halt and for the lift, so the realized propagation bound
+is an audited fact after every pull, drill or real, not a design promise.
+
+### FR-004: Quarantine record and reintegration
+
+The halt writes a quarantine record: who pulled it, why, the scope, and
+evidence links. Lifting follows the spec 198 FR-010 lift contract
+verbatim: fresh two-sided validation of the affected factories (a re-sync
+re-evaluates admission) plus an explicit human actor id. A service
+identity cannot lift (the spec 200 AC-4 pattern, enforced by the
+`liftRevocationCore` auth precedent). Reintegration is staged: sessions
+are re-admitted per scope, not by one global flip, and each re-admission
+is recorded with its per-engine timestamp.
+
+### FR-005: Drill requirement
+
+The e2e harness (spec 187, `product/apps/opc/tests-e2e/`) exercises the
+full pull-and-lift cycle on every release candidate: halt during a seeded
+multi-session run, assert the propagation bound (FR-003), lift, assert
+staged reintegration (FR-004). This is ASI01 m8's "verify rollback works"
+applied to containment: a kill switch that has never been pulled is
+decoration. The drill runs in the existing nightly e2e lane
+(`.github/workflows/opc-e2e-nightly.yml`) against the harness's
+`mock_stagecraft` seam, not as a later promise.
+
+## Acceptance criteria
 
 - **AC-1.** With three concurrent sessions (one mid-run, one idle, one
-  disconnected), org halt: the mid-run session pauses and checkpoints at
-  the next boundary; the idle session's next action is refused; the
-  disconnected session is refused at reconnect handshake.
-- **AC-2.** During halt, grant issuance, grant renewal, and new session
-  registration are all refused with errors naming the quarantine record.
+  disconnected), an `org` halt: the mid-run session pauses and checkpoints
+  at the next boundary; the idle session's next action is refused; the
+  disconnected session is refused at the reconnect handshake. (FR-001,
+  FR-003)
+- **AC-2.** During a halt, grant issuance, grant renewal, and new session
+  registration in scope are all refused with errors that name the
+  quarantine record. (FR-001, FR-002)
 - **AC-3.** A `project`-scoped halt leaves sibling projects' sessions
-  running (scope lattice proven).
-- **AC-4.** Lift requires a human actor id and re-validation; the
-  scanner/service identity is rejected; per-engine acknowledgment
-  timestamps exist for the halt and the lift.
+  running, and an `agent-profile`-scoped halt leaves other profiles'
+  sessions running (the scope lattice is proven, not just the org case).
+  (scope lattice, FR-001)
+- **AC-4.** Lift requires a human actor id and fresh re-validation; the
+  scanner / service identity is rejected; per-engine acknowledgment
+  timestamps exist for both the halt and the lift. (FR-004)
 - **AC-5.** The drill (FR-005) runs in the e2e harness and is green on a
-  release candidate.
+  release candidate. (FR-005)
+- **AC-6.** `make ci` / schema-parity (125/191) / coupling gate pass;
+  codebase index and featuregraph golden regenerated for the spec add.
+  (cross-cutting, mirrors 198 AC-9)
 
 ## Out of scope
 
 - Single-run budget circuit-breaking (spec 202; the governor bounds one
   run, the switch stops the fleet).
-- Per-agent credential issuance (spec 205; FR-002 consumes its index
-  when available, and degrades to grant+session revocation until then).
+- Per-agent credential issuance (spec 205; FR-002 consumes its index when
+  available, and degrades to grant + session revocation until then).
 - Automated halt triggers (anomaly-detection-initiated halt is future
-  work; this spec's actor is a human admin — automation proposing,
-  human pulling, is the ASI08-honest division).
+  work; this spec's actor is a human admin: automation proposing, a human
+  pulling, is the ASI08-honest division).
 - Content quarantine semantics (spec 198 FR-010 owns the four-key
   lattice; this spec widens scope, it does not redefine keys).
+- Cross-org or platform-global halt (the verb is org-scoped; a
+  platform-operator global stop is a separate authority and a separate
+  spec).
 
-## Sequencing
+## Dependencies and sequencing
 
-After spec 198 reaches `implementation: complete` (grant machinery and
-revocation rows are the substrate). The drill (FR-005) lands with the
-e2e harness integration, not as a later promise.
+- **spec 198 `implementation: complete`** (the sequencing gate) is
+  satisfied as of 2026-06-12: grant machinery (FR-005) and revocation rows
+  (FR-010) are the substrate the switch composes. **This gate is now
+  green**, which is what makes this refinement (and subsequent
+  implementation) admissible.
+- **spec 172 `implementation: complete`**: the force-disconnect +
+  checkpoint sequence is the `halt-aware-session-termination` reuse.
+- **spec 205 (draft, in progress)**: FR-002 consumes its
+  `nhi_delegation_index` for org-wide agent-credential revocation. The
+  switch does not block on 205: it degrades to grant + session revocation
+  (keyless posture, 198 FR-014). A coordination point recorded for
+  `plan.md`: project-scoped NHI revocation needs a project key on the 205
+  index (its T007 shape keys on `org_id` / `agent_profile` but not
+  `project_id`); until that key exists, project-scoped revocation rides
+  grants (which are project-bound) rather than the index.
+- The drill (FR-005) lands with the spec 187 e2e harness integration, not
+  as a later promise.
+
+## Phasing (proposed; refine in plan.md)
+
+1. **Halt verb + scope lattice + revocation-lattice widening.** The
+   admin-gated verb, the quarantine record, and the fail-closed check at
+   serve / bind / grant-issuance / grant-renewal / session-registration.
+   This phase makes the halt *enforced* before it is *propagated*.
+2. **Duplex propagation + halt-aware termination.** The org-halt broadcast
+   over `api/sync/service.ts`, the engine-side pause-at-next-boundary +
+   checkpoint in `live_sessions.rs`, and per-engine acknowledgment
+   timestamps (FR-003).
+3. **Reintegration.** Staged lift per scope, human-actor gate, fresh
+   two-sided validation (FR-004), reusing the `liftRevocationCore`
+   contract.
+4. **Credential propagation closure.** Consume the spec 205 index when it
+   lands (FR-002); until then the degraded grant + session path is the
+   shipped behavior.
+5. **Drill.** The e2e pull-and-lift cycle in the nightly lane (FR-005),
+   the completion gate for the spec.
