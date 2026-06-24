@@ -143,6 +143,30 @@ connected engines per org for the broadcast and ack collection.
   landed since the spec 198 log's "46" baseline). Spec 208's migration is
   the next-free number determined at landing (53 today); do not hard-code,
   confirm next-free at landing.
+- **Halt-pull authorization has no negative-test AC.** FR-001 requires the
+  `factory:configure` org permission to pull a halt, and AC-4 gives the
+  *lift* path a negative test (a service identity is rejected), but no AC
+  asserts the symmetric property for the *pull* path: an actor lacking
+  `factory:configure` calling the halt verb is refused, with no halt
+  record written and no state transition. For an org-wide emergency stop
+  the pull-side authorization boundary deserves an explicit AC with a
+  negative test, not only the FR-001 prose requirement. Carrier: add the
+  AC alongside the halt-verb tasks (it mirrors the AC-4 lift rejection
+  against the FR-001 `factory:configure` precedent). The authorization is
+  already specified in FR-001, so this closes a test-coverage gap, not a
+  design hole.
+- **Re-halt during `reintegrating` is implied, not drawn.** The state
+  machine is record-based: a scope is `active` exactly when it has no
+  non-`lifted` halt record, and a `reintegrating` scope is still enforced
+  (new sessions and grants refused). A second halt pulled during
+  reintegration therefore writes another halt record and the scope stays
+  enforced fail-closed, and scope union (the scope lattice) covers a
+  broader halt landing on a narrower reintegration. The behaviour is safe,
+  but the diagram shows only `reintegrating to active`, not a
+  `reintegrating to halted` re-assertion. Carrier: make the re-halt
+  transition explicit when PD-E (tasks.md) resolves the `org_halts` record
+  shape; no safety change, since a `reintegrating` scope already refuses
+  new sessions and grants.
 
 ## Constitution Check
 
