@@ -8,6 +8,22 @@
     ],
     "implementingPaths": [
       {
+        "path": "crates/factory-contracts/src/build_spec.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-contracts/src/governance_envelope.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-contracts/src/lib.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-contracts/src/run_budget.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/factory-engine",
         "source": "spec-edge"
       },
@@ -48,6 +64,32 @@
       {
         "locations": [
           {
+            "file": "crates/factory-contracts/src/governance_envelope.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-contracts/src/governance_envelope.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-contracts/src/run_budget.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-contracts/src/run_budget.rs"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/featuregraph/tests/golden/features_graph.json"
           }
         ],
@@ -69,6 +111,32 @@
         "unit": {
           "kind": "file",
           "path": "standards/schemas/factory/governance-envelope.schema.yaml"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-contracts/src/build_spec.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-contracts/src/build_spec.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-contracts/src/lib.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-contracts/src/lib.rs"
         }
       },
       {
@@ -167,5 +235,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "6c6ddb4248212591b0057515ec9edd55c398e551c37da5cd67c601f895e05578"
+  "shardHash": "461902660146a24e26812e1c1fb4ddd73487da6f3b3d50d8b38c6df4a87c5f1f"
 }
