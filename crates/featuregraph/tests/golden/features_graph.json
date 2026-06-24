@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:1e5a498b0e47a933476c2e3b997e4da11850d17555de974fbbb3725c015a2baa",
+  "graph_fingerprint": "sha256:1542b8ceda8d33e1d6a2b6af3e63a8121085912f251e7fc64a5cbf1dc10166e6",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3943,8 +3943,8 @@
       "feature_id": "209-tenant-kernel-ci-enforcement",
       "title": "Tenant Kernel CI Enforcement Activation (ASI04 continuous validation)",
       "spec_path": "specs/209-tenant-kernel-ci-enforcement/spec.md",
-      "status": "draft",
-      "implementation": "in-progress",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",

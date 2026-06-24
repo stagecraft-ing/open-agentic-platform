@@ -2,8 +2,8 @@
 id: "209-tenant-kernel-ci-enforcement"
 title: "Tenant Kernel CI Enforcement Activation (ASI04 continuous validation)"
 feature_branch: "feat/209-tenant-kernel-ci-enforcement"
-status: draft
-implementation: in-progress
+status: approved
+implementation: complete
 kind: capability
 domain: platform
 created: "2026-06-11"
@@ -79,7 +79,7 @@ references:
 
 **Feature Branch**: `209-tenant-kernel-ci-enforcement`
 **Created**: 2026-06-11
-**Status**: Draft (follow-on filed by the ASI gap-closure pass)
+**Status**: Approved (in-scope FRs FR-001/002/004/005 landed; FR-003 deferred to spec 220)
 **Input**: The ASI 2026 gap analysis (2026-06-10) concluded: "The factory
 produces applications that are born with a governance kernel but lack
 the live runtime enforcement machinery to prevent violations of that
@@ -121,6 +121,20 @@ itself.
 > verify-only by construction, so emission is not part of this
 > activation. The "sketch, refine before implementation" qualifier is
 > retired for FR-001/004/005; they are implementable as written.
+
+> **Closure note (2026-06-24).** FR-001/004/005 landed. The enforcing
+> tenant CI lives in template-encore's `.github/workflows/spec-spine.yml`
+> (committed since that repo's initial commit): blocking `spec-spine
+> compile` / `lint --fail-on-warn` / `index check` / `couple`, then
+> `tenant-tail verify-provenance --fail-on-rejected` and
+> `verify-certificate`, gated by `npm ci` sha512 integrity plus the
+> born-with `spec_spine_version` pin-equality check, with no
+> `|| true` / `continue-on-error` masking any gate exit. With FR-002
+> delivered (PR #366) and FR-003 deferred to spec 220, every in-scope FR
+> is satisfied, so this spec is approved / implementation complete. The
+> cross-repo CI legs carry no in-OAP authority target (see Sequencing);
+> the end-to-end produced-app green run is spec 210's falsifiability
+> check, which this spec precedes.
 
 - **FR-001: Enforcing tenant CI.** The seeded GitHub Actions workflow
   (template-encore's `.github/workflows/spec-spine.yml`) runs as a
@@ -204,9 +218,14 @@ itself.
 - **AC-2.** A seeded drift fixture (code edit without spine edit) fails
   the tenant coupling gate; a seeded unprovenance claim fails the
   validator; both fail the PR, not a log line.
-- **AC-3.** A tenant factory run leaves a certificate that the vended
-  verifier accepts; halting the run mid-stage still leaves a certificate
-  (termination contract honored).
+- **AC-3.** The vended verifier accepts a governance certificate when one
+  is present: the enforcing CI verifies every `governance-certificate.json`
+  it finds and fails on a bad one. The tenant-side certificate *emit* and
+  leave-behind-on-halt behavior (a run *producing* the certificate) is the
+  FR-003 leg deferred to spec 220 and is demonstrated there, not by this
+  activation (see Out of scope and FR-003). Reconciled at closure
+  (2026-06-24) from the original sketch, which conflated verify-when-present
+  with the deferred emit leg.
 - **AC-4.** Tampering with a vended binary fails tenant CI with a hash
   diagnostic naming the binary.
 - **AC-5.** Deleting a gate binary yields a visible failure with reason,
@@ -234,14 +253,15 @@ itself.
 
 FR-002 is delivered (PR #366). The tenant-tail vend blocker is cleared:
 spec 219 published `tenant-tail@0.1.0` and its platform packages to npm,
-so the run-side verifiers FR-001 invokes are now a consumable pin. The
-remaining leg is the template-encore CI activation (FR-001/004/005) in
-`.github/workflows/spec-spine.yml`, which carries no in-OAP authority
-target (the same cross-repo posture spec 219 records for its own closing
-legs). This spec coordinates with spec 203 (whose parity gate lands in
-the CI surface this spec makes enforcing) and precedes spec 210's
-falsifiability check for the same reason. FR-003 (the emit leg) waits on
-the emit spec (residual R-2) and does not gate this activation.
+so the run-side verifiers FR-001 invokes are a consumable pin. The
+template-encore CI activation (FR-001/004/005) **landed** in
+`.github/workflows/spec-spine.yml` (committed since that repo's initial
+commit), which carries no in-OAP authority target (the same cross-repo
+posture spec 219 records for its own closing legs). This spec coordinates
+with spec 203 (whose parity gate lands in the CI surface this spec makes
+enforcing) and precedes spec 210's falsifiability check for the same
+reason. FR-003 (the emit leg) waits on the emit spec (spec 220, residual
+R-2) and does not gate this activation.
 
 ## Open questions
 
