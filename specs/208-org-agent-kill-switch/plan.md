@@ -1,0 +1,262 @@
+# Implementation Plan: Org-Wide Agent Kill Switch and Quarantine
+
+**Branch**: `feat/208-org-agent-kill-switch` | **Date**: 2026-06-24 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/208-org-agent-kill-switch/spec.md`,
+plus the 2026-06-24 seam survey of the four composition surfaces
+(`grantDuplexHandlers.ts`, `sync/service.ts`, `live_sessions.rs`,
+`db/schema.ts`) recorded under Pre-implementation decisions in
+[tasks.md](tasks.md).
+
+## Summary
+
+Spec 208 adds one admin-gated org-scoped emergency stop that pauses agent
+execution, refuses new sessions and grants, and revokes agent credentials,
+with a stated propagation bound, a quarantine record, and a staged,
+human-gated reintegration. The spec deferred two decisions to this plan:
+**(1) the storage shape** (reuse `factory_revocations` scope kinds versus a
+sibling table) and **(2) the duplex frame shape** for propagation. This
+plan resolves both and records the architecture they imply: a dedicated
+`org_halts` record that carries the halt finite-state machine and
+per-engine acknowledgments, with **enforcement reusing the existing
+fail-closed check sites** rather than minting a parallel mechanism.
+
+## Storage decision (the question spec.md delegates here)
+
+**Decision.** The halt record lives in a new **`org_halts`** table.
+Enforcement (grant refusal, serve/bind refusal, session-registration
+refusal) reuses the existing revocation check path by teaching
+`grantPreflight` / `sweepCompositionRevocations`
+(`grantDuplexHandlers.ts:363`) and the serve/bind callers of
+`admission.isFactoryAdmitted` to **also consult active `org_halts` rows in
+scope**. We do **not** mint `factory_revocations` rows for halts.
+
+**Rejected: overloading `factory_revocations.scopeKind` with `org` /
+`project` / `agent-profile`.** It is mechanically possible (the `key`
+column is untyped `text`, so only the `scope_kind` CHECK constraint would
+widen, `schema.ts:1141-1156`), and the spec's `extends: revocations.ts`
+edge invites it. We reject it for two reasons:
+
+1. **Semantic conflation.** The four revocation keys are admission-graph
+   *node* types (factory / adapter / agent / content-hash). A halt is a
+   *temporal org-scoped* emergency stop along an orthogonal dimension.
+   Spec 198 was deliberate that "one mechanism, four keys" means four node
+   types; adding three scope dimensions to the same enum erodes that.
+2. **Shape mismatch.** FR-003 needs **per-engine acknowledgment
+   timestamps** and FR-004 needs a **`reintegrating` substate distinct
+   from `lifted`**. The `factory_revocations` row shape
+   (`createdAt` / `liftedAt` / `liftedBy`, binary) cannot hold either
+   without halt-only bolt-on columns that no revocation ever uses. A
+   dedicated table is the honest home.
+
+**How the `extends: revocations.ts` edge is honored.** The edge is
+additive widening of the *fail-closed check path*, not of the row schema:
+`sweepCompositionRevocations` gains an org-halt consult so the same
+preflight that already refuses revoked admissions now also refuses
+halted scopes. The `liftRevocationCore` human-actor gate
+(`revocations.ts:152`, "a service identity cannot lift", spec 200 AC-4) is
+the **pattern** the org-halt lift reuses, not the row it mutates.
+
+## Propagation decision (the second deferred question)
+
+**Decision.** The halt notice is an **outbox-durable org broadcast** via
+`dispatchServerEvent` (`sync/service.ts:255`), not a targeted send. New
+`ServerEnvelope` variants `org.halt.activated` / `org.halt.lifted` and a
+`ClientEnvelope` variant `org.halt.ack` (spec 189 envelope-version bump;
+schema-parity 125/191). Durability matters: `dispatchServerEvent` persists
+to the outbox before fan-out, so an engine that reconnects after the
+broadcast replays the halt on `sync.resync_request`
+(`service.ts:102-105` -> `deliverResync:549`). The targeted
+`sendTargetedServerEvent` (`service.ts:294`) is wrong here (it skips the
+outbox by design).
+
+## FR mapping
+
+| FR | Mechanism | Primary seam |
+|---|---|---|
+| FR-001 halt verb + refusals | New `orgHalt.ts` writes `org_halts`; preflight + serve/bind + duplex registration consult it fail-closed | `grantDuplexHandlers.ts:363`, `admission.isFactoryAdmitted`, `sync/duplex.ts` register path |
+| FR-002 credential revocation | Grant refusal at issuance/renewal (immediate); NHI cascade over `nhi_delegation_index` when spec 205 lands; degrade to grant + session until then | `grantPreflight:337-372`; spec 205 FR-004 index |
+| FR-003 propagation bound | Outbox broadcast + per-engine `org.halt.ack` recorded as timestamps on the `org_halts` record | `dispatchServerEvent:255`; `handleInbound:76` ack dispatch |
+| FR-004 quarantine record + reintegration | `org_halts` finite-state machine (`active` -> `halted` -> `reintegrating`); human-actor lift gate reusing the `liftRevocationCore` precedent; staged per-scope re-admission | `revocations.ts:152` (pattern), new `org_halts` state column |
+| FR-005 drill | e2e pull-and-lift against `mock_stagecraft` in the nightly lane | `product/apps/opc/tests-e2e/`, `opc-e2e-nightly.yml` |
+
+## Technical Context
+
+**Language/Version**: TypeScript (Encore.ts stagecraft, npm) for the verb,
+storage, enforcement, and propagation; Rust (OPC Tauri) for the
+halt-aware termination path and the ack send; the featuregraph golden moves
+on the spec frontmatter edit.
+**Primary Dependencies**: existing run-grant fabric (spec 198 phase 4,
+`grantDuplexHandlers.ts`), the org-scoped duplex (`sync/service.ts` +
+`registry.ts`), the spec 172 checkpoint infrastructure (`CheckpointState`,
+`live_sessions.rs:452-481`), the spec 187 e2e harness.
+**Storage**: stagecraft Postgres. New `org_halts` table (one migration);
+no column change to `factory_revocations`. Per-engine acks are a JSONB
+column on `org_halts` (1:many per halt, halt-local; a child table is
+over-modeling for the access pattern).
+**Testing**: stagecraft DB-bound tests on the spec 211 encore-test lane
+(the enforcement and ack suites are DB-bound, like
+`grantDuplexHandlers.test.ts`); pure vitest for the selector/predicate
+helpers; Rust unit for the `live_sessions.rs` halt path; the FR-005 drill
+in `tests-e2e`.
+**Target Platform**: platform services (K8s) for the verb/storage; OPC
+desktop for the engine-side pause. OPC stays keyless (198 FR-014): it
+receives a halt notice and acks; it mints nothing.
+**Project Type**: web-service (platform control plane) + desktop-app
+(engine-side termination).
+**Performance Goals**: the halt enforcement adds exactly one indexed
+`org_halts` liveness lookup per grant preflight (partial index on active
+rows); the broadcast is O(connected engines) over the existing
+`broadcastOrg` fan-out.
+**Constraints**: the enforcement entry MUST be written before the
+broadcast (FR-001 atomicity: a grant renewal racing the broadcast still
+fails closed); the drill is a release-candidate gate (FR-005), not
+optional.
+**Scale/Scope**: O(1) active halts per org in the common case; O(10-100)
+connected engines per org for the broadcast and ack collection.
+
+### Known gaps and their carriers
+
+- **Project-scoped NHI revocation needs a key the 205 index lacks.** The
+  spec 205 `nhi_delegation_index` (its T007 shape) keys on `org_id`,
+  `agent_profile`, `human_user_id`, `session_client_id` but **not
+  `project_id`**. An `org`-scoped or `agent-profile`-scoped halt can sweep
+  it directly; a `project`-scoped halt cannot until a project key is added.
+  Carrier until then: run-grants are project-bound, so project-scoped
+  credential revocation rides grant refusal (FR-002 degraded path), which
+  is sufficient for AC-2/AC-3. A project key on the 205 index is a
+  coordination item, not a 208 blocker.
+- **Session registration refusal seam is in `duplex.ts`, not
+  `service.ts`.** The seam survey confirmed `register`/`unregister` live in
+  `api/sync/duplex.ts` (the Encore duplex endpoint), which
+  `service.ts` does not own. FR-001's "new agent sessions refused at duplex
+  registration" lands in `duplex.ts`; the exact line is confirmed at
+  implementation (the survey read `service.ts`/`registry.ts`, not
+  `duplex.ts`).
+- **Horizontal scale-out.** `registry.ts:9-13` documents that the
+  in-memory registry needs PubSub/Redis fan-out for multi-replica. The
+  outbox-durable broadcast (the propagation decision) is replica-safe for
+  *delivery on reconnect*; live fan-out across replicas inherits the
+  existing registry limitation and is out of scope here (it is a
+  registry-wide concern, not a halt-specific one).
+- **Migration number.** Highest landed is `46_widen_substrate_audit_actions`
+  (spec 198 log); spec 205 reserves 47/48/49. Spec 208's migration is
+  next-free at landing (50 if 205 lands first); renumber at landing time.
+
+## Constitution Check
+
+- **Principle I/II**: this plan is markdown; no compiler-owned JSON is
+  authored. The featuregraph golden moves only on the spec frontmatter
+  edit (regenerated, not hand-edited).
+- **Principle III**: implementation is justified by spec 208 (refined to
+  implementable 2026-06-24); the relationship graph is declared in the
+  spec frontmatter (`extends:` revocations.ts + featuregraph golden,
+  `refines:` service.ts + live_sessions.rs). At implementation the
+  frontmatter gains `establishes:` for the new files (the `org_halts`
+  migration, `orgHalt.ts`, the audit-action constants) and `refines:` for
+  the additional edited surfaces (`grantDuplexHandlers.ts`, `duplex.ts`,
+  `sync_client.rs`, `types.ts`); the coupling gate enforces the declared
+  graph, so the gate tasks expand it (tasks.md).
+- **CONST-005**: no spec edit is required to make any gate pass. This plan
+  resolves the storage and propagation mechanisms spec.md explicitly
+  delegated to it; the spec refinement that preceded it de-hedged the FRs
+  without altering any relationship edge.
+
+**Gate: PASS.**
+
+## Project Structure
+
+### Documentation (this feature)
+
+```text
+specs/208-org-agent-kill-switch/
+├── spec.md              # Feature specification (refined to implementable 2026-06-24)
+├── plan.md              # This file
+└── tasks.md             # Task breakdown
+```
+
+### Source Code (repository root)
+
+```text
+platform/services/stagecraft/api/factory/
+├── orgHalt.ts                 # NEW (establishes): halt + lift verbs, org_halts CRUD,
+│                              #   broadcast trigger, scope-predicate helpers
+├── revocations.ts             # extend (extends edge): export the org-halt consult helper;
+│                              #   reuse the liftRevocationCore human-actor gate pattern
+├── grantDuplexHandlers.ts     # refine: sweepCompositionRevocations / grantPreflight
+│                              #   consult active org_halts in scope (line 363 seam)
+└── auditActions.ts            # extend: org-halt audit-action constants
+
+platform/services/stagecraft/api/sync/
+├── service.ts                 # refine (org-halt-propagation): broadcastOrgHalt via
+│                              #   dispatchServerEvent; inbound org.halt.ack dispatch
+├── duplex.ts                  # refine: refuse session registration when org-halt active
+└── types.ts                   # new ServerEnvelope/ClientEnvelope variants
+                               #   (org.halt.activated / org.halt.lifted / org.halt.ack);
+                               #   spec 189 envelope-version bump
+
+platform/services/stagecraft/api/db/
+├── migrations/NN_org_halts.up.sql / .down.sql   # NEW (establishes): org_halts table
+└── schema.ts                  # drizzle org_halts table + types
+
+product/apps/opc/src-tauri/src/commands/
+├── live_sessions.rs           # refine (halt-aware-session-termination): pause-at-boundary
+│                              #   + checkpoint path (distinct from force-disconnect hard kill)
+└── sync_client.rs             # refine: handle org.halt.activated frame; send org.halt.ack
+
+product/apps/opc/tests-e2e/
+├── fixtures/208/              # NEW: seeded multi-session run fixture
+└── harness/<drill>.test.ts    # NEW: FR-005 pull-and-lift drill against mock_stagecraft
+
+.github/workflows/opc-e2e-nightly.yml   # co_authority (spec 187): wire the drill into the
+                                        #   nightly lane IF the harness does not auto-discover
+
+crates/featuregraph/tests/golden/features_graph.json   # +1 row (extends: 034)
+```
+
+**Structure Decision**: enforcement, storage, and propagation land in
+stagecraft (the platform control plane is the only thing that can refuse a
+grant or broadcast to the org). OPC gains one halt-aware termination path
+and an ack send, both keyless. The drill lands in the existing e2e harness.
+
+## Phases
+
+- **Phase 1: Enforce (FR-001 refusals, FR-002 grant leg, FR-004 lift
+  gate).** `org_halts` table + migration; `orgHalt.ts` halt/lift verbs; the
+  org-halt consult in `grantPreflight` and the serve/bind callers; the
+  human-actor lift gate. Lands behind the broadcast: the halt is
+  *enforced* before it is *propagated*. AC-2 (DB-bound) closes here.
+- **Phase 2: Propagate (FR-001 broadcast, FR-003).** `broadcastOrgHalt`
+  over `dispatchServerEvent`; the `org.halt.*` envelope variants + version
+  bump; the OPC halt-aware termination path + ack; per-engine ack
+  timestamps on `org_halts`. AC-1 closes here.
+- **Phase 3: Scope + reintegrate (AC-3, FR-004 staged).** `project` and
+  `agent-profile` scope proofs; staged per-scope re-admission; the
+  `reintegrating` substate. AC-3 and AC-4's reintegration leg close here.
+- **Phase 4: Credential closure (FR-002 full).** Consume the spec 205
+  `nhi_delegation_index` cascade when it lands; until then the degraded
+  grant + session path is the shipped behavior.
+- **Phase 5: Drill (FR-005, AC-5).** The pull-and-lift cycle in the
+  nightly lane; the completion gate for the spec.
+
+AC coverage: AC-2 -> Phase 1; AC-1 -> Phase 2; AC-3 + AC-4 (reintegration
+leg) -> Phase 3; AC-4 (ack-timestamp leg) -> Phase 2; AC-5 -> Phase 5;
+AC-6 -> every phase's gate tasks. FR-002's full closure spans Phase 1
+(grant leg, the shipped degraded path) and Phase 4 (NHI leg, when 205
+lands).
+
+## Sequencing
+
+- The cross-spec gate (spec 198 `implementation: complete`) is **green**
+  (2026-06-12), so Phases 1-3 and 5 are landable now against the degraded
+  FR-002 path.
+- Phase 4 is gated on spec 205 reaching the point where its
+  `nhi_delegation_index` and revocation cascade exist (its Phase 3 / T020-T023).
+  The spec-205 handoff (its T023) is the contract this phase consumes.
+- Phase 5 (the drill) integrates with the spec 187 harness and is the
+  release-candidate completion gate, not a later promise.
+
+## Complexity Tracking
+
+No constitution violations to justify; table intentionally empty. The one
+non-trivial design call (new table versus scopeKind overload) is resolved
+under Storage decision with the rejected alternative recorded.
