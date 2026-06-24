@@ -167,6 +167,19 @@ connected engines per org for the broadcast and ack collection.
   transition explicit when PD-E (tasks.md) resolves the `org_halts` record
   shape; no safety change, since a `reintegrating` scope already refuses
   new sessions and grants.
+- **`reintegrating` enforcement is stated but not AC-covered.** The State
+  machine section states that a `reintegrating` scope is still enforced
+  (new sessions and grants refused) until its staged re-admission
+  completes, and the re-halt gap above leans on exactly that property to
+  argue a second halt during reintegration stays fail-closed. AC-2
+  asserts refusal during a halt, but no AC unambiguously extends that to
+  the `reintegrating` phase: the State machine states the property in
+  prose, separately from AC-2, so the invariant the safety argument
+  rests on is currently untested. Carrier: add an AC extending the AC-2
+  assertion (grant issuance, grant renewal, and new session registration
+  in scope are refused) to the `reintegrating` state, written alongside
+  the FR-004 reintegration tasks. Closing it also grounds the re-halt
+  gap's safety claim, which depends on this invariant.
 
 ## Constitution Check
 
