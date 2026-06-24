@@ -76,7 +76,7 @@ outbox by design).
 | FR-001 halt verb + refusals | New `orgHalt.ts` writes `org_halts`; preflight + serve/bind + duplex registration consult it fail-closed | `grantDuplexHandlers.ts:363`, `admission.isFactoryAdmitted`, `sync/duplex.ts` register path |
 | FR-002 credential revocation | Grant refusal at issuance/renewal (immediate); NHI cascade over `nhi_delegation_index` when spec 205 lands; degrade to grant + session until then | `grantPreflight:337-372`; spec 205 FR-004 index |
 | FR-003 propagation bound | Outbox broadcast + per-engine `org.halt.ack` recorded as timestamps on the `org_halts` record | `dispatchServerEvent:255`; `handleInbound:76` ack dispatch |
-| FR-004 quarantine record + reintegration | `org_halts` finite-state machine (`active` -> `halted` -> `reintegrating`); human-actor lift gate reusing the `liftRevocationCore` precedent; staged per-scope re-admission | `revocations.ts:152` (pattern), new `org_halts` state column |
+| FR-004 quarantine record + reintegration | `org_halts` record lifecycle (`halted` -> `reintegrating` -> `lifted`; a scope is `active` when it has no non-`lifted` record); human-actor lift gate reusing the `liftRevocationCore` precedent; staged per-scope re-admission | `revocations.ts:152` (pattern), new `org_halts` state column |
 | FR-005 drill | e2e pull-and-lift against `mock_stagecraft` in the nightly lane | `product/apps/opc/tests-e2e/`, `opc-e2e-nightly.yml` |
 
 ## Technical Context
@@ -138,9 +138,11 @@ connected engines per org for the broadcast and ack collection.
   *delivery on reconnect*; live fan-out across replicas inherits the
   existing registry limitation and is out of scope here (it is a
   registry-wide concern, not a halt-specific one).
-- **Migration number.** Highest landed is `46_widen_substrate_audit_actions`
-  (spec 198 log); spec 205 reserves 47/48/49. Spec 208's migration is
-  next-free at landing (50 if 205 lands first); renumber at landing time.
+- **Migration number.** The highest landed migration as of 2026-06-24 is
+  `51_project_repos_unique_repo` (47-51 landed since the spec 198 log's
+  "46" baseline, which is now stale). Spec 208's migration is the
+  next-free number determined at landing (52 today); do not hard-code,
+  confirm next-free at landing.
 
 ## Constitution Check
 
@@ -238,8 +240,8 @@ and an ack send, both keyless. The drill lands in the existing e2e harness.
 - **Phase 5: Drill (FR-005, AC-5).** The pull-and-lift cycle in the
   nightly lane; the completion gate for the spec.
 
-AC coverage: AC-2 -> Phase 1; AC-1 -> Phase 2; AC-3 + AC-4 (reintegration
-leg) -> Phase 3; AC-4 (ack-timestamp leg) -> Phase 2; AC-5 -> Phase 5;
+AC coverage: AC-2 -> Phase 1; AC-1 + AC-4 (halt-ack leg) -> Phase 2;
+AC-3 + AC-4 (lift-ack + reintegration leg) -> Phase 3; AC-5 -> Phase 5;
 AC-6 -> every phase's gate tasks. FR-002's full closure spans Phase 1
 (grant leg, the shipped degraded path) and Phase 4 (NHI leg, when 205
 lands).

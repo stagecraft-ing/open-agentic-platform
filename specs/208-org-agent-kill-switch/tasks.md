@@ -14,13 +14,15 @@ Phase 4 = PR-4 (`feat/208-credential-closure`); Phase 5 = PR-5
 - **Phases 1-3 and 5 are landable now.** The cross-spec gate (spec 198
   `implementation: complete`) is green as of 2026-06-12; FR-002 ships its
   degraded grant + session path until spec 205 lands.
-- **Phase 4 is blocked on spec 205** reaching its Phase 3 (T020-T023):
-  the `nhi_delegation_index` and the revocation cascade must exist. Spec
-  205 T023 is the handoff contract this phase consumes.
-- **Migration number** is next-free at landing. Highest landed is
-  `46_widen_substrate_audit_actions`; spec 205 reserves 47/48/49, so 208
-  takes 50 if 205 lands first. Renumber at landing time (called `NN`
-  below).
+- **Phase 4 is blocked on spec 205** reaching its Phase 3 (spec 205's own
+  T020-T023, not to be confused with this spec's T019-T022): the
+  `nhi_delegation_index` and the revocation cascade must exist. Spec 205
+  T023 is the handoff contract this phase consumes.
+- **Migration number** is the next-free number at landing. The highest
+  landed migration as of 2026-06-24 is `51_project_repos_unique_repo`
+  (47-51 landed since the spec 198 log's "46" baseline, which is now
+  stale), so the next-free is 52 today. Do not hard-code; confirm
+  next-free at landing (called `NN` below).
 
 ## Pre-implementation decisions (2026-06-24 seam survey)
 
@@ -76,7 +78,10 @@ re-decides them.
   (each entry `{clientId, ackedAt, kind: 'halt'|'lift'}`). Absence of a
   non-`lifted` row for a scope = that scope is active. Partial index on
   `(org_id, scope, scope_key) WHERE state != 'lifted'` (the hot-path
-  liveness lookup the plan's performance goal budgets).
+  liveness lookup the plan's performance goal budgets). The index excludes
+  only `lifted`, not `reintegrating`, deliberately: a `reintegrating` scope
+  still refuses new sessions and grants until its staged re-admission
+  completes and the record flips to `lifted` (FR-004).
 
 ## Phase 1 (PR-1): Enforce (FR-001 refusals, FR-002 grant leg, FR-004 lift gate)
 

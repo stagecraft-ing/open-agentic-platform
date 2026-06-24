@@ -96,10 +96,10 @@ over five primitives that already ship, each at its established home:
 
 | Primitive | Home (existing) | What the switch reuses it for |
 |---|---|---|
-| Revocation rows, fail-closed at serve / bind / grant | `api/factory/revocations.ts` (198 FR-010) | The halt is recorded as a revocation-lattice entry whose scope is widened to `org` / `project` / `agent-profile`; the same serve/bind/grant check sites consult it |
+| Revocation rows, fail-closed at serve / bind / grant | `api/factory/revocations.ts` (198 FR-010) | The halt reuses these fail-closed check sites (serve / bind / grant); each consults the halt record for scopes `org` / `project` / `agent-profile`. Whether the halt record lives in `factory_revocations` or a sibling table is the storage decision resolved in plan.md |
 | Run-grant issue / renew over duplex | `api/factory/grantDuplexHandlers.ts` (198 FR-005) | Halt makes grant issuance and per-stage renewal refuse, which is how in-flight runs pause at the next stage boundary |
 | Org-scoped duplex channel | `api/sync/service.ts` (one connection observes every project in the org) | The halt notice is broadcast to every connected engine; this is the `org-halt-propagation` seam |
-| Session force-disconnect + checkpoint | `product/apps/opc/src-tauri/src/commands/live_sessions.rs` (172) | An engine that does not acknowledge the halt notice is force-disconnected after checkpointing; this is the `halt-aware-session-termination` seam |
+| Session force-disconnect + checkpoint | `product/apps/opc/src-tauri/src/commands/live_sessions.rs` (172) | The graceful halt path checkpoints at the next boundary before the engine yields; an engine that does not acknowledge is force-disconnected as the fallback (172 itself kills then checkpoints). This is the `halt-aware-session-termination` seam |
 | Agent NHI delegation/revocation index | spec 205 `nhi_delegation_index` (in progress) | FR-002 consumes it to revoke agent credentials org-wide; until 205 lands, the switch degrades to grant + session revocation (see Dependencies) |
 
 The contract this spec locks is the *verb, scope lattice, state machine,
@@ -125,15 +125,22 @@ flip.
 ```
 
 - **active to halted** is set by the admin-gated halt verb (FR-001). The
-  transition is atomic at the platform: the revocation-lattice entry is
-  written before the broadcast, so a grant renewal racing the broadcast
-  still fails closed.
+  transition is atomic at the platform: the halt record is written before
+  the broadcast, so a grant renewal racing the broadcast still fails
+  closed.
 - **halted to reintegrating** requires an explicit human actor id and
   fresh two-sided validation of every affected factory (FR-004); a
   service identity cannot initiate it (the spec 200 AC-4 pattern).
 - **reintegrating to active** completes only when every affected scope
   has re-admitted and re-validated. Reintegration is staged: sessions are
   re-admitted per scope, not by one org-wide enable.
+
+The diagram is the *scope* state. The halt *record* progresses `halted`
+to `reintegrating` to `lifted` (the storage shape resolved in plan.md /
+tasks.md PD-E); a scope is `active` exactly when it has no non-`lifted`
+halt record, so the loop back to active is the record reaching `lifted`.
+A `reintegrating` scope is still enforced (new sessions and grants
+refused) until its staged re-admission completes.
 
 ## Scope lattice
 
@@ -170,9 +177,10 @@ evidence, not a toggle). While a halt is active for a scope:
 - a halt notice is pushed over every connected duplex channel in scope so
   engines pause at the next instruction boundary without waiting for the
   next renewal;
-- engines checkpoint on halt (the 172 force-disconnect sequence
-  checkpoints before terminating): containment must not destroy the
-  forensic state it exists to protect.
+- engines checkpoint on halt: the halt-aware path checkpoints at the next
+  boundary before the engine yields (the 172 force-disconnect, which kills
+  then checkpoints, is the no-ack fallback). Containment must not destroy
+  the forensic state it exists to protect.
 
 ### FR-002: Credential revocation propagation
 
