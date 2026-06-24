@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:8b02145c1b1e7fb4e4ed89a15ef8115a4b7631a9e9a05eba0041fd354000f882",
+  "graph_fingerprint": "sha256:a0f41cb48adad0ee168cab9ffdbbc00efed79eae0075262f8109b7507fe440c0",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4388,6 +4388,13 @@
       "severity": "error",
       "path": "crates/factory-contracts/src/provenance_config.rs",
       "message": "Malformed Spec directive: // Spec: specs/121-claim-provenance-enforcement/spec.md — FR-024, FR-025, FR-027, FR-028",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-contracts/src/run_budget.rs",
+      "message": "Malformed Spec directive: // Spec: specs/202-run-blast-radius-governor/spec.md (FR-001, AC-3)",
       "suggested_fix": "Fix header format"
     },
     {

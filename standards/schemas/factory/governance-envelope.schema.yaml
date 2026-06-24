@@ -27,10 +27,10 @@
 # Rust twin: crates/factory-contracts/src/governance_envelope.rs
 # (GOVERNANCE_ENVELOPE_SCHEMA_VERSION).
 #
-# Schema version: 1.0.0
+# Schema version: 1.1.0
 # ============================================================================
 
-schema_version: "1.0.0"
+schema_version: "1.1.0"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PROCESS IDENTITY — the intent-capsule template            [ASI01 m5, m7]
@@ -96,3 +96,22 @@ constituents:
 # privileged human has verified.
 overrides:
   require_verified: boolean         #                                            [ASI06 m9]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BUDGETS -- run blast-radius ceilings           [ASI08 m6/m7; spec 202 FR-001]
+# ─────────────────────────────────────────────────────────────────────────────
+# Optional. When absent, platform defaults apply fail-closed (AC-3). Per-axis
+# ceilings at two scopes only (predicate-shaped, never topology-shaped, P-2):
+#   per_run:   ceiling on the whole run
+#   per_stage: uniform ceiling no single stage may exceed
+# Absent budget does NOT mean unlimited.
+# Tighten-only policy (spec 047 five-tier merge): a declared ceiling looser
+# than the platform default is clamped to the platform default at admission;
+# org policy may only tighten, never loosen.
+# Rust twin: crates/factory-contracts/src/run_budget.rs (RunBudgetCeiling)
+budgets:
+  - axis: string                    # "tool_invocations" | "file_mutations" |
+                                    # "spawned_agents" | "wall_clock_secs" |
+                                    # "tokens" | "cost_usd"                 [ASI08 m6]
+    per_run: number                 # Optional ceiling for the whole run
+    per_stage: number               # Optional uniform per-stage ceiling

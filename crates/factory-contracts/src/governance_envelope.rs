@@ -22,11 +22,17 @@ use agent_frontmatter::{MutationCapability, SafetyTier, UnifiedFrontmatter};
 use serde::{Deserialize, Serialize};
 
 use crate::adapter_manifest::AdapterGovernance;
+use crate::run_budget::RunBudgetCeiling;
 
 /// Governance Envelope contract version (spec 198 FR-002). Pinned at compile
 /// time per the `PROVENANCE_SCHEMA_VERSION` pattern; instance mismatches fail
 /// at parse validation, not at runtime.
-pub const GOVERNANCE_ENVELOPE_SCHEMA_VERSION: &str = "1.0.0";
+///
+/// 1.1.0 (spec 202 FR-001): additive `budgets:` section carrying per-axis
+/// run blast-radius ceilings (ASI08 m6/m7). Backward-compatible: envelopes
+/// without a `budgets:` section deserialize with `budgets: []` and the engine
+/// applies platform defaults fail-closed (AC-3).
+pub const GOVERNANCE_ENVELOPE_SCHEMA_VERSION: &str = "1.1.0";
 
 // ── Process envelope ──────────────────────────────────────────────────
 
@@ -45,6 +51,12 @@ pub struct GovernanceEnvelope {
     pub constituents: Constituents,
     /// Per-org substrate-override consumption policy (ASI06 m9; FR-013 c).
     pub overrides: OverridePolicy,
+    /// Per-axis run blast-radius ceilings (ASI08 m6/m7; spec 202 FR-001).
+    /// When absent (empty vec), the engine applies platform defaults
+    /// fail-closed; the admission record shows each defaulted axis with
+    /// `source: platform-default` (AC-3). Absent does NOT mean unlimited.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub budgets: Vec<RunBudgetCeiling>,
 }
 
 /// Identity + intent-capsule template (ASI01 m5/m7; spec 198 FR-005).
@@ -347,6 +359,7 @@ mod tests {
             overrides: OverridePolicy {
                 require_verified: false,
             },
+            budgets: vec![],
         }
     }
 
@@ -367,7 +380,7 @@ mod tests {
 
     #[test]
     fn version_const_anchor() {
-        assert_eq!(GOVERNANCE_ENVELOPE_SCHEMA_VERSION, "1.0.0");
+        assert_eq!(GOVERNANCE_ENVELOPE_SCHEMA_VERSION, "1.1.0");
     }
 
     #[test]
@@ -530,5 +543,55 @@ mod tests {
         assert_eq!(back.process.id, "factory-process");
         assert_eq!(back.ceilings.max_tier, SafetyTier::Tier1);
         assert!(!back.overrides.require_verified);
+    }
+
+    /// An envelope with a `budgets:` section round-trips through YAML.
+    #[test]
+    fn envelope_with_budgets_round_trips() {
+        use crate::run_budget::{BudgetValue, RunBudgetAxis, RunBudgetCeiling};
+
+        let mut env = envelope(SafetyTier::Tier1, MutationCapability::ReadOnly);
+        env.budgets = vec![RunBudgetCeiling {
+            axis: RunBudgetAxis::Tokens,
+            per_run: Some(BudgetValue::Integer(50_000)),
+            per_stage: Some(BudgetValue::Integer(10_000)),
+        }];
+        let yaml = serde_yaml::to_string(&env).unwrap();
+        let back: GovernanceEnvelope = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(back.budgets.len(), 1);
+        assert_eq!(back.budgets[0].axis, RunBudgetAxis::Tokens);
+        assert_eq!(back.budgets[0].per_run, Some(BudgetValue::Integer(50_000)));
+        assert_eq!(
+            back.budgets[0].per_stage,
+            Some(BudgetValue::Integer(10_000))
+        );
+    }
+
+    /// An envelope with no `budgets:` section deserializes with `budgets` as
+    /// an empty vec (backward compatibility; serde default).
+    #[test]
+    fn envelope_without_budgets_deserializes_with_empty_vec() {
+        // This YAML matches the 1.0.0 shape (no budgets field).
+        let yaml = "schema_version: \"1.1.0\"\n\
+                    process:\n\
+                    \x20 id: factory-process\n\
+                    \x20 objective_class: Produce a frozen Build Specification\n\
+                    \x20 goal_identifier_scheme: build-spec:<project>\n\
+                    ceilings:\n\
+                    \x20 max_tier: tier1\n\
+                    \x20 max_mutation: read-only\n\
+                    gates:\n\
+                    \x20 - predicate: approval-before-build-spec-freeze\n\
+                    emits:\n\
+                    \x20 - kind: build-spec\n\
+                    constituents:\n\
+                    \x20 agents: process/agents/*.md\n\
+                    overrides:\n\
+                    \x20 require_verified: false\n";
+        let env: GovernanceEnvelope = serde_yaml::from_str(yaml).unwrap();
+        assert!(
+            env.budgets.is_empty(),
+            "envelope without budgets: section should deserialize with empty vec"
+        );
     }
 }

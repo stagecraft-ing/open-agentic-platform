@@ -14,6 +14,16 @@
       "075-factory-workflow-engine"
     ],
     "domain": "platform",
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "crates/factory-contracts/src/run_budget.rs"
+      },
+      {
+        "kind": "file",
+        "path": "crates/factory-contracts/src/governance_envelope.rs"
+      }
+    ],
     "extends": [
       {
         "nature": "additive",
@@ -99,6 +109,20 @@
           "kind": "file",
           "path": "crates/orchestrator/src/lib.rs"
         }
+      },
+      {
+        "aspect": "run-budget-contract-exports",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-contracts/src/lib.rs"
+        }
+      },
+      {
+        "aspect": "schema-version-pin",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-contracts/src/build_spec.rs"
+        }
       }
     ],
     "sectionHeadings": [
@@ -116,6 +140,6 @@
     "summary": "Close the one ASI 2026 control whose residual is stated but unowned. Spec 198's all-ten table marks ASI08 (Cascading Failures) \"partial — residual stated\" and names blast-radius caps as follow-on; this spec is that follow-on. Existing levers (halt-on-failure, stop-hook 166, HITL gate predicates 198 FR-008, introspection 172) are reactive gates — they fire on an observed failure or at a declared checkpoint. What is missing is the quantitative ceiling between gates: per-run and per-stage budgets (tool invocations, file mutations, spawned work, wall-clock, cost), metered by the engine and circuit-breaking fail-closed when exceeded, plus fan-out and feedback-loop detection (ASI08 m6/m7, ASI02 m5 adaptive tool budgeting). A run that exceeds its admitted budget pauses at the next instruction boundary and requires a human resume; consumption actuals are bound into the governance certificate so the receipt shows how close the run came to its ceiling.\n",
     "title": "Run Blast-Radius Governor (ASI08 cascading-failure caps)"
   },
-  "shardHash": "ab0fd2fa5e31636475ab5d84cfba8e8ebe15c148cc7c10cca25bce25c5e4193a",
+  "shardHash": "b0ea698150124358ed2ceee05b90d3d59442480135dc710d67a3deb636cc271d",
   "specVersion": "1.1.0"
 }

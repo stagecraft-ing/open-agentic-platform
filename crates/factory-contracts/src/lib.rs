@@ -21,6 +21,7 @@ pub mod pattern_resolver;
 pub mod pipeline_state;
 pub mod provenance;
 pub mod provenance_config;
+pub mod run_budget;
 pub mod sandbox;
 pub mod stakeholder_docs;
 pub mod validation;
@@ -34,6 +35,10 @@ pub use adapter_registry::AdapterRegistry;
 pub use governance_envelope::{
     covered_by, reconcile_adapter, reconcile_process, GovernanceEnvelope, ReconcileViolation,
     GOVERNANCE_ENVELOPE_SCHEMA_VERSION,
+};
+pub use run_budget::{
+    apply_defaults, AdmittedBudget, BudgetSource, BudgetValue, RunBudgetAxis, RunBudgetCeiling,
+    PLATFORM_DEFAULT_BUDGETS,
 };
 pub use agent_loader::AgentPrompt;
 pub use agent_reference::AgentReference;

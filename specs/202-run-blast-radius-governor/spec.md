@@ -33,6 +33,11 @@ depends_on:
   - "166-opc-stop-hook-gate-chain"
   - "172-opc-live-agent-session-introspection"
   - "075-factory-workflow-engine"
+establishes:
+  # Slice A (FR-001): new run_budget module
+  - unit: { kind: file, path: crates/factory-contracts/src/run_budget.rs }
+  # Slice A (FR-001): governance_envelope gains budgets: field
+  - unit: { kind: file, path: crates/factory-contracts/src/governance_envelope.rs }
 extends:
   # Budget declarations are an additive, ASI08-tagged section of the
   # envelope schema spec 198 establishes.
@@ -47,6 +52,12 @@ extends:
 refines:
   - aspect: "run-budget-metering"
     unit: { kind: file, path: crates/orchestrator/src/lib.rs }
+  # Slice A (FR-001): factory-contracts re-exports the new RunBudget* types.
+  - aspect: "run-budget-contract-exports"
+    unit: { kind: file, path: crates/factory-contracts/src/lib.rs }
+  # Slice A (FR-001): the schema-version-pin test tracks the 1.0.0 -> 1.1.0 bump.
+  - aspect: "schema-version-pin"
+    unit: { kind: file, path: crates/factory-contracts/src/build_spec.rs }
 references:
   - role: enforcer
     unit: { kind: crate, id: factory-engine }
