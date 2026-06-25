@@ -33,9 +33,19 @@ depends_on:
   - "198-factory-governance-envelope"
   - "172-opc-live-agent-session-introspection"
   - "106-rauthy-native-oidc-and-membership"
+establishes:
+  # Phase 1 (FR-001): the org_halts quarantine-record migration, the
+  # admin-gated kill-switch verb, and its DB-bound enforcement test are
+  # brought into existence by this spec.
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/53_org_halts.up.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/53_org_halts.down.sql }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/orgHalt.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/orgHalt.test.ts }
 extends:
   # The org scope is an additive widening of the revocation lattice
-  # spec 198 FR-010 establishes.
+  # spec 198 FR-010 establishes. Phase 1 also exports requireFactoryConfigure
+  # from revocations.ts so the halt verb reuses the exact factory:configure +
+  # human-actor gate (additive, no behaviour change).
   - spec: "198-factory-governance-envelope"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/factory/revocations.ts }
@@ -45,15 +55,32 @@ extends:
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
+  # Phase 1 (FR-001/FR-002): the org_halts table shape, the audit vocabulary,
+  # the "halted" refusal reason, and the three fail-closed enforcement seams
+  # (grant issuance/renewal, new-session registration, serve/bind) the switch
+  # reuses rather than adding a parallel mechanism.
+  - aspect: "org-halt-storage"
+    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
+  - aspect: "org-halt-audit-actions"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
+  - aspect: "org-halt-refusal-reason"
+    unit: { kind: file, path: platform/services/stagecraft/api/sync/types.ts }
+  - aspect: "org-halt-grant-refusal"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/grantDuplexHandlers.ts }
+  - aspect: "org-halt-session-refusal"
+    unit: { kind: file, path: platform/services/stagecraft/api/sync/duplex.ts }
+  - aspect: "org-halt-serve-bind-refusal"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/admission.ts }
+  - aspect: "org-halt-test-lane"
+    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+  # Phase 2 (FR-001/FR-003): the org-halt broadcast over the duplex channel and
+  # the engine-side pause-at-next-boundary + checkpoint. Declared for the
+  # staged plan; the files are edited in PR-2 (feat/208-propagate).
   - aspect: "org-halt-propagation"
     unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
   - aspect: "halt-aware-session-termination"
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/live_sessions.rs }
 references:
-  - role: machinery
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/grantDuplexHandlers.ts }
-  - role: context
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
   - role: context
     unit: { kind: file, path: docs/owasp-agentic-top-10-2026.md }
 ---

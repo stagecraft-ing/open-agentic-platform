@@ -46,6 +46,7 @@ import {
   type AdmissionState,
 } from "./admission";
 import { resolveOriginsForOrg } from "./substrateBrowser";
+import { isHaltedInScope } from "./orgHalt";
 import { signFactoryJws, signingConfigured } from "./signing";
 import type {
   ClientFactoryRunCompleted,
@@ -343,10 +344,11 @@ async function loadIssuedGrants(orgId: string, runId: string) {
     .orderBy(asc(factoryRunGrants.seq));
 }
 
-/** Shared admission/revocation/signing preflight for issue + renew. */
+/** Shared admission/revocation/halt/signing preflight for issue + renew. */
 async function grantPreflight(
   ctx: HandlerCtx,
   envelopeHash: string,
+  projectId: string | null,
 ): Promise<
   | { ok: true; origin: string; state: AdmissionState }
   | { ok: false; reason: RunGrantRefusalReason; detail: string }
@@ -377,6 +379,20 @@ async function grantPreflight(
   );
   if (revoked) {
     return { ok: false, reason: "revoked", detail: revoked };
+  }
+  // Spec 208 FR-001/FR-002: an active org- or project-scoped halt refuses
+  // grant issuance and renewal, so in-flight runs pause at the next stage
+  // boundary (the 198 FR-005 semantics, not a forced mid-stage kill). The
+  // detail names the quarantine record (AC-2). Only org + project scopes
+  // exist in Phase 1 (the verb rejects agent-profile until a profile-carrying
+  // seam lands), so passing `{ projectId }` covers every enforceable scope.
+  const haltId = await isHaltedInScope(ctx.orgId, { projectId });
+  if (haltId) {
+    return {
+      ok: false,
+      reason: "halted",
+      detail: `org halt ${haltId} is active for this scope`,
+    };
   }
   return { ok: true, origin: standing.origin, state: standing.state };
 }
@@ -410,7 +426,7 @@ export async function handleGrantRequest(
     envelopeHash: evt.envelopeHash,
   };
 
-  const pre = await grantPreflight(ctx, evt.envelopeHash);
+  const pre = await grantPreflight(ctx, evt.envelopeHash, projectId);
   if (!pre.ok) {
     return {
       result: { ok: true },
@@ -605,7 +621,7 @@ export async function handleGrantRenew(
 
   // FR-010 propagation leg: the standing admission and every node of the
   // admitted composition are re-checked at every boundary.
-  const pre = await grantPreflight(ctx, issuance.envelopeHash);
+  const pre = await grantPreflight(ctx, issuance.envelopeHash, projectId);
   if (!pre.ok) {
     return {
       result: { ok: true },

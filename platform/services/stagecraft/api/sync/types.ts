@@ -109,6 +109,11 @@ export type RunGrantRefusalReason =
   | "not-admitted"
   | "envelope-mismatch"
   | "revoked"
+  // Spec 208 FR-001/FR-002: an org/project-scoped halt refuses grant issuance
+  // and renewal, so in-flight runs pause at the next stage boundary. The
+  // refusal detail names the quarantine record (AC-2). Distinct from
+  // "revoked" so the audit trail reads as a halt, not a content revocation.
+  | "halted"
   | "goal-shift"
   | "capsule-mismatch"
   | "seq-conflict"

@@ -15,6 +15,22 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/db/migrations/53_org_halts.down.sql",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/db/migrations/53_org_halts.up.sql",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/db/schema.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/admission.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/factory/auditActions.ts",
         "source": "spec-edge"
       },
@@ -23,11 +39,31 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/factory/orgHalt.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/orgHalt.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/factory/revocations.ts",
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/sync/duplex.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/sync/service.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/sync/types.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/vite.config.ts",
         "source": "spec-edge"
       },
       {
@@ -36,6 +72,58 @@
       }
     ],
     "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/db/migrations/53_org_halts.down.sql"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/migrations/53_org_halts.down.sql"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/db/migrations/53_org_halts.up.sql"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/migrations/53_org_halts.up.sql"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/orgHalt.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/orgHalt.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/orgHalt.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/orgHalt.ts"
+        }
+      },
       {
         "locations": [
           {
@@ -65,6 +153,71 @@
       {
         "locations": [
           {
+            "file": "platform/services/stagecraft/api/db/schema.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/schema.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/admission.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/admission.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/auditActions.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/sync/duplex.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/sync/duplex.ts"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "platform/services/stagecraft/api/sync/service.ts"
           }
         ],
@@ -73,6 +226,32 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/sync/service.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/sync/types.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/sync/types.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/vite.config.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/vite.config.ts"
         }
       },
       {
@@ -100,37 +279,11 @@
           "kind": "file",
           "path": "docs/owasp-agentic-top-10-2026.md"
         }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/factory/auditActions.ts"
-          }
-        ],
-        "ownership": false,
-        "sourceField": "references",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
-          }
-        ],
-        "ownership": false,
-        "sourceField": "references",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/grantDuplexHandlers.ts"
-        }
       }
     ],
     "specId": "208-org-agent-kill-switch",
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "8ba59dc2c6ab9d54ab3679215d6fb0071d91868bbfc27574c127be02633e9dfc"
+  "shardHash": "a20b35bb124fad859b46a1333c2c375a4c839e892ddaec4a1494bcb9b8fb4724"
 }

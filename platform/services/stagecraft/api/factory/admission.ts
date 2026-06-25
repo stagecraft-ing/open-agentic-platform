@@ -27,6 +27,7 @@ import {
 } from "../db/schema";
 import { signFactoryJws, signingConfigured } from "./signing";
 import { sweepContentHashRevocations } from "./overrideScanCore";
+import { isHaltedInScope } from "./orgHalt";
 
 // ---------------------------------------------------------------------------
 // Contract shapes (mirrors of the canonical YAML schema / Rust twin)
@@ -753,6 +754,18 @@ export async function isFactoryAdmitted(
         state.status === "unevaluated"
           ? `factory '${origin}' has no admission evaluation — run /factory-sync (spec 198 FR-001)`
           : `factory '${origin}' was refused admission: ${state.violations[0] ?? "see admission record"}`,
+    };
+  }
+  // Spec 208 FR-001: an active org-scoped halt makes serve/bind fail-closed,
+  // alongside the revocation checks (the switch reuses these check sites). The
+  // origin is a factory origin, not a project, so only org-scoped halts gate
+  // here; project-scoped refusal is exact at the grant seam (which carries
+  // projectId). Agent-profile scope is rejected at the verb in Phase 1.
+  const haltId = await isHaltedInScope(orgId);
+  if (haltId) {
+    return {
+      admitted: false,
+      reason: `org halt ${haltId} is active: factory '${origin}' is unavailable (spec 208 FR-001)`,
     };
   }
   if (await hasActiveRevocation(orgId, "factory", origin)) {

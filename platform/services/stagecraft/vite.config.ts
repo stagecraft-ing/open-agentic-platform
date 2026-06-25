@@ -118,6 +118,11 @@ export default defineConfig({
       // `factory_run_grants` / `factory_admissions` / `factory_runs`;
       // live DB, signing via throwaway env-injected keypair.
       "**/factory/grantDuplexHandlers.test.ts",
+      // Spec 208 FR-001/AC-2: org-halt enforcement (scope lattice, verb
+      // lifecycle + audits, and the grant issuance/renewal refusal under a
+      // halt) mutates `org_halts` / `factory_*` / `audit_log`; live DB,
+      // signing via throwaway env-injected keypair.
+      "**/factory/orgHalt.test.ts",
       // Spec 198 FR-013 — override trust-class tests mutate
       // `factory_artifact_substrate*` (gate audit, verified flag,
       // consumed-override predicate matrix); live DB.
