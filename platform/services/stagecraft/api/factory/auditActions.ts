@@ -31,6 +31,16 @@ export const FACTORY_RUN_GATE_APPROVED = "factory.run.gate_approved" as const;
 // reconnect re-submissions are visible in the audit trail.
 export const FACTORY_AUDIT_SEGMENT_COUNTERSIGNED =
   "factory.audit_segment.countersigned" as const;
+// Spec 208 FR-001/FR-003/FR-004: org-wide agent kill-switch lifecycle. The
+// reason is audit evidence, not a toggle (FR-001), so `activated` carries the
+// scope + reason; `lifted` records the human actor that initiated
+// reintegration; `engine_ack` records a per-engine acknowledgment timestamp
+// (FR-003, written in Phase 2).
+export const FACTORY_ORG_HALT_ACTIVATED =
+  "factory.org_halt.activated" as const;
+export const FACTORY_ORG_HALT_LIFTED = "factory.org_halt.lifted" as const;
+export const FACTORY_ORG_HALT_ENGINE_ACK =
+  "factory.org_halt.engine_ack" as const;
 
 export type FactoryRunAuditAction =
   | typeof FACTORY_RUN_RESERVED
@@ -42,4 +52,7 @@ export type FactoryRunAuditAction =
   | typeof FACTORY_RUN_GRANT_REFUSED
   | typeof FACTORY_RUN_COUNTERSIGNED
   | typeof FACTORY_RUN_GATE_APPROVED
-  | typeof FACTORY_AUDIT_SEGMENT_COUNTERSIGNED;
+  | typeof FACTORY_AUDIT_SEGMENT_COUNTERSIGNED
+  | typeof FACTORY_ORG_HALT_ACTIVATED
+  | typeof FACTORY_ORG_HALT_LIFTED
+  | typeof FACTORY_ORG_HALT_ENGINE_ACK;

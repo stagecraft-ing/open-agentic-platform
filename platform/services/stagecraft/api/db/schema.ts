@@ -1161,6 +1161,42 @@ export const factoryRevocations = pgTable("factory_revocations", {
   liftedBy: uuid("lifted_by"),
 });
 
+// Spec 208 FR-001/FR-004: org-wide agent kill-switch quarantine record. One
+// row per halt scope; consulted fail-closed at grant issuance/renewal,
+// new-session registration, and serve/bind (the spec 198 FR-010 check sites
+// the switch reuses). A scope is "active" when it has no non-'lifted' row.
+// `pulledBy`/`liftedBy` hold the human actor uuid bare (the
+// factory_revocations.actor convention; a service identity can never reach
+// the write path). The partial UNIQUE index `idx_org_halts_active`
+// (WHERE state != 'lifted') is owned by migration 53: it is the liveness
+// lookup and the at-most-one-active-halt-per-scope backstop. drizzle's
+// index() cannot express the partial predicate, and the migration is the
+// source of truth for the schema here.
+export const orgHalts = pgTable("org_halts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull(),
+  scope: text("scope").$type<"org" | "project" | "agent-profile">().notNull(),
+  scopeKey: text("scope_key").notNull(),
+  state: text("state")
+    .$type<"halted" | "reintegrating" | "lifted">()
+    .notNull()
+    .default("halted"),
+  reason: text("reason").notNull(),
+  pulledBy: uuid("pulled_by").notNull(),
+  pulledAt: timestamp("pulled_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  liftedBy: uuid("lifted_by"),
+  liftedAt: timestamp("lifted_at", { withTimezone: true }),
+  acks: jsonb("acks")
+    .$type<{ clientId: string; ackedAt: string; kind: "halt" | "lift" }[]>()
+    .notNull()
+    .default([]),
+});
+
+export type OrgHalt = typeof orgHalts.$inferSelect;
+export type OrgHaltInsert = typeof orgHalts.$inferInsert;
+
 // Spec 200 FR-001 — durable scan intent for the substrate override async
 // scanner. Inserted inside the `user_body` write transaction; the publish
 // happens after commit; the staleness sweeper re-drives lost publishes and

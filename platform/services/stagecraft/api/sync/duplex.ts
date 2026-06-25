@@ -35,6 +35,7 @@ import {
   listProjectIdsForOrg,
 } from "../agents/relay";
 import { sendProjectCatalogSnapshot } from "./projectCatalogRelay";
+import { isHaltedInScope } from "../factory/orgHalt";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const SERVER_STARTED_AT = new Date().toISOString();
@@ -123,6 +124,40 @@ export const duplex = api.streamInOut<
           clientEventId: "",
           reason: "invalid",
           detail: "handshake.clientId required",
+        })
+        .catch(() => undefined);
+      await stream.close();
+      return;
+    }
+
+    // Spec 208 FR-001: an active org-scoped halt refuses a new agent session
+    // at duplex registration, fail-closed before any traffic is served. The
+    // duplex connection is org-scoped (one per org) and the handshake carries
+    // no projectId, so only org-scoped halts gate here; project-scoped session
+    // refusal is exact at the grant seam (which carries projectId). The nack
+    // reuses "unauthorized" with a detail that names the quarantine record
+    // (AC-2). A disconnected engine hits this same check at the reconnect
+    // handshake (FR-003 "refused at the reconnect handshake").
+    const haltId = await isHaltedInScope(orgId);
+    if (haltId) {
+      log.info("sync: duplex registration refused, org halted", {
+        orgId,
+        clientId: handshake.clientId,
+        haltId,
+      });
+      await stream
+        .send({
+          kind: "sync.nack",
+          meta: {
+            v: ENVELOPE_SCHEMA_VERSION,
+            eventId: randomUUID(),
+            sentAt: new Date().toISOString(),
+            orgId,
+            orgCursor: "",
+          },
+          clientEventId: "",
+          reason: "unauthorized",
+          detail: `org halt ${haltId} is active: new agent sessions are refused`,
         })
         .catch(() => undefined);
       await stream.close();

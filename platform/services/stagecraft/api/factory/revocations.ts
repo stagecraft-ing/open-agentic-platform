@@ -33,7 +33,11 @@ import { assertOverrideGate } from "./artifacts";
 type ScopeKind = "factory" | "adapter" | "agent" | "content-hash";
 type Mode = "revoked" | "quarantined";
 
-async function requireFactoryConfigure(): Promise<{
+// Exported so the spec 208 org-halt verb (api/factory/orgHalt.ts) reuses the
+// exact factory:configure + human-actor gate rather than duplicating it: a
+// service identity has no org-membership row, so `getUserOrgRole` returns
+// null and the gate rejects it (the spec 200 AC-4 / 208 AC-4 pattern).
+export async function requireFactoryConfigure(): Promise<{
   orgId: string;
   userId: string;
 }> {
@@ -41,7 +45,7 @@ async function requireFactoryConfigure(): Promise<{
   const role = await getUserOrgRole(auth.userID, auth.orgId);
   if (!role || !hasOrgPermission(role, "factory:configure")) {
     throw APIError.permissionDenied(
-      "factory:configure permission required for revocation operations",
+      "factory:configure permission required",
     );
   }
   return { orgId: auth.orgId, userId: auth.userID };

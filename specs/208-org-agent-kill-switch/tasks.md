@@ -85,11 +85,23 @@ re-decides them.
 
 ## Phase 1 (PR-1): Enforce (FR-001 refusals, FR-002 grant leg, FR-004 lift gate)
 
-- [ ] T001 Migration `NN_org_halts.up.sql` / `.down.sql`: the `org_halts`
+**Enforcement boundary (PR-1 review decision, 2026-06-24).** Phase 1
+enforces `org` and `project` scopes only. `pullHalt` **rejects**
+`scope='agent-profile'` (`APIError.unimplemented`): no Phase-1 seam carries
+the agent profile (the duplex handshake is per-OPC-connection, the grant is
+run/project bound), so accepting an agent-profile halt would audit it
+"active" while enforcing nothing, the false-containment a kill switch must
+not ship. The `isHaltedInScope` agent-profile branch stays implemented and
+unit-tested for the phase that adds a profile-carrying seam. **AC-3's
+agent-profile leg therefore moves to that phase** (the Phase 3 scope-lattice
+proofs T015 must first introduce the seam, or land agent-profile enforcement
+explicitly); the org + project legs of the scope lattice are proven in PR-1.
+
+- [x] T001 Migration `NN_org_halts.up.sql` / `.down.sql`: the `org_halts`
       table per PD-E + the partial liveness index; drizzle `db/schema.ts`
       table + inferred types in the same commit. (FIPS rule: no `md5()` in
       migration SQL; trivially satisfied.)
-- [ ] T002 `api/factory/orgHalt.ts` (NEW): `pullHalt`
+- [x] T002 `api/factory/orgHalt.ts` (NEW): `pullHalt`
       (`POST /api/factory/org-halts`) requires `factory:configure` (the
       `requireFactoryConfigure` precedent, `revocations.ts:36`) and a
       non-empty `reason`; writes the `org_halts` row `state='halted'`;
@@ -100,24 +112,24 @@ re-decides them.
       `halted -> reintegrating` (the staged completion lands in Phase 3).
       Pure helper `isHaltedInScope(orgId, {projectId?, agentProfile?})`
       returning the active halt id or null (the consult T004/T005 import).
-- [ ] T003 `api/factory/auditActions.ts`: add
+- [x] T003 `api/factory/auditActions.ts`: add
       `FACTORY_ORG_HALT_ACTIVATED`, `FACTORY_ORG_HALT_LIFTED`,
       `FACTORY_ORG_HALT_ENGINE_ACK` constants + union-type members
       (mirrors the existing spec 124/198/201/207 constant pattern).
-- [ ] T004 Grant-path enforcement: `grantPreflight`
+- [x] T004 Grant-path enforcement: `grantPreflight`
       (`grantDuplexHandlers.ts:337-372`) gains the `isHaltedInScope`
       consult adjacent to `sweepCompositionRevocations` (line 363),
       returning `{ok:false, reason:"halted", detail: haltId}` so both
       `handleGrantRequest` (403) and `handleGrantRenew` (598) refuse with
       an error naming the halt record (PD-B). The grant refusal audits
       `factory.run.grant_refused` with the halt id in metadata.
-- [ ] T005 Serve/bind + session-registration refusal: the serve/bind
+- [x] T005 Serve/bind + session-registration refusal: the serve/bind
       callers of `admission.isFactoryAdmitted` and the `register` path in
       `api/sync/duplex.ts` consult `isHaltedInScope` and refuse a new
       agent session in scope (FR-001). Confirm the exact `duplex.ts`
       register line at implementation (the survey read `service.ts` /
       `registry.ts`, not `duplex.ts`).
-- [ ] T006 DB-bound tests (encore lane, fixtures per
+- [x] T006 DB-bound tests (encore lane, fixtures per
       `grantDuplexHandlers.test.ts` conventions) for AC-2: grant issuance,
       grant renewal, and new session registration in scope are all refused
       with errors naming the halt record; a sibling-scope session is
