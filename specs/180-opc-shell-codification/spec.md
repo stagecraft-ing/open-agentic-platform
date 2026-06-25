@@ -536,6 +536,38 @@ split is similarly amendable.
 > unchanged: only the checkout's robustness to a cargo-touched working
 > tree improved.
 
+> *Amended 2026-06-25 (narrow the in-job path guard to benched source +
+> harness).* The 2026-06-10 in-job guard skipped the same-runner
+> measurement only when base..head touched neither
+> `product/apps/opc/src-tauri/**` (the whole crate directory) nor this
+> workflow, mirroring `ci.yml`'s `pull_request` route filter. But the
+> crate directory also contains `Cargo.lock`, `Cargo.toml`, `build.rs`,
+> and the `tauri.*.conf.json` files, so a deps-only or config-only diff
+> still ran the gate and stayed exposed to the residual intra-runner
+> temporal variance the 2026-06-10 amendment documents (+28.2% on a
+> zero-opc diff). The dependency-refresh class is the canonical case: PR
+> #441 (a lockfile-only bump of `anyhow`, `env_logger`, `env_filter`)
+> and the earlier #437 / #438 consolidation all touched the crate
+> directory without touching the benched `usage_scan` handler, and
+> #437 / #438 needed a branch-protection bypass to land past a spurious
+> regression flag. The benched microbench's measured runtime is
+> determined solely by the handler source (`src-tauri/src/**`) and the
+> bench harness (`src-tauri/benches/**`); a lockfile or manifest edit
+> cannot change it in a way the relative gate should police. Per this
+> FR's amendability clause, the in-job guard's benchable set is narrowed
+> to `src-tauri/src`, `src-tauri/benches`, and this workflow, so
+> deps/config-only diffs skip the same-runner measurement on both
+> `pull_request` and `merge_group`. This makes the in-job filter
+> deliberately **stricter** than `ci.yml`'s `src-tauri/**` route filter,
+> which still dispatches the job (it now exits early without measuring).
+> The narrowing is a scoped, documented reduction of gate coverage, not
+> a silent disablement (§5.4): the gate still fires fully on any change
+> to the benched source or harness, and the nightly N=2000 trend
+> (non-gating) remains the safety net for a genuine dependency-driven
+> regression. The threshold (+25%), the relative-only discipline
+> (**FR-T10**), and the gate's measurement semantics for source-touching
+> diffs are unchanged.
+
 **FR-T10 (no Tier 3 leak).** The Tier 2 gate MUST NOT assert any
 absolute latency value. It is strictly a relative-delta comparison
 against the saved baseline. Inserting an absolute threshold into the
@@ -574,9 +606,14 @@ protection. The gate's failure composes into `ci-gate` via the
 standard `needs:` + `if: always()` aggregator pattern spec 177 §2.4
 specifies. On `merge_group`, where the route layer cannot compute that
 filter (spec 188 Phase 2 forces all route outputs `true`), the bench
-job recomputes the same filter in-job against the merge-group base and
-skips the measurement when nothing benched changed (FR-T9 amendment,
-2026-06-10).
+job recomputes a path filter in-job against the merge-group base and
+skips the measurement when nothing benched changed. As of the
+2026-06-25 narrowing that in-job filter is deliberately **stricter**
+than the route layer's `src-tauri/**`: it fires only on the benched
+source (`src-tauri/src/**`), the bench harness (`src-tauri/benches/**`),
+or this workflow, so deps/config-only diffs skip the same-runner
+measurement on both `pull_request` and `merge_group` (FR-T9 amendments
+2026-06-10 and 2026-06-25).
 
 ### 5.4 Section 6 — Operational ownership
 

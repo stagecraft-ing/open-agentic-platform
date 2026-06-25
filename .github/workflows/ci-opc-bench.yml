@@ -12,10 +12,14 @@
 #       (FR-T9, amended 2026-06-06). Same-runner cancels the macos-latest fleet's
 #       ±~80% inter-runner I/O variance, which dwarfed the +25% threshold under
 #       the old cross-runner cached baseline and produced spurious regressions.
-#       An in-job path guard (FR-T9, amended 2026-06-10) skips the measurement
-#       when base..head touches neither product/apps/opc/src-tauri/** nor this
-#       workflow — merge_group forces all route outputs true (spec 188 Phase 2),
-#       so this re-applies the pull_request route filter inside the queue.
+#       An in-job path guard (FR-T9, amended 2026-06-10; narrowed 2026-06-25)
+#       skips the measurement when base..head touches neither the benched
+#       source (product/apps/opc/src-tauri/src/**), the bench harness
+#       (product/apps/opc/src-tauri/benches/**), nor this workflow. merge_group
+#       forces all route outputs true (spec 188 Phase 2); on pull_request the
+#       route layer still dispatches on src-tauri/**, so this narrower in-job
+#       filter is what actually excludes deps/config-only diffs (e.g. a
+#       Cargo.lock bump) from the noise-prone same-runner measurement.
 #   push (to main, via ci.yml) → BASELINE: N=200, --save-baseline main, cache it
 #       (informational / feeds the workflow_dispatch diagnostic). Non-gating.
 #   workflow_dispatch          → manual diagnostic: compare to the cached `main`
@@ -163,21 +167,28 @@ jobs:
             fi
             echo "same-runner: base=$BASE_SHA head=$HEAD_SHA"
 
-            # In-job path guard (FR-T9 amendment 2026-06-10). On merge_group
-            # the route paths-filter in ci.yml cannot diff (no PR base at the
-            # route layer — spec 188 Phase 2 forces every route output true),
-            # so every queue entry reaches this job, including diffs that touch
-            # nothing the bench can measure. A ~7 ms I/O-bound microbench
-            # retains intra-runner temporal variance (proven: +28.2% on a
-            # zero-opc diff, run 27305255507), so gating unrelated diffs is a
-            # pure false-positive vector. Recompute the same filter ci.yml
-            # applies on pull_request; skip the measurement when the diff
-            # cannot affect the benched code.
+            # In-job path guard (FR-T9 amendment 2026-06-10; narrowed
+            # 2026-06-25). A ~7 ms I/O-bound microbench retains intra-runner
+            # temporal variance (proven: +28.2% on a zero-opc diff, run
+            # 27305255507), so running it on a diff that cannot change the
+            # benched runtime is a pure false-positive vector. The 2026-06-10
+            # guard mirrored ci.yml's route filter (product/apps/opc/src-tauri/**),
+            # but that still ran the measurement for deps/config-only diffs: a
+            # Cargo.lock bump (PR #441), a Cargo.toml / build.rs / tauri.conf
+            # edit, none of which alter the usage_scan handler's measured
+            # runtime. Narrow the benchable set to the actual benched source
+            # and harness so those diffs skip the same-runner measurement; the
+            # nightly N=2000 trend (non-gating) stays the safety net for a
+            # genuine dependency-driven regression. On merge_group the route
+            # layer cannot diff at all (spec 188 Phase 2 forces every output
+            # true), so this in-job filter is the only path filter applied.
             if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
-                 product/apps/opc/src-tauri .github/workflows/ci-opc-bench.yml; then
-              echo "::notice::same-runner gate skipped: base..head touches neither product/apps/opc/src-tauri/** nor ci-opc-bench.yml (mirrors the pull_request route filter, which merge_group cannot compute at the route layer)."
+                 product/apps/opc/src-tauri/src \
+                 product/apps/opc/src-tauri/benches \
+                 .github/workflows/ci-opc-bench.yml; then
+              echo "::notice::same-runner gate skipped: base..head touches none of product/apps/opc/src-tauri/{src,benches} or ci-opc-bench.yml; a deps/config-only diff cannot change the benched runtime (FR-T9 narrowed 2026-06-25; nightly N=2000 trend remains the safety net)."
               { echo "### OPC usage bench — $BENCH_ID"
-                echo "Skipped: diff touches no benched path (same filter ci.yml applies on pull_request)."; } >> "$GITHUB_STEP_SUMMARY"
+                echo "Skipped: diff touches no benched source or harness (deps/config-only); nightly trend remains the safety net."; } >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
 
