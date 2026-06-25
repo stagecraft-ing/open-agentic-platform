@@ -69,7 +69,11 @@ export function signCompactJws(
 
 /** Export the public half of an Ed25519 private key as a JWK. */
 export function exportPublicJwk(privateKeyPem: string, kid: string): PublicJwk {
-  const pub = createPublicKey(parsePrivateKey(privateKeyPem));
+  // Validate the key is Ed25519 (parsePrivateKey throws otherwise). @types/node 26
+  // dropped createPublicKey's KeyObject overload, so derive the public key from the
+  // private-key PEM (a BinaryLike) directly; runtime behaviour is identical.
+  parsePrivateKey(privateKeyPem);
+  const pub = createPublicKey(privateKeyPem);
   const jwk = pub.export({ format: "jwk" }) as { kty: string; crv: string; x: string };
   if (jwk.kty !== "OKP" || jwk.crv !== "Ed25519" || !jwk.x) {
     throw new Error("unexpected JWK export shape for Ed25519 public key");
