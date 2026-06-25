@@ -51,6 +51,20 @@ jobs:
       - name: Emit registry (compile smoke)
         run: spec-spine compile
 
+      # Spec 222: registry-shard freshness gate. `spec-spine compile` above
+      # regenerated the by-spec shards in place; a non-empty diff against the
+      # committed tree means a spec.md was refined without recompiling its
+      # shard (the spec 208 / PR #422 silent-drift hole). Scoped to by-spec/
+      # so the gitignored aggregate and the registry-oap.json overlay cannot
+      # make it spuriously red or green. This is a git-layer equality check,
+      # not JSON parsing, so it stays within governed-artifact-reads.md.
+      - name: Registry-shard freshness gate (spec 222)
+        run: |
+          if ! git diff --exit-code -- .derived/spec-registry/by-spec/; then
+            echo "::error::Stale registry shard(s): a spec.md changed without its by-spec shard regenerated. Run 'spec-spine compile' and commit .derived/spec-registry/by-spec/."
+            exit 1
+          fi
+
       - name: Build oap-registry-enrich (Cut D W-06a)
         run: cargo build --release --manifest-path tools/oap/oap-registry-enrich/Cargo.toml --target-dir tools/oap/oap-registry-enrich/target
 

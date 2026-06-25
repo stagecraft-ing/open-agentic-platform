@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:6f59d5a440ae632a52e361fec316050056e4923274f93bcc5080ff1650a9e8f5",
+  "graph_fingerprint": "sha256:2c3a486bca081b12592034bc504c9e25afa60d25c6821d85669b4da302efd791",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4187,6 +4187,23 @@
         "143-presigned-upload-public-endpoint",
         "072-multi-cloud-k8s-portability",
         "116-supply-chain-policy-gates"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "222-registry-shard-freshness-gate",
+      "title": "Registry-shard freshness gate (PR-time staleness block for committed by-spec shards)",
+      "spec_path": "specs/222-registry-shard-freshness-gate/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "217-spec-spine-engine-swap-collapse",
+        "188-derived-index-merge-serialization"
       ],
       "impl_files": [],
       "test_files": [],
