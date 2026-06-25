@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:66aff49d4ed8fa43de285a240f95c8e65aedca03a2616eb6c4008966ad944e4f",
+  "graph_fingerprint": "sha256:6f59d5a440ae632a52e361fec316050056e4923274f93bcc5080ff1650a9e8f5",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4175,8 +4175,8 @@
       "feature_id": "221-oap-instance-bootstrap-cli",
       "title": "OAP fork-parameterization + oap-bootstrap pointer (FR-040)",
       "spec_path": "specs/221-oap-instance-bootstrap-cli/spec.md",
-      "status": "draft",
-      "implementation": "in-progress",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "medium",
       "owner": "",
       "group": "",

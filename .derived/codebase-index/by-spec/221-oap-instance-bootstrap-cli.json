@@ -137,8 +137,8 @@
       }
     ],
     "specId": "221-oap-instance-bootstrap-cli",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "b81781584b7ced254e3857fc55515cb1b36ee0b64eb3fd670e05d5bf354b526e"
+  "shardHash": "efb7a96251789a28dd39a3eb5559f011b52b7db8a2da3a166eb4322aefd2bc1d"
 }
