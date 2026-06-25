@@ -182,12 +182,19 @@ jobs:
             fi
 
             # 1) Base measurement on this runner → criterion baseline.
-            git checkout --quiet --detach "$BASE_SHA"
+            # --force: `cargo bench` below can rewrite Cargo.lock when the
+            # checked-out commit's lock is bench-incomplete, leaving a dirty
+            # working tree; without --force the *next* checkout aborts with
+            # "local changes would be overwritten". See spec 180 FR-T9
+            # amendment 2026-06-24.
+            git checkout --quiet --force --detach "$BASE_SHA"
             ensure_stubs
             OPC_BENCH_N=$N cargo bench --manifest-path "$MANIFEST" --bench usage_scan -- --save-baseline samerunner_base
 
             # 2) Head measurement on this runner, compared to the base baseline.
-            git checkout --quiet --detach "$HEAD_SHA"
+            # --force for the same reason as the base checkout above: discard
+            # any lockfile churn the base `cargo bench` left behind.
+            git checkout --quiet --force --detach "$HEAD_SHA"
             ensure_stubs
             OPC_BENCH_N=$N cargo bench --manifest-path "$MANIFEST" --bench usage_scan -- --baseline samerunner_base
             BL="same-runner main (${BASE_SHA:0:12})"
