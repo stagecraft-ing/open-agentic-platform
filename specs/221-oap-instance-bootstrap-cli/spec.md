@@ -2,8 +2,8 @@
 id: "221-oap-instance-bootstrap-cli"
 title: "OAP fork-parameterization + oap-bootstrap pointer (FR-040)"
 feature_branch: "feat/221-oap-instance-bootstrap-cli"
-status: draft
-implementation: in-progress
+status: approved
+implementation: complete
 kind: capability
 domain: platform
 created: "2026-06-21"
@@ -72,7 +72,7 @@ references:
 
 **Feature Branch**: `feat/221-oap-instance-bootstrap-cli`
 **Created**: 2026-06-21
-**Status**: Draft (OAP-side footprint; the CLI design is authoritative elsewhere)
+**Status**: Approved (OAP-side footprint complete; the CLI design is authoritative elsewhere)
 
 ## Where the CLI design lives
 
@@ -90,7 +90,7 @@ This OAP-side entry is intentionally thin. It exists for two reasons:
    fresh, then relocated).
 2. **The OAP-side footprint (FR-040).** One small change must land in THIS tree
    to make a fork work without hand-editing source. That is the section below,
-   and it is what `implementation: in-progress` refers to.
+   and it is what `implementation: complete` refers to (FR-040 landed in #409).
 
 ## Requirements
 

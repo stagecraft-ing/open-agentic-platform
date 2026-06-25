@@ -57,7 +57,7 @@
     },
     "featureBranch": "feat/221-oap-instance-bootstrap-cli",
     "id": "221-oap-instance-bootstrap-cli",
-    "implementation": "in-progress",
+    "implementation": "complete",
     "kind": "capability",
     "references": [
       {
@@ -105,10 +105,10 @@
       "Non-Goals"
     ],
     "specPath": "specs/221-oap-instance-bootstrap-cli/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "The oap-bootstrap CLI (a Go tool that forks open-agentic-platform into a new GitHub org and stands up its Hetzner K3s estate) lives in its OWN repository, mirroring the spec-spine engine (217) and tenant-tail (219) separate-repo precedent. Its authoritative design is authored there. THIS spec is the OAP-side residue: (1) a pointer to that repo, and (2) FR-040, the small \"make a fork need zero source edits\" parameterization that necessarily lands in the OAP tree. The CLI design was first drafted here (full spec.md) while the implementation details were fresh; that body has been relocated to the oap-bootstrap repo and this entry slimmed to the pointer + footprint. The `references:` context edges remain so the contract surface the CLI consumes (env vars, K8s secret shapes, the GitHub webhook permission/event set, the Rauthy client shapes) stays visible to OAP-side drift review.\n",
     "title": "OAP fork-parameterization + oap-bootstrap pointer (FR-040)"
   },
-  "shardHash": "26830e15804db2248c078a63fb32d2df128757c162911af606915888fed4d461",
+  "shardHash": "f7010f266097f39a40c1959abeb40c1fac589ecd2bb0a851ef76e280528c4e0c",
   "specVersion": "1.1.0"
 }
