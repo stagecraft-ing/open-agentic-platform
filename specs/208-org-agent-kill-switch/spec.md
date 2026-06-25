@@ -80,6 +80,16 @@ refines:
     unit: { kind: file, path: platform/services/stagecraft/api/sync/service.ts }
   - aspect: "halt-aware-session-termination"
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/live_sessions.rs }
+  # Phase 2 (FR-003): the engine-side org.halt.* wire twin and the org.halt.ack
+  # producer (the desktop mirror of the org-halt-refusal-reason envelope shape),
+  # edited in PR-2 (feat/208-propagate).
+  - aspect: "org-halt-engine-ack"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/sync_client.rs }
+  # Phase 2 (FR-001): the org.halt.activated dispatch handler is registered on
+  # the duplex dispatch table at desktop startup (the spec 207
+  # command-registration-in-lib.rs precedent), edited in PR-2.
+  - aspect: "org-halt-handler-registration"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/lib.rs }
 references:
   - role: context
     unit: { kind: file, path: docs/owasp-agentic-top-10-2026.md }

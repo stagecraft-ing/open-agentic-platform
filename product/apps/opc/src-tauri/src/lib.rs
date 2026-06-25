@@ -362,6 +362,14 @@ pub fn run() {
                 commands::project_catalog_sync::register_project_catalog_handlers(
                     app.handle().clone(),
                 );
+
+                // Spec 208 FR-001/FR-003: register the org-halt dispatch
+                // handler unconditionally (a kill switch is not feature-gated).
+                // Same defensive posture: a missing SyncClientState logs and
+                // skips rather than crashing.
+                commands::live_sessions::register_org_halt_handlers(
+                    app.handle().clone(),
+                );
             }
 
             // Register AuthFlowState for desktop OAuth PKCE (spec 080 Phase 1)

@@ -706,7 +706,7 @@ export namespace agents {
         /**
          * Seam D: Validate agent execution against org-level policies.
          * GET /api/agents/:slug/authorized
-         *
+         * 
          * Returns 200 if the agent is authorized.
          * Returns 403 with { reason } if the agent is blocked.
          * Agents with no policy row are allowed by default.
@@ -791,6 +791,14 @@ export namespace audit {
         targetType: string
         targetId: string
         metadata?: { [key: string]: any }
+        /**
+         * Spec 205 FR-005: when an agent NHI generates the record (via OPC
+         * axiomregent), it passes both principals: the NHI subject and the
+         * human it acts for. Populated onto the row when present, NULL otherwise.
+         */
+        nhiSub?: string
+
+        onBehalfOf?: string
     }
 
     export interface IngestAuditResponse {
@@ -834,6 +842,8 @@ export namespace audit {
             const body: Record<string, any> = {
                 action:     params.action,
                 metadata:   params.metadata,
+                nhiSub:     params.nhiSub,
+                onBehalfOf: params.onBehalfOf,
                 targetId:   params.targetId,
                 targetType: params.targetType,
             }
@@ -845,7 +855,7 @@ export namespace audit {
 
         /**
          * Spec 175 FR-007 — list recent audit_log rows scoped to a project.
-         *
+         * 
          * The default `limit` is 5 to match the dashboard panel; callers asking
          * for more raise to a hard cap of 50.
          */
@@ -1148,6 +1158,14 @@ export namespace db {
     export type ArtifactKind = "agent" | "skill" | "process-stage" | "adapter-manifest" | "contract-schema" | "pattern" | "page-type-reference" | "sample-html" | "reference-data" | "invariant" | "pipeline-orchestrator" | "governance-envelope"
 
     /**
+     * Explicit union, NOT `(typeof deploymentStatusValues)[number]`: Encore.ts's
+     * TS parser rejects that indexed-access-on-typeof-array form ("unsupported
+     * indexed access type operation") and fails service compilation. Keep this
+     * union in sync with deploymentStatusValues above (and migration 49's CHECK).
+     */
+    export type DeploymentStatus = "REQUESTED" | "PENDING" | "ROLLED_OUT" | "FAILED" | "REQUEST_FAILED" | "DESTROYED"
+
+    /**
      * Spec 124 §3 — per-stage entry shape persisted under
      * `factory_runs.stage_progress` and projected onto the run-detail UI.
      * `agentRef` is the spec-123 triple (snake_case in the JSONB column).
@@ -1192,6 +1210,33 @@ export namespace db {
  * Absorbs the former stagecraft-api functionality.
  */
 export namespace deploy {
+    export interface DeploymentView {
+        id: string
+        environmentId: string
+        projectId: string
+        releaseId: string | null
+        releaseSha: string
+        artifactRef: string
+        variant: string
+        status: db.DeploymentStatus
+        endpoints: string[]
+        dispatchedBy: string
+        diagnostic: string | null
+        createdAt: string
+        updatedAt: string
+    }
+
+    export interface GetLatestDeploymentResponse {
+        deployment: DeploymentView | null
+    }
+
+    export interface TriggerDeploymentResponse {
+        deployment: DeploymentView
+        /**
+         * true when an existing ROLLED_OUT record at this commit was returned.
+         */
+        alreadyDeployed: boolean
+    }
 
     export class ServiceClient {
         private baseClient: BaseClient
@@ -1199,15 +1244,43 @@ export namespace deploy {
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
             this.createDeployment = this.createDeployment.bind(this)
+            this.getLatestDeployment = this.getLatestDeployment.bind(this)
             this.healthz = this.healthz.bind(this)
+            this.triggerDeployment = this.triggerDeployment.bind(this)
         }
 
         public async createDeployment(method: "POST", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
             return this.baseClient.callAPI(method, `/v1/deployments`, body, options)
         }
 
+        /**
+         * GET /api/projects/:projectId/envs/:envId/deployments/latest (FR-004/008).
+         * Returns the latest record for the environment, or null for the never-
+         * deployed empty state. A PENDING record older than the helm timeout is
+         * lazily reconciled against deployd-api status before answering (FR-008; no
+         * background poller).
+         */
+        public async getLatestDeployment(projectId: string, envId: string): Promise<GetLatestDeploymentResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("GET", `/api/projects/${encodeURIComponent(projectId)}/envs/${encodeURIComponent(envId)}/deployments/latest`)
+            return await resp.json() as GetLatestDeploymentResponse
+        }
+
         public async healthz(method: "GET", body?: RequestInit["body"], options?: CallParameters): Promise<globalThis.Response> {
             return this.baseClient.callAPI(method, `/healthz`, body, options)
+        }
+
+        /**
+         * POST /api/projects/:projectId/envs/:envId/deployments (spec 215 FR-001/002).
+         * Resolve the built image (FR-001/213), refuse approval-gated environments
+         * (FR-006), record the dispatch (FR-003), enrich + dispatch via the
+         * consolidated client (FR-002/007), and reconcile the record from the
+         * synchronous deployd response.
+         */
+        public async triggerDeployment(projectId: string, envId: string): Promise<TriggerDeploymentResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(projectId)}/envs/${encodeURIComponent(envId)}/deployments`)
+            return await resp.json() as TriggerDeploymentResponse
         }
     }
 }
@@ -1229,7 +1302,7 @@ export namespace environments {
          * Name of the K8s Secret in the tenant namespace that holds the
          * wildcard TLS material. Defaults to "tenants-wildcard-tls" on insert;
          * exposed in GET so the UI can show / let admins override.
-         *
+         * 
          * Note: the secret itself is replicated into tenant namespaces by
          * kubernetes-reflector (see `platform/infra/hetzner/manifests/
          * tenants-wildcard-certificate.yaml`); stagecraft only stores the name.
@@ -1706,6 +1779,8 @@ export namespace factory {
         updatedAt: string
     }
 
+    export type HaltScope = "org" | "project" | "agent-profile"
+
     export interface InitRequest {
         adapter: string
         "business_docs"?: BusinessDocRef[]
@@ -1715,7 +1790,7 @@ export namespace factory {
          * Trigger path for this pipeline (spec 110 §8 Rollout Phase 6 — default
          * flipped to `"stagecraft"`; OPC-direct remains available for offline
          * workflows and for the desktop's dual-write path).
-         *
+         * 
          * - "stagecraft" (default): stagecraft dispatches a `factory.run.request`
          * through the duplex channel so a connected OPC executes the run.
          * Used by the web Initialize button and `oap-ctl run factory`.
@@ -1737,6 +1812,11 @@ export namespace factory {
         status: string
         source: PipelineSource
         "created_at": string
+    }
+
+    export interface LiftHaltResponse {
+        haltId: string
+        state: "reintegrating"
     }
 
     export interface ListArtifactsRequest {
@@ -1883,6 +1963,28 @@ export namespace factory {
         kid: string
         alg: "EdDSA"
         use: "sig"
+    }
+
+    export interface PullHaltRequest {
+        scope: HaltScope
+        /**
+         * The scope target: a project id for `project`. Ignored for `org` (the org
+         * id is used by convention).
+         */
+        scopeKey?: string
+
+        reason: string
+    }
+
+    export interface PullHaltResponse {
+        haltId: string
+        scope: HaltScope
+        scopeKey: string
+        /**
+         * The active state: 'halted' for a fresh pull, or the existing state if an
+         * active halt already covered this scope (the pull is idempotent).
+         */
+        state: "halted" | "reintegrating"
     }
 
     export interface RecordArtifactsRequest {
@@ -2143,6 +2245,7 @@ export namespace factory {
             this.getUpstreams = this.getUpstreams.bind(this)
             this.ingestEvents = this.ingestEvents.bind(this)
             this.initPipeline = this.initPipeline.bind(this)
+            this.liftHalt = this.liftHalt.bind(this)
             this.liftRevocation = this.liftRevocation.bind(this)
             this.listAdapters = this.listAdapters.bind(this)
             this.listArtifacts = this.listArtifacts.bind(this)
@@ -2157,6 +2260,7 @@ export namespace factory {
             this.lookupArtifact = this.lookupArtifact.bind(this)
             this.projectLookupArtifact = this.projectLookupArtifact.bind(this)
             this.projectRecordArtifact = this.projectRecordArtifact.bind(this)
+            this.pullHalt = this.pullHalt.bind(this)
             this.recordArtifacts = this.recordArtifacts.bind(this)
             this.rejectStage = this.rejectStage.bind(this)
             this.reportScaffoldProgress = this.reportScaffoldProgress.bind(this)
@@ -2215,7 +2319,7 @@ export namespace factory {
 
         /**
          * Validate a completed pipeline run for promotion eligibility.
-         *
+         * 
          * Checks that the pipeline belongs to the project, all stages have records,
          * artifacts are present, and the audit log has a completion event. If all
          * checks pass, creates a promotion record. Spec 097 Slice 3 (renamed from
@@ -2385,6 +2489,12 @@ export namespace factory {
             return await resp.json() as InitResponse
         }
 
+        public async liftHalt(id: string): Promise<LiftHaltResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/factory/org-halts/${encodeURIComponent(id)}/lift`)
+            return await resp.json() as LiftHaltResponse
+        }
+
         public async liftRevocation(id: string): Promise<{
     lifted: boolean
 }> {
@@ -2531,6 +2641,12 @@ export namespace factory {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(projectId)}/artifacts`, JSON.stringify(params))
             return await resp.json() as ProjectRecordArtifactResponse
+        }
+
+        public async pullHalt(params: PullHaltRequest): Promise<PullHaltResponse> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/factory/org-halts`, JSON.stringify(params))
+            return await resp.json() as PullHaltResponse
         }
 
         public async recordArtifacts(id: string, params: RecordArtifactsRequest): Promise<RecordArtifactsResponse> {
@@ -2718,7 +2834,7 @@ export namespace grants {
         /**
          * Spec 119 §6.4 — Serve project-scoped permission grants to OPC desktop app.
          * GET /api/grants/:userId/:projectId — M2M bearer token auth (OIDC JWT or static fallback).
-         *
+         * 
          * Returns the grant row if found, otherwise restrictive defaults (read-only, tier 1).
          */
         public async getGrants(userId: string, projectId: string, params: GrantsRequest): Promise<GrantsResponse> {
@@ -3808,13 +3924,13 @@ export namespace projects {
 
     /**
      * Spec 112 §6.4 — short-lived clone token derived from spec 109 state.
-     *
+     * 
      * The bundle returns a token OPC threads into the git clone subprocess
      * (`https://x-access-token:<value>@…`) and into the factory engine
      * launch as `GITHUB_TOKEN`. The long-lived PAT itself never crosses
      * Stagecraft → OPC except in the `project_github_pat` branch, where
      * GitHub does not offer a derived short-lived form (§10 risk).
-     *
+     * 
      * `expiresAt` is set for `github_installation` (≈1h TTL) and null for
      * `project_github_pat`. Public-anonymous resolution returns null at
      * the field level — null means "clone anonymously", not "resolution
@@ -4076,6 +4192,7 @@ export namespace projects {
             this.refreshProjectCloneToken = this.refreshProjectCloneToken.bind(this)
             this.removeProjectMember = this.removeProjectMember.bind(this)
             this.removeProjectRepo = this.removeProjectRepo.bind(this)
+            this.retrofitBuildWorkflow = this.retrofitBuildWorkflow.bind(this)
             this.revokeProjectPat = this.revokeProjectPat.bind(this)
             this.scaffoldReadiness = this.scaffoldReadiness.bind(this)
             this.setPrimaryProjectRepo = this.setPrimaryProjectRepo.bind(this)
@@ -4299,6 +4416,24 @@ export namespace projects {
 }
         }
 
+        /**
+         * Idempotently seed (or update) the `oap-build.yml` container-build
+         * workflow into a project's repo that was created before spec 213. Admin
+         * API surface; UI exposure is spec 215's concern. Requires the same
+         * org-level permission as project creation.
+         */
+        public async retrofitBuildWorkflow(projectId: string): Promise<{
+    action: "created" | "updated"
+    repo: string
+}> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI("POST", `/api/projects/${encodeURIComponent(projectId)}/retrofit-build-workflow`)
+            return await resp.json() as {
+    action: "created" | "updated"
+    repo: string
+}
+        }
+
         public async revokeProjectPat(projectId: string): Promise<{
     revoked: boolean
 }> {
@@ -4441,7 +4576,7 @@ export namespace site {
 
 export namespace specRegistry {
     /**
-     * One row from `registry-consumer show <id> --json` plus an authored
+     * One row from `spec-spine registry show <id> --json` plus an authored
      * markdown body (read directly from the on-disk spec.md file — the
      * body is not a compiled artifact, so the spec 103 governed-read
      * discipline does not apply to it).
@@ -4528,7 +4663,7 @@ export namespace specRegistry {
 
     /**
      * Aggregate response for the inventory loader (FR-001).
-     *
+     * 
      * `registryAvailable === false` means the project has no spec-spine yet —
      * the route renders the empty-state CTA (FR-007 / SC-005). When true,
      * `specs` is the flat inventory sorted by id.
@@ -4539,7 +4674,7 @@ export namespace specRegistry {
     }
 
     /**
-     * One row from `registry-consumer list --json`. Only fields the
+     * One row from `spec-spine registry list --json`. Only fields the
      * Requirements view consumes are typed; unknown frontmatter falls
      * into `extraFrontmatter`.
      */
@@ -4633,7 +4768,7 @@ export namespace specRegistry {
 
         /**
          * FR-001 / FR-002 — list specs from the project's spec-spine.
-         *
+         * 
          * Returns `{registryAvailable: false, specs: []}` when the project has
          * no registry yet (newly imported, decomposition not yet run). The
          * route uses this to render the FR-007 empty-state CTA.
@@ -4723,7 +4858,7 @@ export namespace sync {
          * Kinds are inlined rather than referencing `ClientEnvelopeKind`; Encore's
          * schema parser cannot evaluate indexed-access types over a union alias.
          */
-        kind: "execution.status" | "checkpoint.created" | "artifact.emitted" | "runtime.observed" | "agent.invocation" | "audit.candidate" | "factory.run.ack" | "factory.run.stage_started" | "factory.run.stage_completed" | "factory.run.completed" | "factory.run.failed" | "factory.run.cancelled" | "factory.run.grant_request" | "factory.run.grant_renew" | "agent.catalog.fetch_request" | "sync.ack" | "sync.resync_request" | "sync.heartbeat"
+        kind: "execution.status" | "checkpoint.created" | "artifact.emitted" | "runtime.observed" | "agent.invocation" | "audit.candidate" | "factory.run.ack" | "factory.run.stage_started" | "factory.run.stage_completed" | "factory.run.completed" | "factory.run.failed" | "factory.run.cancelled" | "factory.run.grant_request" | "factory.run.grant_renew" | "audit.segment.countersign_request" | "agent.catalog.fetch_request" | "org.halt.ack" | "sync.ack" | "sync.resync_request" | "sync.heartbeat"
 
         meta: EnvelopeMeta
         projectId?: string
@@ -4797,11 +4932,30 @@ export namespace sync {
         buildSpecHash?: string
         seq?: number
         certificateSha256?: string
+        /**
+         * spec 207 AC-4: audit.segment.countersign_request fields. `sessionId` is
+         * declared above (shared with factory.run.ack).
+         */
+        segmentId?: string
+
+        segmentHeadHash?: string
+        segmentRecordCount?: number
+        firstRecordAt?: string
+        lastRecordAt?: string
+        /**
+         * spec 208 FR-003: org.halt.ack fields. `haltKind` (not `kind`) discriminates
+         * the halt vs lift ack. `clientId` is NOT on the wire: the server stamps it
+         * from the authenticated duplex session.
+         */
+        haltId?: string
+
+        haltKind?: "halt" | "lift"
+        ackedAt?: string
     }
 
     /**
      * Business-doc reference carried on a `factory.run.request` (spec 110 §2.1).
-     *
+     * 
      * Distinct from the file-local `BusinessDocRef` in `api/factory/factory.ts`
      * (which uses snake_case `storage_ref` to match HTTP shape); this is the
      * wire-level camelCase form used on the envelope.
@@ -4840,7 +4994,7 @@ export namespace sync {
 
     /**
      * Envelope schema version.
-     *
+     * 
      * Spec 087 §5.3 FR-SYNC-003: every envelope MUST carry a schema version. The
      * current protocol is version 2 (spec 119 collapsed workspace → org as the
      * session key). The guard in `isClientEnvelope` rejects any other value.
@@ -4856,7 +5010,7 @@ export namespace sync {
      * `crates/factory-engine/src/agent_resolver.rs::ResolvedAgent` — the spec
      * 124 acceptance criterion A-9 grep gate (T088) and the spec 122 Stage CD
      * comparator both depend on the `(orgAgentId, version, contentHash)` triple.
-     *
+     * 
      * Wire convention: camelCase on the duplex envelope (matches the rest of
      * the `ClientEnvelopeWire` shape). The DB column `factory_runs.source_shas`
      * stores the snake_case form `{ org_agent_id, version, content_hash }` per
@@ -4881,7 +5035,7 @@ export namespace sync {
 
     /**
      * Knowledge-bundle reference carried on a `factory.run.request` (spec 110 §2.3).
-     *
+     * 
      * The desktop resolves each entry against a content-addressable cache at
      * `$OPC_CACHE_DIR/knowledge/<contentHash>` before passing local paths to the
      * factory engine; the hash is the trust boundary (mismatch ⇒ run fails).
@@ -4938,13 +5092,13 @@ export namespace sync {
      * — goal-shift and revocation refusals are governance evidence (ASI01 m4/m7),
      * not transient errors.
      */
-    export type RunGrantRefusalReason = "unknown-run" | "not-admitted" | "envelope-mismatch" | "revoked" | "goal-shift" | "capsule-mismatch" | "seq-conflict" | "signing-unconfigured" | "malformed"
+    export type RunGrantRefusalReason = "unknown-run" | "not-admitted" | "envelope-mismatch" | "revoked" | "halted" | "goal-shift" | "capsule-mismatch" | "seq-conflict" | "signing-unconfigured" | "malformed"
 
     /**
      * Flat counterpart of {@link ServerEnvelope} for the Encore stream boundary.
      */
     export interface ServerEnvelopeWire {
-        kind: "policy.updated" | "grant.updated" | "deploy.status" | "project.updated" | "factory.event" | "factory.run.request" | "factory.run.grant" | "factory.run.certificate_countersign" | "agent.catalog.updated" | "agent.catalog.snapshot" | "project.agent_binding.updated" | "project.agent_binding.snapshot" | "project.catalog.upsert" | "project.catalog.snapshot.complete" | "sync.ack" | "sync.nack" | "sync.resync_required" | "sync.heartbeat" | "sync.hello"
+        kind: "policy.updated" | "grant.updated" | "deploy.status" | "project.updated" | "factory.event" | "factory.run.request" | "factory.run.grant" | "factory.run.certificate_countersign" | "audit.segment.countersign" | "org.halt.activated" | "org.halt.lifted" | "agent.catalog.updated" | "agent.catalog.snapshot" | "project.agent_binding.updated" | "project.agent_binding.snapshot" | "project.catalog.upsert" | "project.catalog.snapshot.complete" | "sync.ack" | "sync.nack" | "sync.resync_required" | "sync.heartbeat" | "sync.hello"
         meta: ServerMeta
         policyBundleId?: string
         summary?: string
@@ -5043,6 +5197,22 @@ export namespace sync {
         refusedReason?: RunGrantRefusalReason | string
         countersigned?: boolean
         countersignJws?: string
+        /**
+         * spec 207 AC-4: audit.segment.countersign fields. `sessionId` is declared
+         * above (shared with other variants).
+         */
+        segmentId?: string
+
+        /**
+         * spec 208 FR-001/FR-004: org.halt.activated / org.halt.lifted fields. The
+         * free-form quarantine reason rides the shared `detail` field above (the
+         * `reason` field is the closed nack/resync union). `scope`/`scopeKey` are
+         * new; `haltId` is shared in name with the inbound ack but distinct here.
+         */
+        haltId?: string
+
+        scope?: "org" | "project" | "agent-profile"
+        scopeKey?: string
     }
 
     export interface ServerMeta {
@@ -5050,7 +5220,7 @@ export namespace sync {
          * Monotonic cursor issued by the server for outbound events within an
          * org. Clients MAY persist this and pass it back as
          * `SyncHandshake.lastServerCursor` on reconnect.
-         *
+         * 
          * This is best-effort in the in-memory implementation; a durable store
          * is required before clients can safely rely on it for replay.
          */

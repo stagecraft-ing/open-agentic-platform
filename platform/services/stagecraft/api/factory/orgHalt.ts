@@ -32,6 +32,7 @@ import {
   FACTORY_ORG_HALT_ACTIVATED,
   FACTORY_ORG_HALT_LIFTED,
 } from "./auditActions";
+import { broadcastOrgHalt } from "../sync/service";
 
 export type HaltScope = "org" | "project" | "agent-profile";
 export type HaltState = "halted" | "reintegrating" | "lifted";
@@ -148,7 +149,7 @@ export async function pullHaltCore(
     );
   }
 
-  return db.transaction(async (tx) => {
+  const { response, fresh } = await db.transaction(async (tx) => {
     const [existing] = await tx
       .select({ id: orgHalts.id, state: orgHalts.state })
       .from(orgHalts)
@@ -163,10 +164,13 @@ export async function pullHaltCore(
       .limit(1);
     if (existing) {
       return {
-        haltId: existing.id,
-        scope: req.scope,
-        scopeKey,
-        state: existing.state as "halted" | "reintegrating",
+        response: {
+          haltId: existing.id,
+          scope: req.scope,
+          scopeKey,
+          state: existing.state as "halted" | "reintegrating",
+        },
+        fresh: false as const,
       };
     }
 
@@ -190,8 +194,36 @@ export async function pullHaltCore(
       metadata: { orgId: auth.orgId, scope: req.scope, scopeKey, reason },
     });
 
-    return { haltId: row.id, scope: req.scope, scopeKey, state: "halted" };
+    return {
+      response: {
+        haltId: row.id,
+        scope: req.scope,
+        scopeKey,
+        state: "halted" as const,
+      },
+      fresh: true as const,
+    };
   });
+
+  // Spec 208 FR-001/FR-003: propagate AFTER the row commits, and only on a
+  // fresh pull. Enforcement (grant/serve/bind/registration refusal) is already
+  // live via the committed row, so the broadcast accelerates the engine pause;
+  // it does not gate it. A missed broadcast therefore degrades safely (the run
+  // pauses at the next grant renewal instead of immediately), and a
+  // reconnecting engine replays the halt off the outbox on resync. An
+  // idempotent re-pull does not re-broadcast: the active record already drives
+  // both the refusal path and the resync replay.
+  if (fresh) {
+    await broadcastOrgHalt(auth.orgId, {
+      change: "activated",
+      haltId: response.haltId,
+      scope: response.scope,
+      scopeKey: response.scopeKey,
+      reason,
+    });
+  }
+
+  return response;
 }
 
 export const pullHalt = api(
@@ -230,7 +262,7 @@ export async function liftHaltCore(
   auth: { orgId: string; userId: string },
   req: LiftHaltRequest,
 ): Promise<LiftHaltResponse> {
-  return db.transaction(async (tx) => {
+  const { scope, scopeKey } = await db.transaction(async (tx) => {
     const [row] = await tx
       .select({
         orgId: orgHalts.orgId,
@@ -275,8 +307,21 @@ export async function liftHaltCore(
       metadata: { orgId: auth.orgId, scope: row.scope, scopeKey: row.scopeKey },
     });
 
-    return { haltId: req.id, state: "reintegrating" };
+    return { scope: row.scope, scopeKey: row.scopeKey };
   });
+
+  // Spec 208 FR-004: broadcast the lift AFTER the transition commits so engines
+  // can begin re-admission and ack the lift leg (FR-003). A 'reintegrating'
+  // scope is still enforced until staged re-admission completes (Phase 3), so
+  // this notice starts that process; it does not re-admit by itself.
+  await broadcastOrgHalt(auth.orgId, {
+    change: "lifted",
+    haltId: req.id,
+    scope,
+    scopeKey,
+  });
+
+  return { haltId: req.id, state: "reintegrating" };
 }
 
 export const liftHalt = api(

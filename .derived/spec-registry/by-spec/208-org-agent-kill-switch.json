@@ -137,6 +137,20 @@
           "kind": "file",
           "path": "product/apps/opc/src-tauri/src/commands/live_sessions.rs"
         }
+      },
+      {
+        "aspect": "org-halt-engine-ack",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/sync_client.rs"
+        }
+      },
+      {
+        "aspect": "org-halt-handler-registration",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/lib.rs"
+        }
       }
     ],
     "sectionHeadings": [
@@ -161,6 +175,6 @@
     "summary": "Containment today is precise but narrow: an operator can force-disconnect one session (spec 172), the four-key revocation lattice quarantines factory content (spec 198 FR-010), and Rauthy sessions can be revoked one principal at a time. What does not exist is the emergency stop ASI10 m4 and ASI04 m8 require: one admin-gated action that halts agent execution org-wide (pausing in-flight runs at the next boundary, refusing new sessions and grant issuance, revoking agent credentials) with propagation inside a stated bound, a quarantine record, and reintegration that requires fresh validation plus human approval. The switch composes the levers that already exist (grant renewal, duplex channels, revocation rows, session force-disconnect) rather than adding a parallel mechanism, and it is drilled: a kill switch that has never been pulled is decoration, so exercising it is an acceptance criterion, not an operational afterthought.\n",
     "title": "Org-Wide Agent Kill Switch and Quarantine (ASI10 containment)"
   },
-  "shardHash": "08dfff9636669b637ec8a881a9deac3725bc8af364ce51f0b23ad75eba81e143",
+  "shardHash": "c963cc180f87900e03a61badc119268fe15f32d03d1a91a046948f2b9d9aa74a",
   "specVersion": "1.1.0"
 }

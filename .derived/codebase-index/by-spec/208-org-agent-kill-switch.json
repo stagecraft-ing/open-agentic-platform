@@ -69,6 +69,14 @@
       {
         "path": "product/apps/opc/src-tauri/src/commands/live_sessions.rs",
         "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/src-tauri/src/commands/sync_client.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/src-tauri/src/lib.rs",
+        "source": "spec-edge"
       }
     ],
     "resolvedUnits": [
@@ -270,6 +278,32 @@
       {
         "locations": [
           {
+            "file": "product/apps/opc/src-tauri/src/commands/sync_client.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/sync_client.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/src-tauri/src/lib.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/lib.rs"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "docs/owasp-agentic-top-10-2026.md"
           }
         ],
@@ -285,5 +319,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "a20b35bb124fad859b46a1333c2c375a4c839e892ddaec4a1494bcb9b8fb4724"
+  "shardHash": "a3219899264430d6b85d790ab79b703a271edb6c2665aed18dc89041bd6d1e13"
 }
