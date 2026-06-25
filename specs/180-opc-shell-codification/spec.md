@@ -516,6 +516,26 @@ split is similarly amendable.
 > gate's semantics for opc-touching diffs are unchanged — a diff that
 > touches the benched path is still measured and gated same-runner.
 
+> *Amended 2026-06-24 (force the same-runner checkouts).* Same-runner
+> mode runs `cargo bench` on the base commit, then `git checkout
+> --detach` back to head. `cargo bench` (no `--locked`) rewrites
+> `product/apps/opc/src-tauri/Cargo.lock` whenever the checked-out
+> commit's lock is bench-incomplete: a `main` base lock can lack the
+> criterion dev-dependency closure that a head PR's regenerated lock
+> already carries, so building the base mutates its lock and leaves an
+> uncommitted working-tree change. The non-forced `git checkout --quiet
+> --detach "$HEAD_SHA"` then aborted with "local changes would be
+> overwritten by checkout", hard-failing the job (and therefore
+> `ci-gate`) on a pure harness fault rather than a code regression: PR
+> #437, a dependency-consolidation PR whose head lock was bench-complete,
+> hit this deterministically while its 6.8 ms benchmark passed under the
+> threshold. Per this FR's amendability clause, both same-runner
+> checkouts now pass `--force`, discarding build-induced lockfile churn
+> before the commit switch. The threshold (+25%), the relative-only
+> discipline (**FR-T10**), and the gate's measurement semantics are
+> unchanged: only the checkout's robustness to a cargo-touched working
+> tree improved.
+
 **FR-T10 (no Tier 3 leak).** The Tier 2 gate MUST NOT assert any
 absolute latency value. It is strictly a relative-delta comparison
 against the saved baseline. Inserting an absolute threshold into the

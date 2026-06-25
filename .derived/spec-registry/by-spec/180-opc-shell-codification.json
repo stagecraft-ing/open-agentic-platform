@@ -259,6 +259,6 @@
     "summary": "Codifies the previously un-bound OPC desktop shell. Establishes broad authority over every authority-empty OPC subsystem root surfaced by the Phase 0 seam map (`src/lib/`, `src/services/`, `src/stores/`, `src/routes/`, `src/components/factory/`, the top-level `components/`, `contexts/`, `hooks/`, the unclaimed subset of `src-tauri/src/commands/`, and the build-tooling surface) so that a future `registry-consumer by-authority` query against any of these paths returns a named door, not silence. Binds Tier 1 structural invariants only on the bug-adjacent surface — the tab-list reconciliation files refined from spec 172 (`TabContent.tsx`, `TabContext.tsx`, `useTabState.ts`), the `UsageDashboard.tsx` / `TabManager.tsx` view shells, and the filesystem-scanning IPC handlers (canonical case: `commands/usage.rs`). Inaugurates a Tier 2 bench-presence + relative-regression gate for filesystem-scanning Tauri handlers (criterion at `product/apps/opc/src-tauri/benches/`, N=200 PR / N=2000 nightly, 25% regression threshold, amendable). Excludes Tier 3 absolute latency budgets explicitly. The Tier 2 gate is operationally owned by the OPC subsystem maintainer per §6.\n",
     "title": "OPC shell codification — broad authority on the un-bound desktop shell, narrow Tier 1 invariants on the tab/IPC seam"
   },
-  "shardHash": "171931d351644512909ddffbbcf245e00d3a5bdfdde7733df4aff58b14efe4eb",
+  "shardHash": "cf1ad7f433e9448a9e5adc5bd931df11b7c71617cb284a0ecb6e34bd46410880",
   "specVersion": "1.1.0"
 }
