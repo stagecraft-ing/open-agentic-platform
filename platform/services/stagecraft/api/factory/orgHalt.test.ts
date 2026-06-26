@@ -36,12 +36,17 @@ import { handleGrantRenew, handleGrantRequest } from "./grantDuplexHandlers";
 import { isHaltedInScope, liftHaltCore, pullHaltCore } from "./orgHalt";
 import {
   FACTORY_ORG_HALT_ACTIVATED,
+  FACTORY_ORG_HALT_ENGINE_ACK,
   FACTORY_ORG_HALT_LIFTED,
   FACTORY_RUN_GRANT_REFUSED,
 } from "./auditActions";
+import { handleInbound } from "../sync/service";
+import { outbox } from "../sync/store";
 import type {
   ClientFactoryRunGrantRenew,
   ClientFactoryRunGrantRequest,
+  ClientOrgHaltAck,
+  ServerOrgHaltActivated,
 } from "../sync/types";
 
 const ORG_ID = "20808080-0000-0000-0000-0000000000a1";
@@ -436,5 +441,103 @@ describe("grant refusal under halt (AC-2, FR-001/FR-002)", () => {
     expect(refused.reply?.granted).toBe(false);
     expect(refused.reply?.refusedReason).toBe("halted");
     expect(refused.reply?.detail).toContain(halt.haltId);
+  });
+});
+
+// Spec 208 Phase 2 (PR-2): the propagation seam. A fresh pull broadcasts
+// org.halt.activated over the outbox-durable path (FR-001/FR-003), and the
+// engine's org.halt.ack records the per-engine propagation bound on the
+// quarantine record (FR-003, the AC-4 halt-ack leg). The engine-side pause +
+// checkpoint and the full three-session drill are covered by the OPC Rust
+// unit suite and the Phase 5 e2e drill respectively.
+describe("org-halt propagation (FR-001/FR-003, AC-4 ack leg)", () => {
+  const CLIENT_ID = "20808080-0000-0000-0000-0000000000e1";
+  const OTHER_ORG_ID = "20808080-0000-0000-0000-0000000000ff";
+
+  function orgHaltAck(
+    haltId: string,
+    haltKind: "halt" | "lift",
+    ackedAt: string,
+  ): ClientOrgHaltAck {
+    return {
+      kind: "org.halt.ack",
+      meta: META(`evt-ack-${haltId}-${haltKind}`),
+      haltId,
+      haltKind,
+      ackedAt,
+    };
+  }
+
+  it("broadcasts org.halt.activated to the org on a fresh pull", async () => {
+    const halt = await pullHaltCore(AUTH, {
+      scope: "org",
+      reason: "fleet stop",
+    });
+    // A fresh client (acked nothing) sees every pending outbox event; filter to
+    // ours by halt id so cross-test outbox accretion cannot perturb this.
+    const pending = await outbox.loadPendingForClient(ORG_ID, "probe-client");
+    const activated = pending.find(
+      (e): e is ServerOrgHaltActivated =>
+        e.kind === "org.halt.activated" && e.haltId === halt.haltId,
+    );
+    expect(activated).toBeDefined();
+    expect(activated?.scope).toBe("org");
+    expect(activated?.scopeKey).toBe(ORG_ID);
+    // The free-form reason rides `detail` (the `reason` field is the closed
+    // nack/resync union on the server wire).
+    expect(activated?.detail).toBe("fleet stop");
+  });
+
+  it("records a per-engine halt ack timestamp and audits engine_ack", async () => {
+    const halt = await pullHaltCore(AUTH, {
+      scope: "org",
+      reason: "ack me",
+    });
+    const ackedAt = "2026-06-25T12:34:56.000Z";
+    const res = await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_ID, userId: USER_ID },
+      orgHaltAck(halt.haltId, "halt", ackedAt),
+    );
+    expect(res.ok).toBe(true);
+
+    const [row] = await db
+      .select({ acks: orgHalts.acks })
+      .from(orgHalts)
+      .where(eq(orgHalts.id, halt.haltId));
+    expect(row.acks).toEqual([
+      { clientId: CLIENT_ID, ackedAt, kind: "halt" },
+    ]);
+
+    const audits = await db
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, FACTORY_ORG_HALT_ENGINE_ACK));
+    const mine = audits.find((a) => a.targetId === halt.haltId);
+    expect(mine).toBeDefined();
+    expect(mine?.targetType).toBe("org_halts");
+    expect((mine?.metadata as Record<string, unknown>)?.clientId).toBe(
+      CLIENT_ID,
+    );
+  });
+
+  it("ignores a cross-org ack without mutating the record", async () => {
+    const halt = await pullHaltCore(AUTH, {
+      scope: "org",
+      reason: "cross-org probe",
+    });
+    // An ack arriving on a session authenticated for a different org must not
+    // touch this org's quarantine record (the org-scoped UPDATE matches zero
+    // rows; the dispatch returns invalid rather than leaking existence).
+    const res = await handleInbound(
+      { orgId: OTHER_ORG_ID, clientId: CLIENT_ID, userId: USER_ID },
+      orgHaltAck(halt.haltId, "halt", "2026-06-25T00:00:00.000Z"),
+    );
+    expect(res.ok).toBe(false);
+
+    const [row] = await db
+      .select({ acks: orgHalts.acks })
+      .from(orgHalts)
+      .where(eq(orgHalts.id, halt.haltId));
+    expect(row.acks).toEqual([]);
   });
 });

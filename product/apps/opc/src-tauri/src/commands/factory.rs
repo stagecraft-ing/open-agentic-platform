@@ -3316,6 +3316,9 @@ mod tests {
             refused_reason: None,
             countersigned: None,
             countersign_jws: None,
+            halt_id: None,
+            scope: None,
+            scope_key: None,
         };
         assert!(extract_factory_run(&env).is_none());
     }
@@ -3397,6 +3400,9 @@ mod tests {
             refused_reason: None,
             countersigned: None,
             countersign_jws: None,
+            halt_id: None,
+            scope: None,
+            scope_key: None,
         };
         let run = extract_factory_run(&env).unwrap();
         assert_eq!(run.pipeline_id, "pl-1");

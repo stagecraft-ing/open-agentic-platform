@@ -18,13 +18,15 @@
  */
 import log from "encore.dev/log";
 import { randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import {
   auditLog,
   factoryArtifactSubstrate,
+  orgHalts,
   projects,
 } from "../db/schema";
+import { FACTORY_ORG_HALT_ENGINE_ACK } from "../factory/auditActions";
 import type {
   ClientEnvelope,
   ServerEnvelope,
@@ -147,6 +149,13 @@ export async function handleInbound(
   // HEAD and returns a targeted `audit.segment.countersign` reply.
   if (evt.kind === "audit.segment.countersign_request") {
     return auditSegmentDispatch(ctx, evt);
+  }
+
+  // Spec 208 FR-003: org.halt.ack records the engine's per-broadcast
+  // propagation bound (a timestamp) on the quarantine record, so the realized
+  // bound is an audited fact after every pull.
+  if (evt.kind === "org.halt.ack") {
+    return orgHaltAckDispatch(ctx, evt);
   }
 
   // For all other kinds, persist + log + audit where appropriate.
@@ -310,6 +319,74 @@ export async function sendTargetedServerEvent(
 }
 
 // ---------------------------------------------------------------------------
+// Spec 208 FR-001/FR-003/FR-004: org-halt broadcast (the propagation seam)
+// ---------------------------------------------------------------------------
+
+/** The halt scopes mirrored from `api/factory/orgHalt.ts` (inlined to keep the
+ *  sync to factory edge type-only / cycle-free). */
+type OrgHaltBroadcastScope = "org" | "project" | "agent-profile";
+
+/**
+ * Spec 208 FR-001/FR-003: broadcast a halt activation (or lift) to every engine
+ * connected to the org over the outbox-durable `dispatchServerEvent` path.
+ * Called by `pullHaltCore` / `liftHaltCore` AFTER their DB transaction commits
+ * (the agents/relay.ts ordering precedent): enforcement is already in effect
+ * via the `org_halts` row, so a failed broadcast never leaves the row and the
+ * wire out of step, and a grant renewal racing this still fails closed.
+ *
+ * Outbox-durable (not targeted) is the deliberate choice (plan.md §Propagation
+ * decision): an engine that reconnects after the broadcast replays the halt on
+ * `sync.resync_request`, so a disconnected engine is covered at the reconnect
+ * handshake, not only the connected ones.
+ */
+export async function broadcastOrgHalt(
+  orgId: string,
+  event:
+    | {
+        change: "activated";
+        haltId: string;
+        scope: OrgHaltBroadcastScope;
+        scopeKey: string;
+        reason: string;
+      }
+    | {
+        change: "lifted";
+        haltId: string;
+        scope: OrgHaltBroadcastScope;
+        scopeKey: string;
+      },
+): Promise<{ eventId: string; cursor: string; delivered: number }> {
+  const payload: ServerEnvelopeWithoutMeta =
+    event.change === "activated"
+      ? {
+          kind: "org.halt.activated",
+          haltId: event.haltId,
+          scope: event.scope,
+          scopeKey: event.scopeKey,
+          // Free-form reason rides `detail` (the `reason` wire field is a closed
+          // nack/resync union); see api/sync/types.ts ServerOrgHaltActivated.
+          detail: event.reason,
+        }
+      : {
+          kind: "org.halt.lifted",
+          haltId: event.haltId,
+          scope: event.scope,
+          scopeKey: event.scopeKey,
+        };
+
+  const result = await dispatchServerEvent(orgId, payload);
+  log.info("sync: org-halt broadcast dispatched", {
+    orgId,
+    change: event.change,
+    haltId: event.haltId,
+    scope: event.scope,
+    scopeKey: event.scopeKey,
+    delivered: result.delivered,
+  });
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // Spec 198 FR-005 — factory.run.grant_request / grant_renew dispatch
 // ---------------------------------------------------------------------------
 
@@ -384,6 +461,78 @@ async function auditSegmentDispatch(
       orgId: ctx.orgId,
       clientId: ctx.clientId,
       kind: evt.kind,
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return { ok: false, reason: "internal_error" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Spec 208 FR-003: org.halt.ack dispatch (per-engine propagation timestamp)
+// ---------------------------------------------------------------------------
+
+async function orgHaltAckDispatch(
+  ctx: InboundContext,
+  evt: ClientEnvelope,
+): Promise<InboundResult> {
+  if (evt.kind !== "org.halt.ack") {
+    return { ok: false, reason: "invalid", detail: "unexpected event kind" };
+  }
+  // The server stamps the clientId from the authenticated session; the wire
+  // ack does not self-report it (the audit.candidate trust posture).
+  const entry = {
+    clientId: ctx.clientId,
+    ackedAt: evt.ackedAt,
+    kind: evt.haltKind,
+  };
+  try {
+    const matched = await db.transaction(async (tx) => {
+      // Atomic jsonb append scoped to the org, so a cross-org or unknown
+      // haltId matches zero rows (no read-modify-write race; the append and
+      // its audit are one transaction). 0 rows means out-of-scope / unknown.
+      const rows = await tx
+        .update(orgHalts)
+        .set({
+          acks: sql`${orgHalts.acks} || ${JSON.stringify([entry])}::jsonb`,
+        })
+        .where(and(eq(orgHalts.id, evt.haltId), eq(orgHalts.orgId, ctx.orgId)))
+        .returning({ id: orgHalts.id });
+      if (rows.length === 0) return false;
+      await tx.insert(auditLog).values({
+        actorUserId: ctx.userId,
+        nhiSub: ctx.nhiSub ?? null,
+        onBehalfOf: ctx.onBehalfOf ?? null,
+        action: FACTORY_ORG_HALT_ENGINE_ACK,
+        targetType: "org_halts",
+        targetId: evt.haltId,
+        metadata: {
+          orgId: ctx.orgId,
+          clientId: ctx.clientId,
+          haltKind: evt.haltKind,
+          ackedAt: evt.ackedAt,
+        },
+      });
+      return true;
+    });
+    if (!matched) {
+      return {
+        ok: false,
+        reason: "invalid",
+        detail: "unknown or out-of-scope halt",
+      };
+    }
+    log.info("sync: org-halt engine ack recorded", {
+      orgId: ctx.orgId,
+      clientId: ctx.clientId,
+      haltId: evt.haltId,
+      haltKind: evt.haltKind,
+    });
+    return { ok: true };
+  } catch (err) {
+    log.error("sync: org-halt ack handler failed", {
+      orgId: ctx.orgId,
+      clientId: ctx.clientId,
+      haltId: evt.haltId,
       err: err instanceof Error ? err.message : String(err),
     });
     return { ok: false, reason: "internal_error" };
