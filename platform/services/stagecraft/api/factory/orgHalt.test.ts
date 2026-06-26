@@ -504,8 +504,16 @@ describe("org-halt propagation (FR-001/FR-003, AC-4 ack leg)", () => {
       .select({ acks: orgHalts.acks })
       .from(orgHalts)
       .where(eq(orgHalts.id, halt.haltId));
+    // The engine-claimed `ackedAt` is retained as an observation; the server
+    // additionally stamps `recordedAt` (the trustworthy propagation bound) and
+    // `clientId` from the authenticated session, never the wire.
     expect(row.acks).toEqual([
-      { clientId: CLIENT_ID, ackedAt, kind: "halt" },
+      {
+        clientId: CLIENT_ID,
+        ackedAt,
+        recordedAt: expect.any(String),
+        kind: "halt",
+      },
     ]);
 
     const audits = await db
@@ -515,9 +523,44 @@ describe("org-halt propagation (FR-001/FR-003, AC-4 ack leg)", () => {
     const mine = audits.find((a) => a.targetId === halt.haltId);
     expect(mine).toBeDefined();
     expect(mine?.targetType).toBe("org_halts");
-    expect((mine?.metadata as Record<string, unknown>)?.clientId).toBe(
-      CLIENT_ID,
+    const meta = mine?.metadata as Record<string, unknown>;
+    expect(meta?.clientId).toBe(CLIENT_ID);
+    expect(meta?.ackedAt).toBe(ackedAt);
+    expect(meta?.recordedAt).toEqual(expect.any(String));
+  });
+
+  it("a replayed ack is idempotent: no duplicate acks entry or audit row", async () => {
+    // The broadcast is outbox-durable, so a reconnecting engine replays the
+    // halt on resync and re-acks. The second ack must not grow the acks array
+    // or emit a duplicate engine_ack audit row (FR-003 records the bound once).
+    const halt = await pullHaltCore(AUTH, { scope: "org", reason: "replay me" });
+    const ctx = { orgId: ORG_ID, clientId: CLIENT_ID, userId: USER_ID };
+    const firstAckedAt = "2026-06-25T01:02:03.000Z";
+
+    const first = await handleInbound(
+      ctx,
+      orgHaltAck(halt.haltId, "halt", firstAckedAt),
     );
+    const second = await handleInbound(
+      ctx,
+      orgHaltAck(halt.haltId, "halt", "2026-06-25T09:09:09.000Z"),
+    );
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+
+    const [row] = await db
+      .select({ acks: orgHalts.acks })
+      .from(orgHalts)
+      .where(eq(orgHalts.id, halt.haltId));
+    expect(row.acks).toHaveLength(1);
+    // The replay did not overwrite the first ack's recorded boundary.
+    expect(row.acks[0].ackedAt).toBe(firstAckedAt);
+
+    const audits = await db
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, FACTORY_ORG_HALT_ENGINE_ACK));
+    expect(audits.filter((a) => a.targetId === halt.haltId)).toHaveLength(1);
   });
 
   it("ignores a cross-org ack without mutating the record", async () => {

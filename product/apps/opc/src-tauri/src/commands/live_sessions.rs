@@ -581,7 +581,19 @@ fn on_org_halt_activated(app: AppHandle, env: &ServerEnvelopeWire) {
         log::warn!("spec(208): org.halt.activated missing haltId; ignored");
         return;
     };
-    let scope = env.scope.clone().unwrap_or_else(|| "org".to_string());
+    // A server broadcast always carries an explicit scope. A scope-less message
+    // is malformed (schema drift or spoof), and this engine-side pause is
+    // acceleration, not the enforcement seam (the server-side refusal still
+    // contains the halt regardless). So do NOT promote a missing scope to the
+    // widest "org" action: that would let one malformed broadcast pause and
+    // checkpoint every session in the org. Warn and ignore instead.
+    let Some(scope) = env.scope.clone() else {
+        log::warn!(
+            "spec(208): org.halt.activated {halt_id} missing scope; ignored \
+             (no engine-side pause on an unscoped broadcast)"
+        );
+        return;
+    };
     let scope_key = env.scope_key.clone().unwrap_or_default();
     let reason = env.detail.clone();
 

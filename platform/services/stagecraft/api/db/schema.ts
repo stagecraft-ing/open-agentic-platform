@@ -1188,8 +1188,20 @@ export const orgHalts = pgTable("org_halts", {
     .defaultNow(),
   liftedBy: uuid("lifted_by"),
   liftedAt: timestamp("lifted_at", { withTimezone: true }),
+  // `clientId` and `recordedAt` are server-authoritative (stamped from the
+  // authenticated duplex session and the server clock at ack receipt);
+  // `ackedAt` is the engine's CLAIMED pause/checkpoint boundary, kept as an
+  // observation, not trusted as the audit fact (the audit.candidate posture).
+  // `recordedAt` is the trustworthy propagation bound for an auditor.
   acks: jsonb("acks")
-    .$type<{ clientId: string; ackedAt: string; kind: "halt" | "lift" }[]>()
+    .$type<
+      {
+        clientId: string;
+        ackedAt: string;
+        recordedAt: string;
+        kind: "halt" | "lift";
+      }[]
+    >()
     .notNull()
     .default([]),
 });

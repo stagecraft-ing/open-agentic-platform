@@ -24,6 +24,7 @@
 // phase that adds a profile-carrying seam.
 
 import { api, APIError } from "encore.dev/api";
+import log from "encore.dev/log";
 import { and, eq, ne, or } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import { auditLog, orgHalts } from "../db/schema";
@@ -214,13 +215,31 @@ export async function pullHaltCore(
   // idempotent re-pull does not re-broadcast: the active record already drives
   // both the refusal path and the resync replay.
   if (fresh) {
-    await broadcastOrgHalt(auth.orgId, {
-      change: "activated",
-      haltId: response.haltId,
-      scope: response.scope,
-      scopeKey: response.scopeKey,
-      reason,
-    });
+    // The broadcast is best-effort acceleration, not the enforcement path: the
+    // committed row already drives the fail-closed refusal and the resync
+    // replay. A broadcast failure must therefore NOT convert a succeeded,
+    // already-enforced halt into a client-visible 500 (the caller would retry,
+    // land on the idempotent path above, and never re-broadcast). Log and
+    // continue so the documented "degrades safely" contract holds in the code,
+    // not just the comment.
+    try {
+      await broadcastOrgHalt(auth.orgId, {
+        change: "activated",
+        haltId: response.haltId,
+        scope: response.scope,
+        scopeKey: response.scopeKey,
+        reason,
+      });
+    } catch (err) {
+      log.error(
+        "org-halt: activation broadcast failed (halt already enforced)",
+        {
+          orgId: auth.orgId,
+          haltId: response.haltId,
+          err: err instanceof Error ? err.message : String(err),
+        },
+      );
+    }
   }
 
   return response;
@@ -314,12 +333,23 @@ export async function liftHaltCore(
   // can begin re-admission and ack the lift leg (FR-003). A 'reintegrating'
   // scope is still enforced until staged re-admission completes (Phase 3), so
   // this notice starts that process; it does not re-admit by itself.
-  await broadcastOrgHalt(auth.orgId, {
-    change: "lifted",
-    haltId: req.id,
-    scope,
-    scopeKey,
-  });
+  // Same best-effort posture as the activation broadcast: the 'reintegrating'
+  // transition is committed and still enforced, so a failed lift broadcast must
+  // not throw past a state change the caller already succeeded in making.
+  try {
+    await broadcastOrgHalt(auth.orgId, {
+      change: "lifted",
+      haltId: req.id,
+      scope,
+      scopeKey,
+    });
+  } catch (err) {
+    log.error("org-halt: lift broadcast failed (transition already committed)", {
+      orgId: auth.orgId,
+      haltId: req.id,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
 
   return { haltId: req.id, state: "reintegrating" };
 }

@@ -478,26 +478,48 @@ async function orgHaltAckDispatch(
   if (evt.kind !== "org.halt.ack") {
     return { ok: false, reason: "invalid", detail: "unexpected event kind" };
   }
-  // The server stamps the clientId from the authenticated session; the wire
-  // ack does not self-report it (the audit.candidate trust posture).
+  // Server-authoritative fields: `clientId` from the authenticated session and
+  // `recordedAt` from the server clock at receipt (the audit.candidate posture
+  // -- the wire never self-reports either). `ackedAt` is the engine's CLAIMED
+  // pause/checkpoint boundary, retained as an observation. An engine (or an
+  // attacker on a valid duplex session) can put any value in `ackedAt`, so the
+  // trustworthy propagation bound an auditor reads is `recordedAt`, not it.
   const entry = {
     clientId: ctx.clientId,
     ackedAt: evt.ackedAt,
+    recordedAt: new Date().toISOString(),
     kind: evt.haltKind,
   };
   try {
-    const matched = await db.transaction(async (tx) => {
-      // Atomic jsonb append scoped to the org, so a cross-org or unknown
-      // haltId matches zero rows (no read-modify-write race; the append and
-      // its audit are one transaction). 0 rows means out-of-scope / unknown.
-      const rows = await tx
+    const result = await db.transaction(async (tx) => {
+      // FOR UPDATE locks the quarantine row for the txn so the dedup
+      // read-modify-write is race-free. The ack is a cold path (one per engine
+      // per broadcast), so the lock cost is irrelevant. A cross-org or unknown
+      // haltId matches zero rows -> out-of-scope / unknown.
+      const [row] = await tx
+        .select({ id: orgHalts.id, acks: orgHalts.acks })
+        .from(orgHalts)
+        .where(and(eq(orgHalts.id, evt.haltId), eq(orgHalts.orgId, ctx.orgId)))
+        .for("update")
+        .limit(1);
+      if (!row) return "unknown" as const;
+
+      // Idempotency (FR-003): the broadcast is outbox-durable, so a reconnecting
+      // engine replays the halt on resync and re-acks. Without this guard every
+      // reconnect would append another entry (unbounded jsonb growth) and emit a
+      // duplicate engine_ack audit row. One (clientId, kind) ack per halt is the
+      // fact; the first `recordedAt` is the bound.
+      const already = row.acks.some(
+        (a) => a.clientId === ctx.clientId && a.kind === evt.haltKind,
+      );
+      if (already) return "duplicate" as const;
+
+      await tx
         .update(orgHalts)
         .set({
           acks: sql`${orgHalts.acks} || ${JSON.stringify([entry])}::jsonb`,
         })
-        .where(and(eq(orgHalts.id, evt.haltId), eq(orgHalts.orgId, ctx.orgId)))
-        .returning({ id: orgHalts.id });
-      if (rows.length === 0) return false;
+        .where(eq(orgHalts.id, evt.haltId));
       await tx.insert(auditLog).values({
         actorUserId: ctx.userId,
         nhiSub: ctx.nhiSub ?? null,
@@ -510,16 +532,27 @@ async function orgHaltAckDispatch(
           clientId: ctx.clientId,
           haltKind: evt.haltKind,
           ackedAt: evt.ackedAt,
+          recordedAt: entry.recordedAt,
         },
       });
-      return true;
+      return "appended" as const;
     });
-    if (!matched) {
+    if (result === "unknown") {
       return {
         ok: false,
         reason: "invalid",
         detail: "unknown or out-of-scope halt",
       };
+    }
+    if (result === "duplicate") {
+      // A replayed ack is a no-op success: the bound is already recorded.
+      log.info("sync: org-halt engine ack replay ignored (already recorded)", {
+        orgId: ctx.orgId,
+        clientId: ctx.clientId,
+        haltId: evt.haltId,
+        haltKind: evt.haltKind,
+      });
+      return { ok: true };
     }
     log.info("sync: org-halt engine ack recorded", {
       orgId: ctx.orgId,
