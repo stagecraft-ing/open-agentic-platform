@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:2c3a486bca081b12592034bc504c9e25afa60d25c6821d85669b4da302efd791",
+  "graph_fingerprint": "sha256:4bf1fa0679233fbadd817e34b3f1a0e6d9c3bfd9924df7b2e439e42a846f24c1",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4204,6 +4204,22 @@
       "depends_on": [
         "217-spec-spine-engine-swap-collapse",
         "188-derived-index-merge-serialization"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "223-documentation-website",
+      "title": "Documentation website (Docusaurus v3) on GitHub Pages",
+      "spec_path": "specs/223-documentation-website/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "low",
+      "owner": "bart",
+      "group": "",
+      "depends_on": [
+        "118-workflow-spec-traceability"
       ],
       "impl_files": [],
       "test_files": [],
