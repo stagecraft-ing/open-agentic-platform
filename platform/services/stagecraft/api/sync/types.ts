@@ -99,6 +99,19 @@ export type FactoryRunGrantEnvelopeVersion =
   typeof FACTORY_RUN_GRANT_ENVELOPE_VERSION;
 
 /**
+ * Spec 208 FR-001/FR-003: per-event-kind contract version for the org-halt
+ * envelope family (`org.halt.activated`, `org.halt.lifted`, `org.halt.ack`).
+ * Independent of the protocol-wide `ENVELOPE_SCHEMA_VERSION` (the kill-switch
+ * adds variants to the existing v2 unions; it does not break the wire format,
+ * which is the spec 124/198/207 precedent for adding a family). The desktop
+ * mirror constant in `apps/opc/src-tauri/src/commands/sync_client.rs` MUST
+ * equal this value; a skew surfaces as a Rust build error (spec 189 parity
+ * discipline) before any wire drift is possible.
+ */
+export const ORG_HALT_ENVELOPE_VERSION = 1 as const;
+export type OrgHaltEnvelopeVersion = typeof ORG_HALT_ENVELOPE_VERSION;
+
+/**
  * Spec 198 FR-005 — attributable refusal reasons for run-grant issuance and
  * renewal. Every refusal is persisted (`factory_run_grants.status='refused'`)
  * — goal-shift and revocation refusals are governance evidence (ASI01 m4/m7),
@@ -210,6 +223,7 @@ export type ClientEnvelope =
   | ClientFactoryRunGrantRenew
   | ClientAuditSegmentCountersignRequest
   | ClientAgentCatalogFetchRequest
+  | ClientOrgHaltAck
   | ClientAck
   | ClientResyncRequest
   | ClientHeartbeat;
@@ -518,6 +532,32 @@ export interface ClientAuditSegmentCountersignRequest {
   lastRecordAt: string;
 }
 
+/**
+ * Spec 208 FR-003: the engine acknowledges an `org.halt.activated` /
+ * `org.halt.lifted` broadcast once it has reached its pause-and-checkpoint
+ * boundary (for a halt) or completed re-admission (for a lift). The ack is the
+ * measured propagation bound: stagecraft appends a per-engine timestamp to the
+ * quarantine record's `acks` array so the realized bound is an audited fact
+ * after every pull.
+ *
+ * Authority note (087 §5.3): this carries no control-plane authority. It is a
+ * desktop OBSERVATION that the engine paused, not a state mutation. The server
+ * stamps the `clientId` from the authenticated duplex session (never trusting a
+ * self-reported id on the wire), exactly as `audit.candidate` does.
+ */
+export interface ClientOrgHaltAck {
+  kind: "org.halt.ack";
+  meta: EnvelopeMeta;
+  /** The `org_halts.id` from the broadcast being acknowledged. */
+  haltId: string;
+  /** Which broadcast this acks: the activation or the lift. Named `haltKind`
+   *  (not `kind`) so it does not collide with the envelope discriminator. */
+  haltKind: "halt" | "lift";
+  /** ISO-8601 of when the engine reached its pause/checkpoint (halt) or
+   *  re-admission (lift) boundary. */
+  ackedAt: string;
+}
+
 /** Client acknowledging a previously-received server event. */
 export interface ClientAck {
   kind: "sync.ack";
@@ -560,6 +600,8 @@ export type ServerEnvelope =
   | ServerFactoryRunGrant
   | ServerFactoryRunCertificateCountersign
   | ServerAuditSegmentCountersign
+  | ServerOrgHaltActivated
+  | ServerOrgHaltLifted
   | ServerAgentCatalogUpdated
   | ServerAgentCatalogSnapshot
   | ServerProjectAgentBindingUpdated
@@ -626,6 +668,48 @@ export interface ServerAuditSegmentCountersign {
   countersignJws?: string;
   kid?: string;
   refusedReason?: string;
+}
+
+/**
+ * Spec 208 FR-001/FR-003: the org-wide kill-switch broadcast. Pushed over
+ * every connected duplex channel in scope (the outbox-durable
+ * `dispatchServerEvent` path, so a reconnecting engine replays it on resync)
+ * so engines pause at the next instruction boundary without waiting for the
+ * next grant renewal. Enforcement is already live before this fires: the
+ * `org_halts` row is written and the fail-closed grant/serve/bind/registration
+ * consults are in effect (Phase 1), so the broadcast accelerates the pause, it
+ * does not gate it.
+ *
+ * The free-form quarantine reason rides the shared `detail` field (the
+ * server-side free-form convention, as `factory.run.grant` refusals use), not
+ * `reason` (whose wire union is the closed nack/resync set).
+ */
+export interface ServerOrgHaltActivated {
+  kind: "org.halt.activated";
+  meta: ServerMeta;
+  /** The `org_halts.id` of the quarantine record (echoed back on the ack). */
+  haltId: string;
+  /** The halt scope (spec 208 §Scope lattice). */
+  scope: "org" | "project" | "agent-profile";
+  /** The scope target: org id, project id, or agent-profile slug. */
+  scopeKey: string;
+  /** The operator-supplied quarantine reason (audit evidence; surfaced to the
+   *  engine for the pause notice). Carried on the shared `detail` wire field. */
+  detail: string;
+}
+
+/**
+ * Spec 208 FR-004: the lift broadcast, sent when an admin begins reintegration
+ * (`halted` to `reintegrating`). The engine acknowledges with an
+ * `org.halt.ack` carrying `haltKind: "lift"` once it has re-admitted, so the
+ * lift's per-engine propagation bound is audited the same way the halt's is.
+ */
+export interface ServerOrgHaltLifted {
+  kind: "org.halt.lifted";
+  meta: ServerMeta;
+  haltId: string;
+  scope: "org" | "project" | "agent-profile";
+  scopeKey: string;
 }
 
 export interface ServerMeta extends EnvelopeMeta {
@@ -1010,6 +1094,7 @@ export interface ClientEnvelopeWire {
     | "factory.run.grant_renew"
     | "audit.segment.countersign_request"
     | "agent.catalog.fetch_request"
+    | "org.halt.ack"
     | "sync.ack"
     | "sync.resync_request"
     | "sync.heartbeat";
@@ -1088,6 +1173,12 @@ export interface ClientEnvelopeWire {
   segmentRecordCount?: number;
   firstRecordAt?: string;
   lastRecordAt?: string;
+  // spec 208 FR-003: org.halt.ack fields. `haltKind` (not `kind`) discriminates
+  // the halt vs lift ack. `clientId` is NOT on the wire: the server stamps it
+  // from the authenticated duplex session.
+  haltId?: string;
+  haltKind?: "halt" | "lift";
+  ackedAt?: string;
 }
 
 /** Flat counterpart of {@link ServerEnvelope} for the Encore stream boundary. */
@@ -1102,6 +1193,8 @@ export interface ServerEnvelopeWire {
     | "factory.run.grant"
     | "factory.run.certificate_countersign"
     | "audit.segment.countersign"
+    | "org.halt.activated"
+    | "org.halt.lifted"
     | "agent.catalog.updated"
     | "agent.catalog.snapshot"
     | "project.agent_binding.updated"
@@ -1222,6 +1315,13 @@ export interface ServerEnvelopeWire {
   // spec 207 AC-4: audit.segment.countersign fields. `sessionId` is declared
   // above (shared with other variants).
   segmentId?: string;
+  // spec 208 FR-001/FR-004: org.halt.activated / org.halt.lifted fields. The
+  // free-form quarantine reason rides the shared `detail` field above (the
+  // `reason` field is the closed nack/resync union). `scope`/`scopeKey` are
+  // new; `haltId` is shared in name with the inbound ack but distinct here.
+  haltId?: string;
+  scope?: "org" | "project" | "agent-profile";
+  scopeKey?: string;
 }
 
 // Compile-time assignability gates: every variant must fit the wire shape.
@@ -1247,6 +1347,7 @@ const CLIENT_KINDS: ReadonlySet<ClientEnvelopeKind> = new Set<ClientEnvelopeKind
   "factory.run.grant_renew",
   "audit.segment.countersign_request",
   "agent.catalog.fetch_request",
+  "org.halt.ack",
   "sync.ack",
   "sync.resync_request",
   "sync.heartbeat",

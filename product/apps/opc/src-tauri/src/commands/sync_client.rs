@@ -71,6 +71,15 @@ pub const FACTORY_RUN_ENVELOPE_VERSION: u8 = 1;
 /// skew on this constant surfaces as a Rust build error.
 pub const FACTORY_RUN_GRANT_ENVELOPE_VERSION: u8 = 1;
 
+/// Spec 208 FR-001/FR-003: per-event-kind contract version for the org-halt
+/// envelope family (`org.halt.activated`, `org.halt.lifted`, `org.halt.ack`).
+/// Mirrors `ORG_HALT_ENVELOPE_VERSION` in
+/// `platform/services/stagecraft/api/sync/types.ts`. A desktop / platform skew
+/// on this constant surfaces as a Rust build error (the
+/// `org_halt_envelope_version_matches_documented_constant` lock test) before
+/// any wire drift is possible (spec 189 parity discipline).
+pub const ORG_HALT_ENVELOPE_VERSION: u8 = 1;
+
 // ---------------------------------------------------------------------------
 // Wire-level envelope types (mirror the typescript wire shapes)
 // ---------------------------------------------------------------------------
@@ -253,6 +262,15 @@ pub struct ServerEnvelopeWire {
     pub countersigned: Option<bool>,
     #[serde(default)]
     pub countersign_jws: Option<String>,
+    // Spec 208 FR-001/FR-004: org.halt.activated / org.halt.lifted fields. The
+    // free-form quarantine reason rides the shared `detail` field above (the
+    // `reason` field is a closed nack/resync union on the server wire).
+    #[serde(default)]
+    pub halt_id: Option<String>,
+    #[serde(default)]
+    pub scope: Option<String>,
+    #[serde(default)]
+    pub scope_key: Option<String>,
 }
 
 /// Mirror of {@link ProjectAgentBindingSnapshotEntry} from stagecraft's
@@ -382,6 +400,12 @@ const SERVER_KINDS: &[&str] = &[
     // Spec 207 AC-4 - reply-correlated frame for the session-audit segment
     // countersign (routed via reply_waiters, like the two above).
     "audit.segment.countersign",
+    // Spec 208 FR-001/FR-003 - org-wide kill-switch broadcasts. `activated`
+    // drives the halt-aware termination path (live_sessions.rs); `lifted` is
+    // accepted now (so the reintegration handler can register in Phase 3)
+    // without being rejected at the boundary today.
+    "org.halt.activated",
+    "org.halt.lifted",
 ];
 
 /// Mirrors `isClientEnvelope` on the stagecraft side — enforces schema
@@ -602,6 +626,22 @@ pub enum OutboundFrame {
         #[serde(rename = "lastRecordAt")]
         last_record_at: String,
     },
+    /// Spec 208 FR-003 - the engine acknowledges an `org.halt.activated` /
+    /// `org.halt.lifted` broadcast once it has reached its pause-and-checkpoint
+    /// (halt) or re-admission (lift) boundary, so stagecraft records this
+    /// engine's per-broadcast propagation bound on the quarantine record. The
+    /// `clientId` is NOT on the wire: stagecraft stamps it from the
+    /// authenticated duplex session (the audit.candidate trust posture).
+    #[serde(rename = "org.halt.ack")]
+    OrgHaltAck {
+        meta: EnvelopeMeta,
+        #[serde(rename = "haltId")]
+        halt_id: String,
+        #[serde(rename = "haltKind")]
+        halt_kind: OrgHaltAckKind,
+        #[serde(rename = "ackedAt")]
+        acked_at: String,
+    },
 }
 
 /// Reason enum for {@link OutboundFrame::AgentCatalogFetchRequest}. Mirrors
@@ -612,6 +652,17 @@ pub enum AgentCatalogFetchReason {
     CacheMiss,
     HashMismatch,
     ManualRefresh,
+}
+
+/// Spec 208 FR-003 - which org-halt broadcast an `org.halt.ack` answers.
+/// Serialises to `"halt"` / `"lift"`, matching the `haltKind` field on the
+/// stagecraft `ClientOrgHaltAck` wire shape and the `org_halts.acks[].kind`
+/// column.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OrgHaltAckKind {
+    Halt,
+    Lift,
 }
 
 // ---------------------------------------------------------------------------
@@ -838,6 +889,21 @@ impl SyncClientInner {
             accepted,
             decline_reason,
             observed_at: chrono::Utc::now().to_rfc3339(),
+        };
+        self.send(frame).await
+    }
+
+    /// Spec 208 FR-003 - emit an `org.halt.ack` for a halt or lift broadcast,
+    /// stamping the boundary timestamp now. Returns `false` when the duplex
+    /// stream is disconnected; the caller logs but does not retry, because the
+    /// quarantine record is reconstructed for a reconnecting engine off the
+    /// outbox on resync (the broadcast is outbox-durable).
+    pub async fn send_org_halt_ack(&self, halt_id: &str, halt_kind: OrgHaltAckKind) -> bool {
+        let frame = OutboundFrame::OrgHaltAck {
+            meta: new_meta(),
+            halt_id: halt_id.to_string(),
+            halt_kind,
+            acked_at: chrono::Utc::now().to_rfc3339(),
         };
         self.send(frame).await
     }
@@ -2124,6 +2190,9 @@ mod tests {
             refused_reason: None,
             countersigned: None,
             countersign_jws: None,
+            halt_id: None,
+            scope: None,
+            scope_key: None,
         }
     }
 
@@ -2912,6 +2981,44 @@ mod tests {
         // here AND in `platform/services/stagecraft/api/sync/types.ts` in
         // lock-step.
         assert_eq!(FACTORY_RUN_GRANT_ENVELOPE_VERSION, 1);
+    }
+
+    // Spec 208 FR-001/FR-003: org-halt envelope constant + ack wire shape.
+
+    #[test]
+    fn org_halt_envelope_version_matches_documented_constant() {
+        // Lock: bumping ORG_HALT_ENVELOPE_VERSION must happen here AND in
+        // `platform/services/stagecraft/api/sync/types.ts` in lock-step (spec
+        // 189 parity discipline).
+        assert_eq!(ORG_HALT_ENVELOPE_VERSION, 1);
+    }
+
+    #[test]
+    fn org_halt_ack_serializes_with_correct_wire_field_names() {
+        let frame = OutboundFrame::OrgHaltAck {
+            meta: EnvelopeMeta {
+                v: ENVELOPE_SCHEMA_VERSION,
+                event_id: "e-halt-ack-1".into(),
+                sent_at: "2026-06-25T00:00:00Z".into(),
+                correlation_id: None,
+                causation_id: None,
+            },
+            halt_id: "halt-1".into(),
+            halt_kind: OrgHaltAckKind::Halt,
+            acked_at: "2026-06-25T00:00:01Z".into(),
+        };
+        let v = serde_json::to_value(&frame).expect("serialize org.halt.ack");
+        assert_eq!(v["kind"], "org.halt.ack");
+        assert_eq!(v["haltId"], "halt-1");
+        // The halt-vs-lift discriminator rides `haltKind`, not the envelope
+        // `kind`, and serialises lowercase to match the TS wire + the
+        // `org_halts.acks[].kind` column.
+        assert_eq!(v["haltKind"], "halt");
+        assert_eq!(v["ackedAt"], "2026-06-25T00:00:01Z");
+        assert_eq!(
+            serde_json::to_value(OrgHaltAckKind::Lift).expect("serialize lift kind"),
+            serde_json::json!("lift"),
+        );
     }
 
     #[test]

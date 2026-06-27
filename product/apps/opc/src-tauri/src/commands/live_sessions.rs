@@ -26,9 +26,13 @@
 //!   5. Emit a Tauri event so the TypeScript NotificationOrchestrator can
 //!      surface the disconnect to the session owner (spec 057).
 
+use crate::commands::sync_client::{
+    FnHandler, OrgHaltAckKind, ServerEnvelopeWire, SyncClientState,
+};
 use crate::process::{ActivitySnapshot, ProcessRegistryState, ProcessType};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 const SETTINGS_FILE: &str = "spec-172-thresholds.json";
@@ -403,6 +407,14 @@ pub async fn force_disconnect_session(
     })
 }
 
+/// Build a one-line Claude-bridge IPC command (`{"type":"<kind>"}`) for the
+/// bridge's stdin channel. Shared by `send_bridge_abort` (spec 172) and
+/// `send_bridge_halt` (spec 208 PD-D) so the wire shape is defined once.
+fn bridge_ipc_line(kind: &str) -> String {
+    serde_json::to_string(&serde_json::json!({ "type": kind }))
+        .unwrap_or_else(|_| format!(r#"{{"type":"{kind}"}}"#))
+}
+
 async fn send_bridge_abort(app: &AppHandle) -> bool {
     use tokio::io::AsyncWriteExt;
 
@@ -411,8 +423,7 @@ async fn send_bridge_abort(app: &AppHandle) -> bool {
     let Some(mut stdin) = guard.take() else {
         return false;
     };
-    let line = serde_json::to_string(&serde_json::json!({ "type": "abort" }))
-        .unwrap_or_else(|_| r#"{"type":"abort"}"#.to_string());
+    let line = bridge_ipc_line("abort");
     let res = async {
         stdin
             .write_all(format!("{}\n", line).as_bytes())
@@ -429,6 +440,189 @@ async fn send_bridge_abort(app: &AppHandle) -> bool {
             false
         }
     }
+}
+
+/// Spec 208 PD-D: signal the Claude bridge to pause at the next instruction
+/// boundary via `{"type":"halt"}`, on the same stdin channel
+/// `send_bridge_abort` uses. Unlike abort (which fires the SDK AbortController
+/// and is paired with a process kill), halt is COOPERATIVE: the engine's
+/// tool-loop checks for it at the next boundary and yields after the desktop
+/// has self-checkpointed, so the stdin is borrowed and left in place (NOT
+/// `take`n) for the engine to keep draining. Returns true when the line was
+/// written.
+async fn send_bridge_halt(app: &AppHandle) -> bool {
+    use tokio::io::AsyncWriteExt;
+
+    let bridge = app.state::<crate::commands::claude::ClaudeBridgeIpcState>();
+    let mut guard = bridge.bridge_stdin.lock().await;
+    let Some(stdin) = guard.as_mut() else {
+        return false;
+    };
+    let line = bridge_ipc_line("halt");
+    let res = async {
+        stdin
+            .write_all(format!("{}\n", line).as_bytes())
+            .await
+            .map_err(|e| e.to_string())?;
+        stdin.flush().await.map_err(|e| e.to_string())?;
+        Ok::<_, String>(())
+    }
+    .await;
+    match res {
+        Ok(()) => true,
+        Err(e) => {
+            log::warn!("spec(208): bridge halt failed: {e}");
+            false
+        }
+    }
+}
+
+/// Outcome of [`halt_aware_terminate`], surfaced in logs and used by the
+/// dispatch handler to decide whether the ack reflects real engine-side work.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct HaltAwareOutcome {
+    /// True when this engine acted on the halt scope (Phase 2: `org` only).
+    pub scope_handled: bool,
+    /// True when the `{"type":"halt"}` pause signal reached the bridge.
+    pub signaled: bool,
+    /// Session ids checkpointed before yielding (forensic state preserved).
+    pub checkpointed_sessions: Vec<String>,
+    /// Non-fatal warnings (no bridge stdin, a per-session checkpoint failure).
+    pub warnings: Vec<String>,
+}
+
+/// Spec 208 FR-001/FR-003 (PD-D): halt-aware termination. The INVERSE of
+/// `force_disconnect_session` (which kills the process THEN checkpoints): the
+/// halt path signals a cooperative pause and self-checkpoints BEFORE the engine
+/// yields, so containment preserves the forensic state it exists to protect.
+/// `force_disconnect_session` remains the no-ack fallback for an engine that
+/// does not reach its boundary within the propagation bound.
+///
+/// Phase 2 acts on the `org` scope only (AC-1). The `project` / `agent-profile`
+/// sibling-isolation proofs (AC-3) land in Phase 3; until then a narrower halt
+/// is contained by the Phase-1 server-side grant/registration refusal (the run
+/// pauses at the next grant renewal), and this engine records only the
+/// propagation ack for it. Acting org-wide on a narrower scope would wrongly
+/// pause sibling projects, so it is deliberately deferred, not approximated.
+pub async fn halt_aware_terminate(
+    app: &AppHandle,
+    scope: &str,
+    _scope_key: &str,
+    reason: Option<&str>,
+) -> HaltAwareOutcome {
+    let mut outcome = HaltAwareOutcome::default();
+
+    if scope != "org" {
+        log::info!(
+            "spec(208): {scope}-scoped halt received; engine-side pause is Phase 3 \
+             (server-side refusal already contains a narrower halt). Acking propagation only."
+        );
+        return outcome;
+    }
+    outcome.scope_handled = true;
+
+    // Step 1: signal the running agent loop to pause at its next boundary.
+    outcome.signaled = send_bridge_halt(app).await;
+    if !outcome.signaled {
+        outcome
+            .warnings
+            .push("bridge-halt-signal-not-delivered".to_string());
+    }
+
+    // Step 2: checkpoint every session that has a live manager BEFORE it yields
+    // (the inverse of force_disconnect). Using the existing managers (keyed by
+    // session id, each already carrying its project id) means the halt path
+    // needs no project-id lookup it cannot satisfy from the duplex broadcast.
+    let checkpoint_state = app.state::<crate::checkpoint::state::CheckpointState>();
+    let description = match reason {
+        Some(r) => format!("spec(208) org-halt: {r}"),
+        None => "spec(208) org-halt".to_string(),
+    };
+    for sid in checkpoint_state.list_active_sessions().await {
+        let Some(manager) = checkpoint_state.get_manager(&sid).await else {
+            continue;
+        };
+        match manager.create_checkpoint(Some(description.clone()), None).await {
+            Ok(_) => outcome.checkpointed_sessions.push(sid),
+            Err(e) => outcome.warnings.push(format!("checkpoint-failed[{sid}]: {e}")),
+        }
+    }
+
+    outcome
+}
+
+/// Spec 208 FR-001/FR-003 (T011): register the `org.halt.activated` dispatch
+/// handler on the shared duplex dispatch table. Mirrors
+/// `agent_catalog_sync::register_agent_catalog_handlers`. `org.halt.lifted` is
+/// accepted at the wire boundary but its reintegration handler lands in Phase 3.
+pub fn register_org_halt_handlers(app: AppHandle) {
+    if app.try_state::<SyncClientState>().is_none() {
+        log::warn!(
+            "spec(208): SyncClientState not managed; org-halt dispatch handler not registered"
+        );
+        return;
+    }
+    let dispatch = app.state::<SyncClientState>().dispatch_table();
+    let app_handle = app.clone();
+    let handler = FnHandler(move |env: &ServerEnvelopeWire| {
+        on_org_halt_activated(app_handle.clone(), env);
+    });
+    dispatch.register("org.halt.activated", Arc::new(handler));
+    log::info!("spec(208): org-halt dispatch handler registered");
+}
+
+/// Handle an inbound `org.halt.activated` broadcast: pause + checkpoint the
+/// in-scope sessions, then ack so stagecraft records this engine's propagation
+/// bound (FR-003). The handler is synchronous (the dispatch-table contract), so
+/// the async work runs on a detached task; the read loop is never blocked.
+fn on_org_halt_activated(app: AppHandle, env: &ServerEnvelopeWire) {
+    let Some(halt_id) = env.halt_id.clone() else {
+        log::warn!("spec(208): org.halt.activated missing haltId; ignored");
+        return;
+    };
+    // A server broadcast always carries an explicit scope. A scope-less message
+    // is malformed (schema drift or spoof), and this engine-side pause is
+    // acceleration, not the enforcement seam (the server-side refusal still
+    // contains the halt regardless). So do NOT promote a missing scope to the
+    // widest "org" action: that would let one malformed broadcast pause and
+    // checkpoint every session in the org. Warn and ignore instead.
+    let Some(scope) = env.scope.clone() else {
+        log::warn!(
+            "spec(208): org.halt.activated {halt_id} missing scope; ignored \
+             (no engine-side pause on an unscoped broadcast)"
+        );
+        return;
+    };
+    let scope_key = env.scope_key.clone().unwrap_or_default();
+    let reason = env.detail.clone();
+
+    tauri::async_runtime::spawn(async move {
+        let outcome =
+            halt_aware_terminate(&app, &scope, &scope_key, reason.as_deref()).await;
+        log::info!(
+            "spec(208): org-halt {halt_id} handled (scope={scope}, scope_handled={}, \
+             signaled={}, checkpointed={})",
+            outcome.scope_handled,
+            outcome.signaled,
+            outcome.checkpointed_sessions.len()
+        );
+
+        // FR-003: ack AFTER the pause/checkpoint pass so the recorded timestamp
+        // is the real boundary. A disconnected duplex drops the ack; stagecraft
+        // reconstructs the halt for this engine off the outbox on resync.
+        let acked = app
+            .state::<SyncClientState>()
+            .handle()
+            .send_org_halt_ack(&halt_id, OrgHaltAckKind::Halt)
+            .await;
+        if !acked {
+            log::warn!(
+                "spec(208): org-halt ack for {halt_id} not delivered (duplex disconnected); \
+                 recorded on reconnect resync"
+            );
+        }
+    });
 }
 
 async fn kill_session_process(app: &AppHandle, session_id: &str) -> Result<bool, String> {
@@ -679,5 +873,29 @@ mod tests {
         let loaded = load_thresholds_from(&path);
         assert_eq!(loaded.warning_tool_calls_per_minute, 7);
         assert_eq!(loaded.critical_tokens_per_minute, 2_000);
+    }
+
+    // Spec 208 PD-D: the halt IPC is a distinct, cooperative signal from abort.
+
+    #[test]
+    fn bridge_ipc_line_emits_typed_halt_and_abort_commands() {
+        assert_eq!(bridge_ipc_line("halt"), r#"{"type":"halt"}"#);
+        assert_eq!(bridge_ipc_line("abort"), r#"{"type":"abort"}"#);
+        // The halt signal must never collapse into the abort signal: abort
+        // fires the AbortController + kills the process, halt is a cooperative
+        // pause that self-checkpoints first. Distinct wire commands keep the
+        // two termination paths from being conflated by the bridge.
+        assert_ne!(bridge_ipc_line("halt"), bridge_ipc_line("abort"));
+    }
+
+    #[test]
+    fn halt_aware_outcome_default_is_inert() {
+        // The non-`org` scope short-circuit returns this: no engine-side action
+        // taken, only a propagation ack is sent by the caller (Phase 2 / AC-3).
+        let outcome = HaltAwareOutcome::default();
+        assert!(!outcome.scope_handled);
+        assert!(!outcome.signaled);
+        assert!(outcome.checkpointed_sessions.is_empty());
+        assert!(outcome.warnings.is_empty());
     }
 }
