@@ -29,6 +29,7 @@ import {
   factoryUpstreams,
 } from "../../db/schema";
 import { loadFactoryUpstreamPatToken } from "../../factory/upstreamPat";
+import { LEGACY_SINGLETON_SOURCE_ID } from "../../factory/upstreams";
 import { loadSubstrateForOrg } from "../../factory/substrateBrowser";
 import { listAdapterViews } from "../../factory/adapterView";
 import { loadLatestAdmission } from "../../factory/admission";
@@ -50,7 +51,8 @@ export type WarmupResolution =
   | { kind: "no-adapters" }
   | { kind: "no-scaffold-source-id" }
   | { kind: "no-scaffold-source-resolved" }
-  | { kind: "no-pat" };
+  | { kind: "no-pat" }
+  | { kind: "no-factory-source" };
 
 const SHA40 = /^[0-9a-f]{40}$/i;
 function refToBranch(ref: string): string {
@@ -130,6 +132,16 @@ async function resolveWarmupContext(): Promise<WarmupResolution> {
       const pat = await loadFactoryUpstreamPatToken(orgId).catch(() => null);
       if (!pat) continue;
 
+      // Spec 112 §5.3.1: the generator + module catalog live in factory-encore,
+      // resolved from the org's `legacy-mixed` factory_upstreams row. This is a
+      // configuration fact (no new admission gate); an unconfigured factory
+      // upstream is a sibling warmup blocker.
+      const factory = await resolveScaffoldUpstream(
+        orgId,
+        LEGACY_SINGLETON_SOURCE_ID,
+      );
+      if (!factory) return { kind: "no-factory-source" };
+
       return {
         kind: "ok",
         ctx: {
@@ -137,6 +149,8 @@ async function resolveWarmupContext(): Promise<WarmupResolution> {
           workspaceDir: defaultWorkspaceDir(),
           scaffoldRepoUrl: resolution.repo_url,
           scaffoldRef: refToBranch(resolution.ref),
+          factoryRepoUrl: factory.repoUrl,
+          factoryRef: refToBranch(factory.ref),
           patResolver: () => loadFactoryUpstreamPatToken(orgId),
         },
       };
@@ -158,6 +172,8 @@ function reportUnresolvable(resolution: WarmupResolution): void {
       "scaffold warmup: no admission record resolves an adapter's scaffold source — register the upstream at /app/factory/upstreams and re-run /factory-sync (spec 198/199)",
     "no-pat":
       "scaffold warmup: an adapter and matching upstream are configured but no factory_upstream_pats row exists — configure a PAT at /app/admin/factory/pat",
+    "no-factory-source":
+      "scaffold warmup: the template scaffold source is resolved but no factory-encore upstream (legacy-mixed) is registered; the generator + module catalog live there (spec 112 §5.3.1). Register it at /app/factory/upstreams and re-run /factory-sync",
   };
   const reason = messages[resolution.kind];
   log.info(reason);

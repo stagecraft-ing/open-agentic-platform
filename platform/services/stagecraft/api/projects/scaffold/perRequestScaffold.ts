@@ -25,7 +25,7 @@ import {
   serializeKernelVersionStamp,
 } from "./kernelVersionStamp";
 import { extrasFor, type Profile } from "./moduleCatalog";
-import { prebuiltDir } from "./templateCache";
+import { prebuiltDir, resolveCurrentPrebuiltSha } from "./templateCache";
 import type { ScaffoldAdapterRef } from "./types";
 import { OAP_BUILD_WORKFLOW_YAML } from "../../github/repoInit";
 
@@ -72,8 +72,30 @@ export interface PerRequestScaffoldResult {
 export async function scaffoldFromPrebuilt(
   opts: PerRequestScaffoldOptions
 ): Promise<PerRequestScaffoldResult> {
-  const cacheDir = join(opts.workspaceDir, "_template-cache");
-  const sourceDir = prebuiltDir(opts.workspaceDir, opts.profile);
+  // Resolve the current immutable prebuild snapshot ONCE for the whole request
+  // (spec 112 §5.3.1): a concurrent warmup refresh publishes a new snapshot +
+  // pointer without disturbing the one we read here.
+  const combined = await resolveCurrentPrebuiltSha(opts.workspaceDir);
+  if (!combined) {
+    throw new Error(
+      "scaffoldFromPrebuilt: no published prebuild snapshot (warmup not ready)"
+    );
+  }
+  const sourceDir = prebuiltDir(opts.workspaceDir, combined, opts.profile);
+  // add-module + tsx live in the factory cache (the generator home), not the
+  // template baseline (spec 112 §5.3.1).
+  const factoryScriptsDir = join(
+    opts.workspaceDir,
+    "_factory-cache",
+    "adapters",
+    "acme-vue-encore",
+    "scripts"
+  );
+  const factoryModules = join(
+    opts.workspaceDir,
+    "_factory-cache",
+    "node_modules"
+  );
   const dest = opts.destDir;
   const sink = opts.log ?? (() => {});
 
@@ -100,12 +122,23 @@ export async function scaffoldFromPrebuilt(
   });
 
   // ── 2. Run add-module.ts for each user-selected extra ────────────────
-  const extras = opts.profile === "dual" ? [] : extrasFor(opts.profile, opts.selectedModules);
+  // The prebuild already ships the profile's manifest-declared default modules
+  // (the generator composed them, spec 112 §5.3.1), recorded in the copied
+  // template.json. Filter those out so a profile default is never re-composed
+  // (which would duplicate its migration); this mirrors the generator's own
+  // dedupe and stagecraft's extrasFor filtering of profile built-ins.
+  const alreadyShipped = await readInstalledModules(dest);
+  const extras =
+    opts.profile === "dual"
+      ? []
+      : extrasFor(opts.profile, opts.selectedModules).filter(
+          (m) => !alreadyShipped.has(m)
+        );
   if (extras.length > 0) {
-    const tsx = join(cacheDir, "node_modules", "tsx", "dist", "cli.mjs");
-    const addModuleScript = join(cacheDir, "scripts", "add-module.ts");
+    const tsx = join(factoryModules, "tsx", "dist", "cli.mjs");
+    const addModuleScript = join(factoryScriptsDir, "add-module.ts");
     const addModuleEnv = tooledEnv(opts.workspaceDir, {
-      NODE_PATH: join(cacheDir, "node_modules"),
+      NODE_PATH: factoryModules,
       NO_INSTALL: "true",
       // add-module.ts reads ROOT to know where to write; it must be the
       // per-request dest, not the cache dir.
@@ -115,8 +148,8 @@ export async function scaffoldFromPrebuilt(
       sink(`add-module: ${mod}`);
       await spawnAndCapture(
         process.execPath,
-        [tsx, addModuleScript, mod, "--yes"],
-        cacheDir,
+        [tsx, addModuleScript, mod, "--yes", "--root", dest],
+        factoryScriptsDir,
         addModuleEnv
       );
     }
@@ -239,6 +272,17 @@ async function assertBornWithKernelComplete(dest: string): Promise<void> {
         `[${missing.join(", ")}] (spec 209 FR-002); a project cannot complete ` +
         `creation with a partial kernel`
     );
+  }
+}
+
+/** Module ids already present in the copied prebuild (from its template.json). */
+async function readInstalledModules(dest: string): Promise<Set<string>> {
+  try {
+    const raw = await readFile(join(dest, "template.json"), "utf8");
+    const parsed = JSON.parse(raw) as { modules?: Record<string, unknown> };
+    return new Set(Object.keys(parsed.modules ?? {}));
+  } catch {
+    return new Set();
   }
 }
 
