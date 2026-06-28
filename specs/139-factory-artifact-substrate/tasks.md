@@ -191,11 +191,14 @@ gate.
       `api/agents/dispatch.test.ts`: a project that today binds an
       org agent at v3 continues to dispatch successfully through the
       substrate-backed binding (`factory_bindings` table).
-- [ ] T042 [P] [P2] E2E test in
+- [~] T042 [P] [P2] RETIRED 2026-06-27. E2E test in
       `api/projects/scaffold/createOapNative.test.ts`: `next-prisma`
       is selectable; submit produces a clear "no scaffold source
       configured" blocker; once a scaffold source is registered,
       Create succeeds end-to-end.
+      Retired: the OAP-native adapter concept (and `next-prisma`) is dead;
+      factory-encore + template-encore are OAP's native factory
+      implementation. The test file was deleted.
 
 ### Implementation for Phase 2
 

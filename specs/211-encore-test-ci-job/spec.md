@@ -249,6 +249,15 @@ the merge path ran the lane. By error class:
    migrations 34/35 (the spec 139 substrate cutover, 2026-05-05). The
    `runs.test.ts` suite additionally pre-dated the spec 199 reservation
    rewrite (substrate + spec 198 admission resolution).
+   (Update 2026-06-27: `createOapNative.test.ts` was deleted and removed
+   from the `vite.config.ts` exclude list. The OAP-native adapter concept
+   it exercised (`next-prisma`, the retired `scaffold_source_id` JSONB
+   probe) is dead: factory-encore + template-encore are OAP's native
+   factory implementation. Of the spec 139 trio above, only `dispatch`
+   now remains in the live encore lane (`agentCatalogMigration` became a
+   pure-functional bare-lane test during this spec's implementation, and
+   `createOapNative` is now deleted); the lane-coverage guard derives the
+   set from the exclude list, so the count adjusts automatically.)
 2. **Never-valid seeds** — the spec 137 migration suites (`40_`, `41_`)
    insert `projects` rows without `created_by`, NOT NULL since
    migration 5. These suites never passed under `encore test` at all —

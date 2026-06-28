@@ -165,8 +165,7 @@ describe("spec 112 §10 runtime gate (shape)", () => {
   // expect to pass / fail so a translator change doesn't silently
   // re-introduce non-Node-24 adapters. Spec 140 §2.1 introduced the
   // top-level `scaffold_runtime` key; the gate accepts both the legacy
-  // `scaffold.runtime` block (still emitted by some OAP-native manifests)
-  // and the new top-level field.
+  // `scaffold.runtime` block and the new top-level field.
   function evaluateRuntimeGate(manifest: Record<string, unknown>): "pass" | "reject" {
     const declared =
       (manifest as { scaffold?: { runtime?: string } }).scaffold?.runtime ??
