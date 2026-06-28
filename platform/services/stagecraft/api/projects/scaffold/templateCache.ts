@@ -1,23 +1,44 @@
-// Spec 112 §5.3 ops 1+2 — template cache + four profile prebuilds.
+// Spec 112 §5.3 ops 1+2 + §5.3.1: two-cache warmup + SHA-stamped prebuilds.
 //
-// Mirrors template-distributor/src/server.ts:329-446. On startup
-// stagecraft (a) clones the upstream `template` repo into
-// `${WORKSPACE_DIR}/_template-cache` and runs `npm install`, then
-// (b) runs `tsx scripts/setup-{app,dual-app}.ts` four times to materialise
-// `_prebuilt-{minimal,public,internal,dual}`. Both steps are idempotent on
-// disk: SHA tracking via `.template-commit` and `.prebuilt-commit` lets a
-// restarted pod reuse the existing cache without re-doing work.
+// The generator-product split (spec 112 §5.3.1) moved the create-time
+// generator (`scripts/`) and the module catalog (`modules/`) out of the
+// scaffold-source repo (template-encore) into the factory-encore adapter, and
+// left template-encore a lean baseline. Warmup therefore clones BOTH owned
+// upstreams:
 //
-// A 30-min background refresher polls the upstream branch head for new
-// commits; when it advances, the cache + prebuilts are rebuilt under the
-// temp-dir-then-rename pattern so in-flight create requests are not
-// disturbed.
+//   _factory-cache   factory-encore: adapters/acme-vue-encore/{scripts,modules}
+//                    + tsx devDep (the generator + module catalog)
+//   _template-cache  template-encore: lean apps/ + packages/ baseline (the
+//                    `--source` the generator composes onto)
 //
-// The Create endpoint reads `getInitStatus()` to decide whether to accept
-// the request; the readiness UI (Phase 5) renders the same status.
+// then runs the adapter's manifest-declared entry point
+// (`setup-app.ts --profile <p> --source _template-cache`, or `setup-dual-app.ts`
+// for dual) to materialise the profile prebuilds. The generator reads
+// `profiles[].modules` from the manifest itself (factory-encore STRUCT-1), so
+// warmup passes only `--profile`, with no module translation of its own.
+//
+// Prebuilds are SHA-stamped, immutable snapshots behind an atomically-swapped
+// `current` pointer: `_prebuilt/<combined-sha>/<profile>`. A refresh writes a
+// new sha-dir and flips the pointer with rename; per-request copies resolve the
+// current sha once and read an immutable tree, so a refresh can never expose a
+// half-written prebuild to an in-flight copy. A single-flight guard prevents the
+// startup warmup and the 30-min refresher from regenerating concurrently
+// in-pod (the chart enforces single-pod warmup: RWO PVC, replicaCount=1).
+//
+// Both steps are idempotent on disk via per-cache SHA files (.template-commit,
+// .factory-commit) and the combined-sha pointer. The Create endpoint reads
+// getInitStatus() to decide whether to accept a request.
 
 import { spawn } from "node:child_process";
-import { access, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { resolve, join } from "node:path";
 import log from "encore.dev/log";
 import { PROFILES, type Profile } from "./moduleCatalog";
@@ -43,26 +64,28 @@ export interface InitStatus {
 }
 
 export interface WarmupContext {
-  /** Absolute path of the workspace dir; cache + prebuilts live underneath. */
+  /** Absolute path of the workspace dir; caches + prebuilts live underneath. */
   workspaceDir: string;
   /**
-   * Spec 140 §2.2 — clone target derived from
-   * `factory_upstreams.repo_url` for the row whose `source_id` equals
-   * the adapter manifest's `scaffold_source_id`. Format is GitHub
-   * `<owner>/<repo>` (the `repo_url` column is normalised at write time
-   * by `factory/upstreams.ts::validateRepo`).
+   * template-encore clone target (`<owner>/<repo>`), the lean baseline the
+   * generator composes onto via `--source`. Resolved from the admitted
+   * `scaffold.source` against `factory_upstreams` (spec 199 FR-009).
    */
   scaffoldRepoUrl: string;
-  /**
-   * Spec 140 §2.2 — branch the cache pins to; the refresher polls this.
-   * Sourced from `factory_upstreams.ref` for the same row. Defaults to
-   * `main` when the row's `ref` is a 40-char sha (sha-pinned upstream).
-   */
+  /** template-encore branch the cache pins to; the refresher polls this. */
   scaffoldRef: string;
   /**
-   * Async resolver that returns the plaintext PAT used to clone the template
-   * (and to read the branch head via REST). The brief mandates a single PAT
-   * per org — the same `factory_upstream_pats` row we use for /factory-sync.
+   * factory-encore clone target (`<owner>/<repo>`), carrying the generator,
+   * module catalog, and tsx (spec 112 §5.3.1). Read from the `legacy-mixed`
+   * `factory_upstreams` row: a configuration fact, not a new admission gate.
+   */
+  factoryRepoUrl: string;
+  /** factory-encore branch the cache pins to; the refresher polls this. */
+  factoryRef: string;
+  /**
+   * Async resolver for the plaintext PAT used to clone both owned upstreams
+   * and read their branch heads. A single org PAT (the `factory_upstream_pats`
+   * row) covers both repos.
    */
   patResolver: () => Promise<string | null>;
 }
@@ -71,7 +94,8 @@ export interface WarmupContext {
 
 let initStatus: InitStatus = { step: "idle", progress: 0, ready: false };
 let templateCacheReady = false;
-let templateCacheRefreshing = false;
+let cacheRefreshing = false;
+let warmupInFlight = false;
 let backgroundRefresherStarted = false;
 
 export function getInitStatus(): InitStatus {
@@ -83,29 +107,24 @@ export function isTemplateCacheReady(): boolean {
 }
 
 export function isTemplateCacheRefreshing(): boolean {
-  return templateCacheRefreshing;
+  return cacheRefreshing;
 }
 
 /**
- * Surface a warmup-blocked condition (e.g. no adapter manifest carries
- * `scaffold_source_id`, or no `factory_upstreams` row matches it)
- * through the existing readiness path. The status step stays "error"
- * so the UI's `warmup-error` blocker fires with a clear, actionable
- * reason.
+ * Surface a warmup-blocked condition (no adapter manifest resolves a scaffold
+ * source, no factory upstream configured, no PAT) through the readiness path.
  */
 export function setInitErrorFromContext(reason: string): void {
   initStatus = { step: "error", progress: 0, ready: false, error: reason };
   templateCacheReady = false;
 }
 
-/**
- * Test-only: reset the in-memory status flags. Production code never calls
- * this — pods restart cleanly because warmup re-derives from disk state.
- */
+/** Test-only: reset the in-memory status flags. */
 export function _resetForTests(): void {
   initStatus = { step: "idle", progress: 0, ready: false };
   templateCacheReady = false;
-  templateCacheRefreshing = false;
+  cacheRefreshing = false;
+  warmupInFlight = false;
   backgroundRefresherStarted = false;
 }
 
@@ -115,205 +134,287 @@ export function defaultWorkspaceDir(): string {
   return resolve(process.env.STAGECRAFT_WORKSPACE_DIR ?? "./workspace");
 }
 
-function cacheDir(workspace: string): string {
+/** template-encore checkout: the `--source` baseline. */
+function templateCacheDir(workspace: string): string {
   return join(workspace, "_template-cache");
+}
+
+/** factory-encore checkout: the generator + module catalog + tsx. */
+function factoryCacheDir(workspace: string): string {
+  return join(workspace, "_factory-cache");
+}
+
+/** The adapter's scripts dir inside the factory cache. */
+function adapterScriptsDir(workspace: string): string {
+  return join(
+    factoryCacheDir(workspace),
+    "adapters",
+    "acme-vue-encore",
+    "scripts"
+  );
 }
 
 function templateCommitFile(workspace: string): string {
   return join(workspace, ".template-commit");
 }
 
-function prebuiltCommitFile(workspace: string): string {
-  return join(workspace, ".prebuilt-commit");
+function factoryCommitFile(workspace: string): string {
+  return join(workspace, ".factory-commit");
 }
 
-export function prebuiltDir(workspace: string, profile: Profile): string {
-  return join(workspace, `_prebuilt-${profile}`);
+/** Root under which SHA-stamped immutable prebuild snapshots live. */
+function prebuiltRootDir(workspace: string): string {
+  return join(workspace, "_prebuilt");
+}
+
+/** The `current` pointer file: contains the live combined-sha. */
+function currentPointerFile(workspace: string): string {
+  return join(prebuiltRootDir(workspace), "current");
+}
+
+/** A specific immutable snapshot's per-profile tree. */
+export function prebuiltDir(
+  workspace: string,
+  combined: string,
+  profile: Profile
+): string {
+  return join(prebuiltRootDir(workspace), combined, profile);
+}
+
+/** The combined cache key for the two upstream SHAs (short, readable). */
+function combinedSha(templateSha: string, factorySha: string): string {
+  return `${templateSha.slice(0, 12)}-${factorySha.slice(0, 12)}`;
 }
 
 /**
- * Build a subprocess env that routes npm + node tooling at writable
- * paths. The pod has `readOnlyRootFilesystem: true` and runs as uid
- * 10001 with no $HOME, so npm's defaults (`$HOME/.npm`) resolve to
- * `/.npm` which the kernel rejects with EROFS / ENOENT. Setting
- * `npm_config_cache` and `HOME` under the workspace PVC makes npm,
- * tsx, and any subprocess they spawn write to a backed-up location.
+ * The combined-sha the `current` pointer references, or null if no prebuild
+ * snapshot has been published yet. Per-request copies resolve this ONCE at the
+ * start so they read a stable, immutable snapshot for the whole request.
+ */
+export async function resolveCurrentPrebuiltSha(
+  workspace: string
+): Promise<string | null> {
+  return readShaFile(currentPointerFile(workspace));
+}
+
+/**
+ * Build a subprocess env that routes npm + node tooling at writable paths. The
+ * pod has readOnlyRootFilesystem and no $HOME, so npm/tsx must write under the
+ * workspace PVC.
  */
 function tooledEnv(
   workspace: string,
   extra: NodeJS.ProcessEnv = {}
 ): NodeJS.ProcessEnv {
-  const npmCache = join(workspace, ".npm-cache");
-  const homeOverride = join(workspace, ".home");
   return {
     ...process.env,
-    HOME: homeOverride,
-    npm_config_cache: npmCache,
-    // Some tools (corepack, pnpm shim) read XDG_CACHE_HOME independently.
+    HOME: join(workspace, ".home"),
+    npm_config_cache: join(workspace, ".npm-cache"),
     XDG_CACHE_HOME: join(workspace, ".xdg-cache"),
     ...extra,
   };
 }
 
 async function ensureToolingDirs(workspace: string): Promise<void> {
-  const dirs = [
-    join(workspace, ".npm-cache"),
-    join(workspace, ".home"),
-    join(workspace, ".xdg-cache"),
-  ];
-  for (const d of dirs) {
-    await mkdir(d, { recursive: true });
+  for (const d of [".npm-cache", ".home", ".xdg-cache"]) {
+    await mkdir(join(workspace, d), { recursive: true });
   }
 }
 
 // ── Public surface ─────────────────────────────────────────────────────
 
 /**
- * Clone the template repo (or refresh in place if upstream advanced) and
- * `npm install`. Idempotent on disk SHA. Throws on any non-recoverable
- * failure; callers translate that into a job-level error.
+ * Clone (or refresh in place if upstream advanced) both owned upstream caches
+ * and `npm install` each. Idempotent on disk SHA. Clones under a temp dir and
+ * renames into place so in-flight reads are never disrupted.
  */
 export async function ensureTemplateCache(ctx: WarmupContext): Promise<void> {
-  if (templateCacheRefreshing) {
-    while (templateCacheRefreshing) {
-      await sleep(500);
-    }
+  if (cacheRefreshing) {
+    while (cacheRefreshing) await sleep(500);
     return;
   }
-
-  const cache = cacheDir(ctx.workspaceDir);
-  const cachedSha = await readShaFile(templateCommitFile(ctx.workspaceDir));
-  const latestSha = await fetchLatestTemplateCommit(ctx);
-  const diskCacheValid =
-    (await pathExists(cache)) && !!latestSha && cachedSha === latestSha;
-
-  if (diskCacheValid) {
-    templateCacheReady = true;
-    log.info("template cache: already up to date", {
-      remote: ctx.scaffoldRepoUrl,
-      sha: cachedSha,
-    });
-    return;
-  }
-
-  templateCacheRefreshing = true;
+  cacheRefreshing = true;
   templateCacheReady = false;
-  initStatus = { step: "cloning", progress: 5, ready: false };
-
-  const tempDir = cache + "_new";
   try {
-    await mkdir(ctx.workspaceDir, { recursive: true });
-    await ensureToolingDirs(ctx.workspaceDir);
-    await rm(tempDir, { recursive: true, force: true }).catch(() => {});
-
-    const token = await ctx.patResolver();
-    const cloneUrl = buildCloneUrl(ctx.scaffoldRepoUrl, token);
-    const env = tooledEnv(ctx.workspaceDir);
-
-    log.info("template cache: cloning", {
-      remote: ctx.scaffoldRepoUrl,
-      branch: ctx.scaffoldRef,
+    const factorySha = await ensureOneCache(ctx, {
+      repoUrl: ctx.factoryRepoUrl,
+      ref: ctx.factoryRef,
+      dir: factoryCacheDir(ctx.workspaceDir),
+      commitFile: factoryCommitFile(ctx.workspaceDir),
+      label: "factory cache",
     });
-    await spawnLogged(
-      "git",
-      ["clone", "--branch", ctx.scaffoldRef, "--depth", "1", cloneUrl, tempDir],
-      ctx.workspaceDir,
-      env,
-      token ?? undefined
-    );
-
-    initStatus = { step: "cache-installing", progress: 15, ready: false };
-    log.info("template cache: npm install");
-    await spawnLogged("npm", ["install"], tempDir, env, undefined);
-
-    if (await pathExists(cache)) {
-      await rm(cache, { recursive: true, force: true });
-    }
-    await rename(tempDir, cache);
-
-    if (latestSha) {
-      await writeFile(templateCommitFile(ctx.workspaceDir), latestSha, "utf8");
-    }
+    const templateSha = await ensureOneCache(ctx, {
+      repoUrl: ctx.scaffoldRepoUrl,
+      ref: ctx.scaffoldRef,
+      dir: templateCacheDir(ctx.workspaceDir),
+      commitFile: templateCommitFile(ctx.workspaceDir),
+      label: "template cache",
+    });
     templateCacheReady = true;
-    log.info("template cache: ready", {
-      remote: ctx.scaffoldRepoUrl,
-      sha: latestSha,
+    log.info("caches: ready", {
+      template: ctx.scaffoldRepoUrl,
+      templateSha,
+      factory: ctx.factoryRepoUrl,
+      factorySha,
     });
   } catch (err) {
-    initStatus = {
-      step: "error",
-      progress: 0,
-      ready: false,
-      error: errMsg(err),
-    };
-    await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    initStatus = { step: "error", progress: 0, ready: false, error: errMsg(err) };
     throw err;
   } finally {
-    templateCacheRefreshing = false;
+    cacheRefreshing = false;
   }
 }
 
+interface CacheSpec {
+  repoUrl: string;
+  ref: string;
+  dir: string;
+  commitFile: string;
+  label: string;
+}
+
 /**
- * Materialise the four `_prebuilt-{profile}` trees by running `tsx
- * scripts/setup-{app,dual-app}.ts` against the template cache. Skipped
- * cleanly when `.prebuilt-commit` already matches `.template-commit`.
+ * Clone+install one upstream cache, idempotent on its recorded SHA. Returns the
+ * SHA now on disk for that cache (used to compute the combined prebuild key).
+ */
+async function ensureOneCache(
+  ctx: WarmupContext,
+  spec: CacheSpec
+): Promise<string | null> {
+  const cachedSha = await readShaFile(spec.commitFile);
+  const latestSha = await fetchLatestCommit(ctx, spec.repoUrl, spec.ref);
+  if ((await pathExists(spec.dir)) && !!latestSha && cachedSha === latestSha) {
+    log.info(`${spec.label}: already up to date`, {
+      remote: spec.repoUrl,
+      sha: cachedSha,
+    });
+    return cachedSha;
+  }
+
+  initStatus = { step: "cloning", progress: 5, ready: false };
+  await mkdir(ctx.workspaceDir, { recursive: true });
+  await ensureToolingDirs(ctx.workspaceDir);
+  const tempDir = spec.dir + "_new";
+  await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+
+  const token = await ctx.patResolver();
+  const cloneUrl = buildCloneUrl(spec.repoUrl, token);
+  const env = tooledEnv(ctx.workspaceDir);
+
+  log.info(`${spec.label}: cloning`, { remote: spec.repoUrl, branch: spec.ref });
+  await spawnLogged(
+    "git",
+    ["clone", "--branch", spec.ref, "--depth", "1", cloneUrl, tempDir],
+    ctx.workspaceDir,
+    env,
+    token ?? undefined
+  );
+
+  initStatus = { step: "cache-installing", progress: 15, ready: false };
+  log.info(`${spec.label}: npm install`);
+  await spawnLogged("npm", ["install"], tempDir, env, undefined);
+
+  if (await pathExists(spec.dir)) {
+    await rm(spec.dir, { recursive: true, force: true });
+  }
+  await rename(tempDir, spec.dir);
+  if (latestSha) await writeFile(spec.commitFile, latestSha, "utf8");
+  log.info(`${spec.label}: ready`, { remote: spec.repoUrl, sha: latestSha });
+  return latestSha;
+}
+
+/**
+ * Materialise the four profile prebuilds as a SHA-stamped immutable snapshot,
+ * running the factory-cache generator with the template cache as `--source`.
+ * Idempotent when the current pointer already matches the combined SHA.
+ * Publishes by atomic pointer swap and GCs stale snapshots.
  */
 export async function ensurePrebuilts(ctx: WarmupContext): Promise<void> {
-  if (initStatus.ready) return;
+  const templateSha = await readShaFile(templateCommitFile(ctx.workspaceDir));
+  const factorySha = await readShaFile(factoryCommitFile(ctx.workspaceDir));
+  if (!templateSha || !factorySha) {
+    throw new Error("ensurePrebuilts: caches not populated (missing commit sha)");
+  }
+  // The shas become a filesystem path component (the snapshot dir). They come
+  // from the GitHub API / the cache commit files, but validate them as hex so a
+  // tampered commit file can never inject a path separator or `..` traversal.
+  for (const [label, sha] of [
+    ["template", templateSha],
+    ["factory", factorySha],
+  ] as const) {
+    if (!/^[0-9a-f]{7,64}$/i.test(sha)) {
+      throw new Error(
+        `ensurePrebuilts: ${label} commit sha is not a hex sha (got ${JSON.stringify(sha)})`
+      );
+    }
+  }
+  const combined = combinedSha(templateSha, factorySha);
+  const snapshotDir = join(prebuiltRootDir(ctx.workspaceDir), combined);
 
-  const cache = cacheDir(ctx.workspaceDir);
-  const templateCommit = await readShaFile(templateCommitFile(ctx.workspaceDir));
-  const prebuiltCommit = await readShaFile(prebuiltCommitFile(ctx.workspaceDir));
-
+  const currentSha = await resolveCurrentPrebuiltSha(ctx.workspaceDir);
   const allExist = await Promise.all(
-    PROFILES.map((p) => pathExists(prebuiltDir(ctx.workspaceDir, p)))
+    PROFILES.map((p) => pathExists(prebuiltDir(ctx.workspaceDir, combined, p)))
   );
-  if (
-    allExist.every(Boolean) &&
-    !!templateCommit &&
-    prebuiltCommit === templateCommit
-  ) {
+  if (currentSha === combined && allExist.every(Boolean)) {
     initStatus = { step: "ready", progress: 100, ready: true };
-    log.info("prebuilts: already up to date", { sha: templateCommit });
+    log.info("prebuilts: already up to date", { sha: combined });
     return;
   }
 
-  const tsx = join(cache, "node_modules", "tsx", "dist", "cli.mjs");
+  const scriptsDir = adapterScriptsDir(ctx.workspaceDir);
+  const tsx = join(
+    factoryCacheDir(ctx.workspaceDir),
+    "node_modules",
+    "tsx",
+    "dist",
+    "cli.mjs"
+  );
   await ensureToolingDirs(ctx.workspaceDir);
   const prebuiltEnv = tooledEnv(ctx.workspaceDir, {
-    NODE_PATH: join(cache, "node_modules"),
+    NODE_PATH: join(factoryCacheDir(ctx.workspaceDir), "node_modules"),
     NO_INSTALL: "true",
   });
+  const source = templateCacheDir(ctx.workspaceDir);
 
+  // Generator reads profiles[].modules from the manifest itself, so warmup
+  // passes only --profile (no --with translation): an internal prebuild ships
+  // user-management because the generator composed it. dual takes no profile.
   type ProfileSpec = { name: Profile; script: string; args: string[] };
   const PROFILE_SPECS: ProfileSpec[] = [
     { name: "minimal", script: "setup-app.ts", args: ["--profile", "minimal"] },
     { name: "public", script: "setup-app.ts", args: ["--profile", "public"] },
-    {
-      name: "internal",
-      script: "setup-app.ts",
-      args: ["--profile", "internal"],
-    },
+    { name: "internal", script: "setup-app.ts", args: ["--profile", "internal"] },
     { name: "dual", script: "setup-dual-app.ts", args: [] },
   ];
 
+  // Build into a fresh staging dir; publish by rename + pointer swap so an
+  // in-flight per-request copy of the previous snapshot is never disturbed.
+  const stagingDir = snapshotDir + "_new";
+  await rm(stagingDir, { recursive: true, force: true });
+  await mkdir(stagingDir, { recursive: true });
+
   for (const [i, spec] of PROFILE_SPECS.entries()) {
-    const dest = prebuiltDir(ctx.workspaceDir, spec.name);
+    const dest = join(stagingDir, spec.name);
     initStatus = {
       step: `building-${spec.name}` as InitStep,
       progress: 20 + i * 20,
       ready: false,
     };
     log.info("prebuilt: building", { profile: spec.name, dest });
-    if (await pathExists(dest)) {
-      await rm(dest, { recursive: true, force: true });
-    }
-
     try {
       await spawnLogged(
         process.execPath,
-        [tsx, `scripts/${spec.script}`, ...spec.args, "--dest", dest, "--yes"],
-        cache,
+        [
+          tsx,
+          join(scriptsDir, spec.script),
+          ...spec.args,
+          "--source",
+          source,
+          "--dest",
+          dest,
+          "--yes",
+        ],
+        scriptsDir,
         prebuiltEnv,
         undefined
       );
@@ -322,37 +423,52 @@ export async function ensurePrebuilts(ctx: WarmupContext): Promise<void> {
         step: "error",
         progress: 20 + i * 20,
         ready: false,
-        error: `${spec.name} build failed — ${errMsg(err)}`,
+        error: `${spec.name} build failed: ${errMsg(err)}`,
       };
+      await rm(stagingDir, { recursive: true, force: true }).catch(() => {});
       throw err;
     }
   }
 
-  if (templateCommit) {
-    await writeFile(prebuiltCommitFile(ctx.workspaceDir), templateCommit, "utf8");
+  // Publish atomically: rename staging into the snapshot, then flip the pointer.
+  if (await pathExists(snapshotDir)) {
+    await rm(snapshotDir, { recursive: true, force: true });
   }
+  await rename(stagingDir, snapshotDir);
+  await writePointer(ctx.workspaceDir, combined);
+  // Keep the new snapshot and the previous pointer's snapshot (grace window
+  // for in-flight copies); drop anything older.
+  await gcOldSnapshots(
+    ctx.workspaceDir,
+    [combined, currentSha].filter((s): s is string => s !== null)
+  );
+
   initStatus = { step: "ready", progress: 100, ready: true };
-  log.info("prebuilts: all ready", { sha: templateCommit });
+  log.info("prebuilts: published", { sha: combined });
 }
 
 /**
- * One-shot warmup helper: cache → prebuilts. Called by Phase 4's startup
- * hook. Does not throw; failures land in `initStatus.error` so Create can
- * surface them via the readiness endpoint.
+ * One-shot warmup: caches then prebuilds. Single-flight across the startup hook
+ * and the background refresher. Does not throw; failures land in
+ * initStatus.error so Create surfaces them via the readiness endpoint.
  */
 export async function runWarmup(ctx: WarmupContext): Promise<void> {
+  if (warmupInFlight) {
+    log.info("warmup: already in flight, skipping");
+    return;
+  }
+  warmupInFlight = true;
   try {
     await ensureTemplateCache(ctx);
     await ensurePrebuilts(ctx);
   } catch (err) {
     log.warn("scaffold warmup failed", { error: errMsg(err) });
+  } finally {
+    warmupInFlight = false;
   }
 }
 
-/**
- * Start the 30-min refresher (idempotent — second call is a no-op).
- * Wakes up, checks upstream HEAD, rebuilds if it advanced.
- */
+/** Start the 30-min refresher (idempotent). Polls both upstreams' heads. */
 export function startBackgroundRefresher(ctx: WarmupContext): void {
   if (backgroundRefresherStarted) return;
   backgroundRefresherStarted = true;
@@ -361,52 +477,82 @@ export function startBackgroundRefresher(ctx: WarmupContext): void {
       log.warn("background refresher cycle failed", { error: errMsg(err) });
     });
   }, 30 * 60_000);
-  // unref so the timer doesn't keep the process alive in tests / shutdown.
   if (typeof interval.unref === "function") interval.unref();
 }
 
 // ── Internal helpers ───────────────────────────────────────────────────
 
-async function fetchLatestTemplateCommit(
-  ctx: WarmupContext
+/** Atomically write the `current` pointer (temp file + rename). */
+async function writePointer(workspace: string, combined: string): Promise<void> {
+  await mkdir(prebuiltRootDir(workspace), { recursive: true });
+  const tmp = currentPointerFile(workspace) + ".tmp";
+  await writeFile(tmp, combined, "utf8");
+  await rename(tmp, currentPointerFile(workspace));
+}
+
+/**
+ * Remove stale snapshot dirs, keeping the current one and the single most
+ * recent other (a grace window for any per-request copy that resolved the
+ * previous pointer before the swap; copies complete in seconds, far inside the
+ * 30-min refresh cadence).
+ */
+async function gcOldSnapshots(
+  workspace: string,
+  keep: string[]
+): Promise<void> {
+  const keepSet = new Set(keep);
+  const root = prebuiltRootDir(workspace);
+  let entries: string[];
+  try {
+    entries = (await readdir(root, { withFileTypes: true }))
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name);
+  } catch {
+    return;
+  }
+  // Keep the new snapshot AND the immediately-previous one (the pointer value
+  // before this publish): an in-flight per-request copy that resolved the
+  // previous pointer must still find its immutable snapshot. Selecting by an
+  // explicit keep-set (not readdir order, which is unspecified) makes this
+  // deterministic. Everything older is removed.
+  for (const name of entries) {
+    if (keepSet.has(name)) continue;
+    await rm(join(root, name), { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+async function fetchLatestCommit(
+  ctx: WarmupContext,
+  repoUrl: string,
+  ref: string
 ): Promise<string | null> {
-  const [owner, repo] = ctx.scaffoldRepoUrl.split("/");
+  const [owner, repo] = repoUrl.split("/");
   if (!owner || !repo) return null;
   const token = await ctx.patResolver().catch(() => null);
-
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
   };
   if (token) headers.Authorization = `Bearer ${token}`;
-
   try {
     const resp = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/branches/${encodeURIComponent(ctx.scaffoldRef)}`,
+      `https://api.github.com/repos/${owner}/${repo}/branches/${encodeURIComponent(ref)}`,
       { headers }
     );
     if (!resp.ok) {
-      log.warn("template head lookup failed", {
-        remote: ctx.scaffoldRepoUrl,
-        status: resp.status,
-      });
+      log.warn("head lookup failed", { remote: repoUrl, status: resp.status });
       return null;
     }
     const data = (await resp.json()) as { commit?: { sha?: string } };
     return data.commit?.sha ?? null;
   } catch (err) {
-    log.warn("template head lookup threw", {
-      remote: ctx.scaffoldRepoUrl,
-      error: errMsg(err),
-    });
+    log.warn("head lookup threw", { remote: repoUrl, error: errMsg(err) });
     return null;
   }
 }
 
 function buildCloneUrl(remote: string, token: string | null): string {
-  if (token) {
-    return `https://x-access-token:${token}@github.com/${remote}.git`;
-  }
+  if (token) return `https://x-access-token:${token}@github.com/${remote}.git`;
   return `https://github.com/${remote}.git`;
 }
 
@@ -446,10 +592,16 @@ function spawnLogged(
       if (code === 0) {
         resolveRun();
       } else {
+        // Redact the token from the argv too (the clone URL embeds it): the
+        // tail is already redacted, but args.join would otherwise leak the PAT
+        // into initStatus.error and the warn log.
+        const safeArgs = redactToken
+          ? args.map((a) => a.replaceAll(redactToken, "***"))
+          : args;
         const detail = tail.slice(-10).join(" | ");
         rejectRun(
           new Error(
-            `${bin} ${args.join(" ")} exited ${code}${detail ? `: ${detail}` : ""}`
+            `${bin} ${safeArgs.join(" ")} exited ${code}${detail ? `: ${detail}` : ""}`
           )
         );
       }

@@ -4,7 +4,7 @@ slug: factory-project-lifecycle
 title: Factory Project Lifecycle — Create, Import, Open
 status: approved
 implementation: in-progress
-amended: "2026-06-27"
+amended: "2026-06-28"
 amendment_record: |
   amended by spec 199 (2026-06-11), editorial: factory-project-detect's
   current-protocol test fixtures use the live names (templateName
@@ -624,7 +624,7 @@ scaling. Per-cloud `StorageClass` overrides land in
 `platform/charts/stagecraft/values-{azure,aws,gcp,do,hetzner}.yaml`;
 Hetzner uses the `hcloud-volumes` cluster-default and needs no override.
 
-### 5.3.1 Generator-product split: the two-cache warmup *(amended 2026-06-27)*
+### 5.3.1 Generator-product split: the two-cache warmup *(amended 2026-06-27, refined 2026-06-28)*
 
 After the 2026-05-04 and 2026-06-11 amendments, the owned upstreams executed
 the **generator-product split** recorded in
@@ -674,18 +674,29 @@ point by profile, exactly as it did when both scripts lived in the template
 repo.
 
 **Profile module sets become manifest-authoritative** *(this supersedes the
-2026-06-11 "empty profile built-ins" stance for the template adapter)*.
-`setup-app.ts` itself composes no modules from a profile; it only sets
-`AUTH_DRIVER`. The adapter manifest's `profiles[].modules` is the authority
-for which modules a profile ships by default (today: `internal` ships
-`["user-management"]`, all others `[]`). Warmup translates that manifest set
-into `--with <module>` flags at prebuild, so an `internal` prebuild contains
-`user-management` without the operator selecting it; user-selected extras
-continue to compose per-request via operation 3. Reading the default set from
+2026-06-11 "empty profile built-ins" stance for the template adapter)*. The
+adapter manifest's `profiles[].modules` is the authority for which modules a
+profile ships by default (today: `internal` ships `["user-management"]`, all
+others `[]`). **The generator reads this authority directly.** `setup-app.ts`
+parses the adapter manifest (factory-encore `lib/adapter-manifest.ts`) and
+composes a profile's declared modules together with any `--with` extras,
+dependency-ordered and deduped, in addition to setting `AUTH_DRIVER`. So warmup
+runs `setup-app.ts --profile <name> --source _template-cache` with **no module
+translation of its own**: an `internal` prebuild contains `user-management`
+because the generator composed it from the manifest, not because warmup passed
+`--with`. An earlier draft of this amendment had warmup translate
+`profiles[].modules` into `--with` flags; that is superseded by the
+generator-side reading, which keeps the generator self-contained (it produces a
+correct app run standalone, with no orchestrator that must know the
+profile-default set) and avoids two places computing the same set. User-selected
+extras still compose per-request via operation 3 (`add-module.ts`); in
+factory-encore `setup-app` and `add-module` share one `install-module` path, so
+prebuild and per-request composition are identical. Reading the default set from
 the manifest rather than from a stagecraft-side table is the thin-consumer
-posture (spec 199): the manifest is the authority, stagecraft consumes it.
-`moduleCatalog.ts` remains the UI display/ordering catalog only; its module
-ids still mirror the adapter's `modules/`.
+posture (spec 199): the manifest is the authority, the generator and stagecraft
+consume it. `moduleCatalog.ts` remains the UI display/ordering catalog only (its
+module ids still mirror the adapter's `modules/`); the profile-default authority
+is the manifest read by the generator, not a stagecraft table.
 
 **VCS-free output is preserved automatically.** Operations 2 and 3 already run
 under `NO_INSTALL=true`, which in the moved generator implies `--no-git`
@@ -694,18 +705,57 @@ The §5.3 strip-`.git`-at-any-depth defense in operation 3's copy is retained
 as belt-and-suspenders, so the 2026-06-09 dual-profile `git add -A` exit-128
 failure mode cannot recur.
 
-**Cache invalidation spans both upstreams.** The prebuilt cache key combines
-the template-encore and factory-encore HEAD SHAs (a new module or a
-generator-script change in factory-encore invalidates the prebuilds), and the
-background refresher polls both repos' branch HEADs.
+**Cache invalidation spans both upstreams, and prebuilds are immutable
+snapshots.** The prebuilt cache key combines the resolved template-encore and
+factory-encore SHAs (a new module or a generator-script change in factory-encore
+invalidates the prebuilds), and the background refresher polls both repos'
+branch HEADs. Prebuilds are materialised under a **SHA-stamped, immutable**
+directory (`_prebuilt/<combined-sha>/<profile>`) behind an atomically-swapped
+`current` pointer: the refresher writes a new sha-dir and flips the pointer with
+`rename` (the same temp-then-rename discipline the cache clone already uses),
+and an old sha-dir is removed only after in-flight requests referencing it have
+drained. This replaces the in-place `rm`-then-regenerate of the prior
+implementation, which could expose a half-written tree to a per-request copy
+already in flight when a refresh begins.
+
+**Concurrency and isolation.** Concurrent creates do not interfere: each request
+copies its chosen prebuilt into a unique per-request temp dir
+(`create.ts` `mkdtemp`), reading the immutable sha-stamped prebuilt read-only, so
+two operators creating different profiles at the same time (e.g. `public` and
+`dual`) never share a tree. Warmup is single-pod by construction: the workspace
+PVC is `ReadWriteOnce` and the chart fails to render with `replicaCount > 1` when
+persistence is enabled (`platform/charts/stagecraft/templates/workspace-pvc.yaml`),
+so no second replica mutates the shared prebuilts; a single-flight guard prevents
+the startup warmup and the 30-minute refresher from regenerating concurrently
+in-pod. (Horizontal scaling requires `persistence.enabled=false`, in which case
+each pod self-warms its own ephemeral workspace and the same isolation holds.)
+
+**Freshness posture.** Prebuilds are keyed by the SHAs warmup recorded for the
+admitted scaffold refs, so create scaffolds from the content the warmup
+materialised, never from an arbitrary live `main`. Three freshness cases: no
+admission at all is a hard pre-flight block (`create.ts` `failedPrecondition`,
+"run factory-sync"); an admission that advanced past the local prebuild
+auto-rebuilds the prebuild via the SHA cache-key mismatch (no operator action);
+and an upstream `main` that has moved ahead of the admitted content is an
+**advisory** ("updates available, re-sync to admit"), not a hard create gate,
+because creating from admitted-but-not-latest content is the governed,
+reproducible behaviour. Freezing the exact admitted SHA *at admission time*
+(so `ScaffoldResolution` records a SHA, not only a `ref`, and warmup clones that
+SHA rather than the branch tip) is a stronger governance posture tracked
+separately under specs 198/199; this amendment does not change the admission
+contract.
 
 **Diff surface (pending implementation).** The implementation will be
 confined to the spec-112-owned `scaffold/`
 directory: `templateCache.ts` (second clone, repointed script/`tsx` paths,
-`--source`, combined cache key, dual-repo poll), `scheduler.ts` (resolve the
+`--source`, `--profile` only with no warmup-side module translation, SHA-stamped
+immutable prebuilds + atomic `current`-pointer swap, single-flight warmup,
+combined cache key, dual-repo poll), `scheduler.ts` (resolve the
 `legacy-mixed` row into the context, `no-factory-source` variant), and
-`perRequestScaffold.ts` (repointed `add-module.ts` path). `admission.ts`,
-`upstreams.ts`, `create.ts`, and `moduleCatalog.ts` are unchanged.
+`perRequestScaffold.ts` (repointed `add-module.ts` path, copy from the
+sha-stamped snapshot). `admission.ts`, `upstreams.ts`, `create.ts`, and
+`moduleCatalog.ts` are unchanged (the profile-default authority is the manifest,
+read by the generator, so stagecraft needs no module-translation table).
 
 ### 5.4 Stagecraft–OPC boundary
 
@@ -1416,6 +1466,25 @@ this tree reads them.
   scaffolded project, advancing stage state and emitting artifacts.
 
 ## Amendment record
+
+**Amendment 2026-06-28 (record: §5.3.1 refinement, generator-reads + concurrency).**
+Refines the 2026-06-27 §5.3.1 amendment after the factory-encore STRUCT-1/2/3
+change shipped. Two corrections: (1) profile-default modules are read by the
+**generator** (`setup-app.ts` parses the manifest's `profiles[].modules` via
+factory-encore `lib/adapter-manifest.ts` and composes them through the shared
+`lib/install-module.ts`), so warmup runs `setup-app.ts --profile --source` with
+no `--with` translation of its own; the earlier "warmup translates to `--with`"
+wording is superseded (the prior text claimed `setup-app.ts` composes no profile
+modules, which the shipped generator contradicts). (2) Prebuilds are materialised
+as SHA-stamped immutable snapshots behind an atomically-swapped `current`
+pointer, with a single-flight warmup, so the 30-minute refresher cannot expose a
+half-written tree to an in-flight per-request copy; concurrent creates stay
+isolated via per-request `mkdtemp`, and the chart enforces single-pod warmup
+(RWO PVC, `replicaCount=1`). Adds a freshness posture (no-admission is a hard
+block, admission-advance auto-rebuilds, main-ahead is advisory) and records that
+freezing the admitted SHA at admission time is a separate specs-198/199 posture
+not changed here. No contract change to §5.3's six operations or the admission
+record.
 
 **Amendment 2026-06-27 (record: factory-encore generator-product split).**
 §5.3's scaffold topology is corrected for the executed generator-product

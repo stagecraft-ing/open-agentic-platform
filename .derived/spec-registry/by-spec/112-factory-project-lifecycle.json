@@ -78,7 +78,7 @@
       }
     ],
     "extraFrontmatter": {
-      "amended": "2026-06-27",
+      "amended": "2026-06-28",
       "slug": "factory-project-lifecycle"
     },
     "id": "112-factory-project-lifecycle",
@@ -131,7 +131,7 @@
       "5.1.1 Scaffold-readiness gate",
       "5.2 Backend — `api/projects/create.ts`",
       "5.3 What is absorbed from template-distributor",
-      "5.3.1 Generator-product split: the two-cache warmup *(amended 2026-06-27)*",
+      "5.3.1 Generator-product split: the two-cache warmup *(amended 2026-06-27, refined 2026-06-28)*",
       "5.4 Stagecraft–OPC boundary",
       "6. Stagecraft Import Path",
       "6.1 UI — `/app/projects/import`",
@@ -158,6 +158,6 @@
     "summary": "Defines the contract-anchored lifecycle for factory-produced projects across three entry points: (1) OPC opens a local folder and recognises it as a factory project via ACP pipeline-state conformance; (2) Stagecraft creates a new project by scaffolding an adapter and pushing to GitHub; (3) Stagecraft imports an existing GitHub repo and registers it in the workspace. Anchors detection on the ACP contract layer (spec 074) and extends the translator (spec 108) to bridge legacy `legacy-factory`-shaped manifests. Absorbs the scaffold/push capability currently in the external `template-distributor` repo into stagecraft; template-distributor is discontinued as a separate service.\n",
     "title": "Factory Project Lifecycle — Create, Import, Open"
   },
-  "shardHash": "3293c75c2fdadd4634d5df71e0111b8f7b472cb3b6f7621babcc13f85410c10a",
+  "shardHash": "57d1ebb3d55745238845b641649b94eab50190bbb3b6cd377cc41a11749bcf73",
   "specVersion": "1.1.0"
 }

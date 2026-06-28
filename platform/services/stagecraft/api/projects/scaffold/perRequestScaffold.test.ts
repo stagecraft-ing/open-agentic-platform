@@ -15,7 +15,10 @@ import { scaffoldFromPrebuilt } from "./perRequestScaffold";
 
 function makeWorkspaceWithDualPrebuilt(): string {
   const ws = mkdtempSync(join(tmpdir(), "scaffold-vcs-test-"));
-  const prebuilt = join(ws, "_prebuilt-dual");
+  // Spec 112 §5.3.1: prebuilds are SHA-stamped immutable snapshots behind a
+  // `current` pointer (`_prebuilt/<combined-sha>/<profile>`).
+  const sha = "tmpl00000000-fact00000000";
+  const prebuilt = join(ws, "_prebuilt", sha, "dual");
 
   // Mirror what setup-dual-app.ts emits: two variant trees, each with an
   // embedded `git init` (.git dir, no commits), plus a root-level .git
@@ -46,6 +49,8 @@ function makeWorkspaceWithDualPrebuilt(): string {
   mkdirSync(join(prebuilt, "node_modules", "left-pad"), { recursive: true });
   writeFileSync(join(prebuilt, "node_modules", "left-pad", "index.js"), "");
   writeFileSync(join(prebuilt, "README.md"), "# dual\n");
+  // Publish the snapshot pointer the per-request copy resolves.
+  writeFileSync(join(ws, "_prebuilt", "current"), sha);
   return ws;
 }
 
