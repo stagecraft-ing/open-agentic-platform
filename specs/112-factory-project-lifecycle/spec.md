@@ -3,8 +3,8 @@ id: "112-factory-project-lifecycle"
 slug: factory-project-lifecycle
 title: Factory Project Lifecycle — Create, Import, Open
 status: approved
-implementation: complete
-amended: "2026-06-12"
+implementation: in-progress
+amended: "2026-06-27"
 amendment_record: |
   amended by spec 199 (2026-06-11), editorial: factory-project-detect's
   current-protocol test fixtures use the live names (templateName
@@ -39,6 +39,20 @@ amendment_record: |
   the stamp is 167's concept — plan G4); this entry is the narrative record on
   112's side. No project-lifecycle contract change: the stamp is one
   additional commit-#1 artifact alongside `.factory/pipeline-state.json`.
+  self-amended (2026-06-27) - §5.3 scaffold topology corrected for the
+  factory-encore generator-product split (docs/analysis/
+  acme-vue-encore-generator-product-split.md). The create-time generator
+  (scripts/) and the module catalog (modules/) moved out of the
+  scaffold-source repo (template-encore) into the factory-encore adapter
+  (adapters/acme-vue-encore/), and the scaffold-source repo became a lean
+  baseline. Warmup now clones BOTH owned upstreams: factory-encore for the
+  generator + modules + tsx, template-encore as the --source baseline, and
+  runs the adapter's manifest-declared entry_point. New §5.3.1 records the
+  two-cache model. Confined to the spec-112-owned scaffold/ directory
+  (templateCache.ts, scheduler.ts, perRequestScaffold.ts); no admission or
+  DB-schema change, because the factory-encore repo+ref is already resolvable
+  from the existing legacy-mixed factory_upstreams row. The six-operation
+  decomposition is unchanged; only operations 1 to 3's source topology moves.
 owner: bart
 created: "2026-04-22"
 kind: platform
@@ -548,7 +562,7 @@ the code.
 |---|---|---|---|
 | 1 | Template cache clone + `npm install` + upstream-SHA refresh | `ensureTemplateCache`, server.ts:329-375 | `api/projects/scaffold/templateCache.ts` (per-workspace cache, keyed on `factory_adapters.source_sha`) |
 | 2 | Profile prebuilds (minimal/public/internal/dual) | `ensurePrebuilts`, server.ts:377-446 | `api/projects/scaffold/templateCache.ts` (warm-on-startup; profile set is **stagecraft-owned**, mirroring template-distributor's hardcoded set in `moduleCatalog.ts` — amends 2026-05-04 per spec 138 §2.1. Manifest §8 `scaffold.profiles` remains forward-compat for non-template adapters) |
-| 3 | Per-request scaffold: copy prebuilt + run `setup-*.ts` + `add-module.ts` for extras | server.ts:613-760 | `api/projects/scaffold/runAdapterScaffold.ts` (Node-24 subprocess in a per-request temp dir, concurrency-bounded) |
+| 3 | Per-request scaffold: copy prebuilt + run `setup-*.ts` + `add-module.ts` for extras | server.ts:613-760 | `api/projects/scaffold/perRequestScaffold.ts` (Node-24 subprocess in a per-request temp dir, concurrency-bounded) |
 | 4 | Create GitHub repo + grant team admin (with retry) | `createRepo` + `teams.addOrUpdateRepoPermissionsInOrg`, server.ts:865-897 | `api/projects/scaffold/githubRepoCreate.ts` |
 | 5 | Initial git commit + authed push to `main` | server.ts:899-927 | `api/projects/scaffold/githubPushInitial.ts` — uses the existing App installation token via `authedGitUrl` pattern (server.ts:285-300) |
 | 6 | Post-push cleanup of server-side working tree | server.ts:929-931 | Inlined in the scaffold handler; temp dir is dropped after successful push |
@@ -609,6 +623,89 @@ while persistence is enabled because RWO is incompatible with horizontal
 scaling. Per-cloud `StorageClass` overrides land in
 `platform/charts/stagecraft/values-{azure,aws,gcp,do,hetzner}.yaml`;
 Hetzner uses the `hcloud-volumes` cluster-default and needs no override.
+
+### 5.3.1 Generator-product split: the two-cache warmup *(amended 2026-06-27)*
+
+After the 2026-05-04 and 2026-06-11 amendments, the owned upstreams executed
+the **generator-product split** recorded in
+`docs/analysis/acme-vue-encore-generator-product-split.md`. The create-time
+generator (`scripts/`) and the module catalog (`modules/`) moved out of the
+scaffold-source repo (`template-encore`) into the **factory-encore adapter**
+at `adapters/acme-vue-encore/`; `template-encore` became a lean, runnable
+baseline carrying no generator machinery. This invalidates the §5.3
+assumption (rows 1 to 3) that the generator scripts and `tsx` live inside the
+cloned scaffold-source tree. The six-operation decomposition is unchanged;
+only the **source topology** of operations 1 to 3 changes.
+
+**Two caches, not one.** Warmup clones both owned upstreams into the workspace:
+
+| Cache | Repo (`factory_upstreams` row) | Carries | Role |
+|---|---|---|---|
+| `_factory-cache` | factory-encore (`source_id = legacy-mixed`, role `mixed`) | `adapters/acme-vue-encore/{scripts,modules}/` + `tsx` devDep | the generator + module catalog |
+| `_template-cache` | template-encore (`source_id = legacy-template-mixed`, role `scaffold`) | lean `apps/`, `packages/` baseline | the `--source` baseline the generator composes onto |
+
+Operations 1 to 3 of §5.3 are re-bound accordingly:
+
+| §5.3 op | Was | Now |
+|---|---|---|
+| 1 (cache clone + `npm install`) | clone scaffold-source only | clone **both** upstreams; `npm install` in each (`tsx` resolves from `_factory-cache`) |
+| 2 (profile prebuilds) | run `_template-cache/scripts/setup-*.ts` | run `_factory-cache/adapters/acme-vue-encore/scripts/setup-*.ts --source _template-cache` |
+| 3 (per-request module compose) | run `_template-cache/scripts/add-module.ts` | run `_factory-cache/.../scripts/add-module.ts` with `ROOT=<dest>` |
+
+**Factory-encore coordinates need no new admission fact.** The adapter's
+`scaffold.source.remote` continues to resolve template-encore into
+`admission.scaffoldResolutions` (spec 199 FR-009). The factory-encore
+repo+ref is a configuration fact read directly from the `legacy-mixed`
+`factory_upstreams` row via
+`resolveScaffoldUpstream(orgId, LEGACY_SINGLETON_SOURCE_ID)`; the admission
+record and DB schema are unchanged. `WarmupContext` gains `factoryRepoUrl` /
+`factoryRef`, and an unconfigured factory upstream surfaces as a
+`no-factory-source` warmup-resolution failure (a sibling of the existing
+warmup blockers, not a new admission gate).
+
+**Entry-point dispatch is manifest-declared.** The generator exposes two
+entry points, both declared in the adapter manifest's
+`governance.scaffold_execution.entry_points_from` (a field owned by spec 198,
+not re-authored here): the single-app `scaffold.entry_point`
+(`scripts/setup-app.ts`, for the `minimal` / `public` / `internal` profiles)
+and the dual-app `dual_stack.generator` (`scripts/setup-dual-app.ts`, for
+`dual`, which takes no `--profile`). The prebuild step selects the entry
+point by profile, exactly as it did when both scripts lived in the template
+repo.
+
+**Profile module sets become manifest-authoritative** *(this supersedes the
+2026-06-11 "empty profile built-ins" stance for the template adapter)*.
+`setup-app.ts` itself composes no modules from a profile; it only sets
+`AUTH_DRIVER`. The adapter manifest's `profiles[].modules` is the authority
+for which modules a profile ships by default (today: `internal` ships
+`["user-management"]`, all others `[]`). Warmup translates that manifest set
+into `--with <module>` flags at prebuild, so an `internal` prebuild contains
+`user-management` without the operator selecting it; user-selected extras
+continue to compose per-request via operation 3. Reading the default set from
+the manifest rather than from a stagecraft-side table is the thin-consumer
+posture (spec 199): the manifest is the authority, stagecraft consumes it.
+`moduleCatalog.ts` remains the UI display/ordering catalog only; its module
+ids still mirror the adapter's `modules/`.
+
+**VCS-free output is preserved automatically.** Operations 2 and 3 already run
+under `NO_INSTALL=true`, which in the moved generator implies `--no-git`
+(suppressing the per-variant `git init` for both single and dual profiles).
+The §5.3 strip-`.git`-at-any-depth defense in operation 3's copy is retained
+as belt-and-suspenders, so the 2026-06-09 dual-profile `git add -A` exit-128
+failure mode cannot recur.
+
+**Cache invalidation spans both upstreams.** The prebuilt cache key combines
+the template-encore and factory-encore HEAD SHAs (a new module or a
+generator-script change in factory-encore invalidates the prebuilds), and the
+background refresher polls both repos' branch HEADs.
+
+**Diff surface (pending implementation).** The implementation will be
+confined to the spec-112-owned `scaffold/`
+directory: `templateCache.ts` (second clone, repointed script/`tsx` paths,
+`--source`, combined cache key, dual-repo poll), `scheduler.ts` (resolve the
+`legacy-mixed` row into the context, `no-factory-source` variant), and
+`perRequestScaffold.ts` (repointed `add-module.ts` path). `admission.ts`,
+`upstreams.ts`, `create.ts`, and `moduleCatalog.ts` are unchanged.
 
 ### 5.4 Stagecraft–OPC boundary
 
@@ -1319,6 +1416,27 @@ this tree reads them.
   scaffolded project, advancing stage state and emitting artifacts.
 
 ## Amendment record
+
+**Amendment 2026-06-27 (record: factory-encore generator-product split).**
+§5.3's scaffold topology is corrected for the executed generator-product
+split (`docs/analysis/acme-vue-encore-generator-product-split.md`): the
+generator (`scripts/`) and module catalog (`modules/`) moved from the
+scaffold-source repo into the factory-encore adapter, and the scaffold-source
+repo became a lean baseline. New §5.3.1 records the resulting two-cache
+warmup: clone factory-encore (`_factory-cache`: generator + modules + `tsx`)
+and template-encore (`_template-cache`: baseline), run the adapter's
+manifest-declared `setup-app.ts` / `setup-dual-app.ts` with
+`--source _template-cache`, and compose modules from the factory cache. Three
+consequences worth flagging: (1) factory-encore coordinates are resolvable
+from the existing `legacy-mixed` `factory_upstreams` row, so no admission or
+DB-schema change is needed; (2) profile module sets become
+manifest-authoritative (`profiles[].modules` drives `--with` at prebuild),
+superseding the 2026-06-11 "empty profile built-ins" stance for the template
+adapter; (3) the contract decomposition of §5.3's six operations is
+unchanged, only operations 1 to 3's source topology. Confined to the
+spec-112-owned `scaffold/` directory; the
+`governance.scaffold_execution` / `dual_stack.generator` manifest fields are
+owned by spec 198 and only referenced here.
 
 **Amendment 2026-06-11 (record: 138 audit trail, spec 199 FR-007).**
 The §5.3 module catalog this spec established was cut over from the

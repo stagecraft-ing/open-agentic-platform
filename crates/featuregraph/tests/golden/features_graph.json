@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:4bf1fa0679233fbadd817e34b3f1a0e6d9c3bfd9924df7b2e439e42a846f24c1",
+  "graph_fingerprint": "sha256:369571df31cc98621aad3e48fa7fe73c3909009bedf0ae6a4b7e9eac6587771b",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -2151,7 +2151,7 @@
       "title": "Factory Project Lifecycle — Create, Import, Open",
       "spec_path": "specs/112-factory-project-lifecycle/spec.md",
       "status": "approved",
-      "implementation": "complete",
+      "implementation": "in-progress",
       "governance": "",
       "owner": "bart",
       "group": "",
