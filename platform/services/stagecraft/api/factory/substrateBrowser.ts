@@ -148,5 +148,8 @@ export async function loadSubstrateForOrg(
     templateSourceSha: templateSha,
     factoryOriginId: factoryOriginId ?? "",
     templateOriginId: templateOriginId ?? "",
+    // Reload from stored rows: nothing is skipped on a serve-path rebuild
+    // (the NUL-byte guard only applies to a live upstream walk).
+    skippedBinaryPaths: [],
   };
 }

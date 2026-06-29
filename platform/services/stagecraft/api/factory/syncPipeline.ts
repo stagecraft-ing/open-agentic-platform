@@ -62,6 +62,17 @@ export async function runSyncPipeline(
   const translation = await cloneAndTranslate(inputs);
   const syncedAt = new Date();
 
+  // Surface any binary files the translator skipped (NUL byte in body cannot
+  // be stored in the UTF-8 TEXT substrate). Logged rather than dropped
+  // silently so a stray binary in an upstream repo is visible, not invisible.
+  if (translation.substrate.skippedBinaryPaths.length > 0) {
+    log.warn("factory sync: skipped binary upstream files (not text-storable)", {
+      orgId: inputs.orgId,
+      count: translation.substrate.skippedBinaryPaths.length,
+      paths: translation.substrate.skippedBinaryPaths.slice(0, 50),
+    });
+  }
+
   // Spec 139 Constitution Check (Principle II) + SC-004: OAP-owned
   // contract schemas (`standards/schemas/factory/`) ride into the
   // substrate as `(oap-self, contract-schema)`. The retired example-

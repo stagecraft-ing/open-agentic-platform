@@ -48,6 +48,12 @@ refines:
     unit: { kind: file, path: platform/services/stagecraft/api/factory/substrateBrowser.ts }
   - aspect: "owned-source-classification"
     unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.ts }
+  - aspect: "binary-ingest-guard"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/translator.test.ts }
+  - aspect: "binary-ingest-guard"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/syncPipeline.ts }
+  - aspect: "binary-ingest-guard"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/syncWorker.ts }
 supersedes:
   - spec: "108-factory-as-platform-feature"
     scope: partial
@@ -249,6 +255,29 @@ without `Factory Agent/…` dependence; the orchestrator
 (`process/agents/pipeline-orchestrator.md`) MUST be recognizable as the pipeline
 orchestrator. `FACTORY_SOURCE_EXCLUDES` / `TEMPLATE_EXCLUDES` MUST be reviewed
 against the owned repos and stripped of dead org-specific entries.
+
+**Amendment (2026-06-29): `website/` exclusion and binary-content guard.**
+The owned repos now carry a Docusaurus documentation site under `website/`
+whose static assets (`favicon.ico`, fonts, social-card images) are binary.
+The substrate body columns (`upstream_body` / `user_body` / `effective_body`)
+are UTF-8 `text`; a NUL byte (`0x00`) in a binary file is rejected by Postgres
+("invalid byte sequence for encoding UTF8: 0x00"), which aborts the ingest
+transaction. Because the failure message embeds the offending payload, the
+`failRun` write that should record the failure ALSO fails on the same NUL byte,
+so the run never leaves `running` and is NSQ-requeued into a permanent stuck
+state (observed in production 2026-06-27). FR-008 therefore additionally
+requires:
+
+1. `website/` is documentation, never factory or template content, and MUST be
+   excluded by both `FACTORY_SOURCE_EXCLUDES` and `TEMPLATE_EXCLUDES`.
+2. The upstream walker MUST skip any file whose body contains a NUL byte
+   (defense-in-depth for binary content the path excludes miss), surfacing the
+   skipped paths (`skippedBinaryPaths`) on the translation result so they are
+   logged rather than silently dropped.
+3. The sync worker's failure-recording path (`failRun`) MUST sanitize the error
+   string (strip NUL bytes, cap length) before writing it to the `text`
+   columns, so recording a failure can never itself throw. Recording a failure
+   is the recovery path and must always succeed.
 
 ### FR-009 — Preserve the factory↔template split; scaffold source resolved at admission
 

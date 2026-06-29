@@ -165,21 +165,39 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
   }
 }
 
+/**
+ * Sanitize a pipeline error before it is written to the `error` /
+ * `last_sync_error` TEXT columns. A failure message can embed the offending
+ * payload (e.g. a Postgres error quoting the binary INSERT params), and a NUL
+ * byte there would make the failRun UPDATE itself throw "invalid byte sequence
+ * for encoding UTF8: 0x00", leaving the run stuck `running` forever with the
+ * message NSQ-requeued. Strip NUL bytes and cap length so recording a failure
+ * can never fail. This is the recovery path; it must always succeed.
+ */
+function sanitizeRunError(message: string): string {
+  const stripped = message.replace(/\u0000/g, "");
+  const MAX = 8000;
+  return stripped.length > MAX
+    ? `${stripped.slice(0, MAX)}… [truncated ${stripped.length - MAX} chars]`
+    : stripped;
+}
+
 async function failRun(
   req: FactorySyncRequest,
   message: string
 ): Promise<void> {
   const completedAt = new Date();
+  const safeMessage = sanitizeRunError(message);
   await db
     .update(factorySyncRuns)
-    .set({ status: "failed", error: message, completedAt })
+    .set({ status: "failed", error: safeMessage, completedAt })
     .where(eq(factorySyncRuns.id, req.syncRunId));
 
   await db
     .update(factoryUpstreams)
     .set({
       lastSyncStatus: "failed",
-      lastSyncError: message,
+      lastSyncError: safeMessage,
       updatedAt: completedAt,
     })
     .where(
@@ -194,7 +212,7 @@ async function failRun(
     action: "factory.upstreams.sync_failed",
     targetType: "factory_sync_runs",
     targetId: req.syncRunId,
-    metadata: { orgId: req.orgId, error: message },
+    metadata: { orgId: req.orgId, error: safeMessage },
   });
 }
 
