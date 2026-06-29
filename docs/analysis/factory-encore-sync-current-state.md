@@ -20,6 +20,12 @@
 > verified 2026-06-24; and (2) the section 5 factory-vs-template question
 > was resolved by the generator/product split recorded in
 > [`acme-vue-encore-generator-product-split.md`](./acme-vue-encore-generator-product-split.md).
+>
+> **Current successor (2026-06-27):**
+> [`factory-system-current-state.md`](./factory-system-current-state.md) is the
+> live full current-state map (all three repos, the sync / create / module
+> flows, plus the misalignment ledger). Read it instead of this file for
+> current state.
 
 ---
 
