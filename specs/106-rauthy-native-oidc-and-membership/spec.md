@@ -26,6 +26,12 @@ extends:
   - spec: "080-github-identity-onboarding"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthy.ts }
+  - spec: "080-github-identity-onboarding"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthyCallback.ts }
+  - spec: "080-github-identity-onboarding"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/signin.tsx }
   - spec: "087-unified-workspace-architecture"
     nature: additive
     unit: { kind: directory, path: platform/charts/rauthy }
@@ -333,6 +339,23 @@ is kept only long enough to cut over and is deleted in this spec's
 implementation. Error codes documented in spec 080 FR-002 are preserved
 where the failure mode still exists; new codes are added for
 PAT-specific failures (see FR-006).
+
+**Amendment (2026-06-29): login entry points and the signin page.** The web
+login entry is `GET /auth/rauthy` (idp_hint=github) and, alongside it,
+`GET /auth/google` (idp_hint=google). Both run the identical PKCE + state flow
+(a shared `startUpstreamLogin(providerName)` helper in `rauthyCallback.ts`) and
+forward to the same `/auth/rauthy/callback`; they differ only in which Rauthy
+upstream they hint. `idp_hint` resolution is best-effort: an unresolved
+provider id omits the hint and Rauthy shows its own selector (never worse than
+no hint). The Google upstream is the one this spec already documents as
+manually registered in the Rauthy admin UI (see the 2026-05-17 amendment); for
+the hint to skip the selector, that upstream MUST be named `google`. The signin
+page (`web/app/routes/signin.tsx`) therefore offers exactly two governed
+entry points, "Continue with GitHub" and "Continue with Google". The earlier
+enterprise-email / "Continue with enterprise SSO" box is removed from the signin
+page; the backend enterprise OIDC endpoints (`/auth/oidc*`) remain for
+admin-configured providers but are no longer surfaced as a primary signin
+option.
 
 ### FR-005: Membership resolution strategy chain
 
