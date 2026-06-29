@@ -749,3 +749,16 @@ truth: destination-side containment for pod-addressable targets does
 not currently exist and returns with each target namespace's own
 default-deny under its owning spec (per the corrected FR-006). No
 behavioral change — comment only.
+
+## Supersession addendum (2026-06-29): config unification
+
+FR-009 (Azure binding deferred-null: `infra.config.json` is never given the
+metrics block) and SC-004 (a `git diff` proves `infra.config.json` untouched)
+are superseded by the later config unification. The two per-cloud Encore infra
+configs were merged into a single `infra.config.json`, because the metrics
+`remote_write_url` is a cluster-internal service name
+(`monitoring-prometheus.monitoring.svc.cluster.local`) identical on every
+cloud. The metrics block therefore now lives in that one config and applies to
+every cloud the substrate targets, including Azure once it is stood up. The
+FR-001 refine unit is repointed to `infra.config.json`. This is a deliberate
+design change to FR-009/SC-004, not a drift correction.
