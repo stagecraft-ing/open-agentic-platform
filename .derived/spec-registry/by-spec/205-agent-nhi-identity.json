@@ -16,14 +16,6 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.up.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.down.sql"
-      },
-      {
-        "kind": "file",
         "path": "platform/services/stagecraft/api/audit/auditTwoPrincipal.test.ts"
       }
     ],
@@ -133,6 +125,6 @@
     "summary": "Give agents a governed identity distinct from the human who launched them. Today every agent session rides the user's Rauthy JWT: agent actions audit to the human, agent access cannot be revoked without killing the human's session, and least privilege per agent is structurally impossible — the exact \"attribution gap\" ASI03 names as the root cause of identity and privilege abuse. Factory runs already have the right fabric in miniature: spec 198 FR-005 run-grants are short-lived, audience-bound, stage-renewed credentials. This spec extends that fabric to interactive agent sessions: a per-agent-session non-human identity (NHI) minted through the platform, a recorded on-behalf-of delegation chain whose effective scope is the intersection of the human's scopes and the agent's admitted profile (never inheritance, ASI03 m7), task-scoped short-TTL tokens, and revocation that is independent in both directions.\n",
     "title": "Per-Agent Non-Human Identity and Task-Scoped Credentials (ASI03)"
   },
-  "shardHash": "cd7608140c0e446ded9897cee63398d7ce79230c9ebbb219cac150f7e37067b4",
+  "shardHash": "b1ecabf13f5c9248c9ade0f67cfd114f69836ae2206fa41ffa3cf0581711a737",
   "specVersion": "1.1.0"
 }

@@ -103,6 +103,27 @@
           "kind": "file",
           "path": "platform/services/stagecraft/api/factory/translator.ts"
         }
+      },
+      {
+        "aspect": "binary-ingest-guard",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/translator.test.ts"
+        }
+      },
+      {
+        "aspect": "binary-ingest-guard",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/syncPipeline.ts"
+        }
+      },
+      {
+        "aspect": "binary-ingest-guard",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/syncWorker.ts"
+        }
       }
     ],
     "sectionHeadings": [
@@ -148,6 +169,6 @@
     ],
     "title": "Thin-Consumer Factory Sync for Owned Sources"
   },
-  "shardHash": "f5d356d50ae0a03bc94b8817e43b8e3d07fca1526bc009d03bfaf13f9eaf371f",
+  "shardHash": "8c32807bbd49a1b1cd04bba49c31fff0da97847a6b6cb28bb64612a46c5a0893",
   "specVersion": "1.1.0"
 }

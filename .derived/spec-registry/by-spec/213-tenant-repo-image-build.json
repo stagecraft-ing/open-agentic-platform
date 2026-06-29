@@ -25,22 +25,6 @@
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/48_project_artifacts.up.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/48_project_artifacts.down.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/51_project_repos_unique_repo.up.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/51_project_repos_unique_repo.down.sql"
-      },
-      {
-        "kind": "file",
         "path": "platform/services/stagecraft/api/github/webhook.test.ts"
       }
     ],
@@ -157,6 +141,6 @@
     "summary": "Close the deferral spec 137 recorded as \"CI / container-build for tenant repos (separate spec)\". Today a factory-created project repo receives only the oap-verify.yml governance stub; nothing builds an OCI image for the scaffolded commit, and the GitHub webhook handler's preview-deploy path assumes a ghcr.io image tag that no workflow produces. This spec seeds an active container-build workflow into created repos, locks the image-ref naming convention (sha tags on every default-branch push, pr-N alias tags on pull requests, per-variant suffixes for dual-profile trees), and gives stagecraft a project_artifacts record plus a deterministic artifact-ref derivation so the deploy path (spec 215) can resolve \"the image for this commit\" without guessing.\n",
     "title": "Tenant Repo Image Build and Artifact-Ref Record"
   },
-  "shardHash": "5f9dc50e7ef9f93f0daf965407b30d6c786d51cbaf755f0ffd8f6dc536289325",
+  "shardHash": "b64ae2018f10cdfdbe1e08a1b5879dbb534a6cec2cd4e9502bcbf652b7442198",
   "specVersion": "1.1.0"
 }

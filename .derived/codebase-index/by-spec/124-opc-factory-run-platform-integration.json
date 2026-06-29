@@ -22,10 +22,6 @@
         "source": "comment-header"
       },
       {
-        "path": "platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql",
-        "source": "spec-edge"
-      },
-      {
         "path": "platform/services/stagecraft/api/factory/runs.ts",
         "source": "spec-edge"
       },
@@ -39,19 +35,6 @@
       }
     ],
     "resolvedUnits": [
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql"
-        }
-      },
       {
         "locations": [
           {
@@ -83,5 +66,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "51bdc85277ce1884421d290eea48b8e55c53232c29f0ebfeb3b75e217c6b77bd"
+  "shardHash": "d3dd388d952b375d7e7059313e0f0706cb3cf1fe0e863bbde6c2d821072c1e61"
 }

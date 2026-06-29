@@ -95,21 +95,10 @@ export default defineConfig({
       // Spec 143 FR-011 — server-side upload size cap. Live DB;
       // exercises requestUpload's APIError on sizeBytes > cap.
       "**/knowledge/requestUpload.integration.test.ts",
-      // Spec 140 Phase 1 — migration 36 idempotence test mutates
-      // `factory_artifact_substrate*` tables; runs under `encore test`.
-      "**/db/migrations/36_aim_vue_node_manifest_cutover.test.ts",
-      // Spec 141 — migration 37 idempotence + effect test mutates the
-      // same `factory_artifact_substrate*` + `factory_upstreams` tables.
-      "**/db/migrations/37_aim_vue_node_canonical_source_id.test.ts",
-      // Spec 142 — migration 38 effect test reads information_schema and
-      // round-trips a synthetic adapter id through `scaffold_jobs`; live db.
-      "**/db/migrations/38_factory_id_columns_to_text.test.ts",
-      // Spec 137 Phase 1 — migration 40 CHECK + CASCADE test mutates live
-      // `environments` + `environment_access_gates*` tables.
-      "**/db/migrations/40_environment_access_gates.test.ts",
-      // Spec 137 Phase 4↔5 integration — migration 41 deploy-descriptor
-      // secrets CHECK test mutates live `environment_access_gates`.
-      "**/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts",
+      // (Per-migration .test.ts files were removed by the spec 199-era
+      // migration squash: the 53 incremental migrations were consolidated into
+      // a single 1_baseline.up.sql, so the idempotence/effect tests for
+      // migrations 36/37/38/40/41 no longer have discrete files to exercise.)
       // Spec 140 Phase 2 — scaffold scheduler resolver test queries the
       // live `factory_upstreams` table.
       "**/projects/scaffold/scheduler.test.ts",

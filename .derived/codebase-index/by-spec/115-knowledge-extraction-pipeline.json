@@ -8,10 +8,6 @@
     ],
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql",
-        "source": "spec-edge"
-      },
-      {
         "path": "platform/services/stagecraft/api/knowledge/auditActions.ts",
         "source": "spec-edge"
       },
@@ -97,19 +93,6 @@
       }
     ],
     "resolvedUnits": [
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql"
-        }
-      },
       {
         "locations": [
           {
@@ -388,5 +371,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "b61c0678da7d1b23f78c13eb1f2cd8ad3a4c42591e4f66318d6e5d56d320b2da"
+  "shardHash": "316a8afd5cb8343d824450d7da62889253dfdd74e9e950588fd86a8a5c5a4285"
 }

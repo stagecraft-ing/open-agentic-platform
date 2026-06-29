@@ -49,6 +49,18 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/factory/syncPipeline.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/syncWorker.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/translator.test.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/factory/translator.ts",
         "source": "spec-edge"
       },
@@ -130,6 +142,45 @@
       {
         "locations": [
           {
+            "file": "platform/services/stagecraft/api/factory/syncPipeline.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/syncPipeline.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/syncWorker.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/syncWorker.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/translator.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/translator.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "platform/services/stagecraft/api/factory/translator.ts"
           }
         ],
@@ -193,5 +244,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "d9904fbf00bba9e6c80e2341be7c2fb6d19f3b24e013e4f38160d16922aaa9ac"
+  "shardHash": "665c4c546012ba4adb61e56315514174248a995e657074c9d3d0d1cc3ff5c91f"
 }

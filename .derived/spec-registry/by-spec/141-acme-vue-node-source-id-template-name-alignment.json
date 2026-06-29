@@ -12,20 +12,6 @@
       "140-acme-vue-node-scaffold-source-id-cutover"
     ],
     "domain": "platform",
-    "establishes": [
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.up.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.down.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.test.ts"
-      }
-    ],
     "extends": [
       {
         "nature": "additive",
@@ -127,6 +113,6 @@
     "summary": "Spec 140 §2.1 fixed the canonical scaffold_source_id for acme-vue-node as `acme-vue-node-template`. The upstream's own `template.json::templateName` is `acme-vue-node`. This amendment aligns the code constant, the migration-36 substrate row body, and the factory_upstreams source-id key with the upstream's self-declared name (one canonical id end-to-end), so the readiness gate resolves for orgs whose template upstream is registered via the legacy two-row form without re-entering the same repo URL.\n",
     "title": "Align acme-vue-node scaffold_source_id with template.json::templateName"
   },
-  "shardHash": "e3ed3a7aae86b5fd88e3f3d4fa81ed40279ff92822296fb9fb855e0411113aca",
+  "shardHash": "22f82370a44757efe3be12dee981a70286f545c9bafc3d850b789a1a69669c2c",
   "specVersion": "1.1.0"
 }

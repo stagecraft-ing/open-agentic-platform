@@ -22,12 +22,6 @@
       "122-stakeholder-doc-inversion"
     ],
     "domain": "platform",
-    "establishes": [
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql"
-      }
-    ],
     "extends": [
       {
         "nature": "wrapping",
@@ -196,6 +190,6 @@
     "summary": "Move the agent catalog back to org scope. Spec 119 collapsed workspace into project and rescoped agents to project_id along with knowledge, runs, grants, and connectors; the rescoping was correct for project-cohabiting data but wrong for agents, which are reusable governed capabilities consumed by org-level surfaces (Factory, policy bundles, audit). This spec amends 119 to restore agents to org scope without disturbing the rest of the collapse. Projects become catalog *consumers* via a `project_agent_bindings` join table that pins an org agent at a specific version. No per-binding override of the agent definition: bespoke needs fork a new org agent. Duplex sync (spec 111 §7) snaps back to org-scoped envelopes for the catalog itself; project-binding deltas flow as a separate envelope.\n",
     "title": "Agent Catalog Org-Rescope — Projects Consume, Org Governs"
   },
-  "shardHash": "2cd9558d6e60414269a410a8b984713381d9831147575b46a61a522cb3635be4",
+  "shardHash": "45a56045793a71e35176606e0c22b792ded4630f58b28b36967f02fa080067bc",
   "specVersion": "1.1.0"
 }

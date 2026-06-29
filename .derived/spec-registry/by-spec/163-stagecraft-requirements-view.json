@@ -24,14 +24,6 @@
       },
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.up.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.down.sql"
-      },
-      {
-        "kind": "file",
         "path": "platform/services/stagecraft/web/app/lib/spec-registry-api.server.ts"
       },
       {
@@ -138,6 +130,6 @@
     "summary": "The net-new `app.project.$projectId.requirements.tsx` route. Renders the spec-spine of the project — the authored specs that live under `<project>/specs/` inside the project repo — as the primary stakeholder-visible artifact of OAP's \"spec-spine as universal representation\" thesis (intent doc §2.4).\nGrouping is *derived*: the view walks the relationship graph at render time, filtering on `category:` / `kind:` / `references:` per spec 130 and spec 147, surfacing optional cosmetic group names as decoration on the derived groups. There is no `groups.yaml` config and no new spec-spine field — everything needed is already in authored frontmatter.\nThe view surfaces provenance badges per spec 161 for any spec derived from Knowledge or xray fingerprints, closing the AIDE-VELOCITY \"SharePoint document ↔ requirements.md by operational convention\" loop with a typed link.\nSpec 163 covers the **rendering** of the spec-spine inside stagecraft. Editing, approval, and lifecycle state transitions are covered by spec 164 (Development view) and a future review/approve spec; spec 163 is read-shaped and is the stakeholder lens on project intent.\n",
     "title": "Spec-spine Requirements view in stagecraft"
   },
-  "shardHash": "58f01624856624f3684c43f3d685bfda44b182a06417f2db49fd1d66d1bf4d0f",
+  "shardHash": "c181b71a347211e0fa36540d038522eaf169e248031e98e210e4c98faaa79585",
   "specVersion": "1.1.0"
 }

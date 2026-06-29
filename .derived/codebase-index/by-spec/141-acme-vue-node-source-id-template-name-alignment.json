@@ -23,18 +23,6 @@
     ],
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.down.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.test.ts",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.up.sql",
-        "source": "spec-edge"
-      },
-      {
         "path": "platform/services/stagecraft/api/factory/artifacts.test.ts",
         "source": "spec-edge"
       },
@@ -64,45 +52,6 @@
       }
     ],
     "resolvedUnits": [
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.down.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.down.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.test.ts"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.test.ts"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.up.sql"
-        }
-      },
       {
         "locations": [
           {
@@ -217,5 +166,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "a29f2560a0823797a0379edc32eb9a5d11d1fafc87e4ac3e4a2b2b4d2c47685b"
+  "shardHash": "286decf7f53f1ab257ca031292044d0dce70cb06f79b929b43449cc34b644e75"
 }

@@ -29,10 +29,6 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql",
-        "source": "spec-edge"
-      },
-      {
         "path": "platform/services/stagecraft/api/factory/substrateBrowser.ts",
         "source": "spec-edge"
       },
@@ -78,19 +74,6 @@
       }
     ],
     "resolvedUnits": [
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql"
-        }
-      },
       {
         "locations": [
           {
@@ -270,5 +253,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "6773046aa51237151de2262e380d25f7b2bf0c6024c3618ef51fc5da92acbc1f"
+  "shardHash": "be6c14fc3a1868ee238233ba050ad7316f8e698644a888358cd022ea58b811c0"
 }
