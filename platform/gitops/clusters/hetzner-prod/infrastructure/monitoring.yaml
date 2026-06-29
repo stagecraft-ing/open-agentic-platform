@@ -91,7 +91,7 @@ spec:
   values:
     # Deterministic short object names: the Prometheus Service becomes
     # `monitoring-prometheus`, which is the literal DNS name stagecraft's
-    # infra.config.hetzner.json remote_write_url points at (FR-001).
+    # infra.config.json remote_write_url points at (FR-001).
     fullnameOverride: monitoring
     # Without clean names the operator-side objects double the suffix:
     # PVC `prometheus-monitoring-prometheus-db-prometheus-monitoring-prometheus-0`

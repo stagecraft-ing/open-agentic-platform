@@ -9,6 +9,8 @@ TF_ROOT      = infra/terraform
 TF_MODULES   = $(TF_ROOT)/modules
 CHARTS_ROOT  = charts
 HETZNER_ROOT = infra/hetzner
+# Operator kubeconfig lives outside the repo tree (see infra/hetzner/setup.sh).
+OAP_HETZNER_DIR ?= $(HOME)/.config/oap/infra/hetzner
 
 # --- Terraform env paths (cloud targets) ---
 TF_CORE    = $(TF_ROOT)/envs/$(ENV)/core
@@ -130,12 +132,12 @@ deploy-hetzner:
 	# here to eliminate the dual-writer hazard against the HelmRelease.
 	# stagecraft + deployd-api blocks below stay imperative until spec 152
 	# migrates them.
-	KUBECONFIG=$(HETZNER_ROOT)/kubeconfig helm upgrade --install stagecraft $(CHARTS_ROOT)/stagecraft \
+	KUBECONFIG=$(OAP_HETZNER_DIR)/kubeconfig helm upgrade --install stagecraft $(CHARTS_ROOT)/stagecraft \
 		--namespace stagecraft-system \
 		-f $(CHARTS_ROOT)/stagecraft/values.yaml \
 		-f $(CHARTS_ROOT)/stagecraft/values-hetzner.yaml \
 		--wait --timeout 300s
-	KUBECONFIG=$(HETZNER_ROOT)/kubeconfig helm upgrade --install deployd-api $(CHARTS_ROOT)/deployd-api \
+	KUBECONFIG=$(OAP_HETZNER_DIR)/kubeconfig helm upgrade --install deployd-api $(CHARTS_ROOT)/deployd-api \
 		--namespace deployd-system \
 		-f $(CHARTS_ROOT)/deployd-api/values.yaml \
 		-f $(CHARTS_ROOT)/deployd-api/values-hetzner.yaml \
@@ -154,7 +156,7 @@ docker-build-hetzner:
 	# to the same hashed asset names. Skipping this ships stale frontend
 	# and breaks hydration (observed 2026-05-07 hotfix attempt).
 	cd services/stagecraft && npm run build:frontend
-	cd services/stagecraft && encore build docker --config ./infra.config.hetzner.json $(HETZNER_REGISTRY)/stagecraft:latest
+	cd services/stagecraft && encore build docker --config ./infra.config.json $(HETZNER_REGISTRY)/stagecraft:latest
 
 docker-push-hetzner: docker-build-hetzner
 	docker push $(HETZNER_REGISTRY)/deployd-api:latest
@@ -220,7 +222,7 @@ dev-stagecraft-hetzner:
 	cd services/stagecraft && npm install --silent
 	$(HETZNER_ROOT)/mirrord/stagecraft-compile.sh
 	set -a && . $(HETZNER_ROOT)/mirrord/.stagecraft.env && set +a && \
-	KUBECONFIG=$(HETZNER_ROOT)/kubeconfig \
+	KUBECONFIG=$(OAP_HETZNER_DIR)/kubeconfig \
 	mirrord exec -f $(HETZNER_ROOT)/mirrord/stagecraft.yaml -- \
 		node services/stagecraft/.encore/build/combined/combined/main.mjs
 
@@ -235,7 +237,7 @@ dev-stagecraft-web-hetzner:
 
 dev-deployd-api-hetzner:
 	@command -v mirrord >/dev/null 2>&1 || { echo "mirrord not found. Install: curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash"; exit 1; }
-	KUBECONFIG=$(HETZNER_ROOT)/kubeconfig \
+	KUBECONFIG=$(OAP_HETZNER_DIR)/kubeconfig \
 	mirrord exec -f $(HETZNER_ROOT)/mirrord/deployd-api.yaml -- \
 		cargo run --manifest-path services/deployd-api-rs/Cargo.toml
 

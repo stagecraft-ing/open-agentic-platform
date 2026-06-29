@@ -2,7 +2,6 @@ import { api } from "encore.dev/api";
 import { secret } from "encore.dev/config";
 import log from "encore.dev/log";
 import { Subscription } from "encore.dev/pubsub";
-import { TransitionTopic } from "../monitor/check";
 import {
   FactoryEventTopic,
   type FactoryPipelineEvent,
@@ -31,16 +30,8 @@ export const notify = api<NotifyParams>({}, async ({ text }) => {
   }
 });
 
-// SLACK_WEBHOOK_URL defines the Slack webhook URL to send
-// uptime notifications to.
+// SLACK_WEBHOOK_URL defines the Slack webhook URL to send notifications to.
 const webhookURL = secret("SLACK_WEBHOOK_URL");
-
-const _ = new Subscription(TransitionTopic, "slack-notification", {
-  handler: async (event) => {
-    const text = `*${event.site.url} is ${event.up ? "back up." : "down!"}*`;
-    await notify({ text });
-  },
-});
 
 // ---------------------------------------------------------------------------
 // Factory Pipeline Notifications

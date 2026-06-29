@@ -41,7 +41,7 @@ mkdir -p "$(dirname "$MAIN_MJS")"
 rm -f "$MAIN_MJS" "$MAIN_MJS.map"
 
 echo "==> Compiling encore application (will cancel once main.mjs stabilises)..."
-encore build docker --arch "$ARCH" --config ./infra.config.hetzner.json \
+encore build docker --arch "$ARCH" --config ./infra.config.json \
     encore-scratch:cancel-then-scrape > /tmp/encore-scratch-build.log 2>&1 &
 ENCORE_PID=$!
 

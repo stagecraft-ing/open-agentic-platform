@@ -3,7 +3,7 @@
 # OAP Hetzner Setup — Single entrypoint for cluster + platform deployment
 # =============================================================================
 # Usage:
-#   1. cp .env.example .env && $EDITOR .env   # set HCLOUD_TOKEN
+#   1. cp .env.example ~/.config/oap/infra/hetzner/.env && $EDITOR it  # set HCLOUD_TOKEN
 #   2. ./setup.sh                              # Phase 1: cluster + secrets (Flux reconciles rauthy)
 #   3. Fill in GitHub + OIDC values in .env
 #   4. ./setup.sh                              # Phase 2: full platform
@@ -40,9 +40,16 @@ generate_enc_key()    { openssl rand -base64 32 | tr -d '\n'; echo; }
 # ---------------------------------------------------------------------------
 # Load .env
 # ---------------------------------------------------------------------------
-ENV_FILE="$SCRIPT_DIR/.env"
+# Operator state (.env + kubeconfig) lives outside the repo tree, under the
+# operator's XDG config home (same pattern as SOPS_AGE_KEY_FILE below). Override
+# OAP_HETZNER_DIR to relocate; if you do, also update cluster.yaml's
+# kubeconfig_path to match.
+OAP_HETZNER_DIR="${OAP_HETZNER_DIR:-$HOME/.config/oap/infra/hetzner}"
+mkdir -p "$OAP_HETZNER_DIR"
+ENV_FILE="$OAP_HETZNER_DIR/.env"
+KUBECONFIG_PATH="$OAP_HETZNER_DIR/kubeconfig"
 if [ ! -f "$ENV_FILE" ]; then
-  err ".env not found. Run:  cp .env.example .env  and set HCLOUD_TOKEN"
+  err ".env not found at $ENV_FILE. Run:  cp \"$SCRIPT_DIR/.env.example\" \"$ENV_FILE\"  and set HCLOUD_TOKEN"
 fi
 
 set -a
@@ -64,11 +71,11 @@ if [ "${1:-}" = "--clean" ]; then
   # password while a fresh one lands in .env, and every subsequent deploy
   # writes a stagecraft secret that can't authenticate (account_error in the
   # OAuth callback, etc).
-  if [ -f "$SCRIPT_DIR/kubeconfig" ]; then
+  if [ -f "$KUBECONFIG_PATH" ]; then
     warn "Destroying existing cluster..."
     hetzner-k3s delete --config "$SCRIPT_DIR/cluster.yaml" \
       || err "hetzner-k3s delete failed; cluster still exists. Refusing to clear .env secrets (would drift from live postgres)."
-    rm -f "$SCRIPT_DIR/kubeconfig"
+    rm -f "$KUBECONFIG_PATH"
     ok "Cluster destroyed and kubeconfig removed"
   else
     ok "No kubeconfig found, nothing to destroy"
@@ -164,8 +171,7 @@ SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
 # ---------------------------------------------------------------------------
 # Phase 1: Create K3s cluster (idempotent)
 # ---------------------------------------------------------------------------
-KUBECONFIG_PATH="$SCRIPT_DIR/kubeconfig"
-
+# KUBECONFIG_PATH was defined earlier ($OAP_HETZNER_DIR/kubeconfig).
 if [ ! -f "$KUBECONFIG_PATH" ]; then
   info "Creating Hetzner K3s cluster..."
   hetzner-k3s create --config "$SCRIPT_DIR/cluster.yaml"
@@ -484,7 +490,7 @@ fi
 # ---------------------------------------------------------------------------
 info "Phase 2: All values present — deploying full platform"
 
-STAGECRAFT_DB_URL="postgres://stagecraft:${POSTGRES_PASSWORD}@postgresql.stagecraft-system:5432/auth?sslmode=disable"
+STAGECRAFT_DB_URL="postgres://stagecraft:${POSTGRES_PASSWORD}@postgresql.stagecraft-system:5432/stagecraft?sslmode=disable"
 
 # Decode base64-encoded GitHub App private key
 GITHUB_APP_PRIVATE_KEY=$(echo "$GITHUB_APP_PRIVATE_KEY_B64" | base64 -d 2>/dev/null) \

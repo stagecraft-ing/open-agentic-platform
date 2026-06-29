@@ -9,7 +9,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLATFORM_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-KUBECONFIG_PATH="${KUBECONFIG:-$SCRIPT_DIR/kubeconfig}"
+KUBECONFIG_PATH="${KUBECONFIG:-${OAP_HETZNER_DIR:-$HOME/.config/oap/infra/hetzner}/kubeconfig}"
 
 if [ ! -f "$KUBECONFIG_PATH" ]; then
   echo "ERROR: Kubeconfig not found at $KUBECONFIG_PATH"
@@ -95,7 +95,7 @@ if helm status postgresql -n stagecraft-system >/dev/null 2>&1; then
        --image=bitnami/postgresql:latest \
        --env="PGPASSWORD=$POSTGRES_PASSWORD" \
        --command -- psql -h postgresql.stagecraft-system.svc.cluster.local \
-       -U stagecraft -d auth -tAc 'SELECT 1' </dev/null >/dev/null 2>&1; then
+       -U stagecraft -d stagecraft -tAc 'SELECT 1' </dev/null >/dev/null 2>&1; then
     cat >&2 <<'EOF'
 ERROR: POSTGRES_PASSWORD in .env does NOT authenticate against postgresql-0.
 The live postgres still has its old password (persisted on its PVC) while
@@ -129,20 +129,9 @@ else
     --namespace stagecraft-system \
     --set auth.username=stagecraft \
     --set auth.password="$POSTGRES_PASSWORD" \
-    --set auth.database=auth \
+    --set auth.database=stagecraft \
     --set primary.persistence.size=10Gi \
     --wait --timeout 300s
-
-  info "Creating additional databases..."
-  kubectl delete pod pg-init -n stagecraft-system --ignore-not-found=true
-  kubectl run pg-init --rm -i --restart=Never \
-    --namespace stagecraft-system \
-    --image=bitnami/postgresql:latest \
-    --env="PGPASSWORD=$POSTGRES_PASSWORD" \
-    -- bash -c "
-      createdb -h postgresql.stagecraft-system.svc.cluster.local -U stagecraft monitor 2>/dev/null || true
-      createdb -h postgresql.stagecraft-system.svc.cluster.local -U stagecraft site 2>/dev/null || true
-    "
 fi
 
 # --- NSQ ---

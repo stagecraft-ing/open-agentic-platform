@@ -2,7 +2,7 @@
 #
 # Driven by `make dev-stagecraft-hetzner` from platform/. The Makefile:
 #   1. runs stagecraft-compile.sh, which produces a bundle bound to
-#      infra.config.hetzner.json (cluster PostgreSQL + NSQ hosts).
+#      infra.config.json (cluster PostgreSQL + NSQ hosts).
 #   2. exports ENCORE_RUNTIME_LIB + ENCORE_INFRA_CONFIG_PATH from .stagecraft.env
 #   3. runs `mirrord exec -f this-file -- node .encore/build/combined/combined/main.mjs`
 #

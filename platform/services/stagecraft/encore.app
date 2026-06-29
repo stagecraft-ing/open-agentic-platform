@@ -15,12 +15,8 @@
       // Authenticated requests (cookies or Authorization header)
       // TODO: Replace stagecraft.ing entries with your own domain(s) before deploying
       "allow_origins_with_credentials": [
-        "https://localdev.online",
-        "https://*.localdev.online",
         "https://stagecraft.ing",
         "https://*.stagecraft.ing",
-        "https://deployd.xyz",
-        "https://*.deployd.xyz",
       ],
 
       // Let the browser send these request headers

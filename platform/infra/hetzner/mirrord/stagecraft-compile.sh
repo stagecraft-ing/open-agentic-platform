@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Compile stagecraft Encore bundle against infra.config.hetzner.json so the
+# Compile stagecraft Encore bundle against infra.config.json so the
 # resulting main.mjs binds to the cluster's PostgreSQL + NSQ + secrets, not
 # the ephemeral local infra that `encore run` provisions.
 #
@@ -15,7 +15,7 @@ APP_DIR="$(cd "$SCRIPT_DIR/../../../services/stagecraft" && pwd)"
 cd "$APP_DIR"
 
 MAIN_MJS=".encore/build/combined/combined/main.mjs"
-CONFIG="./infra.config.hetzner.json"
+CONFIG="./infra.config.json"
 MANIFEST=".encore/manifest.json"
 
 ENCORE_VERSION=$(grep -o '"encore.dev": "[^"]*"' package.json | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
