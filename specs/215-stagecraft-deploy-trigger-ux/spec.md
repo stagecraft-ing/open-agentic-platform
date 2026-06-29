@@ -33,8 +33,6 @@ establishes:
   # planned-establishes note (spec 200 precedent).
   - unit: { kind: file, path: platform/services/stagecraft/api/deploy/deployments.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/deploy/deployments.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/49_environment_deployments.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/49_environment_deployments.down.sql }
 extends:
   - spec: "112-factory-project-lifecycle"
     nature: additive

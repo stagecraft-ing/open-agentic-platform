@@ -76,7 +76,7 @@ export interface WarmupContext {
   scaffoldRef: string;
   /**
    * factory-encore clone target (`<owner>/<repo>`), carrying the generator,
-   * module catalog, and tsx (spec 112 §5.3.1). Read from the `legacy-mixed`
+   * module catalog, and tsx (spec 112 §5.3.1). Read from the `factory`
    * `factory_upstreams` row: a configuration fact, not a new admission gate.
    */
   factoryRepoUrl: string;

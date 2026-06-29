@@ -24,9 +24,6 @@ depends_on:
   - "136-tenant-hello-demo-service"  # tenant-hello as reference; gates are added per-environment
   - "087-unified-workspace-architecture"  # unified-workspace-architecture (environments are stagecraft entities)
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/environments/accessGates.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/environments/accessGatesHelpers.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/environments/accessGates.test.ts }
@@ -35,9 +32,6 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/auth/rauthyAdminClients.test.ts }
   - unit: { kind: directory, path: platform/charts/oauth2-proxy-gate }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.down.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/environments/accessGatesDeploy.ts }
   - unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.deploys.$envId.tsx }
 extends:

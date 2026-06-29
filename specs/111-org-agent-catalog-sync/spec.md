@@ -26,7 +26,6 @@ depends_on:
   - "090-governance-non-optionality"  # governance-non-optionality (no bypass of policy bundle)
   - "110-stagecraft-to-opc-factory-trigger"  # stagecraft-to-opc-factory-trigger (establishes the dispatcher pattern)
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql }
   - unit: { kind: directory, path: platform/services/stagecraft/api/agents }
   - unit: { kind: file, path: platform/services/stagecraft/api/agents/catalog.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/agents/relay.ts }

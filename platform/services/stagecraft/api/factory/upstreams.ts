@@ -20,17 +20,17 @@ import { findEnvelopeProcess, listAdapterViews } from "./adapterView";
 //
 // Spec 139 Phase 4b (B-3): the legacy singleton wire shape
 // {factorySource, factoryRef, templateSource, templateRef} now reads from
-// TWO N-per-org rows — `legacy-mixed` carries the factory side
-// (role='mixed'); `legacy-template-mixed` carries the template side
+// TWO N-per-org rows — `factory` carries the factory side
+// (role='mixed'); `template` carries the template side
 // (role='scaffold'). The four legacy columns
 // (factory_source/factory_ref/template_source/template_ref) are dropped
 // in migration 35.
 // ---------------------------------------------------------------------------
 
-export const LEGACY_SINGLETON_SOURCE_ID = "legacy-mixed";
+export const FACTORY_SOURCE_ID = "factory";
 /** Spec 139 Phase 4b — template-side row that backs the legacy
  *  `templateSource`/`templateRef` wire-shape fields. */
-export const LEGACY_TEMPLATE_SOURCE_ID = "legacy-template-mixed";
+export const TEMPLATE_SOURCE_ID = "template";
 
 export type FactoryUpstreamRow = {
   orgId: string;
@@ -131,8 +131,8 @@ function validateSourceId(value: string): string {
 //
 // Spec 139 Phase 4b (B-3): the singleton wire shape
 // {factorySource, factoryRef, templateSource, templateRef} composes from
-// two N-per-org rows. `legacy-mixed` carries the factory side via its
-// (repo_url, ref) columns; `legacy-template-mixed` carries the template
+// two N-per-org rows. `factory` carries the factory side via its
+// (repo_url, ref) columns; `template` carries the template
 // side via the same columns. Reading both produces the legacy shape;
 // writing both keeps the wire shape idempotent. Storage flips from the
 // per-side legacy columns to the substrate-shape columns; the wire shape
@@ -146,11 +146,11 @@ async function loadUpstream(orgId: string): Promise<FactoryUpstreamRow | null> {
     .where(
       and(
         eq(factoryUpstreams.orgId, orgId),
-        sql`${factoryUpstreams.sourceId} IN (${LEGACY_SINGLETON_SOURCE_ID}, ${LEGACY_TEMPLATE_SOURCE_ID})`,
+        sql`${factoryUpstreams.sourceId} IN (${FACTORY_SOURCE_ID}, ${TEMPLATE_SOURCE_ID})`,
       ),
     );
-  const factory = rows.find((r) => r.sourceId === LEGACY_SINGLETON_SOURCE_ID);
-  const template = rows.find((r) => r.sourceId === LEGACY_TEMPLATE_SOURCE_ID);
+  const factory = rows.find((r) => r.sourceId === FACTORY_SOURCE_ID);
+  const template = rows.find((r) => r.sourceId === TEMPLATE_SOURCE_ID);
   if (!factory || !template) return null;
   // The factory row is the canonical carrier of last-sync state — the
   // sync worker stamps it on the orchestration sync; the template row
@@ -199,7 +199,7 @@ async function loadCounts(orgId: string): Promise<FactoryUpstreamCounts> {
 
 // ---------------------------------------------------------------------------
 // GET /api/factory/upstreams — fetch current org config (or null).
-// Singleton-shaped; backed by the 'legacy-mixed' row.
+// Singleton-shaped; backed by the 'factory' row.
 // ---------------------------------------------------------------------------
 
 export const getUpstreams = api(
@@ -259,7 +259,7 @@ export const upsertUpstreams = api(
       .insert(factoryUpstreams)
       .values({
         orgId: auth.orgId,
-        sourceId: LEGACY_SINGLETON_SOURCE_ID,
+        sourceId: FACTORY_SOURCE_ID,
         role: "mixed",
         repoUrl: factorySource,
         ref: factoryRef,
@@ -277,7 +277,7 @@ export const upsertUpstreams = api(
       .insert(factoryUpstreams)
       .values({
         orgId: auth.orgId,
-        sourceId: LEGACY_TEMPLATE_SOURCE_ID,
+        sourceId: TEMPLATE_SOURCE_ID,
         role: "scaffold",
         repoUrl: templateSource,
         ref: templateRef,
@@ -424,9 +424,9 @@ export async function deleteUpstreamSourceCore(
   req: { sourceId: string },
 ): Promise<void> {
   const sourceId = validateSourceId(req.sourceId);
-  if (sourceId === LEGACY_SINGLETON_SOURCE_ID) {
+  if (sourceId === FACTORY_SOURCE_ID) {
     throw APIError.failedPrecondition(
-      `cannot delete the legacy-mixed source row; it backs spec 108's API surface`,
+      `cannot delete the factory source row; it backs spec 108's API surface`,
     );
   }
   const deleted = await db

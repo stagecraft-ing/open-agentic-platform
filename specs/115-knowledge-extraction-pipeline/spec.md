@@ -29,7 +29,6 @@ depends_on:
   - "087-unified-workspace-architecture"  # unified-workspace-architecture (knowledge intake domain, lifecycle)
   - "114-async-project-clone-pipeline"  # async-project-clone-pipeline (Topic + Subscription + run-row pattern reused here)
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/25_knowledge_extraction_runs.up.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionEvents.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionWorker.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/knowledge/extractionCore.ts }

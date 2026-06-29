@@ -20,7 +20,6 @@ depends_on:
   - "139-factory-artifact-substrate"  # factory-artifact-substrate (§7.2 declared scaffold_source_id replaces template_remote)
 code_aliases: ["ACME_VUE_NODE_SCAFFOLD_SOURCE_ID_CUTOVER"]
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/types.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffoldReadinessBlocker.ts }
 references:

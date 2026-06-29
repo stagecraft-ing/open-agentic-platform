@@ -27,8 +27,8 @@ import { resolveFactoryUpstreamToken } from "./tokenResolver";
 import { runSyncPipeline } from "./syncPipeline";
 import { runScaffoldWarmup } from "../projects/scaffold/scheduler";
 import {
-  LEGACY_SINGLETON_SOURCE_ID,
-  LEGACY_TEMPLATE_SOURCE_ID,
+  FACTORY_SOURCE_ID,
+  TEMPLATE_SOURCE_ID,
 } from "./upstreams";
 
 async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
@@ -54,8 +54,8 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
   }
 
   // Spec 139 Phase 4b — factory_upstreams is N-per-org. The legacy
-  // singleton wire shape composes from two rows: `legacy-mixed`
-  // (factory side, role='mixed') and `legacy-template-mixed` (template
+  // singleton wire shape composes from two rows: `factory`
+  // (factory side, role='mixed') and `template` (template
   // side, role='scaffold'). The four legacy per-side columns are
   // dropped in migration 35 — repo_url + ref are the canonical fields.
   const sideRows = await db
@@ -64,14 +64,14 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
     .where(
       and(
         eq(factoryUpstreams.orgId, req.orgId),
-        sql`${factoryUpstreams.sourceId} IN (${LEGACY_SINGLETON_SOURCE_ID}, ${LEGACY_TEMPLATE_SOURCE_ID})`,
+        sql`${factoryUpstreams.sourceId} IN (${FACTORY_SOURCE_ID}, ${TEMPLATE_SOURCE_ID})`,
       ),
     );
   const factoryRow = sideRows.find(
-    (r) => r.sourceId === LEGACY_SINGLETON_SOURCE_ID,
+    (r) => r.sourceId === FACTORY_SOURCE_ID,
   );
   const templateRow = sideRows.find(
-    (r) => r.sourceId === LEGACY_TEMPLATE_SOURCE_ID,
+    (r) => r.sourceId === TEMPLATE_SOURCE_ID,
   );
 
   if (!factoryRow || !templateRow) {
@@ -97,7 +97,7 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
     .where(
       and(
         eq(factoryUpstreams.orgId, req.orgId),
-        eq(factoryUpstreams.sourceId, LEGACY_SINGLETON_SOURCE_ID),
+        eq(factoryUpstreams.sourceId, FACTORY_SOURCE_ID),
       ),
     );
 
@@ -203,7 +203,7 @@ async function failRun(
     .where(
       and(
         eq(factoryUpstreams.orgId, req.orgId),
-        eq(factoryUpstreams.sourceId, LEGACY_SINGLETON_SOURCE_ID),
+        eq(factoryUpstreams.sourceId, FACTORY_SOURCE_ID),
       ),
     );
 

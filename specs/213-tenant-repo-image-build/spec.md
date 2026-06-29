@@ -65,11 +65,7 @@ establishes:
   # migration pair).
   - unit: { kind: file, path: platform/services/stagecraft/api/deploy/artifacts.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/deploy/artifacts.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/48_project_artifacts.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/48_project_artifacts.down.sql }
   # FR-009: one-repo-one-project unique index + its regression cover.
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/51_project_repos_unique_repo.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/51_project_repos_unique_repo.down.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/github/webhook.test.ts }
 refines:
   # FR-009 adds webhook.test.ts to the encore-test lane exclude list (the

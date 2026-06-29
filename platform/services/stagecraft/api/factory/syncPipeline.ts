@@ -32,6 +32,7 @@ import {
 import { loadOapOwnedSubstrateRows, OAP_SELF_ORIGIN } from "./oapContracts";
 import { sha256Hex, type SubstrateRow } from "./substrate";
 import { evaluateAndPersistFromSync } from "./admission";
+import { FACTORY_SOURCE_ID } from "./upstreams";
 
 // ---------------------------------------------------------------------------
 // Public entry — full upstream sync.
@@ -259,7 +260,7 @@ async function applyDualWrite(args: ApplyArgs): Promise<void> {
 
     // Denormalised "current state" mirror on factory_upstreams. Spec 139
     // Phase 4b: the legacy singleton wire shape composes from two
-    // N-per-org rows (`legacy-mixed` + `legacy-template-mixed`); only
+    // N-per-org rows (`factory` + `template`); only
     // the factory-side row carries the denormalised last-sync state.
     await tx
       .update(factoryUpstreams)
@@ -276,7 +277,7 @@ async function applyDualWrite(args: ApplyArgs): Promise<void> {
       .where(
         and(
           eq(factoryUpstreams.orgId, args.orgId),
-          eq(factoryUpstreams.sourceId, "legacy-mixed"),
+          eq(factoryUpstreams.sourceId, FACTORY_SOURCE_ID),
         ),
       );
   });

@@ -31,8 +31,6 @@ amendment_record: |
   unchanged; only the underlying read mechanism moved to the library seam.
 establishes:
   - unit: { kind: directory, path: platform/services/stagecraft/api/specRegistry }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/42_project_spec_group_names.down.sql }
   - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-api.server.ts }
   - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-grouping.ts }
   - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/spec-registry-grouping.test.ts }

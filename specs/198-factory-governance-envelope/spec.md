@@ -57,15 +57,11 @@ establishes:
   - unit: { kind: file, path: crates/factory-contracts/src/governance_envelope.rs }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/admission.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/revocations.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.down.sql }
   # Phase 4 (FR-005/FR-014) — signing authority, run-grants, countersign:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/signing-pure.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/signing.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/jwks.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/grantDuplexHandlers.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.down.sql }
   - unit: { kind: file, path: crates/factory-engine/src/platform_jws.rs }
   - unit: { kind: file, path: crates/factory-engine/src/intent_capsule.rs }
   - unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/run_governance.rs }
@@ -75,11 +71,7 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.test.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideTrustClass.test.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/45_user_body_verified.down.sql }
   # FR-013 audit-action correction (discovered during spec 201 phase 1):
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql }
 extends:
   - spec: "074-factory-ingestion"
     nature: additive

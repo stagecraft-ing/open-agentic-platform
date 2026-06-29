@@ -937,8 +937,8 @@ export const oidcGroupRoleMappings = pgTable(
 
 // Spec 139 Phase 4b — N-per-org keyed by (org_id, source_id). The legacy
 // singleton wire shape on `GET/POST /api/factory/upstreams` composes
-// from two rows: `legacy-mixed` (factory side, role='mixed') and
-// `legacy-template-mixed` (template side, role='scaffold'). The four
+// from two rows: `factory` (factory side, role='mixed') and
+// `template` (template side, role='scaffold'). The four
 // legacy per-side columns (factory_source/factory_ref/template_source/
 // template_ref) are dropped in migration 35.
 export const factoryUpstreams = pgTable(

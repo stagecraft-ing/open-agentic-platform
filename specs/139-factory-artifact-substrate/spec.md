@@ -23,10 +23,6 @@ depends_on:
   - "124-opc-factory-run-platform-integration"  # opc-factory-run-platform-integration (closes spec 108 §7.1 punt)
 code_aliases: ["FACTORY_ARTIFACT_SUBSTRATE"]
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/32_factory_artifact_substrate.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/33_migrate_agent_catalog.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/34_drop_legacy_factory_tables.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/35_drop_legacy_agent_catalog_family.up.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/substrate.ts }
   - unit: { kind: file, path: crates/factory-engine/src/substrate_version.rs }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/agentCatalogMigration.ts }

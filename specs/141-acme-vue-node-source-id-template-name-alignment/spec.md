@@ -17,9 +17,6 @@ depends_on:
   - "140-acme-vue-node-scaffold-source-id-cutover"  # acme-vue-node manifest cutover (introduces scaffold_source_id and migration 36)
 code_aliases: ["ACME_VUE_NODE_SOURCE_ID_TEMPLATE_NAME_ALIGNMENT"]
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.down.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/37_aim_vue_node_canonical_source_id.test.ts }
 references:
   # Spec 199 amendment (2026-06-09): the thin-consumer cutover deleted the
   # adapter-config constants and the projection round-trip test; §2.1's

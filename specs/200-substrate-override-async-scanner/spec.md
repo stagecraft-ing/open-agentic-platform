@@ -28,8 +28,6 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanScheduler.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanPolicy.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanPrompts.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/47_override_scan_runs.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/47_override_scan_runs.down.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanRuns.test.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideQuarantineEnforcement.test.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideScanStructure.test.ts }

@@ -91,10 +91,6 @@ refines:
   - aspect: "presigned-upload-public-endpoint"
     unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.project.$projectId.knowledge.$id.tsx }
   - aspect: "presigned-upload-public-endpoint"
-    unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.up.sql }
-  - aspect: "presigned-upload-public-endpoint"
-    unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/39_knowledge_objects_unsupported_type.down.sql }
-  - aspect: "presigned-upload-public-endpoint"
     unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
 summary: >
   Browser uploads via presigned PUT have never landed in MinIO on the
