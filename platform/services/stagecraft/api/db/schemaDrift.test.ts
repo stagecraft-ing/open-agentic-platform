@@ -32,10 +32,15 @@ function isEnumLike(value: unknown): value is EnumLike {
   );
 }
 
-const tables = Object.entries(schema).filter(
+// `Object.entries(schema)` is strongly typed to the union of every export, which
+// makes the type-predicate filters below non-assignable under tsc. Widen the
+// value to `unknown` so the predicates narrow cleanly (the runtime guards are
+// what actually select tables vs enums).
+const schemaEntries = Object.entries(schema) as Array<[string, unknown]>;
+const tables = schemaEntries.filter(
   (entry): entry is [string, PgTable] => is(entry[1], PgTable),
 );
-const enums = Object.entries(schema).filter(
+const enums = schemaEntries.filter(
   (entry): entry is [string, EnumLike] => isEnumLike(entry[1]),
 );
 

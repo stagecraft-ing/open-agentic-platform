@@ -82,6 +82,7 @@ ignore = [
     { id = "RUSTSEC-2024-0388", reason = "derivative unmaintained; pinned by kube-client 0.95 (spec 186) — kube 3.x drops it" },
     { id = "RUSTSEC-2024-0384", reason = "instant unmaintained; pinned by kube-runtime 0.95 (spec 186) — kube 3.x drops it" },
     { id = "RUSTSEC-2025-0134", reason = "rustls-pemfile unmaintained; pinned by kube-client 0.95 (spec 186) — kube 3.x drops it" },
+    { id = "RUSTSEC-2026-0192", reason = "ttf-parser unmaintained; transitive via pdf-extract font parsing in knowledge extraction" },
 ]
 
 [bans]

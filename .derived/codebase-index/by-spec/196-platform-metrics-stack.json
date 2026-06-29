@@ -67,7 +67,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/infra.config.hetzner.json",
+        "path": "platform/services/stagecraft/infra.config.json",
         "source": "spec-edge"
       }
     ],
@@ -270,14 +270,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/infra.config.hetzner.json"
+            "file": "platform/services/stagecraft/infra.config.json"
           }
         ],
         "ownership": true,
         "sourceField": "refines",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/infra.config.hetzner.json"
+          "path": "platform/services/stagecraft/infra.config.json"
         }
       }
     ],
@@ -285,5 +285,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "ea3078701fea58dab44e68660007d14d250943c5e82ec66bb7f268986d89519b"
+  "shardHash": "89e9c8464d06acaf0cd807251aa9e8e886c4ead2b2d9cade1162465a4d2fdb2a"
 }
