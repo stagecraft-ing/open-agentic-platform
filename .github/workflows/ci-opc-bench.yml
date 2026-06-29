@@ -246,14 +246,14 @@ jobs:
       # the latest by prefix). Save runs inline, before Swatinem's post step.
       - name: Save main bench baseline (push to main)
         if: github.event_name == 'push'
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
         with:
           path: ${{ env.BENCH_DIR }}
           key: opc-usage-bench-main-${{ github.sha }}
 
       - name: Save nightly bench baseline (schedule)
         if: github.event_name == 'schedule'
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
         with:
           path: ${{ env.BENCH_DIR }}
           key: opc-usage-bench-nightly-${{ github.run_id }}
