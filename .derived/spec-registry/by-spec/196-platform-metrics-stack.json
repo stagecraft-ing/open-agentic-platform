@@ -60,7 +60,7 @@
         "aspect": "metrics-export",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/infra.config.hetzner.json"
+          "path": "platform/services/stagecraft/infra.config.json"
         }
       },
       {
@@ -149,6 +149,6 @@
     "summary": "Stand up a Prometheus + Grafana metrics stack for the platform control plane. Stagecraft (Encore.ts) already auto-instruments every API, PubSub, cron, and DB call but emits nowhere; deployd-api, Flux, and ingress-nginx already carry scrape annotations nobody consumes. This spec wires a full kube-prometheus-stack (Prometheus server + Grafana + node-exporter + kube-state-metrics) that RECEIVES stagecraft's Prometheus remote_write, SCRAPES the annotated pull targets, and SERVES Grafana — with Grafana fronted by native Rauthy OIDC. Metrics only: logs and distributed tracing (Encore's other two pillars) are out of scope and owned by later specs. Hetzner is implemented; the Azure binding is declared-but-deferred. Zero stagecraft application-code change.\n",
     "title": "Platform metrics stack — Prometheus + Grafana for the platform control plane"
   },
-  "shardHash": "1d26f0f272005d34e8016fca70c83ffebd1e1e94287ab20e58dcc5d8fa707363",
+  "shardHash": "944ca0dd52efa70b3effba5b152acde5299735ed1af324681fe82c621694b649",
   "specVersion": "1.1.0"
 }

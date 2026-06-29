@@ -201,13 +201,6 @@
         "aspect": "presigned-upload-public-endpoint",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/infra.config.hetzner.json"
-        }
-      },
-      {
-        "aspect": "presigned-upload-public-endpoint",
-        "unit": {
-          "kind": "file",
           "path": "platform/services/stagecraft/infra.config.json"
         }
       },
@@ -292,6 +285,6 @@
     "summary": "Browser uploads via presigned PUT have never landed in MinIO on the Hetzner deployment because the server-issued presigned URL points at the cluster-internal MinIO service URL, which the browser cannot resolve and which mixed-content policy blocks anyway. This spec splits the storage client into internal and public-facing endpoints, adds a public ingress for MinIO with TLS, configures CORS for the stagecraft origin, and updates the storage module so presigned URLs use the public endpoint while server-side ops keep using the internal one. Amends spec 087 NF-002 to add the browser-reachability requirement for the object-store endpoint that backs presigned uploads.\n",
     "title": "Presigned upload public endpoint — browser-reachable object store for direct uploads"
   },
-  "shardHash": "d61822f6f4bbc15c07c3e62c7699ba42973b1497fb27015776375c797bc0aed8",
+  "shardHash": "aaf101d36ad290176e7fc84d8062b78b83c5e8241c25711b49662e4debb4683d",
   "specVersion": "1.1.0"
 }
