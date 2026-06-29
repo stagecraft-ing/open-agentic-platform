@@ -15,6 +15,7 @@
 import { api } from "encore.dev/api";
 import log from "encore.dev/log";
 import crypto from "crypto";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { applyRateLimit } from "./rate-limit";
 import { db } from "../db/drizzle";
 import {
@@ -102,31 +103,50 @@ function cleanupStalePendingOrgs() {
 }
 
 // ---------------------------------------------------------------------------
-// GET /auth/rauthy — initiate Rauthy-native login (web)
+// GET /auth/rauthy, GET /auth/google: initiate Rauthy-native login (web)
+//
+// Both routes run the identical PKCE + state flow and share the
+// /auth/rauthy/callback handler; they differ only in which upstream provider
+// Rauthy is hinted to forward to (idp_hint). This lets the signin page offer a
+// direct "Continue with GitHub" and "Continue with Google" without first
+// landing on Rauthy's own provider-selection screen. If the provider id can't
+// be resolved the hint is omitted (Rauthy shows its selector), never worse
+// than no hint.
 // ---------------------------------------------------------------------------
+
+async function startUpstreamLogin(
+  providerName: string,
+  req: IncomingMessage,
+  resp: ServerResponse,
+): Promise<void> {
+  if (applyRateLimit(req, resp)) return;
+  cleanupStaleStates();
+
+  const state = crypto.randomBytes(32).toString("base64url");
+  const { codeVerifier, codeChallenge } = generatePkcePair();
+  pendingRauthyStates.set(state, { createdAt: Date.now(), codeVerifier });
+
+  const url = buildAuthorizationUrl({
+    redirectUri: `${appBaseUrl()}/auth/rauthy/callback`,
+    state,
+    scopes: ["openid", "profile", "email", "oap"],
+    idpHint: (await resolveUpstreamProviderId(providerName)) ?? undefined,
+    codeChallenge,
+    codeChallengeMethod: "S256",
+  });
+
+  resp.writeHead(302, { Location: url });
+  resp.end();
+}
 
 export const rauthyLogin = api.raw(
   { expose: true, method: "GET", path: "/auth/rauthy", auth: false },
-  async (req, resp) => {
-    if (applyRateLimit(req, resp)) return;
-    cleanupStaleStates();
+  async (req, resp) => startUpstreamLogin("github", req, resp),
+);
 
-    const state = crypto.randomBytes(32).toString("base64url");
-    const { codeVerifier, codeChallenge } = generatePkcePair();
-    pendingRauthyStates.set(state, { createdAt: Date.now(), codeVerifier });
-
-    const url = buildAuthorizationUrl({
-      redirectUri: `${appBaseUrl()}/auth/rauthy/callback`,
-      state,
-      scopes: ["openid", "profile", "email", "oap"],
-      idpHint: (await resolveUpstreamProviderId("github")) ?? undefined,
-      codeChallenge,
-      codeChallengeMethod: "S256",
-    });
-
-    resp.writeHead(302, { Location: url });
-    resp.end();
-  }
+export const googleLogin = api.raw(
+  { expose: true, method: "GET", path: "/auth/google", auth: false },
+  async (req, resp) => startUpstreamLogin("google", req, resp),
 );
 
 // ---------------------------------------------------------------------------

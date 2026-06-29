@@ -17,10 +17,6 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/36_aim_vue_node_manifest_cutover.up.sql"
-      },
-      {
-        "kind": "file",
         "path": "platform/services/stagecraft/api/projects/scaffold/types.ts"
       },
       {
@@ -156,6 +152,6 @@
     "summary": "Spec 139 §7.2 declared `template_remote` is replaced by `orchestration_source_id` + `scaffold_source_id`. Phase 2 landed the rename for the OAP-native adapters (`next-prisma`, `rust-axum`, `encore-react`) via `oapNativeSanitise.ts`, but the synthetic `acme-vue-node` adapter that `projection.ts::buildAdapter` emits from template-origin substrate rows still carries `template_remote` only. Five downstream call sites (scheduler, templateCache, create, types, scaffoldReadiness fallback) read that legacy field directly. This amendment finishes §7.2 by routing acme-vue-node through `factory_upstreams` like every other adapter and dropping the legacy field from the read paths.\n",
     "title": "acme-vue-node manifest cutover to scaffold_source_id (amendment of 139)"
   },
-  "shardHash": "8a3286f0cad647d8ad9e210c18c1ad061d3f48f35d9c3141e9d0ceaf8fe9135e",
+  "shardHash": "dc664da97c3ab3d279915525a8352c254df3e503404429696c7266cfdd226fb3",
   "specVersion": "1.1.0"
 }

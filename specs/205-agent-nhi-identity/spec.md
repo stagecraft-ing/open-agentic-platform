@@ -35,8 +35,6 @@ depends_on:
 establishes:
   # Phase 0 (FR-005): the two-principal audit migration and its forensic
   # query test are brought into existence by this spec.
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/52_audit_two_principal.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/52_audit_two_principal.down.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/audit/auditTwoPrincipal.test.ts }
 extends:
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row

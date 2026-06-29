@@ -23,6 +23,7 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/upstreamPat.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/syncWorker.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/syncRuns.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/syncRunsScheduler.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/tokenResolver.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/projects/projectPat.ts }
 extends:
@@ -233,6 +234,30 @@ it is: the upsert logic already replaces every adapter/contract/process
 row per sync. The run row's `status` transitions are guarded by a CAS
 (`WHERE status = 'pending'` on the `running` transition) so a double
 delivery silently no-ops on the second attempt.
+
+### 5.1 Staleness sweeper (amendment 2026-06-29)
+
+The CAS guard that makes redelivery idempotent also means a `running` row can
+never be reclaimed by redelivery: if the worker claims a row
+(`pending -> running`) and then the process dies before writing `ok`/`failed`,
+every later delivery fails the `WHERE status = 'pending'` guard and no-ops, so
+the row is stuck `running` forever. The enqueue coalesce guard then returns
+that in-flight row instead of starting new work, so the UI Sync button stays
+disabled indefinitely (observed in production 2026-06-27: a row stuck two
+days). `factory_sync_runs` had no recovery path of its own (the spec 124
+sweeper covers only `factory_runs`).
+
+`api/factory/syncRunsScheduler.ts` adds that recovery loop, mirroring the spec
+124 `runsScheduler.ts` pattern: a `factory-sync-runs-staleness-sweeper` cron
+(every 1 minute) flips any `(pending, running)` row whose
+`COALESCE(started_at, queued_at)` is older than
+`STAGECRAFT_FACTORY_SYNC_STALE_AFTER_SEC` (default 600s; the per-repo clone
+timeout is 120s, so a healthy sync finishes well inside the window) to
+`failed`, corrects the denormalised `factory_upstreams.last_sync_status` for
+the org's factory-side row so the Overview banner and Sync button re-arm, and
+records a `factory.upstreams.sync_swept` audit row under the system user. Each
+row is swept in its own transaction with a status re-check so it cannot race
+the worker writing a terminal state.
 
 ## 6. Encore APIs
 

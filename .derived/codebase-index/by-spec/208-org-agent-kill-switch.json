@@ -15,14 +15,6 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/migrations/53_org_halts.down.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/53_org_halts.up.sql",
-        "source": "spec-edge"
-      },
-      {
         "path": "platform/services/stagecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
@@ -80,32 +72,6 @@
       }
     ],
     "resolvedUnits": [
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/53_org_halts.down.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/53_org_halts.down.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/53_org_halts.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/53_org_halts.up.sql"
-        }
-      },
       {
         "locations": [
           {
@@ -319,5 +285,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "a3219899264430d6b85d790ab79b703a271edb6c2665aed18dc89041bd6d1e13"
+  "shardHash": "c5c6177bf214fb01babe061e8f56b9c10d6100616d08314a229cf317408c50f5"
 }

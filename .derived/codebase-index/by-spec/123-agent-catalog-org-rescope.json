@@ -34,10 +34,6 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql",
-        "source": "spec-edge"
-      },
-      {
         "path": "platform/services/stagecraft/api/sync/duplex.ts",
         "source": "spec-edge"
       },
@@ -79,19 +75,6 @@
       }
     ],
     "resolvedUnits": [
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql"
-        }
-      },
       {
         "locations": [
           {
@@ -279,5 +262,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "a8a5004ae63bfa13a7858814237e33499536dd3e362601cd08ce58c024722730"
+  "shardHash": "b08fc0e4793290b1eeaf37e393e0f4699ea35a2cdd93007341d1e8ae2a167629"
 }

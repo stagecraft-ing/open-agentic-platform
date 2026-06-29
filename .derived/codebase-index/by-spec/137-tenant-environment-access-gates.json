@@ -46,30 +46,6 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.down.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql",
-        "source": "spec-edge"
-      },
-      {
         "path": "platform/services/stagecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
@@ -165,84 +141,6 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/auth/rauthyAdminClientsHelpers.ts"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.down.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.down.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql"
         }
       },
       {
@@ -506,5 +404,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "083a05d38c01d936cfbd0a0bdcd622693fd14f54034b4bbd616d0ccbe0762b46"
+  "shardHash": "943f7005e776f66dd2cbbaa18d47360e09413d94dd9dcdb7dc4c787d6264ca9b"
 }

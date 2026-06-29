@@ -60,40 +60,25 @@ async function main() {
   );
   const appliedSet = new Set(applied.map((r) => Number(r.version)));
 
-  // Backfill: if schema_migrations is empty but core tables exist, assume the
-  // pre-runner manual migrations have already been applied. Mark known
-  // versions present so we don't re-run destructive CREATEs on first pass.
+  // Backfill: the schema is now a single consolidated baseline (version 1,
+  // see api/db/migrations/1_baseline.up.sql). If schema_migrations is empty
+  // but the schema already exists (a DB provisioned before the baseline was
+  // introduced), mark the baseline applied so we never re-run its CREATEs. On
+  // a genuinely fresh DB no tables exist, so the baseline runs normally.
   if (appliedSet.size === 0) {
     const { rows } = await client.query(
-      `SELECT to_regclass('public.users') IS NOT NULL AS has_users,
-              to_regclass('public.workspaces') IS NOT NULL AS has_workspaces,
-              to_regclass('public.oidc_providers') IS NOT NULL AS has_oidc`
+      "SELECT to_regclass('public.users') IS NOT NULL AS has_schema"
     );
-    const r = rows[0];
-    const backfill = [];
-    const candidates = listMigrations();
-    if (r.has_users) {
-      for (const m of candidates) {
-        if (m.version <= 8) backfill.push(m);
+    if (rows[0].has_schema) {
+      for (const m of listMigrations()) {
+        if (m.version !== 1) continue;
+        await client.query(
+          "INSERT INTO schema_migrations (version, name) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+          [m.version, m.name]
+        );
+        appliedSet.add(m.version);
+        console.log(`  backfilled schema_migrations for ${m.version}_${m.name}`);
       }
-    }
-    if (r.has_workspaces) {
-      for (const m of candidates) {
-        if (m.version >= 9 && m.version <= 15) backfill.push(m);
-      }
-    }
-    if (r.has_oidc) {
-      for (const m of candidates) {
-        if (m.version === 16) backfill.push(m);
-      }
-    }
-    for (const m of backfill) {
-      await client.query(
-        "INSERT INTO schema_migrations (version, name) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-        [m.version, m.name]
-      );
-      appliedSet.add(m.version);
-      console.log(`  backfilled schema_migrations for ${m.version}_${m.name}`);
     }
   }
 

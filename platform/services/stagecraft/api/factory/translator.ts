@@ -25,6 +25,13 @@ const FACTORY_SOURCE_EXCLUDES: Array<(rel: string) => boolean> = [
   (p) => p === ".claude" || p.startsWith(".claude/"),
   (p) => p === ".idea" || p.startsWith(".idea/"),
   (p) => p === "docs" || p.startsWith("docs/"),
+  // Spec 199 FR-008: the owned repos ship a Docusaurus docs site under
+  // `website/` whose static assets (favicon.ico, fonts, social cards) are
+  // binary. The substrate stores bodies as UTF-8 TEXT, so a null byte in a
+  // binary asset aborts the ingest INSERT (Postgres "invalid byte sequence
+  // for encoding UTF8: 0x00"). `website/` is documentation, never factory
+  // content; exclude it in both repos.
+  (p) => p === "website" || p.startsWith("website/"),
   (p) => p === "README.md" || p === "CLAUDE.md",
   (p) => p === ".gitattributes" || p === ".gitignore" || p === ".env.github",
 ];
@@ -40,6 +47,10 @@ const TEMPLATE_EXCLUDES: Array<(rel: string) => boolean> = [
   (p) => p === "scripts" || p.startsWith("scripts/"),
   (p) => p === "docker" || p.startsWith("docker/"),
   (p) => p === "docs" || p.startsWith("docs/"),
+  // Spec 199 FR-008: template-encore ships its Docusaurus docs site (binary
+  // favicon/fonts/images) under `website/`. Same null-byte-into-TEXT hazard
+  // as the factory side; never factory content. Exclude it.
+  (p) => p === "website" || p.startsWith("website/"),
   (p) => p === "README.md" || p === "CODEMAP.md" || p === "PLACEHOLDERS.md",
   (p) => p === "docker-compose.yml" || p === "eslint.config.mjs",
   (p) => p === "tsconfig.base.json" || p === "package.json",
@@ -74,6 +85,20 @@ async function* walk(
 
 async function readText(abs: string): Promise<string> {
   return readFile(abs, "utf8");
+}
+
+/**
+ * Defense-in-depth for the substrate's UTF-8 TEXT body columns
+ * (`upstream_body` / `user_body` / `effective_body`). A NUL byte (0x00) is a
+ * valid Unicode code point but Postgres rejects it in `text`/`varchar`
+ * ("invalid byte sequence for encoding UTF8: 0x00"), which aborts the ingest
+ * transaction. Reading a binary file as UTF-8 turns most invalid bytes into
+ * U+FFFD, but genuine NUL bytes survive, so this catches binary content the
+ * path excludes above might miss. Such files are not authorable text and have
+ * no business in the substrate; skip them rather than wedge the whole sync.
+ */
+function containsNullByte(body: string): boolean {
+  return body.includes("\u0000");
 }
 
 
@@ -400,6 +425,12 @@ export type SubstrateTranslation = {
   templateSourceSha: string;
   factoryOriginId: string;
   templateOriginId: string;
+  /**
+   * Repo-relative paths skipped because their body contains a NUL byte
+   * (binary content the UTF-8 TEXT substrate cannot store). Surfaced so the
+   * sync worker can log them instead of silently dropping content.
+   */
+  skippedBinaryPaths: string[];
 };
 
 /**
@@ -557,11 +588,16 @@ export async function translateUpstreamsToSubstrate(
   const templateOriginId = opts.templateOriginId;
 
   const rows: SubstrateRowDraft[] = [];
+  const skippedBinaryPaths: string[] = [];
 
   for await (const { rel, abs } of walk(opts.factorySourcePath, (p) =>
     FACTORY_SOURCE_EXCLUDES.some((fn) => fn(p)),
   )) {
     const body = await readText(abs);
+    if (containsNullByte(body)) {
+      skippedBinaryPaths.push(rel);
+      continue;
+    }
     const { frontmatter } = extractFrontmatter(body);
     const kind = classifyArtifactKind(rel, frontmatter);
     rows.push({
@@ -580,6 +616,10 @@ export async function translateUpstreamsToSubstrate(
     TEMPLATE_EXCLUDES.some((fn) => fn(p)),
   )) {
     const body = await readText(abs);
+    if (containsNullByte(body)) {
+      skippedBinaryPaths.push(rel);
+      continue;
+    }
     const { frontmatter } = extractFrontmatter(body);
     const kind = classifyArtifactKind(rel, frontmatter);
     rows.push({
@@ -610,5 +650,6 @@ export async function translateUpstreamsToSubstrate(
     templateSourceSha: opts.templateSha,
     factoryOriginId,
     templateOriginId,
+    skippedBinaryPaths,
   };
 }

@@ -64,14 +64,6 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.down.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.up.sql",
-        "source": "spec-edge"
-      },
-      {
         "path": "platform/services/stagecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
@@ -180,32 +172,6 @@
         "unit": {
           "kind": "file",
           "path": "crates/policy-kernel/tests/verify_audit_chain_cli.rs"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.down.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.down.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.up.sql"
         }
       },
       {
@@ -473,5 +439,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "1e2ca736f5d4b8f349a03b77d743c8858b52f206e84b9ed93b0c10098ada53ab"
+  "shardHash": "91e2581d09f38efb630d0d3f8f2488973c9433534c59b2996014463380ad0a26"
 }

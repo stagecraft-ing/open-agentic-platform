@@ -63,38 +63,6 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.down.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.up.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.down.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.up.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.down.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql",
-        "source": "spec-edge"
-      },
-      {
         "path": "platform/services/stagecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
@@ -265,110 +233,6 @@
         "unit": {
           "kind": "file",
           "path": "crates/factory-engine/src/platform_jws.rs"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.down.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.down.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/43_governance_envelope_admission.up.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.down.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.down.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/44_factory_seal_and_run_grants.up.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.down.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.down.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/45_user_body_verified.up.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.down.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/46_widen_substrate_audit_actions.up.sql"
         }
       },
       {
@@ -948,5 +812,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "131ac049e4dc00d3ac0e3e741ab3fba7fcd348d97cb7603eb6e10957e0780e1f"
+  "shardHash": "225f9a09c436c5c230f4547fa2d235be6800c60735db44aa7a4d7ee8fad5c3f9"
 }

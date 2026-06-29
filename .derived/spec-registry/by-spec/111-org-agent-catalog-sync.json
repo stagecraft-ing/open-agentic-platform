@@ -13,10 +13,6 @@
     "domain": "platform",
     "establishes": [
       {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql"
-      },
-      {
         "kind": "directory",
         "path": "platform/services/stagecraft/api/agents"
       },
@@ -105,6 +101,6 @@
     "summary": "Treats agents as organisational assets stored in stagecraft and pushed to OPC via the duplex channel (spec 087 §5.3). Workspaces author, version, and govern agent definitions in the web UI; connected OPC instances receive them as a workspace-scoped catalog that local SQLite caches. The local `.claude/agents/` path remains available as a fallback for offline/personal agents; the authoritative catalog is remote. Documents the decision to keep model API keys on OPC machines.\n",
     "title": "Org-managed Agent Catalog Synced from Stagecraft to OPC"
   },
-  "shardHash": "b9d318a6169826776790e79c04df071fab1247ee9db8d991d5ede2fe8c05e99b",
+  "shardHash": "1a98b65cfd164b6311dc83b3fc86b45f358211ded62f91dbc068451eaa14b569",
   "specVersion": "1.1.0"
 }

@@ -53,8 +53,6 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/auditSegmentHandlers.test.ts }
   # The session-audit-seal table (one countersigned-segment row per
   # org/session/segment; idempotent on resubmission).
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/50_factory_session_audit_seals.down.sql }
   # FR-001/FR-002 (Phase 2b producer, PR1): the axiomregent session-audit-chain
   # integration test. Proves every governed tool dispatch is hash-chained and
   # the independent walker verifies it offline (the producer the AC-4 client

@@ -36,10 +36,6 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql",
-        "source": "spec-edge"
-      },
-      {
         "path": "platform/services/stagecraft/api/sync/duplex.ts",
         "source": "spec-edge"
       },
@@ -119,19 +115,6 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/agents/relay.ts"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/21_agent_catalog.up.sql"
         }
       },
       {
@@ -239,5 +222,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "f6906b4856cb285cadbce8bcf00201b53ded07e3eb6956ce9c332ad74a18e288"
+  "shardHash": "948569f74d1da5660c0567c6ec9b7fd56e713727c6ed86bcb2fe1b3509fef006"
 }

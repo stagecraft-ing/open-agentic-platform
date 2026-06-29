@@ -42,6 +42,14 @@
       {
         "path": "platform/services/stagecraft/api/auth/rauthy.ts",
         "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/auth/rauthyCallback.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/web/app/routes/signin.tsx",
+        "source": "spec-edge"
       }
     ],
     "resolvedUnits": [
@@ -113,6 +121,32 @@
       {
         "locations": [
           {
+            "file": "platform/services/stagecraft/api/auth/rauthyCallback.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/auth/rauthyCallback.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/app/routes/signin.tsx"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/routes/signin.tsx"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "platform/infra/hetzner/manifests/letsencrypt-prod-dns01-cloudflare-issuer.yaml"
           }
         ],
@@ -150,5 +184,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "000544957326062b7023429769416a44e57a25a559e7cf327ba256a5547d522a"
+  "shardHash": "f7cfd111b195280467f749f0b81980f63d2f620d42b04bef5860283d28511865"
 }

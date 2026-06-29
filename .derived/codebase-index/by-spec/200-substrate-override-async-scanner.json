@@ -18,14 +18,6 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.down.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.up.sql",
-        "source": "spec-edge"
-      },
-      {
         "path": "platform/services/stagecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
@@ -123,32 +115,6 @@
       }
     ],
     "resolvedUnits": [
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.down.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.down.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/47_override_scan_runs.up.sql"
-        }
-      },
       {
         "locations": [
           {
@@ -518,5 +484,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "2e8a64ca034e9ea45ed022570123ba3ec53c289b79ab4d07b23eaabfcaeac843"
+  "shardHash": "642069cee57b7adaa04fb92ec2a6704ddd32ef0c560a0cf6ecad84dfaf761b13"
 }

@@ -35,7 +35,6 @@ depends_on:
   - "123-agent-catalog-org-rescope"  # agent-catalog-org-rescope (agent_resolver + binding-aware run identity)
 establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/runs.ts }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/31_create_factory_runs.up.sql }
 extends:
   - spec: "108-factory-as-platform-feature"
     nature: additive

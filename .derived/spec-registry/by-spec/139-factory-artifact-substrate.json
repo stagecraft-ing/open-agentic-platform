@@ -23,22 +23,6 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/32_factory_artifact_substrate.up.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/33_migrate_agent_catalog.up.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/34_drop_legacy_factory_tables.up.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/35_drop_legacy_agent_catalog_family.up.sql"
-      },
-      {
-        "kind": "file",
         "path": "platform/services/stagecraft/api/factory/substrate.ts"
       },
       {
@@ -309,6 +293,6 @@
     "summary": "Replace the spec 108 bucket-blob translator with a content-addressed substrate (`factory_artifact_substrate`) that mirrors upstream Factory and Template repos verbatim, allows per-org override of any file, and generalises spec 111's `agent_catalog` into the same row shape so Adapters, Contracts, Processes, Agents, and Skills become facets over a single store. Symmetrises upstream sourcing across all four adapters (resolves the `next-prisma`/`rust-axum`/`encore-react` \"no upstream scaffold\" gap) and closes spec 108 §7.1 (OPC factory_root checkout punt) by exposing every artifact at a stable `(origin, path, content_hash)` triple.\n",
     "title": "Factory artifact substrate — verbatim mirror, per-org override, unified Agent/Skill/Adapter/Contract storage"
   },
-  "shardHash": "c01159e4648ea2ec2e061064bf1a44b5027cdb247bf705e1dfc70a42774d892e",
+  "shardHash": "81b5342c209b0fe43f9db953de1e0c6a124a4f37c2b6e4c0bb97acdef1466da7",
   "specVersion": "1.1.0"
 }

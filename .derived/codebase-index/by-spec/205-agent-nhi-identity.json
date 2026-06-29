@@ -31,14 +31,6 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.down.sql",
-        "source": "spec-edge"
-      },
-      {
-        "path": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.up.sql",
-        "source": "spec-edge"
-      },
-      {
         "path": "platform/services/stagecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
@@ -71,32 +63,6 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/audit/auditTwoPrincipal.test.ts"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.down.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.down.sql"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/52_audit_two_principal.up.sql"
         }
       },
       {
@@ -234,5 +200,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "e5e66be09667b3d8c187f35c832ff45a0de97ddd23c14698e1826e3295c7f10e"
+  "shardHash": "e9643ab0805120f3d894fb2af09ffe95a1fd255dfeb9635cc88a68b94f717100"
 }

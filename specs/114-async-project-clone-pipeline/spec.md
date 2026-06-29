@@ -19,7 +19,6 @@ supersedes:
     scope: partial
     unit: { kind: file, path: platform/services/stagecraft/api/projects/clone.ts }
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneCore.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/projects/cloneEvents.ts }

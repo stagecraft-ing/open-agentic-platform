@@ -27,8 +27,8 @@ import { resolveFactoryUpstreamToken } from "./tokenResolver";
 import { runSyncPipeline } from "./syncPipeline";
 import { runScaffoldWarmup } from "../projects/scaffold/scheduler";
 import {
-  LEGACY_SINGLETON_SOURCE_ID,
-  LEGACY_TEMPLATE_SOURCE_ID,
+  FACTORY_SOURCE_ID,
+  TEMPLATE_SOURCE_ID,
 } from "./upstreams";
 
 async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
@@ -54,8 +54,8 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
   }
 
   // Spec 139 Phase 4b — factory_upstreams is N-per-org. The legacy
-  // singleton wire shape composes from two rows: `legacy-mixed`
-  // (factory side, role='mixed') and `legacy-template-mixed` (template
+  // singleton wire shape composes from two rows: `factory`
+  // (factory side, role='mixed') and `template` (template
   // side, role='scaffold'). The four legacy per-side columns are
   // dropped in migration 35 — repo_url + ref are the canonical fields.
   const sideRows = await db
@@ -64,14 +64,14 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
     .where(
       and(
         eq(factoryUpstreams.orgId, req.orgId),
-        sql`${factoryUpstreams.sourceId} IN (${LEGACY_SINGLETON_SOURCE_ID}, ${LEGACY_TEMPLATE_SOURCE_ID})`,
+        sql`${factoryUpstreams.sourceId} IN (${FACTORY_SOURCE_ID}, ${TEMPLATE_SOURCE_ID})`,
       ),
     );
   const factoryRow = sideRows.find(
-    (r) => r.sourceId === LEGACY_SINGLETON_SOURCE_ID,
+    (r) => r.sourceId === FACTORY_SOURCE_ID,
   );
   const templateRow = sideRows.find(
-    (r) => r.sourceId === LEGACY_TEMPLATE_SOURCE_ID,
+    (r) => r.sourceId === TEMPLATE_SOURCE_ID,
   );
 
   if (!factoryRow || !templateRow) {
@@ -97,7 +97,7 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
     .where(
       and(
         eq(factoryUpstreams.orgId, req.orgId),
-        eq(factoryUpstreams.sourceId, LEGACY_SINGLETON_SOURCE_ID),
+        eq(factoryUpstreams.sourceId, FACTORY_SOURCE_ID),
       ),
     );
 
@@ -165,27 +165,45 @@ async function handleSyncRequest(req: FactorySyncRequest): Promise<void> {
   }
 }
 
+/**
+ * Sanitize a pipeline error before it is written to the `error` /
+ * `last_sync_error` TEXT columns. A failure message can embed the offending
+ * payload (e.g. a Postgres error quoting the binary INSERT params), and a NUL
+ * byte there would make the failRun UPDATE itself throw "invalid byte sequence
+ * for encoding UTF8: 0x00", leaving the run stuck `running` forever with the
+ * message NSQ-requeued. Strip NUL bytes and cap length so recording a failure
+ * can never fail. This is the recovery path; it must always succeed.
+ */
+function sanitizeRunError(message: string): string {
+  const stripped = message.replace(/\u0000/g, "");
+  const MAX = 8000;
+  return stripped.length > MAX
+    ? `${stripped.slice(0, MAX)}… [truncated ${stripped.length - MAX} chars]`
+    : stripped;
+}
+
 async function failRun(
   req: FactorySyncRequest,
   message: string
 ): Promise<void> {
   const completedAt = new Date();
+  const safeMessage = sanitizeRunError(message);
   await db
     .update(factorySyncRuns)
-    .set({ status: "failed", error: message, completedAt })
+    .set({ status: "failed", error: safeMessage, completedAt })
     .where(eq(factorySyncRuns.id, req.syncRunId));
 
   await db
     .update(factoryUpstreams)
     .set({
       lastSyncStatus: "failed",
-      lastSyncError: message,
+      lastSyncError: safeMessage,
       updatedAt: completedAt,
     })
     .where(
       and(
         eq(factoryUpstreams.orgId, req.orgId),
-        eq(factoryUpstreams.sourceId, LEGACY_SINGLETON_SOURCE_ID),
+        eq(factoryUpstreams.sourceId, FACTORY_SOURCE_ID),
       ),
     );
 
@@ -194,7 +212,7 @@ async function failRun(
     action: "factory.upstreams.sync_failed",
     targetType: "factory_sync_runs",
     targetId: req.syncRunId,
-    metadata: { orgId: req.orgId, error: message },
+    metadata: { orgId: req.orgId, error: safeMessage },
   });
 }
 

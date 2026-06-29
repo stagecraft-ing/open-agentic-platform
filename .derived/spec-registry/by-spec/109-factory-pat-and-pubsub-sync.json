@@ -22,6 +22,10 @@
       },
       {
         "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/syncRunsScheduler.ts"
+      },
+      {
+        "kind": "file",
         "path": "platform/services/stagecraft/api/factory/tokenResolver.ts"
       },
       {
@@ -71,6 +75,7 @@
       "Factory upstream sync",
       "Project repo operations",
       "5. PubSub Sync Worker",
+      "5.1 Staleness sweeper (amendment 2026-06-29)",
       "6. Encore APIs",
       "Factory upstream PAT",
       "Factory sync (replaces Phase 3's inline endpoint)",
@@ -88,6 +93,6 @@
     "summary": "Finishes spec 108 §10 by making Factory sync asynchronous (PubSub-driven) and wires Personal Access Tokens into the two repo access surfaces the platform owns: (a) org-level PAT for the Factory upstream sources (legacy-factory + template), and (b) per-project PAT for project repos that live outside the org and cannot be reached via the OAP GitHub App. Resolves the spec 108 §10 inline-vs-PubSub open question.\n",
     "title": "Factory PAT Broker + PubSub Sync Worker"
   },
-  "shardHash": "724be2ad835b31ea93f90276bb238b269a85e9b7448b22f34bdcd051520e8323",
+  "shardHash": "5ed022e5af8b491d296a97d49d41b494ae453360f6a1bf9c9bae0930bbda88f4",
   "specVersion": "1.1.0"
 }

@@ -86,18 +86,6 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.up.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.down.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/40_environment_access_gates.test.ts"
-      },
-      {
-        "kind": "file",
         "path": "platform/services/stagecraft/api/environments/accessGates.ts"
       },
       {
@@ -127,18 +115,6 @@
       {
         "kind": "directory",
         "path": "platform/charts/oauth2-proxy-gate"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.up.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.down.sql"
-      },
-      {
-        "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/41_environment_access_gates_deploy_descriptor.test.ts"
       },
       {
         "kind": "file",
@@ -209,6 +185,6 @@
     "summary": "Per-environment access gating for projects deployed via deployd-api, applied above the tenant app so tenant codebases carry no auth logic. Passwordless OIDC via our existing Rauthy instance is the only mode — users authenticate by magic link or federated upstream IdP (Google, Microsoft Entra, GitHub, generic OIDC). Stagecraft and Rauthy clients for tenant gates are configured to refuse password login outright; the platform never sees, stores, or relays a password.\n",
     "title": "Tenant environment access gates — passwordless OIDC via Rauthy"
   },
-  "shardHash": "02c27a5894966ab86d96fc5378b86c3c361c2d38517ce6bed1e197898e0f9c23",
+  "shardHash": "bcfa61a91cb289b90f1b8346420674b1cb62b01dbb44f366a3d2f27933370303",
   "specVersion": "1.1.0"
 }

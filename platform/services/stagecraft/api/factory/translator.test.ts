@@ -132,6 +132,73 @@ describe("translateUpstreamsToSubstrate (origin-from-source)", () => {
   });
 });
 
+// Spec 199 FR-008: the owned repos ship a Docusaurus `website/` docs tree of
+// binary assets that must never reach the UTF-8 TEXT substrate, and any other
+// stray binary file must be skipped rather than wedge the whole sync.
+describe("translateUpstreamsToSubstrate (website exclude + binary skip)", () => {
+  let factoryRepo: string;
+  let templateRepo: string;
+  const NUL = String.fromCharCode(0);
+
+  beforeAll(async () => {
+    factoryRepo = await mkdtemp(join(tmpdir(), "factory-bin-"));
+    templateRepo = await mkdtemp(join(tmpdir(), "template-bin-"));
+    await writeTree(factoryRepo, {
+      "adapters/acme-vue-encore/manifest.yaml":
+        'schema_version: "1.1.0"\nadapter:\n  name: acme-vue-encore\n',
+      // Docusaurus binary asset under website/: excluded by path before read.
+      "website/static/img/favicon.ico": `ICO${NUL}${NUL}binary`,
+      "website/docusaurus.config.ts": "export default {};\n",
+      // A stray binary OUTSIDE website/, at an otherwise-included path:
+      // caught by the NUL-byte guard and reported as skipped.
+      "contract/examples/payload.bin": `PNG${NUL}rawbytes`,
+      "contract/examples/ok.json": '{"ok":true}\n',
+    });
+    await writeTree(templateRepo, {
+      "orchestration/template-orchestrator.md": "---\ntitle: t\n---\nbody\n",
+      "website/static/img/favicon.ico": `ICO${NUL}binary`,
+    });
+  });
+
+  afterAll(async () => {
+    await rm(factoryRepo, { recursive: true, force: true });
+    await rm(templateRepo, { recursive: true, force: true });
+  });
+
+  test("excludes website/ and skips NUL-byte binaries, mirrors the rest", async () => {
+    const result = await translateUpstreamsToSubstrate({
+      factorySourcePath: factoryRepo,
+      factorySourceSha: "f".repeat(40),
+      templatePath: templateRepo,
+      templateSha: "t".repeat(40),
+      factoryOriginId: "acme-factory",
+      templateOriginId: "acme-template",
+    });
+    const paths = result.rows.map((r) => r.path);
+
+    // website/ is excluded by path in BOTH repos (never even read).
+    expect(paths).not.toContain("website/static/img/favicon.ico");
+    expect(paths).not.toContain("website/docusaurus.config.ts");
+    // website/ files are excluded by path, so they are NOT reported as binary.
+    expect(result.skippedBinaryPaths).not.toContain(
+      "website/static/img/favicon.ico",
+    );
+
+    // The stray binary at an included path is skipped via the NUL guard.
+    expect(paths).not.toContain("contract/examples/payload.bin");
+    expect(result.skippedBinaryPaths).toContain("contract/examples/payload.bin");
+
+    // Genuine text content still mirrors.
+    expect(paths).toContain("adapters/acme-vue-encore/manifest.yaml");
+    expect(paths).toContain("contract/examples/ok.json");
+
+    // No mirrored row carries a NUL byte (would break the TEXT insert).
+    for (const row of result.rows) {
+      expect(row.upstreamBody.includes(NUL)).toBe(false);
+    }
+  });
+});
+
 describe("translateLegacyManifest", () => {
   const aimAdapter: FactoryAdapterRow = {
     name: "acme-vue-encore",

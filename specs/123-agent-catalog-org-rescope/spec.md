@@ -27,7 +27,6 @@ amends:
   - "119-project-as-unit-of-governance"
 code_aliases: ["AGENT_CATALOG_ORG"]
 establishes:
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/30_agent_catalog_org_rescope.up.sql }
 extends:
   - spec: "119-project-as-unit-of-governance"
     nature: wrapping

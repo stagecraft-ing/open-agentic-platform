@@ -15,6 +15,10 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/factory/syncRunsScheduler.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/factory/syncWorker.ts",
         "source": "spec-edge"
       },
@@ -51,6 +55,19 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/factory/syncRuns.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/syncRunsScheduler.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/syncRunsScheduler.ts"
         }
       },
       {
@@ -149,5 +166,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "2198f53b9ef326b5565b068fad92b94f9e379ef7d116010d2cdfa037d91fa7a2"
+  "shardHash": "52e2672d5823320040afd2fa89c1a550e44ecd1c1eb6ef10e4db0f5caf274b5c"
 }

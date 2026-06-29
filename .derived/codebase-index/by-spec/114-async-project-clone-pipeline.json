@@ -7,10 +7,6 @@
     ],
     "implementingPaths": [
       {
-        "path": "platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql",
-        "source": "spec-edge"
-      },
-      {
         "path": "platform/services/stagecraft/api/db/schema.ts",
         "source": "spec-edge"
       },
@@ -52,19 +48,6 @@
       }
     ],
     "resolvedUnits": [
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql"
-          }
-        ],
-        "ownership": true,
-        "sourceField": "establishes",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql"
-        }
-      },
       {
         "locations": [
           {
@@ -200,5 +183,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "996012e34ec473392014320ff6c82aa8344cd48defe27f86f5e98242a31d787c"
+  "shardHash": "842d1c301e3f5f9d2779243c755885ee61ff780e4646c2df4fe7714e3df99e0a"
 }

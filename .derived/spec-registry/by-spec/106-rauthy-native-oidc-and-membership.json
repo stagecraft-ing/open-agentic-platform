@@ -28,6 +28,22 @@
       },
       {
         "nature": "additive",
+        "spec": "080-github-identity-onboarding",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/auth/rauthyCallback.ts"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "080-github-identity-onboarding",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/routes/signin.tsx"
+        }
+      },
+      {
+        "nature": "additive",
         "spec": "087-unified-workspace-architecture",
         "unit": {
           "kind": "directory",
@@ -122,6 +138,6 @@
     "summary": "Close the implementation gap between spec 080's design and what actually shipped. Move GitHub from stagecraft-direct OAuth to Rauthy's upstream IDP, remove the imaginary admin-mint JWT endpoint, drive custom claims through Rauthy's scope + user-attribute model, and resolve org memberships through a layered strategy — GitHub App installation token first, per-user PAT second, with fail-loud if neither is available.\n",
     "title": "Rauthy-Native OIDC + Layered Membership Resolution (App Installation + PAT)"
   },
-  "shardHash": "0c72df167a523ce1144c92791770e363440d189a60e6619c001aa37f2a4f8ab1",
+  "shardHash": "9ab0a78478b8d278050c60a9c0e16a2bb32e88b32daeea36d0919fe14ab84ece",
   "specVersion": "1.1.0"
 }

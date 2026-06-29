@@ -37,8 +37,6 @@ establishes:
   # Phase 1 (FR-001): the org_halts quarantine-record migration, the
   # admin-gated kill-switch verb, and its DB-bound enforcement test are
   # brought into existence by this spec.
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/53_org_halts.up.sql }
-  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/53_org_halts.down.sql }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/orgHalt.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/orgHalt.test.ts }
 extends:

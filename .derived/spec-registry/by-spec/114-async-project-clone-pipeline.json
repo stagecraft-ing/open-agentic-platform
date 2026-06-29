@@ -13,10 +13,6 @@
     "establishes": [
       {
         "kind": "file",
-        "path": "platform/services/stagecraft/api/db/migrations/24_project_clone_runs.up.sql"
-      },
-      {
-        "kind": "file",
         "path": "platform/services/stagecraft/api/db/schema.ts"
       },
       {
@@ -101,6 +97,6 @@
     ],
     "title": "Async Project Clone Pipeline"
   },
-  "shardHash": "f26059d678a0b3842c0d02a13faf63ba082f01ab406efd881b28c26fc763e40b",
+  "shardHash": "ed0988ad45832b3076b2dfa1a7162a9ed2aa0b92b10e123733e386969e88135d",
   "specVersion": "1.1.0"
 }
