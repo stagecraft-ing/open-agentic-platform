@@ -267,14 +267,20 @@ function SyncStatus({
 
   const effectiveStatus =
     activeRun?.status ??
-    (actionError ? "failed" : upstream.lastSyncStatus ?? "pending");
+    (actionError ? "failed" : upstream.lastSyncStatus ?? "idle");
+
+  // A configured-but-never-run upstream is idle, not pending: only show the
+  // amber pending/running treatment when a sync actually exists.
+  const neverSynced = !upstream.lastSyncedAt && effectiveStatus === "idle";
 
   const color =
     effectiveStatus === "ok"
       ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
       : effectiveStatus === "failed"
         ? "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
-        : "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800";
+        : effectiveStatus === "idle"
+          ? "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700"
+          : "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800";
 
   const errorMessage = actionError ?? activeRun?.error ?? upstream.lastSyncError;
 
@@ -284,11 +290,17 @@ function SyncStatus({
     >
       <div className="flex-1">
         <div className="font-medium">
-          Last sync:{" "}
-          {upstream.lastSyncedAt
-            ? new Date(upstream.lastSyncedAt).toLocaleString()
-            : "never"}{" "}
-          — {effectiveStatus}
+          {neverSynced ? (
+            "Not synced yet. Press Sync now to pull the upstreams."
+          ) : (
+            <>
+              Last sync:{" "}
+              {upstream.lastSyncedAt
+                ? new Date(upstream.lastSyncedAt).toLocaleString()
+                : "never"}{" "}
+              <span className="opacity-70">({effectiveStatus})</span>
+            </>
+          )}
         </div>
         {errorMessage ? (
           <div className="mt-1 font-mono text-[11px] break-all">

@@ -96,10 +96,10 @@ describe("spec 140 §2.3 — blocker resolution (T051)", () => {
     ).toBe("no-scaffold-source-resolved");
   });
 
-  test("scaffold source resolved, no PAT → 'no-upstream-pat'", () => {
+  test("scaffold source resolved, no PAT is not a blocker (anonymous clone)", () => {
     expect(
       resolveBlocker({ ...baseInputs, hasUpstreamPat: false }),
-    ).toBe("no-upstream-pat");
+    ).toBeUndefined();
   });
 
   test("everything resolved, warmup error surfaces 'warmup-error'", () => {

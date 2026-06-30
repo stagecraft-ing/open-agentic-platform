@@ -41,7 +41,6 @@ import {
 } from "../db/schema";
 import { hasOrgPermission } from "../auth/membership";
 import { brokerInstallationToken } from "../github/repoInit";
-import { loadFactoryUpstreamPatToken } from "../factory/upstreamPat";
 import { loadSubstrateForOrg } from "../factory/substrateBrowser";
 import { listAdapterViews } from "../factory/adapterView";
 import {
@@ -198,14 +197,10 @@ export const createFactoryProject = api(
       );
     }
 
-    // ── 3. Verify the org has an upstream PAT (used for warmup + clone). ─
-    const upstreamPat = await loadFactoryUpstreamPatToken(auth.orgId);
-    if (!upstreamPat) {
-      throw APIError.failedPrecondition(
-        "No factory upstream PAT configured for this org. " +
-          "Add one at /app/admin/factory/pat before creating projects."
-      );
-    }
+    // ── 3. The factory upstream PAT is optional. The scaffold path loads it
+    // on demand and falls back to an anonymous clone (public template repos);
+    // a private repo without a PAT surfaces a clear clone error downstream
+    // rather than a preemptive block here.
 
     const profile = pickProfileFromModules(req.variant, selectedModules);
 

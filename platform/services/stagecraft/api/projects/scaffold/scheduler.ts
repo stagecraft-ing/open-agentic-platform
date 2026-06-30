@@ -129,8 +129,9 @@ async function resolveWarmupContext(): Promise<WarmupResolution> {
       if (!resolution) continue;
       sawResolvedSource = true;
 
+      // PAT is optional: an absent token yields an anonymous clone (public
+      // template repos). resolveScaffoldUpstream + buildCloneUrl handle null.
       const pat = await loadFactoryUpstreamPatToken(orgId).catch(() => null);
-      if (!pat) continue;
 
       // Spec 112 §5.3.1: the generator + module catalog live in factory-encore,
       // resolved from the org's `factory` factory_upstreams row. This is a
