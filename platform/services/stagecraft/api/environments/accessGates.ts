@@ -314,7 +314,7 @@ export const putAccessGate = api(
       try {
         const provision = await provisionTenantGateClient({
           clientId,
-          name: `Tenant Gate · ${env.id}`,
+          name: `Tenant Gate - ${env.id}`,
           tenantHostname: `${env.id}.tenants.placeholder.example.com`,
           magicLinkEnabled: magicLink,
           federatedProvider: fedProvider,

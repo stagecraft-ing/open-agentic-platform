@@ -79,6 +79,30 @@ export function tenantGateRedirectUri(tenantHostname: string): string {
 }
 
 /**
+ * Coerce a human-readable client name to Rauthy 0.35's name validation
+ * contract. Rauthy validates the client `name` against
+ * `[a-zA-Z0-9À-ɏ\-\s]{2,128}` and rejects the entire create/update with a
+ * 400 otherwise. Punctuation that reads fine in stagecraft's own UI (the
+ * `·` separator, slashes, em/en dashes) sits outside that class, so a name
+ * built by interpolating an environment id MUST be sanitized before the
+ * network hop or "Enable gate" 400s. Disallowed runs collapse to a single
+ * space; the result is trimmed and clamped to 128 chars. If sanitizing
+ * leaves fewer than 2 chars, fall back to the (already-valid) client id so
+ * the field is never empty.
+ *
+ * The allowed range `À-ɏ` is U+00C0–U+024F (Latin-1 supplement +
+ * extended-A), matching Rauthy's regex byte-for-byte.
+ */
+export function sanitizeRauthyClientName(name: string, fallback: string): string {
+  const cleaned = name
+    .replace(/[^a-zA-Z0-9À-ɏ\-\s]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 128);
+  return cleaned.length >= 2 ? cleaned : fallback.slice(0, 128);
+}
+
+/**
  * Build the Rauthy admin client payload for create + update. Hard-codes
  * the load-bearing FR-004 invariant: `flows_enabled` NEVER contains
  * `"password"`. Magic link is implicit in `authorization_code` (Rauthy
@@ -97,7 +121,7 @@ export function buildTenantGateClientPayload(
 
   return {
     id: spec.clientId,
-    name: spec.name,
+    name: sanitizeRauthyClientName(spec.name, spec.clientId),
     enabled: true,
     confidential: true,
     redirect_uris: [tenantGateRedirectUri(spec.tenantHostname)],
