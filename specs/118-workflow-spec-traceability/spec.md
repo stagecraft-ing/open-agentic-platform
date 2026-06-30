@@ -254,3 +254,10 @@ the indexer.
 Spec 178 (opc-directory-rename, 2026-05-24): mechanical path rename
 `product/apps/desktop/*` → `product/apps/opc/*`. No semantic change
 to this spec's claims; owned paths inherit the new prefix.
+
+## Amendment 2026-06-29 (reset-prep housekeeping)
+
+`ci-stagecraft.yml` and `cd-stagecraft.yml` had their `encore build --config`
+repointed from the retired `infra.config.hetzner.json` to the unified
+`infra.config.json`. Mechanical filename change; no change to workflow
+traceability claims.

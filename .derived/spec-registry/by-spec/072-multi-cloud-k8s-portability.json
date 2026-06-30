@@ -44,13 +44,14 @@
       "Makefile Multi-Target Support",
       "Invariants",
       "Migration Path",
-      "Dependencies"
+      "Dependencies",
+      "Amendment 2026-06-29 (reset-prep housekeeping)"
     ],
     "specPath": "specs/072-multi-cloud-k8s-portability/spec.md",
     "status": "approved",
     "summary": "Generalizes the platform's Kubernetes infrastructure from Azure-only to a portable two-tier model supporting managed cloud K8s (Azure AKS, AWS EKS, GCP GKE, DigitalOcean DOKS), bare K8s (Hetzner K3s via hetzner-k3s), and local development (k3d). Introduces a provider-agnostic output contract for Terraform modules, replaces Azure CSI secrets + workload identity with external-secrets-operator, and parameterizes Helm charts with per-environment values overlays.\n",
     "title": "Multi-Cloud Kubernetes Portability"
   },
-  "shardHash": "2e6ebdad52d289d67811533fa292bc93a7052ae67338d04e3dda263977adb348",
+  "shardHash": "9e1a7c58cf228a854a3115a0820154f55a15ff5846400c8a33b87d70aaa57c43",
   "specVersion": "1.1.0"
 }
