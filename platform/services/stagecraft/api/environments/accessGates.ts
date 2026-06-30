@@ -311,27 +311,42 @@ export const putAccessGate = api(
     let cookieSecret: string | null = current?.cookieSecret ?? null;
     if (req.enabled) {
       const clientId = tenantGateClientId(env.id);
+      const gateSpec = {
+        clientId,
+        name: `Tenant Gate - ${env.id}`,
+        tenantHostname: `${env.id}.tenants.placeholder.example.com`,
+        magicLinkEnabled: magicLink,
+        federatedProvider: fedProvider,
+      };
       try {
-        const provision = await provisionTenantGateClient({
-          clientId,
-          name: `Tenant Gate - ${env.id}`,
-          tenantHostname: `${env.id}.tenants.placeholder.example.com`,
-          magicLinkEnabled: magicLink,
-          federatedProvider: fedProvider,
-        });
+        const provision = await provisionTenantGateClient(gateSpec);
         rauthyClientRef = provision.clientId;
         if (provision.action === "created") {
           rauthyClientSecret = provision.clientSecret;
         }
-        // On "updated", retain existing rauthyClientSecret. If we have
-        // no prior secret (e.g. legacy row from before migration 41 with
-        // a hand-set rauthyClientRef), fail loud — the CHECK constraint
-        // would block insert and the deploy descriptor would be unrendderable.
+        // On "updated", retain the existing rauthyClientSecret. If we have
+        // none (the Rauthy client exists but stagecraft never persisted its
+        // secret, e.g. an earlier enable left an orphaned client after the
+        // name-validation 400, or a partial enable), self-heal. Rauthy 0.35
+        // never returns the secret on GET/PUT, so the only recovery is to
+        // delete the client and recreate it to recapture a fresh secret.
+        // Idempotent: deprovision treats a missing client as success.
         if (!rauthyClientSecret) {
-          throw new Error(
-            `provision.action='${provision.action}' returned no secret AND no prior secret on descriptor row — ` +
-              `cannot satisfy enabled_requires_secrets CHECK. Recreate the Rauthy client to recapture the secret.`,
+          log.warn(
+            "tenant gate: existing Rauthy client has no recoverable secret; recreating",
+            { environmentId: env.id, clientId },
           );
+          await deprovisionTenantGateClient(clientId);
+          const recreated = await provisionTenantGateClient(gateSpec);
+          rauthyClientRef = recreated.clientId;
+          rauthyClientSecret = recreated.clientSecret;
+          if (recreated.action !== "created" || !rauthyClientSecret) {
+            throw new Error(
+              `tenant gate client recreate did not yield a secret ` +
+                `(action='${recreated.action}'); cannot satisfy ` +
+                `enabled_requires_secrets CHECK`,
+            );
+          }
         }
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
