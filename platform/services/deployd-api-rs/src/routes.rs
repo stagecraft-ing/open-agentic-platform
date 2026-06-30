@@ -306,6 +306,16 @@ pub async fn create_deployment(
                     ("ROLLED_OUT".to_string(), endpoints.clone())
                 }
                 Ok(Err(e)) => {
+                    // Log the full helm stderr at ERROR. Without this the only
+                    // record of *why* a deploy failed lived in the hiqlite
+                    // `deployment_events` row (session-gated GET), so the pod
+                    // logs showed nothing and operators were told to "see
+                    // deployd logs" that contained no clue. HelmError's Display
+                    // carries the captured stderr tail.
+                    tracing::error!(
+                        deployment_id = %deployment_id,
+                        "helm install failed: {e}"
+                    );
                     let _ = store::update_status(&state.client, &deployment_id, "FAILED").await;
                     let _ = store::add_event(
                         &state.client,
@@ -317,6 +327,10 @@ pub async fn create_deployment(
                     ("FAILED".to_string(), endpoints.clone())
                 }
                 Err(join_err) => {
+                    tracing::error!(
+                        deployment_id = %deployment_id,
+                        "helm task join error: {join_err}"
+                    );
                     let _ = store::update_status(&state.client, &deployment_id, "FAILED").await;
                     let _ = store::add_event(
                         &state.client,
