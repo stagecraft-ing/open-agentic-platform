@@ -13,6 +13,30 @@ const DEPLOYD_AUDIENCE = process.env.DEPLOYD_AUDIENCE ?? "";
 const DEPLOYD_SCOPE = process.env.DEPLOYD_SCOPE ?? "";
 
 /**
+ * Render a transport-level fetch failure into an actionable diagnostic.
+ *
+ * Node's global fetch (undici) throws a `TypeError` whose `message` is the
+ * uninformative `"fetch failed"`; the real cause (a DNS / connect / TLS /
+ * timeout error, with a `code` like `ECONNREFUSED`, `ENOTFOUND`, or
+ * `UND_ERR_HEADERS_TIMEOUT`) lives on `err.cause`. Surfacing the code and
+ * cause message makes a REQUEST_FAILED row say what actually went wrong
+ * (e.g. deployd unreachable vs the headers timeout that fires when deployd
+ * holds the connection during a long synchronous `helm --wait`).
+ */
+export function describeTransportError(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  const cause = (err as { cause?: unknown }).cause;
+  if (cause && typeof cause === "object") {
+    const c = cause as { code?: unknown; message?: unknown };
+    const code = typeof c.code === "string" ? c.code : undefined;
+    const causeMsg = typeof c.message === "string" ? c.message : undefined;
+    const detail = [code, causeMsg].filter(Boolean).join(": ");
+    if (detail) return `${err.message} (${detail})`;
+  }
+  return err.message;
+}
+
+/**
  * Resolve a cached M2M bearer header for calling deployd-api. Single source of
  * credential resolution (spec 215 FR-007): reads OIDC_M2M_CLIENT_ID/SECRET from
  * the CSI secrets mount or env (LOGTO_* fallback), then delegates to the shared

@@ -224,6 +224,22 @@ environment returns a specific "approval required" error.
   deployd-api status on next load (the dispatch is idempotent on replay).
 - deployd-api unreachable: the record is created in REQUEST_FAILED state
   with the connection diagnostic; no phantom PENDING rows.
+
+  *Amendment (deploy timeout race + diagnostic, 2026-06-30).* deployd's
+  `create_deployment` is synchronous (it holds the HTTP connection during
+  `helm upgrade --install --wait`), and stagecraft's `fetch` inherits
+  undici's 300s headers timeout. With deployd's old 5m `--wait` default
+  those two 300s windows raced: when undici lost, a deploy that helm would
+  have reported as FAILED (e.g. a tenant image stuck in ImagePullBackOff
+  that never becomes Ready) instead surfaced as an opaque REQUEST_FAILED
+  whose diagnostic was the bare Node string `fetch failed`. Two corrections:
+  (1) deployd's default `helm --wait` timeout drops below 300s (spec 136
+  helm runner) so deployd reliably wins the race and its FAILED + helm
+  stderr reaches the UI; (2) stagecraft's REQUEST_FAILED diagnostic now
+  unwraps `err.cause` (`describeTransportError` in `deploydClient.ts`), so a
+  genuine transport failure reads e.g. `fetch failed (ECONNREFUSED: ...)`
+  or `fetch failed (UND_ERR_HEADERS_TIMEOUT: ...)` instead of `fetch
+  failed`. The reconcile-on-refresh path above is unchanged.
 - Dual-profile projects: the success-page button deploys the default
   `public` variant (spec 214 FR-009); the env page offers the internal
   variant as a separate action.

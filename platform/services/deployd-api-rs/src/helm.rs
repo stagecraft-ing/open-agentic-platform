@@ -136,7 +136,16 @@ pub struct HelmRunner {
 impl HelmRunner {
     pub fn from_env() -> Self {
         let bin = std::env::var_os("DEPLOYD_HELM_BIN").unwrap_or_else(|| OsString::from("helm"));
-        let timeout = std::env::var("DEPLOYD_HELM_TIMEOUT").unwrap_or_else(|_| "5m".into());
+        // `create_deployment` shells helm synchronously and only responds to
+        // stagecraft once `helm upgrade --install --wait` returns. stagecraft's
+        // fetch inherits undici's 300s headers timeout, so a `--wait` that runs
+        // to ~300s (the old "5m" default) races that timeout: when undici loses
+        // the coin-flip, stagecraft records an opaque REQUEST_FAILED "fetch
+        // failed" instead of deployd's real FAILED + helm stderr (e.g. an
+        // ImagePullBackOff that will never become Ready). Default the wait below
+        // 300s so deployd always wins the race and the actionable helm error
+        // surfaces. Operators can still override via DEPLOYD_HELM_TIMEOUT.
+        let timeout = std::env::var("DEPLOYD_HELM_TIMEOUT").unwrap_or_else(|_| "3m".into());
         Self {
             bin,
             timeout,
@@ -929,6 +938,38 @@ mod tests {
             rendered.contains("--email-domain=acme.com"),
             "domain allowlist flows into args"
         );
+    }
+
+    #[test]
+    fn from_env_default_helm_timeout_is_under_undici_300s() {
+        // Guard against regressing the deploy timeout race: stagecraft's fetch
+        // to deployd inherits undici's 300s headers timeout, so the default
+        // `helm --wait` timeout must stay safely under 300s for deployd's
+        // FAILED + helm stderr to win the race. Only assert the default when
+        // the env override is absent (it governs the default path).
+        if std::env::var("DEPLOYD_HELM_TIMEOUT").is_ok() {
+            eprintln!("skipping: DEPLOYD_HELM_TIMEOUT overridden in this env");
+            return;
+        }
+        let runner = HelmRunner::from_env();
+        assert_eq!(runner.timeout, "3m");
+        let secs = parse_helm_timeout_secs(&runner.timeout);
+        assert!(
+            secs < 300,
+            "default helm timeout {secs}s must be < undici's 300s headers timeout"
+        );
+    }
+
+    // Minimal parser for the `<n>{s,m,h}` helm duration subset this binary
+    // emits, used only to assert the race-margin invariant above.
+    fn parse_helm_timeout_secs(t: &str) -> u64 {
+        let (num, mult) = match t.chars().last() {
+            Some('s') => (&t[..t.len() - 1], 1),
+            Some('m') => (&t[..t.len() - 1], 60),
+            Some('h') => (&t[..t.len() - 1], 3600),
+            _ => (t, 1),
+        };
+        num.parse::<u64>().unwrap_or(0) * mult
     }
 
     #[test]

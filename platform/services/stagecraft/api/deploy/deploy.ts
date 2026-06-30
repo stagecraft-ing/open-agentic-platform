@@ -16,6 +16,7 @@ import { validateM2mRequest } from "../auth/m2mAuth.js";
 import { readSecretFromDir } from "./secrets";
 import {
   DEPLOYD_URL,
+  describeTransportError,
   dispatchDeployment,
   getDeploydAuthHeader,
   getDeploymentStatus,
@@ -842,10 +843,15 @@ export const triggerDeployment = api(
         });
       }
     } catch (err: unknown) {
-      // Transport down (deployd unreachable): REQUEST_FAILED, no phantom PENDING.
+      // Transport-level failure reaching deployd (DNS, connection refused,
+      // TLS, or undici's headers timeout while deployd holds the connection
+      // during a long helm --wait): REQUEST_FAILED, no phantom PENDING.
+      // Node's bare `fetch failed` message hides the real reason in
+      // `err.cause`; unwrap it so the diagnostic is actionable (e.g.
+      // ECONNREFUSED vs ENOTFOUND vs UND_ERR_HEADERS_TIMEOUT).
       updated = await updateDeploymentRecord(record.id, {
         status: "REQUEST_FAILED",
-        diagnostic: err instanceof Error ? err.message : String(err),
+        diagnostic: describeTransportError(err),
       });
     }
 

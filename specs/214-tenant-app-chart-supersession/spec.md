@@ -316,6 +316,20 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
 - Helm timeout on first install (image pull + migration longer than 5
   minutes): the chart sets a realistic default and the dispatch surfaces
   the helm diagnostic verbatim, as today.
+
+  *Amendment (helm wait timeout vs the dispatch fetch, 2026-06-30).* The
+  deployd helm runner's default `--wait` timeout (`helm.rs::HelmRunner::
+  from_env`) drops from `5m` to `3m`. Rationale: `create_deployment` holds
+  the dispatch HTTP connection open for the whole `helm upgrade --install
+  --wait`, and stagecraft's fetch inherits undici's 300s headers timeout.
+  At the old `5m` default those windows were equal, so a deploy that helm
+  would report as FAILED (a tenant image stuck in ImagePullBackOff that
+  never becomes Ready) raced stagecraft's timeout and could surface as an
+  opaque REQUEST_FAILED instead of the helm diagnostic this edge case
+  promises "verbatim, as today". A `3m` default keeps deployd inside the
+  fetch window so its FAILED + helm stderr wins. `DEPLOYD_HELM_TIMEOUT`
+  still overrides for operators with genuinely slower rollouts. See spec
+  215's matching edge-case amendment for the stagecraft-side diagnostic.
 - Dual-profile project: each variant is its own deployable unit (own
   image, own release, own host); a single dispatch never installs both.
 - In-flight tenant-hello deployments at cutover: existing helm releases
