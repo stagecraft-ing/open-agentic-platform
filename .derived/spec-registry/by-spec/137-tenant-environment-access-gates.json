@@ -185,6 +185,6 @@
     "summary": "Per-environment access gating for projects deployed via deployd-api, applied above the tenant app so tenant codebases carry no auth logic. Passwordless OIDC via our existing Rauthy instance is the only mode — users authenticate by magic link or federated upstream IdP (Google, Microsoft Entra, GitHub, generic OIDC). Stagecraft and Rauthy clients for tenant gates are configured to refuse password login outright; the platform never sees, stores, or relays a password.\n",
     "title": "Tenant environment access gates — passwordless OIDC via Rauthy"
   },
-  "shardHash": "bcfa61a91cb289b90f1b8346420674b1cb62b01dbb44f366a3d2f27933370303",
+  "shardHash": "8305917bead49e8e2a00049a71a8f41a14dbdd65329b7f94d739bb3427e2291a",
   "specVersion": "1.1.0"
 }
