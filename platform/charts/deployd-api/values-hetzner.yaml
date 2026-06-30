@@ -51,13 +51,22 @@ persistence:
 
 # Spec 145 S3 backup config for Hetzner Object Storage. The chart's
 # deployment.yaml gates backup env projection on `if and .Values.backup.endpoint
-# .Values.backup.bucket` — without endpoint+bucket set per-env, the four
-# DEPLOYD_BACKUP_* env vars never project and the cron task degrades to the
-# dev-fallback ENC_KEYS path. The four backup secret keys (S3 access/secret +
-# cryptr keyring + active key id) are populated out-of-band in the existing
-# `deployd-api-secrets` Secret per `secrets.provider: "k8s"` + `create: false`;
-# see docs/runbooks/deployd-api-durability.md §1.3 Flow A.
+# .Values.backup.bucket`. Both are EMPTY below, so the whole backup block
+# (including the four non-optional DEPLOYD_BACKUP_* secret-key refs) does not
+# project; deployd-api's BackupConfig::from_env() then returns Ok(None) and the
+# pod starts cleanly with backups OFF.
+#
+# Backups are intentionally DISABLED here for now. Leaving endpoint+bucket
+# non-empty WITHOUT the four backup secret keys present in `deployd-api-secrets`
+# makes the kubelet fail to create the container (non-optional secretKeyRef):
+# that was the fresh-install start blocker this avoids.
+#
+# To RE-ENABLE (tracked in the datastore-durability work): set endpoint+bucket,
+# provision a Hetzner Object Storage bucket + S3 access keys, generate the cryptr
+# keyring, materialize backup-s3-access-key / backup-s3-secret-key /
+# backup-cryptr-keyring / backup-cryptr-active-key into `deployd-api-secrets`
+# (infra/hetzner/setup.sh), and write docs/runbooks/deployd-api-durability.md.
 backup:
-  endpoint: "https://nbg1.your-objectstorage.com"
-  bucket: "oap-deployd-backups-prod"
+  endpoint: ""
+  bucket: ""
   region: "nbg1"

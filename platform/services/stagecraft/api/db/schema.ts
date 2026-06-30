@@ -773,7 +773,7 @@ export const factoryArtifacts = pgTable("factory_artifacts", {
   artifactType: text("artifact_type").notNull(),
   contentHash: text("content_hash").notNull(),
   storagePath: text("storage_path").notNull(),
-  sizeBytes: integer("size_bytes").notNull().default(0),
+  sizeBytes: bigint("size_bytes", { mode: "number" }).notNull().default(0),
   // Project scoping (spec 094 Slice 5; the prior workspace-keyed column was
   // renamed by spec 119 Phase C). Nullable — pre-collapse rows carry an
   // orphan UUID that no longer resolves to anything.

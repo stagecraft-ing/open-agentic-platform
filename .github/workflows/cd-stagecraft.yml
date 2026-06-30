@@ -75,7 +75,7 @@ jobs:
         uses: ./.github/actions/encore-build
         with:
           encore-version: ${{ env.ENCORE_VERSION }}
-          config: ./infra.config.hetzner.json
+          config: ./infra.config.json
           image-tag: ${{ env.IMAGE }}:${{ steps.meta.outputs.sha-tag }}
 
       - name: Tag as latest

@@ -405,3 +405,9 @@ does not belong to this spec — open a follow-up if pursued.
   audit --audit-level=high` returns to exit 0; the one remaining high is
   the still-ignored esbuild GHSA. The lockfile is regenerated in the
   same change.
+
+## Amendment 2026-06-29 (reset-prep housekeeping)
+
+Added `RUSTSEC-2026-0192` (ttf-parser unmaintained, transitive via pdf-extract
+font parsing) to `deny.toml`'s advisory ignore list. Policy-list maintenance
+only; no change to the supply-chain gate design.

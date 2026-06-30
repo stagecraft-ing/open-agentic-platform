@@ -332,8 +332,8 @@
           {
             "file": "platform/infra/hetzner/setup.sh",
             "span": {
-              "endLine": 241,
-              "startLine": 232
+              "endLine": 247,
+              "startLine": 238
             }
           }
         ],
@@ -404,5 +404,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "943f7005e776f66dd2cbbaa18d47360e09413d94dd9dcdb7dc4c787d6264ca9b"
+  "shardHash": "71b8e2efb0b7b3d97c8603389521e3ffe5781a17249e7f0f1ef31cd8c2bf6d3c"
 }

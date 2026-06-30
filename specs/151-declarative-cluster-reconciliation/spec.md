@@ -2132,3 +2132,11 @@ runbook, T-024 SC-003 measurement, T-025 dr-baseline F1/F2
 resolution, T-026 setup.sh final shrink) are independent of T-022
 and proceed on their own gating (operator session + fresh throwaway
 cluster for T-023/T-024/T-025; spec 153 for T-026).
+
+## Amendment 2026-06-29 (reset-prep housekeeping)
+
+Operator kubeconfig + .env were relocated out of the repo tree to
+`$OAP_HETZNER_DIR` (`~/.config/oap/infra/hetzner`); the `platform/Makefile`
+deploy/mirrord targets and `cluster.yaml`'s `kubeconfig_path` are repointed
+accordingly (never writing `~/.kube/config`). Mechanical operator-ergonomics
+change; no change to the declarative-reconciliation design.

@@ -82,8 +82,6 @@ refines:
   # infra configs (encore build fails closed on undeclared topics):
   - aspect: "override-scan-topic-declaration"
     unit: { kind: file, path: platform/services/stagecraft/infra.config.json }
-  - aspect: "override-scan-topic-declaration"
-    unit: { kind: file, path: platform/services/stagecraft/infra.config.hetzner.json }
 references:
   - role: context
     unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.ts }

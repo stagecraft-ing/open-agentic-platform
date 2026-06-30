@@ -251,6 +251,23 @@ factory source checkout. First derivation ran against the sealed
 residence and indexer-hashing posture are unchanged — only the snapshot's
 provenance upgrades from authored to materialised.
 
+**Amendment 2026-06-29 (record: clean-slate reset-prep housekeeping).**
+Housekeeping inside the relocated `platform/services/stagecraft` tree this
+spec claims, with no change to 160's factory/adapter design:
+- The Encore uptime-monitor starter scaffolding (`api/monitor/`, `api/site/`)
+  was removed. It was template code that happened to live under the relocated
+  tree, never part of this spec's surface; `api/slack/slack.ts` drops the
+  `uptime-transition` subscription that depended on it.
+- The two per-cloud Encore infra configs were unified into a single
+  `infra.config.json` (the deleted `infra.config.hetzner.json` differed only by
+  a cluster-internal metrics URL), and the application database was renamed
+  `auth` to `stagecraft`. `scripts/docker-build.sh`,
+  `scripts/encore-test-lane.mjs`, `encore.app`, and the CI/CD encore-build
+  `--config` are repointed to match.
+
+None of this alters the relocation contract (§2, §FR); it is recorded here so
+the changed paths couple to an authoring edit.
+
 ## 9. Amendment to spec 101 (codebase-index-mvp)
 
 Spec 101 §2.2 *Layer 3 — Factory Adapter Inventory* and §FR-07

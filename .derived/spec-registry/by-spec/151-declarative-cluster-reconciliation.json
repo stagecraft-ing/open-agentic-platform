@@ -185,13 +185,14 @@
       "Phase 4 — rauthy chart to Flux (T-019/T-020/T-021)",
       "Phase 4 operational landing (2026-05-18)",
       "Phase 5 — drift detection documentation (T-022, 2026-05-18)",
-      "Phase 5 — SC-005 live evidence (2026-05-18)"
+      "Phase 5 — SC-005 live evidence (2026-05-18)",
+      "Amendment 2026-06-29 (reset-prep housekeeping)"
     ],
     "specPath": "specs/151-declarative-cluster-reconciliation/spec.md",
     "status": "approved",
     "summary": "Replace `platform/infra/hetzner/setup.sh`'s imperative cluster-mutation monolith with a declarative GitOps reconciliation layer. Flux v2 runs in-cluster, watches `platform/gitops/`, and reconciles HelmReleases, Kustomizations, Certificates, and SOPS-encrypted Secrets continuously. setup.sh shrinks to one-time bootstrap. Application image rollouts migrate from `helm upgrade --set image.tag` against the cluster to CD writing the new tag into the gitops tree as a commit to main — Flux reconciles; helm-controller rolls pods; CD never touches the cluster. Phase 2 unblocks spec 137 Phase 6 by landing the reflector + wildcard-cert annotations as the first declarative reconciliation under the new tree.\n",
     "title": "Declarative cluster reconciliation — GitOps for cluster-side state via Flux v2"
   },
-  "shardHash": "0ac297b97d64a8e996048617646727440f58e748fa04e3da349ac5f4933c0238",
+  "shardHash": "37b1a51a5771bd3121a0d2d9eede59c55252a1f2ebfcb3cd800d92b0614b97cd",
   "specVersion": "1.1.0"
 }

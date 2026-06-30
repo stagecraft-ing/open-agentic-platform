@@ -354,8 +354,8 @@
           {
             "file": "platform/Makefile",
             "span": {
-              "endLine": 142,
-              "startLine": 126
+              "endLine": 144,
+              "startLine": 128
             }
           }
         ],
@@ -426,8 +426,8 @@
           {
             "file": "platform/infra/hetzner/setup.sh",
             "span": {
-              "endLine": 223,
-              "startLine": 187
+              "endLine": 229,
+              "startLine": 193
             }
           }
         ],
@@ -444,5 +444,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "4d23eedf820fa5e3871638287678d803d88b92a96a3f5d0c1c17f14fad2d7d7f"
+  "shardHash": "52bb256cb43e2664f3017ba2929ab79a246cf124ae93497a5d5daa2ad4906dc2"
 }

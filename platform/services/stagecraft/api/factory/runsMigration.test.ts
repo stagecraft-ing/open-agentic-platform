@@ -13,8 +13,9 @@
 //   * "rejects deletion of an adapter still referenced by a run" — the FK
 //     from factory_runs.adapter_id → factory_adapters was dropped by
 //     migration 34 (drop_legacy_factory_tables). adapter_id / process_id are
-//     plain TEXT columns since migration 38. The text-column behaviour is
-//     covered by api/db/migrations/38_factory_id_columns_to_text.test.ts.
+//     plain TEXT columns since migration 38 (now folded into the schema
+//     baseline; the former 38_factory_id_columns_to_text.test.ts was
+//     removed by the migration squash).
 //   * The ordering-guard pre-flight (T013) is exercised manually during
 //     local `make dev-platform` migration runs; running it under `encore test`
 //     is moot because Encore always applies migrations in order.

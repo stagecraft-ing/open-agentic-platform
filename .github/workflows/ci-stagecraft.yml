@@ -75,7 +75,7 @@ jobs:
           set -euo pipefail
           # Background build — discarded as soon as encore.gen is populated.
           encore build docker \
-            --config ./infra.config.hetzner.json \
+            --config ./infra.config.json \
             stagecraft-typecheck:0 >/tmp/encore-build.log 2>&1 &
           BUILD_PID=$!
           GEN_FILE="encore.gen/clients/index.d.ts"
@@ -128,5 +128,5 @@ jobs:
         uses: ./.github/actions/encore-build
         with:
           encore-version: ${{ env.ENCORE_VERSION }}
-          config: ./infra.config.hetzner.json
+          config: ./infra.config.json
           image-tag: stagecraft-ci:${{ github.run_id }}

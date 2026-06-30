@@ -41,13 +41,13 @@ const SERVICE_ROOT = path.resolve(
 );
 const VITE_CONFIG = path.join(SERVICE_ROOT, "vite.config.ts");
 
-// The only entries allowed to be excluded from BOTH lanes. check.test.ts
-// is the Encore template artifact deliberately outside either lane
-// (spec 211 FR-001: "the full suite minus check.test.ts").
+// The only entries allowed to be excluded from BOTH lanes (build noise).
+// (The Encore template's check.test.ts was removed with the uptime-monitor
+// tutorial code, so spec 211 FR-001's "full suite minus check.test.ts"
+// framing no longer has a file to exclude.)
 const UNIVERSAL_EXCLUDES = [
   "**/node_modules/**",
   "**/dist/**",
-  "**/check.test.ts",
 ];
 
 // Directories never walked when resolving globs to files.

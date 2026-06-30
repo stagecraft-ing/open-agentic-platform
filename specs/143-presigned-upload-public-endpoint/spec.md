@@ -75,8 +75,6 @@ refines:
   - aspect: "presigned-upload-public-endpoint"
     unit: { kind: file, path: platform/infra/hetzner/.env.example }
   - aspect: "presigned-upload-public-endpoint"
-    unit: { kind: file, path: platform/services/stagecraft/infra.config.hetzner.json }
-  - aspect: "presigned-upload-public-endpoint"
     unit: { kind: file, path: platform/services/stagecraft/infra.config.json }
   - aspect: "presigned-upload-public-endpoint"
     unit: { kind: file, path: platform/charts/deployd-api/values-hetzner.yaml }

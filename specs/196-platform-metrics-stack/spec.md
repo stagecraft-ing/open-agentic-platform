@@ -45,11 +45,13 @@ establishes:
   #    filing-time "already exposes /metrics" claim was false).
   - unit: { kind: file, path: platform/services/deployd-api-rs/src/metrics.rs }
 refines:
-  # FR-001 — the metrics block that makes the two infra configs diverge.
-  # (infra.config.json / Azure is never refined by 196 — FR-009
-  # deferred-null; SC-004 proves it untouched.)
+  # FR-001: the metrics block. The two infra configs were later unified into a
+  # single infra.config.json (the metrics remote_write_url is a cluster-internal
+  # service name, identical on every cloud), so the former hetzner-only,
+  # Azure-metric-free split (FR-009, SC-004) no longer holds; the block now
+  # lives in infra.config.json. (Supersession flagged for a formal amendment.)
   - aspect: "metrics-export"
-    unit: { kind: file, path: platform/services/stagecraft/infra.config.hetzner.json }
+    unit: { kind: file, path: platform/services/stagecraft/infra.config.json }
   # FR-003 — enable the controller's exporter + scrape annotations in the
   # spec-151 HelmRelease (metrics were NOT enabled at filing time).
   - aspect: "metrics-export"
@@ -747,3 +749,16 @@ truth: destination-side containment for pod-addressable targets does
 not currently exist and returns with each target namespace's own
 default-deny under its owning spec (per the corrected FR-006). No
 behavioral change — comment only.
+
+## Supersession addendum (2026-06-29): config unification
+
+FR-009 (Azure binding deferred-null: `infra.config.json` is never given the
+metrics block) and SC-004 (a `git diff` proves `infra.config.json` untouched)
+are superseded by the later config unification. The two per-cloud Encore infra
+configs were merged into a single `infra.config.json`, because the metrics
+`remote_write_url` is a cluster-internal service name
+(`monitoring-prometheus.monitoring.svc.cluster.local`) identical on every
+cloud. The metrics block therefore now lives in that one config and applies to
+every cloud the substrate targets, including Azure once it is stood up. The
+FR-001 refine unit is repointed to `infra.config.json`. This is a deliberate
+design change to FR-009/SC-004, not a drift correction.

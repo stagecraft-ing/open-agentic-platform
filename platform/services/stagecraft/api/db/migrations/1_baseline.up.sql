@@ -79,7 +79,8 @@ CREATE TYPE public.factory_pipeline_status AS ENUM (
     'running',
     'paused',
     'completed',
-    'failed'
+    'failed',
+    'cancelled'
 );
 
 
@@ -281,24 +282,6 @@ CREATE TYPE public.target_scope AS ENUM (
 );
 
 
-
-
---
--- Name: agent_catalog_migration_30_log; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.agent_catalog_migration_30_log (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    absorbed_id uuid NOT NULL,
-    kept_id uuid NOT NULL,
-    project_id_added_as_binding uuid NOT NULL,
-    content_hash text NOT NULL,
-    org_id text NOT NULL,
-    name text NOT NULL,
-    absorbed_version integer NOT NULL,
-    kept_version integer NOT NULL,
-    decided_at timestamp with time zone DEFAULT now() NOT NULL
-);
 
 
 --
@@ -1301,22 +1284,6 @@ CREATE TABLE public.users (
 
 
 --
--- Name: agent_catalog_migration_30_log agent_catalog_migration_30_log_absorbed_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.agent_catalog_migration_30_log
-    ADD CONSTRAINT agent_catalog_migration_30_log_absorbed_id_key UNIQUE (absorbed_id);
-
-
---
--- Name: agent_catalog_migration_30_log agent_catalog_migration_30_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.agent_catalog_migration_30_log
-    ADD CONSTRAINT agent_catalog_migration_30_log_pkey PRIMARY KEY (id);
-
-
---
 -- Name: agent_policies agent_policies_org_id_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1787,13 +1754,6 @@ ALTER TABLE ONLY public.project_members
 ALTER TABLE ONLY public.project_repos
     ADD CONSTRAINT project_repos_pkey PRIMARY KEY (id);
 
-
---
--- Name: project_repos project_repos_project_id_github_org_repo_name_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.project_repos
-    ADD CONSTRAINT project_repos_project_id_github_org_repo_name_key UNIQUE (project_id, github_org, repo_name);
 
 
 --

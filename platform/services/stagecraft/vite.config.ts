@@ -57,11 +57,13 @@ export default defineConfig({
     // became conditional the list applied unconditionally, which made the
     // DB-bound suites unrunnable even under `encore test`.
     exclude: hasEncoreRuntime
-      ? ["**/node_modules/**", "**/dist/**", "**/check.test.ts"]
+      ? ["**/node_modules/**", "**/dist/**"]
       : [
       "**/node_modules/**",
       "**/dist/**",
-      "**/check.test.ts",
+      // schema.ts <-> migrated-SQL drift gate: zero-row selects per table +
+      // pgEnum label comparison against the live baseline-applied DB.
+      "**/db/schemaDrift.test.ts",
       // Spec 124 — factory_runs migration assertions hit the live db
       // client and exercise FK/CHECK semantics that require Postgres.
       "**/runsMigration.test.ts",

@@ -85,13 +85,14 @@
       "9.2 Day-0 collapse (2026-05-02)",
       "9.3 Below-threshold inventory (informational, not a blocker)",
       "10. Cross-references",
-      "11. Advisory response log"
+      "11. Advisory response log",
+      "Amendment 2026-06-29 (reset-prep housekeeping)"
     ],
     "specPath": "specs/116-supply-chain-policy-gates/spec.md",
     "status": "approved",
     "summary": "Add governed supply-chain gates to CI. cargo-deny enforces a policy bundle for advisories, licenses, and banned crates across every Rust manifest in the repo; pnpm/npm audit covers the JavaScript surface (product/apps/opc + platform/services/stagecraft). Posture is blocking from day 0 (the 30-day warn-only window planned in §9.1 was collapsed on 2026-05-02 after a clean dry-run; see §9 promotion record). The gate is mirrored in the Makefile under a new `ci-supply-chain` target, composed into `make ci`, and validated by ci-parity-check.\n",
     "title": "Supply-Chain Policy Gates — cargo-deny + dependency audit in CI"
   },
-  "shardHash": "9bfb7ab072c25c765f93b7d4ca78acd22b3249dfa9a3e92a5a99b7b7b2d1a3f2",
+  "shardHash": "bf338533c2ffe23bdd294a6fe1769d5b89fe780444c51094f5cba428a3ae4ae0",
   "specVersion": "1.1.0"
 }
