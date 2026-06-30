@@ -16,9 +16,21 @@ rules:
   # Helm installs need broad access in target namespaces.
   # For MVP, allow common workload resources cluster-wide.
   # Later: tighten by restricting to tenant namespaces only (OPA/Gatekeeper + naming convention).
+  #
+  # The tenant chart (acme-vue-encore) creates a ServiceAccount, a Postgres
+  # StatefulSet (its volumeClaimTemplates yield PVCs), Services, a Secret, a
+  # Deployment and an Ingress. `serviceaccounts` and `persistentvolumeclaims`
+  # were missing, so `helm upgrade --install` aborted with
+  # `serviceaccounts "<app>" is forbidden` before the namespace's workloads
+  # were created. `pods` is read-only for helm `--wait` readiness polling.
   - apiGroups: [""]
-    resources: ["services", "configmaps", "secrets", "endpoints"]
+    resources: ["services", "configmaps", "secrets", "endpoints", "serviceaccounts", "persistentvolumeclaims"]
     verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+
+  # helm --wait polls workload + pod readiness; read-only is sufficient.
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
 
   - apiGroups: ["apps"]
     resources: ["deployments", "replicasets", "statefulsets"]
