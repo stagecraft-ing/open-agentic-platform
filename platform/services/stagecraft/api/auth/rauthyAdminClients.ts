@@ -73,17 +73,23 @@ export async function getRauthyClient(
 }
 
 /**
- * POST /auth/v1/clients. Returns the freshly-minted client's secret —
- * Rauthy issues the confidential-client secret exactly once at create
- * time and never exposes it on GET (T003 readback, 14-field schema).
- * Stagecraft must capture it here or lose it.
+ * POST /auth/v1/clients, then recover the freshly-minted confidential
+ * client's secret.
  *
- * Defensive shape parsing: Rauthy 0.35's POST response body is parsed
- * once and the secret extracted from `secret` or `client_secret`
- * (whichever is present). If neither field is present, this throws —
- * the deploy descriptor cannot be assembled without it and silent
- * fallback would surface as a useless oauth2-proxy that 401s every
- * request. Fail loud at the boundary.
+ * Rauthy 0.35 contract (verified against rauthy v0.35.0 source, 2026-06-30):
+ * `POST /auth/v1/clients` returns a `ClientResponse` that does NOT carry a
+ * secret field. The secret of a confidential client is exposed only by a
+ * dedicated endpoint, `POST /auth/v1/clients/{id}/secret` (a POST on purpose
+ * so the read gets a CSRF check), which returns
+ * `ClientSecretResponse { id, confidential, secret }`. So we create, then
+ * read the secret back.
+ *
+ * Back-compat: an older or forked Rauthy that inlines the secret on the
+ * create response is still honoured by trying `secret` / `client_secret` on
+ * the POST body first. Only when that is absent do we fall back to the
+ * secret endpoint. If neither yields a secret we fail loud at the boundary:
+ * the deploy descriptor cannot be assembled without it and a silent fallback
+ * would surface as a useless oauth2-proxy that 401s every request.
  */
 export async function createRauthyClient(
   payload: RauthyClientPayload,
@@ -104,28 +110,65 @@ export async function createRauthyClient(
     const body = await resp.text();
     throw new Error(`createRauthyClient ${payload.id} failed: ${resp.status} ${body.slice(0, 400)}`);
   }
-  // Rauthy 0.35 returns the created client in the response body. The
-  // secret may live under either `secret` or `client_secret` depending
-  // on the version's serialiser conventions — accept either, demand
-  // one, never silently default.
-  let body: unknown;
+  // The create response on 0.35 carries no secret, but parse it anyway so a
+  // version that does inline one still works. A non-JSON / empty body is not
+  // an error here: the secret endpoint below is the canonical source.
+  let body: unknown = null;
   try {
     body = await resp.json();
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    throw new Error(
-      `createRauthyClient ${payload.id} returned non-JSON body: ${msg}`,
-    );
+  } catch {
+    body = null;
   }
-  const secret = extractClientSecret(body);
+  let secret = extractClientSecret(body);
+  if (!secret) {
+    // Canonical 0.35 path: read the secret back from the dedicated endpoint.
+    secret = await fetchRauthyClientSecret(payload.id, opts);
+  }
   if (!secret) {
     throw new Error(
-      `createRauthyClient ${payload.id} succeeded but response contained no client secret ` +
-        `(expected 'secret' or 'client_secret' field). Rauthy admin contract drift — ` +
-        `re-run T003 smoke against this Rauthy version to capture the new shape.`,
+      `createRauthyClient ${payload.id} succeeded but no client secret could be ` +
+        `recovered from the create response or POST /auth/v1/clients/${payload.id}/secret. ` +
+        `A confidential client must expose a secret; verify the client was created with ` +
+        `confidential=true and that this Rauthy version supports the secret endpoint.`,
     );
   }
   return { clientSecret: secret };
+}
+
+/**
+ * POST /auth/v1/clients/{id}/secret. Reads (does NOT rotate) a confidential
+ * client's secret. Verified against rauthy v0.35.0: the route is a POST (a
+ * deliberate CSRF check on a sensitive read), the handler `get_client_secret`
+ * only reads, and the response is
+ * `ClientSecretResponse { id, confidential, secret: Option<String> }`.
+ *
+ * Returns the secret string, or `null` when the client is absent (404) or is
+ * a public (non-confidential) client with no secret. Throws on other non-ok
+ * responses so callers see the real admin error.
+ */
+export async function fetchRauthyClientSecret(
+  clientId: string,
+  opts?: AdminCallOptions,
+): Promise<string | null> {
+  const { baseUrl, auth, fetchImpl } = resolveAdminContext(opts);
+  const resp = await fetchImpl(
+    `${baseUrl}/auth/v1/clients/${encodeURIComponent(clientId)}/secret`,
+    { method: "POST", headers: { Authorization: auth, Accept: "application/json" } },
+  );
+  if (resp.status === 404) return null;
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(
+      `fetchRauthyClientSecret ${clientId} failed: ${resp.status} ${body.slice(0, 300)}`,
+    );
+  }
+  let parsed: unknown = null;
+  try {
+    parsed = await resp.json();
+  } catch {
+    return null;
+  }
+  return extractClientSecret(parsed);
 }
 
 function extractClientSecret(body: unknown): string | null {
@@ -188,12 +231,12 @@ export interface ProvisionResult {
   /** `created` on first provision, `updated` on subsequent runs against an existing client. */
   action: "created" | "updated";
   /**
-   * Non-null on `action === "created"` only. Rauthy issues the
-   * confidential-client secret once at POST time and never on GET; the
-   * caller MUST persist it (descriptor row) to be able to assemble the
-   * deploy descriptor on subsequent calls. On `"updated"`, the existing
-   * secret remains valid — the caller keeps its previously-persisted
-   * value.
+   * Non-null on `action === "created"` only. The secret is recovered at
+   * create time via the dedicated secret endpoint (see
+   * [`createRauthyClient`]); the caller SHOULD persist it (descriptor row)
+   * to avoid re-reading on every assemble. On `"updated"` this is null and
+   * the caller keeps its previously-persisted value, or recovers it
+   * on demand via [`fetchRauthyClientSecret`].
    */
   clientSecret: string | null;
 }

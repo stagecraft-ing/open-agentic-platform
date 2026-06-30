@@ -26,6 +26,7 @@ import {
   assertNoPasswordFlow,
   buildTenantGateClientPayload,
   deprovisionTenantGateClient,
+  fetchRauthyClientSecret,
   provisionTenantGateClient,
   tenantGateClientId,
   tenantGateRedirectUri,
@@ -251,7 +252,46 @@ describe("provisionTenantGateClient", () => {
     expect(result.clientSecret).toBe("alt-shape-secret");
   });
 
-  test("(a'') throws fail-loud when POST response omits secret", async () => {
+  test("(a'') Rauthy 0.35: create response omits secret, secret endpoint supplies it", async () => {
+    // Verified contract: POST /clients returns a ClientResponse with NO
+    // secret; the secret is read back from POST /clients/{id}/secret.
+    const calls: RecordedCall[] = [];
+    const fetchImpl = makeStubFetch(
+      {
+        "GET http://rauthy.test/auth/v1/clients/tenant-gate-env-1": {
+          status: 404,
+        },
+        "POST http://rauthy.test/auth/v1/clients": {
+          status: 200,
+          // 0.35 ClientResponse shape: id present, no secret field.
+          body: { id: "tenant-gate-env-1", confidential: true },
+        },
+        "POST http://rauthy.test/auth/v1/clients/tenant-gate-env-1/secret": {
+          status: 200,
+          body: {
+            id: "tenant-gate-env-1",
+            confidential: true,
+            secret: "endpoint-secret",
+          },
+        },
+      },
+      calls,
+    );
+
+    const result = await provisionTenantGateClient(SPEC, {
+      ...ADMIN_CTX,
+      fetchImpl,
+    });
+
+    expect(result.clientSecret).toBe("endpoint-secret");
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "GET http://rauthy.test/auth/v1/clients/tenant-gate-env-1",
+      "POST http://rauthy.test/auth/v1/clients",
+      "POST http://rauthy.test/auth/v1/clients/tenant-gate-env-1/secret",
+    ]);
+  });
+
+  test("(a''') throws fail-loud when neither create nor secret endpoint yields a secret", async () => {
     const calls: RecordedCall[] = [];
     const fetchImpl = makeStubFetch(
       {
@@ -262,12 +302,16 @@ describe("provisionTenantGateClient", () => {
           status: 200,
           body: { id: "tenant-gate-env-1" /* no secret */ },
         },
+        "POST http://rauthy.test/auth/v1/clients/tenant-gate-env-1/secret": {
+          status: 200,
+          body: { id: "tenant-gate-env-1", confidential: true, secret: null },
+        },
       },
       calls,
     );
     await expect(
       provisionTenantGateClient(SPEC, { ...ADMIN_CTX, fetchImpl }),
-    ).rejects.toThrow(/no client secret/i);
+    ).rejects.toThrow(/no client secret could be recovered/i);
   });
 
   test("(b) updates an existing client via PUT (NOT PATCH) and returns clientSecret: null", async () => {
@@ -303,6 +347,50 @@ describe("provisionTenantGateClient", () => {
     expect(calls.map((c) => c.method)).toEqual(["GET", "PUT"]);
     // No PATCH was sent (Rauthy 0.35 has no PATCH endpoint per T003)
     expect(calls.find((c) => c.method === "PATCH")).toBeUndefined();
+  });
+});
+
+describe("fetchRauthyClientSecret", () => {
+  test("reads the secret via POST /clients/{id}/secret (read, not rotate)", async () => {
+    const calls: RecordedCall[] = [];
+    const fetchImpl = makeStubFetch(
+      {
+        "POST http://rauthy.test/auth/v1/clients/tenant-gate-env-1/secret": {
+          status: 200,
+          body: {
+            id: "tenant-gate-env-1",
+            confidential: true,
+            secret: "recovered-secret",
+          },
+        },
+      },
+      calls,
+    );
+    const secret = await fetchRauthyClientSecret("tenant-gate-env-1", {
+      ...ADMIN_CTX,
+      fetchImpl,
+    });
+    expect(secret).toBe("recovered-secret");
+    expect(calls).toHaveLength(1);
+    expect(calls[0].method).toBe("POST");
+    expect(calls[0].url).toBe(
+      "http://rauthy.test/auth/v1/clients/tenant-gate-env-1/secret",
+    );
+  });
+
+  test("returns null when the client is absent (404)", async () => {
+    const calls: RecordedCall[] = [];
+    const fetchImpl = makeStubFetch(
+      {
+        "POST http://rauthy.test/auth/v1/clients/ghost/secret": { status: 404 },
+      },
+      calls,
+    );
+    const secret = await fetchRauthyClientSecret("ghost", {
+      ...ADMIN_CTX,
+      fetchImpl,
+    });
+    expect(secret).toBeNull();
   });
 });
 

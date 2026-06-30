@@ -31,6 +31,7 @@ import { hasOrgPermission } from "../auth/membership";
 import { provisionRauthyUser } from "../auth/rauthy";
 import {
   deprovisionTenantGateClient,
+  fetchRauthyClientSecret,
   provisionTenantGateClient,
   tenantGateClientId,
 } from "../auth/rauthyAdminClients";
@@ -328,24 +329,33 @@ export const putAccessGate = api(
         // none (the Rauthy client exists but stagecraft never persisted its
         // secret, e.g. an earlier enable left an orphaned client after the
         // name-validation 400, or a partial enable), self-heal. Rauthy 0.35
-        // never returns the secret on GET/PUT, so the only recovery is to
-        // delete the client and recreate it to recapture a fresh secret.
+        // exposes a confidential client's secret via
+        // POST /auth/v1/clients/{id}/secret, so recover it non-destructively
+        // first. Only if that yields nothing do we fall back to delete +
+        // recreate (which rotates the secret and is the heavier operation).
         // Idempotent: deprovision treats a missing client as success.
         if (!rauthyClientSecret) {
           log.warn(
-            "tenant gate: existing Rauthy client has no recoverable secret; recreating",
+            "tenant gate: existing Rauthy client has no persisted secret; recovering",
             { environmentId: env.id, clientId },
           );
-          await deprovisionTenantGateClient(clientId);
-          const recreated = await provisionTenantGateClient(gateSpec);
-          rauthyClientRef = recreated.clientId;
-          rauthyClientSecret = recreated.clientSecret;
-          if (recreated.action !== "created" || !rauthyClientSecret) {
-            throw new Error(
-              `tenant gate client recreate did not yield a secret ` +
-                `(action='${recreated.action}'); cannot satisfy ` +
-                `enabled_requires_secrets CHECK`,
+          rauthyClientSecret = await fetchRauthyClientSecret(clientId);
+          if (!rauthyClientSecret) {
+            log.warn(
+              "tenant gate: secret endpoint returned nothing; recreating client",
+              { environmentId: env.id, clientId },
             );
+            await deprovisionTenantGateClient(clientId);
+            const recreated = await provisionTenantGateClient(gateSpec);
+            rauthyClientRef = recreated.clientId;
+            rauthyClientSecret = recreated.clientSecret;
+            if (recreated.action !== "created" || !rauthyClientSecret) {
+              throw new Error(
+                `tenant gate client recreate did not yield a secret ` +
+                  `(action='${recreated.action}'); cannot satisfy ` +
+                  `enabled_requires_secrets CHECK`,
+              );
+            }
           }
         }
       } catch (e: unknown) {

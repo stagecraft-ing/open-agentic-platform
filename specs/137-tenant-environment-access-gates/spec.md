@@ -2,7 +2,7 @@
 id: "137-tenant-environment-access-gates"
 title: "Tenant environment access gates — passwordless OIDC via Rauthy"
 status: approved
-implementation: in-progress  # Phase 0 closed 2026-05-15 (5/6 clarifications locked + T003 Rauthy admin smoke). Phase 1 (schema migration: tables environmentAccessGates + environmentAccessGateAllowlistEmails with 3 CHECK constraints and FIPS-safe lower(value) uniqueness), Phase 2 (CRUD endpoints + audit hooks + assertNoPasswordFields guard), Phase 3 (Rauthy admin client wrapper + provisionTenantGateClient + idempotent deprovision; flows_enabled mechanism replaces non-existent password_login_enabled scalar) all landed 2026-05-15. Phase 4 (deployd-api Helm overlay) landed 2026-05-17 — new oauth2-proxy-gate chart embedded via include_str! per spec 136 Phase 2.b pattern; AccessGateDescriptor wire shape on DeploymentRequest; install_with_gate / uninstall_with_gate orchestration with FR-003 atomicity (tenant rolls back if gate install fails); tenant chart Ingress renders nginx auth-url/auth-signin annotations conditionally on gate.enabled; reconcile-on-off-transition cleans up stale gate releases. Phase 5 (stagecraft UI) landed 2026-05-17 — new per-env detail route hosts the gate card + allowlist editor + login-method picker + end-user preview + empty-state CTA, wired to Phase 2's PUT/POST/DELETE endpoints via new server-side fetch helpers. Phase 4↔5 integration landed 2026-05-17 (T070–T076) — migration 41 adds deploy-descriptor secret columns (rauthy_client_secret + cookie_secret + tls_secret_name) with CHECK enabled_requires_secrets; provisionTenantGateClient now captures the Rauthy client secret from POST response (fail-loud if absent — Rauthy 0.35 admin GET never returns it per T003); putAccessGate generates cookie_secret on first enable + persists secrets; new accessGatesDeploy.ts assembles the deployd-api wire shape from descriptor row + sibling allowlist; deploy.ts caller forwards access_gate on POST /v1/deployments; kubernetes-reflector installed via setup.sh (chart 9.1.6) replicates the wildcard cert Secret into tenant namespaces via reflector annotations on the Certificate's secretTemplate. Phase 6 (E1–E6 evidence + lifecycle flip) remains.
+implementation: in-progress  # Phase 0 closed 2026-05-15 (5/6 clarifications locked + T003 Rauthy admin smoke). Phase 1 (schema migration: tables environmentAccessGates + environmentAccessGateAllowlistEmails with 3 CHECK constraints and FIPS-safe lower(value) uniqueness), Phase 2 (CRUD endpoints + audit hooks + assertNoPasswordFields guard), Phase 3 (Rauthy admin client wrapper + provisionTenantGateClient + idempotent deprovision; flows_enabled mechanism replaces non-existent password_login_enabled scalar) all landed 2026-05-15. Phase 4 (deployd-api Helm overlay) landed 2026-05-17 — new oauth2-proxy-gate chart embedded via include_str! per spec 136 Phase 2.b pattern; AccessGateDescriptor wire shape on DeploymentRequest; install_with_gate / uninstall_with_gate orchestration with FR-003 atomicity (tenant rolls back if gate install fails); tenant chart Ingress renders nginx auth-url/auth-signin annotations conditionally on gate.enabled; reconcile-on-off-transition cleans up stale gate releases. Phase 5 (stagecraft UI) landed 2026-05-17 — new per-env detail route hosts the gate card + allowlist editor + login-method picker + end-user preview + empty-state CTA, wired to Phase 2's PUT/POST/DELETE endpoints via new server-side fetch helpers. Phase 4↔5 integration landed 2026-05-17 (T070–T076) — migration 41 adds deploy-descriptor secret columns (rauthy_client_secret + cookie_secret + tls_secret_name) with CHECK enabled_requires_secrets; provisionTenantGateClient now captures the Rauthy client secret (corrected 2026-06-30: read back via POST /auth/v1/clients/{id}/secret, since the Rauthy 0.35 create response carries no secret field; see the "Rauthy secret retrieval" empirical correction below); putAccessGate generates cookie_secret on first enable + persists secrets; new accessGatesDeploy.ts assembles the deployd-api wire shape from descriptor row + sibling allowlist; deploy.ts caller forwards access_gate on POST /v1/deployments; kubernetes-reflector installed via setup.sh (chart 9.1.6) replicates the wildcard cert Secret into tenant namespaces via reflector annotations on the Certificate's secretTemplate. Phase 6 (E1–E6 evidence + lifecycle flip) remains.
 approved: "2026-05-15"
 amended: "2026-06-16"
 amendment_record: |
@@ -232,6 +232,24 @@ Rauthy clients created per gated environment carry:
   spec amendment per the
   `feedback_pre_implementation_spec_amendments` discipline:
   amend FIRST, implement against amended spec.
+
+  *Empirical correction (Rauthy secret retrieval, 2026-06-30).* The
+  Phase 4↔5 integration claimed `provisionTenantGateClient` "captures the
+  Rauthy client secret from the POST response". That was never true on
+  Rauthy 0.35: `POST /auth/v1/clients` returns a `ClientResponse` that has
+  no secret field at all (verified against rauthy v0.35.0 source). The
+  T003 smoke recorded only the create timing and a GET read-back schema,
+  so it never actually observed a secret on create. The real contract is
+  a second call: `POST /auth/v1/clients/{id}/secret` (a POST on purpose so
+  the read carries a CSRF check) returns
+  `ClientSecretResponse { id, confidential, secret }`. `createRauthyClient`
+  now creates, then reads the secret back from that endpoint; the new
+  `fetchRauthyClientSecret` helper is also the non-destructive self-heal
+  for an existing client whose secret stagecraft never persisted (recover
+  it instead of delete + recreate, which would rotate the secret). The
+  load-bearing intent (stagecraft holds the confidential-client secret so
+  the oauth2-proxy gate can authenticate) is preserved; only the wire
+  mechanism is corrected.
 
 Rauthy Auth Providers (the upstream IdPs) are configured at the Rauthy
 deployment level, not per tenant. A tenant gate references an Auth
