@@ -168,7 +168,7 @@ export default function UpstreamsForm() {
           refName="factoryRef"
           label="Factory source"
           hint="Canonical process definitions and adapter scaffolds."
-          placeholder="Stagecraft-ing/legacy-factory"
+          placeholder="Stagecraft-ing/factory"
           defaultRepo={upstream?.factorySource ?? ""}
           defaultRef={upstream?.factoryRef ?? "main"}
           disabled={!canConfigure}

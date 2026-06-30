@@ -128,7 +128,7 @@ export default function FactoryOverview() {
             repo={upstream?.factorySource ?? null}
             ref={upstream?.factoryRef ?? null}
             sha={upstream?.lastSyncSha?.factory ?? null}
-            placeholder="Stagecraft-ing/legacy-factory"
+            placeholder="Stagecraft-ing/factory"
           />
           <UpstreamCard
             title="Template source"
