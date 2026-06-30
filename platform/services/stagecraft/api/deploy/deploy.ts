@@ -811,12 +811,28 @@ export const triggerDeployment = api(
       const result = await dispatchDeployment(built.body);
       if (result.ok) {
         const mapped = mapDeploydStatus(result.status);
+        let diagnostic: string | null = null;
+        if (mapped === "FAILED") {
+          // deployd's synchronous POST returns only the terminal status; the
+          // real cause (helm stderr) lands in a `failed` event. Pull it via
+          // the status endpoint so the UI shows what went wrong instead of a
+          // generic "see deployd logs". Best-effort: keep the generic message
+          // if the status read is unavailable.
+          diagnostic = "deployd reported FAILED (see deployd logs)";
+          if (result.releaseId) {
+            try {
+              const status = await getDeploymentStatus(result.releaseId);
+              if (status?.failedReason) diagnostic = status.failedReason;
+            } catch {
+              // leave the generic diagnostic; status read is best-effort
+            }
+          }
+        }
         updated = await updateDeploymentRecord(record.id, {
           status: mapped,
           releaseId: result.releaseId,
           endpoints: result.endpoints,
-          diagnostic:
-            mapped === "FAILED" ? "deployd reported FAILED (see deployd logs)" : null,
+          diagnostic,
         });
       } else {
         updated = await updateDeploymentRecord(record.id, {

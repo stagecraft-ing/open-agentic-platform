@@ -188,6 +188,31 @@ export interface DeploydStatusResult {
   status: string;
   /** The status endpoint returns `events`, not endpoints; this stays undefined. */
   endpoints?: string[];
+  /**
+   * Message of the most recent `failed` event, when present. deployd records
+   * the real cause in a `failed` deployment event (e.g. `helm install
+   * failed: <helm stderr>`); surfacing it lets stagecraft store an actionable
+   * diagnostic instead of a generic "see deployd logs" pointer.
+   */
+  failedReason?: string;
+}
+
+/**
+ * Pull the message of the latest `failed` event from deployd's status
+ * payload. Events arrive ordered by id ascending, so the last match wins.
+ */
+function latestFailedEventMessage(events: unknown): string | undefined {
+  if (!Array.isArray(events)) return undefined;
+  let message: string | undefined;
+  for (const e of events) {
+    if (e && typeof e === "object") {
+      const ev = e as Record<string, unknown>;
+      if (ev.event_type === "failed" && typeof ev.message === "string") {
+        message = ev.message;
+      }
+    }
+  }
+  return message;
 }
 
 /**
@@ -210,7 +235,9 @@ export async function getDeploymentStatus(
     throw new Error(`deployd-api status failed: ${resp.status} ${text}`);
   }
 
-  const parsed = (await resp.json()) as { status?: unknown };
+  const parsed = (await resp.json()) as { status?: unknown; events?: unknown };
   const status = asString(parsed.status);
-  return status ? { status } : null;
+  if (!status) return null;
+  const failedReason = latestFailedEventMessage(parsed.events);
+  return failedReason ? { status, failedReason } : { status };
 }

@@ -1302,6 +1302,12 @@ pub async fn start_factory_pipeline(
     let sync_tracker = SyncTracker::new();
 
     tokio::spawn(async move {
+        // Mark the start of the governance+execution task. Without this the
+        // OPC log jumped straight from "Stagecraft pipeline registered" to
+        // silence whenever governance stalled, giving no signal the local
+        // executor ever began (the UI sat at "Waiting for agent output").
+        log::info!("factory run {run_id}: governance+execution task started");
+
         // Dual-write: mark pipeline as "running" in Stagecraft.
         if let Some((sc, pid, plid)) = resolve_sc_context(&ctx_for_spawn, &sc_client) {
             sc_update_status(

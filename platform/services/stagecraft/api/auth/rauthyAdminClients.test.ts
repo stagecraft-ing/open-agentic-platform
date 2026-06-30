@@ -86,6 +86,24 @@ describe("buildTenantGateClientPayload", () => {
     expect(payload.scopes.sort()).toEqual(["email", "openid", "profile"]);
     expect(payload.default_scopes).toEqual(["openid"]);
   });
+
+  test("sanitizes the name to Rauthy's [a-zA-Z0-9À-ɏ-\\s] regex (strips '·')", () => {
+    // Rauthy 0.35 rejects the create/update with a 400 when the client
+    // name carries the middle-dot separator stagecraft's UI used to build.
+    const payload = buildTenantGateClientPayload(spec);
+    expect(payload.name).not.toMatch(/·/);
+    expect(payload.name).toMatch(/^[a-zA-Z0-9À-ɏ\-\s]{2,128}$/);
+    expect(payload.name).toBe("Tenant Gate checkout dev");
+  });
+
+  test("falls back to the client id when the name sanitizes to empty", () => {
+    const payload = buildTenantGateClientPayload({
+      ...spec,
+      name: "···",
+    });
+    expect(payload.name).toBe(spec.clientId);
+    expect(payload.name).toMatch(/^[a-zA-Z0-9À-ɏ\-\s]{2,128}$/);
+  });
 });
 
 describe("assertNoPasswordFlow", () => {
