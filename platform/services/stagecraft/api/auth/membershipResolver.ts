@@ -398,7 +398,10 @@ async function reconcileInstallationsFromGitHub(): Promise<number> {
       });
       return 0;
     }
-    insts = await resp.json();
+    insts = (await resp.json()) as Array<{
+      id: number;
+      account: { id: number; login: string };
+    }>;
   } catch (err) {
     log.warn("installation reconcile: GitHub request errored", { error: String(err) });
     return 0;
