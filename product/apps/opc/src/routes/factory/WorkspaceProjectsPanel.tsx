@@ -44,14 +44,33 @@ export const WorkspaceProjectsPanel: React.FC = () => {
     createFactoryTab(project.localPath);
   };
 
-  // Until §6.4 hands the desktop a clone token directly from the panel,
-  // "Clone & open" routes the user through the deep-link path: opening the
-  // opc:// URL triggers the same handoff that stagecraft's success page
-  // uses, which already resolves the bundle, clones, and activates the
-  // cockpit. Once a local clone path is recorded somewhere the desktop
-  // owns, this handler can shortcut directly into the cockpit.
+  // "Clone & open" routes the user through the proven Open-in-OPC handoff:
+  // we re-emit the same `project-open-request` event that the OS deep-link
+  // dispatcher (commands::project_open) fires for an
+  // `opc://project/open?...` URL, so the inbox banner resolves the bundle,
+  // clones with a real clone token, and activates the cockpit.
+  //
+  // The previous `window.location.assign(project.opcDeepLink)` was a no-op:
+  // the Tauri webview does not route `window.location` navigations to the
+  // OS `opc://` URI handler, so the click did nothing. Emitting the event
+  // in-process reaches the inbox listener directly without bouncing through
+  // the OS scheme handler.
   const handleClone = (project: ProjectCatalogEntry) => {
-    window.location.assign(project.opcDeepLink);
+    const cloneUrl = project.repo?.cloneUrl;
+    if (!cloneUrl) return;
+    const level =
+      project.detectionLevel === 'scaffold_only' ||
+      project.detectionLevel === 'legacy_produced' ||
+      project.detectionLevel === 'acp_produced'
+        ? project.detectionLevel
+        : undefined;
+    void import('@tauri-apps/api/event').then(({ emit }) => {
+      void emit('project-open-request', {
+        projectId: project.projectId,
+        cloneUrl,
+        level,
+      });
+    });
   };
 
   if (!hydrated) {
