@@ -1,9 +1,5 @@
-# open-agentic-platform
-
-[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
-[![Specs: 222](https://img.shields.io/badge/specs-222-informational)](specs/)
-[![Languages](https://img.shields.io/badge/lang-Rust%20%7C%20TypeScript-orange)](#)
-[![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-yellow)](#status)
+# [open-agentic-platform](https://stagecraft-ing.github.io/open-agentic-platform/) [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE) [![Specs: 222](https://img.shields.io/badge/specs-222-informational)](specs/) [![Languages](https://img.shields.io/badge/lang-Rust%20%7C%20TypeScript-orange)](#) [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-yellow)](#status)
+![OAP Control Plane and OPC Execution Plane](.github/img/open-agentic-platform-github-banner.jpg)
 
 **Frozen, hash-verifiable specs as the unit of governance for agent
 execution.** Every change is bound to a spec; every spec compiles to a
