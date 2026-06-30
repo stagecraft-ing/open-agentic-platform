@@ -60,7 +60,18 @@ pub async fn establish(
     goal: &str,
     run_dir: &Path,
 ) -> Result<Arc<RunGovernance>, String> {
+    // Phase logging (spec 198 governance): establish() previously ran
+    // silently to completion, so a stall in any await (bundle fetch, JWKS
+    // fetch, or the grant round-trip) left the run wedged at "Waiting for
+    // agent output" with nothing in the OPC log to say which phase blocked.
+    // These INFO lines bound the diagnosis to a phase without changing any
+    // control flow.
+    log::info!(
+        "run governance: establish start (project={stagecraft_project_id}, run={platform_run_id})"
+    );
+
     // 1. The standing admission, with the platform seal (ASI04 m1).
+    log::info!("run governance: fetching project bundle for admission check");
     let bundle = sc
         .get_project_opc_bundle(stagecraft_project_id)
         .await
@@ -76,6 +87,7 @@ pub async fn establish(
             .to_string()
     })?;
 
+    log::info!("run governance: fetching platform JWKS for seal verification");
     let jwks = sc
         .fetch_factory_jwks()
         .await
@@ -133,7 +145,14 @@ pub async fn establish(
         .map_err(|e| format!("cannot persist intent capsule: {e}"))?;
 
     // 3. Issuance grant. A refusal or an unreachable platform halts the
-    //    run before s0 — the executor never self-starts governed work.
+    //    run before s0; the executor never self-starts governed work.
+    //    This is the duplex round-trip (30s timeout in send_and_await_reply);
+    //    if the platform never sends a correlated `factory.run.grant` reply
+    //    the request fails closed here rather than wedging the run.
+    log::info!(
+        "run governance: requesting run-grant from platform (goal_id={})",
+        capsule.goal_id
+    );
     let outcome = emitter
         .request_grant(GrantRequestArgs {
             goal_id: &capsule.goal_id,
@@ -156,6 +175,7 @@ pub async fn establish(
         }
     };
 
+    log::info!("run governance: run-grant obtained (seq={seq}); governance established");
     Ok(Arc::new(RunGovernance {
         capsule,
         envelope_hash,
