@@ -161,11 +161,7 @@ export const scaffoldReadiness = api(
       hasUpstreamPat,
       scaffoldSourceResolved,
       adapters,
-      canCreate:
-        status.ready &&
-        hasFactoryAdapter &&
-        anyEligibleAdapter &&
-        hasUpstreamPat,
+      canCreate: status.ready && hasFactoryAdapter && anyEligibleAdapter,
       blocker,
     };
   },

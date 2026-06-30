@@ -129,8 +129,9 @@ async function resolveWarmupContext(): Promise<WarmupResolution> {
       if (!resolution) continue;
       sawResolvedSource = true;
 
-      const pat = await loadFactoryUpstreamPatToken(orgId).catch(() => null);
-      if (!pat) continue;
+      // PAT is optional: the ctx.patResolver below loads the org PAT on demand
+      // and the clone (buildCloneUrl) falls back to an anonymous clone for
+      // public template repos when none is configured.
 
       // Spec 112 §5.3.1: the generator + module catalog live in factory-encore,
       // resolved from the org's `factory` factory_upstreams row. This is a

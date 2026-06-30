@@ -131,13 +131,14 @@
       "12.1 SMTP — wired via Helm + setup.sh",
       "12.2 Google upstream — manual via Rauthy admin UI (v1)",
       "12.3 Why this is the right home",
-      "12.4 Wildcard tenant cert — `*.tenants.<base>` via cert-manager DNS-01"
+      "12.4 Wildcard tenant cert — `*.tenants.<base>` via cert-manager DNS-01",
+      "13. Amendment (2026-06-29): self-healing installation reconcile"
     ],
     "specPath": "specs/106-rauthy-native-oidc-and-membership/spec.md",
     "status": "approved",
     "summary": "Close the implementation gap between spec 080's design and what actually shipped. Move GitHub from stagecraft-direct OAuth to Rauthy's upstream IDP, remove the imaginary admin-mint JWT endpoint, drive custom claims through Rauthy's scope + user-attribute model, and resolve org memberships through a layered strategy — GitHub App installation token first, per-user PAT second, with fail-loud if neither is available.\n",
     "title": "Rauthy-Native OIDC + Layered Membership Resolution (App Installation + PAT)"
   },
-  "shardHash": "9ab0a78478b8d278050c60a9c0e16a2bb32e88b32daeea36d0919fe14ab84ece",
+  "shardHash": "c98e55f4c1fdef212bd0576dfa93a2ed1cd177639cc7c6c243c635c074211129",
   "specVersion": "1.1.0"
 }

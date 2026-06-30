@@ -268,6 +268,26 @@ spec claims, with no change to 160's factory/adapter design:
 None of this alters the relocation contract (§2, §FR); it is recorded here so
 the changed paths couple to an authoring edit.
 
+**Amendment 2026-06-29 (record: factory-upstream UI + PAT-optional scaffold).**
+Post-reset polish plus a deliberate behavior change on the factory surface (no
+change to the relocation contract):
+- Upstream Repository inputs accept a full GitHub URL and lowercase it
+  (`api/factory/upstreams.ts::validateRepo`); the source placeholders show
+  `factory`/`template` instead of the retired `legacy-factory`; a
+  configured-but-never-run upstream renders as idle ("Not synced yet") rather
+  than a misleading "pending" (`web/app/routes/app.factory._index.tsx`); and the
+  Create page drops the undefined "ACP" acronym for plain "factory pipeline
+  state" (`web/app/routes/app.projects.new.tsx`).
+- The factory upstream PAT is now OPTIONAL for project creation. The scaffold
+  clone already falls back to an anonymous clone (`buildCloneUrl`), which works
+  for public template repos, so the `no-upstream-pat` readiness block, the
+  `create.ts` PAT precondition, and the warmup scheduler's no-PAT skip were
+  relaxed (`scaffoldReadinessBlocker.ts`, `scaffoldReadiness.ts`, `create.ts`,
+  `scaffold/scheduler.ts`, with the test updated). A private template without a
+  PAT now surfaces a clear clone error at scaffold time instead of a preemptive
+  block. This relaxes spec 140 §2.3 blocker bullet 4 and spec 199 FR-009
+  create-eligibility; flagged for a formal amendment to those.
+
 ## 9. Amendment to spec 101 (codebase-index-mvp)
 
 Spec 101 §2.2 *Layer 3 — Factory Adapter Inventory* and §FR-07

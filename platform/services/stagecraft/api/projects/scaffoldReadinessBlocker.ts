@@ -30,7 +30,7 @@ export type BlockerInputs = {
  *   2. Adapter rows present, none declares
  *      `scaffold_source_id`                       → `stale-adapter-manifest`.
  *   3. Declared but no `factory_upstreams` match  → `no-scaffold-source-resolved`.
- *   4. Resolved but org has no PAT                → `no-upstream-pat`.
+ *   4. (PAT is optional: absent → anonymous clone for public template repos.)
  *   5. Warmup error                                → `warmup-error`.
  *   6. Warmup not yet ready                        → `warming-up`.
  *   7. Otherwise                                   → `undefined` (Create OK).
@@ -44,7 +44,9 @@ export function resolveBlocker(
   if (!inputs.hasFactoryAdapter) return "no-factory-adapter";
   if (!inputs.anyDeclaresScaffoldSource) return "stale-adapter-manifest";
   if (!inputs.scaffoldSourceResolved) return "no-scaffold-source-resolved";
-  if (!inputs.hasUpstreamPat) return "no-upstream-pat";
+  // PAT is optional: an absent token yields an anonymous clone, which works
+  // for public template repos. A private repo without a PAT surfaces a clear
+  // clone error at scaffold time rather than a preemptive readiness block.
   if (inputs.warmupError) return "warmup-error";
   if (!inputs.warmupReady) return "warming-up";
   return undefined;

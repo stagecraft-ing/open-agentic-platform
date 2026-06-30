@@ -804,3 +804,21 @@ code that clones the wildcard Secret into the tenant ns at deploy
 time, OR a reflector-style controller) is a spec 137 Phase 4
 follow-up. This amendment lands the cert itself; the consumer-side
 path is the next gate.
+
+## 13. Amendment (2026-06-29): self-healing installation reconcile
+
+FR-005's `resolveMembership` reads `github_installations` (written only by the
+installation webhook) and returns `no_installed_orgs` when it is empty. A
+database reset or a missed webhook delivery therefore leaves a still-installed
+App invisible and dead-ends login on the "no connected organization" screen,
+with no self-heal because nothing re-discovers installations from GitHub.
+
+`resolveMembership` now reconciles before giving up: when it finds zero active
+installations, it calls `reconcileInstallationsFromGitHub()`, which signs an App
+JWT, lists installations via `GET /app/installations`, and upserts the org +
+`github_installations` rows (mirroring the webhook's installation.created path),
+then re-loads. Best-effort: any GitHub or signing failure logs and returns 0, so
+login degrades to the existing `no_installed_orgs` path rather than erroring.
+GitHub becomes the source of truth for installation state, so a fresh database
+(clean-slate reset, oap-bootstrap stand-up) self-heals on first login instead of
+requiring a manual webhook redelivery or reinstall.

@@ -72,16 +72,26 @@ export type FactoryUpstreamCounts = {
 const REPO_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/;
 
 function validateRepo(value: string, field: string): string {
-  const trimmed = value.trim();
+  const trimmed = (value ?? "").trim();
   if (!trimmed) {
     throw APIError.invalidArgument(`${field} is required`);
   }
-  if (!REPO_PATTERN.test(trimmed)) {
+  // Accept a full GitHub URL (https://github.com/owner/repo[.git]) or the
+  // git@ form as well as a bare owner/repo, and lowercase it (GitHub
+  // owners/repos are case-insensitive). The sync worker does the authoritative
+  // validation when it clones.
+  const repo = trimmed
+    .replace(/^https?:\/\/github\.com\//i, "")
+    .replace(/^git@github\.com:/i, "")
+    .replace(/\.git$/i, "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
+  if (!REPO_PATTERN.test(repo)) {
     throw APIError.invalidArgument(
-      `${field} must be in the form "owner/repo" (got "${trimmed}")`,
+      `${field} must be in the form "owner/repo" or a GitHub URL (got "${trimmed}")`,
     );
   }
-  return trimmed;
+  return repo;
 }
 
 function validateRef(value: string | undefined, field: string): string {

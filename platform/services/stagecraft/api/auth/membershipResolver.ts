@@ -101,7 +101,16 @@ export async function resolveMembership(
     return { orgs: [], reason: "no_installed_orgs" };
   }
 
-  const installations = await loadActiveInstallations();
+  let installations = await loadActiveInstallations();
+  if (installations.length === 0) {
+    // Self-heal: the installation webhook is the only writer of
+    // github_installations, so a DB reset (or a missed delivery) leaves us
+    // blind to a still-installed App and dead-ends login on "no connected
+    // organization". GitHub is the source of truth, so reconcile before
+    // giving up, then re-load.
+    const rebuilt = await reconcileInstallationsFromGitHub();
+    if (rebuilt > 0) installations = await loadActiveInstallations();
+  }
   if (installations.length === 0) {
     log.info("No active GitHub App installations", { userId });
     return afterResolution(userId, [], { orgs: [], reason: "no_installed_orgs" });
@@ -352,6 +361,141 @@ async function userPatStrategy(
 // ---------------------------------------------------------------------------
 // Helpers: installations, DB upserts, ResolvedOrg build
 // ---------------------------------------------------------------------------
+
+const GITHUB_API = "https://api.github.com";
+
+/**
+ * Self-heal `github_installations` from GitHub (the source of truth).
+ *
+ * That table is otherwise written only by the installation webhook (a one-time
+ * GitHub delivery), so a DB reset or a missed webhook leaves a still-installed
+ * App invisible. This discovers every installation via the App JWT and upserts
+ * the org + installation rows, mirroring the webhook's installation.created
+ * path (api/github/webhook.ts). Best-effort: any failure logs and returns 0 so
+ * login degrades to the existing "no connected org" path rather than erroring.
+ * Returns the number of installations reconciled.
+ */
+async function reconcileInstallationsFromGitHub(): Promise<number> {
+  let jwt: string;
+  try {
+    jwt = await signAppJwt();
+  } catch (err) {
+    log.warn("installation reconcile: signAppJwt failed", { error: String(err) });
+    return 0;
+  }
+  let insts: Array<{ id: number; account: { id: number; login: string } }>;
+  try {
+    const resp = await fetch(`${GITHUB_API}/app/installations?per_page=100`, {
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "stagecraft",
+      },
+    });
+    if (!resp.ok) {
+      log.warn("installation reconcile: GET /app/installations failed", {
+        status: resp.status,
+      });
+      return 0;
+    }
+    insts = (await resp.json()) as Array<{
+      id: number;
+      account: { id: number; login: string };
+    }>;
+  } catch (err) {
+    log.warn("installation reconcile: GitHub request errored", { error: String(err) });
+    return 0;
+  }
+  let n = 0;
+  for (const inst of insts) {
+    try {
+      await upsertOrgAndInstallation(inst.id, inst.account.id, inst.account.login);
+      n++;
+    } catch (err) {
+      log.warn("installation reconcile: upsert failed", {
+        installationId: inst.id,
+        error: String(err),
+      });
+    }
+  }
+  if (n > 0) {
+    log.info("installation reconcile: rebuilt github_installations from GitHub", {
+      count: n,
+    });
+  }
+  return n;
+}
+
+/**
+ * Upsert the OAP org + github_installations row for one installation. Mirrors
+ * the installation.created branch of api/github/webhook.ts (org create/link by
+ * github_org_id, then upsert github_installations keyed on github_org_id).
+ */
+async function upsertOrgAndInstallation(
+  installId: number,
+  githubOrgId: number,
+  githubOrgLogin: string
+): Promise<void> {
+  let orgId: string;
+  const [existingOrg] = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.githubOrgId, githubOrgId))
+    .limit(1);
+  if (existingOrg) {
+    orgId = existingOrg.id;
+    await db
+      .update(organizations)
+      .set({ githubOrgLogin, githubInstallationId: installId, updatedAt: new Date() })
+      .where(eq(organizations.id, orgId));
+  } else {
+    const [created] = await db
+      .insert(organizations)
+      .values({
+        name: githubOrgLogin,
+        slug: githubOrgLogin.toLowerCase(),
+        githubOrgId,
+        githubOrgLogin,
+        githubInstallationId: installId,
+      })
+      .onConflictDoNothing()
+      .returning({ id: organizations.id });
+    if (created) {
+      orgId = created.id;
+    } else {
+      const [bySlug] = await db
+        .select({ id: organizations.id })
+        .from(organizations)
+        .where(eq(organizations.slug, githubOrgLogin.toLowerCase()))
+        .limit(1);
+      orgId = bySlug!.id;
+      await db
+        .update(organizations)
+        .set({ githubOrgId, githubOrgLogin, githubInstallationId: installId, updatedAt: new Date() })
+        .where(eq(organizations.id, orgId));
+    }
+  }
+  await db
+    .insert(githubInstallations)
+    .values({
+      githubOrgId,
+      githubOrgLogin,
+      installationId: installId,
+      installationState: "active",
+      allowedRepos: "all",
+      orgId,
+    })
+    .onConflictDoUpdate({
+      target: githubInstallations.githubOrgId,
+      set: {
+        installationId: installId,
+        githubOrgLogin,
+        installationState: "active",
+        orgId,
+        updatedAt: new Date(),
+      },
+    });
+}
 
 async function loadActiveInstallations(): Promise<InstallationInfo[]> {
   const rows = await db
