@@ -8,6 +8,10 @@
     ],
     "implementingPaths": [
       {
+        "path": "crates/factory-engine/src/bin/verify_certificate.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/factory-engine/src/governance_certificate.rs",
         "source": "spec-edge"
       },
@@ -40,6 +44,19 @@
         "unit": {
           "kind": "file",
           "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/bin/verify_certificate.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/bin/verify_certificate.rs"
         }
       },
       {
@@ -96,8 +113,8 @@
       }
     ],
     "specId": "203-produced-app-sbom-attestation",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "1054188fd14b4b9e2ef1b9b40d64132a61bbb32c344479a785c008a23bd79cad"
+  "shardHash": "93b39e45e7cb5fd82ded0b0c4434f3f48228feea4fab1b534915c8061b8d3f3e"
 }

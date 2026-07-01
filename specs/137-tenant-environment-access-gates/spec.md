@@ -251,6 +251,27 @@ Rauthy clients created per gated environment carry:
   the oauth2-proxy gate can authenticate) is preserved; only the wire
   mechanism is corrected.
 
+  *Empirical correction (RAUTHY_ISSUER_URL wiring + form, 2026-07-01).*
+  FR-003(b)/(c) require stagecraft to forward the Rauthy issuer to the
+  tenant's `oauth2-proxy` (`accessGatesDeploy.ts` puts it on the descriptor;
+  `deploy.ts` refuses a gate-enabled deploy when `RAUTHY_ISSUER_URL` is
+  empty). Two gaps were found live on `stagecraft.ing`: (1) `RAUTHY_ISSUER_URL`
+  was set nowhere in the deployed stagecraft env (absent from the
+  `stagecraft-api-secrets` bootstrap in `platform/infra/hetzner/setup.sh`),
+  so every gate-enabled tenant deploy failed the guard with `RAUTHY_ISSUER_URL
+  is required when a tenant access gate is enabled`; and (2) the value form is
+  load-bearing. `oauth2-proxy` uses `--oidc-issuer-url` as BOTH the discovery
+  base AND the expected issuer, and validates the discovery `issuer` claim
+  against it exactly. Rauthy's issuer claim is `<RAUTHY_URL>/auth/v1/` (with
+  the `/auth/v1/` path and trailing slash) even though Rauthy also serves
+  discovery at the bare root, so the bare host (the previous chart example)
+  would pass discovery but fail issuer verification. deployd-api's own M2M
+  path is unaffected because `auth.rs` reads the issuer from the discovery
+  document rather than trusting the configured endpoint. Fix: `setup.sh`
+  derives `RAUTHY_ISSUER_URL="${RAUTHY_URL%/}/auth/v1/"` into
+  `stagecraft-api-secrets`, and the `oauth2-proxy-gate` chart's `rauthy.issuerUrl`
+  example is corrected to the full issuer form.
+
 Rauthy Auth Providers (the upstream IdPs) are configured at the Rauthy
 deployment level, not per tenant. A tenant gate references an Auth
 Provider by id; multiple tenants can share an Auth Provider (e.g., one

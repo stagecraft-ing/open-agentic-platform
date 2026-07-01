@@ -28,6 +28,14 @@
         "source": "spec-edge"
       },
       {
+        "path": "crates/factory-engine/src/bin/factory_run.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/src/engine.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/factory-engine/src/governance_certificate.rs",
         "source": "spec-edge"
       },
@@ -57,6 +65,10 @@
       },
       {
         "path": "platform/services/stagecraft/api/factory/runsScheduler.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/src-tauri/src/commands/factory.rs",
         "source": "spec-edge"
       },
       {
@@ -163,6 +175,32 @@
       {
         "locations": [
           {
+            "file": "crates/factory-engine/src/bin/factory_run.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/bin/factory_run.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/engine.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/engine.rs"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/orchestrator/Cargo.toml"
           }
         ],
@@ -184,6 +222,19 @@
         "unit": {
           "kind": "file",
           "path": "crates/orchestrator/src/lib.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/src-tauri/src/commands/factory.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/factory.rs"
         }
       },
       {
@@ -269,5 +320,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "ccb491cda7cf1a33e48e17cb2e5b9ebb520e537c903cd7cb6f42bd9391c5ad3b"
+  "shardHash": "5e4184074aa469b42aee8254a44798b6157e694830e671fb4f1697966ed9eedb"
 }

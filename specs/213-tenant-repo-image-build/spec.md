@@ -194,10 +194,12 @@ string.
 
 **Acceptance Scenarios**:
 
-1. **Given** a completed build for SHA S, **When** `workflow_run.completed`
-   arrives at the webhook, **Then** a `project_artifacts` row exists with
-   `releaseSha = S`, the conventional `imageRef`, and the variant (or
-   `root` for single-variant trees).
+1. **Given** a completed default-branch push build for SHA S, **When**
+   `workflow_run.completed` arrives at the webhook, **Then** a
+   `project_artifacts` row exists with `releaseSha = S`, the conventional
+   `imageRef`, and the variant (or `root` for single-variant trees). A
+   `pull_request` build records no row (its `head_sha` has no
+   `sha-<head_sha>` tag).
 2. **Given** no recorded row (webhook missed), **When** the deploy path
    asks for the artifact ref, **Then** the derivation function returns the
    conventional ref and the caller verifies existence against the registry
@@ -215,6 +217,19 @@ string.
 - GHCR package visibility is private by default: pulling from the cluster
   is the concern of spec 214 (`imagePullSecrets`); this spec only
   guarantees push.
+- Phantom artifact from a PR build (corrected 2026-07-01): the webhook
+  originally recorded a `project_artifacts` row for **every** successful
+  `oap-build` run, including `pull_request` ones, keyed on `run.head_sha`.
+  For a PR run `head_sha` is the PR head commit, but the workflow's
+  `Push sha tag` step tags the checkout HEAD, which on a `pull_request`
+  event is the ephemeral merge commit, so it publishes `sha-<mergesha>`
+  plus the `pr-<n>` alias, never `sha-<head_sha>`. The recorded row therefore
+  pointed at a tag GHCR never had (observed with `single-simple`'s open
+  Dependabot PR head `8c65109b6020`), and because it was the newest `builtAt`
+  the deploy path (`resolveLatestArtifact`) selected it over the valid
+  default-branch image and failed to pull. FR-006 now records only
+  default-branch push builds (`isDefaultBranchPush`), so a PR build can never
+  shadow the deployable image.
 - Repo linked to more than one project (FR-009): observed 2026-06-20 when
   creating project B's repo emitted a `repository.created` webhook that
   the handler auto-linked to the only project then existing (A), racing
@@ -265,8 +280,16 @@ string.
   internal`), `imageRef`, `workflowRunId`, `builtAt`, unique on
   `(projectId, releaseSha, variant)`. Populated by the GitHub webhook on
   `workflow_run.completed` (workflow name `oap-build`, conclusion
-  `success`) for repos present in `project_repos`. Best-effort: a missed
-  event degrades to FR-005 derivation, never to a hard failure.
+  `success`) for repos present in `project_repos`, **and only for
+  default-branch push builds** (`run.event = push` and `run.head_branch =
+  repository.default_branch`; gate pure function `isDefaultBranchPush` in
+  `webhook.ts`). This follows directly from FR-002: only a default-branch
+  push publishes a `sha-<head_sha>` tag whose sha equals `run.head_sha`. A
+  `pull_request` run checks out the ephemeral merge commit, so it publishes
+  `sha-<mergesha>` plus the FR-003 `pr-<n>` alias, never `sha-<head_sha>`;
+  recording its `head_sha` stores a row pointing at a never-pushed tag
+  (corrected 2026-07-01, see Edge Cases). Best-effort: a missed event
+  degrades to FR-005 derivation, never to a hard failure.
 - **FR-007**: An existence check `artifactExists(imageRef)` MUST be
   provided (GHCR manifest HEAD using the GitHub App installation token),
   so deploy callers can distinguish "image not built yet" from "deploy
