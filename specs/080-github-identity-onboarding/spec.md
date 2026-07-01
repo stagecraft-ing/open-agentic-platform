@@ -340,6 +340,21 @@ export const auth = authHandler(async (params): Promise<AuthData> => {
 });
 ```
 
+**Amendment (M2M-token pass-through, 2026-07-01).** The gateway auth handler
+(`api/auth/handler.ts`) runs for **every** request that carries an
+Authorization header, including requests to the platform's `auth: false`
+machine-to-machine endpoints (audit, policy, grants, spec 143's
+knowledge-sweep) that present a `client_credentials` token. Those tokens carry
+a different audience than the `stagecraft-server` session client, so
+`validateJwt` returns null for them. The handler now **returns `null`
+(unauthenticated) instead of throwing** in that case: Encore then rejects
+`auth: true` user endpoints (no AuthData) while letting `auth: false` M2M
+endpoints proceed to their own scope-checked `validateM2mRequest`. Previously
+the handler threw, which 401'd every M2M seam before its handler ran (observed
+as the knowledge-orphan sweeper's 30-minute `aud`-mismatch 401s). The
+disabled-user check (Phase 6) is unchanged: it still applies to the valid
+user-session path. Regression cover: `api/auth/handler.test.ts` (encore lane).
+
 ### FR-004: OPC Login
 
 OPC (Tauri desktop app) uses PKCE OAuth flow:
