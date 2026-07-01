@@ -1393,16 +1393,26 @@ pub async fn start_factory_pipeline(
         let budget_meter = Arc::new(Mutex::new(orchestrator::RunBudgetMeter::new(
             factory_contracts::apply_defaults(&[]),
         )));
-        // Spec 202 FR-002/FR-001/AC-3: the budget gate rides EVERY run under
-        // platform defaults (an absent budget is fail-closed, not exempt),
-        // including the ungoverned/bypass arm below where governance is None,
-        // exactly as the CLI wires it. When governance is present the budget
-        // gate composes AFTER the stage-boundary renewal gate (FR-005):
-        // grant-first, budget-second, short-circuit on the first Err
-        // (ChainedPreStepGate order). BudgetGate has no grant-chain dependency,
-        // so it rides alone when governance is absent.
+        // Spec 202 FR-002/FR-001/AC-3 + FR-003b: the budget gate and the
+        // oscillation detector ride EVERY run under platform defaults (an
+        // absent budget is fail-closed, not exempt), including the
+        // ungoverned/bypass arm below where governance is None, exactly as the
+        // CLI wires them. When governance is present they compose AFTER the
+        // stage-boundary renewal gate (FR-005): grant-first, then budget, then
+        // oscillation, short-circuit on the first Err (ChainedPreStepGate
+        // order). Neither gate has a grant-chain dependency, so they ride alone
+        // when governance is absent.
         let budget_gate: Arc<dyn orchestrator::PreStepGate> =
             Arc::new(orchestrator::BudgetGate::new(budget_meter.clone()));
+        let oscillation_cfg = factory_contracts::apply_oscillation_default(None);
+        let oscillation_breaker = Arc::new(Mutex::new(orchestrator::CircuitBreakerState::new(
+            orchestrator::CircuitBreakerConfig {
+                threshold: oscillation_cfg.consecutive_failures,
+                window_secs: oscillation_cfg.window_secs.unwrap_or(300),
+            },
+        )));
+        let oscillation_gate: Arc<dyn orchestrator::PreStepGate> =
+            Arc::new(orchestrator::OscillationGate::new(oscillation_breaker.clone()));
         let pre_step_gate: Option<Arc<dyn orchestrator::PreStepGate>> =
             Some(match governance.as_ref() {
                 Some(gov) => {
@@ -1418,10 +1428,16 @@ pub async fn start_factory_pipeline(
                                     .and_then(|ps| ps.build_spec_hash.clone())
                             }),
                         ));
-                    Arc::new(orchestrator::ChainedPreStepGate::new(vec![grant, budget_gate]))
-                        as Arc<dyn orchestrator::PreStepGate>
+                    Arc::new(orchestrator::ChainedPreStepGate::new(vec![
+                        grant,
+                        budget_gate,
+                        oscillation_gate,
+                    ])) as Arc<dyn orchestrator::PreStepGate>
                 }
-                None => budget_gate,
+                None => Arc::new(orchestrator::ChainedPreStepGate::new(vec![
+                    budget_gate,
+                    oscillation_gate,
+                ])) as Arc<dyn orchestrator::PreStepGate>,
             });
 
         // Build executor with agent prompt lookup.
@@ -2574,6 +2590,20 @@ pub async fn resume_factory_pipeline(
         )));
         let resume_budget_gate: Arc<dyn orchestrator::PreStepGate> =
             Arc::new(orchestrator::BudgetGate::new(resume_budget_meter.clone()));
+        // Spec 202 FR-003b: the resume path also detects oscillation, on every
+        // run including the ungoverned arm, with a fresh breaker (same "new
+        // admission => new meter" posture as the resume budget meter).
+        let resume_oscillation_cfg = factory_contracts::apply_oscillation_default(None);
+        let resume_oscillation_breaker = Arc::new(Mutex::new(
+            orchestrator::CircuitBreakerState::new(orchestrator::CircuitBreakerConfig {
+                threshold: resume_oscillation_cfg.consecutive_failures,
+                window_secs: resume_oscillation_cfg.window_secs.unwrap_or(300),
+            }),
+        ));
+        let resume_oscillation_gate: Arc<dyn orchestrator::PreStepGate> =
+            Arc::new(orchestrator::OscillationGate::new(
+                resume_oscillation_breaker.clone(),
+            ));
         options.pre_step = Some(match governance.as_ref() {
             Some(gov) => {
                 // The freshly-seeded resume state has no frozen Build-Spec hash;
@@ -2588,9 +2618,13 @@ pub async fn resume_factory_pipeline(
                 Arc::new(orchestrator::ChainedPreStepGate::new(vec![
                     grant,
                     resume_budget_gate,
+                    resume_oscillation_gate,
                 ])) as Arc<dyn orchestrator::PreStepGate>
             }
-            None => resume_budget_gate,
+            None => Arc::new(orchestrator::ChainedPreStepGate::new(vec![
+                resume_budget_gate,
+                resume_oscillation_gate,
+            ])) as Arc<dyn orchestrator::PreStepGate>,
         });
 
         match dispatch_manifest(&am, run_uuid, &manifest, bridge, executor, &options).await {

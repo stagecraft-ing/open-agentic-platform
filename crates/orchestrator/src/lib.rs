@@ -42,8 +42,10 @@ pub use artifact::{
     DEFAULT_ARTIFACT_DIR, DEFAULT_CAS_DIR, LineageRelation,
 };
 pub use budget_gate::{
-    BudgetBreach, BudgetGate, ChainedPreStepGate, RunBudgetConsumption, RunBudgetMeter,
+    BudgetBreach, BudgetGate, ChainedPreStepGate, OscillationGate, RunBudgetConsumption,
+    RunBudgetMeter,
 };
+pub use circuit_breaker::{CircuitBreakerConfig, CircuitBreakerState};
 pub use claude_executor::{
     AgentPromptLookup, ClaudeCodeExecutor, StandardsResolver, StepEvent, StepEventHandler,
     ThinkingLevel,
@@ -176,9 +178,15 @@ pub struct StepActuals {
     pub cost_usd: Option<f64>,
     pub duration_ms: Option<u64>,
     pub num_turns: Option<u32>,
-    /// Whether the step reached `Success` (used by the FR-003b oscillation
-    /// detector in a later slice; recorded here so the hook is stable).
+    /// Whether the step reached `Success`. Consumed by the FR-003b oscillation
+    /// detector (`OscillationGate`).
     pub success: bool,
+    /// Intra-step retry count for this step (the `attempt` counter from
+    /// `dispatch_with_verify`'s pre/post-verify retry loop). A step that
+    /// eventually succeeded but needed retries has `retry_count > 0`; this is
+    /// the realizable cross-step "wobble" signal the FR-003b oscillation
+    /// detector feeds on (a hard failure halts the run, so it cannot repeat).
+    pub retry_count: u32,
 }
 
 #[derive(Clone, Debug)]
@@ -1336,6 +1344,7 @@ pub async fn dispatch_manifest(
                         duration_ms: durations_ms[idx],
                         num_turns: num_turns[idx],
                         success: is_success,
+                        retry_count: retry_counts[idx],
                     })
                     .await;
                 }
@@ -1404,6 +1413,24 @@ pub async fn dispatch_manifest(
                             statuses[d] = StepStatus::Skipped;
                         }
                     }
+                }
+                // Spec 202 FR-003b: record the hard failure to the oscillation
+                // detector (via after_step) for consistency with the success
+                // field's contract. Inert under halt-on-failure: this branch
+                // returns and aborts the run, so no later before_step observes
+                // the recorded failure; the realizable AC-2 signal is the
+                // Ok-branch retry_count.
+                if let Some(ref gate) = options.pre_step {
+                    gate.after_step(&StepActuals {
+                        step_id: step.id.clone(),
+                        tokens_used: None,
+                        cost_usd: None,
+                        duration_ms: None,
+                        num_turns: None,
+                        success: false,
+                        retry_count: 0,
+                    })
+                    .await;
                 }
                 let summary = build_summary(
                     artifact_base,
@@ -2169,6 +2196,7 @@ pub async fn dispatch_manifest_persisted(
                         duration_ms: durations_ms[idx],
                         num_turns: num_turns[idx],
                         success: is_success,
+                        retry_count: retry_counts[idx],
                     })
                     .await;
                 }
@@ -2268,6 +2296,24 @@ pub async fn dispatch_manifest_persisted(
                             statuses[d] = StepStatus::Skipped;
                         }
                     }
+                }
+                // Spec 202 FR-003b: record the hard failure to the oscillation
+                // detector (via after_step) for consistency with the success
+                // field's contract. Inert under halt-on-failure: this branch
+                // returns and aborts the run, so no later before_step observes
+                // the recorded failure; the realizable AC-2 signal is the
+                // Ok-branch retry_count.
+                if let Some(ref gate) = options.pre_step {
+                    gate.after_step(&StepActuals {
+                        step_id: step.id.clone(),
+                        tokens_used: None,
+                        cost_usd: None,
+                        duration_ms: None,
+                        num_turns: None,
+                        success: false,
+                        retry_count: 0,
+                    })
+                    .await;
                 }
                 let summary = build_summary(
                     artifact_base,
@@ -3507,6 +3553,7 @@ steps:
             duration_ms: None,
             num_turns: None,
             success: true,
+            retry_count: 0,
         });
         let meter = Arc::new(std::sync::Mutex::new(seeded));
         let budget_gate: Arc<dyn PreStepGate> = Arc::new(BudgetGate::new(meter));
@@ -3540,6 +3587,74 @@ steps:
                     "reason must name the breach: {reason}"
                 );
                 assert!(reason.contains("Tokens"), "reason must name the axis: {reason}");
+            }
+            other => panic!("expected StepFailed at s1, got {other:?}"),
+        }
+    }
+
+    // --- Spec 202 AC-2: the WIRED OscillationGate pauses the run fail-closed
+    // when the consecutive-wobble circuit has tripped. This drives the real
+    // OscillationGate through dispatch_manifest (the same seam the engine and
+    // CLI wire), proving the gate's before_step Err propagates to a StepFailed.
+    // The breaker is pre-tripped (mirroring wired_budget's pre-seeded meter)
+    // because producing organic retry_count > 0 needs post_verify shell retries;
+    // organic wobble-accumulation and the retry-count reframing are covered by
+    // budget_gate's unit + composition tests (oscillation_gate_trips_after_
+    // threshold_wobbles, chain_fires_oscillation_before_wall_clock_budget). ---
+
+    #[tokio::test]
+    async fn wired_oscillation_gate_pauses_dispatch_when_tripped() {
+        let tmp = tempfile::tempdir().unwrap();
+        let am = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+        let manifest = WorkflowManifest {
+            steps: vec![WorkflowStep {
+                id: "s1".into(),
+                agent: "agent-a".into(),
+                effort: EffortLevel::Quick,
+                inputs: vec![],
+                outputs: vec!["out1.md".into()],
+                instruction: "work".into(),
+                gate: None,
+                pre_verify: None,
+                post_verify: None,
+                max_retries: None,
+            }],
+            project_id: None,
+        };
+        materialize_run_directory(&am, run_id, &manifest).unwrap();
+
+        // A breaker at threshold 2, pre-tripped by two prior wobbles: the next
+        // step boundary must fail closed with the oscillation diagnostic.
+        let mut breaker = CircuitBreakerState::new(CircuitBreakerConfig {
+            threshold: 2,
+            window_secs: 300,
+        });
+        breaker.record_failure();
+        breaker.record_failure();
+        assert!(breaker.is_tripped(), "breaker must be pre-tripped");
+        let osc_gate: Arc<dyn PreStepGate> =
+            Arc::new(OscillationGate::new(Arc::new(std::sync::Mutex::new(breaker))));
+        let options = DispatchOptions {
+            pre_step: Some(osc_gate),
+            ..DispatchOptions::default()
+        };
+        let result = dispatch_manifest(
+            &am,
+            run_id,
+            &manifest,
+            Arc::new(AlwaysPresentRegistryForGate),
+            Arc::new(WritingExecutorForGate),
+            &options,
+        )
+        .await;
+        match result {
+            Err(OrchestratorError::StepFailed { step_id, reason }) => {
+                assert_eq!(step_id, "s1", "the tripped boundary must fail closed");
+                assert!(
+                    reason.contains("oscillation detected"),
+                    "reason must name the oscillation breach: {reason}"
+                );
             }
             other => panic!("expected StepFailed at s1, got {other:?}"),
         }

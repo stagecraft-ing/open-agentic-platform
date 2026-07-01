@@ -198,30 +198,25 @@ budgets:
 
 ### Slice D: FR-003(b) Oscillation detector (AC-2)
 
-**Depends on**: Slice B (budget gate and `DispatchOptions.budget_meter` exist; the oscillation detector reports through the same pause channel).
+**Depends on**: PR1 (the governor is wired into dispatch via `options.pre_step` as a `ChainedPreStepGate`; the oscillation gate composes into the same chain and pauses through the same channel). Note: the axis meter is threaded via `options.pre_step`, not a `DispatchOptions.budget_meter` field (that field was never added).
 
-**FR/AC coverage**: FR-003(b) fully, AC-2 (seeded feedback-loop fixture trips the detector).
+**FR/AC coverage**: FR-003(b) fully, AC-2 (as amended: successive retry-heavy steps trip the detector before wall-clock exhaustion).
+
+**Design note (as-built, supersedes the earlier axis proposal)**: the trip threshold is a **peer top-level `oscillation:` envelope field** (`OscillationThreshold { consecutive_failures, window_secs }`), NOT a 7th `RunBudgetAxis`/`budgets.axis`. The axis approach was evaluated and rejected: because Slice C's certificate completeness derives `admitted_axis_names()` from `RunBudgetAxis::ALL`, a 7th axis would force the oscillation signal into every certificate's `budget_consumption`, require a `CERTIFICATE_VERSION` bump, and collide with verify's strict `breached == (actual > ceiling)` invariant since `circuit_breaker` trips on `>=` within a sliding window. A consecutive-failure streak also resets on success and has no uniform `per_stage` scope, so it is categorically not a monotonic budget axis. The peer approach was user-ratified; it touches no certificate and needs zero new frontmatter edges.
+
+**Detector-input reframing (as-built, user-ratified)**: `dispatch_manifest` returns `Err` and aborts on the first hard step failure (spec 075 halt-on-failure, orchestrator rule 4), so a literal inter-stage failure loop cannot arise in a live run. The realizable cross-step signal is consecutive retry-heavy steps: a step "wobbles" when `!success || retry_count > 0`. AC-2's fixture is therefore successive retry-heavy steps, not "two consecutive step failures".
 
 **Files created/edited**:
 
-- `crates/orchestrator/src/budget_gate.rs` (extend)
-  - Add `OscillationDetector` struct:
-    - Wraps `CircuitBreakerState` from `circuit_breaker.rs` (now wired for the first time)
-    - Config: `oscillation_threshold: u32` from the envelope's `budgets` section (see design note)
-    - `fn record_step_outcome(&mut self, step_id: &str, success: bool)` calls `cb.record_failure()` on a failed step, `cb.record_success()` on a successful step
-    - `fn check_oscillation(&self) -> Option<OscillationBreach>` returns `Some` if the circuit breaker is tripped
-  - `OscillationBreach` struct: `{ consecutive_failures: u32, threshold: u32 }`
-  - Wire `OscillationDetector` into `BudgetGate.before_step` alongside the axis check; breach returns `Err` with the same pause semantics
-  - Add `oscillation_state: OscillationDetector` to `RunBudgetMeter` or as a peer field in `BudgetGate`
+- `crates/factory-contracts/src/run_budget.rs`: `OscillationThreshold` type, `PLATFORM_DEFAULT_OSCILLATION_THRESHOLD` (5 / 300s, mirroring `CircuitBreakerConfig::default()`), `apply_oscillation_default()` (tighten-only on `consecutive_failures`; `window_secs` platform-fixed this slice). Re-export from `lib.rs`.
+- `crates/factory-contracts/src/governance_envelope.rs`: `oscillation: Option<OscillationThreshold>` field; `GOVERNANCE_ENVELOPE_SCHEMA_VERSION` 1.1.0 -> 1.2.0 (twin of the schema YAML bump). `standards/schemas/factory/governance-envelope.schema.yaml` gains the peer `oscillation:` section (covered by the existing `extends: 198` edge).
+- `crates/orchestrator/src/budget_gate.rs`: `OscillationGate` (a `PreStepGate`) wrapping `circuit_breaker::CircuitBreakerState` **unmodified**, shared via `Arc<Mutex<..>>`. `before_step` fails closed when `is_tripped()`; `after_step` records failure on a wobble, success otherwise.
+- `crates/orchestrator/src/lib.rs`: `StepActuals.retry_count: u32`, threaded at both Ok-branch `after_step` sites; the `Err`-branch `after_step` is closed for contract consistency (inert under halt-on-failure).
+- Wiring at the 4 dispatch sites (`bin/factory_run.rs` both phases share one breaker; OPC `factory.rs` start + resume, governed and ungoverned arms), each composing `oscillation_gate` into the `ChainedPreStepGate` after the budget gate.
 
-- `crates/orchestrator/src/lib.rs`
-  - After step completion, call `meter.record_step_outcome(step_id, success)` on the oscillation detector
+**Threshold source**: parity with the six budget axes: the schema/twin field is declarable, but no call site threads a declared value yet (every site calls `apply_oscillation_default(None)`, exactly as the budget gate calls `apply_defaults(&[])`); admission threading of declared values into the OPC is the same pre-existing deferral PR1 documented for all axes.
 
-**Design note on threshold declaration**: FR-003(b) says thresholds are "declared as `budgets:` fields, never hardcoded." The simplest fit is a new `budgets.axis = "consecutive_failures"` entry with `per_run` holding the trip threshold. This avoids inventing a new schema concept. The `OscillationDetector` reads `per_run` from the `AdmittedBudget` for this axis.
-
-**Tests** (AC-2):
-- Construct a fixture `WorkflowManifest` with two steps. Directly call `record_step_outcome` in alternation (fail, fail, fail) until the oscillation detector trips. Assert `check_oscillation()` returns `Some` before the run's `wall_clock_secs` budget would be exceeded.
-- Full integration: set `oscillation_threshold: 2`; simulate two consecutive step failures; assert `before_step` returns `Err` on the third step call.
+**Tests** (AC-2): unit (`OscillationGate` trips after `threshold` wobbles and resets on a clean step), composition (a `ChainedPreStepGate[budget, oscillation]` fires the oscillation breach with the wall-clock actual far below its 3600s ceiling), and integration (a pre-tripped breaker through `dispatch_manifest` returns `StepFailed` naming the oscillation breach).
 
 ---
 

@@ -227,7 +227,10 @@ distinct `RunBudget*` prefix to avoid collision.
   (AC-6).
 - **FR-003 — Fan-out and feedback-loop detection.** Beyond static
   ceilings, the governor detects the ASI08 propagation signatures, each
-  with thresholds declared as `budgets:` fields, never hardcoded:
+  with thresholds declared as envelope fields, never hardcoded (a
+  `budgets:` axis for signatures (a) and (c); the peer top-level
+  `oscillation:` field for signature (b), whose consecutive-failure
+  streak is not a monotonic budget axis, see FR-003b):
   - *(a) Repeated near-identical intents* within a window, engine-side.
     Intent identity is the run's goal id plus a step signature: a
     content hash over the step's normalized instruction text, mirroring
@@ -235,11 +238,26 @@ distinct `RunBudget*` prefix to avoid collision.
     `crates/factory-engine/src/intent_capsule.rs`. The step id is
     excluded from the hash so dynamically generated near-twin steps
     collide; the normalization rule is fixed at implementation.
-  - *(b) Oscillating retry/compensation loops between stages.* Inputs
+  - *(b) Oscillating retry/compensation loops (observed as consecutive
+    retry-heavy steps under fail-fast dispatch; see the implementation
+    note below).* Inputs
     are the per-step `retry_count` and the step failure/retry sequence
     the orchestrator already records; the detector reuses the
     consecutive-trip pattern of `circuit_breaker.rs` (102
     FR-032/FR-035), wiring the today-unwired library into dispatch.
+    Implementation note (refined against dispatch reality): the
+    orchestrator halts on the first hard step failure (spec 075
+    halt-on-failure, orchestrator rule 4), so a literal inter-stage
+    failure loop cannot arise in a live run; the realizable cross-step
+    signal is therefore consecutive retry-heavy steps (`retry_count > 0`
+    on steps that eventually succeeded), which the detector feeds on. A
+    step "wobbles" when it needed at least one intra-step retry or hard
+    failed; the circuit breaks at a declared consecutive-wobble threshold
+    (the envelope `oscillation:` field, platform-default fail-closed).
+    Slice D bumps the governance-envelope schema 1.1.0 -> 1.2.0 to add the
+    `oscillation:` field, landing the YAML and the Rust twin
+    (`GOVERNANCE_ENVELOPE_SCHEMA_VERSION`) in the same PR under the same
+    lockstep discipline AC-7 established for the 1.1.0 bump.
   - *(c) Queue storms, platform-side.* Runs-in-flight per org
     (`queued` + `running`) counted at run submission against a
     configurable ceiling; a new count gate, the staleness sweeper is
@@ -287,9 +305,13 @@ distinct `RunBudget*` prefix to avoid collision.
   admitted budget pauses fail-closed at the next step boundary: the next
   step does not dispatch, the attributable error names the axis, the
   ceiling, and the actual, and resume requires a human actor id.
-- **AC-2.** A seeded feedback-loop fixture (two stages retrying each
-  other) trips the oscillation detector before exhausting the run's
-  wall-clock budget.
+- **AC-2.** A seeded oscillation fixture trips the oscillation detector
+  before exhausting the run's wall-clock budget. Because the orchestrator
+  halts on the first hard step failure (spec 075, orchestrator rule 4),
+  the realizable fixture is successive steps that each require an
+  intra-step retry (`retry_count > 0`), not a literal inter-stage failure
+  loop (which halt-on-failure precludes); the detector's input is the
+  per-step `retry_count` (see FR-003b implementation note).
 - **AC-3.** A factory admitted with no `budgets:` section runs under
   platform defaults; the admission record shows every defaulted axis
   with `source: platform-default`.

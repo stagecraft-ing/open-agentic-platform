@@ -301,6 +301,65 @@ fn tighten_opt(
     }
 }
 
+// ── Oscillation threshold (peer, NOT a RunBudgetAxis) ────────────────────────
+
+/// Declared oscillation / circuit-breaker trip threshold (ASI08 m7; spec 202
+/// FR-003b). Deliberately NOT a `RunBudgetAxis` variant: the six axes are
+/// monotonic run-total accumulators checked with strict `actual > ceiling`, but
+/// a consecutive-failure streak (a) resets on success rather than accumulating,
+/// (b) trips on `>=` within a sliding time window (not `>`), and (c) has no
+/// sensible uniform `per_stage` scope. Modelling it as an axis would force it
+/// into every governance certificate and collide with the certificate's strict
+/// axis-agnostic consistency invariant. It is therefore its own envelope field.
+///
+/// `window_secs` is platform-fixed in this slice: unlike every axis ceiling, a
+/// shorter window is looser (not tighter), so it does not fit the tighten-only
+/// merge direction; only `consecutive_failures` is tighten-only mergeable.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct OscillationThreshold {
+    /// Consecutive step wobbles (steps that needed at least one intra-step
+    /// retry, or hard-failed) before the circuit breaks. Declared, never
+    /// hardcoded (spec 202 FR-003 preamble).
+    pub consecutive_failures: u32,
+    /// Sliding-window width for the consecutive-failure count. Platform-fixed
+    /// in this slice: `apply_oscillation_default` currently ignores any declared
+    /// value (see the struct-level doc); only `consecutive_failures` is
+    /// tighten-only mergeable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window_secs: Option<u64>,
+}
+
+/// Platform-default oscillation threshold. Mirrors
+/// `circuit_breaker::CircuitBreakerConfig::default()` (threshold 5, window
+/// 300s), reused rather than re-litigated since spec 102 already shipped these
+/// values. An absent envelope `oscillation:` field applies this fail-closed,
+/// the same posture as an absent budget axis (spec 202 FR-001).
+pub const PLATFORM_DEFAULT_OSCILLATION_THRESHOLD: OscillationThreshold = OscillationThreshold {
+    consecutive_failures: 5,
+    window_secs: Some(300),
+};
+
+/// Merge a declared oscillation threshold with the platform default. Only
+/// `consecutive_failures` is tighten-only mergeable (a lower streak limit is
+/// tighter); `window_secs` stays at the platform default in this slice (see
+/// [`OscillationThreshold`] doc). A declared streak looser than the platform
+/// default is clamped, matching [`apply_defaults`]' tighten-only direction.
+pub fn apply_oscillation_default(declared: Option<OscillationThreshold>) -> OscillationThreshold {
+    match declared {
+        None => PLATFORM_DEFAULT_OSCILLATION_THRESHOLD,
+        Some(d)
+            if d.consecutive_failures
+                <= PLATFORM_DEFAULT_OSCILLATION_THRESHOLD.consecutive_failures =>
+        {
+            OscillationThreshold {
+                consecutive_failures: d.consecutive_failures,
+                window_secs: PLATFORM_DEFAULT_OSCILLATION_THRESHOLD.window_secs,
+            }
+        }
+        Some(_) => PLATFORM_DEFAULT_OSCILLATION_THRESHOLD,
+    }
+}
+
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -491,5 +550,65 @@ mod tests {
         let json = serde_json::to_string(&float_val).unwrap();
         let back: BudgetValue = serde_json::from_str(&json).unwrap();
         assert!((back.as_f64() - 3.14).abs() < 1e-9);
+    }
+
+    /// FR-003b: an absent oscillation threshold takes the platform default; a
+    /// declared streak tighter than the default is honoured; a looser one is
+    /// clamped; window_secs always stays at the platform default.
+    #[test]
+    fn apply_oscillation_default_is_tighten_only() {
+        // Absent -> platform default (5 / 300s).
+        assert_eq!(
+            apply_oscillation_default(None),
+            PLATFORM_DEFAULT_OSCILLATION_THRESHOLD
+        );
+
+        // Tighter declared streak is honoured; window stays platform-fixed.
+        let tighter = apply_oscillation_default(Some(OscillationThreshold {
+            consecutive_failures: 2,
+            window_secs: Some(30),
+        }));
+        assert_eq!(tighter.consecutive_failures, 2);
+        assert_eq!(
+            tighter.window_secs,
+            PLATFORM_DEFAULT_OSCILLATION_THRESHOLD.window_secs,
+            "window_secs is platform-fixed in this slice"
+        );
+
+        // Looser declared streak is clamped to the platform default.
+        let looser = apply_oscillation_default(Some(OscillationThreshold {
+            consecutive_failures: 99,
+            window_secs: None,
+        }));
+        assert_eq!(looser, PLATFORM_DEFAULT_OSCILLATION_THRESHOLD);
+    }
+
+    /// The oscillation threshold round-trips through JSON with window_secs
+    /// omitted when absent.
+    #[test]
+    fn oscillation_threshold_round_trips() {
+        let with_window = OscillationThreshold {
+            consecutive_failures: 3,
+            window_secs: Some(120),
+        };
+        let json = serde_json::to_string(&with_window).unwrap();
+        assert_eq!(
+            serde_json::from_str::<OscillationThreshold>(&json).unwrap(),
+            with_window
+        );
+
+        let no_window = OscillationThreshold {
+            consecutive_failures: 4,
+            window_secs: None,
+        };
+        let json = serde_json::to_string(&no_window).unwrap();
+        assert!(
+            !json.contains("window_secs"),
+            "absent window_secs must be skipped: {json}"
+        );
+        assert_eq!(
+            serde_json::from_str::<OscillationThreshold>(&json).unwrap(),
+            no_window
+        );
     }
 }

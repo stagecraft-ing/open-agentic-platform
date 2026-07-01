@@ -43,6 +43,7 @@ use std::time::Instant;
 use async_trait::async_trait;
 use factory_contracts::{AdmittedBudget, BudgetSource, RunBudgetAxis};
 
+use crate::circuit_breaker::CircuitBreakerState;
 use crate::{PreStepGate, StepActuals};
 
 /// A breached per-run ceiling reported by [`RunBudgetMeter::check`]
@@ -255,6 +256,75 @@ impl PreStepGate for ChainedPreStepGate {
     }
 }
 
+// ── Oscillation detector (FR-003b) ───────────────────────────────────────────
+
+/// FR-003(b): wires the previously-unwired `circuit_breaker` library into
+/// dispatch as a peer [`PreStepGate`], composed via [`ChainedPreStepGate`]
+/// alongside [`BudgetGate`] (and `GrantRenewalGate` when present). It is NOT
+/// folded into [`RunBudgetMeter`]/`RunBudgetAxis`: a consecutive-failure streak
+/// resets on success, trips on `>=` within a sliding window, and has no uniform
+/// per-stage scope, so it is a peer detector rather than a monotonic axis (see
+/// `factory_contracts::run_budget::OscillationThreshold`).
+///
+/// State lives in a caller-supplied `Arc<Mutex<CircuitBreakerState>>` so it is
+/// shared across dispatch phases exactly like [`RunBudgetMeter`] (constructed
+/// once per run-attempt; a resume gets a fresh instance, the same AC-5 "new
+/// admission equals new meter" posture the budget gate already uses).
+///
+/// Detector input (spec 202 FR-003b, retry-count reframing): a step "wobbles"
+/// when it needed at least one intra-step retry (`retry_count > 0`) or hard
+/// failed. The dispatch loop returns `Err` on the first hard failure (spec 075
+/// halt-on-failure), so a literal inter-stage failure loop cannot arise; the
+/// realizable cross-step signal is consecutive retry-heavy steps.
+pub struct OscillationGate {
+    breaker: Arc<Mutex<CircuitBreakerState>>,
+}
+
+impl OscillationGate {
+    pub fn new(breaker: Arc<Mutex<CircuitBreakerState>>) -> Self {
+        Self { breaker }
+    }
+}
+
+#[async_trait]
+impl PreStepGate for OscillationGate {
+    async fn before_step(&self, step_id: &str) -> Result<(), String> {
+        let (tripped, consecutive_failures, threshold) = {
+            let b = self
+                .breaker
+                .lock()
+                .expect("oscillation breaker mutex poisoned");
+            (b.is_tripped(), b.consecutive_failures, b.config.threshold)
+        };
+        if tripped {
+            Err(format!(
+                "oscillation detected: {consecutive_failures} consecutive step wobbles \
+                 (threshold {threshold}) step={step_id} (spec 202 FR-003b): resume requires a \
+                 human actor (raise the threshold via a new admission or abort)"
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    async fn after_step(&self, actuals: &StepActuals) {
+        // A "wobble": the step needed at least one intra-step retry before
+        // reaching Success, or it hard-failed outright. See struct doc for why
+        // `retry_count` (not just `success`) drives this: a hard failure alone
+        // can never repeat within one dispatch_manifest call (halt-on-failure).
+        let wobbled = !actuals.success || actuals.retry_count > 0;
+        let mut b = self
+            .breaker
+            .lock()
+            .expect("oscillation breaker mutex poisoned");
+        if wobbled {
+            let _ = b.record_failure();
+        } else {
+            b.record_success();
+        }
+    }
+}
+
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -281,7 +351,101 @@ mod tests {
             duration_ms: None,
             num_turns: turns,
             success: true,
+            retry_count: 0,
         }
+    }
+
+    /// A step outcome for oscillation tests: `retry_count`/`success` drive the
+    /// detector's wobble decision.
+    fn wobbly_actuals(retry_count: u32, success: bool) -> StepActuals {
+        StepActuals {
+            step_id: "s".into(),
+            tokens_used: None,
+            cost_usd: None,
+            duration_ms: None,
+            num_turns: None,
+            success,
+            retry_count,
+        }
+    }
+
+    use crate::circuit_breaker::{CircuitBreakerConfig, CircuitBreakerState};
+
+    fn oscillation_gate(threshold: u32) -> (OscillationGate, Arc<Mutex<CircuitBreakerState>>) {
+        let breaker = Arc::new(Mutex::new(CircuitBreakerState::new(CircuitBreakerConfig {
+            threshold,
+            window_secs: 300,
+        })));
+        (OscillationGate::new(breaker.clone()), breaker)
+    }
+
+    /// AC-2 (unit): the oscillation gate trips after `threshold` consecutive
+    /// wobbling steps, and `before_step` then fails closed with an attributable
+    /// message naming the count and threshold.
+    #[tokio::test]
+    async fn oscillation_gate_trips_after_threshold_wobbles() {
+        let (gate, _breaker) = oscillation_gate(2);
+        // Clean before any wobble.
+        assert!(gate.before_step("s0").await.is_ok());
+        // Two retry-heavy (but successful) steps: each is a wobble.
+        gate.after_step(&wobbly_actuals(1, true)).await;
+        gate.after_step(&wobbly_actuals(2, true)).await;
+        let err = gate
+            .before_step("s3")
+            .await
+            .expect_err("must trip after 2 wobbles at threshold 2");
+        assert!(err.contains("oscillation detected"), "{err}");
+        assert!(err.contains("threshold 2"), "{err}");
+    }
+
+    /// A successful step with no retries resets the streak, so the gate does
+    /// not trip.
+    #[tokio::test]
+    async fn oscillation_gate_resets_on_clean_step() {
+        let (gate, _breaker) = oscillation_gate(2);
+        gate.after_step(&wobbly_actuals(1, true)).await;
+        gate.after_step(&wobbly_actuals(0, true)).await; // clean: resets
+        gate.after_step(&wobbly_actuals(1, true)).await;
+        assert!(
+            gate.before_step("s3").await.is_ok(),
+            "one wobble after a reset must not trip"
+        );
+    }
+
+    /// AC-2 (composition): a ChainedPreStepGate of [budget, oscillation] fires
+    /// the OSCILLATION breach (not a budget breach) on repeated wobbles, and the
+    /// run's wall-clock actual is far below its platform-default ceiling.
+    #[tokio::test]
+    async fn chain_fires_oscillation_before_wall_clock_budget() {
+        let meter = Arc::new(Mutex::new(RunBudgetMeter::new(apply_defaults(&[]))));
+        let budget_gate: Arc<dyn PreStepGate> = Arc::new(BudgetGate::new(meter.clone()));
+        let (osc, _breaker) = oscillation_gate(2);
+        let osc_gate: Arc<dyn PreStepGate> = Arc::new(osc);
+        let chain = ChainedPreStepGate::new(vec![budget_gate, osc_gate]);
+
+        chain.after_step(&wobbly_actuals(1, true)).await;
+        chain.after_step(&wobbly_actuals(1, true)).await;
+        let err = chain
+            .before_step("s3")
+            .await
+            .expect_err("chain must fail closed on oscillation");
+        assert!(err.contains("oscillation detected"), "{err}");
+        assert!(
+            !err.contains("budget ceiling exceeded"),
+            "must be the oscillation gate, not a budget breach: {err}"
+        );
+        // The literal AC-2 claim: trips before exhausting the wall-clock budget.
+        let rows = meter.lock().unwrap().consumption();
+        let wall = rows
+            .iter()
+            .find(|r| r.axis == RunBudgetAxis::WallClockSecs)
+            .expect("wall-clock row present");
+        assert!(
+            wall.actual < wall.ceiling,
+            "wall-clock actual {} must be below ceiling {} at trip time",
+            wall.actual,
+            wall.ceiling
+        );
     }
 
     /// AC-1: accumulated tokens over the ceiling produce a breach, and the gate

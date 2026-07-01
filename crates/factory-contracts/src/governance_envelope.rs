@@ -22,7 +22,7 @@ use agent_frontmatter::{MutationCapability, SafetyTier, UnifiedFrontmatter};
 use serde::{Deserialize, Serialize};
 
 use crate::adapter_manifest::AdapterGovernance;
-use crate::run_budget::RunBudgetCeiling;
+use crate::run_budget::{OscillationThreshold, RunBudgetCeiling};
 
 /// Governance Envelope contract version (spec 198 FR-002). Pinned at compile
 /// time per the `PROVENANCE_SCHEMA_VERSION` pattern; instance mismatches fail
@@ -32,7 +32,17 @@ use crate::run_budget::RunBudgetCeiling;
 /// run blast-radius ceilings (ASI08 m6/m7). Backward-compatible: envelopes
 /// without a `budgets:` section deserialize with `budgets: []` and the engine
 /// applies platform defaults fail-closed (AC-3).
-pub const GOVERNANCE_ENVELOPE_SCHEMA_VERSION: &str = "1.1.0";
+///
+/// 1.2.0 (spec 202 FR-003b): additive `oscillation:` field carrying the
+/// consecutive-failure circuit-breaker trip threshold (ASI08 m7). Declared
+/// separately from `budgets:` because a failure streak is not a monotonic
+/// run-total axis (see `OscillationThreshold`). Additive within 1.2.0: an
+/// absent `oscillation:` field deserializes to `None` and the engine applies
+/// the platform default fail-closed. Note this is not cross-version
+/// acceptance: `validate_governance_envelope_semantics` rejects an envelope
+/// pinned to a prior `schema_version` by strict equality, the same as every
+/// prior bump.
+pub const GOVERNANCE_ENVELOPE_SCHEMA_VERSION: &str = "1.2.0";
 
 // ── Process envelope ──────────────────────────────────────────────────
 
@@ -57,6 +67,12 @@ pub struct GovernanceEnvelope {
     /// `source: platform-default` (AC-3). Absent does NOT mean unlimited.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub budgets: Vec<RunBudgetCeiling>,
+    /// Consecutive-failure circuit-breaker trip threshold (ASI08 m7; spec 202
+    /// FR-003b). Declared separately from `budgets:` (a failure streak is not a
+    /// monotonic axis, see `OscillationThreshold`). When absent, the platform
+    /// default applies fail-closed (same posture as an absent budget axis).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub oscillation: Option<OscillationThreshold>,
 }
 
 /// Identity + intent-capsule template (ASI01 m5/m7; spec 198 FR-005).
@@ -360,6 +376,7 @@ mod tests {
                 require_verified: false,
             },
             budgets: vec![],
+            oscillation: None,
         }
     }
 
@@ -380,7 +397,7 @@ mod tests {
 
     #[test]
     fn version_const_anchor() {
-        assert_eq!(GOVERNANCE_ENVELOPE_SCHEMA_VERSION, "1.1.0");
+        assert_eq!(GOVERNANCE_ENVELOPE_SCHEMA_VERSION, "1.2.0");
     }
 
     #[test]
@@ -593,5 +610,40 @@ mod tests {
             env.budgets.is_empty(),
             "envelope without budgets: section should deserialize with empty vec"
         );
+    }
+
+    /// FR-003b: an envelope with an `oscillation:` field round-trips through
+    /// YAML.
+    #[test]
+    fn envelope_with_oscillation_round_trips() {
+        let mut env = envelope(SafetyTier::Tier1, MutationCapability::ReadOnly);
+        env.oscillation = Some(OscillationThreshold {
+            consecutive_failures: 3,
+            window_secs: Some(120),
+        });
+        let yaml = serde_yaml::to_string(&env).unwrap();
+        let back: GovernanceEnvelope = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(
+            back.oscillation,
+            Some(OscillationThreshold {
+                consecutive_failures: 3,
+                window_secs: Some(120),
+            })
+        );
+    }
+
+    /// FR-003b: an envelope with no `oscillation:` field deserializes to
+    /// `None` (backward compatibility; the engine applies the platform default
+    /// fail-closed).
+    #[test]
+    fn envelope_without_oscillation_deserializes_to_none() {
+        let env = envelope(SafetyTier::Tier1, MutationCapability::ReadOnly);
+        let yaml = serde_yaml::to_string(&env).unwrap();
+        assert!(
+            !yaml.contains("oscillation"),
+            "absent oscillation must be skipped in serialization: {yaml}"
+        );
+        let back: GovernanceEnvelope = serde_yaml::from_str(&yaml).unwrap();
+        assert!(back.oscillation.is_none());
     }
 }
