@@ -4,6 +4,8 @@ export type {
   MemoryEntry,
   MemoryKind,
   ImportanceLevel,
+  ActorKind,
+  TrustClass,
   StoreMemoryInput,
   QueryMemoryInput,
   ListMemoryInput,

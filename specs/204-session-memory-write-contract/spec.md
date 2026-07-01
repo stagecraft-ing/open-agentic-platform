@@ -47,6 +47,8 @@ establishes:
   # FR-001 memory-surface write gate + its AC-1 shared-fixture parity test.
   - unit: { kind: file, path: product/packages/session-memory/src/gate.ts }
   - unit: { kind: file, path: product/packages/session-memory/src/gate.test.ts }
+  # FR-002/003 provenance + trust-class schema test.
+  - unit: { kind: file, path: product/packages/session-memory/src/provenance.test.ts }
 extends:
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
@@ -62,6 +64,15 @@ refines:
     unit: { kind: file, path: product/packages/session-memory/src/server.ts }
   - aspect: "provenance-trust-columns"
     unit: { kind: file, path: product/packages/session-memory/src/storage/sqlite.ts }
+  # FR-002/003: migration v2 (provenance + trust columns) and the memory_store
+  # tool passthrough for actor kind / source attribution.
+  - aspect: "provenance-trust-columns"
+    unit: { kind: file, path: product/packages/session-memory/src/storage/migrations.ts }
+  - aspect: "provenance-trust-columns"
+    unit: { kind: file, path: product/packages/session-memory/src/tools/store.ts }
+  # FR-002: the harvester stamps its own actor kind + source attribution.
+  - aspect: "provenance-trust-columns"
+    unit: { kind: file, path: product/packages/session-memory/src/harvesting/engine.ts }
   - aspect: "trust-class-types"
     unit: { kind: file, path: product/packages/session-memory/src/types.ts }
   # FR-001 wiring: session-memory depends on @opc/carrier-gate and re-exports

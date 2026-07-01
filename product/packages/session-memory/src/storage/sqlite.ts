@@ -5,17 +5,19 @@
  * Each project gets its own .session-memory/memory.db file at the project root.
  */
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import type {
+  ActorKind,
   ImportanceLevel,
   ListMemoryInput,
   MemoryEntry,
   MemoryKind,
   QueryMemoryInput,
   StoreMemoryInput,
+  TrustClass,
 } from "../types.js";
 import { EXPIRY_DEFAULTS } from "../types.js";
 import { MemoryWriteRefused, runMemoryStoreGate } from "../gate.js";
@@ -34,6 +36,10 @@ interface MemoryRow {
   access_count: number;
   created_at: number;
   updated_at: number;
+  actor_kind: string;
+  source_attribution: string | null;
+  content_hash: string;
+  trust_class: string;
 }
 
 function rowToEntry(row: MemoryRow): MemoryEntry {
@@ -49,8 +55,25 @@ function rowToEntry(row: MemoryRow): MemoryEntry {
     accessCount: row.access_count,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    actorKind: row.actor_kind as ActorKind,
+    sourceAttribution: row.source_attribution,
+    contentHash: row.content_hash,
+    trustClass: row.trust_class as TrustClass,
   };
 }
+
+/** SHA-256 hex of content (FR-002 content hash). */
+function hashContent(content: string): string {
+  return createHash("sha256").update(content, "utf8").digest("hex");
+}
+
+/** Actor kinds accepted at the storage boundary (runtime guard; enum validity
+ * is not a SQLite CHECK constraint, so the storage layer enforces it). */
+const VALID_ACTOR_KINDS: ReadonlySet<string> = new Set([
+  "human",
+  "agent",
+  "harvester",
+]);
 
 /** Resolve the database path for a project. */
 export function dbPath(projectScope: string): string {
@@ -66,6 +89,27 @@ export class MemoryStorage {
     this.db.pragma("journal_mode = WAL");
     this.db.pragma("foreign_keys = ON");
     applyMigrations(this.db);
+    this.backfillContentHashes();
+  }
+
+  /**
+   * FR-002: rows written before the provenance migration (v2) carry an empty
+   * content_hash. Compute the real SHA-256 for them once, on open. New writes
+   * always stamp a hash, so this converges to a no-op.
+   */
+  private backfillContentHashes(): void {
+    const rows = this.db
+      .prepare("SELECT id, content FROM memory_entries WHERE content_hash = ''")
+      .all() as Array<{ id: string; content: string }>;
+    if (rows.length === 0) return;
+    const update = this.db.prepare(
+      "UPDATE memory_entries SET content_hash = ? WHERE id = ?",
+    );
+    this.db.transaction(() => {
+      for (const row of rows) {
+        update.run(hashContent(row.content), row.id);
+      }
+    })();
   }
 
   /** Create from a project root path (convenience). */
@@ -91,6 +135,21 @@ export class MemoryStorage {
     const expiryDelta = EXPIRY_DEFAULTS[importance];
     const expiresAt = expiryDelta === null ? null : now + expiryDelta;
 
+    // storage.store is the TRUSTED write API. `actorKind` is set by trusted
+    // callers only: the harvester (`harvester`), a cockpit human action
+    // (`human`), or it defaults to `agent`. The untrusted MCP `memory_store`
+    // tool does NOT expose actorKind, so an agent cannot self-assert `human`
+    // to launder its output to a higher trust class (FR-005). The trust class
+    // is derived from the actor: only `human` yields human-curated;
+    // `agent`/`harvester` are always machine-harvested. `verified` is reachable
+    // only through an explicit human verify action (a later slice).
+    const actorKind: ActorKind = input.actorKind ?? "agent";
+    if (!VALID_ACTOR_KINDS.has(actorKind)) {
+      throw new Error(`invalid actorKind: ${JSON.stringify(actorKind)}`);
+    }
+    const trustClass: TrustClass =
+      actorKind === "human" ? "human-curated" : "machine-harvested";
+
     const entry: MemoryEntry = {
       id: randomUUID(),
       content: input.content,
@@ -103,11 +162,15 @@ export class MemoryStorage {
       accessCount: 0,
       createdAt: now,
       updatedAt: now,
+      actorKind,
+      sourceAttribution: input.sourceAttribution ?? null,
+      contentHash: hashContent(input.content),
+      trustClass,
     };
 
     this.db.prepare(`
-      INSERT INTO memory_entries (id, content, kind, importance, expires_at, project_scope, tags, source_session_id, access_count, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO memory_entries (id, content, kind, importance, expires_at, project_scope, tags, source_session_id, access_count, created_at, updated_at, actor_kind, source_attribution, content_hash, trust_class)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       entry.id,
       entry.content,
@@ -120,6 +183,10 @@ export class MemoryStorage {
       entry.accessCount,
       entry.createdAt,
       entry.updatedAt,
+      entry.actorKind,
+      entry.sourceAttribution,
+      entry.contentHash,
+      entry.trustClass,
     );
 
     return entry;
