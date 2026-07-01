@@ -41,6 +41,11 @@ export const FACTORY_ORG_HALT_ACTIVATED =
 export const FACTORY_ORG_HALT_LIFTED = "factory.org_halt.lifted" as const;
 export const FACTORY_ORG_HALT_ENGINE_ACK =
   "factory.org_halt.engine_ack" as const;
+// Spec 202 FR-003(c): queue-storm detection (detection-only; the run is
+// still admitted). Recorded when an org's in-flight run count is at or over
+// the configured ceiling at reservation time (`api/factory/queueStormGate.ts`).
+export const FACTORY_RUN_STORM_DETECTED =
+  "factory.run.storm_detected" as const;
 
 export type FactoryRunAuditAction =
   | typeof FACTORY_RUN_RESERVED
@@ -55,4 +60,5 @@ export type FactoryRunAuditAction =
   | typeof FACTORY_AUDIT_SEGMENT_COUNTERSIGNED
   | typeof FACTORY_ORG_HALT_ACTIVATED
   | typeof FACTORY_ORG_HALT_LIFTED
-  | typeof FACTORY_ORG_HALT_ENGINE_ACK;
+  | typeof FACTORY_ORG_HALT_ENGINE_ACK
+  | typeof FACTORY_RUN_STORM_DETECTED;

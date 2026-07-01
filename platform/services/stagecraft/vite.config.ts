@@ -145,6 +145,10 @@ export default defineConfig({
       // Spec 213 FR-009: project_repos one-repo-one-project unique index
       // (migration 51) + findRepoRow resolution; live Postgres.
       "**/github/webhook.test.ts",
+      // Spec 202 FR-003(c): queue-storm gate integration tests drive
+      // reserveRunCore end-to-end (substrate/admission seeding) and read
+      // audit_log rows; live Postgres.
+      "**/factory/queueStormGate.test.ts",
     ],
   },
 });

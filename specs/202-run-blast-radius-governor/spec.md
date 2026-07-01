@@ -40,6 +40,9 @@ establishes:
   - unit: { kind: file, path: crates/factory-contracts/src/governance_envelope.rs }
   # Slice B (FR-002): run-level meter + budget PreStepGate + gate chain
   - unit: { kind: file, path: crates/orchestrator/src/budget_gate.rs }
+  # Slice F (FR-003c): platform-side queue-storm detection, owned module.
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/queueStormGate.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/queueStormGate.test.ts }
 extends:
   # Budget declarations are an additive, ASI08-tagged section of the
   # envelope schema spec 198 establishes.
@@ -79,6 +82,22 @@ refines:
   # snapshot into the signed payload.
   - aspect: "budget-consumption-certificate-binding"
     unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
+  # Slice F (FR-003c): the detection call in reserveRunCore, marked with a
+  # `// region: queue-storm-gate (spec 202 FR-003c)` anchor. runs.ts is
+  # co-authored (spec 124 establishes; spec 200 refines "consumed-override-
+  # revocation-sweep"); this is a third, independent refines aspect.
+  - aspect: "queue-storm-detection"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/runs.ts }
+  # Slice F (FR-003c): the new FACTORY_RUN_STORM_DETECTED audit constant.
+  - aspect: "queue-storm-audit-actions"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
+  # Slice F (FR-003c): the new test file joins the encore-test-only exclude
+  # list, same lane-assignment aspect spec 200 used for the same file.
+  - aspect: "encore-test-lane-assignment"
+    unit: { kind: file, path: platform/services/stagecraft/vite.config.ts }
+  # Slice F (FR-003c): STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT env-knob doc.
+  - aspect: "queue-storm-env-knob-docs"
+    unit: { kind: file, path: platform/services/stagecraft/CLAUDE.md }
 references:
   - role: enforcer
     unit: { kind: crate, id: factory-engine }
@@ -279,7 +298,19 @@ distinct `RunBudget*` prefix to avoid collision.
   - *(c) Queue storms, platform-side.* Runs-in-flight per org
     (`queued` + `running`) counted at run submission against a
     configurable ceiling; a new count gate, the staleness sweeper is
-    unchanged (§Code reality 5).
+    unchanged (§Code reality 5). **Landed detection-only** (Slice F,
+    `platform/services/stagecraft/api/factory/queueStormGate.ts`): at or
+    over the ceiling, `detectQueueStorm` logs a warning and writes a
+    `factory.run.storm_detected` audit row naming the org, the observed
+    count, and the ceiling; the run is still admitted either way. This
+    supersedes the earlier plan-time sketch (a `resourceExhausted` 429
+    refusal): (c) is a platform-config ceiling read from
+    `STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` (default 25), not yet an
+    admitted `budgets:` threshold (FR-001), so refusing on it would block
+    real work on a value the org never admitted. Enforcement is deferred to
+    the envelope-carried threshold, matching Sequencing's "detection-only,
+    thresholds from platform config until the envelope carries them"
+    posture already stated for this signature.
 
   Response order: detection throttles first (rate cap), breaks second
   (pause via the FR-002 channel). Implementation note for (a) and (b)
@@ -376,6 +407,6 @@ rides the envelope schema and the pause semantics ride grant renewal,
 198 FR-005). Two parts may land earlier behind a non-blocking flag because
 they do not ride the envelope: FR-003 (c)'s platform-side runs-in-flight
 counter (detection-only, thresholds from platform config until the
-envelope carries them) and FR-004's approval-velocity counter (records,
-never blocks). The 2026-06-12 refinement is intentionally pre-gate: the
-FRs are implementable the day 198 flips.
+envelope carries them; **landed**, Slice F) and FR-004's approval-velocity
+counter (records, never blocks). The 2026-06-12 refinement is intentionally
+pre-gate: the FRs are implementable the day 198 flips.
