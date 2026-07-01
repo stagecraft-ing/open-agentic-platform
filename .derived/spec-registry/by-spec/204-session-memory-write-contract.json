@@ -63,6 +63,10 @@
       {
         "kind": "file",
         "path": "product/packages/session-memory/src/expiry/retention.test.ts"
+      },
+      {
+        "kind": "file",
+        "path": "product/packages/session-memory/src/quarantine.test.ts"
       }
     ],
     "extends": [
@@ -198,6 +202,6 @@
     "summary": "Extend the substrate override-write discipline (spec 198 FR-013) to OAP's second persistent-memory surface: the OPC session-memory MCP (spec 056). Today memory writes are ungoverned — no validation-on-write, no provenance stamp, no trust class, no decay of unverified entries, and harvested agent output can be promoted toward permanent retention without any human in the loop (ASI06 bootstrap-poisoning shape). This spec mirrors the FR-013 architecture onto session memory: a deterministic carrier-class gate on every write, provenance (actor, origin session, content hash) on every revision, trust classes with human-gated promotion, trust-weighted decay, and a no-self-ingestion rule. The cross-cutting principle carries verbatim: a model may DETECT, only rules may BLOCK.\n",
     "title": "Session-Memory Write Contract (ASI06 cockpit surface)"
   },
-  "shardHash": "044f7407addee28866162034ee128a6214443b8ad595ce59c7531e204da037e1",
+  "shardHash": "5537109971306b209b209fd1289e9d4e73c58948f012722e33feff8b5df0fd52",
   "specVersion": "1.1.0"
 }

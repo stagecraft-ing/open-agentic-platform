@@ -52,6 +52,8 @@ establishes:
   # FR-004 trust-weighted decay engine + the retention boundary / decay test.
   - unit: { kind: file, path: product/packages/session-memory/src/expiry/decay.ts }
   - unit: { kind: file, path: product/packages/session-memory/src/expiry/retention.test.ts }
+  # FR-005/006 no-self-ingestion + segmentation / quarantine test.
+  - unit: { kind: file, path: product/packages/session-memory/src/quarantine.test.ts }
 extends:
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.

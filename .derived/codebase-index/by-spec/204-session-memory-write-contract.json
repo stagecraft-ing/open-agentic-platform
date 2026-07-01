@@ -93,6 +93,10 @@
         "source": "spec-edge"
       },
       {
+        "path": "product/packages/session-memory/src/quarantine.test.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "product/packages/session-memory/src/server.ts",
         "source": "spec-edge"
       },
@@ -272,6 +276,19 @@
         "unit": {
           "kind": "file",
           "path": "product/packages/session-memory/src/provenance.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/packages/session-memory/src/quarantine.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/quarantine.test.ts"
         }
       },
       {
@@ -461,5 +478,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "35f5829fcf33bb6ccfe5a6495397a73a0fd8d089554d0ab756d1f07a483dfd19"
+  "shardHash": "71eaccd2471c83253c9075a172257a699d3afa4124d1f9861cd045b2880f1f86"
 }
