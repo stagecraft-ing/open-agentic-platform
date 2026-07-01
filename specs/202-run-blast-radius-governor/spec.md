@@ -73,6 +73,12 @@ refines:
     unit: { kind: file, path: crates/factory-engine/src/bin/factory_run.rs }
   - aspect: "run-budget-metering"
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/factory.rs }
+  # Slice C (FR-005/AC-4): the certificate gains the budget_consumption record,
+  # its verify checks (per-axis consistency + axis-completeness), and the
+  # 1.7.0 -> 1.8.0 version bump; the CLI + OPC emission paths thread the meter
+  # snapshot into the signed payload.
+  - aspect: "budget-consumption-certificate-binding"
+    unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
 references:
   - role: enforcer
     unit: { kind: crate, id: factory-engine }
@@ -84,8 +90,6 @@ references:
   # implementation claims land with the implementation PR):
   - role: pause-channel-precedent
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/run_governance.rs }
-  - role: certificate-extension-target
-    unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
   - role: trip-pattern-library
     unit: { kind: file, path: crates/orchestrator/src/circuit_breaker.rs }
 ---

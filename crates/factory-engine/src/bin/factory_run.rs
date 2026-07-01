@@ -7,7 +7,9 @@
 use chrono::Utc;
 use clap::Parser;
 use factory_contracts::pipeline_state::{AuditEntry, AuditEvent};
-use factory_engine::governance_certificate::{CertificateBuilder, CorpusBinding, IntentRecord};
+use factory_engine::governance_certificate::{
+    BudgetAxisRecord, CertificateBuilder, CorpusBinding, IntentRecord,
+};
 use factory_engine::inter_stage_manifest::generate_chain_from_run_dir;
 use factory_engine::run_audit_chain;
 use factory_engine::stages::s_minus_1_extract::{KnowledgeBundleRef, sniff_mime_or_fallback};
@@ -99,6 +101,7 @@ fn emit_certificate(
     run_audit: &[AuditEntry],
     requirements_hash: &str,
     repo_root: &std::path::Path,
+    budget_meter: &Arc<Mutex<RunBudgetMeter>>,
 ) {
     let run_dir = am.run_dir(run_id);
 
@@ -168,6 +171,18 @@ fn emit_certificate(
     if let Some(cb) = corpus {
         builder = builder.corpus_binding(cb.corpus_attestation_hash, cb.spec_spine_version);
     }
+    // Spec 202 FR-005: bind this run's per-axis budget consumption snapshot.
+    // Recover a poisoned meter lock (into_inner) so a panic elsewhere never
+    // silently downgrades the cert to the "unmetered" state; the record is
+    // informational, so a partial snapshot is preferable to omission.
+    let budget_consumption: Vec<BudgetAxisRecord> = {
+        let snapshot = budget_meter
+            .lock()
+            .map(|m| m.consumption())
+            .unwrap_or_else(|poisoned| poisoned.into_inner().consumption());
+        snapshot.into_iter().map(BudgetAxisRecord::from).collect()
+    };
+    builder = builder.budget_consumption(budget_consumption);
     let cert = builder.build();
     let cert_path = run_dir.join("governance-certificate.json");
     match persist_certificate(&cert, &run_dir) {
@@ -650,6 +665,7 @@ async fn main() -> ExitCode {
                 &run_audit,
                 &requirements_hash,
                 &repo_root,
+                &budget_meter,
             );
             return ExitCode::FAILURE;
         }
@@ -689,6 +705,7 @@ async fn main() -> ExitCode {
             &run_audit,
             &requirements_hash,
             &repo_root,
+            &budget_meter,
         );
         return ExitCode::FAILURE;
     }
@@ -711,6 +728,7 @@ async fn main() -> ExitCode {
                 &run_audit,
                 &requirements_hash,
                 &repo_root,
+                &budget_meter,
             );
             return ExitCode::FAILURE;
         }
@@ -744,6 +762,7 @@ async fn main() -> ExitCode {
             &run_audit,
             &requirements_hash,
             &repo_root,
+            &budget_meter,
         );
         return ExitCode::FAILURE;
     }
@@ -810,6 +829,7 @@ async fn main() -> ExitCode {
                 &run_audit,
                 &requirements_hash,
                 &repo_root,
+                &budget_meter,
             );
             return ExitCode::FAILURE;
         }
@@ -858,6 +878,7 @@ async fn main() -> ExitCode {
         &run_audit,
         &requirements_hash,
         &repo_root,
+        &budget_meter,
     );
 
     ExitCode::SUCCESS

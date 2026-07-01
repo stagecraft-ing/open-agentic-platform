@@ -41,7 +41,9 @@ pub use artifact::{
     ArtifactLineage, ArtifactManager, ArtifactRecord, CasArtifact, ContentAddressedStore,
     DEFAULT_ARTIFACT_DIR, DEFAULT_CAS_DIR, LineageRelation,
 };
-pub use budget_gate::{BudgetBreach, BudgetGate, ChainedPreStepGate, RunBudgetMeter};
+pub use budget_gate::{
+    BudgetBreach, BudgetGate, ChainedPreStepGate, RunBudgetConsumption, RunBudgetMeter,
+};
 pub use claude_executor::{
     AgentPromptLookup, ClaudeCodeExecutor, StandardsResolver, StepEvent, StepEventHandler,
     ThinkingLevel,

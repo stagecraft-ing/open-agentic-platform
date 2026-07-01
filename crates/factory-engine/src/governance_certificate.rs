@@ -71,7 +71,20 @@ use std::path::Path;
 /// named "unbound" state, never silently equivalent to bound-and-verified.
 /// Skipped in serialization when absent so unbound certs stay byte-identical
 /// to 1.6.0 payloads (only the version string differs).
-pub const CERTIFICATE_VERSION: &str = "1.7.0";
+///
+/// 1.8.0 (spec 202 FR-005) added the optional `budgetConsumption` record: one
+/// `{axis, ceiling, actual, source, breached}` row per admitted run-budget axis
+/// at termination. Like `corpusBinding`/`sbomArtifactBinding` it sits INSIDE the
+/// hash + signature (bound at emission). `verify-certificate` catches raw byte
+/// tamper (the signature check) and a record that is internally inconsistent or
+/// structurally malformed (missing/unknown/duplicate axis, non-finite or negative
+/// magnitude, or `breached` disagreeing with `actual > ceiling`). A self-consistent
+/// forgery of an `actual` by the signing producer is bounded by the same key-trust
+/// model as `corpusBinding`/`sbomArtifactBinding` (a self-signed receipt): the
+/// per-stage records carry no per-axis totals to cross-sum, so verify does not
+/// independently corroborate the magnitudes. Absent certs still verify; skipped in
+/// serialization when absent so pre-1.8.0 payloads stay byte-identical.
+pub const CERTIFICATE_VERSION: &str = "1.8.0";
 
 /// Environment-variable name carrying a base64-encoded 32-byte Ed25519 seed
 /// (FR-008.1). Operator-supplied keys outside the agent's write scope.
@@ -164,6 +177,16 @@ pub struct GovernanceCertificate {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sbom_artifact_binding: Option<SbomArtifactBinding>,
 
+    /// Spec 202 FR-005: per-axis run blast-radius consumption at termination,
+    /// one row per admitted budget axis (`{axis, ceiling, actual, source,
+    /// breached}`). The builder populates this from the run's `RunBudgetMeter`
+    /// snapshot (the engine reads the meter, never recomputes it). Inside the
+    /// hash + signature (bound at emission). Absent = the named "unmetered"
+    /// state, never silently equivalent to metered-and-within-budget. Skipped
+    /// when absent so pre-1.8.0 payloads stay byte-identical.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub budget_consumption: Option<Vec<BudgetAxisRecord>>,
+
     /// SHA-256 of the canonical JSON of this certificate with `certificate_hash`
     /// AND `cert_signature` set to empty string. Content-binding fingerprint
     /// inside the signed payload — not the authoritative provenance check
@@ -195,6 +218,61 @@ pub struct GovernanceCertificate {
     /// visibly so, never silently equivalent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub platform_countersign: Option<PlatformCountersign>,
+}
+
+/// One admitted run-budget axis as recorded in the certificate's
+/// `budget_consumption` (spec 202 FR-005). `axis` and `source` are strings (the
+/// enums' canonical serde forms) so the JSON stays human-readable and
+/// version-independent; [`From<orchestrator::RunBudgetConsumption>`] builds
+/// these from the run's meter snapshot at emission.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BudgetAxisRecord {
+    pub axis: String,
+    pub ceiling: f64,
+    pub actual: f64,
+    pub source: String,
+    pub breached: bool,
+}
+
+/// The admitted budget axis names every well-formed `budget_consumption` record
+/// must carry, derived from `factory_contracts::RunBudgetAxis::ALL` (serialized
+/// the same way the `From<RunBudgetConsumption>` impl serializes an axis) so the
+/// list never drifts from the enum: adding a variant (e.g. spec 202 Slice D's
+/// seventh axis) automatically extends both emission and the verifier's
+/// completeness/closed-set checks. `apply_defaults` always yields one admitted
+/// budget per axis, so a metered record names each exactly once.
+fn admitted_axis_names() -> Vec<String> {
+    factory_contracts::RunBudgetAxis::ALL
+        .iter()
+        .filter_map(|axis| {
+            serde_json::to_value(axis)
+                .ok()
+                .and_then(|v| v.as_str().map(str::to_owned))
+        })
+        .collect()
+}
+
+impl From<orchestrator::RunBudgetConsumption> for BudgetAxisRecord {
+    fn from(c: orchestrator::RunBudgetConsumption) -> Self {
+        // Serialize the axis/source enums to their canonical strings via serde
+        // so this never drifts from the wire form the envelope schema uses.
+        let axis = serde_json::to_value(c.axis)
+            .ok()
+            .and_then(|v| v.as_str().map(str::to_owned))
+            .unwrap_or_default();
+        let source = serde_json::to_value(c.source)
+            .ok()
+            .and_then(|v| v.as_str().map(str::to_owned))
+            .unwrap_or_default();
+        BudgetAxisRecord {
+            axis,
+            ceiling: c.ceiling,
+            actual: c.actual,
+            source,
+            breached: c.breached,
+        }
+    }
 }
 
 /// Spec 198 FR-014 — the platform seal on an emitted certificate. The
@@ -695,6 +773,7 @@ pub struct CertificateBuilder {
     consumed_overrides: Vec<ConsumedOverride>,
     corpus_binding: Option<CorpusBinding>,
     sbom_artifact_binding: Option<SbomArtifactBinding>,
+    budget_consumption: Option<Vec<BudgetAxisRecord>>,
 }
 
 impl CertificateBuilder {
@@ -728,6 +807,7 @@ impl CertificateBuilder {
             consumed_overrides: Vec::new(),
             corpus_binding: None,
             sbom_artifact_binding: None,
+            budget_consumption: None,
         }
     }
 
@@ -844,6 +924,19 @@ impl CertificateBuilder {
         self
     }
 
+    /// Spec 202 FR-005: bind the run's per-axis budget consumption (from the
+    /// `RunBudgetMeter` snapshot at termination) into the certificate (inside
+    /// hash + signature). Empty input leaves the field absent so unmetered runs
+    /// stay byte-identical to pre-1.8.0 payloads.
+    pub fn budget_consumption(mut self, records: Vec<BudgetAxisRecord>) -> Self {
+        self.budget_consumption = if records.is_empty() {
+            None
+        } else {
+            Some(records)
+        };
+        self
+    }
+
     /// Fallible build path for tenant emission (spec 168 §FR-007).
     ///
     /// Returns [`CertificateBuildError::MissingSigner`] when no
@@ -896,6 +989,7 @@ impl CertificateBuilder {
             consumed_overrides: self.consumed_overrides,
             corpus_binding: self.corpus_binding,
             sbom_artifact_binding: self.sbom_artifact_binding,
+            budget_consumption: self.budget_consumption,
             certificate_hash: String::new(),
             signing_public_key: public_key_b64,
             cert_signature: String::new(),
@@ -1126,6 +1220,7 @@ pub fn generate_certificate_with_stage_ids(
         proof_chain_summary,
         stage_ids,
         None,
+        Vec::new(),
     )
 }
 
@@ -1151,6 +1246,7 @@ pub fn generate_certificate_bound(
     proof_chain_summary: Option<ProofChainSummary>,
     stage_ids: &[&str],
     binding: Option<&CapsuleBinding>,
+    budget_consumption: Vec<BudgetAxisRecord>,
 ) -> GovernanceCertificate {
     let intent = IntentRecord {
         requirements_hash: requirements_hash.to_string(),
@@ -1192,6 +1288,9 @@ pub fn generate_certificate_bound(
             .intent_capsule(b.goal_id.clone(), b.intent_capsule_hash.clone())
             .consumed_overrides(b.consumed_overrides.clone());
     }
+    // Spec 202 FR-005: bind the run's per-axis budget consumption (empty leaves
+    // the field absent for unmetered/legacy callers).
+    builder = builder.budget_consumption(budget_consumption);
     builder.build()
 }
 
@@ -1425,6 +1524,51 @@ pub fn verify_certificate(
             "unsupported certificate version: {}",
             cert.certificate_version
         ));
+    }
+
+    // 3b. Spec 202 FR-005/AC-4: budget-consumption record integrity. The record
+    //     is signed into the payload, so raw byte tamper is already caught by
+    //     the signature check (0). These structural checks reject a validly-signed
+    //     but malformed record: per-axis magnitude (finite, non-negative) and
+    //     consistency (breached iff actual > ceiling), plus a closed-set shape
+    //     (every admitted axis present exactly once, no unknown axes). The axis
+    //     set is derived from RunBudgetAxis::ALL so it never drifts. A coherent
+    //     self-consistent forgery of an actual by the signing producer is out of
+    //     reach (the cert carries no per-stage per-axis totals to corroborate).
+    //     Skipped when absent (pre-1.8.0 certs), the named "unmetered" state.
+    if let Some(records) = &cert.budget_consumption {
+        for r in records {
+            if !r.ceiling.is_finite() || !r.actual.is_finite() || r.ceiling < 0.0 || r.actual < 0.0
+            {
+                errors.push(format!(
+                    "budget_consumption: axis '{}' has a negative or non-finite magnitude (ceiling={}, actual={})",
+                    r.axis, r.ceiling, r.actual
+                ));
+            }
+            if r.breached != (r.actual > r.ceiling) {
+                errors.push(format!(
+                    "budget_consumption: axis '{}' inconsistent: breached={} but actual={} ceiling={}",
+                    r.axis, r.breached, r.actual, r.ceiling
+                ));
+            }
+        }
+        let admitted = admitted_axis_names();
+        // Completeness: every admitted axis present.
+        for axis in &admitted {
+            if !records.iter().any(|r| &r.axis == axis) {
+                errors.push(format!("budget_consumption: missing admitted axis '{axis}'"));
+            }
+        }
+        // Closed set: reject unknown and duplicate axes.
+        let mut seen = std::collections::HashSet::new();
+        for r in records {
+            if !admitted.iter().any(|a| a == &r.axis) {
+                errors.push(format!("budget_consumption: unknown axis '{}'", r.axis));
+            }
+            if !seen.insert(r.axis.as_str()) {
+                errors.push(format!("budget_consumption: duplicate axis '{}'", r.axis));
+            }
+        }
     }
 
     // 4. Spec 170 FR-007 — verify the signed inter-stage manifest chain
@@ -3032,10 +3176,12 @@ mod sbom_binding_tests {
         );
     }
 
-    /// The 1.7.0 version bump is the load-bearing contract marker for FR-003.
+    /// The current certificate version is the load-bearing contract marker for
+    /// every schema-extending spec (1.6.0 corpus binding spec 218, 1.7.0 SBOM
+    /// binding spec 203, 1.8.0 budget consumption spec 202).
     #[test]
-    fn certificate_version_is_1_7_0() {
-        assert_eq!(CERTIFICATE_VERSION, "1.7.0");
+    fn certificate_version_is_current() {
+        assert_eq!(CERTIFICATE_VERSION, "1.8.0");
     }
 
     /// FR-002: the audit-record schema round-trips for both `present` and
@@ -3089,5 +3235,221 @@ mod sbom_binding_tests {
         );
         let back: SbomAuditRecord = serde_json::from_str(&json).unwrap();
         assert_eq!(back, absent);
+    }
+
+    // ── Spec 202 FR-005 / AC-4: budget consumption binding ──────────────────
+
+    /// All admitted axes, internally consistent (none breached).
+    fn full_budget_record() -> Vec<BudgetAxisRecord> {
+        admitted_axis_names()
+            .into_iter()
+            .map(|axis| BudgetAxisRecord {
+                axis,
+                ceiling: 100.0,
+                actual: 10.0,
+                source: "platform-default".to_string(),
+                breached: false,
+            })
+            .collect()
+    }
+
+    fn budget_intent() -> IntentRecord {
+        IntentRecord {
+            requirements_hash: "req".into(),
+            spec_id: None,
+            spec_hash: None,
+        }
+    }
+
+    /// AC-4: a certificate carrying a complete, consistent budget_consumption
+    /// record verifies cleanly and round-trips through camelCase JSON.
+    #[test]
+    fn budget_consumption_record_verifies_and_round_trips() {
+        let cert = CertificateBuilder::new("run-budget", budget_intent())
+            .build_spec_hash("spec")
+            .budget_consumption(full_budget_record())
+            .build();
+
+        let result = verify_certificate(&cert, None);
+        assert!(
+            result.valid,
+            "clean budget cert must verify; errors: {:?}",
+            result.errors
+        );
+
+        let json = serde_json::to_string(&cert).unwrap();
+        assert!(
+            json.contains("budgetConsumption"),
+            "camelCase field must be present"
+        );
+        let back: GovernanceCertificate = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.budget_consumption, cert.budget_consumption);
+    }
+
+    /// AC-4: a record left internally INCONSISTENT (actual over ceiling but
+    /// breached=false), e.g. a careless third-party or partial tamper, fails
+    /// verification with an axis-specific diagnostic even though the certificate
+    /// is validly signed. A coherent self-consistent forgery by the signing
+    /// producer is out of verify's reach (self-signed key-trust model, same as
+    /// corpus/sbom bindings).
+    #[test]
+    fn budget_consumption_inconsistent_breach_flag_fails_verify() {
+        let mut records = full_budget_record();
+        let tokens = records.iter_mut().find(|r| r.axis == "tokens").unwrap();
+        tokens.ceiling = 100.0;
+        tokens.actual = 150.0;
+        tokens.breached = false; // inconsistent: 150 > 100 but "not breached"
+
+        let cert = CertificateBuilder::new("run-budget-tamper", budget_intent())
+            .build_spec_hash("spec")
+            .budget_consumption(records)
+            .build();
+
+        let result = verify_certificate(&cert, None);
+        assert!(!result.valid, "inconsistent record must fail verification");
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("tokens") && e.contains("inconsistent")),
+            "diagnostic must name the axis: {:?}",
+            result.errors
+        );
+    }
+
+    /// AC-4: a record missing an admitted axis fails the completeness check
+    /// with the missing axis named.
+    #[test]
+    fn budget_consumption_missing_axis_fails_verify() {
+        let mut records = full_budget_record();
+        records.retain(|r| r.axis != "tokens");
+
+        let cert = CertificateBuilder::new("run-missing-axis", budget_intent())
+            .build_spec_hash("spec")
+            .budget_consumption(records)
+            .build();
+
+        let result = verify_certificate(&cert, None);
+        assert!(!result.valid, "missing admitted axis must fail verification");
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("missing admitted axis 'tokens'")),
+            "diagnostic must name the missing axis: {:?}",
+            result.errors
+        );
+    }
+
+    /// Backward-compat: a certificate with no budget_consumption (pre-1.8.0
+    /// shape) verifies cleanly and skips the field in serialization.
+    #[test]
+    fn absent_budget_consumption_verifies_and_is_skipped() {
+        let cert = CertificateBuilder::new("run-nobudget", budget_intent())
+            .build_spec_hash("spec")
+            .build();
+        assert!(cert.budget_consumption.is_none(), "absent by default");
+
+        let result = verify_certificate(&cert, None);
+        assert!(
+            result.valid,
+            "absent budget must still verify; errors: {:?}",
+            result.errors
+        );
+
+        let json = serde_json::to_string(&cert).unwrap();
+        assert!(
+            !json.contains("budgetConsumption"),
+            "absent field must be skipped in JSON (byte-identical to pre-1.8.0)"
+        );
+    }
+
+    /// FR-005 serde contract: every `RunBudgetAxis::ALL` variant converts (via the
+    /// production `From` impl) to a snake_case axis string the verifier's admitted
+    /// set recognises, and the conversions cover exactly that set. Locks the enum's
+    /// serde form to the completeness check so a rename cannot silently break every
+    /// production certificate (the AC-4 tests otherwise hardcode the strings).
+    #[test]
+    fn budget_axis_record_from_run_consumption_matches_admitted_axes() {
+        let admitted = admitted_axis_names();
+        let mut converted: Vec<String> = Vec::new();
+        for axis in factory_contracts::RunBudgetAxis::ALL {
+            let record = BudgetAxisRecord::from(orchestrator::RunBudgetConsumption {
+                axis,
+                ceiling: 100.0,
+                actual: 1.0,
+                source: factory_contracts::BudgetSource::PlatformDefault,
+                breached: false,
+            });
+            assert!(!record.axis.is_empty(), "axis must serialize non-empty");
+            assert!(
+                admitted.contains(&record.axis),
+                "axis '{}' must be an admitted axis {:?}",
+                record.axis,
+                admitted
+            );
+            assert_eq!(record.source, "platform-default", "source serde form");
+            converted.push(record.axis);
+        }
+        converted.sort();
+        let mut expected = admitted.clone();
+        expected.sort();
+        assert_eq!(
+            converted, expected,
+            "ALL variants must cover exactly the admitted axis set"
+        );
+    }
+
+    /// AC-4: a duplicate axis row (two `tokens`) fails the closed-set check.
+    #[test]
+    fn budget_consumption_duplicate_axis_fails_verify() {
+        let mut records = full_budget_record();
+        let dup = records.iter().find(|r| r.axis == "tokens").unwrap().clone();
+        records.push(dup);
+
+        let cert = CertificateBuilder::new("run-dup-axis", budget_intent())
+            .build_spec_hash("spec")
+            .budget_consumption(records)
+            .build();
+
+        let result = verify_certificate(&cert, None);
+        assert!(!result.valid, "duplicate axis must fail verification");
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("duplicate axis 'tokens'")),
+            "diagnostic must name the duplicate axis: {:?}",
+            result.errors
+        );
+    }
+
+    /// AC-4: an unknown axis name fails the closed-set check.
+    #[test]
+    fn budget_consumption_unknown_axis_fails_verify() {
+        let mut records = full_budget_record();
+        records.push(BudgetAxisRecord {
+            axis: "bogus_axis".to_string(),
+            ceiling: 100.0,
+            actual: 1.0,
+            source: "platform-default".to_string(),
+            breached: false,
+        });
+
+        let cert = CertificateBuilder::new("run-unknown-axis", budget_intent())
+            .build_spec_hash("spec")
+            .budget_consumption(records)
+            .build();
+
+        let result = verify_certificate(&cert, None);
+        assert!(!result.valid, "unknown axis must fail verification");
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("unknown axis 'bogus_axis'")),
+            "diagnostic must name the unknown axis: {:?}",
+            result.errors
+        );
     }
 }

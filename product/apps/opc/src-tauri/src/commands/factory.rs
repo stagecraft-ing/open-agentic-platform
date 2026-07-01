@@ -785,6 +785,7 @@ async fn emit_terminal_completed(
     total_tokens: u64,
     governance: Option<&Arc<super::run_governance::RunGovernance>>,
     requirements_hash: &str,
+    budget_consumption: Vec<factory_engine::governance_certificate::BudgetAxisRecord>,
 ) {
     // Pre-rollup the per-stage observations into the wire shape. The
     // platform handler stores `{input, output, total}`; the desktop's
@@ -825,6 +826,7 @@ async fn emit_terminal_completed(
         None,
         &[],
         binding.as_ref(),
+        budget_consumption,
     );
     let cert_hash = cert.certificate_hash.clone();
     if let Err(e) = factory_engine::governance_certificate::persist_certificate(&cert, &run_dir) {
@@ -1798,11 +1800,25 @@ pub async fn start_factory_pipeline(
             .lock()
             .map(|ps| ps.total_tokens)
             .unwrap_or(0);
+        // Spec 202 FR-005: snapshot the run's budget meter into cert records.
+        // Recover a poisoned lock (into_inner) so a panic never silently
+        // downgrades the cert to the "unmetered" state.
+        let budget_consumption: Vec<factory_engine::governance_certificate::BudgetAxisRecord> = {
+            let snapshot = budget_meter
+                .lock()
+                .map(|m| m.consumption())
+                .unwrap_or_else(|poisoned| poisoned.into_inner().consumption());
+            snapshot
+                .into_iter()
+                .map(factory_engine::governance_certificate::BudgetAxisRecord::from)
+                .collect()
+        };
         emit_terminal_completed(
             &ctx_for_spawn,
             total_tokens,
             governance.as_ref(),
             &requirements_hash,
+            budget_consumption,
         )
         .await;
 
@@ -2598,6 +2614,21 @@ pub async fn resume_factory_pipeline(
                     hex::encode(Sha256::new().finalize())
                 });
                 let binding = governance.as_ref().map(|g| g.capsule_binding());
+                // Spec 202 FR-005: snapshot the resumed run's budget meter.
+                // Recover a poisoned lock (into_inner) so a panic never silently
+                // downgrades the cert to the "unmetered" state.
+                let budget_consumption: Vec<
+                    factory_engine::governance_certificate::BudgetAxisRecord,
+                > = {
+                    let snapshot = resume_budget_meter
+                        .lock()
+                        .map(|m| m.consumption())
+                        .unwrap_or_else(|poisoned| poisoned.into_inner().consumption());
+                    snapshot
+                        .into_iter()
+                        .map(factory_engine::governance_certificate::BudgetAxisRecord::from)
+                        .collect()
+                };
                 let cert = factory_engine::governance_certificate::generate_certificate_bound(
                     &resume_pipeline_state,
                     &requirements_hash,
@@ -2605,6 +2636,7 @@ pub async fn resume_factory_pipeline(
                     None,
                     &[],
                     binding.as_ref(),
+                    budget_consumption,
                 );
                 let cert_hash = cert.certificate_hash.clone();
                 if let Err(e) = factory_engine::governance_certificate::persist_certificate(
