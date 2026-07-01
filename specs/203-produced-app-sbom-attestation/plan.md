@@ -752,3 +752,58 @@ make pr-prep
    tenant-tail's `verify-sbom` extraction path is the same as `verify-certificate`
    (copy the function, no structural surprise). Flag to the tenant-tail maintainer
    when spec 203 ships.
+
+---
+
+## Addendum: what shipped, and the emission-leg re-plan (2026-07-01)
+
+Two PRs landed the in-OAP factory-engine cert surface; the emission generation
+is re-planned onto the tenant CI. This addendum supersedes the Phase 2
+"hook into `emit_kernel`" recommendation (already flagged wrong by F1/F2) and
+the Phase 4 "FR-004 external" placeholder with concrete decisions.
+
+### Shipped (in-tree)
+
+- **PR #466 (Phase 1, cert-side).** `SbomArtifactBinding`, the builder method,
+  `verify_sbom_binding()`, the `verify-certificate --sbom-dir` flag, the
+  `SbomAuditRecord` schema, and cert version 1.7.0. Fully tested; unblocks spec
+  219 `verify-sbom`.
+- **Emitter read-path (FR-003 consumption).** `build_certificate.rs` gained a
+  `--sbom-dir` flag + `resolve_sbom_binding()` mirroring `resolve_corpus_binding`
+  (read `<root>/.factory/{sbom.cdx.json,audit.json}`, hash both, lift the BOM
+  tool version from the BOM's `metadata.tools`, bind via the public builder).
+  Fail-soft on the emit side, fail-closed on the verify side. Integration test
+  `sbom_binding_round_trips_fr003`. `build_certificate.rs` is co-claimed with
+  spec 220 via the new `sbom-emitter-read-path` refines edge.
+
+### Emission generation: re-planned onto the tenant CI (external)
+
+F2 established the Rust `emit_kernel` hook is unwired in production. A second
+trace weighed the two production-real candidates and decided **the tenant CI**,
+not the stagecraft scaffold (`perRequestScaffold.ts`), for generation:
+
+- The scaffold pod runs `readOnlyRootFilesystem`; `@cyclonedx/cyclonedx-npm` is
+  not a stagecraft dependency and would fetch on demand into a writable cache, a
+  real risk to production project creation. `spawnAndCapture` there also discards
+  stdout and rejects on non-zero exit, wrong for `npm audit` (non-zero = vulns
+  found = evidence, not failure).
+- The tenant CI (external `spec-spine.yml`) already hosts spec 209's
+  `verify-certificate` step and this spec's FR-004 gate, has network + writable
+  FS, and lets generation -> emitter firing (spec 220 FR-002) -> verify compose
+  in one run.
+
+**External implementation (template-encore `spec-spine.yml`), the AC-1 closer:**
+
+1. Generate: `npx --no-install @cyclonedx/cyclonedx-npm --output-format JSON
+   --output-file .factory/sbom.cdx.json --reproducible` + an `npm audit --json`
+   step serialised to `.factory/audit.json` (tolerating non-zero on findings;
+   `absent` + reason when the scanner is unavailable).
+2. Fire the emitter: `npx --no-install tenant-emit build-certificate <run-dir>
+   --sbom-dir . --corpus-attestation attestation.json ...` binds the two hashes
+   (the `--sbom-dir` read-path is now in-tree and mirrored into the `tenant-emit`
+   distributable).
+3. FR-004 gate: assert the committed `.factory/sbom.cdx.json` is regenerable from
+   the lockfile to a matching hash, and the lockfile satisfies the manifest.
+
+This composes with spec 220's FR-002 firing step (same CI file) and reaches
+AC-1/AC-2/AC-4 once `tenant-emit` is published to npm and the CI lands.

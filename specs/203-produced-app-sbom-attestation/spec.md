@@ -37,6 +37,12 @@ extends:
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+  # 203 adds its emitter-read round-trip test to 168's shared tenant-emission
+  # integration suite, exactly as spec 220 does for its operator-key / corpus
+  # tests. Additive: a new test fn, no change to 168's or 220's own cases.
+  - spec: "168-per-project-governance-certificate"
+    nature: additive
+    unit: { kind: file, path: crates/factory-engine/tests/tenant_emission_integration.rs }
 refines:
   - aspect: "kernel-sbom-vending"
     unit: { kind: file, path: crates/factory-engine/src/kernel_emission/emit.rs }
@@ -44,6 +50,14 @@ refines:
     unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
   - aspect: "sbom-verify-path"
     unit: { kind: file, path: crates/factory-engine/src/bin/verify_certificate.rs }
+  # The tenant emitter's SBOM read-path (FR-003 consumption side): the post-hoc
+  # build_certificate.rs reads --sbom-dir, hashes the produced app's
+  # .factory/sbom.cdx.json + audit.json, and binds them via the public
+  # CertificateBuilder::sbom_artifact_binding(). Composes with spec 220 at the
+  # tenant firing point; build_certificate.rs is co-claimed (220 extends it),
+  # and the coupling gate is satisfied by any owner's spec.md edit.
+  - aspect: "sbom-emitter-read-path"
+    unit: { kind: file, path: crates/factory-engine/src/bin/build_certificate.rs }
   # NOTE: the prior `lockfile-parity-gate` aspect on tenant-ci.yml.tmpl was
   # dropped when spec 167's PR-2 retired that vendored-binary CI template. The
   # lockfile-parity gate now belongs to the npm tenant CI (the prebuilt
@@ -168,6 +182,30 @@ verify) is implemented and tested:
 This unblocks spec 219's `verify-sbom` verb (its verify side extends the
 certificate core rather than standing alone).
 
+**Emitter read-path delivered (FR-003 consumption side).** The tenant emitter
+(`build_certificate.rs`) now binds the produced app's SBOM + audit hashes into
+the certificate it emits:
+
+- A `--sbom-dir <root>` flag (with an `OAP_SBOM_DIR` env fallback) whose
+  `resolve_sbom_binding()` reads `<root>/.factory/sbom.cdx.json` and
+  `.factory/audit.json`, hashes both as bytes, lifts the BOM tool version from
+  the BOM's own `metadata.tools`, and binds all three via the public
+  `CertificateBuilder::sbom_artifact_binding()`. Read, never recompute: the
+  emitter never regenerates the BOM. Applied only on the tenant (signer) build
+  path, and fail-soft (an unreadable artifact warns and emits unbound, an
+  unbound cert beating no cert), mirroring the FR-007 corpus read-path.
+- `build_certificate.rs` is co-claimed with spec 220 (the tenant firing point
+  where a run's SBOM (203) and corpus attestation (220 FR-007) compose into one
+  certificate); the new `sbom-emitter-read-path` refines edge records 203's
+  claim.
+- An integration test (`sbom_binding_round_trips_fr003`) emits a bound
+  certificate and round-trips it through `verify-certificate --sbom-dir`:
+  matching artifacts verify, a tampered BOM fails (AC-2).
+
+So the whole factory-engine cert surface for spec 203 (bind + verify + emit-side
+read) is now in-tree. Only the BOM/audit **generation** and the tenant-CI gate
+remain, and both are external (see below).
+
 **Emission leg (FR-001 + BOM/audit generation) remains.** Generating
 `.factory/sbom.cdx.json` and `.factory/audit.json` at scaffold completion is a
 separate leg. A code trace resolved the plan's open question F2: the Rust
@@ -185,6 +223,23 @@ factory-engine; the `kernel-sbom-vending` edge is reconciled to the real hook
 site when that leg is implemented (plan F3). This mirrors the corpus-binding
 split (spec 218): factory-engine reads and binds artifacts it is given, an
 upstream step generates them.
+
+**Generation home (decided): the tenant CI, not the stagecraft scaffold.** A
+second trace weighed the two candidate hooks. The stagecraft scaffold
+(`perRequestScaffold.ts`) is the earliest point a committed lockfile exists, but
+running `@cyclonedx/cyclonedx-npm` there means a network-fetching tool executing
+inside the scaffold pod's `readOnlyRootFilesystem` posture (the tool is not a
+stagecraft dependency and would fetch on demand into a writable cache), a real
+risk to production project creation. The tenant CI (the prebuilt template's
+external `spec-spine.yml`, where spec 209's `verify-certificate` step and this
+spec's FR-004 parity gate already live) has network and a writable filesystem,
+and lets generation, the emitter firing (spec 220 FR-002), and verification
+compose in one run. Generation is therefore specified in the tenant CI: the
+first run generates and commits `.factory/sbom.cdx.json` + `.factory/audit.json`
+(pinned `@cyclonedx/cyclonedx-npm` + `npm audit`), the emitter binds them via
+`--sbom-dir` (now in-tree), and the FR-004 gate keeps the committed BOM
+regenerable. This leg is external to OAP (template-encore), like FR-004 and spec
+220 FR-002.
 
 ## Gate contract (FR-004)
 

@@ -22,6 +22,14 @@
           "kind": "file",
           "path": "crates/featuregraph/tests/golden/features_graph.json"
         }
+      },
+      {
+        "nature": "additive",
+        "spec": "168-per-project-governance-certificate",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/tests/tenant_emission_integration.rs"
+        }
       }
     ],
     "extraFrontmatter": {
@@ -76,6 +84,13 @@
           "kind": "file",
           "path": "crates/factory-engine/src/bin/verify_certificate.rs"
         }
+      },
+      {
+        "aspect": "sbom-emitter-read-path",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/bin/build_certificate.rs"
+        }
       }
     ],
     "sectionHeadings": [
@@ -94,6 +109,6 @@
     "summary": "Apply OAP's own supply-chain discipline forward to what the factory produces. OAP ships per-target CycloneDX SBOMs and an aggregate release BOM for itself (specs 116/117), but a scaffolded application receives only a pinned lockfile — no SBOM, no dependency-vulnerability scan artifact, no lockfile-parity gate. An auditor holding a produced app's governance certificate (spec 168) cannot answer \"what is in this application and was it scanned?\" — the exact ASI04 question. This spec emits a CycloneDX BOM and a dependency-audit artifact at scaffold completion, binds their content hashes into the per-project governance certificate, and adds a lockfile/BOM parity gate to the tenant CI the born-with kernel (spec 167) seeds. Absence of a scanner is recorded visibly, never silently (the spec 200 FR-004 posture).\n",
     "title": "Produced-App SBOM and Dependency-Audit Attestation (ASI04 forward)"
   },
-  "shardHash": "168030f5fc329258945f957190ceeb388eb47beb57d7b29360d9edbf498b9813",
+  "shardHash": "a21a8a925958bb3732cc90162da20cbfd4879ca3228f5c8050db0f9807159b2f",
   "specVersion": "1.1.0"
 }

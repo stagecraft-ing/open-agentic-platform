@@ -653,3 +653,89 @@ fn corpus_binding_round_trips_fr007() {
         String::from_utf8_lossy(&bad.stdout)
     );
 }
+
+/// Spec 203 FR-003 / AC-2: the tenant emitter binds the produced app's SBOM +
+/// audit artifacts (read, never recompute), the BOM tool version is lifted from
+/// the BOM's own `metadata.tools`, and the binding round-trips through
+/// `verify-certificate --sbom-dir` (matching passes, a tampered BOM fails).
+#[test]
+fn sbom_binding_round_trips_fr003() {
+    let tmp = tempfile::tempdir().unwrap();
+    write_stage_artifact(tmp.path(), "tenant-codegen", "app.rs", b"fn main() {}");
+
+    // Minimal CycloneDX BOM (with metadata.tools) + audit artifact, laid out
+    // under the produced-app `.factory/` exactly where the emitter reads them.
+    let factory = tmp.path().join(".factory");
+    std::fs::create_dir_all(&factory).unwrap();
+    let bom = r#"{
+        "bomFormat": "CycloneDX",
+        "specVersion": "1.6",
+        "metadata": { "tools": { "components": [
+            { "type": "application", "name": "cyclonedx-npm", "version": "1.19.0" }
+        ] } },
+        "components": []
+    }"#;
+    std::fs::write(factory.join("sbom.cdx.json"), bom).unwrap();
+    let audit =
+        r#"{"tool":"npm-audit","ranAt":"2026-07-01T00:00:00Z","status":"absent","reason":"test fixture"}"#;
+    std::fs::write(factory.join("audit.json"), audit).unwrap();
+
+    let build = Command::new(bin_path("build-certificate"))
+        .arg(tmp.path())
+        .args(["--tenant-mode"])
+        .args(["--signer-subject", "alice@tenant.example"])
+        .args(["--signer-identity-provider", "rauthy@tenant-org"])
+        .args(["--stage-ids", "tenant-codegen"])
+        .args(["--sbom-dir", tmp.path().to_str().unwrap()])
+        .output()
+        .expect("spawn build-certificate");
+    assert!(
+        build.status.success(),
+        "sbom-bound emission failed: {}",
+        String::from_utf8_lossy(&build.stderr)
+    );
+
+    let cert_path = tmp.path().join("governance-certificate.json");
+    let cert = read_certificate(&cert_path);
+    let binding = cert
+        .sbom_artifact_binding
+        .as_ref()
+        .expect("sbom_artifact_binding must be present (FR-003)");
+    assert!(!binding.bom_hash.is_empty(), "bom_hash must be populated");
+    assert!(
+        !binding.audit_hash.is_empty(),
+        "audit_hash must be populated"
+    );
+    assert_eq!(
+        binding.bom_tool_version, "1.19.0",
+        "BOM tool version must be read from the BOM's metadata.tools"
+    );
+
+    // AC-2 round-trip: the verifier accepts the matching on-disk artifacts.
+    let ok = Command::new(bin_path("verify-certificate"))
+        .arg(&cert_path)
+        .args(["--artifact-dir", tmp.path().to_str().unwrap()])
+        .args(["--sbom-dir", tmp.path().to_str().unwrap()])
+        .output()
+        .expect("spawn verify-certificate (matching)");
+    assert!(
+        ok.status.success(),
+        "verifier rejected matching SBOM artifacts; stderr: {}; stdout: {}",
+        String::from_utf8_lossy(&ok.stderr),
+        String::from_utf8_lossy(&ok.stdout),
+    );
+
+    // AC-2 tamper: mutating the BOM after emission fails verification.
+    std::fs::write(factory.join("sbom.cdx.json"), b"TAMPERED").unwrap();
+    let bad = Command::new(bin_path("verify-certificate"))
+        .arg(&cert_path)
+        .args(["--artifact-dir", tmp.path().to_str().unwrap()])
+        .args(["--sbom-dir", tmp.path().to_str().unwrap()])
+        .output()
+        .expect("spawn verify-certificate (tamper)");
+    assert!(
+        !bad.status.success(),
+        "verifier accepted a tampered BOM; stdout: {}",
+        String::from_utf8_lossy(&bad.stdout)
+    );
+}

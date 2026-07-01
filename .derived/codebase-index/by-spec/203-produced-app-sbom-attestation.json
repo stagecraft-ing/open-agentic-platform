@@ -8,6 +8,10 @@
     ],
     "implementingPaths": [
       {
+        "path": "crates/factory-engine/src/bin/build_certificate.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/factory-engine/src/bin/verify_certificate.rs",
         "source": "spec-edge"
       },
@@ -17,6 +21,10 @@
       },
       {
         "path": "crates/factory-engine/src/kernel_emission/emit.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "crates/factory-engine/tests/tenant_emission_integration.rs",
         "source": "spec-edge"
       },
       {
@@ -36,6 +44,19 @@
       {
         "locations": [
           {
+            "file": "crates/factory-engine/tests/tenant_emission_integration.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/tests/tenant_emission_integration.rs"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/featuregraph/tests/golden/features_graph.json"
           }
         ],
@@ -44,6 +65,19 @@
         "unit": {
           "kind": "file",
           "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "crates/factory-engine/src/bin/build_certificate.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/bin/build_certificate.rs"
         }
       },
       {
@@ -116,5 +150,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "93b39e45e7cb5fd82ded0b0c4434f3f48228feea4fab1b534915c8061b8d3f3e"
+  "shardHash": "3ef2e0958fd0ceb881e3d9c91d05113ae0db8b1ca1542ac1d3fbda8da11b8454"
 }
