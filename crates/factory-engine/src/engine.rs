@@ -54,8 +54,6 @@ pub struct FactoryEngineConfig {
     pub project_path: PathBuf,
     /// Maximum concurrent scaffolding steps (NF-001).
     pub concurrency_limit: usize,
-    /// Maximum total token budget for the pipeline (NF-002).
-    pub max_total_tokens: Option<u64>,
 }
 
 impl Default for FactoryEngineConfig {
@@ -64,7 +62,6 @@ impl Default for FactoryEngineConfig {
             factory_root: FactoryRoot::Filesystem(PathBuf::from("factory")),
             project_path: PathBuf::from("."),
             concurrency_limit: 4,
-            max_total_tokens: None,
         }
     }
 }

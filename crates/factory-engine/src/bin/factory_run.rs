@@ -18,15 +18,15 @@ use factory_engine::{
     write_validation_warnings,
 };
 use orchestrator::{
-    AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, ClaudeCodeExecutor, CliGateHandler,
-    DispatchOptions, GateHandler, ThinkingLevel, detect_resume_plan_for_run, dispatch_manifest,
-    materialize_run_directory_with_phase,
+    AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, BudgetGate, ClaudeCodeExecutor,
+    CliGateHandler, DispatchOptions, GateHandler, PreStepGate, RunBudgetMeter, ThinkingLevel,
+    detect_resume_plan_for_run, dispatch_manifest, materialize_run_directory_with_phase,
 };
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::process::ExitCode;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
 /// SHA-256 of the concatenated bytes of every supplied requirements document
@@ -423,7 +423,6 @@ async fn main() -> ExitCode {
         factory_root: factory_engine::FactoryRoot::Filesystem(factory_root.clone()),
         project_path: project_path.clone(),
         concurrency_limit: 4,
-        max_total_tokens: None,
     };
 
     let engine = match FactoryEngine::new(config) {
@@ -597,6 +596,13 @@ async fn main() -> ExitCode {
         Arc::new(CliGateHandler)
     };
 
+    // Spec 202 FR-002: the CLI meters run blast-radius under platform
+    // defaults. One meter spans both phases so accumulation is run-level
+    // (the CLI has no grant chain, so the budget gate rides alone).
+    let budget_meter = Arc::new(Mutex::new(RunBudgetMeter::new(
+        factory_contracts::apply_defaults(&[]),
+    )));
+
     let options = DispatchOptions {
         gate_handler: Some(gate_handler.clone()),
         project_root: Some(project_path.clone()),
@@ -609,8 +615,8 @@ async fn main() -> ExitCode {
         // factory-run is a non-OPC origin per spec 173 FR-001.
         project_path: None,
         originating_session: None,
-        // Spec 198 FR-005: factory-run CLI does not use grant-backed renewal.
-        pre_step: None,
+        // Spec 202 FR-002: budget metering rides the CLI dispatch path.
+        pre_step: Some(Arc::new(BudgetGate::new(budget_meter.clone())) as Arc<dyn PreStepGate>),
     };
 
     eprintln!("\nDispatching Phase 1...\n");
@@ -778,8 +784,8 @@ async fn main() -> ExitCode {
         // factory-run is a non-OPC origin per spec 173 FR-001.
         project_path: None,
         originating_session: None,
-        // Spec 198 FR-005: factory-run CLI does not use grant-backed renewal.
-        pre_step: None,
+        // Spec 202 FR-002: same meter as Phase 1, so ceilings are run-level.
+        pre_step: Some(Arc::new(BudgetGate::new(budget_meter.clone())) as Arc<dyn PreStepGate>),
     };
 
     let summary2 = match dispatch_manifest(

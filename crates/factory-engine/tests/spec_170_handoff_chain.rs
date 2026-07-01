@@ -224,7 +224,6 @@ fn engine_seal_stage_handoff_hashes_disk_artifacts() {
         factory_root: factory_engine::FactoryRoot::Filesystem(tmp.path().to_path_buf()),
         project_path: tmp.path().to_path_buf(),
         concurrency_limit: 1,
-        max_total_tokens: None,
     };
     let engine = FactoryEngine::with_adapters(cfg, AdapterRegistry::from_manifests(Vec::new()));
 

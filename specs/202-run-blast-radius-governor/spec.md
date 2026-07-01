@@ -64,6 +64,15 @@ refines:
   # Slice A (FR-001): the schema-version-pin test tracks the 1.0.0 -> 1.1.0 bump.
   - aspect: "schema-version-pin"
     unit: { kind: file, path: crates/factory-contracts/src/build_spec.rs }
+  # PR1 wiring (FR-002): the meter + BudgetGate are composed into the live
+  # dispatch path (OPC command + CLI bin) and the dead max_total_tokens
+  # ceiling is retired from the engine config (AC-6, first half).
+  - aspect: "run-budget-metering"
+    unit: { kind: file, path: crates/factory-engine/src/engine.rs }
+  - aspect: "run-budget-metering"
+    unit: { kind: file, path: crates/factory-engine/src/bin/factory_run.rs }
+  - aspect: "run-budget-metering"
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/factory.rs }
 references:
   - role: enforcer
     unit: { kind: crate, id: factory-engine }
