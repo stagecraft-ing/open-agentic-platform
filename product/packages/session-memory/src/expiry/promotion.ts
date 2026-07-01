@@ -7,7 +7,20 @@
 
 import type { MemoryStorage } from "../storage/sqlite.js";
 import type { ImportanceLevel } from "../types.js";
-import { IMPORTANCE_ORDER, EXPIRY_DEFAULTS, PROMOTION_ACCESS_THRESHOLD } from "../types.js";
+import {
+  IMPORTANCE_ORDER,
+  EXPIRY_DEFAULTS,
+  PROMOTION_ACCESS_THRESHOLD,
+  HUMAN_GATED_TIERS,
+  isHumanTrusted,
+} from "../types.js";
+
+/** The importance level immediately below the current one, or null at the floor. */
+export function getPrevImportance(current: ImportanceLevel): ImportanceLevel | null {
+  const idx = IMPORTANCE_ORDER.indexOf(current);
+  if (idx <= 0) return null;
+  return IMPORTANCE_ORDER[idx - 1];
+}
 
 export interface PromotionResult {
   promotedCount: number;
@@ -42,6 +55,17 @@ export function runPromotion(
   for (const entry of candidates) {
     const nextLevel = getNextImportance(entry.importance);
     if (!nextLevel) continue;
+
+    // FR-003 retention boundary (AC-3): access-count promotion may raise
+    // importance within the machine-harvested-eligible tiers, but can never
+    // cross into long-term/permanent for a machine-harvested entry. Those
+    // tiers require human-curated or verified trust. This is one half of the
+    // boundary: the write path (storage.store) clamps machine-harvested writes
+    // to the same ceiling, so neither a direct write nor a run of automated
+    // accesses can land machine-harvested content past this line.
+    if (HUMAN_GATED_TIERS.has(nextLevel) && !isHumanTrusted(entry.trustClass)) {
+      continue;
+    }
 
     const expiryDelta = EXPIRY_DEFAULTS[nextLevel];
     const now = Math.floor(Date.now() / 1000);

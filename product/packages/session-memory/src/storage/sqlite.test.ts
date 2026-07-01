@@ -27,6 +27,9 @@ describe("MemoryStorage", () => {
         tags: ["imports", "esm"],
         projectScope: "/project",
         sourceSessionId: "session-1",
+        // long-term is a human-gated tier; a human actor may reach it (a
+        // machine-harvested write would be clamped to medium-term).
+        actorKind: "human",
       });
 
       expect(entry.id).toMatch(/^[0-9a-f-]{36}$/);
@@ -57,6 +60,7 @@ describe("MemoryStorage", () => {
         kind: "preference",
         importance: "permanent",
         projectScope: "/project",
+        actorKind: "human", // permanent is human-gated
       });
       expect(entry.expiresAt).toBeNull();
     });
@@ -233,7 +237,8 @@ describe("MemoryStorage", () => {
     });
 
     it("excludes long-term and permanent entries", () => {
-      storage.store({ content: "already long", kind: "note", importance: "long-term", projectScope: "/proj" });
+      // human actor so the long-term tier is not clamped to medium-term.
+      storage.store({ content: "already long", kind: "note", importance: "long-term", projectScope: "/proj", actorKind: "human" });
       // Bump access count via direct SQL
       const db = (storage as unknown as { db: { prepare: (s: string) => { run: (...a: unknown[]) => void } } }).db;
       db.prepare("UPDATE memory_entries SET access_count = 10").run();

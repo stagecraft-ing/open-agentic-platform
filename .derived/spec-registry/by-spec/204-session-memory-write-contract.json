@@ -55,6 +55,14 @@
       {
         "kind": "file",
         "path": "product/packages/session-memory/src/provenance.test.ts"
+      },
+      {
+        "kind": "file",
+        "path": "product/packages/session-memory/src/expiry/decay.ts"
+      },
+      {
+        "kind": "file",
+        "path": "product/packages/session-memory/src/expiry/retention.test.ts"
       }
     ],
     "extends": [
@@ -135,6 +143,27 @@
         }
       },
       {
+        "aspect": "retention-boundary",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/expiry/promotion.ts"
+        }
+      },
+      {
+        "aspect": "retention-boundary",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/storage/sqlite.test.ts"
+        }
+      },
+      {
+        "aspect": "retention-boundary",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/integration.test.ts"
+        }
+      },
+      {
         "aspect": "trust-class-types",
         "unit": {
           "kind": "file",
@@ -169,6 +198,6 @@
     "summary": "Extend the substrate override-write discipline (spec 198 FR-013) to OAP's second persistent-memory surface: the OPC session-memory MCP (spec 056). Today memory writes are ungoverned — no validation-on-write, no provenance stamp, no trust class, no decay of unverified entries, and harvested agent output can be promoted toward permanent retention without any human in the loop (ASI06 bootstrap-poisoning shape). This spec mirrors the FR-013 architecture onto session memory: a deterministic carrier-class gate on every write, provenance (actor, origin session, content hash) on every revision, trust classes with human-gated promotion, trust-weighted decay, and a no-self-ingestion rule. The cross-cutting principle carries verbatim: a model may DETECT, only rules may BLOCK.\n",
     "title": "Session-Memory Write Contract (ASI06 cockpit surface)"
   },
-  "shardHash": "358718dbe81835738439c5432938df064375c79951de31d67bbdf179376452d9",
+  "shardHash": "044f7407addee28866162034ee128a6214443b8ad595ce59c7531e204da037e1",
   "specVersion": "1.1.0"
 }

@@ -49,6 +49,9 @@ establishes:
   - unit: { kind: file, path: product/packages/session-memory/src/gate.test.ts }
   # FR-002/003 provenance + trust-class schema test.
   - unit: { kind: file, path: product/packages/session-memory/src/provenance.test.ts }
+  # FR-004 trust-weighted decay engine + the retention boundary / decay test.
+  - unit: { kind: file, path: product/packages/session-memory/src/expiry/decay.ts }
+  - unit: { kind: file, path: product/packages/session-memory/src/expiry/retention.test.ts }
 extends:
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
@@ -73,6 +76,16 @@ refines:
   # FR-002: the harvester stamps its own actor kind + source attribution.
   - aspect: "provenance-trust-columns"
     unit: { kind: file, path: product/packages/session-memory/src/harvesting/engine.ts }
+  # FR-003 AC-3 retention boundary: promotion respects the human-gated tiers.
+  - aspect: "retention-boundary"
+    unit: { kind: file, path: product/packages/session-memory/src/expiry/promotion.ts }
+  # The write-time clamp (machine-harvested cannot reach a human-gated tier)
+  # updates the spec 056 storage/integration tests that stored high-importance
+  # entries under the default agent actor: they now pass actorKind: human.
+  - aspect: "retention-boundary"
+    unit: { kind: file, path: product/packages/session-memory/src/storage/sqlite.test.ts }
+  - aspect: "retention-boundary"
+    unit: { kind: file, path: product/packages/session-memory/src/integration.test.ts }
   - aspect: "trust-class-types"
     unit: { kind: file, path: product/packages/session-memory/src/types.ts }
   # FR-001 wiring: session-memory depends on @opc/carrier-gate and re-exports
