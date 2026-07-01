@@ -60,6 +60,12 @@ pub struct DeploymentRequest {
     /// row so DELETE and status operate on recorded truth.
     #[serde(default)]
     pub namespace: Option<String>,
+    /// Spec 214 FR-006: when true, render the chart's opt-in preview-grade
+    /// Postgres so an Encore tenant with a `SQLDatabase` boots against an
+    /// in-namespace database. Stagecraft sets this for development/preview
+    /// environments; absent/false leaves the chart default (no preview DB).
+    #[serde(default)]
+    pub preview_database: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -233,6 +239,7 @@ pub async fn create_deployment(
                 config_refs: body.config_refs.as_ref(),
                 image_pull_secret_name: body.image_pull_secret_name.as_deref(),
                 tls_secret_name: Some(tenant_tls_secret.as_str()).filter(|s| !s.is_empty()),
+                preview_database: body.preview_database.unwrap_or(false),
             };
             let values = helm::build_values(
                 &body.artifact_ref,

@@ -396,6 +396,22 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
   scope). When `previewDatabase.enabled: false`, an external DSN MUST be
   supplied via a named secret ref or the proxy rejects the dispatch
   (User Story 2, scenario 2).
+
+  *Completion (trigger auto-provisioning + dispatch, 2026-07-01).* The chart
+  and its `previewDatabase` block shipped, but nothing ever set
+  `previewDatabase.enabled`, so a UI-triggered deploy of the acme-vue-encore
+  scaffold (an Encore app with a `SQLDatabase`) came up with no database and
+  crash-looped on `unable to initialize sqldb proxy: failed to resolve
+  password: environment variable not found`. Wired end to end: (1) deployd-api
+  `DeployExtras.preview_database` + `DeploymentRequest.preview_database` render
+  `previewDatabase.enabled: true` in `build_values`; (2) stagecraft's UI trigger
+  (`buildTriggerDeploydBody`) sets `preview_database: true` for `development`
+  and `preview` environments so an Encore tenant boots self-contained, and
+  **rejects** `staging`/`production` deploys (which need an external DSN the
+  trigger does not model yet) rather than dispatching a DB-less app, satisfying
+  this FR's reject-when-no-DB requirement for the trigger path. The raw
+  `/v1/deployments` proxy is unchanged (external callers manage their own DB);
+  an external-DSN dispatch field is a follow-up.
 - **FR-007**: Hostname convention (normative, resolves spec 137
   §Clarification 4): host label `{orgSlug}--{projectSlug}--{envSlug}`
   with `--int` appended for the internal variant, under `tenants.{base}`.
