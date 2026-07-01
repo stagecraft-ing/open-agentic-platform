@@ -34,6 +34,7 @@ import {
 import { loadSubstrateForOrg } from "./substrateBrowser";
 import { findAdapterView, findEnvelopeProcess } from "./adapterView";
 import { isFactoryAdmitted } from "./admission";
+import { detectQueueStorm } from "./queueStormGate";
 
 /** Spec 139 Phase 4 — must match `browse.ts::synthesiseId`. */
 function synthesiseAdapterId(orgId: string, name: string): string {
@@ -242,6 +243,18 @@ export async function reserveRunCore(
         reserved: false,
       };
     }
+
+    // region: queue-storm-gate (spec 202 FR-003c)
+    // Detection-only: counts the org's in-flight runs and, at/over the
+    // configured ceiling, logs a warning and writes a
+    // `factory.run.storm_detected` audit row. Never throws; the run is
+    // still admitted below regardless of the outcome.
+    await detectQueueStorm({
+      orgId: auth.orgId,
+      userID: auth.userID,
+      clientRunId: req.clientRunId,
+    });
+    // endregion
 
     // Spec 199 FR-002/FR-004 — adapters resolve by manifest-declared
     // identity; the process is the envelope-declared process.id. Both are

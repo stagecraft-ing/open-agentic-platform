@@ -64,7 +64,31 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/CLAUDE.md",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/auditActions.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/queueStormGate.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/queueStormGate.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/runs.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/factory/runsScheduler.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/vite.config.ts",
         "source": "spec-edge"
       },
       {
@@ -118,6 +142,32 @@
         "unit": {
           "kind": "file",
           "path": "crates/orchestrator/src/budget_gate.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/queueStormGate.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/queueStormGate.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/queueStormGate.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/queueStormGate.ts"
         }
       },
       {
@@ -240,6 +290,58 @@
       {
         "locations": [
           {
+            "file": "platform/services/stagecraft/CLAUDE.md"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/CLAUDE.md"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/auditActions.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/runs.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/runs.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/vite.config.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/vite.config.ts"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "product/apps/opc/src-tauri/src/commands/factory.rs"
           }
         ],
@@ -320,5 +422,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "4051fef00f588db23a424d21c21dc2e11f57f3411e8f3d59d1a7dc9d3f16e17b"
+  "shardHash": "a9d9fd20190ae707534622f31695c7e9cb6032db4d053226efacf5f402cad4e2"
 }

@@ -263,16 +263,70 @@ budgets:
 
 ---
 
-### Slice F: FR-003(c) Platform queue-storm gate (independent)
+### Slice F: FR-003(c) Platform queue-storm gate (independent) -- LANDED
 
 **Depends on**: Slice A is helpful for the ceiling type pattern, but this slice can land before Slice A; it reads a `STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` env var or a platform config value until the envelope carries the threshold.
 
 **FR/AC coverage**: FR-003(c).
 
-**Files edited**:
+**Design note (as-built, supersedes the earlier enforce sketch below)**: the
+user locked a detection-only decision for this landing: the gate counts,
+logs, and audits; it never throws and never blocks. The original sketch
+(a `resourceExhausted` 429 throw against a bare env-var ceiling) is
+superseded for the same reason Slice D/E's axis sketches were superseded:
+`STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` is platform config, not an admitted
+`budgets:` threshold (FR-001) or a peer envelope field like `oscillation:`/
+`intent_dedup:`; refusing real work on an org-invisible, unadmitted value
+would be an enforcement action with no admission record behind it. This
+matches the Sequencing paragraph's own framing for (c): "detection-only,
+thresholds from platform config until the envelope carries them."
+Enforcement is deferred to that later envelope-carried threshold.
 
-- `platform/services/stagecraft/api/factory/runs.ts`
-  - In `reserveRunCore`, after the admission check and before the INSERT, add a runs-in-flight count gate:
+**Files added/edited (as-built)**:
+
+- `platform/services/stagecraft/api/factory/queueStormGate.ts` (new,
+  established by this spec): `maxRunsInFlight()` reads
+  `STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` with a parsed default of 25
+  (justification in the module doc comment, mirroring the `max_repeats: 3`
+  reasoning shape for FR-003(a)); `detectQueueStorm(ctx)` counts the org's
+  `queued`/`running` rows and, at or over the ceiling, `log.warn`s and
+  writes a `factory.run.storm_detected` audit row (new constant in
+  `auditActions.ts`). Always resolves; never throws.
+- `platform/services/stagecraft/api/factory/runs.ts` -- in
+  `reserveRunCore`, one `await detectQueueStorm({...})` call inside a
+  `// region: queue-storm-gate (spec 202 FR-003c)` / `// endregion` marker
+  pair, placed after the idempotent fast path and before
+  `loadSubstrateForOrg` (detection does not need the resolved
+  adapter/process to fire).
+- `platform/services/stagecraft/api/factory/auditActions.ts` --
+  `FACTORY_RUN_STORM_DETECTED` constant plus its `FactoryRunAuditAction`
+  union member.
+- `platform/services/stagecraft/vite.config.ts` -- the new test file joins
+  the encore-test-only exclude list (live DB).
+- `platform/services/stagecraft/CLAUDE.md` -- documents the
+  `STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` knob.
+- The sweeper (`runsScheduler.ts`) is NOT modified (confirmed per spec
+  §Code reality 5).
+
+**Frontmatter additions to `spec.md`** (same PR): `establishes` for the new
+`queueStormGate.ts` (+ its test file); `refines` aspects for `runs.ts`
+("queue-storm-detection"), `auditActions.ts`
+("queue-storm-audit-actions"), `vite.config.ts`
+("encore-test-lane-assignment", same aspect name spec 200 used for the
+same lane-assignment edit), and `CLAUDE.md`
+("queue-storm-env-knob-docs").
+
+**Tests** (`queueStormGate.test.ts`, fixture family `33333333-...`):
+over-ceiling still admits (`reserved: true`) and writes the
+`storm_detected` audit row; under-ceiling admits with no audit row;
+terminal-status (`ok`/`failed`/`cancelled`) rows do not count toward
+in-flight; plus a direct unit group for `maxRunsInFlight()`'s env-parsing
+(default, valid override, invalid-override fallback).
+
+<details>
+<summary>Earlier sketch (superseded; kept for the historical record)</summary>
+
+The original plan proposed an enforce path:
 
 ```typescript
 const [{ count: inFlight }] = await db
@@ -293,15 +347,11 @@ if (inFlight >= maxInFlight) {
 }
 ```
 
-  - `runsInFlightCeiling()` reads `STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT` env var (default conservative value, e.g. 5); when the envelope carries the threshold (post-Slice A), admission reads it from the admitted budget. The function is pure and injectable for tests.
-  - The sweeper (`runsScheduler.ts`) is NOT modified (confirmed per spec §Code reality 5).
+This is not what landed (see the design note above); it is retained here
+so the "throw" idiom is discoverable when a future PR wires the
+envelope-carried threshold and revisits enforcement.
 
-**Frontmatter additions to `spec.md`** (same PR):
-- Promote `platform/services/stagecraft/api/factory/runs.ts` from `references: context` to `refines:` or `establishes:` unit so the coupling gate accepts the edit
-
-**Tests** (`runs.test.ts` or a new `runsQueueGate.test.ts`):
-- Insert `maxInFlight` rows in `queued` for the same org; assert `reserveRunCore` throws `resourceExhausted`
-- Insert `maxInFlight - 1` rows; assert the reservation succeeds
+</details>
 
 ---
 
