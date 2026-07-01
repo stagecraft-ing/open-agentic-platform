@@ -131,4 +131,4 @@ jobs:
         run: pnpm --filter @opc/desktop exec tsc --noEmit
 
       - name: Vitest
-        run: pnpm --filter @opc/desktop test
+        run: pnpm --filter @opc/desktop --filter @opc/carrier-gate --filter @opc/session-memory test
