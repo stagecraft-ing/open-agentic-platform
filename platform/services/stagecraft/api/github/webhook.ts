@@ -646,6 +646,29 @@ async function handleOrganizationEvent(p: any): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /**
+ * Spec 213 recording gate for `project_artifacts` (pure).
+ *
+ * Only a default-branch push publishes the `sha-<head_sha>` tag the deploy
+ * path resolves. A `pull_request` run checks out the ephemeral merge commit,
+ * so it pushes `sha-<mergesha>` plus the `pr-<n>` alias, never
+ * `sha-<head_sha>`; recording its head_sha would store a row pointing at a
+ * tag that was never pushed (the phantom-artifact regression). Non-default
+ * branch pushes are excluded so "latest deployable" tracks the deploy branch.
+ * Fails closed when the default branch is unknown.
+ */
+export function isDefaultBranchPush(
+  run: { event?: string; head_branch?: string } | null | undefined,
+  defaultBranch: string,
+): boolean {
+  return (
+    !!run &&
+    run.event === "push" &&
+    !!defaultBranch &&
+    run.head_branch === defaultBranch
+  );
+}
+
+/**
  * On a successful `oap-build` run, upsert a `project_artifacts` row per
  * built variant so the deploy path can resolve the image ref without a
  * registry round trip (spec 213 FR-006). Best-effort: a missed or failed
@@ -659,6 +682,22 @@ async function handleWorkflowRunCompleted(p: any): Promise<void> {
     run.name !== OAP_BUILD_WORKFLOW_NAME ||
     run.conclusion !== "success"
   ) {
+    return;
+  }
+
+  // Spec 213 (sha tags on every default-branch push): only a default-branch
+  // push build publishes a `sha-<head_sha>` tag whose sha equals
+  // `run.head_sha`, which is what the deploy path resolves. Skip everything
+  // else (pull_request runs, non-default-branch pushes) so we never record a
+  // row pointing at a tag that was never pushed. See isDefaultBranchPush.
+  const defaultBranch: string = p.repository?.default_branch ?? "";
+  if (!isDefaultBranchPush(run, defaultBranch)) {
+    log.debug("oap-build completed but not a default-branch push; skipping artifact record", {
+      repo: p.repository?.full_name,
+      event: run.event,
+      headBranch: run.head_branch,
+      defaultBranch,
+    });
     return;
   }
 
