@@ -87,5 +87,10 @@ export function signalsToStoreInputs(
     tags: [signal.ruleId],
     projectScope,
     sourceSessionId,
+    // Spec 204 FR-002: harvested entries are authored by the harvester, not an
+    // agent turn, and attribute the harvest rule that produced them. The trust
+    // class derives to machine-harvested (only a human actor is human-curated).
+    actorKind: "harvester" as const,
+    sourceAttribution: `harvest-rule:${signal.ruleId}`,
   }));
 }

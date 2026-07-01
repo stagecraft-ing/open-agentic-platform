@@ -65,7 +65,15 @@
         "source": "spec-edge"
       },
       {
+        "path": "product/packages/session-memory/src/harvesting/engine.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "product/packages/session-memory/src/index.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/session-memory/src/provenance.test.ts",
         "source": "spec-edge"
       },
       {
@@ -73,7 +81,15 @@
         "source": "spec-edge"
       },
       {
+        "path": "product/packages/session-memory/src/storage/migrations.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "product/packages/session-memory/src/storage/sqlite.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/session-memory/src/tools/store.ts",
         "source": "spec-edge"
       },
       {
@@ -202,6 +218,19 @@
       {
         "locations": [
           {
+            "file": "product/packages/session-memory/src/provenance.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/provenance.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/featuregraph/tests/golden/features_graph.json"
           }
         ],
@@ -241,6 +270,19 @@
       {
         "locations": [
           {
+            "file": "product/packages/session-memory/src/harvesting/engine.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/harvesting/engine.ts"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "product/packages/session-memory/src/index.ts"
           }
         ],
@@ -267,6 +309,19 @@
       {
         "locations": [
           {
+            "file": "product/packages/session-memory/src/storage/migrations.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/storage/migrations.ts"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "product/packages/session-memory/src/storage/sqlite.ts"
           }
         ],
@@ -275,6 +330,19 @@
         "unit": {
           "kind": "file",
           "path": "product/packages/session-memory/src/storage/sqlite.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/packages/session-memory/src/tools/store.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/tools/store.ts"
         }
       },
       {
@@ -308,5 +376,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "cd7bf1a945fcf0f60f534ab3eff2f6fe57d9de746381bf26b7ffd205cd2ac171"
+  "shardHash": "281a0ace953cc8eb6ff0d80ad7b9731be2134ec47cdc9131b6ad938245603cca"
 }

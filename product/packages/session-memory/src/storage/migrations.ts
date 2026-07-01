@@ -39,6 +39,31 @@ export const MIGRATIONS: Migration[] = [
       INSERT INTO schema_version (version) VALUES (1);
     `,
   },
+  {
+    version: 2,
+    description: "Provenance + trust class columns (spec 204 FR-002 / FR-003)",
+    // Additive. New columns carry constant defaults so ADD COLUMN is legal on
+    // an existing table. Enum validity (actor_kind, trust_class) is enforced at
+    // write time by `MemoryStorage.store` and by the TypeScript types, rather
+    // than by SQLite CHECK constraints, so the storage layer stays the single
+    // validation authority. `applyMigrations` runs this whole block in a
+    // transaction, so a crash mid-migration rolls back (ADD COLUMN is not
+    // idempotent and would otherwise brick the DB on retry). Existing rows get
+    // content_hash='' and are backfilled with a real hash by MemoryStorage on
+    // open; the partial index makes that backfill probe O(1) once it converges.
+    up: `
+      ALTER TABLE memory_entries ADD COLUMN actor_kind TEXT NOT NULL DEFAULT 'agent';
+      ALTER TABLE memory_entries ADD COLUMN source_attribution TEXT;
+      ALTER TABLE memory_entries ADD COLUMN content_hash TEXT NOT NULL DEFAULT '';
+      ALTER TABLE memory_entries ADD COLUMN trust_class TEXT NOT NULL DEFAULT 'machine-harvested';
+
+      CREATE INDEX IF NOT EXISTS idx_memory_trust_class ON memory_entries (trust_class);
+      CREATE INDEX IF NOT EXISTS idx_memory_source_session ON memory_entries (source_session_id);
+      CREATE INDEX IF NOT EXISTS idx_memory_unhashed ON memory_entries (content_hash) WHERE content_hash = '';
+
+      INSERT INTO schema_version (version) VALUES (2);
+    `,
+  },
 ];
 
 export function getCurrentVersion(db: { prepare: (sql: string) => { get: () => { version: number } | undefined } }): number {
@@ -50,11 +75,21 @@ export function getCurrentVersion(db: { prepare: (sql: string) => { get: () => {
   }
 }
 
-export function applyMigrations(db: { exec: (sql: string) => void; prepare: (sql: string) => { get: () => { version: number } | undefined } }): void {
+interface MigrationDb {
+  exec: (sql: string) => void;
+  prepare: (sql: string) => { get: () => { version: number } | undefined };
+  transaction: (fn: () => void) => () => void;
+}
+
+export function applyMigrations(db: MigrationDb): void {
   const current = getCurrentVersion(db);
   for (const migration of MIGRATIONS) {
     if (migration.version > current) {
-      db.exec(migration.up);
+      // Run each migration atomically: schema changes + the schema_version
+      // bump commit together or not at all. ALTER TABLE ADD COLUMN is not
+      // idempotent, so a crash between statements would otherwise leave a
+      // half-migrated table that throws "duplicate column" on every retry.
+      db.transaction(() => db.exec(migration.up))();
     }
   }
 }
