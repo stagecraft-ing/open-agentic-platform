@@ -372,6 +372,13 @@ pub struct DeployExtras<'a> {
     /// (`tenants-wildcard-tls`). Enables `ingress.tls` when an ingress route
     /// is also present.
     pub tls_secret_name: Option<&'a str>,
+    /// FR-006: when true, render the chart's opt-in preview-grade Postgres
+    /// (`previewDatabase.enabled: true`) so an Encore tenant with a
+    /// `SQLDatabase` boots against an in-namespace database instead of
+    /// crashing on an unresolved connection. Stagecraft sets this for
+    /// development/preview environments; production tenants supply an
+    /// external DSN instead (not auto-provisioned here).
+    pub preview_database: bool,
 }
 
 /// Translate a DeploymentRequest's fields into a values JSON the chart
@@ -445,6 +452,14 @@ pub fn build_values(
             .map(|(name, value)| serde_json::json!({ "name": name, "value": value }))
             .collect();
         values["extraEnv"] = Value::Array(extra_env);
+    }
+    // Spec 214 FR-006: opt-in preview-grade Postgres. When enabled, the chart
+    // renders a single-replica Postgres StatefulSet + credentials Secret and
+    // injects the POSTGRES_* connection env the Encore runtime resolves, so a
+    // tenant with a SQLDatabase boots instead of crashing on an unresolved
+    // password. Left unset (chart default `enabled: false`) otherwise.
+    if extras.preview_database {
+        values["previewDatabase"] = serde_json::json!({ "enabled": true });
     }
     values
 }
@@ -715,6 +730,33 @@ mod tests {
         };
         let v = build_values("ghcr.io/org/app:v1", "app-prod", &[], None, &extras);
         assert!(v.get("imagePullSecrets").is_none());
+    }
+
+    #[test]
+    fn build_values_enables_preview_database_when_requested() {
+        // FR-006: preview_database renders the chart's opt-in Postgres so an
+        // Encore tenant with a SQLDatabase boots against an in-namespace DB.
+        let extras = DeployExtras {
+            preview_database: true,
+            ..Default::default()
+        };
+        let v = build_values("ghcr.io/org/app:v1", "app-prod", &[], None, &extras);
+        assert_eq!(v["previewDatabase"]["enabled"], true);
+    }
+
+    #[test]
+    fn build_values_omits_preview_database_by_default() {
+        let v = build_values(
+            "ghcr.io/org/app:v1",
+            "app-prod",
+            &[],
+            None,
+            &DeployExtras::default(),
+        );
+        assert!(
+            v.get("previewDatabase").is_none(),
+            "chart default (disabled) is left untouched when not requested"
+        );
     }
 
     #[test]

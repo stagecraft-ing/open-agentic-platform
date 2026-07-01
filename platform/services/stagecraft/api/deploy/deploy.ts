@@ -558,6 +558,7 @@ interface DeployEnvContext {
   envId: string;
   projectId: string;
   envName: string;
+  envKind: string;
   k8sNamespace: string | null;
   requiresApproval: boolean;
   projectSlug: string;
@@ -582,6 +583,7 @@ async function loadDeployEnvContext(
       envId: environments.id,
       projectId: environments.projectId,
       envName: environments.name,
+      envKind: environments.kind,
       k8sNamespace: environments.k8sNamespace,
       requiresApproval: environments.requiresApproval,
       projectSlug: projects.slug,
@@ -693,6 +695,22 @@ async function buildTriggerDeploydBody(
     };
   }
 
+  // Spec 214 FR-006: the acme-vue-encore tenant is an Encore app with a
+  // SQLDatabase, so it cannot boot without a database (it crash-loops on
+  // "failed to resolve password" otherwise). Development and preview
+  // environments get an auto-provisioned preview-grade Postgres
+  // (previewDatabase.enabled=true, rendered by deployd-api + the chart);
+  // other kinds must supply an external DSN, which this trigger does not model
+  // yet, so refuse rather than dispatch a DB-less app.
+  const previewDatabase =
+    ctx.envKind === "development" || ctx.envKind === "preview";
+  if (!previewDatabase) {
+    return {
+      ok: false,
+      message: `environment kind '${ctx.envKind}' needs an external database; only development and preview environments auto-provision one`,
+    };
+  }
+
   const chartSelection = resolveChartSelection(ctx.factoryAdapterId, undefined);
   const desiredRoutes = TENANTS_BASE_DOMAIN
     ? [
@@ -727,6 +745,7 @@ async function buildTriggerDeploydBody(
       chart_version: chartSelection?.version,
       image_pull_secret_name: "ghcr-pull",
       namespace: ctx.k8sNamespace ?? undefined,
+      preview_database: previewDatabase,
     },
   };
 }
