@@ -557,7 +557,7 @@ ci-desktop:
 	@echo "==> ci-desktop: typescript"
 	cd product && pnpm install --frozen-lockfile
 	cd product && pnpm --filter @opc/desktop exec tsc --noEmit
-	cd product && pnpm --filter @opc/desktop test
+	cd product && pnpm --filter @opc/desktop --filter @opc/carrier-gate --filter @opc/session-memory test
 
 ci-stagecraft: ci-agent-frontmatter-ts
 	@echo "==> ci-stagecraft: npm ci + tsc + vitest"
