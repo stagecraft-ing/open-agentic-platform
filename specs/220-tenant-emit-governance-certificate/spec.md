@@ -2,8 +2,8 @@
 id: "220-tenant-emit-governance-certificate"
 title: "Tenant-Emit Governance Certificate (the emitter, its firing, and the tenant signer identity)"
 feature_branch: "feat/220-tenant-emit-governance-certificate"
-status: draft
-implementation: pending
+status: approved
+implementation: in-progress
 kind: capability
 domain: platform
 created: "2026-06-20"
@@ -433,3 +433,50 @@ OAP-side leg that pins it):
 Closure is gated on AC-2: a real produced app emitting a certificate that the spec
 209 CI step verifies green, which is also the end-to-end validation spec 209's own
 AC-1 silently required, so landing this leg unblocks spec 209's closure.
+
+## Implementation status (2026-07-01)
+
+**OAP-side factory-engine cert work: landed (Legs 1 and 3-pin).** The engine
+surface this spec owns is merged and tested on main:
+
+- **Leg 1 (engine, #407).** `build_certificate.rs` carries the
+  `--require-operator-key` flag (FR-003): a production tenant emission exits
+  non-zero with a named diagnostic when signing material resolves to
+  `ephemeral` rather than `operator`, so no untrusted certificate is written.
+  It also carries the FR-007 corpus read-path: `resolve_corpus_binding()` reads
+  `OAP_CORPUS_ATTESTATION_PATH` (or `--corpus-attestation`), hashes the supplied
+  attestation via the public `spec_spine_core::attest::attestation_hash` seam,
+  and binds it through `CertificateBuilder::corpus_binding()`. Read, never
+  recompute: the emitter never compiles or re-attests the corpus. Three
+  integration tests cover the operator-key halt, the operator-key pass, and the
+  corpus round-trip (`tenant_emission_integration.rs`).
+- **Leg 3 pin (#410).** The born-with kernel toolchain manifest
+  (`toolchain.yaml.tmpl`) pins the vended `tenant-emit` emitter next to
+  tenant-tail and spec-spine (FR-001 kernel-pinning); the `pending-spec-220`
+  deferred marker is gone and the `templates.rs` render test asserts the pinned
+  block.
+- **Scope confinement held.** 220 touched only `build_certificate.rs` (engine)
+  and the kernel template files; `governance_certificate.rs` was left untouched
+  for spec 203's 1.7.0 SBOM bump, exactly as the "Coordination with spec 203"
+  section required. No shared-file authority tangle occurred.
+
+**Remaining work is external / cross-repo; AC-2 is not yet satisfiable, so
+implementation stays `in-progress` (not `complete`).** Per the "closure is gated
+on AC-2" line above, the spec cannot honestly report complete until a real
+produced app emits a certificate that the spec 209 CI step verifies green. That
+requires:
+
+1. **Leg 2 (`tenant-emit` repo).** The sibling emit distributable is at v0.1.0
+   in git (Rust core + npm + py, tenant-tail's workflows, Apache-2.0), but is
+   **not yet published to the npm registry**, so the kernel's
+   `npx --no-install tenant-emit build-certificate` pin does not yet resolve.
+2. **FR-002 firing step.** No terminal `build-certificate` invocation is seeded
+   into the born-with CI yet. Like spec 209's `verify-certificate` step (which
+   lives in the prebuilt template's external `spec-spine.yml`), the emit-side
+   firing step lands in that same external CI, not in this repo. It is the
+   emit-side counterpart of the verify step 209 seeded.
+3. **AC-2 end-to-end.** With (1) and (2) in place, a real produced-app run emits
+   and the dormant spec 209 verify step activates green.
+
+The OAP-side cert engine is therefore done; the tenant boundary is crossed by
+the external legs above.

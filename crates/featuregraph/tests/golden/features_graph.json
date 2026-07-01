@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:aa0cff03208919ceb31107bd7d03ff91e58bac2e7ac8f1ab5cdb57ba37ec3e73",
+  "graph_fingerprint": "sha256:d3292c022587295709204a7d23b0ffd868d6fa3c2e43e867ca9c35718f25babf",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4153,8 +4153,8 @@
       "feature_id": "220-tenant-emit-governance-certificate",
       "title": "Tenant-Emit Governance Certificate (the emitter, its firing, and the tenant signer identity)",
       "spec_path": "specs/220-tenant-emit-governance-certificate/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "in-progress",
       "governance": "",
       "owner": "",
       "group": "",
