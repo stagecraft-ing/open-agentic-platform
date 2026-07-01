@@ -22,7 +22,7 @@ use factory_engine::{
 use orchestrator::{
     AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, BudgetGate, ChainedPreStepGate,
     CircuitBreakerConfig, CircuitBreakerState, ClaudeCodeExecutor, CliGateHandler, DispatchOptions,
-    GateHandler, OscillationGate, PreStepGate, RunBudgetMeter, ThinkingLevel,
+    GateHandler, IntentDedupGate, OscillationGate, PreStepGate, RunBudgetMeter, ThinkingLevel,
     detect_resume_plan_for_run, dispatch_manifest, materialize_run_directory_with_phase,
 };
 use sha2::{Digest, Sha256};
@@ -624,12 +624,30 @@ async fn main() -> ExitCode {
         threshold: oscillation.consecutive_failures,
         window_secs: oscillation.window_secs.unwrap_or(300),
     })));
+    // Spec 202 FR-003a: the CLI also detects repeated near-identical intents,
+    // under the same platform-defaults posture. The CLI files no intent
+    // capsule (no grant chain), so the signature's goal id is derived from
+    // the adapter + project path, mirroring the goal text
+    // `run_governance::establish` files for the OPC path. One gate instance
+    // spans both phases (shared via the `Arc<dyn PreStepGate>` clone below),
+    // so the repeat count is run-level like the budget meter.
+    let intent_goal_id = factory_engine::intent_capsule::derive_goal_id(&format!(
+        "factory run: adapter {} for project {}",
+        cli.adapter,
+        project_path.display()
+    ));
+    let intent_dedup_gate: Arc<dyn PreStepGate> = Arc::new(IntentDedupGate::new(
+        intent_goal_id,
+        factory_contracts::apply_intent_dedup_default(None),
+    ));
     let cli_pre_step = |budget: &Arc<Mutex<RunBudgetMeter>>,
-                        breaker: &Arc<Mutex<CircuitBreakerState>>|
+                        breaker: &Arc<Mutex<CircuitBreakerState>>,
+                        dedup: &Arc<dyn PreStepGate>|
      -> Arc<dyn PreStepGate> {
         Arc::new(ChainedPreStepGate::new(vec![
             Arc::new(BudgetGate::new(budget.clone())) as Arc<dyn PreStepGate>,
             Arc::new(OscillationGate::new(breaker.clone())) as Arc<dyn PreStepGate>,
+            dedup.clone(),
         ]))
     };
 
@@ -646,7 +664,7 @@ async fn main() -> ExitCode {
         project_path: None,
         originating_session: None,
         // Spec 202 FR-002: budget metering rides the CLI dispatch path.
-        pre_step: Some(cli_pre_step(&budget_meter, &oscillation_breaker)),
+        pre_step: Some(cli_pre_step(&budget_meter, &oscillation_breaker, &intent_dedup_gate)),
     };
 
     eprintln!("\nDispatching Phase 1...\n");
@@ -819,7 +837,7 @@ async fn main() -> ExitCode {
         project_path: None,
         originating_session: None,
         // Spec 202 FR-002: same meter as Phase 1, so ceilings are run-level.
-        pre_step: Some(cli_pre_step(&budget_meter, &oscillation_breaker)),
+        pre_step: Some(cli_pre_step(&budget_meter, &oscillation_breaker, &intent_dedup_gate)),
     };
 
     let summary2 = match dispatch_manifest(

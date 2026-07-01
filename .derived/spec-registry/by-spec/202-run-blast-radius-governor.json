@@ -172,6 +172,6 @@
     "summary": "Close the one ASI 2026 control whose residual is stated but unowned. Spec 198's all-ten table marks ASI08 (Cascading Failures) \"partial — residual stated\" and names blast-radius caps as follow-on; this spec is that follow-on. Existing levers (halt-on-failure, stop-hook 166, HITL gate predicates 198 FR-008, introspection 172) are reactive gates — they fire on an observed failure or at a declared checkpoint. What is missing is the quantitative ceiling between gates: per-run and per-stage budgets (tool invocations, file mutations, spawned work, wall-clock, cost), metered by the engine and circuit-breaking fail-closed when exceeded, plus fan-out and feedback-loop detection (ASI08 m6/m7, ASI02 m5 adaptive tool budgeting). A run that exceeds its admitted budget pauses at the next instruction boundary and requires a human resume; consumption actuals are bound into the governance certificate so the receipt shows how close the run came to its ceiling.\n",
     "title": "Run Blast-Radius Governor (ASI08 cascading-failure caps)"
   },
-  "shardHash": "a2319521fb7409d9460e170a3770a3a31274e1a6e9aab507dd6add98ceb86e00",
+  "shardHash": "9596d225a7cabc87e31959c1226662ca437ae68cd4ab7898bd17a2abc57e0e50",
   "specVersion": "1.1.0"
 }

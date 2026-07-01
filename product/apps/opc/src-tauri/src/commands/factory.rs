@@ -1413,6 +1413,22 @@ pub async fn start_factory_pipeline(
         )));
         let oscillation_gate: Arc<dyn orchestrator::PreStepGate> =
             Arc::new(orchestrator::OscillationGate::new(oscillation_breaker.clone()));
+        // Spec 202 FR-003a: the intent-dedup detector also rides every run
+        // under platform defaults, same posture as budget/oscillation above.
+        // The governed arm scopes the signature to the filed intent capsule's
+        // goal_id (ASI01 m7); the ungoverned arm has no capsule, so it falls
+        // back to a run-scoped id derived from the run's own uuid (no
+        // cross-run correlation is needed there since there is nothing to
+        // correlate against).
+        let intent_goal_id = match governance.as_ref() {
+            Some(gov) => gov.capsule.goal_id.clone(),
+            None => factory_engine::intent_capsule::derive_goal_id(&run_id.to_string()),
+        };
+        let intent_dedup_gate: Arc<dyn orchestrator::PreStepGate> =
+            Arc::new(orchestrator::IntentDedupGate::new(
+                intent_goal_id,
+                factory_contracts::apply_intent_dedup_default(None),
+            ));
         let pre_step_gate: Option<Arc<dyn orchestrator::PreStepGate>> =
             Some(match governance.as_ref() {
                 Some(gov) => {
@@ -1432,11 +1448,13 @@ pub async fn start_factory_pipeline(
                         grant,
                         budget_gate,
                         oscillation_gate,
+                        intent_dedup_gate,
                     ])) as Arc<dyn orchestrator::PreStepGate>
                 }
                 None => Arc::new(orchestrator::ChainedPreStepGate::new(vec![
                     budget_gate,
                     oscillation_gate,
+                    intent_dedup_gate,
                 ])) as Arc<dyn orchestrator::PreStepGate>,
             });
 
@@ -2604,6 +2622,19 @@ pub async fn resume_factory_pipeline(
             Arc::new(orchestrator::OscillationGate::new(
                 resume_oscillation_breaker.clone(),
             ));
+        // Spec 202 FR-003a: the resume path also detects repeated
+        // near-identical intents, on every run including the ungoverned arm,
+        // with a fresh detector (same "new admission => new meter" posture
+        // as the resume budget meter / oscillation breaker above).
+        let resume_intent_goal_id = match governance.as_ref() {
+            Some(gov) => gov.capsule.goal_id.clone(),
+            None => factory_engine::intent_capsule::derive_goal_id(&run_id),
+        };
+        let resume_intent_dedup_gate: Arc<dyn orchestrator::PreStepGate> =
+            Arc::new(orchestrator::IntentDedupGate::new(
+                resume_intent_goal_id,
+                factory_contracts::apply_intent_dedup_default(None),
+            ));
         options.pre_step = Some(match governance.as_ref() {
             Some(gov) => {
                 // The freshly-seeded resume state has no frozen Build-Spec hash;
@@ -2619,11 +2650,13 @@ pub async fn resume_factory_pipeline(
                     grant,
                     resume_budget_gate,
                     resume_oscillation_gate,
+                    resume_intent_dedup_gate,
                 ])) as Arc<dyn orchestrator::PreStepGate>
             }
             None => Arc::new(orchestrator::ChainedPreStepGate::new(vec![
                 resume_budget_gate,
                 resume_oscillation_gate,
+                resume_intent_dedup_gate,
             ])) as Arc<dyn orchestrator::PreStepGate>,
         });
 

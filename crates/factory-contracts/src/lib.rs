@@ -37,8 +37,9 @@ pub use governance_envelope::{
     GOVERNANCE_ENVELOPE_SCHEMA_VERSION,
 };
 pub use run_budget::{
-    apply_defaults, apply_oscillation_default, AdmittedBudget, BudgetSource, BudgetValue,
-    OscillationThreshold, RunBudgetAxis, RunBudgetCeiling, PLATFORM_DEFAULT_BUDGETS,
+    apply_defaults, apply_intent_dedup_default, apply_oscillation_default, AdmittedBudget,
+    BudgetSource, BudgetValue, IntentDedupThreshold, OscillationThreshold, RunBudgetAxis,
+    RunBudgetCeiling, PLATFORM_DEFAULT_BUDGETS, PLATFORM_DEFAULT_INTENT_DEDUP,
     PLATFORM_DEFAULT_OSCILLATION_THRESHOLD,
 };
 pub use agent_loader::AgentPrompt;

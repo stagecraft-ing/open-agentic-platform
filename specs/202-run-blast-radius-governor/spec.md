@@ -227,17 +227,35 @@ distinct `RunBudget*` prefix to avoid collision.
   (AC-6).
 - **FR-003 — Fan-out and feedback-loop detection.** Beyond static
   ceilings, the governor detects the ASI08 propagation signatures, each
-  with thresholds declared as envelope fields, never hardcoded (a
-  `budgets:` axis for signatures (a) and (c); the peer top-level
-  `oscillation:` field for signature (b), whose consecutive-failure
-  streak is not a monotonic budget axis, see FR-003b):
-  - *(a) Repeated near-identical intents* within a window, engine-side.
-    Intent identity is the run's goal id plus a step signature: a
-    content hash over the step's normalized instruction text, mirroring
+  with thresholds declared as envelope fields, never hardcoded (a peer
+  top-level `intent_dedup:` field for signature (a), mirroring the peer
+  `oscillation:` field for signature (b); refined against that same
+  precedent, see FR-003a/FR-003b, rather than the `budgets:` axis this FR
+  originally proposed for (a): a per-signature repeat count is not a
+  monotonic run-total axis either, the same reason (b)'s
+  consecutive-failure streak is not one. A `budgets:`-shaped count gate
+  remains only for the platform-side signature (c)):
+  - *(a) Repeated near-identical intents* within a run, engine-side,
+    declared as the peer envelope field `intent_dedup:`
+    (`IntentDedupThreshold`: `max_repeats`, `window_secs`). Intent
+    identity is the run's goal id plus a step signature:
+    `SHA-256_hex(goal_id + "\n" + normalize(instruction))`, mirroring
     the `goal_id` construction in
     `crates/factory-engine/src/intent_capsule.rs`. The step id is
     excluded from the hash so dynamically generated near-twin steps
-    collide; the normalization rule is fixed at implementation.
+    collide; `normalize` = trim, collapse internal whitespace runs to a
+    single space, lowercase (fixed at implementation, documented as
+    contract on the Rust twin). Platform default `max_repeats: 3`,
+    deliberately tighter than oscillation's `consecutive_failures: 5`:
+    a literal repeated instruction has no "still making forward
+    progress" reading the way a self-correcting retry streak does.
+    Detection window: whole-run count in this slice (`window_secs` is
+    carried in the contract, platform-fixed/unused, mirroring
+    `OscillationThreshold.window_secs`). Slice E bumps the
+    governance-envelope schema 1.2.0 -> 1.3.0 to add the `intent_dedup:`
+    field, landing the YAML and the Rust twin
+    (`GOVERNANCE_ENVELOPE_SCHEMA_VERSION`) in the same PR under the same
+    lockstep discipline AC-7 established for the 1.1.0/1.2.0 bumps.
   - *(b) Oscillating retry/compensation loops (observed as consecutive
     retry-heavy steps under fail-fast dispatch; see the implementation
     note below).* Inputs
@@ -264,7 +282,14 @@ distinct `RunBudget*` prefix to avoid collision.
     unchanged (§Code reality 5).
 
   Response order: detection throttles first (rate cap), breaks second
-  (pause via the FR-002 channel).
+  (pause via the FR-002 channel). Implementation note for (a) and (b)
+  (refined against dispatch reality, same posture as (b)'s note above):
+  the orchestrator's dispatch loop is sequential, so there is no
+  concurrency between steps to rate-limit; "throttle" is degenerate on
+  this substrate. Both detectors implement the break only (fail-closed
+  pause) as the MVP response; the throttle tier is not silently
+  dropped, it is recorded here as not yet realizable, pending a
+  concurrent dispatch substrate that would make it load-bearing.
 - **FR-004 — Approval-velocity (governance-drift) counter.** Bulk
   rubber-stamping is ASI08's governance-drift vulnerability. The governor
   counts approvals per actor per window and surfaces anomalous approval

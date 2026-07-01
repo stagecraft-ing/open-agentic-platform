@@ -22,7 +22,7 @@ use agent_frontmatter::{MutationCapability, SafetyTier, UnifiedFrontmatter};
 use serde::{Deserialize, Serialize};
 
 use crate::adapter_manifest::AdapterGovernance;
-use crate::run_budget::{OscillationThreshold, RunBudgetCeiling};
+use crate::run_budget::{IntentDedupThreshold, OscillationThreshold, RunBudgetCeiling};
 
 /// Governance Envelope contract version (spec 198 FR-002). Pinned at compile
 /// time per the `PROVENANCE_SCHEMA_VERSION` pattern; instance mismatches fail
@@ -42,7 +42,15 @@ use crate::run_budget::{OscillationThreshold, RunBudgetCeiling};
 /// acceptance: `validate_governance_envelope_semantics` rejects an envelope
 /// pinned to a prior `schema_version` by strict equality, the same as every
 /// prior bump.
-pub const GOVERNANCE_ENVELOPE_SCHEMA_VERSION: &str = "1.2.0";
+///
+/// 1.3.0 (spec 202 FR-003a): additive `intent_dedup:` field carrying the
+/// repeated-near-identical-intent trip threshold (ASI08 m6/m7). Declared as
+/// a peer field alongside `oscillation:`, refined against that same
+/// precedent rather than a `budgets:` axis (see `IntentDedupThreshold`).
+/// Additive within 1.3.0: an absent `intent_dedup:` field deserializes to
+/// `None` and the engine applies the platform default fail-closed, the same
+/// posture as every prior optional field.
+pub const GOVERNANCE_ENVELOPE_SCHEMA_VERSION: &str = "1.3.0";
 
 // ── Process envelope ──────────────────────────────────────────────────
 
@@ -73,6 +81,13 @@ pub struct GovernanceEnvelope {
     /// default applies fail-closed (same posture as an absent budget axis).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub oscillation: Option<OscillationThreshold>,
+    /// Repeated-near-identical-intent trip threshold (ASI08 m6/m7; spec 202
+    /// FR-003a). Declared as a peer field alongside `oscillation:`, not a
+    /// `budgets:` axis (a per-signature repeat count is not a monotonic
+    /// run-total axis, see `IntentDedupThreshold`). When absent, the platform
+    /// default applies fail-closed (same posture as an absent budget axis).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub intent_dedup: Option<IntentDedupThreshold>,
 }
 
 /// Identity + intent-capsule template (ASI01 m5/m7; spec 198 FR-005).
@@ -377,6 +392,7 @@ mod tests {
             },
             budgets: vec![],
             oscillation: None,
+            intent_dedup: None,
         }
     }
 
@@ -397,7 +413,7 @@ mod tests {
 
     #[test]
     fn version_const_anchor() {
-        assert_eq!(GOVERNANCE_ENVELOPE_SCHEMA_VERSION, "1.2.0");
+        assert_eq!(GOVERNANCE_ENVELOPE_SCHEMA_VERSION, "1.3.0");
     }
 
     #[test]
@@ -645,5 +661,40 @@ mod tests {
         );
         let back: GovernanceEnvelope = serde_yaml::from_str(&yaml).unwrap();
         assert!(back.oscillation.is_none());
+    }
+
+    /// FR-003a: an envelope with an `intent_dedup:` field round-trips through
+    /// YAML.
+    #[test]
+    fn envelope_with_intent_dedup_round_trips() {
+        let mut env = envelope(SafetyTier::Tier1, MutationCapability::ReadOnly);
+        env.intent_dedup = Some(IntentDedupThreshold {
+            max_repeats: 2,
+            window_secs: Some(120),
+        });
+        let yaml = serde_yaml::to_string(&env).unwrap();
+        let back: GovernanceEnvelope = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(
+            back.intent_dedup,
+            Some(IntentDedupThreshold {
+                max_repeats: 2,
+                window_secs: Some(120),
+            })
+        );
+    }
+
+    /// FR-003a: an envelope with no `intent_dedup:` field deserializes to
+    /// `None` (backward compatibility; the engine applies the platform
+    /// default fail-closed).
+    #[test]
+    fn envelope_without_intent_dedup_deserializes_to_none() {
+        let env = envelope(SafetyTier::Tier1, MutationCapability::ReadOnly);
+        let yaml = serde_yaml::to_string(&env).unwrap();
+        assert!(
+            !yaml.contains("intent_dedup"),
+            "absent intent_dedup must be skipped in serialization: {yaml}"
+        );
+        let back: GovernanceEnvelope = serde_yaml::from_str(&yaml).unwrap();
+        assert!(back.intent_dedup.is_none());
     }
 }

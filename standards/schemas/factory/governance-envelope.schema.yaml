@@ -27,10 +27,10 @@
 # Rust twin: crates/factory-contracts/src/governance_envelope.rs
 # (GOVERNANCE_ENVELOPE_SCHEMA_VERSION).
 #
-# Schema version: 1.2.0
+# Schema version: 1.3.0
 # ============================================================================
 
-schema_version: "1.2.0"
+schema_version: "1.3.0"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PROCESS IDENTITY — the intent-capsule template            [ASI01 m5, m7]
@@ -128,6 +128,24 @@ budgets:
 # Rust twin: crates/factory-contracts/src/run_budget.rs (OscillationThreshold)
 oscillation:
   consecutive_failures: number      # Consecutive step wobbles before tripping
+  window_secs: number               # Optional; platform-fixed in this slice
+                                    # (a declared value is currently ignored;
+                                    # see Rust twin)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# INTENT_DEDUP -- repeated-near-identical-intent threshold [ASI08 m6/m7; spec 202 FR-003a]
+# ─────────────────────────────────────────────────────────────────────────────
+# Optional. When absent, the platform default applies fail-closed (same posture
+# as an absent budget axis). NOT a budgets: axis, refined against the same
+# precedent as oscillation: above: a per-signature repeat count is scoped to one
+# intent signature rather than the whole run and has no uniform per_stage scope,
+# so it does not fit the per_run/per_stage axis shape (see Rust twin doc).
+# Tighten-only on max_repeats (a lower repeat cap is tighter); window_secs is
+# platform-fixed in this slice.
+# Rust twin: crates/factory-contracts/src/run_budget.rs (IntentDedupThreshold)
+intent_dedup:
+  max_repeats: number               # Occurrences of one intent signature
+                                    # tolerated before the run pauses
   window_secs: number               # Optional; platform-fixed in this slice
                                     # (a declared value is currently ignored;
                                     # see Rust twin)
