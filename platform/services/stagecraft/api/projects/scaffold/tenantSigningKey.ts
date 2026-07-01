@@ -73,8 +73,9 @@ interface RepoPublicKey {
  * Set an encrypted repository Actions secret. Fetches the repo's secret
  * public key, seals `value` to it with libsodium `crypto_box_seal` (the
  * GitHub-documented sealed-box construction), and PUTs the encrypted value.
- * Requires the installation token to carry `actions: write` (create.ts
- * already brokers it that way).
+ * The `/repos/{repo}/actions/secrets/*` endpoints are governed by GitHub's
+ * dedicated `secrets` permission (read for the public key, write for the
+ * PUT), NOT `actions`; create.ts brokers the token with `secrets: write`.
  */
 export async function setRepoActionsSecret(
   token: string,
