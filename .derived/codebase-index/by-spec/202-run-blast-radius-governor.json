@@ -201,6 +201,19 @@
       {
         "locations": [
           {
+            "file": "crates/factory-engine/src/governance_certificate.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/governance_certificate.rs"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/orchestrator/Cargo.toml"
           }
         ],
@@ -248,19 +261,6 @@
         "unit": {
           "id": "factory-engine",
           "kind": "crate"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "crates/factory-engine/src/governance_certificate.rs"
-          }
-        ],
-        "ownership": false,
-        "sourceField": "references",
-        "unit": {
-          "kind": "file",
-          "path": "crates/factory-engine/src/governance_certificate.rs"
         }
       },
       {
@@ -320,5 +320,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "5e4184074aa469b42aee8254a44798b6157e694830e671fb4f1697966ed9eedb"
+  "shardHash": "fd4e1f0472f7334046ee4ded3fb68948fe6530ad6b2988216cde7c86879c7132"
 }

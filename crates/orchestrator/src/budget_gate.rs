@@ -41,7 +41,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use async_trait::async_trait;
-use factory_contracts::{AdmittedBudget, RunBudgetAxis};
+use factory_contracts::{AdmittedBudget, BudgetSource, RunBudgetAxis};
 
 use crate::{PreStepGate, StepActuals};
 
@@ -54,6 +54,22 @@ pub struct BudgetBreach {
     pub axis: RunBudgetAxis,
     pub ceiling: f64,
     pub actual: f64,
+}
+
+/// A per-axis consumption row for the governance certificate (spec 202 FR-005).
+///
+/// Unlike [`BudgetBreach`] (only the first offending axis), this reports EVERY
+/// admitted axis at run termination: the ceiling, the accumulated actual, the
+/// admission source, and whether the axis breached. The certificate binds these
+/// inside its signed payload so the receipt shows how close the run came to each
+/// ceiling (AC-4).
+#[derive(Debug, Clone, PartialEq)]
+pub struct RunBudgetConsumption {
+    pub axis: RunBudgetAxis,
+    pub ceiling: f64,
+    pub actual: f64,
+    pub source: BudgetSource,
+    pub breached: bool,
 }
 
 /// Run-level meter accumulating per-axis actuals against admitted ceilings.
@@ -137,6 +153,28 @@ impl RunBudgetMeter {
             }
         }
         None
+    }
+
+    /// Snapshot per-axis consumption for every admitted ceiling, for the
+    /// certificate's `budget_consumption` record (spec 202 FR-005). One row per
+    /// admitted axis in declaration order; `actual` and `breached` use the same
+    /// per-run comparison as [`check`], so a row is `breached` iff `check` would
+    /// report it. Call at run termination (success or halt).
+    pub fn consumption(&self) -> Vec<RunBudgetConsumption> {
+        self.ceilings
+            .iter()
+            .map(|ab| {
+                let ceiling = ab.ceiling_per_run.as_f64();
+                let actual = self.actual_for(ab.axis);
+                RunBudgetConsumption {
+                    axis: ab.axis,
+                    ceiling,
+                    actual,
+                    source: ab.source,
+                    breached: actual > ceiling,
+                }
+            })
+            .collect()
     }
 }
 
@@ -361,6 +399,37 @@ mod tests {
             gate.after_step(&actuals(Some(1_000), Some(0.1), Some(5))).await;
         }
         assert!(gate.before_step("s5").await.is_ok());
+    }
+
+    /// FR-005: `consumption()` reports one row per admitted axis with the
+    /// ceiling, accumulated actual, source, and a `breached` flag consistent
+    /// with `check()`.
+    #[tokio::test]
+    async fn consumption_reports_every_axis_with_breach_flag() {
+        let meter = RunBudgetMeter::new(vec![
+            ceiling(RunBudgetAxis::Tokens, BudgetValue::Integer(100)),
+            ceiling(RunBudgetAxis::ToolInvocations, BudgetValue::Integer(10)),
+        ]);
+        let meter = Arc::new(Mutex::new(meter));
+        let gate = BudgetGate::new(meter.clone());
+        // 150 tokens (over 100), 3 turns (under 10).
+        gate.after_step(&actuals(Some(150), None, Some(3))).await;
+
+        let rows = meter.lock().unwrap().consumption();
+        assert_eq!(rows.len(), 2, "one row per admitted axis");
+        let tokens = rows
+            .iter()
+            .find(|r| r.axis == RunBudgetAxis::Tokens)
+            .expect("tokens row present");
+        assert_eq!(tokens.ceiling, 100.0);
+        assert_eq!(tokens.actual, 150.0);
+        assert!(tokens.breached, "150 > 100");
+        assert_eq!(tokens.source, BudgetSource::Declared);
+        let tools = rows
+            .iter()
+            .find(|r| r.axis == RunBudgetAxis::ToolInvocations)
+            .expect("tool_invocations row present");
+        assert!(!tools.breached, "3 <= 10 must not breach");
     }
 
     // ── ChainedPreStepGate ───────────────────────────────────────────────────
