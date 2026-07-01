@@ -53,6 +53,22 @@
         "source": "spec-edge"
       },
       {
+        "path": "product/packages/session-memory/package.json",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/session-memory/src/gate.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/session-memory/src/gate.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/session-memory/src/index.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "product/packages/session-memory/src/server.ts",
         "source": "spec-edge"
       },
@@ -160,6 +176,32 @@
       {
         "locations": [
           {
+            "file": "product/packages/session-memory/src/gate.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/gate.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/packages/session-memory/src/gate.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/gate.ts"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/featuregraph/tests/golden/features_graph.json"
           }
         ],
@@ -181,6 +223,32 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/packages/session-memory/package.json"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/package.json"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/packages/session-memory/src/index.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/index.ts"
         }
       },
       {
@@ -240,5 +308,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "bce7f25ef9569c779841193950fca4f41a1eb3cdfed6c3d437c6aa2df86f5248"
+  "shardHash": "cd7bf1a945fcf0f60f534ab3eff2f6fe57d9de746381bf26b7ffd205cd2ac171"
 }

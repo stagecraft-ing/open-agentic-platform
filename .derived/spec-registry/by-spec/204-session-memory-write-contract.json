@@ -43,6 +43,14 @@
       {
         "kind": "file",
         "path": "product/packages/carrier-gate/tsconfig.json"
+      },
+      {
+        "kind": "file",
+        "path": "product/packages/session-memory/src/gate.ts"
+      },
+      {
+        "kind": "file",
+        "path": "product/packages/session-memory/src/gate.test.ts"
       }
     ],
     "extends": [
@@ -107,6 +115,20 @@
           "kind": "file",
           "path": "product/packages/session-memory/src/types.ts"
         }
+      },
+      {
+        "aspect": "memory-write-gate",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/index.ts"
+        }
+      },
+      {
+        "aspect": "memory-write-gate",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/package.json"
+        }
       }
     ],
     "sectionHeadings": [
@@ -122,6 +144,6 @@
     "summary": "Extend the substrate override-write discipline (spec 198 FR-013) to OAP's second persistent-memory surface: the OPC session-memory MCP (spec 056). Today memory writes are ungoverned — no validation-on-write, no provenance stamp, no trust class, no decay of unverified entries, and harvested agent output can be promoted toward permanent retention without any human in the loop (ASI06 bootstrap-poisoning shape). This spec mirrors the FR-013 architecture onto session memory: a deterministic carrier-class gate on every write, provenance (actor, origin session, content hash) on every revision, trust classes with human-gated promotion, trust-weighted decay, and a no-self-ingestion rule. The cross-cutting principle carries verbatim: a model may DETECT, only rules may BLOCK.\n",
     "title": "Session-Memory Write Contract (ASI06 cockpit surface)"
   },
-  "shardHash": "679ca4cf5e45e4a669b41650dc77b62485ce35681588fe023b97deed5a4a7038",
+  "shardHash": "820a3fea4266167f999082c590db033669f8b3e84b38d4a9066f9a83f23adc5a",
   "specVersion": "1.1.0"
 }

@@ -44,6 +44,9 @@ establishes:
   - unit: { kind: file, path: product/packages/carrier-gate/src/rules.test.ts }
   - unit: { kind: file, path: product/packages/carrier-gate/package.json }
   - unit: { kind: file, path: product/packages/carrier-gate/tsconfig.json }
+  # FR-001 memory-surface write gate + its AC-1 shared-fixture parity test.
+  - unit: { kind: file, path: product/packages/session-memory/src/gate.ts }
+  - unit: { kind: file, path: product/packages/session-memory/src/gate.test.ts }
 extends:
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
@@ -61,6 +64,12 @@ refines:
     unit: { kind: file, path: product/packages/session-memory/src/storage/sqlite.ts }
   - aspect: "trust-class-types"
     unit: { kind: file, path: product/packages/session-memory/src/types.ts }
+  # FR-001 wiring: session-memory depends on @opc/carrier-gate and re-exports
+  # the write gate from its public surface.
+  - aspect: "memory-write-gate"
+    unit: { kind: file, path: product/packages/session-memory/src/index.ts }
+  - aspect: "memory-write-gate"
+    unit: { kind: file, path: product/packages/session-memory/package.json }
 references:
   - role: context
     unit: { kind: file, path: docs/owasp-agentic-top-10-2026.md }

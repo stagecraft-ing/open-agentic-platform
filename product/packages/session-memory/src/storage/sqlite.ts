@@ -18,6 +18,7 @@ import type {
   StoreMemoryInput,
 } from "../types.js";
 import { EXPIRY_DEFAULTS } from "../types.js";
+import { MemoryWriteRefused, runMemoryStoreGate } from "../gate.js";
 import { applyMigrations } from "./migrations.js";
 
 /** Row shape returned from SQLite (snake_case). */
@@ -74,6 +75,17 @@ export class MemoryStorage {
 
   /** Store a new memory entry (FR-001 memory_store). */
   store(input: StoreMemoryInput): MemoryEntry {
+    // Spec 204 FR-001: the deterministic write gate refuses carrier-class,
+    // secret, and oversized content on every write path (this is the single
+    // persistence chokepoint, so a harvested-signal write routed through
+    // store() is gated identically to an explicit memory_store). Content and
+    // tags are both gated: both are persisted and re-injected into later
+    // sessions' prompts. Fail-closed with an attributable rule id.
+    const verdict = runMemoryStoreGate(input.content, input.tags);
+    if (!verdict.ok) {
+      throw new MemoryWriteRefused(verdict.ruleId, verdict.detail);
+    }
+
     const now = Math.floor(Date.now() / 1000);
     const importance = input.importance ?? "medium-term";
     const expiryDelta = EXPIRY_DEFAULTS[importance];
