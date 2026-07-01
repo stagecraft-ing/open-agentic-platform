@@ -497,34 +497,108 @@ fn agent_name_from_reference(r: &EngineAgentReference) -> String {
 /// Exceeding this budget marks the run failed locally (spec 124 T053).
 pub const REPLAY_QUEUE_MAX: usize = 1000;
 
-/// Test-only mutex serialising every test that mutates `XDG_DATA_HOME`
-/// in this binary. Cargo runs lib tests in parallel by default; without
-/// this, two tests reading the same env var see each other's writes.
-///
-/// Async-aware on purpose: tests that mutate `XDG_DATA_HOME` then `await`
-/// on operations reading it must hold the guard across the await points
-/// (the lock's whole reason for existing). A `std::sync::MutexGuard` held
-/// across `.await` is a clippy-flagged footgun in a multi-thread tokio
-/// runtime; `tokio::sync::Mutex` is the textbook fix.
+/// Test-only mutex serialising the tests that install a
+/// [`REPLAY_QUEUE_DIR_OVERRIDE`]. They share one global override slot, so
+/// two running in parallel would clobber each other's temp dir; this lock
+/// makes each hold the slot across its `.await` points. A
+/// `std::sync::MutexGuard` held across `.await` is a clippy-flagged
+/// footgun under a multi-thread tokio runtime, so this is a
+/// `tokio::sync::Mutex`.
 #[cfg(test)]
-pub static REPLAY_QUEUE_ENV_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+static REPLAY_QUEUE_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
-/// Resolve `$XDG_DATA_HOME/oap/factory-run-events/`. Falls back to
-/// `dirs::data_dir()` and finally to a temp directory.
-pub fn replay_queue_dir() -> PathBuf {
-    if let Ok(explicit) = std::env::var("XDG_DATA_HOME")
-        && !explicit.is_empty()
-    {
+/// Test-only override for the replay-queue base directory. Tests set this
+/// (via [`ReplayQueueDirGuard`]) instead of mutating the process-global
+/// `XDG_DATA_HOME`. Mutating `std::env` for test isolation is a data race
+/// against every sibling test that reads any env var concurrently
+/// (undefined behaviour in Rust 2024), and the source of the
+/// `run_emitter_spools_to_disk` flake that ejected product PRs from the
+/// merge queue. A synchronised override touches no global environ table,
+/// so that data race is gone.
+///
+/// The slot is still process-global (as the `XDG_DATA_HOME` it replaces
+/// was), so every test that reaches [`replay_queue_dir`] must install it
+/// through [`ReplayQueueDirGuard`], which serialises on
+/// [`REPLAY_QUEUE_TEST_LOCK`]. An unguarded test driving the queue while a
+/// guarded test held the slot would read the guarded test's dir; the guard
+/// is the contract that prevents that.
+#[cfg(test)]
+static REPLAY_QUEUE_DIR_OVERRIDE: std::sync::Mutex<Option<PathBuf>> = std::sync::Mutex::new(None);
+
+/// RAII handle held for the duration of a test that needs an isolated
+/// replay-queue directory. Acquires [`REPLAY_QUEUE_TEST_LOCK`] and installs
+/// `dir` as the [`REPLAY_QUEUE_DIR_OVERRIDE`]; on drop it clears the
+/// override and releases the lock, so a panicking assertion cannot strand
+/// a deleted temp dir for a sibling test to read.
+#[cfg(test)]
+#[must_use = "dropping the guard immediately releases the test lock and clears the queue-dir override, defeating isolation"]
+pub struct ReplayQueueDirGuard {
+    _lock: tokio::sync::MutexGuard<'static, ()>,
+}
+
+#[cfg(test)]
+impl ReplayQueueDirGuard {
+    /// Serialise on the test lock, then point the replay queue at `dir`.
+    pub async fn install(dir: &std::path::Path) -> Self {
+        let lock = REPLAY_QUEUE_TEST_LOCK.lock().await;
+        *REPLAY_QUEUE_DIR_OVERRIDE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner()) = Some(dir.to_path_buf());
+        Self { _lock: lock }
+    }
+}
+
+#[cfg(test)]
+impl Drop for ReplayQueueDirGuard {
+    fn drop(&mut self) {
+        *REPLAY_QUEUE_DIR_OVERRIDE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner()) = None;
+    }
+}
+
+/// Pure precedence for the replay-queue base directory: explicit
+/// `XDG_DATA_HOME` (when non-empty), then the platform data dir, then the
+/// system temp dir. Split from [`replay_queue_dir`] so tests exercise the
+/// precedence by argument rather than by mutating process-global env. The
+/// `data_dir` fallback is a closure so it is not computed when the env
+/// branch wins, preserving the original short-circuit.
+fn resolve_replay_queue_dir(
+    xdg_data_home: Option<&str>,
+    data_dir: impl FnOnce() -> Option<PathBuf>,
+) -> PathBuf {
+    if let Some(explicit) = xdg_data_home.filter(|v| !v.is_empty()) {
         return PathBuf::from(explicit)
             .join("oap")
             .join("factory-run-events");
     }
-    if let Some(data) = dirs::data_dir() {
+    if let Some(data) = data_dir() {
         return data.join("oap").join("factory-run-events");
     }
     std::env::temp_dir()
         .join("oap")
         .join("factory-run-events")
+}
+
+/// Resolve `$XDG_DATA_HOME/oap/factory-run-events/`. Falls back to
+/// `dirs::data_dir()` and finally to a temp directory. In test builds a
+/// [`REPLAY_QUEUE_DIR_OVERRIDE`], when set, takes precedence so isolation
+/// never depends on mutating process-global env.
+pub fn replay_queue_dir() -> PathBuf {
+    #[cfg(test)]
+    {
+        let override_dir = REPLAY_QUEUE_DIR_OVERRIDE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone();
+        if let Some(dir) = override_dir {
+            return dir.join("oap").join("factory-run-events");
+        }
+    }
+    resolve_replay_queue_dir(
+        std::env::var("XDG_DATA_HOME").ok().as_deref(),
+        dirs::data_dir,
+    )
 }
 
 fn replay_queue_path(run_id: &str) -> PathBuf {
@@ -577,8 +651,8 @@ pub enum QueuedFrame {
 }
 
 /// Append a single frame line to the run's NDJSON queue. Resolves the
-/// queue directory once so a parallel test that mutates `XDG_DATA_HOME`
-/// between the create-dir and open-file calls cannot stranded a write.
+/// queue directory once so a concurrent change to the resolved location
+/// between the create-dir and open-file calls cannot strand a write.
 pub async fn enqueue_frame(run_id: &str, frame: &QueuedFrame) -> Result<(), FactoryError> {
     use tokio::io::AsyncWriteExt;
     let dir = replay_queue_dir();
@@ -1179,35 +1253,41 @@ mod tests {
         assert!(s.contains("/app/project/<ad-hoc>/agents"));
     }
 
-    #[tokio::test]
-    async fn replay_queue_dir_honours_xdg_data_home() {
-        let _guard = REPLAY_QUEUE_ENV_LOCK.lock().await;
-        let prev = std::env::var("XDG_DATA_HOME").ok();
-        // SAFETY: REPLAY_QUEUE_ENV_LOCK serialises every env-mutating
-        // test in this binary so the read below cannot race a parallel
-        // set_var from a sibling test.
-        unsafe { std::env::set_var("XDG_DATA_HOME", "/tmp/oap-test-data") };
-        let path = replay_queue_dir();
+    #[test]
+    fn replay_queue_dir_honours_xdg_data_home() {
+        // Exercise the pure precedence resolver directly: no process-global
+        // env mutation, so nothing to race against or restore. The data-dir
+        // fallback is a closure so it is never invoked when XDG wins.
         assert_eq!(
-            path,
+            resolve_replay_queue_dir(Some("/tmp/oap-test-data"), || None),
             PathBuf::from("/tmp/oap-test-data")
                 .join("oap")
                 .join("factory-run-events")
         );
-        match prev {
-            Some(v) => unsafe { std::env::set_var("XDG_DATA_HOME", v) },
-            None => unsafe { std::env::remove_var("XDG_DATA_HOME") },
-        }
+        // An empty XDG_DATA_HOME falls through to the platform data dir.
+        assert_eq!(
+            resolve_replay_queue_dir(Some(""), || Some(PathBuf::from("/data"))),
+            PathBuf::from("/data").join("oap").join("factory-run-events")
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn replay_queue_dir_returns_installed_override() {
+        // Drive the public entrypoint (not just the pure resolver) so the
+        // #[cfg(test)] override branch and its path join stay covered.
+        let tmp = tempfile::tempdir().unwrap();
+        let _guard = ReplayQueueDirGuard::install(tmp.path()).await;
+        assert_eq!(
+            replay_queue_dir(),
+            tmp.path().join("oap").join("factory-run-events")
+        );
     }
 
     #[tokio::test(flavor = "multi_thread")]
     async fn enqueue_then_count_matches_appended_lines() {
-        let _guard = REPLAY_QUEUE_ENV_LOCK.lock().await;
         let tmp = tempfile::tempdir().unwrap();
-        // SAFETY: REPLAY_QUEUE_ENV_LOCK above prevents a parallel set_var.
-        unsafe {
-            std::env::set_var("XDG_DATA_HOME", tmp.path());
-        }
+        // Isolate the queue via the synchronised override, not env.
+        let _guard = ReplayQueueDirGuard::install(tmp.path()).await;
         let run_id = "test-run-enqueue";
         let frame = QueuedFrame::Failed {
             run_id: run_id.to_string(),
@@ -1217,7 +1297,6 @@ mod tests {
             enqueue_frame(run_id, &frame).await.unwrap();
         }
         assert_eq!(queue_len(run_id).await, 3);
-        unsafe { std::env::remove_var("XDG_DATA_HOME") };
     }
 
     // ── Spec 198 FR-005 — wire-field-name contract tests ─────────────────────

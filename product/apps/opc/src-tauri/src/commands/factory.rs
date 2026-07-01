@@ -3636,8 +3636,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn run_emitter_spools_to_disk_when_disconnected() {
         use crate::commands::factory_platform::{
-            queue_len, replay_queue, replay_queue_dir, RunEmitter,
-            REPLAY_QUEUE_ENV_LOCK,
+            queue_len, replay_queue, ReplayQueueDirGuard, RunEmitter,
         };
         use crate::commands::sync_client::{
             FactoryAgentRef, FactoryStageOutcome, OutboundFrame, SyncClientInner,
@@ -3645,13 +3644,11 @@ mod tests {
         use std::sync::Arc;
         use tokio::sync::mpsc;
 
-        // Pin XDG_DATA_HOME to a temp dir for queue isolation. Held for
-        // the duration of the test so a sibling env-mutating test cannot
-        // remap the path mid-flight.
-        let _env_guard = REPLAY_QUEUE_ENV_LOCK.lock().await;
+        // Isolate the queue via the synchronised override, held for the
+        // whole test so no sibling test can remap it mid-flight and no
+        // process-global env is touched.
         let tmp = tempfile::tempdir().unwrap();
-        // SAFETY: REPLAY_QUEUE_ENV_LOCK held above.
-        unsafe { std::env::set_var("XDG_DATA_HOME", tmp.path()) };
+        let _guard = ReplayQueueDirGuard::install(tmp.path()).await;
 
         let inner = Arc::new(SyncClientInner::default());
         // Start disconnected — first emit goes to disk.
@@ -3697,8 +3694,7 @@ mod tests {
             OutboundFrame::FactoryRunStageCompleted { .. }
         ));
 
-        // Tidy up env state for sibling tests.
-        unsafe { std::env::remove_var("XDG_DATA_HOME") };
-        let _ = replay_queue_dir;
+        // The override is cleared and the test lock released when
+        // `_guard` drops, even if an assertion above panics.
     }
 }
