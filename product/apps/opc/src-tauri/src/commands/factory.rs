@@ -2205,7 +2205,12 @@ pub async fn list_factory_runs(
         .into_iter()
         .map(|row| {
             let phase = match row.status.as_str() {
-                "queued" | "running" => "running",
+                // Emit "process", not "running": the desktop's FactoryPhase
+                // union has no "running" member, so it fell back to the
+                // "Idle" badge for every queued/running platform run. This
+                // matches the sibling mapping in
+                // build_status_response_from_platform.
+                "queued" | "running" => "process",
                 "ok" => "complete",
                 "failed" => "failed",
                 "cancelled" => "failed",

@@ -61,6 +61,6 @@
     "summary": "Closes the spec 108 §7.1 punt and §7.4 deferral. OPC stops reading `factory/` from a developer's local checkout and instead pulls adapter manifests, contract schemas, and process definitions from the platform's `/api/factory/*` endpoints; runs are persisted as `factory_runs` rows and streamed back over the existing duplex channel so a run can be observed from the web UI in real time. Replaces the current `resolve_factory_root()` walk-up-from-CARGO_MANIFEST_DIR with an authenticated platform fetch + on-disk run cache.\n",
     "title": "OPC Factory-Run Platform Integration"
   },
-  "shardHash": "68a05fecb6787cc08f7da4b189c0e9a5a7f6fd99618375fafb96274f0eb7db74",
+  "shardHash": "29a8ef8f34f229f926e9be652b611cc37a39bb536a210181d7b1d677a39717a1",
   "specVersion": "1.1.0"
 }
