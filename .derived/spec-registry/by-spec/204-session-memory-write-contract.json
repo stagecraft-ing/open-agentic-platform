@@ -1,5 +1,8 @@
 {
   "record": {
+    "amends": [
+      "198-factory-governance-envelope"
+    ],
     "authors": [
       "open-agentic-platform"
     ],
@@ -12,6 +15,36 @@
       "198-factory-governance-envelope"
     ],
     "domain": "opc",
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "product/packages/carrier-gate/src/rules.js"
+      },
+      {
+        "kind": "file",
+        "path": "product/packages/carrier-gate/src/fixture.js"
+      },
+      {
+        "kind": "file",
+        "path": "product/packages/carrier-gate/src/index.js"
+      },
+      {
+        "kind": "file",
+        "path": "product/packages/carrier-gate/src/index.d.ts"
+      },
+      {
+        "kind": "file",
+        "path": "product/packages/carrier-gate/src/rules.test.ts"
+      },
+      {
+        "kind": "file",
+        "path": "product/packages/carrier-gate/package.json"
+      },
+      {
+        "kind": "file",
+        "path": "product/packages/carrier-gate/tsconfig.json"
+      }
+    ],
     "extends": [
       {
         "nature": "additive",
@@ -39,13 +72,6 @@
     "kind": "platform",
     "references": [
       {
-        "role": "analog",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
-        }
-      },
-      {
         "role": "context",
         "unit": {
           "kind": "file",
@@ -54,6 +80,13 @@
       }
     ],
     "refines": [
+      {
+        "aspect": "shared-carrier-rules",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
+        }
+      },
       {
         "aspect": "memory-write-gate",
         "unit": {
@@ -89,6 +122,6 @@
     "summary": "Extend the substrate override-write discipline (spec 198 FR-013) to OAP's second persistent-memory surface: the OPC session-memory MCP (spec 056). Today memory writes are ungoverned — no validation-on-write, no provenance stamp, no trust class, no decay of unverified entries, and harvested agent output can be promoted toward permanent retention without any human in the loop (ASI06 bootstrap-poisoning shape). This spec mirrors the FR-013 architecture onto session memory: a deterministic carrier-class gate on every write, provenance (actor, origin session, content hash) on every revision, trust classes with human-gated promotion, trust-weighted decay, and a no-self-ingestion rule. The cross-cutting principle carries verbatim: a model may DETECT, only rules may BLOCK.\n",
     "title": "Session-Memory Write Contract (ASI06 cockpit surface)"
   },
-  "shardHash": "e0f8f37f01fc4e616cd266fa75e7846213ce2e62fc9d0cc44394622a3c086166",
+  "shardHash": "679ca4cf5e45e4a669b41650dc77b62485ce35681588fe023b97deed5a4a7038",
   "specVersion": "1.1.0"
 }

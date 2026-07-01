@@ -4,6 +4,15 @@ title: "Factory Governance Envelope (ASI Admission Contract)"
 feature_branch: "feat/198-factory-governance-envelope"
 status: approved
 implementation: complete
+amended: "2026-07-01"
+amendment_record: |
+  amended 2026-07-01 by spec 204 (session-memory write contract): the
+  FR-013(a) override gate's carrier-class, secret, and UTF-8 rules were
+  extracted into the shared @opc/carrier-gate package so the factory substrate
+  gate and the session-memory write gate share one canonical rule set (spec
+  204 FR-001, "shared with, not copied from"). overrideGate.ts now imports
+  those predicates; its verdicts, rule ids, and the two substrate-specific
+  rules it keeps (size ceiling, kind stability) are unchanged.
 kind: platform
 domain: platform
 created: "2026-06-09"
@@ -450,6 +459,14 @@ enforcement snapshot; it no longer authors the facts. Spec 160's
 indexer-hashing of the snapshot is unchanged.
 
 ### FR-013 — Override-write contract: rules block, models quarantine (resolves OQ-2; ASI06)
+
+> **Amended 2026-07-01 by spec 204 (session-memory write contract).** The
+> carrier-class, secret, and UTF-8 rules of gate (a) now live in the shared
+> `@opc/carrier-gate` package and are imported by `overrideGate.ts` rather
+> than defined inline, so this gate and the session-memory write gate share
+> one canonical rule set (spec 204 FR-001). Rule ids, verdicts, and the two
+> substrate-specific rules (size ceiling, kind stability) are unchanged by
+> the extraction.
 
 The substrate `user_body` write path MUST enforce, in order: **(a) a
 deterministic synchronous gate** — shape/size validation, CDR-class carrier

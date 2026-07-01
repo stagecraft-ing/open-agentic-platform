@@ -29,6 +29,21 @@ compliance:
 depends_on:
   - "056-session-memory"
   - "198-factory-governance-envelope"
+# Spec 204 amends spec 198: the repoint of overrideGate.ts onto the shared
+# @opc/carrier-gate package is a genuine refinement of 198's FR-013(a) gate
+# implementation, recorded in 198 in-body (Decision 1, plan.md).
+amends: ["198-factory-governance-envelope"]
+establishes:
+  # The canonical carrier-class rule set (FR-001) and its shared AC-1 fixture.
+  # Authored as plain ESM JS (+ hand-written index.d.ts) so the leaf loads
+  # unchanged across the Encore service boundary; see plan.md Decision 1.
+  - unit: { kind: file, path: product/packages/carrier-gate/src/rules.js }
+  - unit: { kind: file, path: product/packages/carrier-gate/src/fixture.js }
+  - unit: { kind: file, path: product/packages/carrier-gate/src/index.js }
+  - unit: { kind: file, path: product/packages/carrier-gate/src/index.d.ts }
+  - unit: { kind: file, path: product/packages/carrier-gate/src/rules.test.ts }
+  - unit: { kind: file, path: product/packages/carrier-gate/package.json }
+  - unit: { kind: file, path: product/packages/carrier-gate/tsconfig.json }
 extends:
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
@@ -36,6 +51,10 @@ extends:
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 refines:
+  # FR-001: overrideGate.ts now imports the shared carrier rules rather than
+  # carrying its own copies (promoted from an analog reference).
+  - aspect: "shared-carrier-rules"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.ts }
   - aspect: "memory-write-gate"
     unit: { kind: file, path: product/packages/session-memory/src/server.ts }
   - aspect: "provenance-trust-columns"
@@ -43,8 +62,6 @@ refines:
   - aspect: "trust-class-types"
     unit: { kind: file, path: product/packages/session-memory/src/types.ts }
 references:
-  - role: analog
-    unit: { kind: file, path: platform/services/stagecraft/api/factory/overrideGate.ts }
   - role: context
     unit: { kind: file, path: docs/owasp-agentic-top-10-2026.md }
 ---
