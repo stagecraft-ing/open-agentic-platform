@@ -200,8 +200,8 @@
       }
     ],
     "specId": "220-tenant-emit-governance-certificate",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "5efc2e3e245521097ac5718fd081fc781d01c5d64ac5cc465e4c20ec658fc3da"
+  "shardHash": "32ff9f707100ed0d663c9b575f2dc3e5fa11489fd6c857db655a1302f05f7729"
 }
