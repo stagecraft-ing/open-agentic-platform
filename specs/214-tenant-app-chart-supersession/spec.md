@@ -373,6 +373,20 @@ remains in `helm.rs`, `chartSelector.ts`, or workflows.
   dockerconfigjson secret is replicated into tenant namespaces via
   kubernetes-reflector annotations, mirroring the wildcard-TLS pattern;
   the default value of the new field is `ghcr-pull`.
+
+  *Completion (deferred SC-005 wiring, 2026-07-01).* At 214 close the
+  reflector source manifest `manifests/ghcr-pull-secret.yaml` existed but
+  the setup.sh step that materialises it was never added, so on the live
+  cluster the `kube-system/ghcr-pull` source secret was absent and every
+  tenant pod sat in ImagePullBackOff (an unauthenticated pull of a private
+  GHCR image returns `NotFound`, since GHCR masks private packages, which
+  reads as a missing image). Two fixes: (1) setup.sh now builds the base64
+  dockerconfigjson from `GHCR_PAT` and `sed`-substitutes it into the manifest
+  before `kubectl apply` (matching how every other credential secret is
+  materialised, so no `envsubst` dependency); (2) the manifest's
+  `.dockerconfigjson` moved from `stringData` (which could not safely hold the
+  raw JSON inside a quoted scalar) to `data` with the base64 value. Reflector
+  then auto-clones `ghcr-pull` into every namespace, existing and future.
 - **FR-006**: Preview-grade database: chart value `previewDatabase`
   (enabled, storage size, image) renders a single-replica Postgres
   StatefulSet + Service + generated-credentials Secret in the same
