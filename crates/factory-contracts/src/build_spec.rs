@@ -1177,7 +1177,7 @@ mod tests {
     fn sibling_contract_schema_versions_are_pinned() {
         assert_eq!(crate::ADAPTER_MANIFEST_SCHEMA_VERSION, "1.1.0");
         assert_eq!(crate::PIPELINE_STATE_SCHEMA_VERSION, "1.0.0");
-        assert_eq!(crate::GOVERNANCE_ENVELOPE_SCHEMA_VERSION, "1.2.0");
+        assert_eq!(crate::GOVERNANCE_ENVELOPE_SCHEMA_VERSION, "1.3.0");
         assert!(crate::ADAPTER_MANIFEST_ACCEPTED_SCHEMA_VERSIONS.contains(&"1.0.0"));
         assert!(crate::ADAPTER_MANIFEST_ACCEPTED_SCHEMA_VERSIONS
             .contains(&crate::ADAPTER_MANIFEST_SCHEMA_VERSION));

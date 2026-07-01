@@ -360,6 +360,71 @@ pub fn apply_oscillation_default(declared: Option<OscillationThreshold>) -> Osci
     }
 }
 
+// ── Intent-dedup threshold (peer, NOT a RunBudgetAxis) ───────────────────────
+
+/// Declared repeated-near-identical-intent trip threshold (ASI08 m6/m7; spec
+/// 202 FR-003a). Deliberately NOT a `RunBudgetAxis` variant, refined against
+/// the same precedent [`OscillationThreshold`] already documents: the six
+/// axes are monotonic run-total accumulators bound into the certificate's
+/// per-axis consistency invariant, but a per-signature repeat count (a) is
+/// scoped to one intent signature rather than the whole run, and (b) has no
+/// sensible uniform `per_stage` scope. Modelling it as an axis would force it
+/// into every governance certificate the same way the oscillation streak
+/// would have. It is therefore its own peer envelope field, `intent_dedup:`.
+///
+/// `window_secs` is platform-fixed in this slice, the same posture as
+/// `OscillationThreshold.window_secs`: the detector counts occurrences over
+/// the whole run rather than sliding a window, so a declared value is
+/// carried in the contract but currently ignored; only `max_repeats` is
+/// tighten-only mergeable.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct IntentDedupThreshold {
+    /// Occurrences of one intent signature (the run's `goal_id` plus the
+    /// step's normalized instruction text, step id excluded) tolerated
+    /// before the run pauses fail-closed. Declared, never hardcoded (spec
+    /// 202 FR-003 preamble).
+    pub max_repeats: u32,
+    /// Sliding-window width for the per-signature repeat count.
+    /// Platform-fixed in this slice: `apply_intent_dedup_default` currently
+    /// ignores any declared value (see the struct-level doc); only
+    /// `max_repeats` is tighten-only mergeable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window_secs: Option<u64>,
+}
+
+/// Platform-default intent-dedup threshold. `max_repeats: 3` is deliberately
+/// lower than oscillation's `consecutive_failures: 5`: a consecutive-failure
+/// streak can legitimately need a few retries to self-correct, but three
+/// occurrences of the SAME (or near-identical) instruction text is already a
+/// loop signature regardless of whether each attempt individually succeeded;
+/// there is no comparable "still making forward progress" reading of a
+/// literal repeat. `window_secs` mirrors oscillation's platform-fixed 300s for
+/// symmetry, though it is unused this slice (the detector counts over the
+/// whole run).
+pub const PLATFORM_DEFAULT_INTENT_DEDUP: IntentDedupThreshold = IntentDedupThreshold {
+    max_repeats: 3,
+    window_secs: Some(300),
+};
+
+/// Merge a declared intent-dedup threshold with the platform default. Only
+/// `max_repeats` is tighten-only mergeable (a lower repeat cap is tighter);
+/// `window_secs` stays at the platform default in this slice (see
+/// [`IntentDedupThreshold`] doc). A declared cap looser than the platform
+/// default is clamped, matching [`apply_defaults`]' and
+/// [`apply_oscillation_default`]'s tighten-only direction.
+pub fn apply_intent_dedup_default(declared: Option<IntentDedupThreshold>) -> IntentDedupThreshold {
+    match declared {
+        None => PLATFORM_DEFAULT_INTENT_DEDUP,
+        Some(d) if d.max_repeats <= PLATFORM_DEFAULT_INTENT_DEDUP.max_repeats => {
+            IntentDedupThreshold {
+                max_repeats: d.max_repeats,
+                window_secs: PLATFORM_DEFAULT_INTENT_DEDUP.window_secs,
+            }
+        }
+        Some(_) => PLATFORM_DEFAULT_INTENT_DEDUP,
+    }
+}
+
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -608,6 +673,66 @@ mod tests {
         );
         assert_eq!(
             serde_json::from_str::<OscillationThreshold>(&json).unwrap(),
+            no_window
+        );
+    }
+
+    /// FR-003a: an absent intent-dedup threshold takes the platform default;
+    /// a declared cap tighter than the default is honoured; a looser one is
+    /// clamped; window_secs always stays at the platform default.
+    #[test]
+    fn apply_intent_dedup_default_is_tighten_only() {
+        // Absent -> platform default (3 / 300s).
+        assert_eq!(
+            apply_intent_dedup_default(None),
+            PLATFORM_DEFAULT_INTENT_DEDUP
+        );
+
+        // Tighter declared cap is honoured; window stays platform-fixed.
+        let tighter = apply_intent_dedup_default(Some(IntentDedupThreshold {
+            max_repeats: 1,
+            window_secs: Some(30),
+        }));
+        assert_eq!(tighter.max_repeats, 1);
+        assert_eq!(
+            tighter.window_secs,
+            PLATFORM_DEFAULT_INTENT_DEDUP.window_secs,
+            "window_secs is platform-fixed in this slice"
+        );
+
+        // Looser declared cap is clamped to the platform default.
+        let looser = apply_intent_dedup_default(Some(IntentDedupThreshold {
+            max_repeats: 99,
+            window_secs: None,
+        }));
+        assert_eq!(looser, PLATFORM_DEFAULT_INTENT_DEDUP);
+    }
+
+    /// The intent-dedup threshold round-trips through JSON with window_secs
+    /// omitted when absent.
+    #[test]
+    fn intent_dedup_threshold_round_trips() {
+        let with_window = IntentDedupThreshold {
+            max_repeats: 2,
+            window_secs: Some(120),
+        };
+        let json = serde_json::to_string(&with_window).unwrap();
+        assert_eq!(
+            serde_json::from_str::<IntentDedupThreshold>(&json).unwrap(),
+            with_window
+        );
+
+        let no_window = IntentDedupThreshold {
+            max_repeats: 4,
+            window_secs: None,
+        };
+        let json = serde_json::to_string(&no_window).unwrap();
+        assert!(
+            !json.contains("window_secs"),
+            "absent window_secs must be skipped: {json}"
+        );
+        assert_eq!(
+            serde_json::from_str::<IntentDedupThreshold>(&json).unwrap(),
             no_window
         );
     }

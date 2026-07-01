@@ -42,8 +42,8 @@ pub use artifact::{
     DEFAULT_ARTIFACT_DIR, DEFAULT_CAS_DIR, LineageRelation,
 };
 pub use budget_gate::{
-    BudgetBreach, BudgetGate, ChainedPreStepGate, OscillationGate, RunBudgetConsumption,
-    RunBudgetMeter,
+    BudgetBreach, BudgetGate, ChainedPreStepGate, IntentDedupGate, OscillationGate,
+    RunBudgetConsumption, RunBudgetMeter,
 };
 pub use circuit_breaker::{CircuitBreakerConfig, CircuitBreakerState};
 pub use claude_executor::{
@@ -187,6 +187,12 @@ pub struct StepActuals {
     /// the realizable cross-step "wobble" signal the FR-003b oscillation
     /// detector feeds on (a hard failure halts the run, so it cannot repeat).
     pub retry_count: u32,
+    /// The dispatched step's raw instruction text, consumed by the FR-003a
+    /// intent-dedup detector (`IntentDedupGate`) to compute the intent
+    /// signature. `None` on paths that do not populate it (e.g. the
+    /// hard-failure branch, which is inert under halt-on-failure); a gate
+    /// treats `None` as a no-op, same posture as an absent metric field.
+    pub instruction: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -1345,6 +1351,7 @@ pub async fn dispatch_manifest(
                         num_turns: num_turns[idx],
                         success: is_success,
                         retry_count: retry_counts[idx],
+                        instruction: Some(step.instruction.clone()),
                     })
                     .await;
                 }
@@ -1429,6 +1436,7 @@ pub async fn dispatch_manifest(
                         num_turns: None,
                         success: false,
                         retry_count: 0,
+                        instruction: None,
                     })
                     .await;
                 }
@@ -2197,6 +2205,7 @@ pub async fn dispatch_manifest_persisted(
                         num_turns: num_turns[idx],
                         success: is_success,
                         retry_count: retry_counts[idx],
+                        instruction: Some(step.instruction.clone()),
                     })
                     .await;
                 }
@@ -2312,6 +2321,7 @@ pub async fn dispatch_manifest_persisted(
                         num_turns: None,
                         success: false,
                         retry_count: 0,
+                        instruction: None,
                     })
                     .await;
                 }
@@ -3554,6 +3564,7 @@ steps:
             num_turns: None,
             success: true,
             retry_count: 0,
+            instruction: None,
         });
         let meter = Arc::new(std::sync::Mutex::new(seeded));
         let budget_gate: Arc<dyn PreStepGate> = Arc::new(BudgetGate::new(meter));
@@ -3657,6 +3668,72 @@ steps:
                 );
             }
             other => panic!("expected StepFailed at s1, got {other:?}"),
+        }
+    }
+
+    /// Wiring (spec 202 FR-003a): the real `dispatch_manifest` loop threads each
+    /// successful step's instruction text into `IntentDedupGate::after_step`, so
+    /// a run that repeats one instruction past `max_repeats` fails closed at the
+    /// next boundary. This guards the success-path `StepActuals { instruction:
+    /// Some(..) }` call site the `budget_gate.rs` unit tests (which hand-build
+    /// `StepActuals`) cannot reach: a missed or mis-branched site would leave the
+    /// count at zero and this test would not trip.
+    #[tokio::test]
+    async fn wired_intent_dedup_gate_pauses_dispatch_on_repeated_instruction() {
+        let tmp = tempfile::tempdir().unwrap();
+        let am = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+        // Three independent steps (no deps) sharing the SAME instruction.
+        let step = |id: &str, out: &str| WorkflowStep {
+            id: id.into(),
+            agent: "agent-a".into(),
+            effort: EffortLevel::Quick,
+            inputs: vec![],
+            outputs: vec![out.into()],
+            instruction: "do the identical thing".into(),
+            gate: None,
+            pre_verify: None,
+            post_verify: None,
+            max_retries: None,
+        };
+        let manifest = WorkflowManifest {
+            steps: vec![step("s0", "o0.md"), step("s1", "o1.md"), step("s2", "o2.md")],
+            project_id: None,
+        };
+        materialize_run_directory(&am, run_id, &manifest).unwrap();
+
+        // max_repeats=1: the loop records the first two identical steps (count
+        // reaches 2), then the third boundary sees 2 > 1 and fails closed. This
+        // can only trip if the success-path after_step threaded the instruction.
+        let dedup: Arc<dyn PreStepGate> = Arc::new(budget_gate::IntentDedupGate::new(
+            "goal-wired",
+            factory_contracts::IntentDedupThreshold {
+                max_repeats: 1,
+                window_secs: Some(300),
+            },
+        ));
+        let options = DispatchOptions {
+            pre_step: Some(dedup),
+            ..DispatchOptions::default()
+        };
+        let result = dispatch_manifest(
+            &am,
+            run_id,
+            &manifest,
+            Arc::new(AlwaysPresentRegistryForGate),
+            Arc::new(WritingExecutorForGate),
+            &options,
+        )
+        .await;
+        match result {
+            Err(OrchestratorError::StepFailed { reason, .. }) => {
+                assert!(
+                    reason.contains("repeated intent detected"),
+                    "the run must fail closed on the repeated intent, proving the \
+                     dispatch loop threaded step.instruction into after_step: {reason}"
+                );
+            }
+            other => panic!("expected StepFailed from the intent-dedup gate, got {other:?}"),
         }
     }
 }

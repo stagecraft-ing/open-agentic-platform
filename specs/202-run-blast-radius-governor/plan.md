@@ -220,13 +220,28 @@ budgets:
 
 ---
 
-### Slice E: FR-003(a) Intent-hash deduplication detector (independent)
+### Slice E: FR-003(a) Intent-hash deduplication detector (independent) -- LANDED
 
-**Depends on**: Slice A (needs `RunBudgetAxis` for the threshold declaration pattern). Does NOT depend on Slice B or C.
+**Depends on**: Slice A (needs the threshold-declaration pattern). Does NOT depend on Slice B or C.
 
 **FR/AC coverage**: FR-003(a).
 
+**Design note (as-built, supersedes the earlier `StepSignatureCache` proposal)**: mirroring Slice D's precedent, the trip threshold is a **peer top-level `intent_dedup:` envelope field** (`IntentDedupThreshold { max_repeats, window_secs }`), NOT a `budgets.axis` count. The earlier `StepSignatureCache`/`IntentRepeatBreach` sketch (below, superseded) never named where the threshold itself lived; once FR-003 was read against the oscillation precedent it was clear a per-signature repeat count has the same shape problem as a consecutive-failure streak: it is not a monotonic run-total accumulator, so it does not belong on `RunBudgetAxis`/`budgets:`. It is declared, gated, and defaulted exactly like `OscillationThreshold`.
+
 **Files created/edited**:
+
+- `crates/factory-contracts/src/run_budget.rs`: `IntentDedupThreshold` type, `PLATFORM_DEFAULT_INTENT_DEDUP` (`max_repeats: 3, window_secs: Some(300)`; tighter than oscillation's 5 because a literal repeat has no "still making progress" reading), `apply_intent_dedup_default()` (tighten-only on `max_repeats`; `window_secs` platform-fixed this slice). Re-exported from `lib.rs`.
+- `crates/factory-contracts/src/governance_envelope.rs`: `intent_dedup: Option<IntentDedupThreshold>` field; `GOVERNANCE_ENVELOPE_SCHEMA_VERSION` 1.2.0 -> 1.3.0 (twin of the schema YAML bump). `standards/schemas/factory/governance-envelope.schema.yaml` gains the peer `intent_dedup:` section (covered by the existing `extends: 198` edge). `crates/factory-contracts/src/build_spec.rs`'s `sibling_contract_schema_versions_are_pinned` test updated to `"1.3.0"`.
+- `crates/orchestrator/src/budget_gate.rs`: `IntentDedupGate` (a `PreStepGate`) with `normalize_instruction` (trim, collapse internal whitespace to one space, lowercase; documented as contract) and `intent_signature` (`SHA-256_hex(goal_id + "\n" + normalize(instruction))`, step id excluded). `before_step` fails closed when any signature's whole-run count exceeds `max_repeats`; `after_step` increments the count keyed by signature, a no-op when `actuals.instruction` is `None`.
+- `crates/orchestrator/src/lib.rs`: `StepActuals.instruction: Option<String>`, threaded at the two Ok-branch `after_step` sites (`Some(step.instruction.clone())`); the two `Err`-branch sites pass `None` (inert under halt-on-failure, same posture as retry_count's FR-003b precedent).
+- Wiring at the same 4 dispatch sites Slice D touched (`bin/factory_run.rs` both phases share one gate instance via an `Arc<dyn PreStepGate>` clone so the repeat count is run-level; OPC `factory.rs` start + resume, governed and ungoverned arms), each composing `intent_dedup_gate` into the `ChainedPreStepGate` after the oscillation gate. The governed arm scopes the signature to the filed intent capsule's `goal_id`; the ungoverned arm (no capsule) falls back to a run-id-derived goal id (no cross-run correlation needed there).
+
+**Response ordering (FR-003 "throttle first, break second")**: for the orchestrator's sequential dispatch there is no concurrency between steps to rate-limit, so "throttle" is degenerate, the same finding Slice D's `OscillationGate` already established. This slice implements the break only; the spec's FR-003 "Response order" paragraph now carries an implementation note recording this rather than silently dropping the throttle tier.
+
+**Tests** (`crates/orchestrator/src/budget_gate.rs`): gate trips after `max_repeats` identical instructions; distinct instructions never trip; step id is excluded from the signature (different ids, identical normalized instruction, collide); a `None` instruction is a no-op; a `ChainedPreStepGate[budget, oscillation, intent_dedup]` fires the intent breach, not budget/oscillation, on repeated identical intents. `crates/factory-contracts/src/run_budget.rs`: tighten-only merge test + JSON round-trip test mirroring the oscillation pair. `crates/factory-contracts/src/governance_envelope.rs`: round-trip with/without `intent_dedup:` mirroring the oscillation pair; `version_const_anchor` updated to `"1.3.0"`.
+
+<details>
+<summary>Superseded pre-implementation sketch (StepSignatureCache design, not built)</summary>
 
 - `crates/orchestrator/src/budget_gate.rs` (extend)
   - `StepSignatureCache`:
@@ -243,6 +258,8 @@ budgets:
 - Two steps with identical instructions and the same `goal_id`: `record` on step 2 returns `Some` when threshold is 1.
 - Step id excluded: two steps with identical instructions but different step ids collide (step id is excluded from the hash per spec).
 - Normalization: `"  foo  bar  "` and `"foo bar"` produce the same signature.
+
+</details>
 
 ---
 
