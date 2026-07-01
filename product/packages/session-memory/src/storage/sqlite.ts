@@ -19,7 +19,12 @@ import type {
   StoreMemoryInput,
   TrustClass,
 } from "../types.js";
-import { EXPIRY_DEFAULTS } from "../types.js";
+import {
+  EXPIRY_DEFAULTS,
+  MACHINE_HARVESTED_CEILING,
+  isHumanTrusted,
+  requiresHumanTrust,
+} from "../types.js";
 import { MemoryWriteRefused, runMemoryStoreGate } from "../gate.js";
 import { applyMigrations } from "./migrations.js";
 
@@ -131,9 +136,6 @@ export class MemoryStorage {
     }
 
     const now = Math.floor(Date.now() / 1000);
-    const importance = input.importance ?? "medium-term";
-    const expiryDelta = EXPIRY_DEFAULTS[importance];
-    const expiresAt = expiryDelta === null ? null : now + expiryDelta;
 
     // storage.store is the TRUSTED write API. `actorKind` is set by trusted
     // callers only: the harvester (`harvester`), a cockpit human action
@@ -142,13 +144,28 @@ export class MemoryStorage {
     // to launder its output to a higher trust class (FR-005). The trust class
     // is derived from the actor: only `human` yields human-curated;
     // `agent`/`harvester` are always machine-harvested. `verified` is reachable
-    // only through an explicit human verify action (a later slice).
+    // only through an explicit human verify action (markVerified, a trusted
+    // storage method never exposed via MCP).
     const actorKind: ActorKind = input.actorKind ?? "agent";
     if (!VALID_ACTOR_KINDS.has(actorKind)) {
       throw new Error(`invalid actorKind: ${JSON.stringify(actorKind)}`);
     }
     const trustClass: TrustClass =
       actorKind === "human" ? "human-curated" : "machine-harvested";
+
+    // FR-003 AC-3 retention boundary enforced at the WRITE path, not just at
+    // promotion: a machine-harvested write is clamped to the machine-harvested
+    // ceiling. This closes the write-time bypass, including the untrusted MCP
+    // `importance` input AND the harvester's builtin rules that request
+    // permanent/long-term. Reaching a human-gated tier requires human-curated
+    // or verified trust (or an explicit human verify + promotion afterward).
+    const requested = input.importance ?? "medium-term";
+    const importance: ImportanceLevel =
+      !isHumanTrusted(trustClass) && requiresHumanTrust(requested)
+        ? MACHINE_HARVESTED_CEILING
+        : requested;
+    const expiryDelta = EXPIRY_DEFAULTS[importance];
+    const expiresAt = expiryDelta === null ? null : now + expiryDelta;
 
     const entry: MemoryEntry = {
       id: randomUUID(),
@@ -304,6 +321,47 @@ export class MemoryStorage {
        ORDER BY access_count DESC`,
     ).all(threshold) as MemoryRow[];
     return rows.map(rowToEntry);
+  }
+
+  /**
+   * Entries eligible for trust-weighted decay (FR-004): machine-harvested and
+   * not re-accessed since `staleBefore` (updated_at is bumped on every query).
+   * Verified and human-curated entries are exempt and never returned.
+   */
+  getDecayCandidates(staleBefore: number): MemoryEntry[] {
+    const rows = this.db.prepare(
+      `SELECT * FROM memory_entries
+       WHERE trust_class = 'machine-harvested'
+         AND updated_at < ?
+       ORDER BY updated_at ASC`,
+    ).all(staleBefore) as MemoryRow[];
+    return rows.map(rowToEntry);
+  }
+
+  /**
+   * FR-003: the explicit human-verify action. Sets an entry's trust class to
+   * `verified`, which lets it cross the retention boundary and exempts it from
+   * trust-weighted decay. Like `store`'s actorKind, this is a TRUSTED storage
+   * method: it is never exposed by any MCP tool (the server exposes only
+   * store/query/delete/list), so an agent cannot reach it to self-verify. Only
+   * a cockpit human action calls it. Returns true if the row was updated
+   * (idempotent: re-verifying an already-verified row still matches it).
+   */
+  markVerified(id: string): boolean {
+    const now = Math.floor(Date.now() / 1000);
+    const result = this.db.prepare(
+      "UPDATE memory_entries SET trust_class = 'verified', updated_at = ? WHERE id = ?",
+    ).run(now, id);
+    return result.changes > 0;
+  }
+
+  /** Mark an entry expired as of `now` (FR-004 decay floor); the expiry sweeper
+   * then deletes it. Returns true if the row was updated. */
+  expireNow(id: string, now: number): boolean {
+    const result = this.db.prepare(
+      "UPDATE memory_entries SET expires_at = ?, updated_at = ? WHERE id = ?",
+    ).run(now, now, id);
+    return result.changes > 0;
   }
 
   /** Count entries for a project scope. */

@@ -45,7 +45,7 @@ describe("loadSessionMemories", () => {
 
   it("respects minImportance filter", () => {
     storage.store({ content: "short", kind: "note", importance: "short-term", projectScope: "/proj" });
-    storage.store({ content: "long", kind: "note", importance: "long-term", projectScope: "/proj" });
+    storage.store({ content: "long", kind: "note", importance: "long-term", projectScope: "/proj", actorKind: "human" });
     storage.close();
 
     const result = loadSessionMemories({ projectScope: "/proj", databasePath: dbPath, minImportance: "long-term" });
@@ -75,8 +75,8 @@ describe("loadSessionMemories", () => {
 
   it("sorts by importance desc, then recency desc", () => {
     storage.store({ content: "medium entry", kind: "note", importance: "medium-term", projectScope: "/proj" });
-    storage.store({ content: "permanent entry", kind: "preference", importance: "permanent", projectScope: "/proj" });
-    storage.store({ content: "long entry", kind: "decision", importance: "long-term", projectScope: "/proj" });
+    storage.store({ content: "permanent entry", kind: "preference", importance: "permanent", projectScope: "/proj", actorKind: "human" });
+    storage.store({ content: "long entry", kind: "decision", importance: "long-term", projectScope: "/proj", actorKind: "human" });
     storage.close();
 
     const result = loadSessionMemories({ projectScope: "/proj", databasePath: dbPath });

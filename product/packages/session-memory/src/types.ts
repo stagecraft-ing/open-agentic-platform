@@ -107,3 +107,27 @@ export const IMPORTANCE_ORDER: ImportanceLevel[] = [
 
 /** Number of accesses required to trigger promotion (FR-007 / SC-005). */
 export const PROMOTION_ACCESS_THRESHOLD = 3;
+
+/**
+ * Importance tiers whose retention requires human trust (spec 204 FR-003
+ * AC-3). A machine-harvested entry can never occupy these: not by promotion,
+ * and not by a direct write (the store path clamps it to medium-term).
+ */
+export const HUMAN_GATED_TIERS: ReadonlySet<ImportanceLevel> = new Set([
+  "long-term",
+  "permanent",
+]);
+
+/** The highest importance a machine-harvested entry may hold (the tier just
+ * below the human-gated boundary). */
+export const MACHINE_HARVESTED_CEILING: ImportanceLevel = "medium-term";
+
+/** True if reaching `level` requires human-curated or verified trust. */
+export function requiresHumanTrust(level: ImportanceLevel): boolean {
+  return HUMAN_GATED_TIERS.has(level);
+}
+
+/** True for a trust class a human established: human-curated or verified. */
+export function isHumanTrusted(trustClass: TrustClass): boolean {
+  return trustClass === "human-curated" || trustClass === "verified";
+}

@@ -15,6 +15,10 @@ export {
   EXPIRY_DEFAULTS,
   IMPORTANCE_ORDER,
   PROMOTION_ACCESS_THRESHOLD,
+  HUMAN_GATED_TIERS,
+  MACHINE_HARVESTED_CEILING,
+  requiresHumanTrust,
+  isHumanTrusted,
 } from "./types.js";
 
 export { runMemoryWriteGate, runMemoryStoreGate, MemoryWriteRefused, MEMORY_MAX_BYTES } from "./gate.js";
@@ -39,8 +43,10 @@ export type { RuleConfig, HarvestRulesConfig, LoadRulesResult } from "./harvesti
 
 export { ExpirySweeper } from "./expiry/sweeper.js";
 export type { SweeperOptions, SweeperResult } from "./expiry/sweeper.js";
-export { runPromotion, getNextImportance } from "./expiry/promotion.js";
+export { runPromotion, getNextImportance, getPrevImportance } from "./expiry/promotion.js";
 export type { PromotionResult } from "./expiry/promotion.js";
+export { runTrustWeightedDecay, DEFAULT_DECAY_HORIZON_SECONDS } from "./expiry/decay.js";
+export type { DecayOptions, DecayResult } from "./expiry/decay.js";
 
 export { loadSessionMemories, formatMemoriesForPrompt, composeSessionPrompt } from "./integration.js";
 export type { SessionLoadOptions, SessionLoadResult } from "./integration.js";

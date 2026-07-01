@@ -57,6 +57,18 @@
         "source": "spec-edge"
       },
       {
+        "path": "product/packages/session-memory/src/expiry/decay.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/session-memory/src/expiry/promotion.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/session-memory/src/expiry/retention.test.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "product/packages/session-memory/src/gate.test.ts",
         "source": "spec-edge"
       },
@@ -73,6 +85,10 @@
         "source": "spec-edge"
       },
       {
+        "path": "product/packages/session-memory/src/integration.test.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "product/packages/session-memory/src/provenance.test.ts",
         "source": "spec-edge"
       },
@@ -82,6 +98,10 @@
       },
       {
         "path": "product/packages/session-memory/src/storage/migrations.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/session-memory/src/storage/sqlite.test.ts",
         "source": "spec-edge"
       },
       {
@@ -192,6 +212,32 @@
       {
         "locations": [
           {
+            "file": "product/packages/session-memory/src/expiry/decay.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/expiry/decay.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/packages/session-memory/src/expiry/retention.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/expiry/retention.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "product/packages/session-memory/src/gate.test.ts"
           }
         ],
@@ -270,6 +316,19 @@
       {
         "locations": [
           {
+            "file": "product/packages/session-memory/src/expiry/promotion.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/expiry/promotion.ts"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "product/packages/session-memory/src/harvesting/engine.ts"
           }
         ],
@@ -296,6 +355,19 @@
       {
         "locations": [
           {
+            "file": "product/packages/session-memory/src/integration.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/integration.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "product/packages/session-memory/src/server.ts"
           }
         ],
@@ -317,6 +389,19 @@
         "unit": {
           "kind": "file",
           "path": "product/packages/session-memory/src/storage/migrations.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/packages/session-memory/src/storage/sqlite.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/session-memory/src/storage/sqlite.test.ts"
         }
       },
       {
@@ -376,5 +461,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "281a0ace953cc8eb6ff0d80ad7b9731be2134ec47cdc9131b6ad938245603cca"
+  "shardHash": "35f5829fcf33bb6ccfe5a6495397a73a0fd8d089554d0ab756d1f07a483dfd19"
 }
