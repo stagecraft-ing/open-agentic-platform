@@ -505,6 +505,16 @@ Shipped 2026-05-01 across nine commits. Per-phase summary:
   Encore + Postgres + desktop stack is non-trivial to spin up inside
   a closure session; manual steps are documented in the Phase 7
   checkpoint and should be exercised before merging the branch.
+- **Run-history phase mapping fix (2026-07-01).** `list_factory_runs`
+  mapped `factory_runs.status` `queued`/`running` to the literal string
+  `"running"`, but the desktop's `FactoryPhase` union
+  (`components/factory/types.ts`) has no `"running"` member, so
+  `PipelineHistory.tsx` fell back to the **Idle** badge for every
+  in-flight platform run (a queued or running run rendered as "Idle").
+  The sibling projection `build_status_response_from_platform` already
+  mapped both to `"process"`; `list_factory_runs` now matches it, so an
+  in-flight run correctly renders "Processing". Display-only; the mapping
+  divergence had been latent since the Phase 7 history table landed.
 
 ## 12. Post-approval hardening: adapter manifest validation (2026-06-05)
 
