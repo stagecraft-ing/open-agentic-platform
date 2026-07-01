@@ -51,6 +51,7 @@ import { publishProjectCatalogUpsert } from "../sync/projectCatalogRelay";
 import { createRepoWithBranchProtection } from "./scaffold/githubRepoCreate";
 import { gitInitAndPush } from "./scaffold/gitInitAndPush";
 import { scaffoldFromPrebuilt } from "./scaffold/perRequestScaffold";
+import { provisionTenantSigningKey } from "./scaffold/tenantSigningKey";
 import { buildL0PipelineStateSeed } from "./scaffold/seedPipelineState";
 import { buildProjectOpenDeepLink } from "./scaffold/deepLink";
 import { extractArtifactsIntoTree } from "./scaffold/artifactExtract";
@@ -270,6 +271,9 @@ export const createFactoryProject = api(
 
     const pipelineStateSeed = buildL0PipelineStateSeed(adapterRef);
     let commitSha = "";
+    // Spec 220 FR-003: the Ed25519 public key of the tenant signer minted
+    // below, recorded in the project.created audit for attribution.
+    let signerPublicKey = "";
 
     try {
       await advanceStep(job.id, "run-entry");
@@ -292,6 +296,16 @@ export const createFactoryProject = api(
           inputs: req.seedInputs,
         });
       }
+
+      // Spec 220 FR-003 (OQ-3): mint the tenant's Ed25519 signing key and set
+      // it as the produced repo's OAP_SIGNING_KEY Actions secret BEFORE the
+      // first push, so commit #1's born-with CI can fire `tenant-emit
+      // build-certificate --require-operator-key` against a resolvable
+      // operator key rather than halting on the ephemeral fallback. A failure
+      // orphans the job on the same fail-closed path as push.
+      await advanceStep(job.id, "provision-signing-key");
+      const signer = await provisionTenantSigningKey(token, repoCreate.fullName);
+      signerPublicKey = signer.publicKeyB64;
 
       await advanceStep(job.id, "push-initial");
       const pushed = await gitInitAndPush({
@@ -388,6 +402,8 @@ export const createFactoryProject = api(
             repoName: req.repoName,
             githubRepoUrl: repoCreate.htmlUrl,
             commitSha,
+            // Spec 220 FR-003: attributes the born-with certificate signer.
+            signerPublicKey,
             scaffoldJobId: job.id,
             devEnvironmentId: devEnv.id,
             pipelineStateSeed: {

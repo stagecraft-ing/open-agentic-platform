@@ -265,6 +265,27 @@ The BOM tool version the gate pins is the version recorded in the certificate's
 `sbomArtifactBinding.bomToolVersion`, so the CI check and the cert agree on what
 produced the evidence.
 
+### CI-author note: committed-sidecar reframe (2026-07-01)
+
+The external CI author (template-encore `spec-spine.yml`) implemented point 1
+as **deterministic regeneration** rather than a mandatory committed sidecar. A
+code trace surfaced a conflict with the "first run generates and commits" model:
+the scaffold sets branch protection (required PR reviews) on the produced repo
+(stagecraft `configureBranchProtection`), so the CI cannot push a commit-back of
+`.factory/sbom.cdx.json` to the default branch. The gate therefore:
+
+1. regenerates the BOM twice per run and asserts the two are byte-identical
+   (proving regenerability from the lockfile + pinned tool, AC-4), and
+2. keeps the committed-sidecar drift check as an **opt-in**: if a tenant commits
+   `.factory/sbom.cdx.json`, the gate additionally asserts the regenerated BOM
+   matches the committed one (the literal point-1 comparison).
+
+The durable, tamper-evident BOM record is the hash bound into the per-run
+certificate (`sbomArtifactBinding.bomHash`, verified offline by
+`verify-certificate --sbom-dir`), which does not depend on committing the sidecar
+to a protected branch. Point 2 (lockfile-satisfies-manifest) is enforced by the
+`npm ci` step, which refuses a lockfile that does not satisfy `package.json`.
+
 ## Residuals
 
 - **R-1 (deferred): `.kernel-version` BOM-tool pin field.** The BOM tool version

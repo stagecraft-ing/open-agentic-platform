@@ -45,6 +45,14 @@ depends_on:
   - "209-tenant-kernel-ci-enforcement"
   - "218-run-cert-corpus-binding"
   - "219-tenant-tail-verifier-toolkit"
+establishes:
+  # Spec 220 FR-003 (OQ-3): the platform mints the tenant's Ed25519 signing key
+  # and sets it as the produced repo's OAP_SIGNING_KEY Actions secret at project
+  # creation (tenant = project = repo). New stagecraft module: mint a 32-byte
+  # Ed25519 seed (standard base64, the emitter's `decode_seed` shape) and PUT it
+  # as a libsodium sealed-box Actions secret. Plus its unit test.
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.test.ts }
 extends:
   # Same featuregraph-golden precedent specs 196/194/193/187/183/209/219 follow.
   - spec: "034-featuregraph-registry-scanner-fix"
@@ -73,6 +81,25 @@ extends:
   - spec: "168-per-project-governance-certificate"
     nature: additive
     unit: { kind: file, path: crates/factory-engine/tests/tenant_emission_integration.rs }
+  # FR-003 provisioning is invoked from spec 112's Create flow: create.ts gains a
+  # `provision-signing-key` step (mint + set the secret before the first push, so
+  # commit #1's born-with CI fires build-certificate --require-operator-key against
+  # a resolvable operator key) and records the signer public key in the
+  # project.created audit. Additive edit to the spec-112-established file.
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
+  # The matching `provision-signing-key` ScaffoldStep union member is an additive
+  # edit to the spec-140-established scaffold/types.ts.
+  - spec: "140-acme-vue-node-scaffold-source-id-cutover"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/types.ts }
+  # The signer minting needs libsodium-wrappers (Ed25519 seed + GitHub sealed-box
+  # secret). Additive dependency on the spec-116-owned stagecraft package.json;
+  # spec 116's supply-chain gate independently audits the new dependency.
+  - spec: "116-supply-chain-policy-gates"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/package.json }
 refines:
   # Leg 3 (kernel wiring): 220 fills the emitter slot spec 219 left deferred
   # (`status: pending-spec-220`). The born-with kernel toolchain manifest now
@@ -460,23 +487,34 @@ surface this spec owns is merged and tested on main:
   for spec 203's 1.7.0 SBOM bump, exactly as the "Coordination with spec 203"
   section required. No shared-file authority tangle occurred.
 
-**Remaining work is external / cross-repo; AC-2 is not yet satisfiable, so
-implementation stays `in-progress` (not `complete`).** Per the "closure is gated
-on AC-2" line above, the spec cannot honestly report complete until a real
-produced app emits a certificate that the spec 209 CI step verifies green. That
-requires:
+**2026-07-01: Legs 1 + 2 + FR-003 provisioning landed; only the live AC-2 run
+remains, so implementation stays `in-progress` (not `complete`).** The three
+external legs the prior status listed are now built:
 
-1. **Leg 2 (`tenant-emit` repo).** The sibling emit distributable is at v0.1.0
-   in git (Rust core + npm + py, tenant-tail's workflows, Apache-2.0), but is
-   **not yet published to the npm registry**, so the kernel's
-   `npx --no-install tenant-emit build-certificate` pin does not yet resolve.
-2. **FR-002 firing step.** No terminal `build-certificate` invocation is seeded
-   into the born-with CI yet. Like spec 209's `verify-certificate` step (which
-   lives in the prebuilt template's external `spec-spine.yml`), the emit-side
-   firing step lands in that same external CI, not in this repo. It is the
-   emit-side counterpart of the verify step 209 seeded.
-3. **AC-2 end-to-end.** With (1) and (2) in place, a real produced-app run emits
-   and the dormant spec 209 verify step activates green.
+1. **Leg 2 (`tenant-emit` published).** `tenant-emit@0.2.0` (unscoped) plus its
+   five `@tenant-emit/cli-<triple>` platform packages are live on npm, so the
+   kernel's `npx --no-install tenant-emit build-certificate` pin resolves.
+   `build-certificate` carries the FR-003 `--require-operator-key`, FR-007
+   `--corpus-attestation`, and spec 203 `--sbom-dir` flags.
+2. **FR-002 firing step.** Seeded into the prebuilt template's external
+   `spec-spine.yml` (`stagecraft-ing/template-encore`), gated on `.kernel-version`
+   so it is dormant in the template and active in a produced app: a terminal
+   `tenant-emit build-certificate <run-dir> --tenant-mode --require-operator-key
+   --sbom-dir . --corpus-attestation attestation.json` after SBOM/audit
+   generation (spec 203 FR-001/FR-002) and the FR-004 parity gate, with the
+   existing spec 209 `verify-certificate` step extended to re-check the SBOM and
+   corpus bindings (`--sbom-dir` / `--corpus-attestation`).
+3. **FR-003 key custody (OQ-3): provisioning now built.** Stagecraft's Create
+   flow mints a per-tenant Ed25519 seed and sets it as the produced repo's
+   `OAP_SIGNING_KEY` Actions secret before the first push
+   (`api/projects/scaffold/tenantSigningKey.ts`, wired from `create.ts`), so the
+   born-with CI's `--require-operator-key` firing resolves an operator key rather
+   than halting on the ephemeral fallback. The signer public key is recorded in
+   the `project.created` audit for attribution.
 
-The OAP-side cert engine is therefore done; the tenant boundary is crossed by
-the external legs above.
+**Remaining: the live AC-2 end-to-end.** With Legs 1-3 in place a real
+produced-app run should emit a certificate the dormant spec 209 verify step then
+accepts green. That single end-to-end demonstration (scaffold a tenant, let its
+CI run) is the only closure gate left; the code path is complete. The OAP-side
+cert engine and the platform-side key custody are done; the tenant boundary is
+now crossed in code, pending the live-run confirmation.

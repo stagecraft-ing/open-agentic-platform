@@ -102,6 +102,7 @@
       "Sequencing",
       "Implementation status (2026-07-01)",
       "Gate contract (FR-004)",
+      "CI-author note: committed-sidecar reframe (2026-07-01)",
       "Residuals"
     ],
     "specPath": "specs/203-produced-app-sbom-attestation/spec.md",
@@ -109,6 +110,6 @@
     "summary": "Apply OAP's own supply-chain discipline forward to what the factory produces. OAP ships per-target CycloneDX SBOMs and an aggregate release BOM for itself (specs 116/117), but a scaffolded application receives only a pinned lockfile — no SBOM, no dependency-vulnerability scan artifact, no lockfile-parity gate. An auditor holding a produced app's governance certificate (spec 168) cannot answer \"what is in this application and was it scanned?\" — the exact ASI04 question. This spec emits a CycloneDX BOM and a dependency-audit artifact at scaffold completion, binds their content hashes into the per-project governance certificate, and adds a lockfile/BOM parity gate to the tenant CI the born-with kernel (spec 167) seeds. Absence of a scanner is recorded visibly, never silently (the spec 200 FR-004 posture).\n",
     "title": "Produced-App SBOM and Dependency-Audit Attestation (ASI04 forward)"
   },
-  "shardHash": "a21a8a925958bb3732cc90162da20cbfd4879ca3228f5c8050db0f9807159b2f",
+  "shardHash": "30742d3604c2ec5d72bfe920aaf08d2302af0341bc806605dec1de1fdf26a5b4",
   "specVersion": "1.1.0"
 }
