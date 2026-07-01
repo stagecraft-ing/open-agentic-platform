@@ -6,6 +6,7 @@
  */
 
 import { MemoryStorage } from "./storage/sqlite.js";
+import { MemoryWriteRefused } from "./gate.js";
 import { handleMemoryStore } from "./tools/store.js";
 import { handleMemoryQuery } from "./tools/query.js";
 import { handleMemoryDelete } from "./tools/delete.js";
@@ -162,7 +163,11 @@ export class MemoryServer {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      return { jsonrpc: "2.0", id: request.id, error: { code: -32000, message } };
+      // Spec 204 FR-001: a write-gate refusal is attributable at the MCP layer,
+      // not just as a message string, so callers can branch on the rule id.
+      const data =
+        err instanceof MemoryWriteRefused ? { ruleId: err.ruleId } : undefined;
+      return { jsonrpc: "2.0", id: request.id, error: { code: -32000, message, data } };
     }
   }
 

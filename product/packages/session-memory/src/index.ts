@@ -15,6 +15,8 @@ export {
   PROMOTION_ACCESS_THRESHOLD,
 } from "./types.js";
 
+export { runMemoryWriteGate, runMemoryStoreGate, MemoryWriteRefused, MEMORY_MAX_BYTES } from "./gate.js";
+
 export { MemoryStorage, dbPath } from "./storage/sqlite.js";
 export { applyMigrations, getCurrentVersion, MIGRATIONS } from "./storage/migrations.js";
 
