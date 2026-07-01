@@ -64,6 +64,7 @@ export type ScaffoldStep =
   | "seed-pipeline-state"
   | "extract-artifacts"
   | "repo-create"
+  | "provision-signing-key"
   | "push-initial"
   | "cleanup";
 

@@ -42,6 +42,26 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/projects/create.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/scaffold/types.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/package.json",
+        "source": "spec-edge"
+      },
+      {
         "path": "specs/168-per-project-governance-certificate/spec.md",
         "source": "spec-edge"
       },
@@ -55,6 +75,32 @@
       }
     ],
     "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.ts"
+        }
+      },
       {
         "locations": [
           {
@@ -105,6 +151,45 @@
         "unit": {
           "kind": "file",
           "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/create.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/create.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/scaffold/types.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/scaffold/types.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/package.json"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/package.json"
         }
       },
       {
@@ -203,5 +288,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "32ff9f707100ed0d663c9b575f2dc3e5fa11489fd6c857db655a1302f05f7729"
+  "shardHash": "edcf32eae739d6a3de49c22b463b5250652c3020afb9b92d6764432fa88df4c3"
 }
