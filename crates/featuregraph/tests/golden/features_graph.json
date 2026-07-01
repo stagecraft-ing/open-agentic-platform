@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:28025470c542a1ca8c4cce9f19f2067c52c2b6473138cfbb39c7523a41a247db",
+  "graph_fingerprint": "sha256:19ffdb5973058b5fd39fc5b41dfb957f687cd161dd73f071cc257a982cb6216b",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4220,6 +4220,26 @@
       "group": "",
       "depends_on": [
         "118-workflow-spec-traceability"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "224-self-hosted-sweeper-cron-revival",
+      "title": "Self-Hosted Sweeper Cron Revival (K8s CronJobs for Encore no-op sweepers)",
+      "spec_path": "specs/224-self-hosted-sweeper-cron-revival/spec.md",
+      "status": "approved",
+      "implementation": "in-progress",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "124-opc-factory-run-platform-integration",
+        "143-presigned-upload-public-endpoint",
+        "087-unified-workspace-architecture",
+        "115-knowledge-extraction-pipeline",
+        "106-rauthy-native-oidc-and-membership"
       ],
       "impl_files": [],
       "test_files": [],

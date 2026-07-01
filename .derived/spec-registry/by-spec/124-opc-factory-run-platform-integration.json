@@ -1,6 +1,6 @@
 {
   "record": {
-    "amendmentRecord": "amended by spec 199 (2026-06-11), editorial: the platform-client\nwire-format test mocks (adapter list envelope/id-default round-trip)\nuse the manifest-declared acme-vue-encore plus a neutral\nsecond-adapter instead of the upstream-retired acme-vue-node /\nnext-prisma. Pure fixture rename; no wire-contract change.\n",
+    "amendmentRecord": "amended by spec 199 (2026-06-11), editorial: the platform-client\nwire-format test mocks (adapter list envelope/id-default round-trip)\nuse the manifest-declared acme-vue-encore plus a neutral\nsecond-adapter instead of the upstream-retired acme-vue-node /\nnext-prisma. Pure fixture rename; no wire-contract change.\namended by spec 224 (2026-07-01): records that §6's factory-runs\nstaleness sweeper, declared as an Encore CronJob, was a silent no-op\non the self-hosted target (spec 143 §12 L-001) and is revived via\nspec 224's K8s CronJob plus expose:true M2M endpoint (scope\nplatform:factory:sweep). Sweep kernel unchanged; scheduling surface\nadded.\n",
     "created": "2026-05-01",
     "dependsOn": [
       "087-unified-workspace-architecture",
@@ -28,7 +28,7 @@
       }
     ],
     "extraFrontmatter": {
-      "amended": "2026-06-11",
+      "amended": "2026-07-01",
       "approved": "2026-05-01",
       "slug": "opc-factory-run-platform-integration"
     },
@@ -61,6 +61,6 @@
     "summary": "Closes the spec 108 §7.1 punt and §7.4 deferral. OPC stops reading `factory/` from a developer's local checkout and instead pulls adapter manifests, contract schemas, and process definitions from the platform's `/api/factory/*` endpoints; runs are persisted as `factory_runs` rows and streamed back over the existing duplex channel so a run can be observed from the web UI in real time. Replaces the current `resolve_factory_root()` walk-up-from-CARGO_MANIFEST_DIR with an authenticated platform fetch + on-disk run cache.\n",
     "title": "OPC Factory-Run Platform Integration"
   },
-  "shardHash": "29a8ef8f34f229f926e9be652b611cc37a39bb536a210181d7b1d677a39717a1",
+  "shardHash": "7d8021b3e1643e758baaf4f7c01ca80b2d24294f8fc7ec6b69e9d464dcbf5754",
   "specVersion": "1.1.0"
 }

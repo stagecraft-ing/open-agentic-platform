@@ -17,13 +17,14 @@
 // the user can re-run; a permanent `running` row would be misinformation
 // every time the operator opened the Runs tab.
 
-import { api } from "encore.dev/api";
+import { api, Header } from "encore.dev/api";
 import { CronJob } from "encore.dev/cron";
 import log from "encore.dev/log";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import { factoryRuns, auditLog } from "../db/schema";
 import { FACTORY_RUN_SWEPT } from "./auditActions";
+import { validateM2mRequest } from "../auth/m2mAuth.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -163,39 +164,76 @@ export async function sweepStaleFactoryRuns(
 }
 
 // ---------------------------------------------------------------------------
-// Encore endpoint — required for `CronJob.endpoint` (must be an `api()`
-// handler). Internal-only (`expose: false`).
+// Sweep-and-log kernel. Shared by both the M2M endpoint (the K8s CronJob
+// target) and the parameterless Encore-cron endpoint below. Mirrors
+// `api/knowledge/scheduler.ts::executeOrphanSweep`.
 // ---------------------------------------------------------------------------
 
+async function executeFactoryRunsSweep(): Promise<void> {
+  try {
+    const result = await sweepStaleFactoryRuns();
+    if (result.swept > 0) {
+      log.info("factory.runs staleness sweep: rows recovered", {
+        swept: result.swept,
+      });
+    }
+  } catch (err) {
+    log.error("factory.runs staleness sweep failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Spec 224 FR-001: self-hosted K8s CronJob target.
+// ---------------------------------------------------------------------------
+//
+// Spec 143 §12 L-004: `expose: false` means "internal to the Encore
+// service", not "internal to the cluster". A K8s CronJob is an external HTTP
+// caller relative to the Encore process boundary even on an intra-cluster
+// hop, so the self-hosted scheduler (the K8s CronJob added by spec 224) can
+// only reach the sweep through an `expose: true` endpoint gated by the
+// platform M2M auth surface. The `platform:factory:sweep` scope must live in
+// the calling Rauthy client's *Default Scopes* (load-bearing per §12 L-006:
+// Rauthy 0.35 `client_credentials` mints Default Scopes regardless of
+// `scope=`; Allowed Scopes alone is silently inert). Same pattern as
+// `runOrphanImportedSweep` (spec 143 FR-010).
 export const runFactoryRunsStalenessSweep = api(
   {
-    expose: false,
+    expose: true,
     method: "POST",
     path: "/internal/factory/runs-staleness-sweep",
   },
-  async (): Promise<void> => {
-    try {
-      const result = await sweepStaleFactoryRuns();
-      if (result.swept > 0) {
-        log.info("factory.runs staleness sweep: rows recovered", {
-          swept: result.swept,
-        });
-      }
-    } catch (err) {
-      log.error("factory.runs staleness sweep failed", {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+  async (req: { authorization: Header<"Authorization"> }): Promise<void> => {
+    await validateM2mRequest(req.authorization, "platform:factory:sweep");
+    await executeFactoryRunsSweep();
   },
 );
 
+// Encore CronJob requires a parameterless endpoint, so the local-dev /
+// future-Encore-Cloud cron path gets its own internal handler that runs the
+// same kernel without a header parameter. Self-hosted production runs the
+// K8s CronJob against `runFactoryRunsStalenessSweep` above (spec 224 FR-002);
+// this handler is a no-op there because Encore's CronJob primitive is
+// unscheduled without Encore Cloud (spec 143 §12 L-001).
+export const runFactoryRunsStalenessSweepCron = api(
+  {
+    expose: false,
+    method: "POST",
+    path: "/internal/factory/runs-staleness-sweep-cron",
+  },
+  executeFactoryRunsSweep,
+);
+
 // ---------------------------------------------------------------------------
-// Cron registration — runs every minute, mirrors spec 115's cadence.
+// Cron registration. Runs every minute on local-dev / future Encore Cloud
+// only; the self-hosted production scheduler is the K8s CronJob from spec
+// 224 (spec 143 §12 L-001). Mirrors spec 115's cadence.
 // ---------------------------------------------------------------------------
 
 const _factoryRunsSweeper = new CronJob("factory-runs-staleness-sweeper", {
   title: "Factory Runs Staleness Sweeper",
   every: "1m",
-  endpoint: runFactoryRunsStalenessSweep,
+  endpoint: runFactoryRunsStalenessSweepCron,
 });
 void _factoryRunsSweeper;

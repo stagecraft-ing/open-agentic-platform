@@ -7,13 +7,19 @@ implementation: complete
 owner: bart
 created: "2026-05-01"
 approved: "2026-05-01"
-amended: "2026-06-11"
+amended: "2026-07-01"
 amendment_record: |
   amended by spec 199 (2026-06-11), editorial: the platform-client
   wire-format test mocks (adapter list envelope/id-default round-trip)
   use the manifest-declared acme-vue-encore plus a neutral
   second-adapter instead of the upstream-retired acme-vue-node /
   next-prisma. Pure fixture rename; no wire-contract change.
+  amended by spec 224 (2026-07-01): records that §6's factory-runs
+  staleness sweeper, declared as an Encore CronJob, was a silent no-op
+  on the self-hosted target (spec 143 §12 L-001) and is revived via
+  spec 224's K8s CronJob plus expose:true M2M endpoint (scope
+  platform:factory:sweep). Sweep kernel unchanged; scheduling surface
+  added.
 kind: platform
 domain: opc
 risk: high
@@ -47,6 +53,15 @@ extends:
 > wire-format test mocks now use the manifest-declared `acme-vue-encore`
 > (plus a neutral `second-adapter`) instead of the upstream-retired
 > example adapter names. No wire-contract change.
+
+> **Amended by spec 224 (2026-07-01).** §6's factory-runs staleness
+> sweeper, declared as an Encore `CronJob`, was a silent no-op on the
+> self-hosted target (spec 143 §12 L-001 systemic finding: Encore's
+> `CronJob` primitive has no scheduler without Encore Cloud). Spec 224
+> revives it with an `expose:true` M2M-gated endpoint plus a sibling K8s
+> `CronJob` (scope `platform:factory:sweep`). The sweep kernel
+> (`sweepStaleFactoryRuns`) is unchanged; only the scheduling and
+> reachability surface is added.
 
 ## 1. Problem Statement
 
