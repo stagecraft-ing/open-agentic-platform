@@ -64,6 +64,22 @@ export const MIGRATIONS: Migration[] = [
       INSERT INTO schema_version (version) VALUES (2);
     `,
   },
+  {
+    version: 3,
+    description: "Quarantine flag for session-scoped bulk revocation (spec 204 FR-006)",
+    // Additive. `quarantined` marks entries excluded from all reads pending
+    // human review (a poisoned session's writes are enumerable and
+    // bulk-revocable). Runs in a transaction like every migration.
+    up: `
+      ALTER TABLE memory_entries ADD COLUMN quarantined INTEGER NOT NULL DEFAULT 0;
+
+      -- Composite so the read filter (project_scope = ? AND quarantined = 0) is
+      -- index-served; a standalone boolean index would be near-useless.
+      CREATE INDEX IF NOT EXISTS idx_memory_scope_quarantined ON memory_entries (project_scope, quarantined);
+
+      INSERT INTO schema_version (version) VALUES (3);
+    `,
+  },
 ];
 
 export function getCurrentVersion(db: { prepare: (sql: string) => { get: () => { version: number } | undefined } }): number {

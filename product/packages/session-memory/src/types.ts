@@ -47,6 +47,8 @@ export interface MemoryEntry {
   contentHash: string;
   /** Trust class governing retention/promotion (FR-003). */
   trustClass: TrustClass;
+  /** FR-006: quarantined entries are excluded from all reads pending review. */
+  quarantined: boolean;
 }
 
 /** Input for creating a new memory entry via memory_store. */

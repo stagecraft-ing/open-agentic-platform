@@ -45,6 +45,7 @@ interface MemoryRow {
   source_attribution: string | null;
   content_hash: string;
   trust_class: string;
+  quarantined: number;
 }
 
 function rowToEntry(row: MemoryRow): MemoryEntry {
@@ -64,6 +65,7 @@ function rowToEntry(row: MemoryRow): MemoryEntry {
     sourceAttribution: row.source_attribution,
     contentHash: row.content_hash,
     trustClass: row.trust_class as TrustClass,
+    quarantined: row.quarantined !== 0,
   };
 }
 
@@ -183,6 +185,8 @@ export class MemoryStorage {
       sourceAttribution: input.sourceAttribution ?? null,
       contentHash: hashContent(input.content),
       trustClass,
+      // New entries are never quarantined; the column default (0) matches.
+      quarantined: false,
     };
 
     this.db.prepare(`
@@ -217,7 +221,8 @@ export class MemoryStorage {
 
   /** Query memories with filtering (FR-005). */
   query(input: QueryMemoryInput): MemoryEntry[] {
-    const conditions: string[] = ["project_scope = ?"];
+    // FR-006: quarantined entries are excluded from all reads pending review.
+    const conditions: string[] = ["project_scope = ?", "quarantined = 0"];
     const params: unknown[] = [input.projectScope];
 
     if (input.kind) {
@@ -271,7 +276,8 @@ export class MemoryStorage {
 
   /** List memories with pagination. */
   list(input: ListMemoryInput): MemoryEntry[] {
-    const conditions: string[] = ["project_scope = ?"];
+    // FR-006: quarantined entries are excluded from all reads pending review.
+    const conditions: string[] = ["project_scope = ?", "quarantined = 0"];
     const params: unknown[] = [input.projectScope];
 
     if (input.kind) {
@@ -288,17 +294,25 @@ export class MemoryStorage {
     return rows.map(rowToEntry);
   }
 
-  /** Delete a memory entry by ID. Returns true if deleted. */
+  /**
+   * Delete a memory entry by ID. Returns true if deleted. FR-006: a quarantined
+   * entry is FROZEN pending human review and cannot be deleted here (including
+   * via the agent-facing memory_delete tool, so a poisoning agent cannot destroy
+   * the evidence). Release it first (releaseSession) to delete it.
+   */
   delete(id: string): boolean {
-    const result = this.db.prepare("DELETE FROM memory_entries WHERE id = ?").run(id);
+    const result = this.db.prepare(
+      "DELETE FROM memory_entries WHERE id = ? AND quarantined = 0",
+    ).run(id);
     return result.changes > 0;
   }
 
-  /** Delete all expired entries. Returns count of deleted entries (SC-004). */
+  /** Delete all expired entries. Returns count of deleted entries (SC-004).
+   * FR-006: quarantined entries are frozen and not swept until released. */
   sweepExpired(): number {
     const now = Math.floor(Date.now() / 1000);
     const result = this.db.prepare(
-      "DELETE FROM memory_entries WHERE expires_at IS NOT NULL AND expires_at <= ?",
+      "DELETE FROM memory_entries WHERE expires_at IS NOT NULL AND expires_at <= ? AND quarantined = 0",
     ).run(now);
     return result.changes;
   }
@@ -312,12 +326,14 @@ export class MemoryStorage {
     return result.changes > 0;
   }
 
-  /** Get entries eligible for importance promotion (access_count >= threshold). */
+  /** Get entries eligible for importance promotion (access_count >= threshold).
+   * FR-006: quarantined entries are frozen and never promoted. */
   getPromotionCandidates(threshold: number): MemoryEntry[] {
     const rows = this.db.prepare(
       `SELECT * FROM memory_entries
        WHERE access_count >= ?
          AND importance NOT IN ('long-term', 'permanent')
+         AND quarantined = 0
        ORDER BY access_count DESC`,
     ).all(threshold) as MemoryRow[];
     return rows.map(rowToEntry);
@@ -326,13 +342,15 @@ export class MemoryStorage {
   /**
    * Entries eligible for trust-weighted decay (FR-004): machine-harvested and
    * not re-accessed since `staleBefore` (updated_at is bumped on every query).
-   * Verified and human-curated entries are exempt and never returned.
+   * Verified and human-curated entries are exempt and never returned; FR-006:
+   * quarantined entries are frozen and never decayed.
    */
   getDecayCandidates(staleBefore: number): MemoryEntry[] {
     const rows = this.db.prepare(
       `SELECT * FROM memory_entries
        WHERE trust_class = 'machine-harvested'
          AND updated_at < ?
+         AND quarantined = 0
        ORDER BY updated_at ASC`,
     ).all(staleBefore) as MemoryRow[];
     return rows.map(rowToEntry);
@@ -364,10 +382,50 @@ export class MemoryStorage {
     return result.changes > 0;
   }
 
+  /**
+   * FR-006: enumerate every entry authored by an origin session, INCLUDING
+   * quarantined ones (this is the review/revocation surface). Not
+   * project-scoped: a poisoned session may have written across projects, and
+   * all of its writes must be enumerable for bulk revocation. Newest first.
+   */
+  getBySession(sourceSessionId: string): MemoryEntry[] {
+    const rows = this.db.prepare(
+      "SELECT * FROM memory_entries WHERE source_session_id = ? ORDER BY created_at DESC",
+    ).all(sourceSessionId) as MemoryRow[];
+    return rows.map(rowToEntry);
+  }
+
+  /**
+   * FR-006 (AC-5): bulk-quarantine every entry from a (poisoned) session.
+   * Quarantined entries are excluded from all reads pending human review.
+   * Returns the number newly quarantined.
+   */
+  quarantineSession(sourceSessionId: string): number {
+    const now = Math.floor(Date.now() / 1000);
+    const result = this.db.prepare(
+      "UPDATE memory_entries SET quarantined = 1, updated_at = ? WHERE source_session_id = ? AND quarantined = 0",
+    ).run(now, sourceSessionId);
+    return result.changes;
+  }
+
+  /**
+   * FR-006: release a session's entries from quarantine after human review.
+   * Returns the number released.
+   */
+  releaseSession(sourceSessionId: string): number {
+    const now = Math.floor(Date.now() / 1000);
+    const result = this.db.prepare(
+      "UPDATE memory_entries SET quarantined = 0, updated_at = ? WHERE source_session_id = ? AND quarantined = 1",
+    ).run(now, sourceSessionId);
+    return result.changes;
+  }
+
   /** Count entries for a project scope. */
   count(projectScope: string): number {
+    // FR-006: quarantined entries are excluded, consistent with query/list, so
+    // the count reflects readable entries and does not leak the poisoned count.
     const row = this.db.prepare(
-      "SELECT COUNT(*) as cnt FROM memory_entries WHERE project_scope = ?",
+      "SELECT COUNT(*) as cnt FROM memory_entries WHERE project_scope = ? AND quarantined = 0",
     ).get(projectScope) as { cnt: number };
     return row.cnt;
   }
