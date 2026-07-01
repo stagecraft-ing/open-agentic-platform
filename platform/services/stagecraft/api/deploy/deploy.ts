@@ -804,7 +804,14 @@ export const triggerDeployment = api(
         status: "FAILED",
         diagnostic: built.message,
       });
-      throw APIError.internal(built.message);
+      // A build-body failure is an unmet deploy precondition (e.g.
+      // "RAUTHY_ISSUER_URL is required when a tenant access gate is enabled"),
+      // not an internal fault. Encore sanitizes `internal` errors to "an
+      // internal error occurred" before they reach the client, which hid the
+      // real reason in the redeploy toast even though the record's diagnostic
+      // held it. failedPrecondition forwards the message, matching the
+      // "image not built yet" throw above.
+      throw APIError.failedPrecondition(built.message);
     }
 
     let updated: EnvironmentDeployment | undefined;

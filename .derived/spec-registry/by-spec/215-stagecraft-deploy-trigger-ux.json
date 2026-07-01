@@ -172,6 +172,6 @@
     "summary": "Give the project-created page its deployment row: \"Preview in Deployd\" dispatches the scaffolded commit to the auto-provisioned development environment, and \"View Deployd\" lands on an environment page that shows real deployment state and the live URL. Underneath the buttons: a createDeployment client path, a stagecraft-side record of every dispatch (fixing the preview-destroy release-id bug, where the webhook deletes a release id it never stored), authorization on the deploy proxy (today auth: false), and one consolidated deployd client replacing the two parallel M2M implementations. This is the manual precursor of the factory pipeline's automated terminal deploy stage, which remains the deferral recorded in spec 112 §11.\n",
     "title": "Stagecraft Deploy Trigger UX (Preview in Deployd / View Deployd)"
   },
-  "shardHash": "d21ad480c9a4e39a738e54511d8825f869994ac36d860426b3e1e4d15e342629",
+  "shardHash": "3b0de7c908d27d23ada00a88c90413e2d6fcece04937e61906efe8f2418ad704",
   "specVersion": "1.1.0"
 }
