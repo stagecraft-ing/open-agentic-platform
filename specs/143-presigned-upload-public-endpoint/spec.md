@@ -718,6 +718,26 @@ FR-008 is amended to reflect this scoping.
   the pattern for its own sweeper; the upstream sweepers' fixes
   belong to follow-up amendments on their owner specs (see §12).
 
+  *Empirical correction (gateway auth handler blocks M2M tokens,
+  2026-07-01).* The `expose: true` + `validateM2mRequest` fix above is
+  necessary but was not sufficient in production. The Encore gateway auth
+  handler (`api/auth/handler.ts`) runs for EVERY request carrying an
+  Authorization header, including the K8s CronJob's call to
+  `/internal/knowledge/orphan-imported-sweep`. It validated the
+  `client_credentials` token with the user-session validator
+  (`rauthy.ts::validateJwt`, which requires `aud = stagecraft-server`) and
+  **threw** on the audience mismatch, 401ing the request before the
+  endpoint's own `validateM2mRequest` ever ran. Live evidence: the sweeper
+  pods `Error` every 30 min with `curl: (22) 401` and stagecraft logs
+  `JWT rejected: audience mismatch (aud: stagecraft-knowledge-sweeper-m2m-app,
+  expected: stagecraft-server)`. Fix: the auth handler now returns `null`
+  (unauthenticated) instead of throwing when `validateJwt` returns null, so a
+  non-session token falls through. Encore then rejects `auth: true` user
+  endpoints (no AuthData) but lets `auth: false` M2M endpoints proceed to
+  their scope-checked `validateM2mRequest`. This unblocks every platform M2M
+  seam (audit, policy, grants, knowledge-sweep), and is the precondition for
+  the spec 124 factory-runs sweeper's own K8s-CronJob revival.
+
   Concurrency model: Encore CronJob does NOT guarantee single-flight
   at the platform level (the existing extraction-staleness sweeper
   relies on idempotence, not exclusion). Spec 143's sweep is safe

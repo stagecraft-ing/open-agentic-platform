@@ -61,6 +61,10 @@ export default defineConfig({
       : [
       "**/node_modules/**",
       "**/dist/**",
+      // Spec 143: the gateway auth handler constructs an Encore `Gateway` at
+      // import time and its happy-path check reads the users table, so the
+      // M2M-passthrough regression suite runs under `encore test`.
+      "**/auth/handler.test.ts",
       // schema.ts <-> migrated-SQL drift gate: zero-row selects per table +
       // pgEnum label comparison against the live baseline-applied DB.
       "**/db/schemaDrift.test.ts",

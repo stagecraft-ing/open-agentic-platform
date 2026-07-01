@@ -107,13 +107,24 @@ export const auth = authHandler<AuthParams, AuthData>(async (params) => {
     throw APIError.unauthenticated("No authentication token provided");
   }
 
-  // Validate Rauthy JWT — the only accepted auth mechanism
+  // Validate as a Rauthy user-session JWT. A null result is NOT a hard
+  // rejection here. Encore runs this gateway auth handler for EVERY request
+  // that carries an Authorization header, including requests to the platform's
+  // `expose: true` M2M endpoints (audit, policy, grants, knowledge-sweep) that
+  // present a `client_credentials` token. Those tokens carry a different
+  // audience than the `stagecraft-server` session client, so `validateJwt`
+  // returns null for them, and the endpoints validate them themselves via
+  // `validateM2mRequest` (scope-checked, no audience check). Returning null
+  // (instead of throwing) makes Encore treat the request as unauthenticated:
+  // `auth: true` user endpoints still reject it (no AuthData), while
+  // `auth: false` M2M endpoints proceed to their own scope check. Throwing
+  // here would 401 the M2M endpoints before their handler ever runs.
   const claims = await validateJwt(token);
   if (!claims) {
     // validateJwt logs the specific rejection reason; add the handler-level
     // breadcrumb so the cause is easy to locate in the Encore log stream.
-    log.warn("auth handler: validateJwt returned null — see prior JWT rejected warning");
-    throw APIError.unauthenticated("Invalid or expired JWT");
+    log.warn("auth handler: validateJwt returned null (no user session; may be an M2M token routed to an auth:false endpoint, see prior JWT rejected warning)");
+    return null;
   }
 
   // FR-025: reject disabled users even if their JWT is still valid

@@ -103,6 +103,6 @@
     "summary": "Replaces local email/password auth with GitHub-centered identity. GitHub App installation provides org trust anchor, GitHub OAuth provides user identity, Rauthy issues platform sessions and claims. Enables self-service project creation for authenticated org members.\n",
     "title": "GitHub Identity and Org Onboarding — App Installation, OAuth Login, Rauthy Sessions"
   },
-  "shardHash": "b290515cb65e4cbdf5fc65527126c12e9d7e053f89244e33c9b6353bb191f088",
+  "shardHash": "f1e89a8c048a1660f261905b7745149f6579e76b708155c4967da8bec180b5ac",
   "specVersion": "1.1.0"
 }
