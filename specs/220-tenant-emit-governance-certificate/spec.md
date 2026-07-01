@@ -295,7 +295,13 @@ firing point** invokes the emitter at a tenant run's completion.
     platform-issued per-tenant key) into one flow, and it is the same provisioning
     hook the deferred platform countersign / uplink (Out of scope) reuses to issue
     a sealing identity. A tenant that self-hosts may configure the CI secret by
-    hand instead; the emitter contract is identical either way.
+    hand instead; the emitter contract is identical either way. Setting that
+    secret hits GitHub's `/repos/{repo}/actions/secrets/*` endpoints, which are
+    governed by the App installation's dedicated `secrets` permission (**not**
+    `actions`): the Create-flow token broker must request `secrets: write` and
+    the OAP GitHub App must be granted the repository Secrets permission, or the
+    provisioning 403s at the public-key fetch ("Resource not accessible by
+    integration") and fail-closes the scaffold before commit #1.
 - **FR-004: Unsealed-but-verifiable posture.** A tenant run is outside OAP's
   admission/grant flow, so the emitted certificate carries **no platform
   countersign** (spec 198 FR-014). It is Ed25519-signed by the tenant signer and
@@ -518,3 +524,18 @@ accepts green. That single end-to-end demonstration (scaffold a tenant, let its
 CI run) is the only closure gate left; the code path is complete. The OAP-side
 cert engine and the platform-side key custody are done; the tenant boundary is
 now crossed in code, pending the live-run confirmation.
+
+**2026-07-01 (live AC-2 attempt 1): the first real scaffold surfaced a
+broker-permission gap, now fixed.** The prior note's "the code path is complete"
+was falsified by the first live create. The Create flow brokered its GitHub App
+installation token with `{contents, administration, actions, workflows}` but
+**not** `secrets`, so FR-003's `provisionTenantSigningKey` 403'd at the
+Actions-secrets public-key fetch ("Resource not accessible by integration") and
+fail-closed the scaffold before commit #1 (the repo was created but never
+pushed; the scaffold job orphaned). Root cause: GitHub governs
+`/repos/{repo}/actions/secrets/*` under the dedicated `secrets` permission, not
+`actions` (the earlier `tenantSigningKey.ts` comment claiming `actions: write`
+sufficed was wrong; the unit tests mock `fetch`, so only a live run caught it).
+Fixed by adding `secrets: write` to the brokered token (`create.ts`) and
+granting the OAP GitHub App the repository Secrets permission. AC-2 closure now
+waits on a deploy of this fix plus a retried scaffold.
