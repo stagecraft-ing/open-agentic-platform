@@ -1,5 +1,6 @@
 {
   "record": {
+    "amendmentRecord": "amended 2026-07-01 by spec 204 (session-memory write contract): the\nFR-013(a) override gate's carrier-class, secret, and UTF-8 rules were\nextracted into the shared @opc/carrier-gate package so the factory substrate\ngate and the session-memory write gate share one canonical rule set (spec\n204 FR-001, \"shared with, not copied from\"). overrideGate.ts now imports\nthose predicates; its verdicts, rule ids, and the two substrate-specific\nrules it keeps (size ceiling, kind stability) are unchanged.\n",
     "authors": [
       "open-agentic-platform"
     ],
@@ -106,6 +107,7 @@
       }
     ],
     "extraFrontmatter": {
+      "amended": "2026-07-01",
       "compliance": [
         {
           "controls": [
@@ -362,6 +364,6 @@
     "summary": "Define the governance envelope: the machine-checkable contract a factory must file for OAP to admit it, and the fail-closed admission gate that enforces it. The envelope is OAP's encoding of OWASP ASI 2026 obligations — a synthesis of the source's own ASI01 \"intent capsule\" (signed goal + constraints + context per run) and ASI10 \"signed behavioral manifest\" (declared capabilities, tools, goals, tiers — validated before each action), composed from a process envelope (the run) and per-adapter sub-envelopes (the scaffold boundary). OAP validates it two-sidedly — conformant to the schema AND reconciled against the factory's own atomic declarations (recompute-and-reconcile) — and refuses to admit a factory whose brief is absent, non-conformant, over-ceiling, or internally inconsistent. The envelope is the admission-time counterpart to the emission-time governance certificate (spec 102/168): the contract going in, the receipt coming out. OAP is the enforcer (judge/bouncer), not the rule-maker — ASI 2026 is the law, the factory interprets it for the org, OAP arbitrates, and OPC is an untrusted executor permitted only within the admitted envelope.\n",
     "title": "Factory Governance Envelope (ASI Admission Contract)"
   },
-  "shardHash": "91732bd62cad897736691c5e4c6bb56fda2df5123bd16692104a7520d4b9a180",
+  "shardHash": "649c9a8d40470b8931128ca2d692cd9f03fd61a7ea8be6ecf557aa605ad0865d",
   "specVersion": "1.1.0"
 }

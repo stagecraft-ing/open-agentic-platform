@@ -1,5 +1,8 @@
 {
   "mapping": {
+    "amends": [
+      "198-factory-governance-envelope"
+    ],
     "dependsOn": [
       "056-session-memory",
       "198-factory-governance-envelope"
@@ -15,6 +18,38 @@
       },
       {
         "path": "platform/services/stagecraft/api/factory/overrideGate.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/carrier-gate",
+        "source": "manifest-metadata"
+      },
+      {
+        "path": "product/packages/carrier-gate/package.json",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/carrier-gate/src/fixture.js",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/carrier-gate/src/index.d.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/carrier-gate/src/index.js",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/carrier-gate/src/rules.js",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/carrier-gate/src/rules.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/packages/carrier-gate/tsconfig.json",
         "source": "spec-edge"
       },
       {
@@ -34,6 +69,97 @@
       {
         "locations": [
           {
+            "file": "product/packages/carrier-gate/package.json"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/carrier-gate/package.json"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/packages/carrier-gate/src/fixture.js"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/carrier-gate/src/fixture.js"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/packages/carrier-gate/src/index.d.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/carrier-gate/src/index.d.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/packages/carrier-gate/src/index.js"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/carrier-gate/src/index.js"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/packages/carrier-gate/src/rules.js"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/carrier-gate/src/rules.js"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/packages/carrier-gate/src/rules.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/carrier-gate/src/rules.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/packages/carrier-gate/tsconfig.json"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/packages/carrier-gate/tsconfig.json"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/featuregraph/tests/golden/features_graph.json"
           }
         ],
@@ -42,6 +168,19 @@
         "unit": {
           "kind": "file",
           "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/overrideGate.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
         }
       },
       {
@@ -95,24 +234,11 @@
           "kind": "file",
           "path": "docs/owasp-agentic-top-10-2026.md"
         }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/factory/overrideGate.ts"
-          }
-        ],
-        "ownership": false,
-        "sourceField": "references",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/factory/overrideGate.ts"
-        }
       }
     ],
     "specId": "204-session-memory-write-contract",
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "5b6fd6d3085ae7fec37944a9f36077854eef29fbb122d912fb99af0a681fc300"
+  "shardHash": "bce7f25ef9569c779841193950fca4f41a1eb3cdfed6c3d437c6aa2df86f5248"
 }

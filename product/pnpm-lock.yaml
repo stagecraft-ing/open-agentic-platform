@@ -224,6 +224,18 @@ importers:
         specifier: ^4.1.5
         version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@22.19.15)(jsdom@29.1.1)(vite@6.4.3(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.32.0)(yaml@2.8.4))
 
+  packages/carrier-gate:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.5.0
+        version: 24.12.0
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.12.0)(jsdom@29.1.1)(vite@6.4.3(@types/node@24.12.0)(jiti@2.6.1)(lightningcss@1.32.0)(yaml@2.8.4))
+
   packages/claude-code-bridge:
     dependencies:
       '@anthropic-ai/claude-code':
