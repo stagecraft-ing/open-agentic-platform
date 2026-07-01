@@ -240,6 +240,19 @@ environment returns a specific "approval required" error.
   genuine transport failure reads e.g. `fetch failed (ECONNREFUSED: ...)`
   or `fetch failed (UND_ERR_HEADERS_TIMEOUT: ...)` instead of `fetch
   failed`. The reconcile-on-refresh path above is unchanged.
+
+  *Amendment (build-body precondition surfacing, 2026-07-01).* A companion
+  to the above. When `triggerDeployment` cannot assemble the dispatch body
+  (`buildTriggerDeploydBody` returns `{ ok: false }`, e.g. a gate-enabled
+  environment with `RAUTHY_ISSUER_URL` unset), it recorded the real reason on
+  the deployment record's `diagnostic` (so the card showed it) but threw
+  `APIError.internal(message)`. Encore sanitizes `internal` errors to "an
+  internal error occurred" before they reach the client, so the redeploy
+  **toast** showed that opaque string while the card showed the truth. This
+  is an unmet deploy precondition, not an internal fault, so the throw is now
+  `APIError.failedPrecondition(message)` (message forwarded to the client),
+  matching the FR-001 `image not built yet` precondition throw. The record's
+  `diagnostic` is unchanged.
 - Dual-profile projects: the success-page button deploys the default
   `public` variant (spec 214 FR-009); the env page offers the internal
   variant as a separate action.
