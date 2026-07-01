@@ -16,7 +16,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "../db/drizzle";
 import { organizations, projectRepos, projects, users } from "../db/schema";
-import { findRepoRow } from "./webhook";
+import { findRepoRow, isDefaultBranchPush } from "./webhook";
 
 const ORG_ID = "f1009000-0000-0000-0000-0000000000c0";
 const USER_ID = "f1009000-0000-0000-0000-0000000000d0";
@@ -107,5 +107,42 @@ describe("project_repos one-repo-one-project (spec 213 FR-009)", () => {
 
   it("findRepoRow returns null for a malformed full name", async () => {
     expect(await findRepoRow("no-slash")).toBeNull();
+  });
+});
+
+describe("isDefaultBranchPush artifact-recording gate (spec 213 FR-006)", () => {
+  it("accepts a default-branch push build", () => {
+    expect(
+      isDefaultBranchPush({ event: "push", head_branch: "main" }, "main"),
+    ).toBe(true);
+  });
+
+  it("rejects a pull_request build (phantom-artifact regression)", () => {
+    // A PR run reports head_branch = the PR branch and event = pull_request;
+    // its head_sha never gets a `sha-<head_sha>` tag, so recording it created
+    // the never-pushed `sha-8c65109b6020` row that blocked the deploy.
+    expect(
+      isDefaultBranchPush(
+        { event: "pull_request", head_branch: "dependabot/npm_and_yarn/x" },
+        "main",
+      ),
+    ).toBe(false);
+  });
+
+  it("rejects a push to a non-default branch", () => {
+    expect(
+      isDefaultBranchPush({ event: "push", head_branch: "feature/x" }, "main"),
+    ).toBe(false);
+  });
+
+  it("fails closed when the default branch is unknown", () => {
+    expect(
+      isDefaultBranchPush({ event: "push", head_branch: "main" }, ""),
+    ).toBe(false);
+  });
+
+  it("rejects a missing run", () => {
+    expect(isDefaultBranchPush(null, "main")).toBe(false);
+    expect(isDefaultBranchPush(undefined, "main")).toBe(false);
   });
 });
