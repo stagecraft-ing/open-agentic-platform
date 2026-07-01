@@ -2,8 +2,8 @@
 id: "204-session-memory-write-contract"
 title: "Session-Memory Write Contract (ASI06 cockpit surface)"
 feature_branch: "feat/204-session-memory-write-contract"
-status: draft
-implementation: pending
+status: approved
+implementation: complete
 kind: platform
 domain: opc
 created: "2026-06-11"
@@ -129,7 +129,11 @@ architecture is proven there; divergence between the two write contracts
 would itself be a defect (one fact, one home — the gate logic's carrier
 classes have one canonical definition).
 
-## Functional requirements (sketch — refine before implementation)
+## Functional requirements
+
+> Implemented and approved. The refined, implementable form of each FR (the
+> packaging decision, the trusted-boundary trust model, the decay refinement)
+> lives in `plan.md`; the requirements below are the authoritative contract.
 
 - **FR-001 — Deterministic write gate.** Every memory write (store and
   revise; harvested or explicit) passes a rule-only gate refusing the
@@ -166,7 +170,7 @@ classes have one canonical definition).
   poisoned session's writes are enumerable and bulk-revocable (quarantine
   support, m7).
 
-## Acceptance criteria (sketch)
+## Acceptance criteria
 
 - **AC-1.** A write containing a zero-width-character carrier is refused
   with an attributable error; the same fixture is refused by the substrate
@@ -201,3 +205,27 @@ Independent of spec 198's runtime closure except for the shared
 carrier-class rule set, which exists today in `overrideGate.ts`.
 Implementable now; the shared-rules packaging question (npm/crate home)
 is the first plan.md decision.
+
+## Implementation
+
+Delivered as a serialized PR sequence (see `plan.md` for the decomposition and
+the packaging decision), all merged before this spec was approved:
+
+- **FR-001** (AC-1): the shared `@opc/carrier-gate` package (the single
+  canonical carrier / secret / UTF-8 rule set) with `overrideGate.ts` repointed
+  onto it, and the session-memory write gate proven against the shared fixture.
+- **FR-002 / FR-003** (AC-2): provenance columns (actor kind, origin session,
+  source attribution, content hash) and trust classes stamped at the trusted
+  storage boundary; the untrusted MCP tool sets none of them.
+- **FR-003 boundary / FR-004** (AC-3, AC-4): machine-harvested writes are
+  clamped below the human-gated tiers at both the write path and promotion, and
+  trust-weighted decay demotes and expires the un-accessed machine-harvested
+  tail; human-curated and verified entries are exempt.
+- **FR-005 / FR-006** (AC-5): the trusted-boundary model gives no-self-ingestion;
+  segmentation refuses cross-project reads, and a poisoned session's writes are
+  enumerable and freeze under quarantine (excluded from reads and all lifecycle
+  housekeeping) pending human review.
+
+The cross-cutting principle held throughout: a model may detect, only rules may
+block. The operator surface that drives quarantine (a cockpit review UI) is
+future work; this spec delivers the storage-layer contract.

@@ -475,8 +475,8 @@
       }
     ],
     "specId": "204-session-memory-write-contract",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "71eaccd2471c83253c9075a172257a699d3afa4124d1f9861cd045b2880f1f86"
+  "shardHash": "349baa931198d0ff7a16a92394fcc7b4c1e2393021a684ab71c26888e7fb9012"
 }
