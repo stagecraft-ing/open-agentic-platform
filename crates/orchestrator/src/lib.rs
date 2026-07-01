@@ -3453,4 +3453,93 @@ steps:
             "actuals must carry per-step tokens: {recorded:?}"
         );
     }
+
+    // --- Spec 202 AC-1: the WIRED budget gate pauses the run fail-closed at
+    // the next step boundary once accumulated run actuals exceed an admitted
+    // ceiling. This drives the real RunBudgetMeter + BudgetGate through
+    // dispatch_manifest inside a ChainedPreStepGate (the exact production
+    // topology the OPC wires: a passing gate first, the budget gate second,
+    // short-circuit on the first Err), not the meter in isolation. The budget
+    // meter is pre-seeded with a prior step's actuals so the run has already
+    // exceeded its ceiling; the chained gate must then refuse the next boundary
+    // with an attributable, axis-named error. Organic cross-step accumulation
+    // and chain ordering are additionally covered by budget_gate's unit tests
+    // (tokens_breach_pauses_at_next_boundary,
+    // chain_pauses_on_budget_breach_behind_passing_gate). ---
+
+    #[tokio::test]
+    async fn wired_budget_gate_pauses_dispatch_on_breach() {
+        let tmp = tempfile::tempdir().unwrap();
+        let am = ArtifactManager::new(tmp.path());
+        let run_id = Uuid::new_v4();
+        let manifest = WorkflowManifest {
+            steps: vec![WorkflowStep {
+                id: "s1".into(),
+                agent: "agent-a".into(),
+                effort: EffortLevel::Quick,
+                inputs: vec![],
+                outputs: vec!["out1.md".into()],
+                instruction: "work".into(),
+                gate: None,
+                pre_verify: None,
+                post_verify: None,
+                max_retries: None,
+            }],
+            project_id: None,
+        };
+        materialize_run_directory(&am, run_id, &manifest).unwrap();
+
+        // Tokens ceiling of 5, meter pre-seeded with a prior step reporting 10
+        // tokens: the run has already breached, so the next boundary fails closed.
+        let ceilings = vec![factory_contracts::AdmittedBudget {
+            axis: factory_contracts::RunBudgetAxis::Tokens,
+            ceiling_per_run: factory_contracts::BudgetValue::Integer(5),
+            ceiling_per_stage: None,
+            source: factory_contracts::BudgetSource::Declared,
+        }];
+        let mut seeded = RunBudgetMeter::new(ceilings);
+        seeded.record_step(&StepActuals {
+            step_id: "prior".into(),
+            tokens_used: Some(10),
+            cost_usd: None,
+            duration_ms: None,
+            num_turns: None,
+            success: true,
+        });
+        let meter = Arc::new(std::sync::Mutex::new(seeded));
+        let budget_gate: Arc<dyn PreStepGate> = Arc::new(BudgetGate::new(meter));
+        // A gate that always passes (empty ceilings => check() is always None),
+        // standing in for the GrantRenewalGate that precedes the budget gate on
+        // the governed OPC path. The chain must still fail closed on the budget
+        // breach behind it.
+        let passing_gate: Arc<dyn PreStepGate> = Arc::new(BudgetGate::new(Arc::new(
+            std::sync::Mutex::new(RunBudgetMeter::new(vec![])),
+        )));
+        let chained: Arc<dyn PreStepGate> =
+            Arc::new(ChainedPreStepGate::new(vec![passing_gate, budget_gate]));
+        let options = DispatchOptions {
+            pre_step: Some(chained),
+            ..DispatchOptions::default()
+        };
+        let result = dispatch_manifest(
+            &am,
+            run_id,
+            &manifest,
+            Arc::new(AlwaysPresentRegistryForGate),
+            Arc::new(WritingExecutorForGate),
+            &options,
+        )
+        .await;
+        match result {
+            Err(OrchestratorError::StepFailed { step_id, reason }) => {
+                assert_eq!(step_id, "s1", "the breaching boundary must fail closed");
+                assert!(
+                    reason.contains("budget ceiling exceeded"),
+                    "reason must name the breach: {reason}"
+                );
+                assert!(reason.contains("Tokens"), "reason must name the axis: {reason}");
+            }
+            other => panic!("expected StepFailed at s1, got {other:?}"),
+        }
+    }
 }

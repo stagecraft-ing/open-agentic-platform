@@ -67,7 +67,6 @@ fn noop_e2e_phase1_generates_six_process_stages() {
         factory_root: factory_engine::FactoryRoot::Filesystem(factory_root.clone()),
         project_path: PathBuf::from("."),
         concurrency_limit: 4,
-        max_total_tokens: None,
     };
 
     let engine = FactoryEngine::new(config).expect("engine should initialize");
@@ -124,7 +123,6 @@ fn noop_e2e_full_pipeline_dispatch() {
         factory_root: factory_engine::FactoryRoot::Filesystem(factory_root.clone()),
         project_path: PathBuf::from("."),
         concurrency_limit: 4,
-        max_total_tokens: None,
     };
 
     let engine = FactoryEngine::new(config).expect("engine should initialize");

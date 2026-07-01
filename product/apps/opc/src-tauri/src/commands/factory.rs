@@ -1094,7 +1094,6 @@ pub async fn start_factory_pipeline(
         factory_root: factory_engine::FactoryRoot::Filesystem(factory_root.clone()),
         project_path: project_path.clone(),
         concurrency_limit: 4,
-        max_total_tokens: None,
     };
     let engine = FactoryEngine::new(config).map_err(|e| {
         // Spec 124 (2026-06-05): log factory engine failures so they land in
@@ -1385,22 +1384,42 @@ pub async fn start_factory_pipeline(
                 None
             }
         };
-        // Stage-boundary renewal gate (FR-005): every step re-presents the
-        // goal id + capsule hash; the frozen Build-Spec hash rides along
-        // once pipeline state records it (one-way bound platform-side).
+        // Spec 202 FR-002: run-level blast-radius meter under platform
+        // defaults (declared-envelope budgets are a follow-up; RunGovernance
+        // carries only the envelope hash today). Held in scope for the
+        // FR-005 certificate binding (spec 202 Slice C).
+        let budget_meter = Arc::new(Mutex::new(orchestrator::RunBudgetMeter::new(
+            factory_contracts::apply_defaults(&[]),
+        )));
+        // Spec 202 FR-002/FR-001/AC-3: the budget gate rides EVERY run under
+        // platform defaults (an absent budget is fail-closed, not exempt),
+        // including the ungoverned/bypass arm below where governance is None,
+        // exactly as the CLI wires it. When governance is present the budget
+        // gate composes AFTER the stage-boundary renewal gate (FR-005):
+        // grant-first, budget-second, short-circuit on the first Err
+        // (ChainedPreStepGate order). BudgetGate has no grant-chain dependency,
+        // so it rides alone when governance is absent.
+        let budget_gate: Arc<dyn orchestrator::PreStepGate> =
+            Arc::new(orchestrator::BudgetGate::new(budget_meter.clone()));
         let pre_step_gate: Option<Arc<dyn orchestrator::PreStepGate>> =
-            governance.as_ref().map(|gov| {
-                let ctx_bs = ctx_for_spawn.clone();
-                Arc::new(super::run_governance::GrantRenewalGate::new(
-                    gov.clone(),
-                    Box::new(move || {
-                        ctx_bs
-                            .pipeline_state
-                            .lock()
-                            .ok()
-                            .and_then(|ps| ps.build_spec_hash.clone())
-                    }),
-                )) as Arc<dyn orchestrator::PreStepGate>
+            Some(match governance.as_ref() {
+                Some(gov) => {
+                    let ctx_bs = ctx_for_spawn.clone();
+                    let grant: Arc<dyn orchestrator::PreStepGate> =
+                        Arc::new(super::run_governance::GrantRenewalGate::new(
+                            gov.clone(),
+                            Box::new(move || {
+                                ctx_bs
+                                    .pipeline_state
+                                    .lock()
+                                    .ok()
+                                    .and_then(|ps| ps.build_spec_hash.clone())
+                            }),
+                        ));
+                    Arc::new(orchestrator::ChainedPreStepGate::new(vec![grant, budget_gate]))
+                        as Arc<dyn orchestrator::PreStepGate>
+                }
+                None => budget_gate,
             });
 
         // Build executor with agent prompt lookup.
@@ -2376,7 +2395,6 @@ pub async fn resume_factory_pipeline(
         factory_root: factory_engine::FactoryRoot::Filesystem(factory_root.clone()),
         project_path: project_path.clone(),
         concurrency_limit: 4,
-        max_total_tokens: None,
     };
     let engine = FactoryEngine::new(config).map_err(|e| e.to_string())?;
 
@@ -2522,15 +2540,36 @@ pub async fn resume_factory_pipeline(
                 None
             }
         };
-        options.pre_step = governance.as_ref().map(|gov| {
-            // The freshly-seeded resume state has no frozen Build-Spec hash;
-            // the platform chain already holds it one-way if it was ever
-            // presented before the restart.
-            let bs = resume_pipeline_state.build_spec_hash.clone();
-            Arc::new(super::run_governance::GrantRenewalGate::new(
-                gov.clone(),
-                Box::new(move || bs.clone()),
-            )) as Arc<dyn orchestrator::PreStepGate>
+        // Spec 202 FR-002/AC-3: the resume path also meters run blast-radius
+        // under platform defaults, on EVERY run including the ungoverned arm.
+        // The meter is in-memory, so a resume re-admits at platform-default
+        // ceilings and starts fresh run-level accumulation. For the governed
+        // path this is the AC-5-sanctioned "new admission => new meter" (resume
+        // is human-invoked and re-seals the platform admission via
+        // run_governance::establish), not a silent auto-raise. Held for the
+        // FR-005 certificate binding (spec 202 Slice C).
+        let resume_budget_meter = Arc::new(Mutex::new(orchestrator::RunBudgetMeter::new(
+            factory_contracts::apply_defaults(&[]),
+        )));
+        let resume_budget_gate: Arc<dyn orchestrator::PreStepGate> =
+            Arc::new(orchestrator::BudgetGate::new(resume_budget_meter.clone()));
+        options.pre_step = Some(match governance.as_ref() {
+            Some(gov) => {
+                // The freshly-seeded resume state has no frozen Build-Spec hash;
+                // the platform chain already holds it one-way if it was ever
+                // presented before the restart.
+                let bs = resume_pipeline_state.build_spec_hash.clone();
+                let grant: Arc<dyn orchestrator::PreStepGate> =
+                    Arc::new(super::run_governance::GrantRenewalGate::new(
+                        gov.clone(),
+                        Box::new(move || bs.clone()),
+                    ));
+                Arc::new(orchestrator::ChainedPreStepGate::new(vec![
+                    grant,
+                    resume_budget_gate,
+                ])) as Arc<dyn orchestrator::PreStepGate>
+            }
+            None => resume_budget_gate,
         });
 
         match dispatch_manifest(&am, run_uuid, &manifest, bridge, executor, &options).await {

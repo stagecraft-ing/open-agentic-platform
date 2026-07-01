@@ -160,7 +160,6 @@ fn factory_engine_emits_kernel_for_named_adapter() {
         factory_root: FactoryRoot::Filesystem(PathBuf::from("factory")),
         project_path: PathBuf::from("."),
         concurrency_limit: 1,
-        max_total_tokens: None,
     };
     let engine = FactoryEngine::with_adapters(cfg, registry);
 

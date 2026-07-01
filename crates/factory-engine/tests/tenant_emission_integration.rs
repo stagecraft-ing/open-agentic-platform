@@ -247,7 +247,6 @@ fn spec_168_sc_001_through_005_end_to_end() {
         factory_root: FactoryRoot::Filesystem(PathBuf::from("factory")),
         project_path: PathBuf::from("."),
         concurrency_limit: 1,
-        max_total_tokens: None,
     };
     let engine = FactoryEngine::with_adapters(cfg, registry);
 
