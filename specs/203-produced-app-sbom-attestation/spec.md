@@ -2,8 +2,8 @@
 id: "203-produced-app-sbom-attestation"
 title: "Produced-App SBOM and Dependency-Audit Attestation (ASI04 forward)"
 feature_branch: "feat/203-produced-app-sbom-attestation"
-status: draft
-implementation: pending
+status: approved
+implementation: in-progress
 kind: capability
 domain: platform
 created: "2026-06-11"
@@ -42,6 +42,8 @@ refines:
     unit: { kind: file, path: crates/factory-engine/src/kernel_emission/emit.rs }
   - aspect: "sbom-artifact-binding"
     unit: { kind: file, path: crates/factory-engine/src/governance_certificate.rs }
+  - aspect: "sbom-verify-path"
+    unit: { kind: file, path: crates/factory-engine/src/bin/verify_certificate.rs }
   # NOTE: the prior `lockfile-parity-gate` aspect on tenant-ci.yml.tmpl was
   # dropped when spec 167's PR-2 retired that vendored-binary CI template. The
   # lockfile-parity gate now belongs to the npm tenant CI (the prebuilt
@@ -141,3 +143,78 @@ Independent of spec 198's runtime closure. Requires spec 167's kernel
 emission surface (present) and composes with spec 168's certificate; the
 tenant CI gate (FR-004) lands with or after spec 209's enforcement
 activation so the gate has a CI home that actually runs.
+
+## Implementation status (2026-07-01)
+
+**Cert-side contract delivered (Phase 1).** The factory-engine cert surface for
+FR-002 (typed audit-record schema) and FR-003 (certificate binding + offline
+verify) is implemented and tested:
+
+- `SbomArtifactBinding { bomHash, auditHash, bomToolVersion }` on
+  `GovernanceCertificate`, inside the content-binding hash + signature (bound at
+  emission), skipped when absent so pre-1.7.0 certs stay byte-identical.
+- `CertificateBuilder::sbom_artifact_binding(bom_hash, audit_hash, bom_tool_version)`,
+  read-never-recompute (the spec 218 discipline: the builder is GIVEN the two
+  hashes, it never regenerates the BOM).
+- `verify_sbom_binding()` and the `verify-certificate --sbom-dir <dir>` flag:
+  the four-outcome, fail-closed adjudication (Unbound / Verified / bom-or-audit
+  mismatch / PRESENT-BUT-UNVERIFIED). Tampering with either on-disk artifact
+  after emission fails verify with a named diagnostic (AC-2).
+- `SbomAuditRecord` typed schema (FR-002) with the `present | absent`
+  discriminated union: a missing scanner is recorded as visible evidence, never
+  a silent skip (the spec 200 FR-004 posture, AC-3).
+- Certificate version 1.6.0 to 1.7.0.
+
+This unblocks spec 219's `verify-sbom` verb (its verify side extends the
+certificate core rather than standing alone).
+
+**Emission leg (FR-001 + BOM/audit generation) remains.** Generating
+`.factory/sbom.cdx.json` and `.factory/audit.json` at scaffold completion is a
+separate leg. A code trace resolved the plan's open question F2: the Rust
+`emit_kernel` / `emit_project_kernel` surface the plan's `kernel-sbom-vending`
+edge points at is **unwired in production** (spec 167 §2.4/§7 leaves it unwired
+to avoid a double-emit; only tests call it). The production born-with emission,
+and the only point at which a committed `package-lock.json` provably exists in
+the produced tree, is stagecraft's TypeScript scaffold path
+(`platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts`),
+which runs at project creation before any s0-s6 factory stage. Within the Rust
+pipeline the earliest lockfile-bearing stage is `s6a-scaffold-init`
+(post-`npm install`); the terminal scaffold stage is `s6h-final-validation`.
+The emission leg therefore lands in the platform / tenant-CI layer, not
+factory-engine; the `kernel-sbom-vending` edge is reconciled to the real hook
+site when that leg is implemented (plan F3). This mirrors the corpus-binding
+split (spec 218): factory-engine reads and binds artifacts it is given, an
+upstream step generates them.
+
+## Gate contract (FR-004)
+
+The tenant CI lockfile/BOM parity gate is EXTERNAL to OAP (it lives in the npm
+tenant CI, the prebuilt template's `spec-spine.yml`) and is sequenced with or
+after spec 209's enforcement activation, which is now merged. Its contract,
+which the external CI author implements against:
+
+1. **Regenerable-BOM invariant.** The gate runs
+   `npx --no-install @cyclonedx/cyclonedx-npm --output-format JSON --reproducible`
+   against the committed lockfile and asserts the SHA-256 of the output equals
+   the SHA-256 of the committed `.factory/sbom.cdx.json`. Same lockfile plus
+   same pinned tool version yields a byte-identical BOM (constitution Principle
+   IV, AC-4).
+2. **Lockfile-satisfies-manifest.** `npm ci` (or an `npm install
+   --package-lock-only` dry-run) must not mutate the lockfile: a lockfile that
+   does not satisfy `package.json` fails the gate.
+3. **Attributable failure.** Drift in either direction fails the tenant PR with
+   a named diagnostic identifying which artifact drifted (lockfile vs BOM), so
+   the tenant can attribute and fix it.
+
+The BOM tool version the gate pins is the version recorded in the certificate's
+`sbomArtifactBinding.bomToolVersion`, so the CI check and the cert agree on what
+produced the evidence.
+
+## Residuals
+
+- **R-1 (deferred): `.kernel-version` BOM-tool pin field.** The BOM tool version
+  is recorded in `SbomArtifactBinding.bomToolVersion` inside the cert, which is
+  sufficient for AC-1..AC-4. Whether it should ALSO appear as a dedicated field
+  in `KernelVersion` / `CertificateToolchainRef` (for kernel-update propagation)
+  is deferred; the cert binding already makes the version used at scaffold time
+  visible and tamper-evident.

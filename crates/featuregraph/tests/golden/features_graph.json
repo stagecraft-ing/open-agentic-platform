@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:369571df31cc98621aad3e48fa7fe73c3909009bedf0ae6a4b7e9eac6587771b",
+  "graph_fingerprint": "sha256:aa0cff03208919ceb31107bd7d03ff91e58bac2e7ac8f1ab5cdb57ba37ec3e73",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3834,8 +3834,8 @@
       "feature_id": "203-produced-app-sbom-attestation",
       "title": "Produced-App SBOM and Dependency-Audit Attestation (ASI04 forward)",
       "spec_path": "specs/203-produced-app-sbom-attestation/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "in-progress",
       "governance": "",
       "owner": "",
       "group": "",
