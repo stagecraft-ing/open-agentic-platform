@@ -225,6 +225,6 @@
     "summary": "Supersede tenant-hello as the platform's reference tenant: the canonical deployable shape becomes the factory's own template scaffold (acme-vue-encore), so the surface CI proves and the surface tenants run are the same artifact. Today the chart registry has exactly one synthetic shape, the dispatch wire cannot carry application config, a pull secret, or the stored namespace, and an Encore.ts app deployed as-is would have no runtime infra config and no database. This spec adds the acme-vue-encore chart (single image serving the Encore API and bundled SPA, ConfigMap-mounted runtime config, opt-in preview-grade Postgres), extends the deployd dispatch contract (config_refs semantics, image_pull_secret_name, namespace forwarding), locks the tenant hostname convention as a single DNS label under tenants.{base}, ports the spec 137 access-gate seam to the new chart with identical semantics, and retires the tenant-hello service, chart, and workflows once render parity on the gate seam is proven. The 2026-06-12 dual_stack manifest skew is the motivating incident: two surfaces that only meet at runtime drift; spec 212 closed that for the manifest contract, this spec closes it for the deploy path.\n",
     "title": "Tenant App Chart Supersession (template scaffold becomes the reference tenant)"
   },
-  "shardHash": "e9caaa5dbe7278907d1387dc9141499c74d1086140657bf1ca9f2625855fc8f4",
+  "shardHash": "4a7b4aeeade735c49e8118c4cbb29a204201750ada2951e3ebda1fd8f8d237dd",
   "specVersion": "1.1.0"
 }

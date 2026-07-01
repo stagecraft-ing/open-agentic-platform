@@ -509,6 +509,23 @@ if [ -n "${GHCR_PAT:-}" ]; then
       --docker-password="$GHCR_PAT" \
       --dry-run=client -o yaml | kubectl apply -f -
   done
+
+  # Spec 214 FR-005 / SC-005 (deferred at 214 close, completed here):
+  # reflector-source private-image pull secret. deployd-api renders
+  # imagePullSecrets:[ghcr-pull] on every tenant Deployment (helm.rs) and
+  # creates the namespace with --create-namespace, but never the secret, so a
+  # tenant pod cannot pull its private GHCR image (an unauthenticated pull
+  # returns NotFound because GHCR masks private packages). Materialise the
+  # manifest's kube-system source so kubernetes-reflector auto-clones
+  # `ghcr-pull` into every namespace, mirroring tenants-wildcard-tls. Build the
+  # base64 dockerconfigjson and sed-substitute it (avoids an envsubst
+  # dependency; base64 contains no `|` so the delimiter is safe).
+  info "Materialising ghcr-pull reflector source secret (spec 214 FR-005)..."
+  GHCR_REG_AUTH=$(printf 'oap:%s' "$GHCR_PAT" | base64 | tr -d '\n')
+  GHCR_PULL_DOCKERCONFIGJSON=$(printf '{"auths":{"ghcr.io":{"auth":"%s"}}}' "$GHCR_REG_AUTH" | base64 | tr -d '\n')
+  sed "s|\${GHCR_PULL_DOCKERCONFIGJSON}|${GHCR_PULL_DOCKERCONFIGJSON}|g" \
+    "$SCRIPT_DIR/manifests/ghcr-pull-secret.yaml" | kubectl apply -f -
+  ok "ghcr-pull source applied in kube-system; reflector clones it into tenant namespaces."
 else
   warn "GHCR_PAT not set — skipping image-pull secrets (pods won't be able to pull from ghcr.io)"
 fi
