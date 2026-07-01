@@ -37,8 +37,9 @@ pub use governance_envelope::{
     GOVERNANCE_ENVELOPE_SCHEMA_VERSION,
 };
 pub use run_budget::{
-    apply_defaults, AdmittedBudget, BudgetSource, BudgetValue, RunBudgetAxis, RunBudgetCeiling,
-    PLATFORM_DEFAULT_BUDGETS,
+    apply_defaults, apply_oscillation_default, AdmittedBudget, BudgetSource, BudgetValue,
+    OscillationThreshold, RunBudgetAxis, RunBudgetCeiling, PLATFORM_DEFAULT_BUDGETS,
+    PLATFORM_DEFAULT_OSCILLATION_THRESHOLD,
 };
 pub use agent_loader::AgentPrompt;
 pub use agent_reference::AgentReference;

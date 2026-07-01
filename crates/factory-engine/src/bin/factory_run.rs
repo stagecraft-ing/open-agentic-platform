@@ -20,8 +20,9 @@ use factory_engine::{
     write_validation_warnings,
 };
 use orchestrator::{
-    AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, BudgetGate, ClaudeCodeExecutor,
-    CliGateHandler, DispatchOptions, GateHandler, PreStepGate, RunBudgetMeter, ThinkingLevel,
+    AgentPromptLookup, ArtifactManager, AutoApproveGateHandler, BudgetGate, ChainedPreStepGate,
+    CircuitBreakerConfig, CircuitBreakerState, ClaudeCodeExecutor, CliGateHandler, DispatchOptions,
+    GateHandler, OscillationGate, PreStepGate, RunBudgetMeter, ThinkingLevel,
     detect_resume_plan_for_run, dispatch_manifest, materialize_run_directory_with_phase,
 };
 use sha2::{Digest, Sha256};
@@ -611,12 +612,26 @@ async fn main() -> ExitCode {
         Arc::new(CliGateHandler)
     };
 
-    // Spec 202 FR-002: the CLI meters run blast-radius under platform
-    // defaults. One meter spans both phases so accumulation is run-level
-    // (the CLI has no grant chain, so the budget gate rides alone).
+    // Spec 202 FR-002/FR-003b: the CLI meters run blast-radius and detects
+    // oscillation under platform defaults. One meter and one breaker span both
+    // phases so accumulation and the failure streak are run-level (the CLI has
+    // no grant chain, so the budget + oscillation gates ride alone).
     let budget_meter = Arc::new(Mutex::new(RunBudgetMeter::new(
         factory_contracts::apply_defaults(&[]),
     )));
+    let oscillation = factory_contracts::apply_oscillation_default(None);
+    let oscillation_breaker = Arc::new(Mutex::new(CircuitBreakerState::new(CircuitBreakerConfig {
+        threshold: oscillation.consecutive_failures,
+        window_secs: oscillation.window_secs.unwrap_or(300),
+    })));
+    let cli_pre_step = |budget: &Arc<Mutex<RunBudgetMeter>>,
+                        breaker: &Arc<Mutex<CircuitBreakerState>>|
+     -> Arc<dyn PreStepGate> {
+        Arc::new(ChainedPreStepGate::new(vec![
+            Arc::new(BudgetGate::new(budget.clone())) as Arc<dyn PreStepGate>,
+            Arc::new(OscillationGate::new(breaker.clone())) as Arc<dyn PreStepGate>,
+        ]))
+    };
 
     let options = DispatchOptions {
         gate_handler: Some(gate_handler.clone()),
@@ -631,7 +646,7 @@ async fn main() -> ExitCode {
         project_path: None,
         originating_session: None,
         // Spec 202 FR-002: budget metering rides the CLI dispatch path.
-        pre_step: Some(Arc::new(BudgetGate::new(budget_meter.clone())) as Arc<dyn PreStepGate>),
+        pre_step: Some(cli_pre_step(&budget_meter, &oscillation_breaker)),
     };
 
     eprintln!("\nDispatching Phase 1...\n");
@@ -804,7 +819,7 @@ async fn main() -> ExitCode {
         project_path: None,
         originating_session: None,
         // Spec 202 FR-002: same meter as Phase 1, so ceilings are run-level.
-        pre_step: Some(Arc::new(BudgetGate::new(budget_meter.clone())) as Arc<dyn PreStepGate>),
+        pre_step: Some(cli_pre_step(&budget_meter, &oscillation_breaker)),
     };
 
     let summary2 = match dispatch_manifest(

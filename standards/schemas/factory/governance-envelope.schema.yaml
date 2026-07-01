@@ -27,10 +27,10 @@
 # Rust twin: crates/factory-contracts/src/governance_envelope.rs
 # (GOVERNANCE_ENVELOPE_SCHEMA_VERSION).
 #
-# Schema version: 1.1.0
+# Schema version: 1.2.0
 # ============================================================================
 
-schema_version: "1.1.0"
+schema_version: "1.2.0"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PROCESS IDENTITY — the intent-capsule template            [ASI01 m5, m7]
@@ -115,3 +115,19 @@ budgets:
                                     # "tokens" | "cost_usd"                 [ASI08 m6]
     per_run: number                 # Optional ceiling for the whole run
     per_stage: number               # Optional uniform per-stage ceiling
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OSCILLATION -- consecutive-failure trip threshold       [ASI08 m7; spec 202 FR-003b]
+# ─────────────────────────────────────────────────────────────────────────────
+# Optional. When absent, the platform default applies fail-closed (same posture
+# as an absent budget axis). NOT a budgets: axis: a failure streak resets on
+# success within a sliding window rather than accumulating as a monotonic
+# run-total ceiling, so it does not fit the per_run/per_stage axis shape (see
+# Rust twin doc). Tighten-only on consecutive_failures (a lower streak limit is
+# tighter); window_secs is platform-fixed in this slice.
+# Rust twin: crates/factory-contracts/src/run_budget.rs (OscillationThreshold)
+oscillation:
+  consecutive_failures: number      # Consecutive step wobbles before tripping
+  window_secs: number               # Optional; platform-fixed in this slice
+                                    # (a declared value is currently ignored;
+                                    # see Rust twin)
