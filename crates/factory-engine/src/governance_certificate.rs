@@ -60,7 +60,18 @@ use std::path::Path;
 /// "unbound" state, never silently equivalent to bound-and-verified. Skipped in
 /// serialization when absent so unbound certs stay byte-identical to 1.5.0
 /// payloads (only the version string differs).
-pub const CERTIFICATE_VERSION: &str = "1.6.0";
+///
+/// 1.7.0 (spec 203 FR-003) added the optional `sbomArtifactBinding` block
+/// `{ bomHash, auditHash, bomToolVersion }`, binding the content hashes of the
+/// produced application's CycloneDX BOM (`.factory/sbom.cdx.json`) and
+/// dependency-audit artifact (`.factory/audit.json`) into the certificate.
+/// Like `corpusBinding` it sits INSIDE the hash + signature (bound at
+/// emission), so tampering with either artifact is caught by
+/// `verify-certificate --sbom-dir`. Absent certs still verify; absent is the
+/// named "unbound" state, never silently equivalent to bound-and-verified.
+/// Skipped in serialization when absent so unbound certs stay byte-identical
+/// to 1.6.0 payloads (only the version string differs).
+pub const CERTIFICATE_VERSION: &str = "1.7.0";
 
 /// Environment-variable name carrying a base64-encoded 32-byte Ed25519 seed
 /// (FR-008.1). Operator-supplied keys outside the agent's write scope.
@@ -143,6 +154,16 @@ pub struct GovernanceCertificate {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub corpus_binding: Option<CorpusBinding>,
 
+    /// Spec 203 FR-003: content binding for the produced app's CycloneDX BOM
+    /// and dependency-audit artifact. The builder populates this from two
+    /// hashes it is GIVEN by the emission path (spec 203 FR-001/FR-002); the
+    /// cert crate never regenerates the BOM. Inside the hash + signature
+    /// (bound at emission). Absent = the named "unbound" state, never silently
+    /// equivalent to bound-and-verified. Skipped when absent so unbound certs
+    /// stay byte-identical to pre-1.7.0 payloads.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sbom_artifact_binding: Option<SbomArtifactBinding>,
+
     /// SHA-256 of the canonical JSON of this certificate with `certificate_hash`
     /// AND `cert_signature` set to empty string. Content-binding fingerprint
     /// inside the signed payload — not the authoritative provenance check
@@ -211,6 +232,95 @@ pub struct CorpusBinding {
     pub corpus_attestation_hash: String,
     /// `spec-spine` tool version that produced the attestation.
     pub spec_spine_version: String,
+}
+
+/// Spec 203 FR-003: the produced application's BOM + dependency-audit
+/// content binding.
+///
+/// Records, by content hash, the CycloneDX BOM (`.factory/sbom.cdx.json`) and
+/// the dependency-audit artifact (`.factory/audit.json`) emitted for the
+/// produced app at scaffold completion. Both hashes are SHA-256 of the
+/// artifact bytes, computed by the emission path (spec 203 FR-001/FR-002) and
+/// SUPPLIED to the builder; the cert crate reads them, it never regenerates the
+/// BOM (read, never recompute: the spec 218 discipline).
+///
+/// This field is INSIDE `certificate_hash` and `cert_signature` (bound at
+/// emission), so post-hoc tampering with either artifact is caught by
+/// `verify-certificate --sbom-dir` (which re-hashes the on-disk artifacts and
+/// compares) and, structurally, by the cert's own signature check.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SbomArtifactBinding {
+    /// SHA-256 hex of the byte content of `.factory/sbom.cdx.json`.
+    pub bom_hash: String,
+    /// SHA-256 hex of the byte content of `.factory/audit.json`.
+    pub audit_hash: String,
+    /// `@cyclonedx/cyclonedx-npm` semver used to generate the BOM.
+    pub bom_tool_version: String,
+}
+
+/// Spec 203 FR-002: the typed dependency-audit artifact serialised to
+/// `.factory/audit.json` for the produced application.
+///
+/// Factory-engine owns this schema rather than embedding whatever
+/// `npm audit --json` returns (which changes between npm versions and is too
+/// large to bind meaningfully). `status` is a discriminated union: `Present`
+/// carries findings + severity counts; `Absent` carries a `reason`. A missing
+/// scanner is recorded as visible evidence of a gap (`Absent` + reason), never
+/// a silent skip (the spec 200 FR-004 posture).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SbomAuditRecord {
+    /// Scanner tool name (e.g. `npm-audit`).
+    pub tool: String,
+    /// Scanner version when known; `None` when the tool was absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_version: Option<String>,
+    /// ISO-8601 UTC timestamp of the scan attempt.
+    pub ran_at: String,
+    /// Whether the scan ran (`Present`) or was unavailable (`Absent`).
+    pub status: SbomAuditStatus,
+    /// Findings, when `status == Present`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub findings: Option<Vec<SbomAuditFinding>>,
+    /// Severity roll-up, when `status == Present`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub severity_counts: Option<SbomSeverityCounts>,
+    /// Human-readable reason, populated when `status == Absent`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+/// Spec 203 FR-002: whether a dependency-audit scan ran or was unavailable.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum SbomAuditStatus {
+    /// The scanner ran and produced a report.
+    Present,
+    /// No scanner or advisory database was available; `reason` explains why.
+    Absent,
+}
+
+/// Spec 203 FR-002: severity roll-up for a dependency-audit scan.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SbomSeverityCounts {
+    pub critical: u32,
+    pub high: u32,
+    pub moderate: u32,
+    pub low: u32,
+    pub info: u32,
+}
+
+/// Spec 203 FR-002: a minimal audit finding. A subset (advisory id, severity,
+/// package), not the full, non-deterministic `npm audit` payload. The record
+/// is evidence of scanning, not a policy gate.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SbomAuditFinding {
+    pub advisory_id: String,
+    pub severity: String,
+    pub package: String,
 }
 
 /// Spec 198 FR-013(c) — one override of admitted factory content the run
@@ -584,6 +694,7 @@ pub struct CertificateBuilder {
     intent_capsule_hash: Option<String>,
     consumed_overrides: Vec<ConsumedOverride>,
     corpus_binding: Option<CorpusBinding>,
+    sbom_artifact_binding: Option<SbomArtifactBinding>,
 }
 
 impl CertificateBuilder {
@@ -616,6 +727,7 @@ impl CertificateBuilder {
             intent_capsule_hash: None,
             consumed_overrides: Vec::new(),
             corpus_binding: None,
+            sbom_artifact_binding: None,
         }
     }
 
@@ -713,6 +825,25 @@ impl CertificateBuilder {
         self
     }
 
+    /// Spec 203 FR-003: bind the produced app's BOM + audit artifact content
+    /// hashes and the BOM tool version into the certificate (inside hash +
+    /// signature). Both hashes are SUPPLIED by the emission path (spec 203
+    /// FR-001/FR-002); the builder never regenerates the BOM (read, never
+    /// recompute).
+    pub fn sbom_artifact_binding(
+        mut self,
+        bom_hash: impl Into<String>,
+        audit_hash: impl Into<String>,
+        bom_tool_version: impl Into<String>,
+    ) -> Self {
+        self.sbom_artifact_binding = Some(SbomArtifactBinding {
+            bom_hash: bom_hash.into(),
+            audit_hash: audit_hash.into(),
+            bom_tool_version: bom_tool_version.into(),
+        });
+        self
+    }
+
     /// Fallible build path for tenant emission (spec 168 §FR-007).
     ///
     /// Returns [`CertificateBuildError::MissingSigner`] when no
@@ -764,6 +895,7 @@ impl CertificateBuilder {
             intent_capsule_hash: self.intent_capsule_hash,
             consumed_overrides: self.consumed_overrides,
             corpus_binding: self.corpus_binding,
+            sbom_artifact_binding: self.sbom_artifact_binding,
             certificate_hash: String::new(),
             signing_public_key: public_key_b64,
             cert_signature: String::new(),
@@ -1468,6 +1600,80 @@ pub fn verify_corpus_binding(
         (Some(_), None) => Err(
             "corpus binding present but PRESENT-BUT-UNVERIFIED: supply --corpus-attestation <file> \
              to verify the link (spec-spine verify-attestation verifies the attestation's own truth)"
+                .into(),
+        ),
+    }
+}
+
+/// Spec 203 FR-003: relative path of the produced app's CycloneDX BOM, under
+/// the produced-app root supplied via `--sbom-dir`.
+pub const SBOM_BOM_RELPATH: &str = ".factory/sbom.cdx.json";
+
+/// Spec 203 FR-003: relative path of the produced app's dependency-audit
+/// artifact, under the produced-app root supplied via `--sbom-dir`.
+pub const SBOM_AUDIT_RELPATH: &str = ".factory/audit.json";
+
+/// Spec 203 FR-003: the outcome of checking a certificate's SBOM artifact
+/// binding against the on-disk BOM + audit artifacts.
+#[derive(Debug, PartialEq, Eq)]
+pub enum SbomBindingOutcome {
+    /// No `sbom_artifact_binding` on the cert: the named "unbound" state.
+    Unbound,
+    /// Binding present and both artifact hashes match the on-disk files.
+    Verified { bom_hash: String, audit_hash: String },
+}
+
+/// Spec 203 FR-003: verify the SBOM artifact binding by re-hashing the on-disk
+/// BOM + audit artifacts, offline. Mirrors `verify_corpus_binding`'s
+/// four-outcome, fail-closed pattern.
+///
+/// Outcomes:
+/// - Absent binding: `Ok(SbomBindingOutcome::Unbound)` (a notice, not error).
+/// - Present + dir supplied + both hashes match: `Ok(Verified { .. })`.
+/// - Present + dir supplied + any mismatch: `Err(...)` naming the file (BOM or audit).
+/// - Present + no dir supplied: `Err(...)` "PRESENT-BUT-UNVERIFIED" (fail-closed;
+///   skip-as-pass is forbidden, per the spec 200 FR-004 posture).
+///
+/// `sbom_dir` is the produced application's root; the artifacts are read from
+/// `<sbom_dir>/.factory/sbom.cdx.json` and `<sbom_dir>/.factory/audit.json`.
+pub fn verify_sbom_binding(
+    cert: &GovernanceCertificate,
+    sbom_dir: Option<&Path>,
+) -> Result<SbomBindingOutcome, String> {
+    match (&cert.sbom_artifact_binding, sbom_dir) {
+        (None, _) => Ok(SbomBindingOutcome::Unbound),
+        (Some(binding), Some(dir)) => {
+            let bom_path = dir.join(SBOM_BOM_RELPATH);
+            let audit_path = dir.join(SBOM_AUDIT_RELPATH);
+            let bom_hash = sha256_file(&bom_path)
+                .map_err(|e| format!("cannot read SBOM {}: {e}", bom_path.display()))?;
+            let audit_hash = sha256_file(&audit_path)
+                .map_err(|e| format!("cannot read audit artifact {}: {e}", audit_path.display()))?;
+            if bom_hash != binding.bom_hash {
+                return Err(format!(
+                    "sbom binding bom hash mismatch: cert claims {}, {} hashes to {}",
+                    binding.bom_hash,
+                    bom_path.display(),
+                    bom_hash
+                ));
+            }
+            if audit_hash != binding.audit_hash {
+                return Err(format!(
+                    "sbom binding audit hash mismatch: cert claims {}, {} hashes to {}",
+                    binding.audit_hash,
+                    audit_path.display(),
+                    audit_hash
+                ));
+            }
+            Ok(SbomBindingOutcome::Verified {
+                bom_hash,
+                audit_hash,
+            })
+        }
+        (Some(_), None) => Err(
+            "sbom artifact binding present but PRESENT-BUT-UNVERIFIED: supply --sbom-dir <dir> \
+             to verify the BOM (.factory/sbom.cdx.json) and audit (.factory/audit.json) hashes \
+             (spec 203 FR-003)"
                 .into(),
         ),
     }
@@ -2704,5 +2910,184 @@ mod corpus_binding_tests {
         use spec_spine_core::attest::{attest, verify_recompute};
         #[allow(unused_imports)]
         use spec_spine_core::{attest_json, verify_attestation_json};
+    }
+}
+
+#[cfg(test)]
+mod sbom_binding_tests {
+    //! Spec 203 (produced-app SBOM + dependency-audit attestation) AC-2/AC-3
+    //! cert-side contract, plus the audit-record schema round-trip (FR-002).
+    use super::*;
+
+    fn cert_with_sbom(binding: Option<(&str, &str, &str)>) -> GovernanceCertificate {
+        let mut b = CertificateBuilder::new(
+            "run-203",
+            IntentRecord {
+                requirements_hash: "req".into(),
+                spec_id: None,
+                spec_hash: None,
+            },
+        )
+        .build_spec_hash("spec-hash");
+        if let Some((bom, audit, ver)) = binding {
+            b = b.sbom_artifact_binding(bom, audit, ver);
+        }
+        b.build()
+    }
+
+    /// AC-3: the binding is INSIDE the content-binding hash + signature, and it
+    /// serialises camelCase as `sbomArtifactBinding`.
+    #[test]
+    fn binding_is_inside_hash_and_serialises_camel_case() {
+        let bound = cert_with_sbom(Some(("bomdeadbeef", "auditcafe", "1.19.0")));
+        let unbound = cert_with_sbom(None);
+        assert_ne!(
+            bound.certificate_hash, unbound.certificate_hash,
+            "binding must change the content-binding hash (proves it is inside the hash)"
+        );
+        let json = serde_json::to_string(&bound).unwrap();
+        assert!(json.contains("sbomArtifactBinding"));
+        assert!(json.contains("bomHash"));
+        assert!(json.contains("auditHash"));
+        assert!(json.contains("bomToolVersion"));
+        // The bound cert still verifies cleanly (the signature spans the binding).
+        let result = verify_certificate(&bound, None);
+        assert!(
+            result.valid,
+            "bound cert must verify; errors: {:?}",
+            result.errors
+        );
+    }
+
+    /// AC-2: the four verify outcomes (verified / bom-mismatch / audit-mismatch /
+    /// present-but-unverified / unbound), re-hashing the on-disk artifacts.
+    #[test]
+    fn verify_outcomes_cover_supply_mismatch_and_absence() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let factory = root.join(".factory");
+        std::fs::create_dir_all(&factory).unwrap();
+        let bom_bytes = br#"{"bomFormat":"CycloneDX","specVersion":"1.6"}"#;
+        let audit_bytes = br#"{"tool":"npm-audit","status":"absent"}"#;
+        std::fs::write(factory.join("sbom.cdx.json"), bom_bytes).unwrap();
+        std::fs::write(factory.join("audit.json"), audit_bytes).unwrap();
+        let bom_hash = sha256_bytes(bom_bytes);
+        let audit_hash = sha256_bytes(audit_bytes);
+
+        let bound = cert_with_sbom(Some((&bom_hash, &audit_hash, "1.19.0")));
+
+        // (a) matching dir -> Verified with both hashes echoed back.
+        match verify_sbom_binding(&bound, Some(root)) {
+            Ok(SbomBindingOutcome::Verified {
+                bom_hash: b,
+                audit_hash: a,
+            }) => {
+                assert_eq!(b, bom_hash);
+                assert_eq!(a, audit_hash);
+            }
+            other => panic!("expected Verified, got {other:?}"),
+        }
+
+        // (b) tampered BOM -> Err naming the BOM mismatch.
+        std::fs::write(factory.join("sbom.cdx.json"), b"TAMPERED").unwrap();
+        let err = verify_sbom_binding(&bound, Some(root)).unwrap_err();
+        assert!(err.contains("bom hash mismatch"), "got: {err}");
+        std::fs::write(factory.join("sbom.cdx.json"), bom_bytes).unwrap();
+
+        // (c) tampered audit -> Err naming the audit mismatch.
+        std::fs::write(factory.join("audit.json"), b"TAMPERED").unwrap();
+        let err = verify_sbom_binding(&bound, Some(root)).unwrap_err();
+        assert!(err.contains("audit hash mismatch"), "got: {err}");
+        std::fs::write(factory.join("audit.json"), audit_bytes).unwrap();
+
+        // (d) binding present, no dir -> PRESENT-BUT-UNVERIFIED (fail-closed).
+        let err = verify_sbom_binding(&bound, None).unwrap_err();
+        assert!(err.contains("PRESENT-BUT-UNVERIFIED"), "got: {err}");
+
+        // (e) no binding, no dir -> Unbound (notice, not error).
+        let unbound = cert_with_sbom(None);
+        assert_eq!(
+            verify_sbom_binding(&unbound, None).unwrap(),
+            SbomBindingOutcome::Unbound
+        );
+    }
+
+    /// Additive + byte-identical when absent: an unbound cert (no
+    /// `sbomArtifactBinding` key, the pre-1.7.0 shape) round-trips and verifies.
+    #[test]
+    fn absent_binding_is_skipped_and_legacy_certs_verify() {
+        let unbound = cert_with_sbom(None);
+        let json = serde_json::to_string(&unbound).unwrap();
+        assert!(
+            !json.contains("sbomArtifactBinding"),
+            "absent binding must be skipped in serialisation"
+        );
+        let restored: GovernanceCertificate = serde_json::from_str(&json).unwrap();
+        assert!(restored.sbom_artifact_binding.is_none());
+        let result = verify_certificate(&restored, None);
+        assert!(
+            result.valid,
+            "unbound cert must verify; errors: {:?}",
+            result.errors
+        );
+    }
+
+    /// The 1.7.0 version bump is the load-bearing contract marker for FR-003.
+    #[test]
+    fn certificate_version_is_1_7_0() {
+        assert_eq!(CERTIFICATE_VERSION, "1.7.0");
+    }
+
+    /// FR-002: the audit-record schema round-trips for both `present` and
+    /// `absent`, and skips finding/severity fields when absent (visible-absence
+    /// posture, no silent zero-count noise).
+    #[test]
+    fn sbom_audit_record_serde_round_trip() {
+        let present = SbomAuditRecord {
+            tool: "npm-audit".into(),
+            tool_version: Some("10.8.0".into()),
+            ran_at: "2026-07-01T00:00:00Z".into(),
+            status: SbomAuditStatus::Present,
+            findings: Some(vec![SbomAuditFinding {
+                advisory_id: "GHSA-xxxx".into(),
+                severity: "high".into(),
+                package: "left-pad".into(),
+            }]),
+            severity_counts: Some(SbomSeverityCounts {
+                critical: 0,
+                high: 1,
+                moderate: 0,
+                low: 0,
+                info: 0,
+            }),
+            reason: None,
+        };
+        let json = serde_json::to_string(&present).unwrap();
+        assert!(json.contains("\"status\":\"present\""));
+        assert!(json.contains("severityCounts"));
+        let back: SbomAuditRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, present);
+
+        let absent = SbomAuditRecord {
+            tool: "npm-audit".into(),
+            tool_version: None,
+            ran_at: "2026-07-01T00:00:00Z".into(),
+            status: SbomAuditStatus::Absent,
+            findings: None,
+            severity_counts: None,
+            reason: Some("npm audit unavailable at scaffold time".into()),
+        };
+        let json = serde_json::to_string(&absent).unwrap();
+        assert!(json.contains("\"status\":\"absent\""));
+        assert!(
+            !json.contains("severityCounts"),
+            "absent record must skip severityCounts"
+        );
+        assert!(
+            !json.contains("findings"),
+            "absent record must skip findings"
+        );
+        let back: SbomAuditRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, absent);
     }
 }

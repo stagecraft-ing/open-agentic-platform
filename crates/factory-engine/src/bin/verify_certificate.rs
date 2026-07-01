@@ -20,8 +20,8 @@
 
 use clap::Parser;
 use factory_engine::governance_certificate::{
-    CorpusBindingOutcome, GovernanceCertificate, verify_certificate_with_platform,
-    verify_corpus_binding,
+    CorpusBindingOutcome, GovernanceCertificate, SbomBindingOutcome,
+    verify_certificate_with_platform, verify_corpus_binding, verify_sbom_binding,
 };
 use factory_engine::platform_jws::PlatformJwks;
 use factory_engine::{validate_spec_id_resolution, write_validation_warnings};
@@ -69,6 +69,16 @@ struct Cli {
     /// is verified by `spec-spine verify-attestation`, not by this tool (AC-5).
     #[arg(long)]
     corpus_attestation: Option<PathBuf>,
+
+    /// Produced-app root containing the SBOM artifacts (spec 203 FR-003). When
+    /// supplied and the cert carries a `sbomArtifactBinding`, the BOM
+    /// (.factory/sbom.cdx.json) and audit (.factory/audit.json) files are read,
+    /// hashed, and compared against the binding. Present + match: VERIFIED.
+    /// Present + mismatch: fails (exit 1). Cert has binding but no dir supplied:
+    /// fails PRESENT-BUT-UNVERIFIED (exit 1, fail-closed). Cert has no binding:
+    /// reports UNBOUND (notice, exit 0).
+    #[arg(long)]
+    sbom_dir: Option<PathBuf>,
 }
 
 fn load_jwks(cli: &Cli) -> Option<PlatformJwks> {
@@ -153,6 +163,28 @@ fn main() {
             "INVALID".to_string()
         }
     };
+
+    // Spec 203 FR-003: adjudicate the SBOM artifact binding against the on-disk
+    // BOM + audit artifacts under --sbom-dir. Same notice/error channels so a
+    // mismatched or present-but-unverified binding drives the exit status.
+    let sbom_label = match verify_sbom_binding(&cert, cli.sbom_dir.as_deref()) {
+        Ok(SbomBindingOutcome::Unbound) => {
+            result.notices.push("sbom binding: UNBOUND".into());
+            "UNBOUND".to_string()
+        }
+        Ok(SbomBindingOutcome::Verified { bom_hash, audit_hash }) => {
+            let bom_short = &bom_hash[..16.min(bom_hash.len())];
+            let audit_short = &audit_hash[..16.min(audit_hash.len())];
+            result.notices.push(format!(
+                "sbom binding: VERIFIED (bom {bom_short}, audit {audit_short})"
+            ));
+            format!("VERIFIED (bom {bom_short}, audit {audit_short})")
+        }
+        Err(e) => {
+            result.errors.push(e);
+            "INVALID".to_string()
+        }
+    };
     result.valid = result.errors.is_empty();
 
     let repo_root = cli
@@ -195,6 +227,7 @@ fn main() {
             }
         );
         eprintln!("  corpus binding: {corpus_label}");
+        eprintln!("  sbom binding: {sbom_label}");
         std::process::exit(0);
     } else {
         eprintln!(
@@ -205,6 +238,7 @@ fn main() {
             eprintln!("  - {err}");
         }
         eprintln!("  corpus binding: {corpus_label}");
+        eprintln!("  sbom binding: {sbom_label}");
         std::process::exit(1);
     }
 }
