@@ -21,7 +21,12 @@ tenant:
 # Rauthy OIDC binding — populated by stagecraft's
 # `provisionTenantGateClient` output (spec 137 Phase 3 / T031).
 rauthy:
-  issuerUrl: ""          # e.g. https://auth.stagecraft.ing
+  # The full Rauthy issuer claim, e.g. https://auth.stagecraft.ing/auth/v1/
+  # (with the /auth/v1/ path and trailing slash). oauth2-proxy passes this to
+  # --oidc-issuer-url and validates the discovery `issuer` claim against it
+  # exactly, so the bare host would fail issuer verification. Sourced from
+  # stagecraft's RAUTHY_ISSUER_URL (spec 137).
+  issuerUrl: ""
   clientId: ""           # tenant-gate-<env-id>
   # clientSecret + cookieSecret are read from the rendered K8s Secret
   # (see templates/secret.yaml). Plaintext flows from deployd-api into

@@ -513,6 +513,16 @@ else
   warn "GHCR_PAT not set — skipping image-pull secrets (pods won't be able to pull from ghcr.io)"
 fi
 
+# Spec 137: stagecraft's deploy path refuses a gate-enabled tenant deploy
+# unless RAUTHY_ISSUER_URL is set (it forwards the issuer to the tenant's
+# oauth2-proxy). oauth2-proxy uses --oidc-issuer-url as BOTH the discovery
+# base AND the expected issuer, and validates the returned claim exactly, so
+# the value must be the full Rauthy issuer "<RAUTHY_URL>/auth/v1/" (with the
+# /auth/v1/ path and trailing slash), not the bare host. (deployd-api's own
+# M2M path reads the issuer from the discovery document, which is why its
+# bare OIDC_ENDPOINT works; the gate proxy cannot.) Overridable via env.
+RAUTHY_ISSUER_URL="${RAUTHY_ISSUER_URL:-${RAUTHY_URL%/}/auth/v1/}"
+
 info "Creating stagecraft-api-secrets..."
 kubectl create secret generic stagecraft-api-secrets \
   --namespace stagecraft-system \
@@ -523,6 +533,7 @@ kubectl create secret generic stagecraft-api-secrets \
   --from-literal=OIDC_M2M_CLIENT_ID="$OIDC_M2M_CLIENT_ID" \
   --from-literal=OIDC_M2M_CLIENT_SECRET="$OIDC_M2M_CLIENT_SECRET" \
   --from-literal=RAUTHY_URL="$RAUTHY_URL" \
+  --from-literal=RAUTHY_ISSUER_URL="$RAUTHY_ISSUER_URL" \
   --from-literal=RAUTHY_CLIENT_ID="$RAUTHY_CLIENT_ID" \
   --from-literal=RAUTHY_CLIENT_SECRET="$RAUTHY_CLIENT_SECRET" \
   --from-literal=RAUTHY_ADMIN_TOKEN="$RAUTHY_ADMIN_TOKEN" \
