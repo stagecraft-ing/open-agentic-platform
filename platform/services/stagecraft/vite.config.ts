@@ -149,6 +149,11 @@ export default defineConfig({
       // reserveRunCore end-to-end (substrate/admission seeding) and read
       // audit_log rows; live Postgres.
       "**/factory/queueStormGate.test.ts",
+      // Spec 202 FR-004: approval-velocity counter integration tests seed
+      // factory_runs + gate_approved audit rows and read them back through
+      // the org-scoped join; live Postgres. (The pure windowing/classifier
+      // coverage in approvalVelocity-pure.test.ts stays in the bare lane.)
+      "**/factory/approvalVelocity.test.ts",
     ],
   },
 });

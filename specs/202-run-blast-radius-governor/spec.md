@@ -2,8 +2,8 @@
 id: "202-run-blast-radius-governor"
 title: "Run Blast-Radius Governor (ASI08 cascading-failure caps)"
 feature_branch: "feat/202-run-blast-radius-governor"
-status: draft
-implementation: pending
+status: approved
+implementation: complete  # All five FRs landed across PR1 #469 (FR-002 meter + circuit break), Slice C #472 (FR-005 cert binding), Slice D #481 (FR-003b oscillation), Slice E #486 (FR-003a intent-dedup), Slice F #492 (FR-003c queue-storm detection), Slice G (FR-004 approval-velocity counter, this PR). AC-1/2/3/4/5/7 satisfied. AC-6 is HALF-satisfied and honestly recorded as such: pt1 (max_total_tokens removed from the engine config) landed in PR1; pt2 (subsume FactoryPipelineState.total_tokens into the meter's tokens axis, so no two independent token accumulators coexist) is a tracked mechanical-cleanup follow-up (PR1b), NOT yet done. total_tokens + add_tokens() still exist in crates/factory-engine/src/pipeline_state.rs and are wired in bin/factory_run.rs; the RunBudgetMeter's tokens axis is already the authoritative accumulator, so this is redundant-counter removal, not a behavior gap. The flip is user-ratified (2026-07-01) with PR1b sequenced after; see §Acceptance criteria AC-6 note.
 kind: governance
 domain: platform
 created: "2026-06-11"
@@ -43,6 +43,14 @@ establishes:
   # Slice F (FR-003c): platform-side queue-storm detection, owned module.
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/queueStormGate.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/queueStormGate.test.ts }
+  # Slice G (FR-004): approval-velocity counter, owned modules (pure classifier
+  # + DB half) and their tests. The pure test runs bare-vitest; the DB test is
+  # encore-lane (vite.config.ts exclude, covered by the existing Slice F
+  # encore-test-lane-assignment refines edge).
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalVelocity-pure.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalVelocity.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalVelocity-pure.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalVelocity.test.ts }
 extends:
   # Budget declarations are an additive, ASI08-tagged section of the
   # envelope schema spec 198 establishes.
@@ -98,6 +106,18 @@ refines:
   # Slice F (FR-003c): STAGECRAFT_FACTORY_MAX_RUNS_IN_FLIGHT env-knob doc.
   - aspect: "queue-storm-env-knob-docs"
     unit: { kind: file, path: platform/services/stagecraft/CLAUDE.md }
+  # Slice G (FR-004): approval-velocity is surfaced on the run-approval context
+  # response and recorded on the approve path. approvalSummary.ts is spec 201's
+  # module (establishes); this is a section-scoped refine that adds the FR-004
+  # measurement/record call sites + the read-only `approvalVelocity` field,
+  # without touching the hashed ApprovalSummary contract in approvalSummary-pure.ts.
+  - aspect: "approval-velocity-surface"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalSummary.ts }
+  # Slice G (FR-004): the new FACTORY_RUN_APPROVAL_VELOCITY_ANOMALY audit
+  # constant (auditActions.ts already covered by the Slice F queue-storm-audit
+  # aspect, but the FR-004 constant is a distinct addition worth its own edge).
+  - aspect: "approval-velocity-audit-action"
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/auditActions.ts }
 references:
   - role: enforcer
     unit: { kind: crate, id: factory-engine }
@@ -119,8 +139,11 @@ references:
 **Created**: 2026-06-11
 **Refined**: 2026-06-12 (sketch FRs hardened against the surveyed metering
 surfaces; see §Code reality)
-**Status**: Draft (follow-on filed by the ASI gap-closure pass; named in
-spec 198's all-ten table, ASI08 row)
+**Status**: Approved, implementation complete (2026-07-01). Originally filed
+as a follow-on by the ASI gap-closure pass (named in spec 198's all-ten table,
+ASI08 row); all five FRs have since landed (see plan.md), with the AC-6 pt2
+token-accumulator cleanup tracked as PR1b (see §Acceptance criteria
+"Implementation status (AC-6 residual)").
 **Input**: Spec 198 §"All-ten ASI coverage" records ASI08 as the only
 control that is *partial with an unowned residual*: "blast-radius caps are
 follow-on". ASI06's residual got spec 200 and ASI09's got spec 201 at
@@ -329,6 +352,30 @@ distinct `RunBudget*` prefix to avoid collision.
   trail; it records, it does not block — blocking on human behaviour is
   an org-policy decision, not a platform hardcode (the 198 FR-013
   posture: depth of policy is org-filed).
+
+  **Landed (Slice G, this PR); as-built refinements of the plan sketch,
+  mirroring the D/E/F design-note precedent:**
+  - *Surface, not hash.* The velocity is surfaced as a read-only
+    `approvalVelocity` field on the `GET /api/factory/runs/:id/approval-context`
+    response, NOT folded into the hashed `ApprovalSummary`. Velocity is actor-
+    and time-dependent, so putting it inside the summary hash would break the
+    spec 201 FR-003(b) replay guard (a re-assembly moments later would differ).
+    `approvalSummary-pure.ts` (the hashed contract) is untouched; only the
+    wrapper `approvalSummary.ts` gains the field and the call sites.
+  - *Record on write, measure on read.* The `POST .../approve` path, after the
+    `gate_approved` row is committed, writes a
+    `factory.run.approval_velocity_anomaly` audit row when the rate is anomalous
+    (`api/factory/approvalVelocity.ts::detectApprovalVelocity`, fail-open). The
+    GET context path only measures (read-only), preserving spec 201 FR-003
+    preview purity. Both paths are records-only and never block an approval.
+  - *Org scoping via the run join.* `audit_log` has no `org_id` column, so the
+    actor's `gate_approved` rows are scoped to the caller's org by joining to
+    `factory_runs` (`targetType = "factory_runs"`, `targetId = <run uuid>`) on
+    the org, matching the plan's `(actor_id, org_id, window)` key.
+  - *Thresholds are platform config.* Window and threshold are env knobs
+    (`STAGECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC` / `_THRESHOLD`, defaults
+    60s / 10), the same "platform config until the envelope carries an
+    authoritative threshold" posture FR-003(c) landed with.
 - **FR-005 — Certificate binding of consumption actuals.** The
   governance certificate gains a `budget_consumption` record inside the
   signed payload (covered by the content hash and Ed25519 signature;
@@ -385,6 +432,23 @@ distinct `RunBudget*` prefix to avoid collision.
   PR; schema-parity (125/191) and the factory-schema-lockstep lane (212)
   are green.
 
+> **Implementation status (AC-6 residual).** This spec flipped to
+> `implementation: complete` on 2026-07-01 (user-ratified) with all five FRs
+> landed. AC-6 is the one acceptance criterion not fully discharged at the
+> flip, and the flip records that honestly rather than hiding it: AC-6 pt1
+> (retire the dead `max_total_tokens` engine-config stub) landed in PR1 #469;
+> AC-6 pt2 (subsume `FactoryPipelineState.total_tokens` into the meter's
+> `tokens` axis so no two independent token accumulators coexist) is a tracked
+> follow-up, PR1b, and is **not** yet done. As of the flip,
+> `total_tokens` + `add_tokens()` still live in
+> `crates/factory-engine/src/pipeline_state.rs` and are wired in
+> `bin/factory_run.rs`. This is a redundant-counter cleanup, not a governance
+> behavior gap: the `RunBudgetMeter`'s `tokens` axis (FR-002, PR1) is already
+> the authoritative run-level accumulator, and `total_tokens` is a now-vestigial
+> second counter that is read for a diagnostic eprintln only. PR1b removes it;
+> until then the "no two accumulators coexist" clause of AC-6 remains open by
+> design of the sequencing, not by oversight.
+
 ## Out of scope
 
 - The kill switch (org-wide halt is spec 208; the governor bounds a single
@@ -408,5 +472,5 @@ rides the envelope schema and the pause semantics ride grant renewal,
 they do not ride the envelope: FR-003 (c)'s platform-side runs-in-flight
 counter (detection-only, thresholds from platform config until the
 envelope carries them; **landed**, Slice F) and FR-004's approval-velocity
-counter (records, never blocks). The 2026-06-12 refinement is intentionally
-pre-gate: the FRs are implementable the day 198 flips.
+counter (records, never blocks; **landed**, Slice G). The 2026-06-12 refinement
+is intentionally pre-gate: the FRs are implementable the day 198 flips.

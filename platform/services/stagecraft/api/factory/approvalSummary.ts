@@ -25,6 +25,15 @@ import {
   type ApprovalSummary,
   type ApprovalSummaryResult,
 } from "./approvalSummary-pure";
+// Spec 202 FR-004: approval-velocity (governance-drift) counter. Composes
+// with the spec 201 ratification trail: it counts the `gate_approved` rows
+// this module writes and surfaces / records anomalous velocity. Records,
+// never blocks.
+import {
+  measureApprovalVelocity,
+  detectApprovalVelocity,
+} from "./approvalVelocity";
+import type { ApprovalVelocity } from "./approvalVelocity-pure";
 
 export {
   OVERRIDE_VERIFICATION_PREDICATE,
@@ -228,6 +237,11 @@ export interface RunApprovalContextResponse {
   gatePredicate?: string;
   summary?: ApprovalSummary;
   blockingOverridePaths?: string[];
+  /** Spec 202 FR-004: the approving actor's recent gate-approval velocity in
+   * this org. Read-only diagnostic (outside the `summary` hash by design so
+   * the FR-003(b) replay guard is unaffected); absent only when the
+   * measurement query failed. Records, never blocks the approve control. */
+  approvalVelocity?: ApprovalVelocity;
 }
 
 const REQUIRED_STAGE_IDS = DEFAULT_REQUIRE_STAGE_APPROVAL.map((n) => `s${n}`);
@@ -319,6 +333,14 @@ export async function getRunApprovalContextCore(
 ): Promise<RunApprovalContextResponse> {
   await loadRunOrThrow(auth.orgId, req.id);
   const approvals = await listRunGateApprovals(req.id);
+  // FR-004 read-only measurement (never writes on this GET path, preserving
+  // FR-003 preview purity); null (measurement error) collapses to absent.
+  const approvalVelocity =
+    (await measureApprovalVelocity({
+      orgId: auth.orgId,
+      actorId: auth.userID,
+      runId: req.id,
+    })) ?? undefined;
   const assembled = await assembleRunGateSummary(auth.orgId, auth.userID);
   if (!assembled.ok) {
     return {
@@ -326,6 +348,7 @@ export async function getRunApprovalContextCore(
       approvals,
       ok: false,
       reason: assembled.reason,
+      approvalVelocity,
     };
   }
   return {
@@ -337,6 +360,7 @@ export async function getRunApprovalContextCore(
     blockingOverridePaths: assembled.summary.consumedOverrides
       .filter((o) => !o.requireVerifiedSatisfied)
       .map((o) => o.path),
+    approvalVelocity,
   };
 }
 
@@ -440,6 +464,16 @@ export async function approveRunGateCore(
       },
     })
     .returning({ createdAt: auditLog.createdAt });
+
+  // FR-004: with the approval now recorded, count this actor's recent gate
+  // approvals and record an anomaly audit row if the rate crossed the
+  // threshold. Fail-open by construction (never throws, never blocks) so a
+  // detection hiccup cannot undo the approval just committed above.
+  await detectApprovalVelocity({
+    orgId: auth.orgId,
+    actorId: auth.userID,
+    runId: req.id,
+  });
 
   return {
     approval: {
