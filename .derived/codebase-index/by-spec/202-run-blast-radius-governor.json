@@ -68,6 +68,10 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/db/migrations/2_audit_log_actor_action_created_idx.up.sql",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/factory/approvalSummary.ts",
         "source": "spec-edge"
       },
@@ -162,6 +166,19 @@
         "unit": {
           "kind": "file",
           "path": "crates/orchestrator/src/budget_gate.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/db/migrations/2_audit_log_actor_action_created_idx.up.sql"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/migrations/2_audit_log_actor_action_created_idx.up.sql"
         }
       },
       {
@@ -520,5 +537,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "196d1c977b4f741bba2ddedb51d64a0e74af2d3b20456bd92a17eaceddf0e7fb"
+  "shardHash": "260b264299a5a89e70ff68efc03ece3eea1a633ec0f21cf78c2d447ee6f0e707"
 }

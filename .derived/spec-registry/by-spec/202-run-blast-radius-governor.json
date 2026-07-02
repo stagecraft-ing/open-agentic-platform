@@ -50,6 +50,10 @@
       {
         "kind": "file",
         "path": "platform/services/stagecraft/api/factory/approvalVelocity.test.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/db/migrations/2_audit_log_actor_action_created_idx.up.sql"
       }
     ],
     "extends": [
@@ -238,6 +242,6 @@
     "summary": "Close the one ASI 2026 control whose residual is stated but unowned. Spec 198's all-ten table marks ASI08 (Cascading Failures) \"partial — residual stated\" and names blast-radius caps as follow-on; this spec is that follow-on. Existing levers (halt-on-failure, stop-hook 166, HITL gate predicates 198 FR-008, introspection 172) are reactive gates — they fire on an observed failure or at a declared checkpoint. What is missing is the quantitative ceiling between gates: per-run and per-stage budgets (tool invocations, file mutations, spawned work, wall-clock, cost), metered by the engine and circuit-breaking fail-closed when exceeded, plus fan-out and feedback-loop detection (ASI08 m6/m7, ASI02 m5 adaptive tool budgeting). A run that exceeds its admitted budget pauses at the next instruction boundary and requires a human resume; consumption actuals are bound into the governance certificate so the receipt shows how close the run came to its ceiling.\n",
     "title": "Run Blast-Radius Governor (ASI08 cascading-failure caps)"
   },
-  "shardHash": "84f321ec5612c2e43b985b67aa44643ae01aabb508d885d9789ee5d0944aabbc",
+  "shardHash": "b24e90a5aa6cb486c58f3850b08820eb1dadb7a25f3e4c60f0295faba8ad603b",
   "specVersion": "1.1.0"
 }
