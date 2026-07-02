@@ -26,7 +26,12 @@ import {
   orgHalts,
   projects,
 } from "../db/schema";
-import { FACTORY_ORG_HALT_ENGINE_ACK } from "../factory/auditActions";
+import {
+  FACTORY_ORG_HALT_ENGINE_ACK,
+  FACTORY_ORG_HALT_REINTEGRATED,
+} from "../factory/auditActions";
+import { loadLatestAdmission } from "../factory/admission";
+import { resolveOriginsForOrg } from "../factory/substrateBrowser";
 import type {
   ClientEnvelope,
   ServerEnvelope,
@@ -471,6 +476,20 @@ async function auditSegmentDispatch(
 // Spec 208 FR-003: org.halt.ack dispatch (per-engine propagation timestamp)
 // ---------------------------------------------------------------------------
 
+// Spec 208 FR-004 (D2): "fresh two-sided validation" for a lift-ack. Mirrors
+// grantDuplexHandlers.ts::resolveStandingAdmission using the same admission
+// primitives (`resolveOriginsForOrg` + `loadLatestAdmission`), inlined here
+// rather than importing that higher-level helper to avoid an import cycle back
+// into this module (the same reason the halt scopes above are inlined). A lift
+// only counts toward reintegration when the org's factory is currently
+// admitted; otherwise the engine's self-reported readiness is not honored.
+async function orgFactoryAdmitted(orgId: string): Promise<boolean> {
+  const { factoryOriginId } = await resolveOriginsForOrg(orgId);
+  if (!factoryOriginId) return false;
+  const state = await loadLatestAdmission(orgId, factoryOriginId);
+  return state.status === "admitted";
+}
+
 async function orgHaltAckDispatch(
   ctx: InboundContext,
   evt: ClientEnvelope,
@@ -497,7 +516,11 @@ async function orgHaltAckDispatch(
       // per broadcast), so the lock cost is irrelevant. A cross-org or unknown
       // haltId matches zero rows -> out-of-scope / unknown.
       const [row] = await tx
-        .select({ id: orgHalts.id, acks: orgHalts.acks })
+        .select({
+          id: orgHalts.id,
+          acks: orgHalts.acks,
+          state: orgHalts.state,
+        })
         .from(orgHalts)
         .where(and(eq(orgHalts.id, evt.haltId), eq(orgHalts.orgId, ctx.orgId)))
         .for("update")
@@ -513,6 +536,16 @@ async function orgHaltAckDispatch(
         (a) => a.clientId === ctx.clientId && a.kind === evt.haltKind,
       );
       if (already) return "duplicate" as const;
+
+      // D2 (spec 208 FR-004): a lift ack must pass fresh two-sided validation
+      // before it counts toward reintegration. Re-check the standing admission
+      // (the liftRevocationCore "lifting alone does not re-admit" precedent): if
+      // the org's factory admission is not currently 'admitted', the engine's
+      // self-reported readiness is NOT honored, the ack is not recorded, and the
+      // engine re-acks on its next resync.
+      if (evt.haltKind === "lift" && !(await orgFactoryAdmitted(ctx.orgId))) {
+        return "not-readmitted" as const;
+      }
 
       await tx
         .update(orgHalts)
@@ -535,6 +568,50 @@ async function orgHaltAckDispatch(
           recordedAt: entry.recordedAt,
         },
       });
+      // Reintegration completion (FR-004): a halt reaches 'lifted' only when
+      // every engine that recorded a halt-ack has since recorded a lift-ack.
+      // Computed over the ack ledger including this entry; no new column. The
+      // vacuous case (no engine ever halt-acked, e.g. none were connected)
+      // completes on the first lift-ack, which is correct: there is nothing to
+      // re-admit. The row is FOR UPDATE-locked above, so the CAS is race-free.
+      if (evt.haltKind === "lift" && row.state === "reintegrating") {
+        const acks = [...row.acks, entry];
+        const haltAckers = new Set(
+          acks.filter((a) => a.kind === "halt").map((a) => a.clientId),
+        );
+        const liftAckers = new Set(
+          acks.filter((a) => a.kind === "lift").map((a) => a.clientId),
+        );
+        const outstanding = [...haltAckers].filter((c) => !liftAckers.has(c));
+        if (outstanding.length === 0) {
+          const done = await tx
+            .update(orgHalts)
+            .set({ state: "lifted" })
+            .where(
+              and(
+                eq(orgHalts.id, evt.haltId),
+                eq(orgHalts.state, "reintegrating"),
+              ),
+            )
+            .returning({ id: orgHalts.id });
+          if (done.length > 0) {
+            await tx.insert(auditLog).values({
+              actorUserId: ctx.userId,
+              nhiSub: ctx.nhiSub ?? null,
+              onBehalfOf: ctx.onBehalfOf ?? null,
+              action: FACTORY_ORG_HALT_REINTEGRATED,
+              targetType: "org_halts",
+              targetId: evt.haltId,
+              metadata: {
+                orgId: ctx.orgId,
+                haltAckers: [...haltAckers],
+                liftAckers: [...liftAckers],
+              },
+            });
+            return "completed" as const;
+          }
+        }
+      }
       return "appended" as const;
     });
     if (result === "unknown") {
@@ -543,6 +620,30 @@ async function orgHaltAckDispatch(
         reason: "invalid",
         detail: "unknown or out-of-scope halt",
       };
+    }
+    if (result === "not-readmitted") {
+      // D2: the lift-ack was refused because the org's factory admission is not
+      // currently 'admitted'. Not recorded; the engine re-acks on resync once
+      // admission is restored (fresh two-sided validation, FR-004).
+      log.info("sync: org-halt lift ack rejected (admission not admitted)", {
+        orgId: ctx.orgId,
+        clientId: ctx.clientId,
+        haltId: evt.haltId,
+      });
+      return {
+        ok: false,
+        reason: "invalid",
+        detail:
+          "lift ack rejected: org factory admission is not currently " +
+          "admitted (fresh re-validation failed, FR-004)",
+      };
+    }
+    if (result === "completed") {
+      log.info(
+        "sync: org-halt reintegration complete (every halt-acker lift-acked)",
+        { orgId: ctx.orgId, haltId: evt.haltId },
+      );
+      return { ok: true };
     }
     if (result === "duplicate") {
       // A replayed ack is a no-op success: the bound is already recorded.

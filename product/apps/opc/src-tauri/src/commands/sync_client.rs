@@ -69,7 +69,9 @@ pub const FACTORY_RUN_ENVELOPE_VERSION: u8 = 1;
 /// family. Mirrors `FACTORY_RUN_GRANT_ENVELOPE_VERSION` in
 /// `platform/services/stagecraft/api/sync/types.ts`. A desktop / platform
 /// skew on this constant surfaces as a Rust build error.
-pub const FACTORY_RUN_GRANT_ENVELOPE_VERSION: u8 = 1;
+/// v2 (spec 208 FR-001): `factory.run.grant_renew` gains optional
+/// `agent_profile` for agent-profile-scoped org-halt renewal refusal (AC-3).
+pub const FACTORY_RUN_GRANT_ENVELOPE_VERSION: u8 = 2;
 
 /// Spec 208 FR-001/FR-003: per-event-kind contract version for the org-halt
 /// envelope family (`org.halt.activated`, `org.halt.lifted`, `org.halt.ack`).
@@ -598,6 +600,12 @@ pub enum OutboundFrame {
         seq: i64,
         #[serde(rename = "stageId", skip_serializing_if = "Option::is_none")]
         stage_id: Option<String>,
+        /// Spec 208 FR-001: agent profile (org_agent_id) about to execute this
+        /// stage, resolved from the reservation-time stage-agent map. Lets an
+        /// agent-profile-scoped org halt refuse renewal (AC-3). Attribution
+        /// only, same class as `stage_id`.
+        #[serde(rename = "agentProfile", skip_serializing_if = "Option::is_none")]
+        agent_profile: Option<String>,
         #[serde(rename = "buildSpecHash", skip_serializing_if = "Option::is_none")]
         build_spec_hash: Option<String>,
     },
@@ -2980,7 +2988,7 @@ mod tests {
         // Phase 0 lock — bumping FACTORY_RUN_GRANT_ENVELOPE_VERSION must happen
         // here AND in `platform/services/stagecraft/api/sync/types.ts` in
         // lock-step.
-        assert_eq!(FACTORY_RUN_GRANT_ENVELOPE_VERSION, 1);
+        assert_eq!(FACTORY_RUN_GRANT_ENVELOPE_VERSION, 2);
     }
 
     // Spec 208 FR-001/FR-003: org-halt envelope constant + ack wire shape.
@@ -3066,6 +3074,7 @@ mod tests {
             capsule_hash: "cafebabe".into(),
             seq: 2,
             stage_id: Some("phase-1".into()),
+            agent_profile: Some("api-scaffolder".into()),
             build_spec_hash: Some("bsbsbsbs".into()),
         };
         let json = serde_json::to_value(&frame).unwrap();
@@ -3075,6 +3084,9 @@ mod tests {
         assert_eq!(json["capsuleHash"], "cafebabe");
         assert_eq!(json["seq"], 2);
         assert_eq!(json["stageId"], "phase-1");
+        // Spec 208 FR-001/AC-3: the agent profile rides `agentProfile` on the
+        // wire, the exact key grantDuplexHandlers.ts reads as evt.agentProfile.
+        assert_eq!(json["agentProfile"], "api-scaffolder");
         assert_eq!(json["buildSpecHash"], "bsbsbsbs");
     }
 

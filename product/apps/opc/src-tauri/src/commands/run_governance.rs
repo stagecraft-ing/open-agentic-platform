@@ -9,6 +9,7 @@
 // envelope + capsule, and the platform countersign is patched in when the
 // completion round-trip succeeds.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicI64, Ordering};
@@ -20,6 +21,7 @@ use orchestrator::PreStepGate;
 
 use super::factory_platform::{GrantOutcome, GrantRenewArgs, GrantRequestArgs, RunEmitter};
 use super::stagecraft_client::StagecraftClient;
+use super::sync_client::FactoryAgentRef;
 
 /// Everything a governed run carries from admission verification to
 /// certificate sealing. Constructed once per run by [`establish`].
@@ -195,18 +197,41 @@ pub struct GrantRenewalGate {
     /// presented from the freeze boundary onward (the platform records it
     /// one-way on the grant chain).
     build_spec_hash: Box<dyn Fn() -> Option<String> + Send + Sync>,
+    /// Spec 208 FR-001/AC-3: per-stage agent triple captured at reservation
+    /// time (the same map `TauriStepEventHandler` uses to stamp
+    /// `factory.run.stage_started`). `before_step` looks up the step's
+    /// `org_agent_id` and presents it on renewal so an agent-profile-scoped
+    /// org halt refuses the run before the stage executes.
+    stage_agents: Arc<HashMap<String, FactoryAgentRef>>,
 }
 
 impl GrantRenewalGate {
     pub fn new(
         gov: Arc<RunGovernance>,
         build_spec_hash: Box<dyn Fn() -> Option<String> + Send + Sync>,
+        stage_agents: Arc<HashMap<String, FactoryAgentRef>>,
     ) -> Self {
         Self {
             gov,
             build_spec_hash,
+            stage_agents,
         }
     }
+}
+
+/// Spec 208 FR-001/AC-3: resolve the agent profile (org_agent_id) about to
+/// execute `step_id` from the reservation-time stage-agent map. An absent
+/// mapping or an empty org_agent_id yields `None` (attribution is absent, never
+/// a spoofable empty scope key), so the renewal presents no `agentProfile` and
+/// an agent-profile halt cannot match a blank key.
+fn resolve_stage_profile(
+    stage_agents: &HashMap<String, FactoryAgentRef>,
+    step_id: &str,
+) -> Option<String> {
+    stage_agents
+        .get(step_id)
+        .map(|r| r.org_agent_id.clone())
+        .filter(|s| !s.is_empty())
 }
 
 #[async_trait::async_trait]
@@ -214,6 +239,9 @@ impl PreStepGate for GrantRenewalGate {
     async fn before_step(&self, step_id: &str) -> Result<(), String> {
         let next = self.gov.last_seq.load(Ordering::Acquire) + 1;
         let build_spec = (self.build_spec_hash)();
+        // Spec 208 FR-001/AC-3: resolve the agent profile about to execute this
+        // stage from the reservation-time map (see resolve_stage_profile).
+        let agent_profile = resolve_stage_profile(&self.stage_agents, step_id);
         let outcome = self
             .gov
             .emitter
@@ -222,6 +250,7 @@ impl PreStepGate for GrantRenewalGate {
                 capsule_hash: &self.gov.capsule.capsule_hash(),
                 seq: next,
                 stage_id: Some(step_id),
+                agent_profile: agent_profile.as_deref(),
                 build_spec_hash: build_spec.as_deref(),
             })
             .await
@@ -245,4 +274,47 @@ impl PreStepGate for GrantRenewalGate {
 /// (`<project>/.factory/runs/<run-id>/`).
 pub fn run_dir_for(project_path: &Path, run_id: &str) -> PathBuf {
     project_path.join(".factory").join("runs").join(run_id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn agent_ref(org_agent_id: &str) -> FactoryAgentRef {
+        FactoryAgentRef {
+            org_agent_id: org_agent_id.to_string(),
+            version: 1,
+            content_hash: "hash".to_string(),
+        }
+    }
+
+    // Spec 208 FR-001/AC-3: the agent-profile seam resolves the profile about to
+    // execute a stage from the reservation-time map. This is the load-bearing
+    // new logic; an agent-profile halt is only as honest as this resolution.
+
+    #[test]
+    fn resolve_stage_profile_returns_the_mapped_org_agent_id() {
+        let mut map = HashMap::new();
+        map.insert("s1-scaffold".to_string(), agent_ref("api-scaffolder"));
+        assert_eq!(
+            resolve_stage_profile(&map, "s1-scaffold"),
+            Some("api-scaffolder".to_string())
+        );
+    }
+
+    #[test]
+    fn resolve_stage_profile_is_none_for_an_unmapped_step() {
+        let map: HashMap<String, FactoryAgentRef> = HashMap::new();
+        // No mapping means no attribution, so no agentProfile is presented.
+        assert_eq!(resolve_stage_profile(&map, "s0-preflight"), None);
+    }
+
+    #[test]
+    fn resolve_stage_profile_treats_an_empty_org_agent_id_as_absent() {
+        let mut map = HashMap::new();
+        map.insert("s2".to_string(), agent_ref(""));
+        // An empty org_agent_id must NOT become an empty-string scope key that an
+        // agent-profile halt could match; it resolves to None.
+        assert_eq!(resolve_stage_profile(&map, "s2"), None);
+    }
 }

@@ -1443,6 +1443,7 @@ pub async fn start_factory_pipeline(
                                     .ok()
                                     .and_then(|ps| ps.build_spec_hash.clone())
                             }),
+                            stage_agents.clone(),
                         ));
                     Arc::new(orchestrator::ChainedPreStepGate::new(vec![
                         grant,
@@ -2488,7 +2489,7 @@ pub async fn resume_factory_pipeline(
         app.clone(),
         run_uuid.to_string(),
         Some(resume_emitter.clone()),
-        stage_agents,
+        stage_agents.clone(),
     ));
     let executor = Arc::new(
         ClaudeCodeExecutor::new(project_path.clone())
@@ -2645,6 +2646,7 @@ pub async fn resume_factory_pipeline(
                     Arc::new(super::run_governance::GrantRenewalGate::new(
                         gov.clone(),
                         Box::new(move || bs.clone()),
+                        stage_agents.clone(),
                     ));
                 Arc::new(orchestrator::ChainedPreStepGate::new(vec![
                     grant,

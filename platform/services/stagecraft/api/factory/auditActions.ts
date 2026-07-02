@@ -35,12 +35,19 @@ export const FACTORY_AUDIT_SEGMENT_COUNTERSIGNED =
 // reason is audit evidence, not a toggle (FR-001), so `activated` carries the
 // scope + reason; `lifted` records the human actor that initiated
 // reintegration; `engine_ack` records a per-engine acknowledgment timestamp
-// (FR-003, written in Phase 2).
+// (FR-003, written in Phase 2). Phase 3: `reintegrated` records the staged
+// `reintegrating -> lifted` completion once every engine that halt-acked has
+// also lift-acked (FR-004); `reasserted` records a re-halt pulled on a scope
+// still mid-reintegration (the ack ledger is reset so completion recounts).
 export const FACTORY_ORG_HALT_ACTIVATED =
   "factory.org_halt.activated" as const;
 export const FACTORY_ORG_HALT_LIFTED = "factory.org_halt.lifted" as const;
 export const FACTORY_ORG_HALT_ENGINE_ACK =
   "factory.org_halt.engine_ack" as const;
+export const FACTORY_ORG_HALT_REINTEGRATED =
+  "factory.org_halt.reintegrated" as const;
+export const FACTORY_ORG_HALT_REASSERTED =
+  "factory.org_halt.reasserted" as const;
 // Spec 202 FR-003(c): queue-storm detection (detection-only; the run is
 // still admitted). Recorded when an org's in-flight run count is at or over
 // the configured ceiling at reservation time (`api/factory/queueStormGate.ts`).
@@ -69,5 +76,7 @@ export type FactoryRunAuditAction =
   | typeof FACTORY_ORG_HALT_ACTIVATED
   | typeof FACTORY_ORG_HALT_LIFTED
   | typeof FACTORY_ORG_HALT_ENGINE_ACK
+  | typeof FACTORY_ORG_HALT_REINTEGRATED
+  | typeof FACTORY_ORG_HALT_REASSERTED
   | typeof FACTORY_RUN_STORM_DETECTED
   | typeof FACTORY_RUN_APPROVAL_VELOCITY_ANOMALY;

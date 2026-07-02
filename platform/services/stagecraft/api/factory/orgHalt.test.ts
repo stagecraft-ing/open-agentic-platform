@@ -38,6 +38,8 @@ import {
   FACTORY_ORG_HALT_ACTIVATED,
   FACTORY_ORG_HALT_ENGINE_ACK,
   FACTORY_ORG_HALT_LIFTED,
+  FACTORY_ORG_HALT_REASSERTED,
+  FACTORY_ORG_HALT_REINTEGRATED,
   FACTORY_RUN_GRANT_REFUSED,
 } from "./auditActions";
 import { handleInbound } from "../sync/service";
@@ -59,6 +61,11 @@ const RUN_ISSUE = "20808080-0000-0000-0000-0000000000c1";
 const RUN_RENEW = "20808080-0000-0000-0000-0000000000c2";
 const RUN_SIBLING = "20808080-0000-0000-0000-0000000000c3";
 const RUN_PROJ = "20808080-0000-0000-0000-0000000000c4";
+// Spec 208 Phase 3 fresh runs (distinct ids so grant chains do not accrete
+// across tests, matching the RUN_ISSUE/RUN_RENEW/RUN_SIBLING/RUN_PROJ pattern).
+const RUN_AP = "20808080-0000-0000-0000-0000000000c5";
+const RUN_AP_ISS = "20808080-0000-0000-0000-0000000000c6";
+const RUN_REINT = "20808080-0000-0000-0000-0000000000c7";
 
 const ORIGIN = "factory-halt-test";
 const ENVELOPE_HASH = "envhash-halt-test-aaa";
@@ -219,6 +226,9 @@ beforeAll(async () => {
     seedRun(RUN_RENEW),
     seedRun(RUN_SIBLING),
     seedRun(RUN_PROJ),
+    seedRun(RUN_AP),
+    seedRun(RUN_AP_ISS),
+    seedRun(RUN_REINT),
   ]);
 });
 
@@ -319,14 +329,21 @@ describe("pullHaltCore / liftHaltCore (FR-001/FR-004 verb + audit)", () => {
     ).rejects.toThrow(/scopeKey is required/);
   });
 
-  it("pullHaltCore rejects an agent-profile scope in Phase 1 (not enforceable)", async () => {
-    await expect(
-      pullHaltCore(AUTH, {
-        scope: "agent-profile",
-        scopeKey: AGENT_PROFILE,
-        reason: "surgical",
-      }),
-    ).rejects.toThrow(/agent-profile.*not yet enforceable/);
+  it("pullHaltCore accepts an agent-profile scope (Phase 3, enforced at renewal)", async () => {
+    const res = await pullHaltCore(AUTH, {
+      scope: "agent-profile",
+      scopeKey: AGENT_PROFILE,
+      reason: "surgical",
+    });
+    expect(res.state).toBe("halted");
+    expect(res.scope).toBe("agent-profile");
+    expect(res.scopeKey).toBe(AGENT_PROFILE);
+    const [row] = await db
+      .select()
+      .from(orgHalts)
+      .where(eq(orgHalts.id, res.haltId));
+    expect(row.scope).toBe("agent-profile");
+    expect(row.scopeKey).toBe(AGENT_PROFILE);
   });
 
   it("pullHaltCore is idempotent: a repeated pull returns the same record", async () => {
@@ -582,5 +599,238 @@ describe("org-halt propagation (FR-001/FR-003, AC-4 ack leg)", () => {
       .from(orgHalts)
       .where(eq(orgHalts.id, halt.haltId));
     expect(row.acks).toEqual([]);
+  });
+});
+
+// Spec 208 Phase 3 (PR-3): the agent-profile seam (AC-3, enforced at grant
+// renewal), staged reintegration completion with two-sided validation (FR-004,
+// AC-4 lift leg), the reintegrating-state refusal (AC-7), and the re-halt
+// reassertion (D3). The engine-side org.halt.lifted ack and the profile
+// resolution from the reservation-time stage-agent map are covered by the OPC
+// Rust unit suite.
+describe("agent-profile halt enforcement (AC-3, Phase 3, grant renewal)", () => {
+  it("refuses renewal for the halted profile but grants a sibling profile", async () => {
+    const issued = await handleGrantRequest(grantRequest(RUN_AP), CTX);
+    expect(issued.reply?.granted).toBe(true);
+
+    await pullHaltCore(AUTH, {
+      scope: "agent-profile",
+      scopeKey: AGENT_PROFILE,
+      reason: "surgical profile halt",
+    });
+
+    // A renewal presenting a DIFFERENT profile is not in scope: granted, and it
+    // advances the chain head to seq 1.
+    const sibling = await handleGrantRenew(
+      grantRenew(RUN_AP, 1, { agentProfile: "other-profile" }),
+      CTX,
+    );
+    expect(sibling.reply?.granted).toBe(true);
+
+    // A renewal presenting the halted profile is refused (AC-3); reason
+    // "halted", the same class as the org/project legs.
+    const { reply } = await handleGrantRenew(
+      grantRenew(RUN_AP, 2, { agentProfile: AGENT_PROFILE }),
+      CTX,
+    );
+    expect(reply?.granted).toBe(false);
+    expect(reply?.refusedReason).toBe("halted");
+  });
+
+  it("does not gate issuance on an agent-profile halt (issuance carries no profile)", async () => {
+    // Enforcement is at renewal only: a run spans several profiles, so issuance
+    // has no single profile to check. A run whose stage profile is halted is
+    // issued (an auditable no-op) then refused at the first renewal before s0.
+    await pullHaltCore(AUTH, {
+      scope: "agent-profile",
+      scopeKey: AGENT_PROFILE,
+      reason: "issuance passthrough",
+    });
+    const issued = await handleGrantRequest(grantRequest(RUN_AP_ISS), CTX);
+    expect(issued.reply?.granted).toBe(true);
+  });
+});
+
+describe("scope union independence (T015a, AC-3)", () => {
+  it("a lifted org halt does not suppress an independent active project halt", async () => {
+    await insertHalt({ scope: "org", scopeKey: ORG_ID, state: "lifted" });
+    const projHalt = await insertHalt({
+      scope: "project",
+      scopeKey: PROJECT_ID,
+      state: "halted",
+    });
+    // The org query alone sees no active org halt (the org row is lifted)...
+    expect(await isHaltedInScope(ORG_ID)).toBeNull();
+    // ...but the project remains independently halted (union arm still hits).
+    expect(await isHaltedInScope(ORG_ID, { projectId: PROJECT_ID })).toBe(
+      projHalt,
+    );
+  });
+});
+
+describe("reintegration completion + two-sided validation (FR-004, AC-4, AC-7)", () => {
+  const CLIENT_A = "20808080-0000-0000-0000-0000000000e2";
+  const CLIENT_B = "20808080-0000-0000-0000-0000000000e3";
+
+  function ack(
+    haltId: string,
+    haltKind: "halt" | "lift",
+    ackedAt: string,
+  ): ClientOrgHaltAck {
+    return {
+      kind: "org.halt.ack",
+      meta: META(`evt-p3-ack-${haltId}-${haltKind}-${ackedAt}`),
+      haltId,
+      haltKind,
+      ackedAt,
+    };
+  }
+
+  async function haltState(haltId: string): Promise<string> {
+    const [row] = await db
+      .select({ state: orgHalts.state })
+      .from(orgHalts)
+      .where(eq(orgHalts.id, haltId));
+    return row.state;
+  }
+
+  it("a single engine's lift ack completes reintegration (state -> lifted)", async () => {
+    const halt = await pullHaltCore(AUTH, {
+      scope: "org",
+      reason: "complete me",
+    });
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "halt", "2026-07-02T00:00:00.000Z"),
+    );
+    await liftHaltCore(AUTH, { id: halt.haltId }); // -> reintegrating
+    const res = await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "lift", "2026-07-02T00:01:00.000Z"),
+    );
+    expect(res.ok).toBe(true);
+    expect(await haltState(halt.haltId)).toBe("lifted");
+
+    const [row] = await db
+      .select({ acks: orgHalts.acks })
+      .from(orgHalts)
+      .where(eq(orgHalts.id, halt.haltId));
+    expect(row.acks.map((a) => a.kind).sort()).toEqual(["halt", "lift"]);
+
+    const audits = await db
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, FACTORY_ORG_HALT_REINTEGRATED));
+    expect(audits.some((a) => a.targetId === halt.haltId)).toBe(true);
+  });
+
+  it("completion requires every halt-acker to lift-ack (multi-engine)", async () => {
+    const halt = await pullHaltCore(AUTH, {
+      scope: "org",
+      reason: "two engines",
+    });
+    for (const c of [CLIENT_A, CLIENT_B]) {
+      await handleInbound(
+        { orgId: ORG_ID, clientId: c, userId: USER_ID },
+        ack(halt.haltId, "halt", "2026-07-02T00:00:00.000Z"),
+      );
+    }
+    await liftHaltCore(AUTH, { id: halt.haltId });
+
+    // Only engine A lift-acks: engine B is still outstanding, so the halt stays
+    // reintegrating (still enforced).
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "lift", "2026-07-02T00:01:00.000Z"),
+    );
+    expect(await haltState(halt.haltId)).toBe("reintegrating");
+
+    // Engine B lift-acks: every halt-acker has now lift-acked -> lifted.
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_B, userId: USER_ID },
+      ack(halt.haltId, "lift", "2026-07-02T00:02:00.000Z"),
+    );
+    expect(await haltState(halt.haltId)).toBe("lifted");
+  });
+
+  it("D2: a lift ack is rejected (not recorded) when admission is not admitted", async () => {
+    const halt = await pullHaltCore(AUTH, { scope: "org", reason: "d2" });
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "halt", "2026-07-02T00:00:00.000Z"),
+    );
+    await liftHaltCore(AUTH, { id: halt.haltId }); // -> reintegrating
+
+    // Revoke the standing admission so the fresh two-sided re-validation fails.
+    await db
+      .update(factoryAdmissions)
+      .set({ status: "refused" })
+      .where(eq(factoryAdmissions.orgId, ORG_ID));
+    try {
+      const res = await handleInbound(
+        { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+        ack(halt.haltId, "lift", "2026-07-02T00:01:00.000Z"),
+      );
+      expect(res.ok).toBe(false);
+      // The lift ack was NOT recorded and the halt did NOT complete.
+      expect(await haltState(halt.haltId)).toBe("reintegrating");
+      const [row] = await db
+        .select({ acks: orgHalts.acks })
+        .from(orgHalts)
+        .where(eq(orgHalts.id, halt.haltId));
+      expect(row.acks.some((a) => a.kind === "lift")).toBe(false);
+    } finally {
+      await db
+        .update(factoryAdmissions)
+        .set({ status: "admitted" })
+        .where(eq(factoryAdmissions.orgId, ORG_ID));
+    }
+  });
+
+  it("AC-7: a reintegrating halt still refuses grant renewal", async () => {
+    const issued = await handleGrantRequest(grantRequest(RUN_REINT), CTX);
+    expect(issued.reply?.granted).toBe(true);
+
+    const halt = await pullHaltCore(AUTH, {
+      scope: "org",
+      reason: "reintegrating refusal",
+    });
+    await liftHaltCore(AUTH, { id: halt.haltId }); // -> reintegrating (enforced)
+
+    const { reply } = await handleGrantRenew(grantRenew(RUN_REINT, 1), CTX);
+    expect(reply?.granted).toBe(false);
+    expect(reply?.refusedReason).toBe("halted");
+  });
+
+  it("D3: a pull on a reintegrating scope re-asserts halted and resets the ack ledger", async () => {
+    const halt = await pullHaltCore(AUTH, { scope: "org", reason: "first pull" });
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "halt", "2026-07-02T00:00:00.000Z"),
+    );
+    await liftHaltCore(AUTH, { id: halt.haltId }); // -> reintegrating
+
+    const re = await pullHaltCore(AUTH, {
+      scope: "org",
+      reason: "re-halt mid-reintegration",
+    });
+    expect(re.haltId).toBe(halt.haltId);
+    expect(re.state).toBe("halted");
+
+    const [row] = await db
+      .select()
+      .from(orgHalts)
+      .where(eq(orgHalts.id, halt.haltId));
+    expect(row.state).toBe("halted");
+    expect(row.reason).toBe("re-halt mid-reintegration");
+    expect(row.liftedBy).toBeNull();
+    expect(row.liftedAt).toBeNull();
+    expect(row.acks).toEqual([]);
+
+    const audits = await db
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, FACTORY_ORG_HALT_REASSERTED));
+    expect(audits.some((a) => a.targetId === halt.haltId)).toBe(true);
   });
 });

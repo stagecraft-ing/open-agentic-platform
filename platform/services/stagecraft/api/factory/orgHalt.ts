@@ -15,13 +15,13 @@
 // through `requireFactoryConfigure`, and a service identity has no
 // org-membership row to satisfy it.
 //
-// Phase 1 enforces `org` and `project` scopes. `agent-profile` is rejected at
-// the verb (see pullHaltCore): no Phase-1 seam carries the agent profile in
-// scope (the duplex handshake is per-OPC-connection, the grant is run/project
-// bound), so accepting an agent-profile halt would audit it "active" while
-// enforcing nothing, which is exactly the false-containment a kill switch must
-// not ship. The `isHaltedInScope` agent-profile branch stays ready for the
-// phase that adds a profile-carrying seam.
+// Phase 3 enforces all three scopes. `agent-profile` halts now refuse grant
+// renewal: the engine resolves the profile about to execute a stage from its
+// reservation-time stage-agent map and presents it on `factory.run.grant_renew`
+// (spec 208 FR-001/AC-3), so `isHaltedInScope`'s agent-profile arm gates a real
+// fact. Enforcement is at grant renewal only (issuance has no single profile,
+// since a run spans several over its life); the first renewal fires before s0,
+// so a run whose stage profile is halted is refused before any agent output.
 
 import { api, APIError } from "encore.dev/api";
 import log from "encore.dev/log";
@@ -32,6 +32,7 @@ import { requireFactoryConfigure } from "./revocations";
 import {
   FACTORY_ORG_HALT_ACTIVATED,
   FACTORY_ORG_HALT_LIFTED,
+  FACTORY_ORG_HALT_REASSERTED,
 } from "./auditActions";
 import { broadcastOrgHalt } from "../sync/service";
 
@@ -125,15 +126,6 @@ export async function pullHaltCore(
   auth: { orgId: string; userId: string },
   req: PullHaltRequest,
 ): Promise<PullHaltResponse> {
-  if (req.scope === "agent-profile") {
-    // See the file header: no Phase-1 seam carries the agent profile, so an
-    // agent-profile halt would enforce nothing. Reject rather than ship a
-    // halt an operator mistakes for containment.
-    throw APIError.unimplemented(
-      "agent-profile-scoped halts are not yet enforceable (no Phase-1 seam " +
-        "carries the agent profile); use 'org' or 'project' scope",
-    );
-  }
   const reason = req.reason?.trim();
   if (!reason) {
     throw APIError.invalidArgument(
@@ -162,8 +154,50 @@ export async function pullHaltCore(
           ne(orgHalts.state, "lifted"),
         ),
       )
+      .for("update")
       .limit(1);
     if (existing) {
+      // D3 (spec 208 FR-004): a pull landing on a scope still 'reintegrating'
+      // re-asserts the halt. The scope is still enforced, but the new pull
+      // carries a new reason and must re-pause engines that had begun
+      // re-admission, so transition back to 'halted', adopt the new reason,
+      // and RESET the ack ledger + lift actor: the prior halt/lift acks
+      // describe a pause being re-issued, so the reintegration completion
+      // count (service.ts) must recount from a clean slate. Row-locked via
+      // `.for("update")` above, so this CAS cannot race a concurrent lift.
+      if (existing.state === "reintegrating") {
+        await tx
+          .update(orgHalts)
+          .set({
+            state: "halted",
+            reason,
+            pulledBy: auth.userId,
+            pulledAt: new Date(),
+            liftedBy: null,
+            liftedAt: null,
+            acks: [],
+          })
+          .where(eq(orgHalts.id, existing.id));
+
+        await tx.insert(auditLog).values({
+          actorUserId: auth.userId,
+          action: FACTORY_ORG_HALT_REASSERTED,
+          targetType: "org_halts",
+          targetId: existing.id,
+          metadata: { orgId: auth.orgId, scope: req.scope, scopeKey, reason },
+        });
+
+        return {
+          response: {
+            haltId: existing.id,
+            scope: req.scope,
+            scopeKey,
+            state: "halted" as const,
+          },
+          // A re-assertion re-broadcasts 'activated' so engines re-pause.
+          fresh: true as const,
+        };
+      }
       return {
         response: {
           haltId: existing.id,

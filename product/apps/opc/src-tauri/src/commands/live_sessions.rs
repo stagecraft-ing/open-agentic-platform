@@ -552,24 +552,34 @@ pub async fn halt_aware_terminate(
     outcome
 }
 
-/// Spec 208 FR-001/FR-003 (T011): register the `org.halt.activated` dispatch
-/// handler on the shared duplex dispatch table. Mirrors
-/// `agent_catalog_sync::register_agent_catalog_handlers`. `org.halt.lifted` is
-/// accepted at the wire boundary but its reintegration handler lands in Phase 3.
+/// Spec 208 FR-001/FR-003 (T011) + FR-004 (Phase 3): register the
+/// `org.halt.activated` and `org.halt.lifted` dispatch handlers on the shared
+/// duplex dispatch table. Mirrors
+/// `agent_catalog_sync::register_agent_catalog_handlers`.
 pub fn register_org_halt_handlers(app: AppHandle) {
     if app.try_state::<SyncClientState>().is_none() {
         log::warn!(
-            "spec(208): SyncClientState not managed; org-halt dispatch handler not registered"
+            "spec(208): SyncClientState not managed; org-halt dispatch handlers not registered"
         );
         return;
     }
     let dispatch = app.state::<SyncClientState>().dispatch_table();
-    let app_handle = app.clone();
-    let handler = FnHandler(move |env: &ServerEnvelopeWire| {
-        on_org_halt_activated(app_handle.clone(), env);
+    let activated_app = app.clone();
+    let activated = FnHandler(move |env: &ServerEnvelopeWire| {
+        on_org_halt_activated(activated_app.clone(), env);
     });
-    dispatch.register("org.halt.activated", Arc::new(handler));
-    log::info!("spec(208): org-halt dispatch handler registered");
+    dispatch.register("org.halt.activated", Arc::new(activated));
+    // Spec 208 Phase 3 (FR-004/AC-4): a lift broadcast is acked so stagecraft
+    // records this engine's per-engine lift timestamp and drives the staged
+    // `reintegrating -> lifted` completion. New-session / grant refusal is
+    // entirely server-side, so the engine holds no local "blocked" flag to
+    // clear: the re-admission work here is the ack itself, not a state mutation.
+    let lifted_app = app.clone();
+    let lifted = FnHandler(move |env: &ServerEnvelopeWire| {
+        on_org_halt_lifted(lifted_app.clone(), env);
+    });
+    dispatch.register("org.halt.lifted", Arc::new(lifted));
+    log::info!("spec(208): org-halt dispatch handlers registered (activated + lifted)");
 }
 
 /// Handle an inbound `org.halt.activated` broadcast: pause + checkpoint the
@@ -620,6 +630,34 @@ fn on_org_halt_activated(app: AppHandle, env: &ServerEnvelopeWire) {
             log::warn!(
                 "spec(208): org-halt ack for {halt_id} not delivered (duplex disconnected); \
                  recorded on reconnect resync"
+            );
+        }
+    });
+}
+
+/// Handle an inbound `org.halt.lifted` broadcast (spec 208 FR-004): ack so
+/// stagecraft records this engine's per-engine lift timestamp and can complete
+/// the staged `reintegrating -> lifted` transition once every engine that
+/// halt-acked has also lift-acked. No local pause state was ever held (the
+/// grant / registration refusal is server-side), so reintegration here is the
+/// ack itself. Mirrors `on_org_halt_activated`'s guard + detached-ack shape.
+fn on_org_halt_lifted(app: AppHandle, env: &ServerEnvelopeWire) {
+    let Some(halt_id) = env.halt_id.clone() else {
+        log::warn!("spec(208): org.halt.lifted missing haltId; ignored");
+        return;
+    };
+    tauri::async_runtime::spawn(async move {
+        let acked = app
+            .state::<SyncClientState>()
+            .handle()
+            .send_org_halt_ack(&halt_id, OrgHaltAckKind::Lift)
+            .await;
+        if acked {
+            log::info!("spec(208): org-halt {halt_id} lift acked (reintegration)");
+        } else {
+            log::warn!(
+                "spec(208): org-halt lift ack for {halt_id} not delivered (duplex \
+                 disconnected); recorded on reconnect resync"
             );
         }
     });

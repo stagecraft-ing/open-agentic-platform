@@ -93,8 +93,11 @@ export type FactoryRunEnvelopeVersion = typeof FACTORY_RUN_ENVELOPE_VERSION;
  * grants are a new family, not a lifecycle payload change). The desktop
  * mirror constant in `apps/opc/src-tauri/src/commands/sync_client.rs` MUST
  * equal this value.
+ *
+ * v2 (spec 208 FR-001): `factory.run.grant_renew` gains optional
+ * `agentProfile` for agent-profile-scoped org-halt renewal refusal (AC-3).
  */
-export const FACTORY_RUN_GRANT_ENVELOPE_VERSION = 1 as const;
+export const FACTORY_RUN_GRANT_ENVELOPE_VERSION = 2 as const;
 export type FactoryRunGrantEnvelopeVersion =
   typeof FACTORY_RUN_GRANT_ENVELOPE_VERSION;
 
@@ -487,6 +490,13 @@ export interface ClientFactoryRunGrantRenew {
   /** Stage boundary being entered (audit context only — OAP does not
    *  model run topology, P-2). */
   stageId?: string;
+  /** Spec 208 FR-001: the agent profile (org_agent_id) about to execute
+   *  this stage, resolved engine-side from the reservation-time stage-agent
+   *  map. Lets an agent-profile-scoped org halt refuse renewal (AC-3);
+   *  absent on issuance (a run spans multiple profiles over its life).
+   *  Attribution only, same class as stageId; OAP does not model run
+   *  topology (P-2). */
+  agentProfile?: string;
   /** Frozen Build-Spec hash, presented from the freeze boundary onward.
    *  First presentation records it on the chain; a later change refuses
    *  with `capsule-mismatch` (the freeze is one-way). */
