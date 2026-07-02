@@ -167,6 +167,10 @@ connected engines per org for the broadcast and ack collection.
   transition explicit when PD-E (tasks.md) resolves the `org_halts` record
   shape; no safety change, since a `reintegrating` scope already refuses
   new sessions and grants.
+  **Resolved (Phase 3, 2026-07-02):** `pullHaltCore` now handles the
+  `reintegrating -> halted` re-assertion explicitly, adopting the new reason
+  and resetting the `acks` ledger so reintegration recounts cleanly
+  (`FACTORY_ORG_HALT_REASSERTED` audit; row-locked CAS).
 - **`reintegrating` enforcement is stated but not AC-covered.** The State
   machine section states that a `reintegrating` scope is still enforced
   (new sessions and grants refused) until its staged re-admission
@@ -180,6 +184,10 @@ connected engines per org for the broadcast and ack collection.
   in scope are refused) to the `reintegrating` state, written alongside
   the FR-004 reintegration tasks. Closing it also grounds the re-halt
   gap's safety claim, which depends on this invariant.
+  **Resolved (Phase 3, 2026-07-02):** AC-7 (spec.md) now extends the AC-2
+  refusal assertion to the `reintegrating` state, with a DB-bound test that
+  drives a halt into `reintegrating` and asserts grant renewal is still
+  refused (closes issue #433).
 
 ## Constitution Check
 
@@ -271,6 +279,23 @@ and an ack send, both keyless. The drill lands in the existing e2e harness.
 - **Phase 3: Scope + reintegrate (AC-3, FR-004 staged).** `project` and
   `agent-profile` scope proofs; staged per-scope re-admission; the
   `reintegrating` substate. AC-3 and AC-4's reintegration leg close here.
+  **Landed 2026-07-02 (PR `feat/208-scope-reintegrate`).** The agent-profile
+  leg was built (option a, not deferred): the engine resolves the profile
+  about to execute a stage from its reservation-time `stage_agents` map and
+  presents it on `factory.run.grant_renew` (`FACTORY_RUN_GRANT_ENVELOPE_VERSION`
+  1 -> 2), so `isHaltedInScope`'s agent-profile arm gates a real fact and
+  `pullHaltCore`'s Phase-1 rejection is removed. Enforcement is at grant
+  **renewal** only: issuance carries no single profile (a run spans several),
+  and the first renewal fires before s0, so a halted profile is refused before
+  any agent output. Staged reintegration completes `reintegrating -> lifted`
+  when every engine that halt-acked has also lift-acked (computed over the
+  `acks` ledger, no new column; `FACTORY_ORG_HALT_REINTEGRATED` audit); a
+  lift-ack counts only after a fresh admission re-validation (the D2 two-sided
+  check, mirroring `liftRevocationCore`). The OPC side gained an
+  `org.halt.lifted` dispatch handler that sends the lift-ack. AC-7 closes the
+  reintegrating-enforcement gap; the re-halt gap is closed by re-asserting
+  `halted` + resetting the ack ledger on a pull landing on a `reintegrating`
+  scope (`FACTORY_ORG_HALT_REASSERTED` audit).
 - **Phase 4: Credential closure (FR-002 full).** Consume the spec 205
   `nhi_delegation_index` cascade when it lands; until then the degraded
   grant + session path is the shipped behavior.

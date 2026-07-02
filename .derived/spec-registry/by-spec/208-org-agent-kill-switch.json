@@ -34,6 +34,30 @@
       },
       {
         "nature": "additive",
+        "spec": "198-factory-governance-envelope",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "198-factory-governance-envelope",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/factory.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "198-factory-governance-envelope",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/factory_platform.rs"
+        }
+      },
+      {
+        "nature": "additive",
         "spec": "034-featuregraph-registry-scanner-fix",
         "unit": {
           "kind": "file",
@@ -167,6 +191,6 @@
     "summary": "Containment today is precise but narrow: an operator can force-disconnect one session (spec 172), the four-key revocation lattice quarantines factory content (spec 198 FR-010), and Rauthy sessions can be revoked one principal at a time. What does not exist is the emergency stop ASI10 m4 and ASI04 m8 require: one admin-gated action that halts agent execution org-wide (pausing in-flight runs at the next boundary, refusing new sessions and grant issuance, revoking agent credentials) with propagation inside a stated bound, a quarantine record, and reintegration that requires fresh validation plus human approval. The switch composes the levers that already exist (grant renewal, duplex channels, revocation rows, session force-disconnect) rather than adding a parallel mechanism, and it is drilled: a kill switch that has never been pulled is decoration, so exercising it is an acceptance criterion, not an operational afterthought.\n",
     "title": "Org-Wide Agent Kill Switch and Quarantine (ASI10 containment)"
   },
-  "shardHash": "85bf637b05eca589b606682f8ba5d5aa060bd771aa1013f45f0bbe543c1b9826",
+  "shardHash": "26a2cf3d0824a826aa23d1684f3a942d4fc9dd5bd182ae9082a1f52f7e97bebf",
   "specVersion": "1.1.0"
 }

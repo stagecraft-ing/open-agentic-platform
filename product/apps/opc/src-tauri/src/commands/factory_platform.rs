@@ -860,6 +860,10 @@ pub struct GrantRenewArgs<'a> {
     pub capsule_hash: &'a str,
     pub seq: i64,
     pub stage_id: Option<&'a str>,
+    /// Spec 208 FR-001: agent profile (org_agent_id) about to run this stage,
+    /// resolved from the reservation-time stage-agent map; drives
+    /// agent-profile-scoped org-halt renewal refusal (AC-3).
+    pub agent_profile: Option<&'a str>,
     pub build_spec_hash: Option<&'a str>,
 }
 
@@ -1021,6 +1025,7 @@ impl RunEmitter {
             capsule_hash: args.capsule_hash.to_string(),
             seq: args.seq,
             stage_id: args.stage_id.map(str::to_string),
+            agent_profile: args.agent_profile.map(str::to_string),
             build_spec_hash: args.build_spec_hash.map(str::to_string),
         };
         let reply = self
@@ -1364,6 +1369,7 @@ mod tests {
             capsule_hash: "cap-hash".into(),
             seq: 2,
             stage_id: Some("phase-2".into()),
+            agent_profile: Some("api-scaffolder".into()),
             build_spec_hash: Some("bs-hash".into()),
         };
         let json = serde_json::to_value(&frame).unwrap();
@@ -1373,6 +1379,9 @@ mod tests {
         assert_eq!(json["capsuleHash"], "cap-hash");
         assert_eq!(json["seq"], 2);
         assert_eq!(json["stageId"], "phase-2");
+        // Spec 208 FR-001/AC-3: the agent profile rides the exact camelCase wire
+        // name the server reads (grantDuplexHandlers.ts evt.agentProfile).
+        assert_eq!(json["agentProfile"], "api-scaffolder");
         assert_eq!(json["buildSpecHash"], "bs-hash");
     }
 }

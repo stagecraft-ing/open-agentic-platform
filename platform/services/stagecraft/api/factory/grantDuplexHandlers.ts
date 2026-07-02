@@ -349,6 +349,10 @@ async function grantPreflight(
   ctx: HandlerCtx,
   envelopeHash: string,
   projectId: string | null,
+  // Spec 208 FR-001/AC-3: the agent profile about to execute the stage being
+  // renewed, resolved engine-side and presented on `factory.run.grant_renew`.
+  // Only renewal supplies it (issuance has no single profile); null on issue.
+  agentProfile: string | null = null,
 ): Promise<
   | { ok: true; origin: string; state: AdmissionState }
   | { ok: false; reason: RunGrantRefusalReason; detail: string }
@@ -380,13 +384,13 @@ async function grantPreflight(
   if (revoked) {
     return { ok: false, reason: "revoked", detail: revoked };
   }
-  // Spec 208 FR-001/FR-002: an active org- or project-scoped halt refuses
-  // grant issuance and renewal, so in-flight runs pause at the next stage
-  // boundary (the 198 FR-005 semantics, not a forced mid-stage kill). The
-  // detail names the quarantine record (AC-2). Only org + project scopes
-  // exist in Phase 1 (the verb rejects agent-profile until a profile-carrying
-  // seam lands), so passing `{ projectId }` covers every enforceable scope.
-  const haltId = await isHaltedInScope(ctx.orgId, { projectId });
+  // Spec 208 FR-001/FR-002: an active org-, project-, or agent-profile-scoped
+  // halt refuses grant issuance and renewal, so in-flight runs pause at the
+  // next stage boundary (the 198 FR-005 semantics, not a forced mid-stage
+  // kill). The detail names the quarantine record (AC-2). `agentProfile` is
+  // present only on renewal (Phase 3, AC-3); issuance passes null, which the
+  // agent-profile arm ignores.
+  const haltId = await isHaltedInScope(ctx.orgId, { projectId, agentProfile });
   if (haltId) {
     return {
       ok: false,
@@ -621,7 +625,12 @@ export async function handleGrantRenew(
 
   // FR-010 propagation leg: the standing admission and every node of the
   // admitted composition are re-checked at every boundary.
-  const pre = await grantPreflight(ctx, issuance.envelopeHash, projectId);
+  const pre = await grantPreflight(
+    ctx,
+    issuance.envelopeHash,
+    projectId,
+    evt.agentProfile ?? null,
+  );
   if (!pre.ok) {
     return {
       result: { ok: true },

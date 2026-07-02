@@ -47,6 +47,21 @@ extends:
   - spec: "198-factory-governance-envelope"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/factory/revocations.ts }
+  # Phase 3 (FR-001/AC-3): the agent-profile seam. The grant-renewal path is
+  # taught to resolve the profile about to execute a stage (from the
+  # reservation-time stage-agent map) and present it on factory.run.grant_renew,
+  # so an agent-profile-scoped halt refuses renewal. These three OPC files
+  # implement spec 198's grant-renewal contract; 208 additively extends them to
+  # carry the halt-scoping profile. Renewal only (issuance has no single profile).
+  - spec: "198-factory-governance-envelope"
+    nature: additive
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/run_governance.rs }
+  - spec: "198-factory-governance-envelope"
+    nature: additive
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/factory.rs }
+  - spec: "198-factory-governance-envelope"
+    nature: additive
+    unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/factory_platform.rs }
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
   - spec: "034-featuregraph-registry-scanner-fix"
@@ -287,6 +302,13 @@ decoration. The drill runs in the existing nightly e2e lane
 - **AC-6.** `make ci` / schema-parity (125/191) / coupling gate pass;
   codebase index and featuregraph golden regenerated for the spec add.
   (cross-cutting, mirrors 198 AC-9)
+- **AC-7.** While a halt is `reintegrating` (not yet `lifted`), grant
+  issuance, grant renewal, and new session registration in scope remain
+  refused exactly as during `halted` (extends AC-2); the `reintegrating`
+  -> `lifted` transition requires per-scope re-admission (every engine
+  that halt-acked also lift-acks, and a lift-ack counts only after a fresh
+  admission re-validation), not a bare state flip. (FR-004; closes the
+  reintegrating-enforcement gap recorded in plan.md, issue #433)
 
 ## Out of scope
 

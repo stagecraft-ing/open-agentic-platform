@@ -59,7 +59,19 @@
         "source": "spec-edge"
       },
       {
+        "path": "product/apps/opc/src-tauri/src/commands/factory.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/src-tauri/src/commands/factory_platform.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "product/apps/opc/src-tauri/src/commands/live_sessions.rs",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/src-tauri/src/commands/run_governance.rs",
         "source": "spec-edge"
       },
       {
@@ -122,6 +134,45 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/factory/revocations.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/src-tauri/src/commands/factory.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/factory.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/src-tauri/src/commands/factory_platform.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/factory_platform.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
         }
       },
       {
@@ -285,5 +336,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "fe819eeb646650d0d6cde891187d8a7ff43fe42115e26470a291526bfddc0d70"
+  "shardHash": "339a5030a0cf38dc1de6aeabb698c4b557b5bfc62d969d61cbaa866bbcdde212"
 }
