@@ -68,6 +68,26 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/factory/approvalSummary.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/approvalVelocity-pure.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/approvalVelocity-pure.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/approvalVelocity.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/approvalVelocity.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/factory/auditActions.ts",
         "source": "spec-edge"
       },
@@ -142,6 +162,58 @@
         "unit": {
           "kind": "file",
           "path": "crates/orchestrator/src/budget_gate.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/approvalVelocity-pure.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/approvalVelocity-pure.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/approvalVelocity-pure.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/approvalVelocity-pure.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/approvalVelocity.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/approvalVelocity.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/approvalVelocity.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/approvalVelocity.ts"
         }
       },
       {
@@ -303,6 +375,32 @@
       {
         "locations": [
           {
+            "file": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/auditActions.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "platform/services/stagecraft/api/factory/auditActions.ts"
           }
         ],
@@ -419,8 +517,8 @@
       }
     ],
     "specId": "202-run-blast-radius-governor",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "a9d9fd20190ae707534622f31695c7e9cb6032db4d053226efacf5f402cad4e2"
+  "shardHash": "3b871503faeb3a65fdf4af624d8f75b9b116385b438d608dc6b4f175340ecf5a"
 }

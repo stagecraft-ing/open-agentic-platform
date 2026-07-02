@@ -110,6 +110,15 @@ budgets:
 
 ### Slice B: FR-002 Run-level meter + budget PreStepGate + AC-6 dead-stub discharge (AC-1, AC-5, AC-6)
 
+> **AC-6 status (read this before the AC-6 bullets below).** Slice B / PR1 #469
+> landed AC-6 pt1 only (retire the `max_total_tokens` engine-config stub). AC-6
+> pt2 (remove `FactoryPipelineState.total_tokens` / `add_tokens()` so no two
+> token accumulators coexist) was split to a follow-up, PR1b, and is still
+> open as of the 2026-07-01 `implementation: complete` flip. The "remove
+> `total_tokens`" bullets in this section describe PR1b's intended work, not
+> what shipped in PR1. See the plan Summary and spec.md "Implementation status
+> (AC-6 residual)" for the authoritative disclosure.
+
 **Depends on**: Slice A (needs `AdmittedBudget`, `RunBudgetAxis`).
 
 **FR/AC coverage**: FR-002 fully, AC-1 (budget-exceed pauses the run), AC-5 (no silent resume), AC-6 (dead stubs retired).
@@ -355,17 +364,85 @@ envelope-carried threshold and revisits enforcement.
 
 ---
 
-### Slice G: FR-004 Approval-velocity counter (independent)
+### Slice G: FR-004 Approval-velocity counter (independent) -- LANDED
 
 **Depends on**: Nothing from the above slices. Can land any time after spec 198 is complete.
 
 **FR/AC coverage**: FR-004 (records, does not block).
 
+**Design note (as-built, from the PR-time spec 201 survey; supersedes the sketch below)**:
+the deferred survey ran at PR time and reshaped two points of the sketch, the
+same way the D/E/F design notes did:
+
+1. *Surface on the endpoint response, not inside `ApprovalSummary`.* The sketch
+   said "surface via a new diagnostic field in `ApprovalSummary`". But
+   `ApprovalSummary` is the spec 201 hashed contract (`summaryHash` over a
+   deterministic field set), and its FR-003(b) replay guard refuses an approve
+   whose re-assembled hash drifts. Approval velocity is actor- and
+   time-dependent, so folding it into the hash would make every summary
+   momentarily stale and break the replay guard. The velocity is therefore a
+   read-only `approvalVelocity` field on the `RunApprovalContextResponse`
+   endpoint shape, and the hashed contract in `approvalSummary-pure.ts` is
+   untouched. Only the wrapper `approvalSummary.ts` changes.
+
+2. *Org scoping via the run join, because `audit_log` has no `org_id`.* The
+   sketch's key was `(actor_id, org_id, window_start)`. The recorded fact is
+   `audit_log.actor_user_id`; there is no `org_id` column. Approvals are
+   `gate_approved` rows with `targetType = "factory_runs"`, `targetId = <run
+   uuid>`, so the org is recovered by joining to `factory_runs` on `org_id`
+   (casting the uuid to text for the text `target_id`). Actor-scoped count,
+   fenced to the caller's org.
+
+The rest of the sketch stands: records-only, never blocks; N-in-a-window test
+fixture; composes with spec 201's ratification trail (it counts the
+`gate_approved` rows spec 201 writes).
+
+**Files added/edited (as-built)**:
+
+- `platform/services/stagecraft/api/factory/approvalVelocity-pure.ts` (new,
+  established): `ApprovalVelocity` interface, the env-knob readers
+  (`approvalVelocityWindowSecs` / `approvalVelocityThreshold`, defaults 60s /
+  10, same `positiveIntEnv` idiom as `maxRunsInFlight`), and the pure
+  `computeApprovalVelocity(timestamps, nowIso, windowSecs, threshold)`
+  classifier (`anomalous = count >= threshold`, mirroring `detectQueueStorm`'s
+  at-or-over convention).
+- `platform/services/stagecraft/api/factory/approvalVelocity.ts` (new,
+  established): the DB half. `measureApprovalVelocity(ctx)` (read-only,
+  fail-open, returns null on DB error) does the org-scoped join count and the
+  pure classify; `detectApprovalVelocity(ctx)` (approve-path, fully fail-open)
+  records a `factory.run.approval_velocity_anomaly` audit row when anomalous.
+- `platform/services/stagecraft/api/factory/approvalSummary.ts` (refined,
+  aspect `approval-velocity-surface`): `approvalVelocity?` field on
+  `RunApprovalContextResponse`; `measureApprovalVelocity` call in
+  `getRunApprovalContextCore` (surface, both branches); `detectApprovalVelocity`
+  call in `approveRunGateCore` after the `gate_approved` insert.
+- `platform/services/stagecraft/api/factory/auditActions.ts` (refined, aspect
+  `approval-velocity-audit-action`): `FACTORY_RUN_APPROVAL_VELOCITY_ANOMALY`
+  constant + union member.
+- `platform/services/stagecraft/vite.config.ts` (covered by the existing Slice
+  F `encore-test-lane-assignment` refine): the new DB test file joins the
+  encore-lane exclude list.
+- `platform/services/stagecraft/CLAUDE.md` (covered by the existing Slice F
+  `queue-storm-env-knob-docs` refine): the two velocity env knobs documented.
+
+**Tests**: `approvalVelocity-pure.test.ts` (bare vitest) covers the windowing +
+threshold boundary + env parsing (the FR-004 N-in-a-window assertion, cheap and
+DB-free); `approvalVelocity.test.ts` (encore lane, fixture family
+`44444444-...`) covers the org-scoped join count, the anomaly-record path, the
+window exclusion, and org isolation against a second org's approvals by the same
+actor.
+
+Note: This slice is the least constrained by the dependency tree and the least
+risky (no blocking gate). It landed last without blocking any other AC.
+
+<details>
+<summary>Superseded pre-survey sketch (not built as written)</summary>
+
 **Files to edit**: The approval surfaces in the platform (`approvalSummary.ts` and `approvalSummaryEndpoint.ts` in `platform/services/stagecraft/api/factory/`). The gate predicates are filed via the envelope; the velocity counter counts approvals per actor per window and surfaces anomalous velocity.
 
 Since FR-004 is detection-only (records, never blocks) and it composes with spec 201's `ApprovalSummary` evidence rows, this slice requires surveying spec 201's surfaces to understand the exact integration point. That survey is deferred to PR time. Scope: add a velocity accumulator per `(actor_id, org_id, window_start)` at the approval-grant path, surface via a new diagnostic field in `ApprovalSummary`, and add a test fixture with N approvals in a short window asserting the `anomalous_velocity: true` flag appears.
 
-Note: This slice is the least constrained by the dependency tree and the least risky (no blocking gate). It can land last without blocking any other AC.
+</details>
 
 ---
 
@@ -403,7 +480,7 @@ Slice A (FR-001, AC-3, AC-7) -- LAND FIRST
 | F | FR-003(c) | (none stated) | No (independent) |
 | G | FR-004 | (none stated) | No (independent) |
 
-All seven slices together discharge all FRs and all ACs. After Slice C lands, `spec.md` `implementation:` can flip to `complete`.
+All seven slices landed (PR1 #469, C #472, D #481, E #486, F #492, G this PR; B rode PR1). `spec.md` flipped to `status: approved` / `implementation: complete` on 2026-07-01 (user-ratified). One residual is honestly recorded rather than hidden: AC-6 pt2 (subsume `FactoryPipelineState.total_tokens` into the meter's `tokens` axis so no two independent accumulators coexist) is a tracked mechanical-cleanup follow-up, PR1b, sequenced after the flip. The meter's `tokens` axis is already the authoritative accumulator; `total_tokens` is a now-vestigial second counter read for a diagnostic only. See spec.md §Acceptance criteria "Implementation status (AC-6 residual)".
 
 ---
 

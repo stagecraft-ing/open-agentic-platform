@@ -34,6 +34,22 @@
       {
         "kind": "file",
         "path": "platform/services/stagecraft/api/factory/queueStormGate.test.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/approvalVelocity-pure.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/approvalVelocity.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/approvalVelocity-pure.test.ts"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/stagecraft/api/factory/approvalVelocity.test.ts"
       }
     ],
     "extends": [
@@ -68,7 +84,7 @@
     },
     "featureBranch": "feat/202-run-blast-radius-governor",
     "id": "202-run-blast-radius-governor",
-    "implementation": "pending",
+    "implementation": "complete",
     "kind": "governance",
     "references": [
       {
@@ -191,6 +207,20 @@
           "kind": "file",
           "path": "platform/services/stagecraft/CLAUDE.md"
         }
+      },
+      {
+        "aspect": "approval-velocity-surface",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/approvalSummary.ts"
+        }
+      },
+      {
+        "aspect": "approval-velocity-audit-action",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/auditActions.ts"
+        }
       }
     ],
     "sectionHeadings": [
@@ -204,10 +234,10 @@
       "Sequencing"
     ],
     "specPath": "specs/202-run-blast-radius-governor/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "Close the one ASI 2026 control whose residual is stated but unowned. Spec 198's all-ten table marks ASI08 (Cascading Failures) \"partial — residual stated\" and names blast-radius caps as follow-on; this spec is that follow-on. Existing levers (halt-on-failure, stop-hook 166, HITL gate predicates 198 FR-008, introspection 172) are reactive gates — they fire on an observed failure or at a declared checkpoint. What is missing is the quantitative ceiling between gates: per-run and per-stage budgets (tool invocations, file mutations, spawned work, wall-clock, cost), metered by the engine and circuit-breaking fail-closed when exceeded, plus fan-out and feedback-loop detection (ASI08 m6/m7, ASI02 m5 adaptive tool budgeting). A run that exceeds its admitted budget pauses at the next instruction boundary and requires a human resume; consumption actuals are bound into the governance certificate so the receipt shows how close the run came to its ceiling.\n",
     "title": "Run Blast-Radius Governor (ASI08 cascading-failure caps)"
   },
-  "shardHash": "787f9f60ed3661d09f4865cf12f4a5e49be2129430c9fd36cc198942d6292b33",
+  "shardHash": "84f321ec5612c2e43b985b67aa44643ae01aabb508d885d9789ee5d0944aabbc",
   "specVersion": "1.1.0"
 }
