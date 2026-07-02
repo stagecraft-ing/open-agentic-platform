@@ -219,6 +219,11 @@ export const createFactoryProject = api(
       administration: "write",
       actions: "write",
       workflows: "write",
+      // Spec 220 FR-003: setting the OAP_SIGNING_KEY Actions secret hits
+      // `/repos/{repo}/actions/secrets/*`, which GitHub governs under the
+      // dedicated `secrets` permission, NOT `actions`. Without this the
+      // public-key fetch 403s ("Resource not accessible by integration").
+      secrets: "write",
     });
 
     // ── 5. Insert a running scaffold_jobs row. ────────────────────────
