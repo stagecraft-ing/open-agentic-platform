@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:19ffdb5973058b5fd39fc5b41dfb957f687cd161dd73f071cc257a982cb6216b",
+  "graph_fingerprint": "sha256:9dbf412684853a44de44bf4766e094743f6dc3f26013d7ec9fb739f2dfdc9805",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3815,8 +3815,8 @@
       "feature_id": "202-run-blast-radius-governor",
       "title": "Run Blast-Radius Governor (ASI08 cascading-failure caps)",
       "spec_path": "specs/202-run-blast-radius-governor/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",
