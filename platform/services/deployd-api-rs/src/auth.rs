@@ -76,13 +76,63 @@ pub async fn verify_jwt(
 
 pub fn has_scope(claims: &Claims, required: &str) -> bool {
     if required.is_empty() {
-        return true;
+        // An empty required scope is a misconfiguration (e.g.
+        // DEPLOYD_REQUIRED_SCOPE=""), not "no scope required". Failing open
+        // here would silently disable authorization for every route that
+        // calls this function; fail closed and log loudly instead.
+        tracing::error!(
+            "has_scope called with an empty required scope; this is a misconfiguration \
+             (DEPLOYD_REQUIRED_SCOPE must be non-empty) and is being denied, not allowed"
+        );
+        return false;
     }
     claims
         .scope
         .as_ref()
         .map(|s| s.split_whitespace().any(|sc| sc == required))
         .unwrap_or(false)
+}
+
+/// Tenant-ownership check for a stored deployment. `owner_sub` is the `sub`
+/// claim recorded on the deployment row at create time (see
+/// `routes::create_deployment`); `admin_scope` is the optional
+/// `DEPLOYD_ADMIN_SCOPE` override.
+///
+/// Returns true when:
+///   * `admin_scope` is configured and the caller's token carries it, or
+///   * the row predates ownership tracking (`owner_sub` is `None`), which
+///     degrades to the scope-only check that gated every route before this
+///     check was added, or
+///   * the caller's `sub` claim matches the recorded owner.
+///
+/// The `owner_sub: None => allowed` branch is intentionally narrow: it
+/// exists only to cover genuine legacy rows written before this column
+/// existed. `routes::create_deployment` rejects any request whose token is
+/// missing a `sub` claim before inserting, so every *new* row always
+/// carries a real owner and can never (re-)enter that branch going
+/// forward.
+///
+/// Residual: every M2M caller sharing the same OIDC client (today, all of
+/// stagecraft's tenant-facing requests) presents the same `sub`, so this
+/// check separates *distinct M2M callers* holding the required scope, not
+/// individual end-tenants within stagecraft. Per-tenant isolation for
+/// requests routed through a single M2M identity must happen upstream
+/// (stagecraft's own project-membership checks) until a per-tenant-scoped
+/// credential or signed tenant assertion is threaded through to deployd-api.
+pub fn is_owner_or_admin(
+    claims: &Claims,
+    owner_sub: Option<&str>,
+    admin_scope: Option<&str>,
+) -> bool {
+    if let Some(admin) = admin_scope
+        && has_scope(claims, admin)
+    {
+        return true;
+    }
+    match owner_sub {
+        None => true,
+        Some(owner) => claims.sub.as_deref() == Some(owner),
+    }
 }
 
 async fn fetch_jwks_and_issuer(oidc_endpoint: &str) -> Result<(String, String)> {
@@ -121,4 +171,77 @@ async fn fetch_jwks_and_issuer(oidc_endpoint: &str) -> Result<(String, String)> 
         *cache = Some((body.clone(), issuer.clone(), std::time::Instant::now()));
     }
     Ok((body, issuer))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn claims(sub: Option<&str>, scope: Option<&str>) -> Claims {
+        Claims {
+            sub: sub.map(str::to_string),
+            scope: scope.map(str::to_string),
+            exp: None,
+            aud: None,
+        }
+    }
+
+    #[test]
+    fn has_scope_denies_when_required_is_empty() {
+        // Regression: DEPLOYD_REQUIRED_SCOPE="" must fail closed, not
+        // silently authorize every caller.
+        let c = claims(Some("client-a"), Some("deploy:write"));
+        assert!(!has_scope(&c, ""));
+    }
+
+    #[test]
+    fn has_scope_matches_one_of_several_scopes() {
+        let c = claims(Some("client-a"), Some("read write deploy:write"));
+        assert!(has_scope(&c, "deploy:write"));
+        assert!(!has_scope(&c, "deploy:admin"));
+    }
+
+    #[test]
+    fn has_scope_denies_when_claims_carry_no_scope() {
+        let c = claims(Some("client-a"), None);
+        assert!(!has_scope(&c, "deploy:write"));
+    }
+
+    #[test]
+    fn is_owner_or_admin_allows_legacy_rows_without_recorded_owner() {
+        let c = claims(Some("client-a"), None);
+        assert!(is_owner_or_admin(&c, None, None));
+    }
+
+    #[test]
+    fn is_owner_or_admin_allows_matching_owner() {
+        let c = claims(Some("client-a"), None);
+        assert!(is_owner_or_admin(&c, Some("client-a"), None));
+    }
+
+    #[test]
+    fn is_owner_or_admin_denies_mismatched_owner_without_admin_scope() {
+        let c = claims(Some("client-b"), None);
+        assert!(!is_owner_or_admin(&c, Some("client-a"), None));
+    }
+
+    #[test]
+    fn is_owner_or_admin_denies_mismatched_owner_when_admin_scope_not_held() {
+        let c = claims(Some("client-b"), Some("deploy:write"));
+        assert!(!is_owner_or_admin(
+            &c,
+            Some("client-a"),
+            Some("deploy:admin")
+        ));
+    }
+
+    #[test]
+    fn is_owner_or_admin_allows_mismatched_owner_when_admin_scope_held() {
+        let c = claims(Some("client-b"), Some("deploy:admin"));
+        assert!(is_owner_or_admin(
+            &c,
+            Some("client-a"),
+            Some("deploy:admin")
+        ));
+    }
 }

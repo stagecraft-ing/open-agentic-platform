@@ -550,3 +550,10 @@ than discovering them on a tenant's first deploy.
    ref (cross-repo fetch, SHA-pinned per the spec 158 workflow-ref
    discipline). The committed snapshot is simpler and diff-reviewable;
    the CI-time fetch cannot go stale. Decide at plan time.
+
+
+## Security hardening amendment (2026-07-02)
+
+Hardened the tenant app chart: added a default-deny plus scoped-allow NetworkPolicy, a container securityContext with a non-root user on the preview Postgres, and disabled service-account token automount where the workload does not call the K8s API.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

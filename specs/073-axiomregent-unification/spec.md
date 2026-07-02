@@ -692,3 +692,10 @@ skip if no legacy data exists.
 ## Release Markers
 
 - **axiomregent v0.1.5 (2026-05-05):** crate-level version bump cut alongside OPC desktop v0.3.2. Carries the substrate_version.rs clippy fix and absorbs the spec 119 workspace-symbol cleanup that touched axiomregent-adjacent code. Version-only edits to `crates/axiomregent/Cargo.toml` and the inherited `crates/Cargo.lock` do not change spec semantics; recording the release here documents the artefact lineage for the spec/code coupling gate.
+
+
+## Security hardening amendment (2026-07-02)
+
+Added tenant-ownership binding (owner_sub) plus owner-or-admin checks on the deployd-api read and delete routes, a scope gate on the status and logs read handlers, fail-closed handling of an empty required scope, mandatory hiqlite raft/API secrets (dev-only fallback behind DEPLOYD_DEV), and DNS-label validation of the caller-supplied deploy namespace. Hardened the axiomregent workspace path guard (resolve_target_path) to lexically normalize and reject traversal, and recovered from mutex poisoning in feature_tools instead of panicking.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

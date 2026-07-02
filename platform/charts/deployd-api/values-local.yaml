@@ -15,3 +15,8 @@ secrets:
   create: true
   data:
     DEPLOYD_DB_URL: "postgres://postgres:postgres@host.k3d.internal:5432/deployd"
+    # Dev-only placeholders so the local k3d profile satisfies the
+    # (soon-to-be-required) HIQLITE_SECRET_RAFT / HIQLITE_SECRET_API env
+    # vars without an operator manual step. Not production secrets.
+    HIQLITE_SECRET_RAFT: "dev-local-hiqlite-raft-secret-not-for-prod"
+    HIQLITE_SECRET_API: "dev-local-hiqlite-api-secret-not-for-prod"

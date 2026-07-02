@@ -11,7 +11,7 @@ Open Agentic Platform (OAP) is a governed operating system for AI-native softwar
 ## Repository Structure
 
 ```
-specs/              — Feature specifications (000–159), the authoritative design record
+specs/              — Feature specifications (000–224), the authoritative design record
 tools/              — CLI tools and lints (subdivided by ownership)
   spec-spine/       : OAP overlay lint (spec-lint). The generic engine
                       (compile, registry, index, couple) is the published

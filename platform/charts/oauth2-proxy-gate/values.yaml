@@ -2,9 +2,18 @@
 #
 # Default values for the oauth2-proxy-gate chart. Deployd-api overlays
 # tenant-specific values at install time. The chart's defaults render
-# a no-op gate (no host, no secrets) — `helm install` with defaults
+# a no-op gate (no host, no secrets): `helm install` with defaults
 # is only useful for `helm template` smoke; production paths flow
 # through deployd-api's value builder.
+#
+# Security review fix: the allowlist block below has no safe "empty"
+# default. Bare `helm template`/`helm lint` against pure chart defaults
+# now fails at render time (templates/deployment.yaml `fail`s) unless
+# `allowlist.emails`, `allowlist.domains`, or `allowlist.trustRauthyOnly`
+# is set. A chart that renders a working manifest by default was
+# previously indistinguishable from one that renders an intentionally
+# wide-open gate (`--email-domain=*`) by default; see
+# templates/deployment.yaml for the fail-closed logic.
 
 nameOverride: ""
 fullnameOverride: ""
@@ -45,6 +54,13 @@ rauthy:
 allowlist:
   emails: []      # case-insensitive exact match (e.g. ["alice@acme.com"])
   domains: []     # email-suffix match (e.g. ["acme.com"])
+  # Explicit opt-in required to render the fail-open --email-domain=*
+  # argument when emails/domains above are both empty. Set true only when
+  # Rauthy's own Auth Provider already enforces the allowlist upstream
+  # (e.g. Google Workspace org-restricted). Leaving this false (default)
+  # with an empty emails/domains list is a render-time error, not a
+  # silently wide-open gate.
+  trustRauthyOnly: false
 
 # Login-method configuration. The proxy doesn't directly enforce these —
 # they shape the Rauthy client's flows_enabled and ui_options at

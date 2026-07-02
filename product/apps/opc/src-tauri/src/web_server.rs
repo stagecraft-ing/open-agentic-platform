@@ -1,11 +1,12 @@
 // Feature: SCHEDULING
 // Spec: specs/079-scheduling/spec.md
+use axum::body::Bytes;
 use axum::extract::ws::{Message, WebSocket};
 use axum::http::{Method, StatusCode};
 use axum::{
     Router,
     extract::{Path, State as AxumState, WebSocketUpgrade},
-    response::{Html, IntoResponse, Json, Response},
+    response::{IntoResponse, Json, Response},
     routing::{delete, get, post, put},
 };
 use futures_util::{SinkExt, StreamExt};
@@ -16,7 +17,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::{AllowOrigin, Any, CorsLayer};
 use tower_http::services::ServeDir;
 
 use crate::commands;
@@ -171,18 +172,62 @@ async fn control_cancel_session(Path(session_id): Path<String>) -> impl IntoResp
 // Control API — auth middleware
 // ---------------------------------------------------------------------------
 
+/// Extracts the control token from either the `X-Control-Token` header
+/// (used by `oap-ctl` and same-origin `fetch` calls once the token has been
+/// embedded into the served page, see `inject_control_token`) or a
+/// `?token=` query parameter (used by the browser `WebSocket` API, which
+/// cannot set custom headers on the handshake request). The token is always
+/// a UUID (see `create_web_server`), so no percent-decoding is needed here.
+fn extract_control_token(headers: &axum::http::HeaderMap, uri: &axum::http::Uri) -> Option<String> {
+    if let Some(v) = headers.get("X-Control-Token").and_then(|v| v.to_str().ok()) {
+        return Some(v.to_string());
+    }
+    let query = uri.query()?;
+    for pair in query.split('&') {
+        let mut parts = pair.splitn(2, '=');
+        let key = parts.next().unwrap_or("");
+        let value = parts.next().unwrap_or("");
+        if key == "token" {
+            return Some(value.to_string());
+        }
+    }
+    None
+}
+
+/// Constant-time comparison of the control token against a caller-supplied
+/// value. Ordinary `==` short-circuits at the first mismatched byte, which
+/// leaks timing information an attacker could use to recover the token
+/// byte-by-byte across many requests. Lengths are compared up front (the
+/// token's length is not secret; it is always a UUID) and then every byte
+/// is XOR-accumulated regardless of where a mismatch occurs, so the
+/// comparison takes the same time whether the first byte or the last byte
+/// differs.
+fn constant_time_eq(a: &str, b: &str) -> bool {
+    let (a, b) = (a.as_bytes(), b.as_bytes());
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff: u8 = 0;
+    for (x, y) in a.iter().zip(b.iter()) {
+        diff |= x ^ y;
+    }
+    diff == 0
+}
+
+/// Auth middleware shared by `/control/*`, `/api/*`, and `/ws/claude`
+/// (findings CRITICAL #1, HIGH #3). Previously `/api/*` and `/ws/claude`
+/// carried no auth at all; any browser/LAN client that could reach the
+/// server could drive Claude execution with an attacker-controlled prompt
+/// and project path.
 async fn control_auth_middleware(
     axum::extract::State(auth): axum::extract::State<ControlAuth>,
     req: axum::http::Request<axum::body::Body>,
     next: axum::middleware::Next,
 ) -> impl IntoResponse {
-    let token = req
-        .headers()
-        .get("X-Control-Token")
-        .and_then(|v| v.to_str().ok());
+    let provided = extract_control_token(req.headers(), req.uri());
 
-    match token {
-        Some(t) if t == auth.token => next.run(req).await.into_response(),
+    match provided {
+        Some(t) if constant_time_eq(&t, &auth.token) => next.run(req).await.into_response(),
         _ => (
             axum::http::StatusCode::UNAUTHORIZED,
             Json(ApiResponse::<()>::error("unauthorized".to_string())),
@@ -239,6 +284,19 @@ pub struct AppState {
     pub schedules: ScheduleStore,
     /// Shared axiomregent announce port (spec 090-2: replaces env var read to fix race).
     pub axiomregent_port: Arc<std::sync::Mutex<Option<u16>>>,
+    /// Control token gating `/api/*` and `/ws/claude` (findings CRITICAL #1,
+    /// HIGH #3). Embedded into `served_html` only on a loopback bind, see
+    /// `inject_control_token` and `create_web_server`.
+    pub control_token: String,
+    /// Precomputed frontend HTML shell, built once in `create_web_server`
+    /// (see `serve_frontend`). On a loopback bind this carries the control
+    /// token (`inject_control_token`); on a non-loopback bind it is the
+    /// plain, token-free shell, since `/` is an unauthenticated route and
+    /// any LAN client could otherwise scrape the token from the page
+    /// (finding HIGH: control-token leak via unauthenticated HTML). `Bytes`
+    /// makes every request a cheap refcount clone instead of the prior
+    /// per-request `find()` + string rebuild.
+    pub served_html: Bytes,
 }
 
 #[derive(Debug, Deserialize)]
@@ -282,9 +340,41 @@ impl<T> ApiResponse<T> {
     }
 }
 
-/// Serve the React frontend
-async fn serve_frontend() -> Html<&'static str> {
-    Html(include_str!("../../dist/index.html"))
+/// Embeds the control token into the served HTML shell so same-origin
+/// browser JS can authenticate its own `/api` and `/ws/claude` calls
+/// (findings CRITICAL #1, HIGH #3). Called exactly once, from
+/// `create_web_server`, and only on a loopback bind: the token is only as
+/// secret as the page load itself, which matches the local machine's own
+/// trust boundary on loopback. A non-loopback bind serves the plain,
+/// token-free shell instead (see `served_html`) because any unauthenticated
+/// LAN client could otherwise GET `/` and scrape the token (finding HIGH:
+/// control-token leak via unauthenticated HTML).
+fn inject_control_token(html: &str, token: &str) -> String {
+    let token_json = serde_json::to_string(token).unwrap_or_else(|_| "\"\"".to_string());
+    let script = format!("<script>window.__OPC_CONTROL_TOKEN__={token_json};</script>");
+    match html.find("<head>") {
+        Some(pos) => {
+            let insert_at = pos + "<head>".len();
+            let mut out = String::with_capacity(html.len() + script.len());
+            out.push_str(&html[..insert_at]);
+            out.push_str(&script);
+            out.push_str(&html[insert_at..]);
+            out
+        }
+        None => format!("{script}{html}"),
+    }
+}
+
+/// Serve the precomputed frontend HTML shell (see `served_html` /
+/// `create_web_server`). `/` is an unauthenticated route, so the control
+/// token is present in the served bytes only when `create_web_server`
+/// determined the bind is loopback-only (see `inject_control_token`); a
+/// non-loopback bind serves the plain shell with no token embedded.
+async fn serve_frontend(AxumState(state): AxumState<AppState>) -> impl IntoResponse {
+    (
+        [(axum::http::header::CONTENT_TYPE, "text/html; charset=utf-8")],
+        state.served_html.clone(),
+    )
 }
 
 /// API endpoint to get projects (equivalent to Tauri command)
@@ -425,8 +515,59 @@ async fn get_claude_session_output(Path(session_id): Path<String>) -> Json<ApiRe
     ))
 }
 
-/// WebSocket handler for Claude execution with streaming output
-async fn claude_websocket(ws: WebSocketUpgrade, AxumState(state): AxumState<AppState>) -> Response {
+/// Returns true when a WebSocket handshake's `Origin` header is loopback or
+/// same-origin with the request's own `Host`. Browsers always send `Origin`
+/// on WebSocket handshakes; non-browser clients (curl, CLI tooling) typically
+/// omit it and rely on the control-token gate applied to this route instead
+/// (see `control_auth_middleware`). Defends against cross-site WebSocket
+/// hijacking even if a valid token leaked into third-party JS (finding
+/// CRITICAL #1).
+fn is_allowed_ws_origin(origin: Option<&str>, host: Option<&str>) -> bool {
+    let Some(origin) = origin else {
+        return true;
+    };
+    let authority = origin
+        .strip_prefix("https://")
+        .or_else(|| origin.strip_prefix("http://"))
+        .unwrap_or(origin);
+    let origin_host = authority.split('/').next().unwrap_or("");
+    let origin_hostname = origin_host.split(':').next().unwrap_or("");
+
+    if matches!(origin_hostname, "localhost" | "127.0.0.1" | "::1" | "[::1]") {
+        return true;
+    }
+
+    host.map(|h| origin_host.eq_ignore_ascii_case(h))
+        .unwrap_or(false)
+}
+
+/// WebSocket handler for Claude execution with streaming output.
+///
+/// Gated by two layers: the control-token middleware wrapping this route
+/// (see `protected_routes` in `create_web_server`) and the Origin allowlist
+/// check below (finding CRITICAL #1).
+async fn claude_websocket(
+    headers: axum::http::HeaderMap,
+    AxumState(state): AxumState<AppState>,
+    ws: WebSocketUpgrade,
+) -> Response {
+    let origin = headers
+        .get(axum::http::header::ORIGIN)
+        .and_then(|v| v.to_str().ok());
+    let host = headers
+        .get(axum::http::header::HOST)
+        .and_then(|v| v.to_str().ok());
+    if !is_allowed_ws_origin(origin, host) {
+        log::warn!(
+            "[ws/claude] rejected upgrade from disallowed Origin: {:?}",
+            origin
+        );
+        return (
+            StatusCode::FORBIDDEN,
+            "cross-origin WebSocket upgrade rejected",
+        )
+            .into_response();
+    }
     ws.on_upgrade(move |socket| claude_websocket_handler(socket, state))
 }
 
@@ -622,6 +763,36 @@ async fn claude_websocket_handler(socket: WebSocket, state: AppState) {
     println!("[TRACE] WebSocket handler ended for session {}", session_id);
 }
 
+/// Recovers the shared axiomregent port slot even if a prior panicking
+/// holder poisoned the lock. The guarded value is a plain `Option<u16>`
+/// copy, so a poisoned lock does not imply a corrupted invariant here
+/// (finding LOW #8).
+fn read_axiomregent_port(slot: &std::sync::Mutex<Option<u16>>) -> Option<u16> {
+    match slot.lock() {
+        Ok(guard) => *guard,
+        Err(poisoned) => *poisoned.into_inner(),
+    }
+}
+
+/// Refuses to run Claude with `--dangerously-skip-permissions` from a
+/// network-facing handler. That bypass exists for the local Tauri IPC path
+/// only (`commands/*.rs`); it must never reach `/ws/claude`, which any LAN
+/// client can reach once the server is bound to a non-loopback address
+/// (finding HIGH #4, compounding CRITICAL #1).
+fn reject_bypass_over_network(
+    plan: crate::governed_claude::GovernedPlan,
+    bypass_reason: Option<String>,
+) -> Result<crate::governed_claude::GovernedPlan, String> {
+    if matches!(plan, crate::governed_claude::GovernedPlan::Bypass) {
+        let reason = bypass_reason.unwrap_or_else(|| "governance unavailable".to_string());
+        return Err(format!(
+            "Refusing to run Claude ungoverned over the network-facing web server: {reason}. \
+             --dangerously-skip-permissions is not permitted on /ws/claude execute paths."
+        ));
+    }
+    Ok(plan)
+}
+
 // Claude command execution functions for WebSocket streaming
 async fn execute_claude_command(
     project_path: String,
@@ -665,17 +836,12 @@ async fn execute_claude_command(
     // Create Claude command
     println!("[TRACE] Creating Claude command...");
     let mut cmd = Command::new(&claude_path);
-    let announce_port = *state.axiomregent_port.lock().unwrap();
+    let announce_port = read_axiomregent_port(&state.axiomregent_port);
     let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
     )?;
-    if let Some(reason) = &bypass_reason {
-        eprintln!(
-            "[governance] new_claude_command falling back to bypass: {}",
-            reason
-        );
-    }
+    let plan = reject_bypass_over_network(plan, bypass_reason)?;
     let mut args: Vec<String> = vec![
         "-p".into(),
         prompt.clone(),
@@ -791,17 +957,12 @@ async fn continue_claude_command(
 
     // Create continue command
     let mut cmd = Command::new(&claude_path);
-    let announce_port = *state.axiomregent_port.lock().unwrap();
+    let announce_port = read_axiomregent_port(&state.axiomregent_port);
     let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
     )?;
-    if let Some(reason) = &bypass_reason {
-        eprintln!(
-            "[governance] continue_claude_command falling back to bypass: {}",
-            reason
-        );
-    }
+    let plan = reject_bypass_over_network(plan, bypass_reason)?;
     let mut args: Vec<String> = vec![
         "-c".into(),
         "-p".into(),
@@ -896,17 +1057,12 @@ async fn resume_claude_command(
     // Create resume command
     println!("[resume_claude_command] Creating command...");
     let mut cmd = Command::new(&claude_path);
-    let announce_port = *state.axiomregent_port.lock().unwrap();
+    let announce_port = read_axiomregent_port(&state.axiomregent_port);
     let (plan, bypass_reason) = crate::governed_claude::plan_governed(
         announce_port,
         crate::governed_claude::grants_json_claude_default(),
     )?;
-    if let Some(reason) = &bypass_reason {
-        eprintln!(
-            "[governance] resume_claude_command falling back to bypass: {}",
-            reason
-        );
-    }
+    let plan = reject_bypass_over_network(plan, bypass_reason)?;
     let mut args: Vec<String> = vec![
         "--resume".into(),
         claude_session_id.clone(),
@@ -1087,33 +1243,81 @@ async fn toggle_schedule(
     }
 }
 
+/// Returns true when a browser `Origin` header names a loopback host.
+/// Shared by the CORS layer (finding MEDIUM #6); the app is served
+/// same-origin to its own browser clients, so CORS only needs to admit
+/// genuinely cross-origin loopback callers (e.g. a local Vite dev server on
+/// a different port).
+fn is_localhost_origin(origin: &axum::http::HeaderValue, _parts: &axum::http::request::Parts) -> bool {
+    origin
+        .to_str()
+        .map(|s| {
+            let authority = s
+                .strip_prefix("https://")
+                .or_else(|| s.strip_prefix("http://"))
+                .unwrap_or(s);
+            let host = authority
+                .split('/')
+                .next()
+                .unwrap_or("")
+                .split(':')
+                .next()
+                .unwrap_or("");
+            matches!(host, "localhost" | "127.0.0.1" | "::1" | "[::1]")
+        })
+        .unwrap_or(false)
+}
+
 /// Create the web server.
 ///
 /// `axiomregent_port` is a shared slot that sidecars update when they discover
 /// the live port (spec 090-2). Passing the same Arc that `SidecarState` holds
 /// ensures the web server always sees the latest value.
+///
+/// `bind_addr` defaults to loopback-only (`127.0.0.1`) at the call sites in
+/// `start_web_mode`; binding a non-loopback address is opt-in via `--host`
+/// or `-H` (finding HIGH #2).
 pub async fn create_web_server(
     port: u16,
+    bind_addr: std::net::IpAddr,
     axiomregent_port: Arc<std::sync::Mutex<Option<u16>>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let state = AppState {
-        active_sessions: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        schedules: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        axiomregent_port,
-    };
-
     // Generate a fresh token for this session.
     let control_auth = ControlAuth {
         token: uuid::Uuid::new_v4().to_string(),
     };
 
-    // CORS layer to allow requests from phone browsers
+    // The control token above is always a freshly generated UUID, so it is
+    // never empty; a "token is present" check here would be permanently
+    // dead code. The invariant a non-loopback bind actually has to uphold
+    // is that the token is kept OUT of the unauthenticated `/` page
+    // (finding HIGH: control-token leak via unauthenticated HTML), not
+    // merely that a token exists. That is enforced by construction below:
+    // `served_html` only calls `inject_control_token` on the loopback
+    // branch, so a non-loopback bind can never serve a page carrying the
+    // token.
+    const FRONTEND_HTML: &str = include_str!("../../dist/index.html");
+    let served_html: Bytes = if bind_addr.is_loopback() {
+        Bytes::from(inject_control_token(FRONTEND_HTML, &control_auth.token))
+    } else {
+        Bytes::from_static(FRONTEND_HTML.as_bytes())
+    };
+
+    let state = AppState {
+        active_sessions: Arc::new(Mutex::new(std::collections::HashMap::new())),
+        schedules: Arc::new(Mutex::new(std::collections::HashMap::new())),
+        axiomregent_port,
+        control_token: control_auth.token.clone(),
+        served_html,
+    };
+
+    // CORS layer, restricted to loopback origins (finding MEDIUM #6).
     let cors = CorsLayer::new()
-        .allow_origin(Any)
+        .allow_origin(AllowOrigin::predicate(is_localhost_origin))
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_headers(Any);
 
-    // Control API routes — protected by token auth middleware.
+    // Control API routes, protected by the token auth middleware.
     let control_routes = Router::new()
         .route("/status", get(control_status))
         .route("/projects", get(control_list_projects))
@@ -1134,11 +1338,21 @@ pub async fn create_web_server(
             control_auth_middleware,
         ));
 
-    // Create router with API endpoints
-    let app = Router::new()
-        // Frontend routes
+    // Public (unauthenticated) routes: the app shell plus static assets. No
+    // session data lives here. On a loopback bind the served HTML embeds
+    // the control token (see `inject_control_token`) so same-origin
+    // browser JS can authenticate its own /api and /ws/claude calls; on a
+    // non-loopback bind it does not, since this route has no auth of its
+    // own (see `served_html`).
+    let public_routes: Router<AppState> = Router::new()
         .route("/", get(serve_frontend))
         .route("/index.html", get(serve_frontend))
+        .nest_service("/assets", ServeDir::new("../dist/assets"))
+        .nest_service("/vite.svg", ServeDir::new("../dist/vite.svg"));
+
+    // Protected API + WebSocket routes, control-token gated the same way as
+    // `/control` (findings CRITICAL #1, HIGH #3).
+    let protected_routes: Router<AppState> = Router::new()
         // API routes (REST API equivalent of Tauri commands)
         .route("/api/projects", get(get_projects))
         .route("/api/projects/{project_id}/sessions", get(get_sessions))
@@ -1185,17 +1399,40 @@ pub async fn create_web_server(
             get(get_schedule).delete(delete_schedule),
         )
         .route("/api/schedules/{id}/toggle", put(toggle_schedule))
+        .layer(axum::middleware::from_fn_with_state(
+            control_auth.clone(),
+            control_auth_middleware,
+        ));
+
+    // Create router with API endpoints
+    let app = Router::new()
+        .merge(public_routes)
+        .merge(protected_routes)
         // Control API (token-authenticated, for oap-ctl)
         .nest("/control", control_routes)
-        // Serve static assets
-        .nest_service("/assets", ServeDir::new("../dist/assets"))
-        .nest_service("/vite.svg", ServeDir::new("../dist/vite.svg"))
         .layer(cors)
         .with_state(state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    println!("Web server running on http://0.0.0.0:{}", port);
-    println!("Access from phone: http://YOUR_PC_IP:{}", port);
+    let addr = SocketAddr::new(bind_addr, port);
+    println!("Web server running on http://{addr}");
+    if bind_addr.is_loopback() {
+        println!("Loopback-only bind; not reachable from the network. Pass --host to opt in.");
+    } else {
+        println!("Access from phone: http://YOUR_PC_IP:{}", port);
+        log::warn!(
+            "opc-web bound to non-loopback address {bind_addr}: reachable from the network. \
+             /api and /ws/claude require the control token (see ~/.oap/control.token)."
+        );
+        // The served `/` page carries no control token on a non-loopback
+        // bind (see `served_html`) so it cannot be scraped by an
+        // unauthenticated GET. Print it once here so the operator can
+        // supply it to clients out of band.
+        eprintln!(
+            "opc-web control token (not embedded in the served page on this non-loopback \
+             bind; supply it to clients out of band): {}",
+            control_auth.token
+        );
+    }
 
     let listener = TcpListener::bind(addr).await?;
 
@@ -1234,8 +1471,18 @@ pub async fn create_web_server(
 /// environment variable (if set) **and** attempt to spawn axiomregent as a
 /// standalone process so the port slot is updated even when the sidecar starts
 /// after the web server (spec 090 SC-090-3).
-pub async fn start_web_mode(port: Option<u16>) -> Result<(), Box<dyn std::error::Error>> {
+///
+/// `host` defaults to `127.0.0.1` (loopback-only) when not given; passing an
+/// explicit non-loopback value is the opt-in required by finding HIGH #2.
+pub async fn start_web_mode(
+    port: Option<u16>,
+    host: Option<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let port = port.unwrap_or(8080);
+    let host_str = host.unwrap_or_else(|| "127.0.0.1".to_string());
+    let bind_addr: std::net::IpAddr = host_str
+        .parse()
+        .map_err(|e| format!("invalid --host value {host_str:?}: {e}"))?;
     let initial_port: Option<u16> = std::env::var("OPC_AXIOMREGENT_PORT")
         .ok()
         .and_then(|s| s.parse().ok());
@@ -1248,5 +1495,5 @@ pub async fn start_web_mode(port: Option<u16>) -> Result<(), Box<dyn std::error:
     }
 
     println!("🚀 Starting Opcode in web server mode...");
-    create_web_server(port, axiomregent_port).await
+    create_web_server(port, bind_addr, axiomregent_port).await
 }

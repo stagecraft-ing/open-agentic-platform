@@ -36,8 +36,6 @@ amends:
   - "169-tool-schema-strictness"
 amends_sections: []
 references:
-  - role: brief
-    unit: { kind: file, path: /tmp/briefs/rename-opc-brief.md }
   - role: precedent
     unit: { kind: file, path: specs/105-scripts-to-binaries-migration/spec.md }
 summary: >

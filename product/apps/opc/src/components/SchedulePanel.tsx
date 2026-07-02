@@ -5,6 +5,7 @@ import { Plus, Trash2, ToggleLeft, ToggleRight, Clock, Zap, Loader2, AlertCircle
 import { Button } from '@opc/ui/button';
 import { Card, CardContent } from '@opc/ui/card';
 import { ScheduleDialog } from './ScheduleDialog';
+import { withControlTokenHeader } from '@/lib/controlToken';
 
 // ---------------------------------------------------------------------------
 // Types (mirror of the Rust API types)
@@ -45,8 +46,9 @@ function triggerLabel(trigger: ScheduleTrigger): string {
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  // /api/schedules requires the control token (spec: opc-web auth hardening).
   const response = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: withControlTokenHeader({ 'Content-Type': 'application/json' }),
     ...options,
   });
   const result: ApiResponse<T> = await response.json();

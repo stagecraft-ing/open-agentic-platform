@@ -23,6 +23,11 @@ ingress:
 
 secrets:
   provider: "k8s"
+  # create=false: this Secret (including HIQLITE_SECRET_RAFT /
+  # HIQLITE_SECRET_API) is materialised imperatively by
+  # infra/hetzner/setup.sh, not rendered by this chart's secrets-k8s.yaml
+  # template. See values.yaml's secrets.keys comment for the full
+  # per-provider provisioning map.
   create: false
 
 oidc:

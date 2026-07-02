@@ -248,3 +248,10 @@ Encore `CronJob`, was a silent no-op on the self-hosted target and is revived
 here via the FR-001..FR-005 K8s scheduling path. Spec 124's sweep kernel
 (`sweepStaleFactoryRuns`) is unchanged; only the scheduling/reachability
 surface is added. See spec 124's amendment callout.
+
+
+## Security hardening amendment (2026-07-02)
+
+Disabled service-account token automount on the factory-runs and orphan sweeper CronJob pods, which do not call the K8s API.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

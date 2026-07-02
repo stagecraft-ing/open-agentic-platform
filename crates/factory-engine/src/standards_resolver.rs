@@ -66,7 +66,14 @@ impl StandardsResolver for FactoryStandardsResolver {
 
         // Check cache first
         {
-            let cache = self.cache.lock().unwrap();
+            // Recover the guard on poison rather than panicking: this is a
+            // best-effort formatting cache, not a correctness-critical
+            // invariant, so a prior panicking holder shouldn't cascade into
+            // every subsequent standards resolution.
+            let cache = self
+                .cache
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             if let Some(cached) = cache.get(&key) {
                 return if cached.is_empty() {
                     None
@@ -85,7 +92,10 @@ impl StandardsResolver for FactoryStandardsResolver {
 
         // Cache the result
         {
-            let mut cache = self.cache.lock().unwrap();
+            let mut cache = self
+                .cache
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             cache.insert(key, text.clone());
         }
 

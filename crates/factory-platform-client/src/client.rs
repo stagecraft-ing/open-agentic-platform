@@ -395,6 +395,12 @@ fn catalog_err_from_factory(e: FactoryClientError) -> CatalogClientError {
         FactoryClientError::Resolver(m)
         | FactoryClientError::CacheIo(m)
         | FactoryClientError::AgentDrift(m) => CatalogClientError::Network(m),
+        // Not reachable via the CatalogClient REST methods above (only the
+        // materialiser's write_* helpers produce this variant); bucketed
+        // with the other local/non-transport errors above for exhaustiveness.
+        FactoryClientError::InvalidPathComponent { field, value } => {
+            CatalogClientError::Network(format!("invalid path component ({field}): {value:?}"))
+        }
     }
 }
 

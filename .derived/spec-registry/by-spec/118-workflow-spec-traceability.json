@@ -53,13 +53,14 @@
       "9. Why this isn't a CLAUDE.md addendum",
       "Cross-references",
       "Amendments received",
-      "Amendment 2026-06-29 (reset-prep housekeeping)"
+      "Amendment 2026-06-29 (reset-prep housekeeping)",
+      "Security hardening amendment (2026-07-02)"
     ],
     "specPath": "specs/118-workflow-spec-traceability/spec.md",
     "status": "approved",
     "summary": "Adopt a header-line convention `# Spec: NNN-slug` in every .github/workflows/*.yml. Extend tools/spec-spine/codebase-indexer to scan workflow files for the convention and emit a `workflow_traceability` block in index.json, rendered as a new \"Layer 5: CI Workflow Traceability\" section of CODEBASE-INDEX.md. Closes the gap where Rust crates trace to specs via `[package.metadata.oap]` but workflows have no equivalent.\n",
     "title": "Workflow-to-Spec Traceability — surface \"# Spec:\" headers in the codebase index"
   },
-  "shardHash": "f94d40f2c75c29413089a153b0208f7d90589a375cfe768405cb9480a7ad74bd",
+  "shardHash": "6d49ebafd9fedf1a49c4dd4b45faf23670f96f702fa2c5251a33a97c188727eb",
   "specVersion": "1.1.0"
 }

@@ -1,8 +1,10 @@
 import { api, APIError, Header } from "encore.dev/api";
 import { validateM2mRequest } from "../auth/m2mAuth.js";
 import { db } from "../db/drizzle";
-import { projectGrants } from "../db/schema";
+import { projectGrants, projectMembers } from "../db/schema";
 import { and, eq } from "drizzle-orm";
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type GrantsRequest = {
   authorization: Header<"Authorization">;
@@ -27,6 +29,30 @@ export const getGrants = api(
   { expose: true, method: "GET", path: "/api/grants/:userId/:projectId" },
   async (req: GrantsRequest): Promise<GrantsResponse> => {
     await validateM2mRequest(req.authorization, "platform:grants:read");
+
+    if (!UUID_PATTERN.test(req.userId) || !UUID_PATTERN.test(req.projectId)) {
+      throw APIError.invalidArgument("userId and projectId must be UUIDs");
+    }
+
+    // The M2M credential behind this seam carries no caller identity (see
+    // m2mAuth.ts / policy.ts), so bind the requested subject to the
+    // requested project via project_members instead of trusting the
+    // (userId, projectId) pairing verbatim. Without this, any caller
+    // holding a valid M2M token could probe grants for a user/project pair
+    // it has no relationship to.
+    const [membership] = await db
+      .select({ id: projectMembers.id })
+      .from(projectMembers)
+      .where(
+        and(
+          eq(projectMembers.userId, req.userId),
+          eq(projectMembers.projectId, req.projectId)
+        )
+      )
+      .limit(1);
+    if (!membership) {
+      throw APIError.notFound("no grant found for this user/project pair");
+    }
 
     const rows = await db
       .select()

@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@opc/ui/dialog';
 import type { Schedule } from './SchedulePanel';
+import { withControlTokenHeader } from '@/lib/controlToken';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -107,9 +108,10 @@ export const ScheduleDialog: React.FC<ScheduleDialogProps> = ({
 
     setSubmitting(true);
     try {
+      // /api/schedules requires the control token (spec: opc-web auth hardening).
       const response = await fetch('/api/schedules', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withControlTokenHeader({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(body),
       });
       const result: ApiResponse<Schedule> = await response.json();

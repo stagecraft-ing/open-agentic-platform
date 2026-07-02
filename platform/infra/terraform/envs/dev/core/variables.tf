@@ -25,6 +25,23 @@ variable "deployd_db_url" {
   default   = "postgres://user:pass@host:5432/deployd"
 }
 
+# store.rs reads HIQLITE_SECRET_RAFT / HIQLITE_SECRET_API directly, with a
+# hardcoded dev-fallback when unset; a companion deployd-api-rs change is
+# making them required. Operators MUST override these defaults per real
+# environment (terraform.tfvars, not committed) -- the defaults below are
+# placeholders, same convention as deployd_db_url above.
+variable "hiqlite_secret_raft" {
+  type      = string
+  sensitive = true
+  default   = "change-me-hiqlite-raft-secret"
+}
+
+variable "hiqlite_secret_api" {
+  type      = string
+  sensitive = true
+  default   = "change-me-hiqlite-api-secret"
+}
+
 # Spec 143 FR-010 — per-purpose sweeper M2M client credentials.
 # Each Rauthy client carries the matching `platform:<service>:sweep`
 # scope in *Default Scopes* (load-bearing per §12 L-006: Rauthy 0.35

@@ -65,6 +65,23 @@ import { Input } from "@opc/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
+ * Guards `@tauri-apps/plugin-shell`'s `open()` against model/tool-derived
+ * URLs that carry a non-http(s) scheme (e.g. `file:`, `javascript:`, a
+ * custom app-registered protocol handler). Tool output (web search results,
+ * fetched pages) is untrusted input; opening it unconditionally lets a
+ * poisoned tool result launch an arbitrary local handler or scheme-based
+ * exploit instead of merely showing a web page.
+ */
+function isSafeExternalUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Widget for TodoWrite tool - displays a beautiful TODO list
  */
 export const TodoWidget: React.FC<{ todos: any[]; result?: any }> = ({ todos, result: _result }) => {
@@ -2147,6 +2164,10 @@ export const WebSearchWidget: React.FC<{
   }
   
   const handleLinkClick = async (url: string) => {
+    if (!isSafeExternalUrl(url)) {
+      console.error('Refusing to open non-http(s) URL from tool output:', url);
+      return;
+    }
     try {
       await open(url);
     } catch (error) {
@@ -2367,6 +2388,10 @@ export const WebFetchWidget: React.FC<{
   };
   
   const handleUrlClick = async () => {
+    if (!isSafeExternalUrl(url)) {
+      console.error('Refusing to open non-http(s) URL from tool output:', url);
+      return;
+    }
     try {
       await open(url);
     } catch (error) {

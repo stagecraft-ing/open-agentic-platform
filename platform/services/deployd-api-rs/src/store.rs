@@ -27,6 +27,30 @@ pub async fn init_db(data_dir: &str) -> Result<Client> {
     Ok(client)
 }
 
+/// Resolve one of the two hiqlite secret env vars, refusing to fall back to
+/// a known hardcoded credential unless `dev_mode` is explicitly set. Fails
+/// closed with an actionable message (name the env var, name the escape
+/// hatch) rather than silently shipping the same secret to every
+/// unconfigured deployment.
+fn resolve_hiqlite_secret(env_var: &str, dev_fallback: &str, dev_mode: bool) -> Result<String> {
+    match std::env::var(env_var) {
+        Ok(v) if !v.is_empty() => Ok(v),
+        _ if dev_mode => {
+            tracing::warn!(
+                "{env_var} is unset; using the known dev-fallback secret because DEPLOYD_DEV \
+                 is set. This value is public (checked into source) and MUST NOT be used \
+                 outside local development."
+            );
+            Ok(dev_fallback.to_string())
+        }
+        _ => Err(anyhow::anyhow!(
+            "{env_var} is required and was not set (refusing to start with a known \
+             hardcoded secret). Provision it via the deployd-api Helm chart's secret \
+             material, or set DEPLOYD_DEV=true for local development only."
+        )),
+    }
+}
+
 /// Translate deployd-facing env vars (and hardcoded single-replica defaults)
 /// to the `HQL_*` env-var surface Hiqlite v0.13.1's `NodeConfig::from_env()`
 /// consumes. Spec 145 §2.3 + §3.1 FR-005a.
@@ -35,10 +59,18 @@ pub async fn init_db(data_dir: &str) -> Result<Client> {
 /// before any worker thread spawns; all `unsafe { set_var }` blocks are
 /// safe under that lifecycle invariant.
 fn apply_hql_env(data_dir: &str) -> Result<()> {
-    let secret_raft = std::env::var("HIQLITE_SECRET_RAFT")
-        .unwrap_or_else(|_| "deployd-raft-secret-key".to_string());
-    let secret_api = std::env::var("HIQLITE_SECRET_API")
-        .unwrap_or_else(|_| "deployd-api-secret-key0".to_string());
+    // Spec 145 provisions HIQLITE_SECRET_RAFT/HIQLITE_SECRET_API via the
+    // deployd-api Helm chart's secret material; a hardcoded fallback here
+    // would ship a known credential to every deployment that forgot to wire
+    // the secret. Require the operator to set both, unless they've opted
+    // into local development via DEPLOYD_DEV (in which case a fixed dev
+    // fallback keeps `cargo test` / `make dev-platform` working without a
+    // real secret store).
+    let dev_mode = std::env::var("DEPLOYD_DEV")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+    let secret_raft = resolve_hiqlite_secret("HIQLITE_SECRET_RAFT", "deployd-raft-secret-key", dev_mode)?;
+    let secret_api = resolve_hiqlite_secret("HIQLITE_SECRET_API", "deployd-api-secret-key0", dev_mode)?;
 
     // SAFETY: called once during startup before any worker thread spawns.
     unsafe {
@@ -99,7 +131,8 @@ async fn migrate(client: &Client) -> Result<()> {
                     desired_routes TEXT,
                     endpoints TEXT,
                     created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
+                    updated_at TEXT NOT NULL,
+                    owner_sub TEXT
                 )",
             ),
             vec![],
@@ -115,6 +148,24 @@ async fn migrate(client: &Client) -> Result<()> {
     if let Err(e) = client
         .execute(
             Cow::Borrowed("ALTER TABLE deployments ADD COLUMN namespace TEXT"),
+            vec![],
+        )
+        .await
+        && !e.to_string().contains("duplicate column")
+    {
+        return Err(e.into());
+    }
+
+    // Tenant-ownership binding: record the JWT `sub` claim of the caller
+    // that created the deployment, so status/logs/delete can verify the
+    // caller matches the recorded owner instead of relying on scope alone.
+    // Same backfill pattern as `namespace` above; rows written before this
+    // column existed carry `NULL` and are handled by `auth::is_owner_or_admin`
+    // as "predates ownership tracking" (degrades to the prior scope-only
+    // check for those legacy rows only).
+    if let Err(e) = client
+        .execute(
+            Cow::Borrowed("ALTER TABLE deployments ADD COLUMN owner_sub TEXT"),
             vec![],
         )
         .await
@@ -162,6 +213,12 @@ pub struct Deployment {
     pub endpoints: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    /// The `sub` claim of the caller whose token created this deployment
+    /// (`auth::Claims::sub`, recorded at `create_deployment` time). `None`
+    /// for legacy rows written before this column existed, or if the
+    /// creating token carried no `sub` claim. See `auth::is_owner_or_admin`
+    /// for how status/logs/delete verify this against the current caller.
+    pub owner_sub: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -199,8 +256,8 @@ pub async fn insert_deployment(client: &Client, d: &Deployment) -> Result<()> {
             Cow::Borrowed(
                 "INSERT INTO deployments (deployment_id, deployment_key, tenant_id, app_id, env_id, \
                  release_sha, artifact_ref, lane, status, app_slug, env_slug, namespace, \
-                 desired_routes, endpoints, created_at, updated_at) \
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)",
+                 desired_routes, endpoints, created_at, updated_at, owner_sub) \
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)",
             ),
             vec![
                 Param::Text(d.deployment_id.clone()),
@@ -222,6 +279,7 @@ pub async fn insert_deployment(client: &Client, d: &Deployment) -> Result<()> {
                 d.endpoints.clone().map(Param::Text).unwrap_or(Param::Null),
                 Param::Text(d.created_at.clone()),
                 Param::Text(d.updated_at.clone()),
+                d.owner_sub.clone().map(Param::Text).unwrap_or(Param::Null),
             ],
         )
         .await?;
@@ -286,13 +344,19 @@ pub async fn get_events(client: &Client, deployment_id: &str) -> Result<Vec<Depl
 mod tests {
     use super::*;
 
-    /// T011 — `apply_hql_env` writes the required HQL_* keys + dev-fallback
-    /// ENC_KEYS when no `DEPLOYD_BACKUP_*` is set (steady-state, no opt-in).
+    /// T011: `apply_hql_env` fails closed when `HIQLITE_SECRET_RAFT` /
+    /// `HIQLITE_SECRET_API` are unset and `DEPLOYD_DEV` is not opted in, and
+    /// writes the required HQL_* keys plus dev-fallback ENC_KEYS once
+    /// `DEPLOYD_DEV=true` is set (local-dev-only escape hatch). Both
+    /// assertions live in one test function, not two, because they mutate
+    /// the same global HQL_*/HIQLITE_*/DEPLOYD_DEV env vars; splitting them
+    /// risks a race if `cargo test` schedules them on different threads.
     /// This is the single env-mutation test in this binary; no other test
-    /// in the same module touches HQL_* env vars (config.rs tests use the
-    /// closure-based `from_var_lookup` path, not the env path).
+    /// in the same module touches HQL_*/HIQLITE_*/DEPLOYD_DEV env vars
+    /// (config.rs tests use the closure-based `from_var_lookup` path, not
+    /// the env path).
     #[test]
-    fn apply_hql_env_dev_fallback_path() {
+    fn apply_hql_env_fails_closed_then_dev_fallback_path() {
         // SAFETY: single-threaded test path; no concurrent env access.
         unsafe {
             for k in [
@@ -303,9 +367,27 @@ mod tests {
                 "DEPLOYD_BACKUP_S3_SECRET_KEY",
                 "DEPLOYD_BACKUP_CRYPTR_KEYRING",
                 "DEPLOYD_BACKUP_CRYPTR_ACTIVE_KEY",
+                "HIQLITE_SECRET_RAFT",
+                "HIQLITE_SECRET_API",
+                "DEPLOYD_DEV",
             ] {
                 std::env::remove_var(k);
             }
+        }
+
+        // Fail-closed: no HIQLITE_SECRET_* and no DEPLOYD_DEV opt-in must
+        // refuse to start rather than fall back to a known hardcoded secret.
+        let err = apply_hql_env("/tmp/deployd-test-data-dir")
+            .expect_err("apply_hql_env must fail closed without HIQLITE_SECRET_* or DEPLOYD_DEV");
+        assert!(
+            err.to_string().contains("HIQLITE_SECRET_RAFT"),
+            "error should name the missing env var: {err}"
+        );
+
+        // Opt into local dev: the known dev-fallback secret is now allowed.
+        // SAFETY: same single-threaded test path.
+        unsafe {
+            std::env::set_var("DEPLOYD_DEV", "true");
         }
 
         apply_hql_env("/tmp/deployd-test-data-dir").expect("apply_hql_env should succeed");
@@ -330,6 +412,12 @@ mod tests {
             DEV_FALLBACK_ENC_KEY_ACTIVE
         );
         assert_eq!(std::env::var("ENC_KEYS").unwrap(), DEV_FALLBACK_ENC_KEYS);
+
+        // SAFETY: same single-threaded test path; leave the flag clean for
+        // any future sibling test in this binary.
+        unsafe {
+            std::env::remove_var("DEPLOYD_DEV");
+        }
     }
 
     /// T012 — End-to-end restore validation against a real S3-compatible

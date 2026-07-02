@@ -39,10 +39,17 @@
     "fs:allow-rename",
     "fs:allow-exists",
     "fs:allow-copy-file",
-    "fs:read-all",
-    "fs:write-all",
+    "fs:allow-read-dir",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
     "fs:scope-app-recursive",
-    "fs:scope-home-recursive",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        "$HOME/.oap/**",
+        "$HOME/oap-projects/**"
+      ]
+    },
     "http:default",
     "http:allow-fetch",
     "process:default",

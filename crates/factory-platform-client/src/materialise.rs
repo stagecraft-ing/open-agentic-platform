@@ -339,11 +339,34 @@ fn map_resolve_err(e: ResolveError) -> FactoryClientError {
 // File writers
 // ---------------------------------------------------------------------------
 
+/// Reject a platform-supplied name before it becomes a path component under
+/// the per-run cache root: empty, containing a path separator (`/` or `\`),
+/// or a bare `.`/`..` component. `adapter_name`, contract names, and agent
+/// roles all come from platform responses (or are derived from a name/id in
+/// one); without this check a crafted response could steer
+/// `root.join("adapters").join(adapter_name)` (and siblings) outside the
+/// intended cache subtree.
+fn validate_path_component(field: &'static str, value: &str) -> Result<(), FactoryClientError> {
+    let invalid = value.is_empty()
+        || value == "."
+        || value == ".."
+        || value.contains('/')
+        || value.contains('\\');
+    if invalid {
+        return Err(FactoryClientError::InvalidPathComponent {
+            field,
+            value: value.to_string(),
+        });
+    }
+    Ok(())
+}
+
 fn write_adapter(
     root: &Path,
     adapter_name: &str,
     adapter: &crate::wire::AdapterBody,
 ) -> Result<(), FactoryClientError> {
+    validate_path_component("adapter_name", adapter_name)?;
     let dir = root.join("adapters").join(adapter_name);
     fs::create_dir_all(&dir)?;
     // Spec 124: reject a non-spec-074 document before caching it. `manifest`
@@ -390,6 +413,7 @@ fn write_contract(
     name: &str,
     contract: &crate::wire::ContractBody,
 ) -> Result<(), FactoryClientError> {
+    validate_path_component("contract_name", name)?;
     let dir = root.join("contract");
     fs::create_dir_all(&dir)?;
     let pretty = serde_json::to_vec_pretty(&contract.schema)?;
@@ -403,6 +427,8 @@ fn write_agent(
     role: &str,
     agent: &ResolvedAgent,
 ) -> Result<(), FactoryClientError> {
+    validate_path_component("adapter_name", adapter_name)?;
+    validate_path_component("role", role)?;
     let body = compose_agent_markdown(&agent.frontmatter, &agent.body_markdown)?;
     // Spec §5 layout — duplicate under both `process/agents/` and
     // `adapters/<adapter>/agents/`. factory-engine reads from both
@@ -542,5 +568,90 @@ mod tests {
             }
             _ => panic!("expected AgentDrift"),
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // Path-component validation: adapter_name / contract name / agent role
+    // are platform-supplied and must not be able to steer a write outside
+    // the per-run cache directory.
+    // ---------------------------------------------------------------------
+
+    #[test]
+    fn validate_path_component_accepts_plain_names() {
+        assert!(validate_path_component("adapter_name", "acme-vue-encore").is_ok());
+        assert!(validate_path_component("role", "extract").is_ok());
+    }
+
+    #[test]
+    fn validate_path_component_rejects_traversal_and_separators() {
+        for bad in ["..", ".", "", "../evil", "a/b", "a\\b", "/etc/passwd"] {
+            let err = validate_path_component("adapter_name", bad).unwrap_err();
+            assert!(
+                matches!(err, FactoryClientError::InvalidPathComponent { .. }),
+                "expected InvalidPathComponent for {bad:?}, got {err:?}"
+            );
+        }
+    }
+
+    fn sample_adapter() -> crate::wire::AdapterBody {
+        crate::wire::AdapterBody {
+            name: "acme-vue-encore".into(),
+            version: "1".into(),
+            source_sha: "sha".into(),
+            synced_at: "2026-01-01T00:00:00Z".into(),
+            manifest: json!({ "schema_version": "1" }),
+        }
+    }
+
+    #[test]
+    fn write_adapter_rejects_traversal_in_adapter_name() {
+        let dir = tempfile::tempdir().unwrap();
+        let err = write_adapter(dir.path(), "../../evil", &sample_adapter()).unwrap_err();
+        assert!(matches!(
+            err,
+            FactoryClientError::InvalidPathComponent { .. }
+        ));
+        // Nothing should have been written outside (or even inside) the
+        // per-run root: the rejection happens before any fs::write.
+        assert!(!dir.path().parent().unwrap().join("evil").exists());
+    }
+
+    #[test]
+    fn write_contract_rejects_traversal_in_name() {
+        let dir = tempfile::tempdir().unwrap();
+        let contract = crate::wire::ContractBody {
+            name: "spec".into(),
+            version: "1".into(),
+            source_sha: "sha".into(),
+            synced_at: "2026-01-01T00:00:00Z".into(),
+            schema: json!({}),
+        };
+        let err = write_contract(dir.path(), "../evil", &contract).unwrap_err();
+        assert!(matches!(
+            err,
+            FactoryClientError::InvalidPathComponent { .. }
+        ));
+    }
+
+    #[test]
+    fn write_agent_rejects_traversal_in_adapter_name_and_role() {
+        let dir = tempfile::tempdir().unwrap();
+        let agent = ResolvedAgent {
+            org_agent_id: "ag-1".into(),
+            version: 1,
+            content_hash: "h-1".into(),
+            frontmatter: serde_json::Value::Null,
+            body_markdown: "body".into(),
+        };
+        let err = write_agent(dir.path(), "../evil", "extract", &agent).unwrap_err();
+        assert!(matches!(
+            err,
+            FactoryClientError::InvalidPathComponent { .. }
+        ));
+        let err = write_agent(dir.path(), "acme-vue-encore", "../evil", &agent).unwrap_err();
+        assert!(matches!(
+            err,
+            FactoryClientError::InvalidPathComponent { .. }
+        ));
     }
 }

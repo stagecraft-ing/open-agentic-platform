@@ -103,7 +103,16 @@ impl MockStagecraftClient {
     /// calls this to simulate the server-side worker completing.
     pub fn resolve_yield(&self, project_id: &str, content_hash: &str, output: ExtractionOutput) {
         let key = (project_id.to_string(), content_hash.to_string());
-        if let Some(tx) = self.yields.lock().unwrap().remove(&key) {
+        // Recover the guard on poison rather than panicking: this is a test
+        // fixture, and a panic in one concurrent test task shouldn't mask a
+        // sibling task's real assertion failure behind a "lock poisoned"
+        // panic instead.
+        if let Some(tx) = self
+            .yields
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .remove(&key)
+        {
             let _ = tx.send(Ok(output));
         }
     }
@@ -116,14 +125,17 @@ impl MockStagecraftClient {
         content_hash: &str,
         output: ExtractionOutput,
     ) {
-        self.fetched.lock().unwrap().insert(
-            (
-                project_id.to_string(),
-                object_id.to_string(),
-                content_hash.to_string(),
-            ),
-            output,
-        );
+        self.fetched
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(
+                (
+                    project_id.to_string(),
+                    object_id.to_string(),
+                    content_hash.to_string(),
+                ),
+                output,
+            );
     }
 }
 
@@ -140,9 +152,12 @@ impl StagecraftClient for MockStagecraftClient {
         let (tx, rx) = oneshot::channel();
         self.yields
             .lock()
-            .unwrap()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
             .insert((project_id.into(), content_hash.into()), tx);
-        let mut counter = self.run_counter.lock().unwrap();
+        let mut counter = self
+            .run_counter
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         *counter += 1;
         let run_id = format!("mock-run-{}", *counter);
         Ok(YieldSubscription {
@@ -161,7 +176,7 @@ impl StagecraftClient for MockStagecraftClient {
         Ok(self
             .fetched
             .lock()
-            .unwrap()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
             .get(&(project_id.into(), object_id.into(), content_hash.into()))
             .cloned())
     }
@@ -174,9 +189,12 @@ impl StagecraftClient for MockStagecraftClient {
     ) -> Result<PostOutputResult, StagecraftClientError> {
         self.posted
             .lock()
-            .unwrap()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
             .push((project_id.into(), object_id.into(), output.clone()));
-        let mut counter = self.run_counter.lock().unwrap();
+        let mut counter = self
+            .run_counter
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         *counter += 1;
         Ok(PostOutputResult {
             duplicate: false,

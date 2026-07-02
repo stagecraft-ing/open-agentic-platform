@@ -159,13 +159,14 @@
       "5. Provenance",
       "6. Decision log + open questions",
       "Resolved 2026-05-10 (initial — operator decisions, pre-implementation)",
-      "Resolved 2026-05-10 (Phase 0 — implementation-time, this amendment pass)"
+      "Resolved 2026-05-10 (Phase 0 — implementation-time, this amendment pass)",
+      "Security hardening amendment (2026-07-02)"
     ],
     "specPath": "specs/145-deployd-durability/spec.md",
     "status": "approved",
     "summary": "The `deployments` and `deployment_events` tables in deployd-api-rs's Hiqlite store are the audit trail of who deployed what, when, with what scope, and what outcome — not reconstructable from K8s state for rolled-back releases, and not reconstructable at all for the append-only event log. Today three reinforcing layers of \"off\" make this data ephemeral on the actively-shipping Hetzner deploy: the env values file disables the chart's PVC, the container start-up command runs `rm -rf /var/lib/deployd/data/*` on every boot, and the Cargo manifest enables only `[\"sqlite\"]` so there is no off-cluster durability path. This spec lands the four coupled fixes as one unit: flip persistence on, narrow the data-dir scrub back to the targeted stale-lock cleanup it replaced, enable Hiqlite `backup`+`s3`+`auto-heal` with operator-supplied S3 credentials, and add restore-on-startup so a fresh pod against an empty volume rehydrates from the most recent encrypted snapshot. Splitting the four lands a half-fix.\n",
     "title": "deployd-api durability chain — PVC + scrub-narrowing + Hiqlite backup/s3 + restore-on-startup"
   },
-  "shardHash": "c1415e6e8676dadf17862b851c8a2a4eb9a7495a1c2eb38a6625a50798a8b046",
+  "shardHash": "ae7c81b36a72c200d28708ecfea3a123b17782741ae9bd5dbbf988574bbfcfa7",
   "specVersion": "1.1.0"
 }

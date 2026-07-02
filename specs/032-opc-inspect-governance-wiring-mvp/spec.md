@@ -72,3 +72,10 @@ Out of scope:
 ## Delivery record *(non-normative)*
 
 All tasks **T000–T013** are complete on `main` as of **2026-03-28**; see [`tasks.md`](./tasks.md) and [`execution/verification.md`](./execution/verification.md). Per Feature **003**, frontmatter **`status`** remains **`active`** (registry enum does not define a separate “implemented” value); completion is evidenced by tasks and verification artifacts.
+
+
+## Security hardening amendment (2026-07-02)
+
+Hardened the opc-web server. The /ws/claude WebSocket and all /api/* routes now sit behind the control-token middleware with a localhost Origin allowlist on the WebSocket upgrade; the default bind moved to 127.0.0.1 (a non-loopback bind is opt-in and requires a control token); the ungoverned skip-permissions bypass is refused on network-facing execute paths; CORS is restricted to localhost; the fs capability was narrowed off read-all, write-all, and scope-home-recursive to the specific commands and subtrees actually used; tool-derived URLs are scheme-validated before opening; and mutex poisoning is recovered instead of panicking.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

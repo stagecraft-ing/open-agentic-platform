@@ -399,3 +399,8 @@ the contract, rather than halting at every step.
 - **`bollard`** — typed Docker Engine API client. Docker Engine
   protocol is the lingua franca; Podman speaks it natively via its
   Docker-compat socket.
+
+
+## Security hardening amendment (2026-07-02)
+
+Acknowledging the 2026-07-02 security-hardening amendment to spec 162 (sandbox-execution-contract), which this backend implements. The factory-engine shell-boundary documentation recorded there points at the sandbox contract as the isolation integration point; this note satisfies the spec 127 coupling gate for the co-authored spec.md path and requires no change to the local-container backend behavior.

@@ -1146,11 +1146,25 @@ async fn check_agent_authorized(slug: &str) -> AgentAuthOutcome {
         None => return AgentAuthOutcome::Unavailable("PLATFORM_M2M_TOKEN not set".into()),
     };
 
-    let url = format!(
+    // The platform's `isAgentAuthorized` seam requires the caller's org id
+    // as a query parameter (the earlier hardcoded "default" org bucket was
+    // removed so block policies bind per-org). OPC supplies it from
+    // PLATFORM_ORG_ID, mirroring the PLATFORM_API_URL / PLATFORM_M2M_TOKEN
+    // config pattern. When it is unset the request omits the parameter and
+    // the platform returns 400, which maps to Unavailable (graceful
+    // degradation) below, so an unconfigured desktop is no worse off than
+    // one that cannot reach the platform at all.
+    let mut url = format!(
         "{}/agents/{}/authorized",
         api_url.trim_end_matches('/'),
         slug
     );
+    if let Some(org_id) = std::env::var("PLATFORM_ORG_ID")
+        .ok()
+        .filter(|v| !v.is_empty())
+    {
+        url.push_str(&format!("?orgId={}", org_id));
+    }
 
     let client = match reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(3))

@@ -8,6 +8,7 @@
  */
 
 import { invoke } from "@tauri-apps/api/core";
+import { withControlTokenHeader, withControlTokenQuery } from "./controlToken";
 
 // Extend Window interface for Tauri
 declare global {
@@ -104,11 +105,12 @@ async function restApiCall<T>(endpoint: string, params?: any): Promise<T> {
   }
 
   try {
+    // /api/* requires the control token (spec: opc-web auth hardening).
     const response = await fetch(url.toString(), {
       method: 'GET',
-      headers: {
+      headers: withControlTokenHeader({
         'Content-Type': 'application/json',
-      },
+      }),
     });
 
     if (!response.ok) {
@@ -307,7 +309,10 @@ async function handleStreamingCommand<T>(command: string, params?: any): Promise
   return new Promise((resolve, reject) => {
     // Use wss:// for HTTPS connections (e.g., ngrok), ws:// for HTTP (localhost)
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws/claude`;
+    // /ws/claude requires the control token. The browser WebSocket API
+    // cannot set custom headers on the handshake, so the token travels as a
+    // query parameter instead (spec: opc-web auth hardening).
+    const wsUrl = withControlTokenQuery(`${wsProtocol}//${window.location.host}/ws/claude`);
     console.log(`[TRACE] handleStreamingCommand called:`);
     console.log(`[TRACE]   command: ${command}`);
     console.log(`[TRACE]   params:`, params);

@@ -594,3 +594,8 @@ here because this spec owns those skill files.
 - Precedent: spec **105-scripts-to-binaries-migration** (a
   larger mechanical migration with the same multi-spec-amend
   shape).
+
+
+## Drift cleanup amendment (2026-07-02)
+
+Acknowledging the 2026-07-02 provenance cleanup in spec 178 (opc-directory-rename), which removed a stale reference to an ephemeral /tmp brief path that never existed in-repo. This note satisfies the spec 127 coupling gate for the co-authored spec.md path and does not change the skills-migration surface this spec governs.

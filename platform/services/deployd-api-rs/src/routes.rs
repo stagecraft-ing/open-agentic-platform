@@ -105,6 +105,22 @@ pub async fn create_deployment(
         );
     }
 
+    // Reject a token with no subject claim before any deployment row is
+    // written. `is_owner_or_admin` (auth.rs) degrades a NULL `owner_sub` to
+    // "any caller holding the required scope may act on this deployment",
+    // which is meant only as a legacy fallback for rows written before
+    // ownership tracking existed; a new NULL-owner row would be open to
+    // every future caller with the required scope, not just this one.
+    let Some(owner_sub) = claims.sub.clone() else {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({
+                "error": "unauthorized",
+                "message": "token missing subject claim"
+            })),
+        );
+    };
+
     let deployment_key = format!("{}|{}|{}", body.app_id, body.env_id, body.release_sha);
 
     // Idempotent check
@@ -153,6 +169,25 @@ pub async fn create_deployment(
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| format!("{}-{}", body.app_id, body.env_id));
 
+    // Reject a namespace that isn't a well-formed, non-reserved K8s
+    // namespace name. Without this check a caller holding the required
+    // scope (e.g. a compromised M2M credential) could point `helm install`
+    // at any namespace in the cluster, including cluster-system or
+    // platform-owned namespaces (rauthy-system, stagecraft-system, etc.),
+    // purely by setting `namespace` on the request body. This is a format
+    // plus reserved-name check, not tenant-ownership enforcement; see
+    // `is_valid_tenant_namespace`'s doc comment for the isolation lever
+    // this does NOT provide.
+    if !is_valid_tenant_namespace(&namespace) {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "error": "invalid_namespace",
+                "message": format!("namespace '{namespace}' is not a valid tenant namespace")
+            })),
+        );
+    }
+
     let deployment = Deployment {
         deployment_id: deployment_id.clone(),
         deployment_key,
@@ -173,6 +208,7 @@ pub async fn create_deployment(
         endpoints: Some(serde_json::to_string(&endpoints).unwrap_or_default()),
         created_at: now.clone(),
         updated_at: now,
+        owner_sub: Some(owner_sub),
     };
 
     if let Err(e) = store::insert_deployment(&state.client, &deployment).await {
@@ -381,21 +417,45 @@ pub async fn get_status(
     headers: HeaderMap,
     Path(release_id): Path<String>,
 ) -> impl IntoResponse {
-    if let Err(e) = auth::verify_jwt(
+    let claims = match auth::verify_jwt(
         &headers,
         &state.config.oidc_endpoint,
         &state.config.audience,
     )
     .await
     {
+        Ok(c) => c,
+        Err(e) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"error": "unauthorized", "message": e.to_string()})),
+            );
+        }
+    };
+    if !auth::has_scope(&claims, &state.config.required_scope) {
         return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({"error": "unauthorized", "message": e.to_string()})),
+            StatusCode::FORBIDDEN,
+            Json(json!({
+                "error": "forbidden",
+                "message": format!("missing scope {}", state.config.required_scope)
+            })),
         );
     }
 
     match store::get_by_release_id(&state.client, &release_id).await {
         Ok(Some(d)) => {
+            // Existence oracle (finding LOW): a non-owner caller who is
+            // authenticated and scoped must not be able to distinguish "this
+            // deployment exists but isn't mine" from "this deployment
+            // doesn't exist". Both cases now return the exact same
+            // NOT_FOUND response as the missing-release branch below.
+            if !auth::is_owner_or_admin(
+                &claims,
+                d.owner_sub.as_deref(),
+                state.config.admin_scope.as_deref(),
+            ) {
+                return (StatusCode::NOT_FOUND, Json(json!({"error": "not_found"})));
+            }
             let events = store::get_events(&state.client, &release_id)
                 .await
                 .unwrap_or_default();
@@ -417,21 +477,43 @@ pub async fn get_logs(
     headers: HeaderMap,
     Path(release_id): Path<String>,
 ) -> impl IntoResponse {
-    if let Err(e) = auth::verify_jwt(
+    let claims = match auth::verify_jwt(
         &headers,
         &state.config.oidc_endpoint,
         &state.config.audience,
     )
     .await
     {
+        Ok(c) => c,
+        Err(e) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"error": "unauthorized", "message": e.to_string()})),
+            );
+        }
+    };
+    if !auth::has_scope(&claims, &state.config.required_scope) {
         return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({"error": "unauthorized", "message": e.to_string()})),
+            StatusCode::FORBIDDEN,
+            Json(json!({
+                "error": "forbidden",
+                "message": format!("missing scope {}", state.config.required_scope)
+            })),
         );
     }
 
     match store::get_by_release_id(&state.client, &release_id).await {
-        Ok(Some(_)) => {
+        Ok(Some(d)) => {
+            // Existence oracle (finding LOW): see get_status's identical
+            // comment. A non-owner caller gets the same NOT_FOUND response
+            // as a missing release, not a distinguishing FORBIDDEN.
+            if !auth::is_owner_or_admin(
+                &claims,
+                d.owner_sub.as_deref(),
+                state.config.admin_scope.as_deref(),
+            ) {
+                return (StatusCode::NOT_FOUND, Json(json!({"error": "not_found"})));
+            }
             let events = store::get_events(&state.client, &release_id)
                 .await
                 .unwrap_or_default();
@@ -483,6 +565,17 @@ pub async fn delete_deployment(
         _ => return (StatusCode::NOT_FOUND, Json(json!({"error": "not_found"}))),
     };
 
+    // Existence oracle (finding LOW): see get_status's identical comment.
+    // A non-owner caller gets the same NOT_FOUND response as a missing
+    // release, not a distinguishing FORBIDDEN.
+    if !auth::is_owner_or_admin(
+        &claims,
+        deployment.owner_sub.as_deref(),
+        state.config.admin_scope.as_deref(),
+    ) {
+        return (StatusCode::NOT_FOUND, Json(json!({"error": "not_found"})));
+    }
+
     // Best-effort helm uninstall; ignore failure to keep delete idempotent.
     // Spec 137 — `uninstall_with_gate` is the universal teardown: it removes
     // the gate release first (no-op if no gate was installed for this
@@ -529,4 +622,99 @@ pub async fn delete_deployment(
             "status": "DESTROYED",
         })),
     )
+}
+
+/// DNS-1123-label validation for a Kubernetes namespace name, plus a small
+/// reserved-namespace blocklist. `create_deployment` forwards `namespace`
+/// straight from the request body (spec 214 FR-008 lets the caller override
+/// the computed default); without this check a caller holding the required
+/// scope could point `helm upgrade --install` at any namespace in the
+/// cluster, cluster-system or platform-owned, purely by setting the field.
+///
+/// This function validates DNS-1123 label shape and blocks the reserved /
+/// platform namespaces listed below. It does NOT enforce per-tenant
+/// isolation: it cannot distinguish "tenant A's namespace" from "tenant B's
+/// namespace" (both are well-formed, non-reserved names), so a caller
+/// holding the required scope can still target another tenant's namespace
+/// by name. True per-tenant isolation is a separate lever: the chart's
+/// `rbac.namespaces` allowlist (see the deployd-api Helm chart) scopes what
+/// the deployd-api ServiceAccount is actually permitted to touch in the
+/// cluster's RBAC.
+fn is_valid_tenant_namespace(ns: &str) -> bool {
+    const RESERVED: &[&str] = &[
+        "kube-system",
+        "kube-public",
+        "kube-node-lease",
+        "default",
+        "deployd-system",
+        "rauthy-system",
+        "stagecraft-system",
+        "monitoring",
+        "ingress-nginx",
+        "flux-system",
+        "kube-flannel",
+        "cert-manager",
+        "external-secrets",
+    ];
+    if ns.is_empty() || ns.len() > 63 {
+        return false;
+    }
+    if RESERVED.contains(&ns) {
+        return false;
+    }
+    let bytes = ns.as_bytes();
+    let edge_ok = |b: u8| b.is_ascii_lowercase() || b.is_ascii_digit();
+    if !edge_ok(bytes[0]) || !edge_ok(bytes[bytes.len() - 1]) {
+        return false;
+    }
+    bytes
+        .iter()
+        .all(|&b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_valid_tenant_namespace_accepts_well_formed_names() {
+        assert!(is_valid_tenant_namespace("acme-p-dev"));
+        assert!(is_valid_tenant_namespace("app123-env1"));
+        assert!(is_valid_tenant_namespace("a"));
+    }
+
+    #[test]
+    fn is_valid_tenant_namespace_rejects_reserved_names() {
+        assert!(!is_valid_tenant_namespace("kube-system"));
+        assert!(!is_valid_tenant_namespace("kube-public"));
+        assert!(!is_valid_tenant_namespace("kube-node-lease"));
+        assert!(!is_valid_tenant_namespace("default"));
+        assert!(!is_valid_tenant_namespace("deployd-system"));
+    }
+
+    #[test]
+    fn is_valid_tenant_namespace_rejects_platform_namespaces() {
+        // A deploy-scope holder must not be able to target the platform's
+        // own namespaces by setting `namespace` on the request body.
+        assert!(!is_valid_tenant_namespace("rauthy-system"));
+        assert!(!is_valid_tenant_namespace("stagecraft-system"));
+        assert!(!is_valid_tenant_namespace("monitoring"));
+        assert!(!is_valid_tenant_namespace("ingress-nginx"));
+        assert!(!is_valid_tenant_namespace("flux-system"));
+        assert!(!is_valid_tenant_namespace("kube-flannel"));
+        assert!(!is_valid_tenant_namespace("cert-manager"));
+        assert!(!is_valid_tenant_namespace("external-secrets"));
+    }
+
+    #[test]
+    fn is_valid_tenant_namespace_rejects_malformed_names() {
+        assert!(!is_valid_tenant_namespace(""));
+        assert!(!is_valid_tenant_namespace("-leading-dash"));
+        assert!(!is_valid_tenant_namespace("trailing-dash-"));
+        assert!(!is_valid_tenant_namespace("Has-Upper-Case"));
+        assert!(!is_valid_tenant_namespace("has_underscore"));
+        assert!(!is_valid_tenant_namespace("has.dot"));
+        assert!(!is_valid_tenant_namespace("has/slash"));
+        assert!(!is_valid_tenant_namespace(&"a".repeat(64)));
+    }
 }

@@ -62,9 +62,15 @@ impl FeatureTools {
             mode: mode.clone(),
         };
 
-        // 1. Check Cache
+        // 1. Check Cache. Recover the guard on poison rather than
+        // panicking: this is a best-effort scan cache, not a
+        // correctness-critical invariant, so a prior panicking holder
+        // shouldn't cascade into every subsequent feature-graph lookup.
         {
-            let cache = self.cache.lock().unwrap();
+            let cache = self
+                .cache
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             if let Some(graph) = cache.get(&key) {
                 return Ok(graph.clone());
             }
@@ -92,7 +98,10 @@ impl FeatureTools {
 
         // 3. Store Cache
         {
-            let mut cache = self.cache.lock().unwrap();
+            let mut cache = self
+                .cache
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             cache.insert(key, graph.clone());
         }
 
@@ -100,7 +109,10 @@ impl FeatureTools {
     }
 
     pub fn invalidate(&self, root: &Path) {
-        let mut cache = self.cache.lock().unwrap();
+        let mut cache = self
+            .cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         // Invalidate Worktree entry for this root
         let key = CacheKey {
             repo_root: root.to_path_buf(),

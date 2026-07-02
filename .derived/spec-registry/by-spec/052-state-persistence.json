@@ -48,13 +48,14 @@
       "Implementation approach",
       "Success criteria",
       "Dependencies",
-      "Risk"
+      "Risk",
+      "Security hardening amendment (2026-07-02)"
     ],
     "specPath": "specs/052-state-persistence/spec.md",
     "status": "approved",
     "summary": "Orchestrator commands persist workflow progress to state files (state.json or SQLite) so that interrupted workflows can be resumed from the last completed step. State is created at workflow start, updated after each step, and checked on startup to offer resume. Checkpoint and approval gates pause execution until operator confirmation. An append-only stream server with SSE replay provides live and historical visibility into workflow progress.\n",
     "title": "State Persistence for Resumable Workflows"
   },
-  "shardHash": "18d7936f50fe3fb8a34c509658bf3d4b1127d630ba02ef1cfa53b5d38a1a662c",
+  "shardHash": "5de9c20dc34ca6928c8add8267320b05333f352e122260ae87c9444adbe255a7",
   "specVersion": "1.1.0"
 }

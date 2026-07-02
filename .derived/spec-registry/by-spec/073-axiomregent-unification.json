@@ -84,7 +84,8 @@
       "Success Criteria",
       "Dependencies",
       "Risk",
-      "Release Markers"
+      "Release Markers",
+      "Security hardening amendment (2026-07-02)"
     ],
     "specPath": "specs/073-axiomregent-unification/spec.md",
     "status": "approved",
@@ -95,6 +96,6 @@
     ],
     "title": "Axiomregent Unification: Crate Absorption, Hiqlite Storage, and GitHub Org Integration"
   },
-  "shardHash": "91382cdae40502ed0bf8d8268c2a3c4643a613ef76241ca5bbf78b9b33b14d77",
+  "shardHash": "5a7e26a2104c379407994cc921e77f91eccc13289c0f1e252b738c414a0159c7",
   "specVersion": "1.1.0"
 }

@@ -212,3 +212,8 @@ gate's scope (overlay emission is already smoked by `oap-registry-enrich`).
 
 No sequencing constraint: the spec, its shard, the golden row, and the
 workflow step land together in one PR, and the gate validates its own PR.
+
+
+## Security hardening amendment (2026-07-02)
+
+Acknowledging the 2026-07-02 security-hardening amendment to spec 184 (claude-shared-config-governance). Narrowing the settings.json execute allowlist changes a hashed input, and the regenerated codebase index shards remain fresh under this freshness gate; the note satisfies the spec 127 coupling gate for the co-authored spec.md path.

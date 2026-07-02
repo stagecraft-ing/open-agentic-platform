@@ -65,13 +65,14 @@
       "2026-06-10 (third edit) — SessionStart matcher widened to compaction",
       "Follow-up tooling (not in this spec)",
       "Relationship to spec 182",
-      "References"
+      "References",
+      "Security hardening amendment (2026-07-02)"
     ],
     "specPath": "specs/184-claude-shared-config-governance/spec.md",
     "status": "approved",
     "summary": "Bring two sibling Claude Code shared config files into the spec spine's governed-input set: `.mcp.json` (team-shared MCP server config at the repo root) and `.claude/settings.json` (permissions, hooks, statusLine, outputStyle, env). Both are quiet configuration files that change Claude Code behavior across every team member who opens the repo — a quiet edit to either has team-wide consequences identical in effect to a Cargo.toml or workflow YAML change, but unlike those they pass the spec/code coupling gate invisibly because the indexer does not hash them. This spec amends the indexer (`tools/spec-spine/codebase-indexer/src/lib.rs`) to add both files to the `collect_input_files` walk, amends spec 101's documented input set to enumerate them, and declares `establishes:` over both so they are authority-owned. Behavior is unchanged: existing MCP servers continue to start exactly as configured; existing permissions and hooks continue to apply unchanged. After this spec lands, any edit to either file trips the codebase-index staleness gate. This closes the self-governance gap for hooks that guard other hashed inputs — editing the PostToolUse hook glob in `.claude/settings.json` now itself trips the gate, not just the inputs the hook protects.\n",
     "title": "Claude Code shared config governance — .mcp.json and .claude/settings.json as hashed inputs"
   },
-  "shardHash": "a38c7e666d2b1b7427a565b1c5324beadd9a0c387bcc3c814673f443dbd6b322",
+  "shardHash": "82995df6fcf5c96f49c6ddf5a8fedb01df6afa8cdd8b446a34282bb135731755",
   "specVersion": "1.1.0"
 }

@@ -4,6 +4,12 @@ pub struct Config {
     pub oidc_endpoint: String,
     pub audience: String,
     pub required_scope: String,
+    /// Optional scope that, when present on a caller's token, overrides the
+    /// per-deployment owner check in `auth::is_owner_or_admin` (e.g. an
+    /// operator/support tool that legitimately needs cross-tenant access).
+    /// Unset by default: with no admin scope configured, the owner check
+    /// applies to every caller holding `required_scope`.
+    pub admin_scope: Option<String>,
 }
 
 impl Config {
@@ -20,6 +26,9 @@ impl Config {
                 .expect("DEPLOYD_AUDIENCE env var is required"),
             required_scope: std::env::var("DEPLOYD_REQUIRED_SCOPE")
                 .expect("DEPLOYD_REQUIRED_SCOPE env var is required"),
+            admin_scope: std::env::var("DEPLOYD_ADMIN_SCOPE")
+                .ok()
+                .filter(|s| !s.is_empty()),
         }
     }
 }

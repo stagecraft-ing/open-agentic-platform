@@ -52,6 +52,8 @@ spec:
             app.kubernetes.io/part-of: stagecraft
         spec:
           restartPolicy: Never
+          # curl-only sweep pod; never calls the K8s API.
+          automountServiceAccountToken: false
           containers:
             - name: sweep
               image: curlimages/curl:8.10.1

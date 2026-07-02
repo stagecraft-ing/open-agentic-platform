@@ -1,4 +1,4 @@
-# [open-agentic-platform](https://stagecraft-ing.github.io/open-agentic-platform/) [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE) [![Specs: 222](https://img.shields.io/badge/specs-222-informational)](specs/) [![Languages](https://img.shields.io/badge/lang-Rust%20%7C%20TypeScript-orange)](#) [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-yellow)](#status)
+# [open-agentic-platform](https://stagecraft-ing.github.io/open-agentic-platform/) [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE) [![Specs: 225](https://img.shields.io/badge/specs-225-informational)](specs/) [![Languages](https://img.shields.io/badge/lang-Rust%20%7C%20TypeScript-orange)](#) [![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-yellow)](#status)
 ![OAP Control Plane and OPC Execution Plane](.github/img/open-agentic-platform-github-banner.jpg)
 
 **Frozen, hash-verifiable specs as the unit of governance for agent
@@ -7,7 +7,7 @@ deterministic JSON registry; every agent action is reconcilable to the spec
 that authorised it — and the audit chain is a single artifact you can hand
 to a regulator.
 
-- **Spec spine**: 222 markdown specs compile to a deterministic
+- **Spec spine**: 225 markdown specs compile to a deterministic
   `registry.json`. Drift between spec and code fails CI before merge
   ([spec 127](specs/127-spec-code-coupling-gate/spec.md)).
 - **Governed agent execution** — agents act through scoped tools, policy
@@ -216,8 +216,8 @@ make setup
 # spec-spine concept.)
 
 spec-spine registry status-report --json --nonzero-only
-# Lifecycle inventory across the 222-spec corpus.
-# 172 approved, 15 draft, 35 superseded.
+# Lifecycle inventory across the 225-spec corpus.
+# 181 approved, 9 draft, 35 superseded.
 
 spec-spine index render
 cat .derived/codebase-index/CODEBASE-INDEX.md
@@ -278,7 +278,7 @@ today vs. what is staged and what is roadmap, by spec ID.
 
 ### Works today
 
-- **Spec compilation and querying:** 222 specs compile deterministically.
+- **Spec compilation and querying:** 225 specs compile deterministically.
   `spec-spine registry` is a typed read-only CLI; ad-hoc JSON parsing is a
   workflow violation ([spec 103](specs/103-init-protocol-governed-reads/spec.md)).
 - **Spec/code coupling gate:** every code path claimed by a spec's
@@ -354,7 +354,7 @@ today vs. what is staged and what is roadmap, by spec ID.
 
 | Path | What lives there |
 |---|---|
-| `specs/` | The authoritative spec spine. 222 specs as of 2026-06-23. |
+| `specs/` | The authoritative spec spine. 225 specs as of 2026-07-02. |
 | `tools/` | Rust CLIs: `spec-lint` (OAP-specific), OAP overlay tools (`oap-registry-enrich`, `oap-code-index-enrich`, `policy-compiler`, others). The generic spec engine is the published `spec-spine` CLI (crates.io). |
 | `crates/` | Library crates: `factory-engine`, `factory-contracts`, `policy-kernel`, `orchestrator`, `agent`, `tool-registry`, `axiomregent`, `xray`, others. |
 | `product/apps/opc/` | OPC desktop (Tauri v2 + React + TypeScript). |

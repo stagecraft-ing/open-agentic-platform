@@ -261,3 +261,10 @@ to this spec's claims; owned paths inherit the new prefix.
 repointed from the retired `infra.config.hetzner.json` to the unified
 `infra.config.json`. Mechanical filename change; no change to workflow
 traceability claims.
+
+
+## Security hardening amendment (2026-07-02)
+
+Removed a shell-injection vector in release-desktop.yml: the workflow_dispatch tag input is now passed through an env var rather than interpolated directly into the run shell.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

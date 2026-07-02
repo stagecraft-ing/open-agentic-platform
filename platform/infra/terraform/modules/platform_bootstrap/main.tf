@@ -103,7 +103,15 @@ resource "helm_release" "deployd_api" {
         kind = "ClusterSecretStore"
       }
       keys = [
-        { key = "DEPLOYD_DB_URL", remoteKey = "deployd-db-url" }
+        { key = "DEPLOYD_DB_URL", remoteKey = "deployd-db-url" },
+        # store.rs reads these directly and falls back to hardcoded dev
+        # defaults when unset; a companion deployd-api-rs change is
+        # making them required. This explicit `keys` list REPLACES (does
+        # not merge with) the chart's own values.yaml default at this
+        # values-file layer, so the chart-level default alone is not
+        # enough for deployments that go through this module.
+        { key = "HIQLITE_SECRET_RAFT", remoteKey = "hiqlite-secret-raft" },
+        { key = "HIQLITE_SECRET_API", remoteKey = "hiqlite-secret-api" }
       ]
     }
   })]

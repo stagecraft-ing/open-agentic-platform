@@ -62,6 +62,14 @@ pub enum FactoryClientError {
     /// verbatim so the UI can show a targeted message.
     #[error("resolver error: {0}")]
     Resolver(String),
+
+    /// A platform-supplied name destined for a cache path component (adapter
+    /// name, agent role, contract name) failed validation: empty, or
+    /// contains a path separator or `..`. Rejected before any write so a
+    /// malicious/misbehaving platform response can't steer a write outside
+    /// the per-run cache directory.
+    #[error("invalid path component ({field}): {value:?}")]
+    InvalidPathComponent { field: &'static str, value: String },
 }
 
 impl From<serde_json::Error> for FactoryClientError {

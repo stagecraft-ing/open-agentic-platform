@@ -45,13 +45,14 @@
       "Invariants",
       "Migration Path",
       "Dependencies",
-      "Amendment 2026-06-29 (reset-prep housekeeping)"
+      "Amendment 2026-06-29 (reset-prep housekeeping)",
+      "Security hardening amendment (2026-07-02)"
     ],
     "specPath": "specs/072-multi-cloud-k8s-portability/spec.md",
     "status": "approved",
     "summary": "Generalizes the platform's Kubernetes infrastructure from Azure-only to a portable two-tier model supporting managed cloud K8s (Azure AKS, AWS EKS, GCP GKE, DigitalOcean DOKS), bare K8s (Hetzner K3s via hetzner-k3s), and local development (k3d). Introduces a provider-agnostic output contract for Terraform modules, replaces Azure CSI secrets + workload identity with external-secrets-operator, and parameterizes Helm charts with per-environment values overlays.\n",
     "title": "Multi-Cloud Kubernetes Portability"
   },
-  "shardHash": "9e1a7c58cf228a854a3115a0820154f55a15ff5846400c8a33b87d70aaa57c43",
+  "shardHash": "d0caf4ef90fd0bf619e0d01a78bc31903ae051c45918758a25566de0f41dbf17",
   "specVersion": "1.1.0"
 }

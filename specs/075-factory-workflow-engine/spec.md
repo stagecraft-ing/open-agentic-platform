@@ -393,3 +393,10 @@ pub async fn reject_factory_stage(
 | Fan-out produces 100+ steps for large Build Specs | Configurable concurrency limit (default 4); token budget cap |
 | Entity circular references | Detect and reject at manifest generation time |
 | Adapter command failure on host (missing Node, etc.) | Pre-flight check validates all adapter commands are available |
+
+
+## Security hardening amendment (2026-07-02)
+
+Recovered from mutex poisoning in the standards resolver, agent resolver, and stagecraft client caches instead of panicking, and documented the security boundary on run_command where config and spec-derived command strings are executed via the shell, pointing at the spec-162 sandbox contract as the isolation integration point.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.
