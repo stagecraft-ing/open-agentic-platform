@@ -411,3 +411,8 @@ does not belong to this spec — open a follow-up if pursued.
 Added `RUSTSEC-2026-0192` (ttf-parser unmaintained, transitive via pdf-extract
 font parsing) to `deny.toml`'s advisory ignore list. Policy-list maintenance
 only; no change to the supply-chain gate design.
+
+
+## Advisory exception amendment (2026-07-02)
+
+Added documented deny.toml ignores for RUSTSEC-2026-0194 and RUSTSEC-2026-0195 (quick-xml duplicate-attribute quadratic DoS and unbounded namespace-allocation DoS, both published 2026-07-02). Both match transitive quick-xml pins (0.36 / 0.39); the patched line is 0.40+, a semver-breaking bump requiring the parent dependencies to be updated, tracked as a follow-up supply-chain change. This is a time-boxed, documented exception consistent with the existing transitive-advisory ignore pattern; XML parsing on these paths is not attacker-controlled input.

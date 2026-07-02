@@ -83,6 +83,15 @@ ignore = [
     { id = "RUSTSEC-2024-0384", reason = "instant unmaintained; pinned by kube-runtime 0.95 (spec 186) — kube 3.x drops it" },
     { id = "RUSTSEC-2025-0134", reason = "rustls-pemfile unmaintained; pinned by kube-client 0.95 (spec 186) — kube 3.x drops it" },
     { id = "RUSTSEC-2026-0192", reason = "ttf-parser unmaintained; transitive via pdf-extract font parsing in knowledge extraction" },
+
+    # quick-xml 0.36 / 0.39 DoS advisories, both published 2026-07-02 and
+    # matching transitive quick-xml pins. The patched line is 0.40+, a
+    # breaking bump (0.x minor is semver-breaking) that needs the parent
+    # deps updated, tracked as a follow-up supply-chain PR. Time-boxed
+    # documented exception; XML parsing here is not on an
+    # attacker-controlled input path.
+    { id = "RUSTSEC-2026-0194", reason = "quick-xml quadratic duplicate-attribute-name DoS; transitive pin, patched in 0.40+ (breaking bump), follow-up tracked" },
+    { id = "RUSTSEC-2026-0195", reason = "quick-xml unbounded namespace-allocation DoS; transitive pin, patched in 0.40+ (breaking bump), follow-up tracked" },
 ]
 
 [bans]
