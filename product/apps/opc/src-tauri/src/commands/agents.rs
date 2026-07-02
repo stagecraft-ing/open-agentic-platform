@@ -1130,7 +1130,7 @@ enum AgentAuthOutcome {
 }
 
 /// Seam D: pre-flight check against platform agent authorization.
-async fn check_agent_authorized(slug: &str) -> AgentAuthOutcome {
+async fn check_agent_authorized(slug: &str, session_org_id: Option<String>) -> AgentAuthOutcome {
     let api_url = match std::env::var("PLATFORM_API_URL")
         .ok()
         .filter(|v| !v.is_empty())
@@ -1148,21 +1148,26 @@ async fn check_agent_authorized(slug: &str) -> AgentAuthOutcome {
 
     // The platform's `isAgentAuthorized` seam requires the caller's org id
     // as a query parameter (the earlier hardcoded "default" org bucket was
-    // removed so block policies bind per-org). OPC supplies it from
-    // PLATFORM_ORG_ID, mirroring the PLATFORM_API_URL / PLATFORM_M2M_TOKEN
-    // config pattern. When it is unset the request omits the parameter and
-    // the platform returns 400, which maps to Unavailable (graceful
-    // degradation) below, so an unconfigured desktop is no worse off than
-    // one that cannot reach the platform at all.
+    // removed so block policies bind per-org). The org id comes primarily
+    // from the authenticated stagecraft session (StagecraftState.org_id),
+    // resolved by the caller; the PLATFORM_ORG_ID env var is an override /
+    // fallback for headless or pre-login contexts, mirroring the
+    // PLATFORM_API_URL / PLATFORM_M2M_TOKEN config pattern. When neither is
+    // available the request omits the parameter and the platform returns
+    // 400, which maps to Unavailable (graceful degradation) below, so an
+    // unconfigured desktop is no worse off than one that cannot reach the
+    // platform at all.
+    let org_id = session_org_id.filter(|v| !v.is_empty()).or_else(|| {
+        std::env::var("PLATFORM_ORG_ID")
+            .ok()
+            .filter(|v| !v.is_empty())
+    });
     let mut url = format!(
         "{}/agents/{}/authorized",
         api_url.trim_end_matches('/'),
         slug
     );
-    if let Some(org_id) = std::env::var("PLATFORM_ORG_ID")
-        .ok()
-        .filter(|v| !v.is_empty())
-    {
+    if let Some(org_id) = org_id {
         url.push_str(&format!("?orgId={}", org_id));
     }
 
@@ -1317,8 +1322,18 @@ pub async fn execute_agent(
     };
 
     // Seam D: platform agent authorization pre-flight.
+    // Source the org id from the authenticated stagecraft session so the
+    // per-org block policy binds without a separately-configured env var
+    // (check_agent_authorized falls back to PLATFORM_ORG_ID when the session
+    // is not yet established). Mirrors the StagecraftState lookup in
+    // sidecars.rs::boot_gate_status.
+    let session_org_id = app
+        .try_state::<crate::commands::stagecraft_client::StagecraftState>()
+        .and_then(|sc_state| sc_state.current())
+        .map(|client| client.org_id())
+        .filter(|id| !id.is_empty());
     let slug = agent.name.to_lowercase().replace(' ', "-");
-    match check_agent_authorized(&slug).await {
+    match check_agent_authorized(&slug, session_org_id).await {
         AgentAuthOutcome::Allowed => {}
         AgentAuthOutcome::Denied(reason) => {
             error!("Agent '{}' blocked by platform: {}", slug, reason);
