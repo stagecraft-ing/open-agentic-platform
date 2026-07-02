@@ -1,7 +1,8 @@
 import { api, APIError } from "encore.dev/api";
+import { getAuthData } from "~encore/auth";
 import log from "encore.dev/log";
 import { db } from "../db/drizzle";
-import { projectRepos } from "../db/schema";
+import { projectRepos, projects } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { signAppJwt } from "./appJwt";
 
@@ -26,23 +27,30 @@ interface TokenResponse {
   permissions: Record<string, string>;
 }
 
-// POST /api/github/token — broker a scoped installation token
+// POST /api/github/token: broker a scoped installation token
 export const getToken = api(
   { expose: true, method: "POST", path: "/api/github/token", auth: true },
   async (req: TokenRequest): Promise<TokenResponse> => {
+    const auth = getAuthData()!;
     const [owner, name] = req.repo.split("/");
     if (!owner || !name) {
       throw APIError.invalidArgument("repo must be owner/name format");
     }
 
-    // Look up the installation ID from projectRepos
+    // Look up the installation ID from projectRepos, scoped to a repo whose
+    // owning project belongs to the caller's org. Without this join, any
+    // authenticated user (of any org) could mint a write-capable
+    // (actions:write / checks:write) GitHub App token for a repo owned by
+    // another tenant simply by naming its owner/repo.
     const rows = await db
       .select({ githubInstallId: projectRepos.githubInstallId })
       .from(projectRepos)
+      .innerJoin(projects, eq(projectRepos.projectId, projects.id))
       .where(
         and(
           eq(projectRepos.githubOrg, owner),
-          eq(projectRepos.repoName, name)
+          eq(projectRepos.repoName, name),
+          eq(projects.orgId, auth.orgId)
         )
       )
       .limit(1);
@@ -52,8 +60,18 @@ export const getToken = api(
       installationId = rows[0].githubInstallId;
     }
 
-    // Fall back to environment variable for local dev / bootstrap
+    // Fall back to environment variable for local dev / bootstrap only.
+    // Guarded to non-production so it cannot be used to cross a tenant
+    // boundary once the platform is deployed live: without this guard, a
+    // caller whose org does not own the requested repo (the lookup above
+    // returned no row) would still receive a token scoped to whatever
+    // installation GITHUB_INSTALLATION_ID happens to point at.
     if (installationId == null) {
+      if (process.env.NODE_ENV === "production") {
+        throw APIError.notFound(
+          `No GitHub App installation found for repo ${req.repo} in your organization`
+        );
+      }
       const envId = process.env.GITHUB_INSTALLATION_ID;
       if (!envId) {
         throw APIError.notFound(

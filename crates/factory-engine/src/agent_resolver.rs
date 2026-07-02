@@ -171,9 +171,17 @@ pub struct AgentResolver {
 
 impl std::fmt::Debug for AgentResolver {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Recover the guard on poison: `Debug` formatting must not itself
+        // panic just because some earlier cache access panicked while
+        // holding the lock (e.g. during a test failure inspecting state).
+        let cache_len = self
+            .cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .len();
         f.debug_struct("AgentResolver")
             .field("org_id", &self.org_id)
-            .field("cache_entries", &self.cache.lock().unwrap().len())
+            .field("cache_entries", &cache_len)
             .finish()
     }
 }
@@ -210,9 +218,15 @@ impl AgentResolver {
                 ref org_agent_id,
                 version,
             } => {
-                // Check cache first.
+                // Check cache first. Recover the guard on poison rather than
+                // panicking: a prior panicking holder of this Mutex
+                // shouldn't cascade into every subsequent resolution for
+                // the run.
                 {
-                    let guard = self.cache.lock().unwrap();
+                    let guard = self
+                        .cache
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner());
                     if let Some(hit) = guard.get(&(org_agent_id.clone(), version)) {
                         return Ok(hit.clone());
                     }
@@ -251,7 +265,7 @@ impl AgentResolver {
                 };
                 self.cache
                     .lock()
-                    .unwrap()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
                     .insert((row.id, row.version), resolved.clone());
                 Ok(resolved)
             }
@@ -271,9 +285,13 @@ impl AgentResolver {
                     1 => {
                         let row = matches[0];
 
-                        // Check cache.
+                        // Check cache. Recover the guard on poison rather
+                        // than panicking (see the `ById` arm above).
                         {
-                            let guard = self.cache.lock().unwrap();
+                            let guard = self
+                                .cache
+                                .lock()
+                                .unwrap_or_else(|poisoned| poisoned.into_inner());
                             if let Some(hit) =
                                 guard.get(&(row.id.clone(), row.version))
                             {
@@ -297,7 +315,7 @@ impl AgentResolver {
                         };
                         self.cache
                             .lock()
-                            .unwrap()
+                            .unwrap_or_else(|poisoned| poisoned.into_inner())
                             .insert((row.id.clone(), row.version), resolved.clone());
                         Ok(resolved)
                     }
@@ -327,9 +345,13 @@ impl AgentResolver {
                 candidates.sort_by_key(|r| std::cmp::Reverse(r.version));
                 let row = candidates[0];
 
-                // Check cache.
+                // Check cache. Recover the guard on poison rather than
+                // panicking (see the `ById` arm above).
                 {
-                    let guard = self.cache.lock().unwrap();
+                    let guard = self
+                        .cache
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner());
                     if let Some(hit) = guard.get(&(row.id.clone(), row.version)) {
                         return Ok(hit.clone());
                     }
@@ -344,7 +366,7 @@ impl AgentResolver {
                 };
                 self.cache
                     .lock()
-                    .unwrap()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
                     .insert((row.id.clone(), row.version), resolved.clone());
                 Ok(resolved)
             }

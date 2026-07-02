@@ -201,13 +201,14 @@
       "Out of scope (deferred)",
       "5.1 Implementation note — audit-chain emission",
       "6. Compliance",
-      "7. Cross-references"
+      "7. Cross-references",
+      "Security hardening amendment (2026-07-02)"
     ],
     "specPath": "specs/172-opc-live-agent-session-introspection/spec.md",
     "status": "approved",
     "summary": "OWASP ASI10 (Rogue Agents) requires operator-visible agent activity and the ability to terminate misbehaving agents. AIDE-VELOCITY's `GET /admin/sse-sessions` endpoint surfaces a live snapshot of all connected SSE clients, grouped by API key / user / IP — the operational primitive that lets an admin identify and force-disconnect a runaway agent. OPC has no equivalent surface today.\nThis spec adds a Live Sessions panel to OPC's governance / inspect surface, showing every connected agent session (per spec 157 multi-session-per-project- path discipline, extended with the orchestrator's active workflows per spec 052) with per-session scope, event-rate, recent tool calls, and a force- disconnect control. The panel is the operator's defence against a runaway agent that consumes resources, makes excessive tool calls, or holds onto scopes beyond its intended lifetime.\nForce-disconnect is graceful — the agent's session is closed, its in-flight tool calls are cancelled, and the session checkpoint (per spec 095) preserves the conversational state for forensics. Force- disconnect is logged to the governance certificate chain for audit.\n",
     "title": "Live agent-session introspection in OPC — connected-agent visibility and force-disconnect (ASI10)"
   },
-  "shardHash": "36ef7f211fb171c62b1ec931923a9a3121ac7baf45bf3b3569ffdf88a30d1b7c",
+  "shardHash": "496d6112c735248f3782d037700c71c43585ab183203ed6996ef9b0be190cc8e",
   "specVersion": "1.1.0"
 }

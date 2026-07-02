@@ -45,13 +45,6 @@
     "owner": "open-agentic-platform",
     "references": [
       {
-        "role": "brief",
-        "unit": {
-          "kind": "file",
-          "path": "/tmp/briefs/rename-opc-brief.md"
-        }
-      },
-      {
         "role": "precedent",
         "unit": {
           "kind": "file",
@@ -76,6 +69,6 @@
     "summary": "Mechanical rename of the OPC desktop app's on-disk location from the former path under `product/apps/` to `product/apps/opc`. The former directory name was inconsistent with the binary name `opc` and with the broader OPC nomenclature used across the spec corpus. The rename is purely structural: the binary name (`opc`), the npm package name (`@opc/desktop`), the Tauri identifier, the SBOM artifact basenames, and all runtime behavior are out of scope. The rename PR also folds in a single missing `[package.metadata.oap]` claim on `product/apps/opc/src-tauri/Cargo.toml` pointing at spec 032 — a pre-existing gap identified during the precondition survey for the upcoming codification handoff.\n",
     "title": "Rename product/apps/desktop → product/apps/opc"
   },
-  "shardHash": "18114e8d7a3b6195a74ce553e92de2c925a7c93f34850d96fc1ada1c86b3ad9e",
+  "shardHash": "dc14f1331cf881174f6561243c7de431b52d0ef223426de3d7c3722cf4208f1c",
   "specVersion": "1.1.0"
 }

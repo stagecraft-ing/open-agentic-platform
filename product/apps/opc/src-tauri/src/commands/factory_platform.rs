@@ -151,6 +151,15 @@ impl From<FactoryClientError> for FactoryError {
                 FactoryError::Reservation(format!("http {status}: {body}"))
             }
             FactoryClientError::Decode(m) => FactoryError::Reservation(format!("decode: {m}")),
+            FactoryClientError::InvalidPathComponent { field, value } => {
+                // A platform-supplied name (adapter/contract/agent/role) failed
+                // the path-component guard in factory-platform-client. Treat it
+                // as a materialisation failure so the UI surfaces the rejected
+                // value rather than silently proceeding.
+                FactoryError::Materialisation(format!(
+                    "invalid path component in {field}: {value}"
+                ))
+            }
         }
     }
 }

@@ -58,11 +58,22 @@ runs:
 
     - name: Ensure GHCR pull secret
       shell: bash
+      # GHCR_PAT flows through an env var (not the inline
+      # `${{ inputs.ghcr-pat }}` reference) so the secret is never
+      # substituted into the rendered workflow script text, matching the
+      # kubeconfig-b64 handling above. That only keeps it out of the
+      # step's *source*, though: `--docker-password="$GHCR_PAT"` below
+      # still expands the secret onto kubectl's argv at run time, which
+      # is visible to anything reading /proc/<pid>/cmdline or `ps` on this
+      # runner for the process's lifetime (`kubectl create secret
+      # docker-registry` has no stdin/file password flag to avoid this).
+      env:
+        GHCR_PAT: ${{ inputs.ghcr-pat }}
       run: |
         kubectl -n ${{ inputs.namespace }} create secret docker-registry ${{ inputs.pull-secret-name }} \
           --docker-server=ghcr.io \
           --docker-username=${{ inputs.ghcr-username }} \
-          --docker-password=${{ inputs.ghcr-pat }} \
+          --docker-password="$GHCR_PAT" \
           --dry-run=client -o yaml | kubectl apply -f -
 
     - name: Reclaim helm field-manager ownership

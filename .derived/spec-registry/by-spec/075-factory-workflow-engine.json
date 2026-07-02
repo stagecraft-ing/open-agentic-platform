@@ -41,13 +41,14 @@
       "Phase 5: Agent Bridge & Policy (2 days)",
       "Success Criteria",
       "Dependencies",
-      "Risks"
+      "Risks",
+      "Security hardening amendment (2026-07-02)"
     ],
     "specPath": "specs/075-factory-workflow-engine/spec.md",
     "status": "approved",
     "summary": "Extends the OAP orchestrator to natively support Factory pipeline workflows including two-phase manifest execution (process stages + dynamic scaffold fan-out), Build Spec to manifest generation, post-step verification hooks, and Rust-native verification harness integration.\n",
     "title": "Factory Workflow Engine — Orchestrator Fan-Out, Manifest Generation, and Verification"
   },
-  "shardHash": "320fd33a0f8828960c0b12e96c8443dd334ed338b60a9dbd1a7f3c9bcd568fa8",
+  "shardHash": "77138b872c1aadd4fd174c0cda5d8f690d00b5aa21349fc8a0c99e5a907c6974",
   "specVersion": "1.1.0"
 }

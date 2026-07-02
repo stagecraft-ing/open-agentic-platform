@@ -97,8 +97,12 @@ struct Args {
     #[arg(short, long, default_value = "8080")]
     port: u16,
 
-    /// Host to bind to (0.0.0.0 for all interfaces)
-    #[arg(short = 'H', long, default_value = "0.0.0.0")]
+    /// Host to bind to. Defaults to loopback-only (127.0.0.1); pass an
+    /// explicit non-loopback address (e.g. 0.0.0.0 for all interfaces, or a
+    /// LAN IP) to opt into network-reachable mode. /api and /ws/claude
+    /// require the control token in that mode (see ~/.oap/control.token),
+    /// and the server refuses to start without one (finding HIGH #2).
+    #[arg(short = 'H', long, default_value = "127.0.0.1")]
     host: String,
 }
 
@@ -114,7 +118,7 @@ async fn main() {
         args.host, args.port
     );
 
-    if let Err(e) = web_server::start_web_mode(Some(args.port)).await {
+    if let Err(e) = web_server::start_web_mode(Some(args.port), Some(args.host.clone())).await {
         eprintln!("❌ Failed to start web server: {}", e);
         std::process::exit(1);
     }

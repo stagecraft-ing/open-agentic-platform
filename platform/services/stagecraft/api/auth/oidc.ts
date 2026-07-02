@@ -16,7 +16,7 @@
 import { api, APIError } from "encore.dev/api";
 import log from "encore.dev/log";
 import crypto from "crypto";
-import { applyRateLimit } from "./rate-limit";
+import { applyRateLimit, checkRateLimit } from "./rate-limit";
 import { db } from "../db/drizzle";
 import {
   users,
@@ -106,6 +106,21 @@ function cleanupStalePendingOidc() {
 export const oidcDiscover = api(
   { expose: true, method: "GET", path: "/auth/oidc/discover", auth: false },
   async (req: { email: string }): Promise<{ found: boolean; providerId?: string; providerName?: string }> => {
+    // Minimal mitigation for the email-domain-to-SSO enumeration oracle: this
+    // is an unauthenticated, unkeyed endpoint whose entire purpose is to
+    // answer "does this email have SSO", so a generic response shape would
+    // defeat the feature rather than fix the leak. Rate limiting (global,
+    // matching the desktopToken/desktopRefresh precedent in desktop.ts,
+    // since typed api() handlers have no per-IP hook the way api.raw()
+    // handlers do via applyRateLimit) at least slows domain enumeration.
+    // A fuller fix (per-IP throttling, CAPTCHA, or removing the oracle by
+    // routing all sign-in through a single generic form) is out of scope
+    // for this pass.
+    const retryAfter = checkRateLimit("oidc-discover-global");
+    if (retryAfter !== null) {
+      throw APIError.resourceExhausted(`Rate limited. Retry after ${retryAfter}s`);
+    }
+
     if (!req.email || !req.email.includes("@")) {
       throw APIError.invalidArgument("Valid email address required");
     }

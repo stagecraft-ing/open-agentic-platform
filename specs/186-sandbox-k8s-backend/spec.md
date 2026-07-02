@@ -497,3 +497,8 @@ The K8s backend interacts cleanly with the existing K8s baseline under
 - **`platform/k8s/policies/namespace-baseline/`** — operational
   precedent. Not normative for the contract, but the union with
   per-execution policies is what the verifier sees.
+
+
+## Security hardening amendment (2026-07-02)
+
+Acknowledging the 2026-07-02 security-hardening amendments to spec 162 (sandbox-execution-contract) and spec 185 (sandbox-local-container-backend), which this K8s backend shares the sandbox contract with. The factory-engine shell-boundary documentation recorded there references the sandbox contract as the isolation integration point; this note satisfies the spec 127 coupling gate for the co-authored spec.md paths and requires no change to the K8s backend behavior.

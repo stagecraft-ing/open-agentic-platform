@@ -495,3 +495,8 @@ that delivers the contract." The reframe:
 The reframe preserves the spec's id (`162`), depends_on graph,
 and ASI05 / ASI10 compliance claims. It restructures *how* the
 mitigation is presented, not *what* it mitigates.
+
+
+## Security hardening amendment (2026-07-02)
+
+Acknowledging the 2026-07-02 security-hardening amendment to spec 075 (factory-workflow-engine). The resolver mutex-poison recovery and the documented run_command shell boundary reference this sandbox-execution contract as the isolation integration point for config and spec-derived command strings; the note satisfies the spec 127 coupling gate for the co-authored spec.md path.

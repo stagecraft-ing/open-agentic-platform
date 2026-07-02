@@ -99,13 +99,14 @@
       "7. Acceptance posture",
       "8. Cross-references",
       "Amendments received",
-      "9. Amendment to spec 101 (codebase-index-mvp)"
+      "9. Amendment to spec 101 (codebase-index-mvp)",
+      "Security hardening amendment (2026-07-02)"
     ],
     "specPath": "specs/160-factory-adapter-stagecraft-relocation/spec.md",
     "status": "approved",
     "summary": "Closes out the in-flight migration named in `AIDE-VELOCITY-OAP-INTENT.md` §8.1: the canonical `factory/` directory (which carried per-adapter `manifest.yaml` files plus `factory/process/stages/*`) has been removed from this repo as part of relocating factory/adapter machinery into stagecraft as a first-class feature. The relocation is partial — the former directory is gone, but no stagecraft-resident replacement has been declared. The `codebase-indexer` still lists `factory/adapters/*/manifest.yaml` and `factory/process/stages/*` in its `collect_input_files` hash set, which is a fossil that fails closed in staleness checks any time those paths are mentioned by a hash signature even though they no longer exist.\nThis spec establishes the stagecraft-resident location contract for adapter manifests and process stage templates, repoints the codebase-indexer input list at the new location, and excises the legacy `factory/` references from CLAUDE.md / README.md / Makefile / CI workflows. It is a closure spec for an in-flight migration, not a redesign of factory primitives — the factory contract types (spec 074), the two-phase workflow engine (spec 075), and stagecraft's factory-bridge API (spec 077) remain authoritative on their own surfaces; this spec only relocates where adapter-manifest authority *lives*.\n",
     "title": "Factory / adapter relocation into stagecraft"
   },
-  "shardHash": "021dcf5a20ea34344f75c40683d89a62da3bf2a516389ce1848d8ab6c79c3ac7",
+  "shardHash": "732f466ed3ee0e266f6c166fa1c30013f3f88ed1688f1da76fd77050b3853fe3",
   "specVersion": "1.1.0"
 }

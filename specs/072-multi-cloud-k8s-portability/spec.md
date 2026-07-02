@@ -278,3 +278,10 @@ Operator state (kubeconfig + .env) was relocated out of the repo tree to
 `stagecraft.yaml`) are repointed accordingly. The two Encore infra configs were
 also unified into a single `infra.config.json` (mirrord now compiles against
 it). Mechanical only; no change to the multi-cloud portability design.
+
+
+## Security hardening amendment (2026-07-02)
+
+Applied default-deny NetworkPolicies to the application namespaces declaratively, removing the MVP skip in the Hetzner post-create bootstrap, and provisioned the deployd-api hiqlite secrets through the platform_bootstrap and dev-core Terraform so Key Vault holds them for external-secrets to sync.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

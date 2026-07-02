@@ -600,3 +600,10 @@ updates in the same PR.
   <https://code.claude.com/docs/en/mcp>
 - `.claude/` directory docs:
   <https://code.claude.com/docs/en/claude-directory>
+
+
+## Security hardening amendment (2026-07-02)
+
+Narrowed the Bash execute allowlist off the broad ./target/release/* and ./target/debug/* globs to the specific certificate binaries actually invoked, reducing the set of freshly built binaries that run without a permission gate.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

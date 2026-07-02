@@ -822,3 +822,10 @@ login degrades to the existing `no_installed_orgs` path rather than erroring.
 GitHub becomes the source of truth for installation state, so a fresh database
 (clean-slate reset, oap-bootstrap stand-up) self-heals on first login instead of
 requiring a manual webhook redelivery or reinstall.
+
+
+## Security hardening amendment (2026-07-02)
+
+Hardened the rauthy StatefulSet with pod and container securityContext (runAsNonRoot, seccomp RuntimeDefault, drop ALL capabilities, no privilege escalation, read-only root filesystem with a /tmp emptyDir) and disabled service-account token automount.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

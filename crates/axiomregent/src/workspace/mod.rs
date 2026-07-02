@@ -6,8 +6,40 @@
 use crate::lease::Fingerprint;
 use crate::lease::LeaseStore;
 use anyhow::{Context, Result, anyhow};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
+
+/// Lexically normalize a caller-supplied relative path's `.`/`..` components
+/// without touching the filesystem. Returns `None` when the path is absolute
+/// (a `RootDir`/`Prefix` component) or when a `..` component would climb
+/// above the top of the (relative) path being built, i.e. it can never
+/// resolve to something that lexically escapes whatever root it is later
+/// joined onto.
+///
+/// This is the fix for the "parent does not exist" walk-up branch below,
+/// which previously joined the raw, unnormalized `rel_path` onto
+/// `repo_root`: a path like `newdir/../../../evil` walked up past
+/// `repo_root` before any existence/canonicalization check ever ran,
+/// because none of the intermediate components existed yet. Normalizing
+/// first guarantees every branch only ever operates on a path that is
+/// structurally (lexically) under the root it's joined to.
+fn normalize_relative(rel_path: &str) -> Option<PathBuf> {
+    let mut stack: Vec<Component<'_>> = Vec::new();
+    for component in Path::new(rel_path).components() {
+        match component {
+            Component::Normal(_) => stack.push(component),
+            Component::CurDir => {}
+            Component::ParentDir => match stack.last() {
+                Some(Component::Normal(_)) => {
+                    stack.pop();
+                }
+                _ => return None, // would climb above the root
+            },
+            Component::RootDir | Component::Prefix(_) => return None, // absolute path rejected
+        }
+    }
+    Some(stack.iter().collect())
+}
 
 pub struct RepoMutationTools {
     pub lease_store: Arc<LeaseStore>,
@@ -23,7 +55,12 @@ impl RepoMutationTools {
 
     // Safety helper: ensure path is inside repo root and is safe
     fn resolve_target_path(&self, repo_root: &Path, rel_path: &str) -> Result<PathBuf> {
-        let path = repo_root.join(rel_path);
+        // Reject `..`/absolute components before joining onto repo_root, so
+        // every branch below (including the "parent does not exist" walk-up)
+        // only ever operates on a path that is lexically under repo_root.
+        let normalized = normalize_relative(rel_path)
+            .ok_or_else(|| anyhow!("Path escapes repo root: {}", rel_path))?;
+        let path = repo_root.join(&normalized);
         // If file needs to be created, we must check parent directory presence and safety.
         // For existing files, we canonicalize.
 
@@ -333,6 +370,54 @@ mod tests {
     use super::*;
     use crate::lease::LeaseStore;
     use std::sync::Arc;
+
+    #[test]
+    fn normalize_relative_rejects_absolute_paths() {
+        assert!(normalize_relative("/etc/passwd").is_none());
+    }
+
+    #[test]
+    fn normalize_relative_rejects_climb_above_root() {
+        // Every one of these lexically climbs above the (empty) root before
+        // any component that could "absorb" the `..`.
+        assert!(normalize_relative("..").is_none());
+        assert!(normalize_relative("../evil").is_none());
+        assert!(normalize_relative("newdir/../../../evil").is_none());
+    }
+
+    #[test]
+    fn normalize_relative_collapses_internal_dotdot() {
+        // `..` that stays within the path (never climbs above the top) is
+        // fine: it collapses lexically, same as `a/b/../c` -> `a/c`.
+        assert_eq!(
+            normalize_relative("a/b/../c").unwrap(),
+            std::path::PathBuf::from("a/c")
+        );
+        assert_eq!(
+            normalize_relative("./a/./b").unwrap(),
+            std::path::PathBuf::from("a/b")
+        );
+    }
+
+    #[tokio::test]
+    async fn resolve_target_path_rejects_traversal_via_nonexistent_parent() {
+        // Regression test for the "parent does not exist" walk-up branch:
+        // a target under a not-yet-created directory whose relative path
+        // climbs above repo_root must be rejected, not silently resolved
+        // outside repo_root.
+        let dir = tempfile::tempdir().unwrap();
+        let client = crate::db::init_hiqlite(dir.path()).await.unwrap();
+        let lease_store = Arc::new(LeaseStore::new(client));
+        let tools = RepoMutationTools::new(lease_store);
+
+        let err = tools
+            .resolve_target_path(dir.path(), "newdir/../../../evil")
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("escapes repo root"),
+            "unexpected error: {err}"
+        );
+    }
 
     #[tokio::test]
     async fn test_snapshot_mode_returns_error() {

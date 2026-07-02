@@ -317,3 +317,10 @@ infrastructure / workflow scanning into
 `tools/oap/oap-code-index-enrich`); the input-hash walk is the only
 remaining surface where these paths are named, and that is what
 this spec repoints.
+
+
+## Security hardening amendment (2026-07-02)
+
+Closed authorization gaps across the stagecraft API surface: the admin agent-policy endpoints now require an admin role and derive actorUserId from the authenticated identity; getToken verifies org ownership before brokering a GitHub App token and gates its env fallback to non-production; isAgentAuthorized requires authentication and a per-org id instead of a hardcoded default org; audit ingestion validates and binds its attribution fields; getPolicyBundle and getGrants validate and bind their identifiers; and oidcDiscover is rate-limited.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

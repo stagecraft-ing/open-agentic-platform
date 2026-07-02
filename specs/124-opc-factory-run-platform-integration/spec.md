@@ -563,3 +563,10 @@ a previously-empty org resolve a real manifest is tracked separately — it
 additionally requires stagecraft's `sanitiseManifest` to stop dropping the
 spec-074-required `validation` block, and a verified `OAP_NATIVE_ADAPTERS_DIR`
 mount.
+
+
+## Security hardening amendment (2026-07-02)
+
+Added path-component validation that rejects separators and .. traversal on platform-supplied adapter, contract, agent, and role names before any cache write, surfaced through a new InvalidPathComponent error variant in the client error mapping.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

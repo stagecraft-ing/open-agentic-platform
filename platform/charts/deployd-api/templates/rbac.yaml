@@ -1,21 +1,80 @@
+# deployd-api RBAC.
+#
+# HIGH finding (security review): the previous single ClusterRole +
+# ClusterRoleBinding granted full CRUD on `secrets` (and every other
+# workload resource) CLUSTER-WIDE -- every namespace on the cluster,
+# including ones deployd-api has no business touching (kube-system,
+# monitoring, rauthy-system, etc), not just the tenant namespaces it
+# actually manages.
+#
+# Split into two ClusterRoles:
+#   - deployd-controller-namespaces: only for resources that are
+#     inherently cluster-scoped in Kubernetes (Namespace is not a
+#     namespaced resource, so this grant cannot be narrowed below
+#     cluster scope no matter what). No secrets, no workloads. Always
+#     bound cluster-wide via a ClusterRoleBinding below.
+#   - deployd-controller-workloads: everything deployd needs inside a
+#     target namespace to run `helm upgrade --install` for tenant/app
+#     charts (see the inline comment below for the incident that shaped
+#     this verb list). Every resource here IS namespaced, so it does not
+#     need to be granted cluster-wide -- see the binding logic at the
+#     bottom of this file.
+#
+# Blast-radius fix: `.Values.rbac.namespaces`. When an operator supplies
+# an explicit namespace allowlist, deployd-controller-workloads is bound
+# ONLY in those namespaces (one RoleBinding per namespace, reusing the
+# same ClusterRole definition) instead of a cluster-wide
+# ClusterRoleBinding.
+#
+# Default (`rbac.namespaces: []`) preserves today's cluster-wide grant
+# for deployd-controller-workloads, because deployd-api currently creates
+# brand-new tenant/preview namespaces ON DEMAND (the `namespaces.create`
+# verb below) and has no code path that provisions a RoleBinding for
+# itself in a namespace it just created. An allowlist that does not yet
+# include that brand-new namespace would make `helm upgrade --install`
+# fail there with a worse, harder-to-diagnose "namespace exists but I
+# have no rights in it" failure than the one the resource-list comment
+# below already documents from a real incident.
+#
+# Residual architectural work (NOT done here -- needs a deployd-api-rs
+# code change, out of scope for this chart-only pass): teach deployd-api
+# to create a RoleBinding (referencing deployd-controller-workloads) in
+# every namespace it creates, right after it creates it. Once that lands,
+# `rbac.namespaces` becomes unnecessary for the dynamic-tenant case and
+# this chart can drop the cluster-wide fallback entirely, closing the gap
+# the original MVP comment flagged ("Later: tighten by restricting to
+# tenant namespaces only (OPA/Gatekeeper + naming convention)"). Until
+# then, operators with a closed, known set of target namespaces (no
+# dynamic tenant provisioning) can set `rbac.namespaces` today to opt out
+# of the cluster-wide grant.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: deployd-controller
+  name: deployd-controller-namespaces
 rules:
-  # Namespace management (for tenant env namespaces)
+  # Namespace management (for tenant env namespaces). Namespace is a
+  # cluster-scoped resource in Kubernetes -- this cannot be narrowed to a
+  # RoleBinding no matter how deployd-controller-workloads below is scoped.
   - apiGroups: [""]
     resources: ["namespaces"]
     verbs: ["get", "list", "watch", "create", "patch", "update"]
-
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: deployd-controller-workloads
+rules:
   # NetworkPolicy baseline
   - apiGroups: ["networking.k8s.io"]
     resources: ["networkpolicies"]
     verbs: ["get", "list", "watch", "create", "patch", "update"]
 
   # Helm installs need broad access in target namespaces.
-  # For MVP, allow common workload resources cluster-wide.
-  # Later: tighten by restricting to tenant namespaces only (OPA/Gatekeeper + naming convention).
+  # For MVP, allow common workload resources cluster-wide (see the
+  # binding logic below for how `.Values.rbac.namespaces` narrows this).
+  # Later: tighten by restricting to tenant namespaces only (OPA/Gatekeeper
+  # + naming convention), or teach deployd-api to self-provision a
+  # RoleBinding per namespace it creates (see the file header).
   #
   # The tenant chart (acme-vue-encore) creates a ServiceAccount, a Postgres
   # StatefulSet (its volumeClaimTemplates yield PVCs), Services, a Secret, a
@@ -47,17 +106,51 @@ rules:
   - apiGroups: ["policy"]
     resources: ["poddisruptionbudgets"]
     verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: deployd-controller
+  name: deployd-controller-namespaces
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: deployd-controller
+  name: deployd-controller-namespaces
 subjects:
   - kind: ServiceAccount
     name: {{ .Values.serviceAccount.name }}
     namespace: {{ .Release.Namespace }}
+---
+{{- if .Values.rbac.namespaces }}
+{{- range .Values.rbac.namespaces }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deployd-controller-workloads
+  namespace: {{ . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: deployd-controller-workloads
+subjects:
+  - kind: ServiceAccount
+    name: {{ $.Values.serviceAccount.name }}
+    namespace: {{ $.Release.Namespace }}
+---
+{{- end }}
+{{- else }}
+# MVP default (see file header): no `.Values.rbac.namespaces` allowlist
+# supplied, so deployd-controller-workloads is bound cluster-wide, same
+# effective scope as before this fix's ClusterRole split.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: deployd-controller-workloads
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: deployd-controller-workloads
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccount.name }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

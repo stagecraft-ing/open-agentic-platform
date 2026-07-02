@@ -375,3 +375,8 @@ are a separate refinement of the orchestrator (spec
   through.
 - **Spec 036** — safety-tier-governance; the
   threshold configuration substrate.
+
+
+## Security hardening amendment (2026-07-02)
+
+Acknowledging the 2026-07-02 security-hardening amendment to spec 052 (state-persistence), which this spec refines. The orchestrator verify and claude-executor shell-boundary documentation recorded there does not alter the live agent session introspection surface this spec governs; the note satisfies the spec 127 coupling gate for the co-authored spec.md path.

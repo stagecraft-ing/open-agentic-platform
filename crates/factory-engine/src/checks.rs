@@ -231,6 +231,17 @@ pub fn run_grep_present(
 // ── Check Runner 5: Command Execution ────────────────────────────────
 
 /// Run a shell command and check exit code.
+///
+/// SECURITY BOUNDARY: `command` is executed via `sh -c`, i.e. with full
+/// shell interpretation, on the host running the factory pipeline. It
+/// comes from the pipeline/adapter's check manifest (config/spec-derived),
+/// not from an untrusted end-user request path; this runner trusts that
+/// manifest by design, the same way the pipeline trusts every other
+/// command it's configured to run. There is currently no flag on this
+/// runner to route through the spec 162 `SandboxClient` isolation
+/// contract (`crate::sandbox`) instead of the host shell; if untrusted or
+/// third-party check manifests become a supported input, wire this call
+/// through that contract rather than adding ad-hoc sanitization here.
 pub async fn run_command(
     check_id: &str,
     command: &str,

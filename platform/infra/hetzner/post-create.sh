@@ -67,7 +67,23 @@ for ns in stagecraft-system deployd-system rauthy-system; do
   kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
 done
 
-# --- Resource quotas + limit ranges (skip default-deny for MVP) ---
+# --- Resource quotas + limit ranges ---
+#
+# Default-deny NetworkPolicies (plus the allow rules each namespace needs
+# for ingress-nginx/DNS/cross-namespace traffic) are no longer skipped
+# for stagecraft-system/deployd-system/rauthy-system: they are Flux-
+# managed declaratively via platform/k8s/policies/{stagecraft,deployd,
+# rauthy}/networkpolicy-*.yaml, wired into the `policies` Flux
+# Kustomization through the explicit list in
+# platform/k8s/policies/kustomization.yaml (same pattern already proven
+# for the monitoring namespace). They are intentionally NOT applied
+# imperatively here the way resourcequota/limitrange below are: unlike
+# those, a bare `kubectl apply` of a default-deny landing before Flux has
+# reconciled its paired allow rules would repeat the 2026-06-12 incident
+# (see the monitoring policy's header comment) -- Ingress/Egress
+# isolation has no "dormant-additive" grace window, so default-deny and
+# its allows must land together, which the single Flux Kustomization
+# apply guarantees and a second imperative code path here would not.
 info "Applying resource policies..."
 for ns in stagecraft-system deployd-system rauthy-system; do
   kubectl apply -n "$ns" -f "$PLATFORM_ROOT/k8s/policies/namespace-baseline/resourcequota.yaml" 2>/dev/null || true

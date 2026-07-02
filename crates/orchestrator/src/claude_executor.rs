@@ -366,6 +366,18 @@ impl GovernedExecutor for ClaudeCodeExecutor {
             });
         }
 
+        // SECURITY BOUNDARY: spawns the `claude` CLI directly with `args`
+        // built from the dispatch request (system prompt, user message,
+        // model, resume session id, ...), which is config/spec-derived, not
+        // an untrusted end-user request path. This is argv-based invocation
+        // (`Command::args`, not a shell string), so it does not carry the
+        // `sh -c` shell-metacharacter injection class that `checks.rs` and
+        // `verify.rs` document at their own sites; each element becomes one
+        // literal argv entry. There is no flag here to require isolated
+        // execution of the spawned `claude` process; if untrusted or
+        // third-party pipeline content becomes a supported input, this is
+        // the call site to route through a sandbox execution contract (see
+        // `factory_engine::sandbox::SandboxClient`, spec 162).
         let mut cmd = tokio::process::Command::new("claude");
         cmd.args(&args).current_dir(&self.project_path);
         if let Some(ref proj_id) = request.project_id {

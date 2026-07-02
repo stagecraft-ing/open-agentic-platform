@@ -8,9 +8,8 @@
       "Bash(./tools/lint/*)",
       "Bash(./tools/lint/*/*)",
       "Bash(./crates/axiomregent/target/release/axiomregent*)",
-      "Bash(./crates/*/target/release/*)",
-      "Bash(./target/release/*)",
-      "Bash(./target/debug/*)"
+      "Bash(./crates/target/release/build-certificate*)",
+      "Bash(./crates/target/release/verify-certificate*)"
     ],
     "deny": [
       "Bash(cargo publish*)",

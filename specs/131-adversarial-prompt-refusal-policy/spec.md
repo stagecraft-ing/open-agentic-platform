@@ -233,3 +233,10 @@ truthful so an action becomes more convenient.**
 Spec 178 (opc-directory-rename, 2026-05-24): mechanical path rename
 `product/apps/desktop/*` → `product/apps/opc/*`. No semantic change
 to this spec's claims; owned paths inherit the new prefix.
+
+
+## Security hardening amendment (2026-07-02)
+
+Corrected the stale spec-range reference in the repository-structure overview of CLAUDE.md (feature specifications now span 000 to 224) during the drift sweep.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

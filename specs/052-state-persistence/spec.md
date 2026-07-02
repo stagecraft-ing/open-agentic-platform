@@ -225,3 +225,10 @@ Orchestrator startup
 - **R-001**: State file corruption from non-atomic writes on certain filesystems. Mitigation: use write-to-temp-then-rename pattern; verify atomicity in integration tests on target platforms.
 - **R-002**: Resume may produce different results if external state has changed between crash and resume (e.g., upstream API changes). Mitigation: document that resume guarantees step-skip but not idempotency of the environment; recommend idempotent step design.
 - **R-003**: Large workflows with many steps may produce large state files. Mitigation: SQLite backend handles large state efficiently; JSON backend is recommended only for workflows under 100 steps.
+
+
+## Security hardening amendment (2026-07-02)
+
+Documented the security boundary on run_verify_commands and the claude executor spawn where config and spec-derived command strings run via the shell, referencing the spec-162 sandbox contract as the isolation point; execution semantics are unchanged.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

@@ -892,3 +892,10 @@ folded in.
    backup keys); `secretproviderclass.yaml` and `secrets-k8s.yaml`
    are NOT in `implements:` (existing extension points cover them);
    the runbook documents the per-provider operator procedure.
+
+
+## Security hardening amendment (2026-07-02)
+
+Provisioned the hiqlite raft and API secrets through the chart (values keys, secret template, and env wiring) so the deployd-api service can require them at startup instead of falling back to known default credentials.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

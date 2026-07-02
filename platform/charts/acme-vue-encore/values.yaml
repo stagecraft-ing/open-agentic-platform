@@ -62,6 +62,16 @@ serviceAccount:
   name: ""
   annotations: {}
 
+# Security review fix: default-deny + necessary-allow NetworkPolicies for
+# this tenant/preview namespace (templates/networkpolicy.yaml). deployd-api
+# creates each tenant namespace dynamically (helm upgrade --install
+# --create-namespace); there is no static entry point to wire a namespace
+# whose name isn't known ahead of time into the platform/k8s/policies
+# Flux Kustomization, so this chart carries its own copy that lands with
+# every tenant install instead.
+networkPolicy:
+  enabled: true
+
 # Stateless-by-policy (spec 136 C-001, refined by 214 FR-012: durable state
 # lives only in the declared database).
 podSecurityContext:

@@ -74,11 +74,15 @@ spec:
             - --email-domain={{ . }}
             {{- end }}
             {{- if and (not .Values.allowlist.domains) (not .Values.allowlist.emails) }}
-            # No allowlist configured at all → require an email but accept any
-            # domain. This is the "Rauthy-only" gate; useful when Rauthy's
-            # Auth Provider already enforces the allowlist (e.g. Google
-            # Workspace org-restricted upstream).
+              {{- if .Values.allowlist.trustRauthyOnly }}
+            # Explicit opt-out (allowlist.trustRauthyOnly=true): operator has
+            # confirmed Rauthy's own Auth Provider already enforces the
+            # allowlist upstream (e.g. Google Workspace org-restricted). This
+            # is the only path that may render --email-domain=*.
             - --email-domain=*
+              {{- else }}
+                {{- fail "oauth2-proxy-gate: no allowlist configured (allowlist.emails and allowlist.domains are both empty). Set one of them, or set allowlist.trustRauthyOnly=true to explicitly opt into Rauthy-only enforcement. Refusing to default to an open gate (--email-domain=*)." }}
+              {{- end }}
             {{- end }}
           ports:
             - name: http

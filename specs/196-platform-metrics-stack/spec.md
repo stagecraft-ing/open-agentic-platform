@@ -762,3 +762,10 @@ cloud. The metrics block therefore now lives in that one config and applies to
 every cloud the substrate targets, including Azure once it is stood up. The
 FR-001 refine unit is repointed to `infra.config.json`. This is a deliberate
 design change to FR-009/SC-004, not a drift correction.
+
+
+## Security hardening amendment (2026-07-02)
+
+Wired the new per-namespace default-deny NetworkPolicies into the policies kustomization so the stagecraft, deployd, and rauthy namespaces are covered alongside monitoring.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

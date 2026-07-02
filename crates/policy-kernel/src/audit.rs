@@ -233,9 +233,26 @@ impl AuditLogger {
             m.insert("record_hash".into(), Value::String(head_hash.clone()));
         }
         if let Some(writer) = guard.writer.as_mut() {
-            if let Ok(line) = serde_json::to_string(&head) {
-                let _ = writeln!(writer, "{line}");
-                let _ = writer.flush();
+            match serde_json::to_string(&head) {
+                Ok(line) => {
+                    if let Err(e) = writeln!(writer, "{line}") {
+                        eprintln!(
+                            "[audit] segment-head write failed for segment {}: {e}; \
+                             the tamper-evident anchor for this segment was NOT written",
+                            guard.segment_id
+                        );
+                    } else if let Err(e) = writer.flush() {
+                        eprintln!(
+                            "[audit] segment-head flush failed for segment {}: {e}; \
+                             the tamper-evident anchor for this segment may be lost",
+                            guard.segment_id
+                        );
+                    }
+                }
+                Err(e) => eprintln!(
+                    "[audit] failed to serialize segment-head record for segment {}: {e}",
+                    guard.segment_id
+                ),
             }
         }
 
@@ -246,23 +263,42 @@ impl AuditLogger {
         for i in (1..MAX_ROTATIONS).rev() {
             let from = rotation_path(&self.path, i);
             let to = rotation_path(&self.path, i + 1);
-            if from.exists() {
-                let _ = fs::rename(&from, &to);
+            if from.exists()
+                && let Err(e) = fs::rename(&from, &to)
+            {
+                eprintln!(
+                    "[audit] rotation shift failed ({} -> {}): {e}",
+                    from.display(),
+                    to.display()
+                );
             }
         }
-        let _ = fs::rename(&self.path, rotation_path(&self.path, 1));
+        if let Err(e) = fs::rename(&self.path, rotation_path(&self.path, 1)) {
+            eprintln!(
+                "[audit] failed to rotate {} to {}: {e}; the closed segment stays at the live \
+                 path and may be appended to or overwritten by the next reopen",
+                self.path.display(),
+                rotation_path(&self.path, 1).display()
+            );
+        }
         let oldest = rotation_path(&self.path, MAX_ROTATIONS + 1);
-        if oldest.exists() {
-            let _ = fs::remove_file(oldest);
+        if oldest.exists()
+            && let Err(e) = fs::remove_file(&oldest)
+        {
+            eprintln!(
+                "[audit] failed to remove oldest rotation {}: {e}",
+                oldest.display()
+            );
         }
 
         // Reopen a fresh segment whose genesis binds the closed head.
-        if let Ok(file) = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&self.path)
-        {
-            guard.writer = Some(BufWriter::new(file));
+        match OpenOptions::new().create(true).append(true).open(&self.path) {
+            Ok(file) => guard.writer = Some(BufWriter::new(file)),
+            Err(e) => eprintln!(
+                "[audit] failed to reopen {} after rotation: {e}; audit logging is now \
+                 disabled until the process restarts or the path becomes writable",
+                self.path.display()
+            ),
         }
         guard.last_hash = head_hash; // continuity: next genesis binds prior head
         guard.segment_id = new_segment_id();

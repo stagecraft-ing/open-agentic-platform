@@ -401,3 +401,10 @@ hash + metadata; stagecraft signs. The seal upsert is idempotent on
 - **Coupling (B2b):** `refines:` `commands/sync_client.rs` (the AC-4 client
   behaviour on the spec-110-owned duplex consumer) + `src-tauri/src/lib.rs`
   (the query command registration); behaviour-refined, not authority-evolved.
+
+
+## Security hardening amendment (2026-07-02)
+
+Audit-log segment rotation no longer silently discards write, rename, or reopen errors: every previously swallowed failure on the tamper-evident chain segment-head write, the rotation renames, and the live-segment reopen is now logged, so a rotation fault cannot make future audit writes go dark unnoticed.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

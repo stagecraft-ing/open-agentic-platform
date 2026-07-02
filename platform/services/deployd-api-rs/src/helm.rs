@@ -542,6 +542,16 @@ pub fn build_gate_values(
     tenant_release: &str,
     tenant_host: &str,
 ) -> Value {
+    // The oauth2-proxy-gate chart's `templates/deployment.yaml` `fail`s at
+    // render time when `allowlist.emails` and `allowlist.domains` are both
+    // empty, unless `allowlist.trustRauthyOnly` is explicitly `true` (see
+    // the chart's values.yaml). `AccessGateDescriptor`'s own doc comment
+    // documents "empty lists yield a Rauthy-only gate" as the deployd
+    // contract, so when both lists are empty here we must also set
+    // `trustRauthyOnly: true` to keep that documented behaviour working
+    // instead of hard-failing the helm install. When either list is
+    // non-empty the chart's own default (`false`) is left alone.
+    let trust_rauthy_only = descriptor.allowed_emails.is_empty() && descriptor.allowed_domains.is_empty();
     serde_json::json!({
         "fullnameOverride": gate_release_name(tenant_release),
         "tenant": {
@@ -558,6 +568,7 @@ pub fn build_gate_values(
         "allowlist": {
             "emails": descriptor.allowed_emails,
             "domains": descriptor.allowed_domains,
+            "trustRauthyOnly": trust_rauthy_only,
         },
         "service": {
             "type": "ClusterIP",
@@ -866,6 +877,30 @@ mod tests {
         assert_eq!(v["allowlist"]["emails"][0], "alice@acme.com");
         assert_eq!(v["allowlist"]["domains"][0], "acme.com");
         assert_eq!(v["service"]["port"], 4180);
+        // Non-empty allowlist ⇒ trustRauthyOnly left at the chart's own
+        // default (false); this build_values call must not force it true.
+        assert_eq!(v["allowlist"]["trustRauthyOnly"], false);
+    }
+
+    #[test]
+    fn build_gate_values_sets_trust_rauthy_only_when_allowlist_empty() {
+        // FR-005 documents "empty lists yield a Rauthy-only gate"; the
+        // oauth2-proxy-gate chart hard-fails at render time on an empty
+        // allowlist unless trustRauthyOnly=true, so build_gate_values must
+        // set it whenever both allowed_emails and allowed_domains are empty.
+        let mut d = sample_descriptor(true);
+        d.allowed_emails.clear();
+        d.allowed_domains.clear();
+        let v = build_gate_values(&d, "myapp-prod", "acme.tenants.test");
+        assert_eq!(v["allowlist"]["trustRauthyOnly"], true);
+    }
+
+    #[test]
+    fn build_gate_values_omits_trust_rauthy_only_when_only_domains_present() {
+        let mut d = sample_descriptor(true);
+        d.allowed_emails.clear();
+        let v = build_gate_values(&d, "myapp-prod", "acme.tenants.test");
+        assert_eq!(v["allowlist"]["trustRauthyOnly"], false);
     }
 
     #[test]

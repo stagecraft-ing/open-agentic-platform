@@ -445,3 +445,10 @@ cannot serve. Reasoning:
 Spec 136 closure unblocks Phase 4 (Option B). The kube-rs question
 re-opens only if Phase 4's first concrete consumer encounters a
 Helm-incompatible scenario.
+
+
+## Security hardening amendment (2026-07-02)
+
+The tenant access gate no longer fails open to email-domain wildcard when no allowlist is configured: it now fails closed at template time unless an explicit allowlist is provided or trustRauthyOnly is set.
+
+Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.

@@ -15,6 +15,19 @@ serviceAccount:
   name: deployd-api-sa
   annotations: {}
 
+# Security review fix (templates/rbac.yaml): opt-in namespace allowlist
+# for deployd-api's workload permissions (secrets/services/configmaps/
+# serviceaccounts/pvc/pods/deployments/statefulsets/ingresses/hpa/pdb/
+# networkpolicies). When non-empty, those permissions are granted ONLY in
+# the listed namespaces (one RoleBinding per namespace against a reusable
+# ClusterRole) instead of cluster-wide. Leave empty ([]) to preserve
+# today's cluster-wide grant -- see templates/rbac.yaml for why that is
+# still the default (deployd-api creates brand-new tenant/preview
+# namespaces on demand and has no code path that grants itself access in
+# a namespace right after creating it).
+rbac:
+  namespaces: []
+
 podLabels: {}
 
 # Spec 196 FR-003 — declare the /metrics endpoint for annotation-keyed
@@ -82,6 +95,27 @@ secrets:
   keys:
     - key: DEPLOYD_DB_URL
       remoteKey: deployd-db-url
+    # store.rs reads these directly (HIQLITE_SECRET_RAFT / HIQLITE_SECRET_API)
+    # and falls back to hardcoded dev defaults when unset today; a
+    # companion deployd-api-rs change is making them required. Every
+    # secrets.provider path MUST populate them:
+    #   - eso (azure/aws/do/gcp): covered here via remoteKey, PROVIDED the
+    #     cloud secret store actually holds a `hiqlite-secret-raft` /
+    #     `hiqlite-secret-api` entry (see infra/terraform's
+    #     keyvault_secrets / platform_bootstrap wiring for Azure).
+    #   - k8s (Hetzner): NOT populated via secrets.data here (create=false
+    #     on Hetzner) -- infra/hetzner/setup.sh materialises them directly
+    #     into the pre-existing `deployd-api-secrets` Secret imperatively.
+    #   - k8s (local dev, create=true): populated in values-local.yaml.
+    #   - csi-azure: unused by any values-*.yaml profile today; the
+    #     SecretProviderClass template has no `secretObjects` sync block,
+    #     so CSI-mounted files never reach `deployd-api-secrets` as env
+    #     vars via the Deployment's `envFrom`. Flagged, not fixed here --
+    #     no profile currently exercises this path.
+    - key: HIQLITE_SECRET_RAFT
+      remoteKey: hiqlite-secret-raft
+    - key: HIQLITE_SECRET_API
+      remoteKey: hiqlite-secret-api
 
 secretsMount:
   enabled: false

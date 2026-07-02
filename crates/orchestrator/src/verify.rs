@@ -28,6 +28,16 @@ pub enum VerifyOutcome {
 ///
 /// Commands run in the given `project_root` directory with `working_dir` resolved
 /// relative to it. Returns on first failure.
+///
+/// SECURITY BOUNDARY: each `vc.command` is executed via `sh -c` on the host
+/// running the pipeline. The command strings come from the step manifest
+/// (config/spec-derived), not from an untrusted end-user request path; this
+/// is by design, on par with every other command the manifest configures
+/// the pipeline to run. There is no flag here to require isolated
+/// execution; if untrusted or third-party manifests become a supported
+/// input, this is the call site to route through a sandbox execution
+/// contract (see `factory_engine::sandbox::SandboxClient`, spec 162)
+/// instead of the host shell.
 pub async fn run_verify_commands(commands: &[VerifyCommand], project_root: &Path) -> VerifyOutcome {
     for (i, vc) in commands.iter().enumerate() {
         let work_dir = project_root.join(&vc.working_dir);

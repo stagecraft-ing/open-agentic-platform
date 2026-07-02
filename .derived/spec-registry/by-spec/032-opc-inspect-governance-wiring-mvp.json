@@ -26,13 +26,14 @@
       "Requirements",
       "Contract notes",
       "Success criteria",
-      "Delivery record *(non-normative)*"
+      "Delivery record *(non-normative)*",
+      "Security hardening amendment (2026-07-02)"
     ],
     "specPath": "specs/032-opc-inspect-governance-wiring-mvp/spec.md",
     "status": "approved",
     "summary": "First product-facing OAP vertical slice: wire OPC inspect and governance UI surfaces to existing sidecar and local analysis capabilities so one end-to-end user journey works without placeholders.\n",
     "title": "OPC inspect + governance wiring MVP"
   },
-  "shardHash": "09d4a8d3198487d93d549c397641fd5e89700a0c4d08d586daab4be1fd4f1175",
+  "shardHash": "427c1df0d721f5abafb8ce2a1b80d9f052e99169731d4ad1a4188c178d8283b8",
   "specVersion": "1.1.0"
 }

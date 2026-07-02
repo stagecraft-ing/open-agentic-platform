@@ -62,12 +62,26 @@ spec:
         {{- include "acme-vue-encore.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: postgres
     spec:
+      # No K8s API access needed for a plain Postgres pod.
+      automountServiceAccountToken: false
       securityContext:
         fsGroup: 70
+        runAsNonRoot: true
+        # postgres:*-alpine images run as the built-in "postgres" user,
+        # uid/gid 70 (matches the existing fsGroup above).
+        runAsUser: 70
+        runAsGroup: 70
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: postgres
           image: {{ .Values.previewDatabase.image | quote }}
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: postgres
               containerPort: 5432

@@ -9,6 +9,18 @@ inputs:
   encore-version:
     description: Encore CLI version to install
     required: true
+  encore-sha256:
+    description: >
+      Expected sha256 digest of the encore-${encore-version}-linux_amd64.tar.gz
+      tarball, verified before extraction when supplied. This is opt-in:
+      when left unset (the default placeholder, or an explicitly empty
+      value), the step prints a `::warning::` and skips verification
+      instead of failing the build, since none of this action's current
+      callers pass a digest. Fill in the real published digest for the
+      pinned encore-version to make the check load-bearing and
+      fail-closed on a mismatch.
+    required: false
+    default: 'REPLACE_WITH_PUBLISHED_SHA256'
 
 runs:
   using: composite
@@ -25,6 +37,7 @@ runs:
       shell: bash
       env:
         ENCORE_VERSION: ${{ inputs.encore-version }}
+        ENCORE_SHA256: ${{ inputs.encore-sha256 }}
       run: |
         set -euo pipefail
         install_dir="$HOME/.encore"
@@ -33,6 +46,22 @@ runs:
         curl --fail --location --silent --show-error \
           --retry 5 --retry-delay 5 --retry-all-errors \
           --output "$install_dir/encore.tar.gz" "$url"
+        if [ -z "$ENCORE_SHA256" ] || [ "$ENCORE_SHA256" = "REPLACE_WITH_PUBLISHED_SHA256" ]; then
+          # No real digest configured (default placeholder, or explicitly
+          # empty). Every caller of this action today omits encore-sha256,
+          # so failing closed here would fail every Encore workflow. Skip
+          # verification with a loud warning instead; the opt-in fail-closed
+          # check below only engages once a real digest is supplied.
+          echo "::warning::encore-sha256 is unset (no digest configured for encore-${ENCORE_VERSION}-linux_amd64.tar.gz): skipping integrity verification. Fill in the published sha256 digest to make this check load-bearing."
+        else
+          echo "${ENCORE_SHA256}  ${install_dir}/encore.tar.gz" > "$install_dir/encore.tar.gz.sha256"
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum -c "$install_dir/encore.tar.gz.sha256"
+          else
+            shasum -a 256 -c "$install_dir/encore.tar.gz.sha256"
+          fi
+        fi
+        rm -f "$install_dir/encore.tar.gz.sha256"
         rm -rf "$install_dir/encore-go" "$install_dir/runtimes"
         tar -C "$install_dir" -xzf "$install_dir/encore.tar.gz"
         chmod +x "$install_dir"/bin/*

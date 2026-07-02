@@ -29,6 +29,11 @@ module "keyvault_secrets" {
     OIDC_M2M_CLIENT_SECRET = var.oidc_m2m_client_secret
     STAGECRAFT_DB_URL      = var.stagecraft_db_url
     DEPLOYD_DB_URL         = var.deployd_db_url
+    # Consumed via the deployd-api chart's secrets.keys (remoteKey
+    # hiqlite-secret-raft / hiqlite-secret-api) through the
+    # platform_bootstrap module's ESO ExternalSecret. See store.rs.
+    HIQLITE_SECRET_RAFT = var.hiqlite_secret_raft
+    HIQLITE_SECRET_API  = var.hiqlite_secret_api
     # Spec 143 FR-010 — per-purpose sweeper M2M client credentials.
     # All three purposes are provisioned in Key Vault; only the
     # knowledge pair is wired through ESO into a CronJob this beat

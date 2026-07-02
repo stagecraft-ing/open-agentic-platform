@@ -143,13 +143,14 @@
       "Implementation scope — a plan-time decision",
       "Implementation record (2026-06-12)",
       "Incident addendum (2026-06-12) — cross-namespace allows withdrawn",
-      "Supersession addendum (2026-06-29): config unification"
+      "Supersession addendum (2026-06-29): config unification",
+      "Security hardening amendment (2026-07-02)"
     ],
     "specPath": "specs/196-platform-metrics-stack/spec.md",
     "status": "draft",
     "summary": "Stand up a Prometheus + Grafana metrics stack for the platform control plane. Stagecraft (Encore.ts) already auto-instruments every API, PubSub, cron, and DB call but emits nowhere; deployd-api, Flux, and ingress-nginx already carry scrape annotations nobody consumes. This spec wires a full kube-prometheus-stack (Prometheus server + Grafana + node-exporter + kube-state-metrics) that RECEIVES stagecraft's Prometheus remote_write, SCRAPES the annotated pull targets, and SERVES Grafana — with Grafana fronted by native Rauthy OIDC. Metrics only: logs and distributed tracing (Encore's other two pillars) are out of scope and owned by later specs. Hetzner is implemented; the Azure binding is declared-but-deferred. Zero stagecraft application-code change.\n",
     "title": "Platform metrics stack — Prometheus + Grafana for the platform control plane"
   },
-  "shardHash": "383c6fe943efd03428db0e5fbf0db2a3e5b69970bac80321dfef999f19ac866a",
+  "shardHash": "35aea87dceb3c31ad913129c871fffa7907ed70183b18141e9b22502915d66e9",
   "specVersion": "1.1.0"
 }
