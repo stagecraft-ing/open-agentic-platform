@@ -12,15 +12,16 @@ inputs:
   encore-sha256:
     description: >
       Expected sha256 digest of the encore-${encore-version}-linux_amd64.tar.gz
-      tarball, verified before extraction when supplied. This is opt-in:
-      when left unset (the default placeholder, or an explicitly empty
-      value), the step prints a `::warning::` and skips verification
-      instead of failing the build, since none of this action's current
-      callers pass a digest. Fill in the real published digest for the
-      pinned encore-version to make the check load-bearing and
-      fail-closed on a mismatch.
+      tarball, verified before extraction. The default is the real published
+      digest for the pinned Encore version (1.57.8), so the integrity check is
+      load-bearing and fail-closed on a mismatch for every current caller
+      (they all pass encore-version 1.57.8 and inherit this default). Bumping
+      ENCORE_VERSION in a caller workflow WITHOUT updating this digest will
+      fail closed at install time by design: the new tarball's hash will not
+      match, so version and digest must move together. Verification can still
+      be opted out of by passing an explicitly empty value.
     required: false
-    default: 'REPLACE_WITH_PUBLISHED_SHA256'
+    default: '59ac867590cb5572410b8b911c28f8263aeb0df5a9eccd2042a6a64a26597d4e'
 
 runs:
   using: composite
@@ -47,12 +48,12 @@ runs:
           --retry 5 --retry-delay 5 --retry-all-errors \
           --output "$install_dir/encore.tar.gz" "$url"
         if [ -z "$ENCORE_SHA256" ] || [ "$ENCORE_SHA256" = "REPLACE_WITH_PUBLISHED_SHA256" ]; then
-          # No real digest configured (default placeholder, or explicitly
-          # empty). Every caller of this action today omits encore-sha256,
-          # so failing closed here would fail every Encore workflow. Skip
-          # verification with a loud warning instead; the opt-in fail-closed
-          # check below only engages once a real digest is supplied.
-          echo "::warning::encore-sha256 is unset (no digest configured for encore-${ENCORE_VERSION}-linux_amd64.tar.gz): skipping integrity verification. Fill in the published sha256 digest to make this check load-bearing."
+          # Verification explicitly opted out of (empty encore-sha256, or the
+          # leftover placeholder as a defensive fallback). The default input is
+          # now the real published digest, so this branch no longer fires for
+          # any current caller; it exists only for a deliberate opt-out. Skip
+          # with a loud warning rather than silently proceeding.
+          echo "::warning::encore-sha256 is empty (integrity verification opted out) for encore-${ENCORE_VERSION}-linux_amd64.tar.gz: skipping integrity verification."
         else
           echo "${ENCORE_SHA256}  ${install_dir}/encore.tar.gz" > "$install_dir/encore.tar.gz.sha256"
           if command -v sha256sum >/dev/null 2>&1; then
