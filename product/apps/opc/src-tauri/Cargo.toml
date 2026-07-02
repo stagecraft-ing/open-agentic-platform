@@ -84,7 +84,7 @@ clap = { version = "4.6", features = ["derive"] }
 futures-util = "0.3"
 image = "0.25"
 similar = { version = "3", features = ["unicode", "text"] }
-sysinfo = "0.38"
+sysinfo = "0.39"
 
 # Opc additions
 xray         = { path = "../../../../crates/xray" }
@@ -123,7 +123,7 @@ url = { version = "2.5.8", default-features = false }
 tauri-plugin-mcp-bridge = { version = "0.11", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-window-vibrancy = "0.6"
+window-vibrancy = "0.7"
 cocoa = "0.26"
 objc = "0.2"
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }
