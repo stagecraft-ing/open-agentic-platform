@@ -13,15 +13,15 @@ inputs:
     description: >
       Expected sha256 digest of the encore-${encore-version}-linux_amd64.tar.gz
       tarball, verified before extraction. The default is the real published
-      digest for the pinned Encore version (1.57.8), so the integrity check is
+      digest for the pinned Encore version (1.57.9), so the integrity check is
       load-bearing and fail-closed on a mismatch for every current caller
-      (they all pass encore-version 1.57.8 and inherit this default). Bumping
+      (they all pass encore-version 1.57.9 and inherit this default). Bumping
       ENCORE_VERSION in a caller workflow WITHOUT updating this digest will
       fail closed at install time by design: the new tarball's hash will not
       match, so version and digest must move together. Verification can still
       be opted out of by passing an explicitly empty value.
     required: false
-    default: '59ac867590cb5572410b8b911c28f8263aeb0df5a9eccd2042a6a64a26597d4e'
+    default: 'dfd43dcd456f91414a823315480da921333e6d1e3535ab48c47c09225d022af5'
 
 runs:
   using: composite
