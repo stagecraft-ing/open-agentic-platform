@@ -47,7 +47,7 @@ concurrency:
 
 env:
   IMAGE: ghcr.io/${{ github.repository }}/acme-vue-encore
-  ENCORE_VERSION: '1.57.8'
+  ENCORE_VERSION: '1.57.9'
 
 jobs:
   build-and-push:

@@ -27,7 +27,7 @@ permissions:
   contents: read
 
 env:
-  ENCORE_VERSION: '1.57.8'
+  ENCORE_VERSION: '1.57.9'
 
 jobs:
   check-and-test:
