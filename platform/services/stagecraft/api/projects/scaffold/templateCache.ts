@@ -144,6 +144,17 @@ function factoryCacheDir(workspace: string): string {
   return join(workspace, "_factory-cache");
 }
 
+/**
+ * The pinned `spec-spine` binary the warmup installed into the template
+ * cache (the template's exact-pinned devDependency, spec 167). The scaffold
+ * regenerates the produced app's `.derived` index with THIS binary so the
+ * committed index matches the version the produced app's own born-with CI
+ * runs `spec-spine index check` with (spec 112 / spec 220 AC-2).
+ */
+export function specSpineBin(workspace: string): string {
+  return join(templateCacheDir(workspace), "node_modules", ".bin", "spec-spine");
+}
+
 /** The adapter's scripts dir inside the factory cache. */
 function adapterScriptsDir(workspace: string): string {
   return join(

@@ -573,6 +573,19 @@ the code.
   commit #1 (§5.2 step 4).
 - Server-side artifact extraction from bucket uploads into
   `.artifacts/extracted/` (§5.2 step 5).
+- Server-side codebase-index regeneration over the FINAL scaffold tree
+  before commit #1 (spec 220 AC-2). The generator (factory-encore
+  `born-with.ts`) strips the template's `.derived/` precisely because it
+  must be recomputed against the produced tree, which differs from the
+  template (seeded specs, born-with `Makefile` + `tools/lint`, the added
+  `.github/workflows/oap-build.yml`, per-profile modules). `create.ts` runs
+  the pinned `spec-spine compile` + `index` + `index check` over the tree
+  (`regenerateProducedIndex` in `perRequestScaffold.ts`, the
+  `regenerate-index` job step) so commit #1 ships a fresh, committed index.
+  Fail-closed: a scaffold that cannot produce a fresh index orphans the job
+  rather than pushing a red-on-arrival repo. Without it, every produced
+  app's own born-with `spec-spine index check` gate exits 3 on its first
+  commit, which also blocks the spec 220 certificate emission.
 - `scaffold_jobs` table replacing the Express app's in-memory map
   (concurrency-safe, multi-tenant, audit-traceable).
 - `opc://` deep-link on the success response (§5.4).
