@@ -6,8 +6,8 @@ outbox-durable broadcast), [spec.md](spec.md) FR-001..FR-005.
 **Format**: `[ID] [P?] Description`. [P] = parallelizable (different
 files, no dependency). Phase 1 = PR-1 (`feat/208-enforce`); Phase 2 = PR-2
 (`feat/208-propagate`); Phase 3 = PR-3 (`feat/208-scope-reintegrate`);
-Phase 4 = PR-4 (`feat/208-credential-closure`); Phase 5 = PR-5
-(`feat/208-drill`).
+Phase 3.1 = PR-3.1 (`feat/208-ack-hardening`); Phase 4 = PR-4
+(`feat/208-credential-closure`); Phase 5 = PR-5 (`feat/208-drill`).
 
 **Sequencing gates** (from spec.md §Dependencies + plan.md §Sequencing):
 
@@ -199,6 +199,33 @@ explicitly); the org + project legs of the scope lattice are proven in PR-1.
       registry -> golden (only if frontmatter moved) -> index; `make
       pr-prep`.
 
+## Phase 3.1 (PR-3.1): Ack-ledger hardening (FR-004 follow-ups)
+
+Two follow-ups from the PR #502 reintegration fix (spec.md `## Deferred
+hardening (Phase 3.1)`). Both harden the `org_halts.acks` ledger against
+replay; neither blocks Phase 4 or Phase 5. Land as one small PR. Not on the
+critical path to the Phase 5 drill.
+
+- [ ] T023 Symmetric halt-ack write-path guard: `orgHaltAckDispatch`
+      (`api/sync/service.ts`) appends a `kind:'halt'` ack only while
+      `row.state === "halted"`; a halt-ack arriving after the scope moved
+      to `reintegrating` / `lifted` is dropped as a benign no-op (the
+      mirror of the lift-ack guard PR #502 added, `return
+      "not-halted"`-style). Regression tests: a stale halt-ack while
+      `reintegrating` and while `lifted` does not widen the recorded
+      halt-acker set.
+- [ ] T024 Dropped-ack audit trail: emit `FACTORY_ORG_HALT_ACK_DROPPED`
+      (new `api/factory/auditActions.ts` constant + union member, the T003
+      pattern) or a `dropped:true` field on the existing engine-ack audit,
+      on every drop path (`not-reintegrating`, `duplicate`, and the T023
+      stale-halt-ack drop), so a dropped ack is visible in the audit chain
+      rather than only `log.info`. Test: a dropped ack writes the audit row.
+- [ ] T025 Gate PR-3.1: paths are already 208-owned (`api/sync/service.ts`
+      is the declared `org-halt-propagation` refine aspect;
+      `api/factory/auditActions.ts` is `establishes:`), so no frontmatter
+      change is expected; registry -> golden (only if frontmatter moves) ->
+      index; `make pr-prep`.
+
 ## Phase 4 (PR-4, blocked on spec 205): Credential closure (FR-002 full)
 
 - [ ] T019 Consume the spec 205 `nhi_delegation_index`: an `org`- or
@@ -238,6 +265,9 @@ explicitly); the org + project legs of the scope lattice are proven in PR-1.
       consumers); T012 -> T011 (the Rust path before its frame handler);
       T013 after T009-T012; T014 last in Phase 2.
 - T015 + T016 -> T017; Phase 3 depends on Phase 2's broadcast + acks.
+- T023 + T024 -> T025; Phase 3.1 depends on Phase 3 (the reintegration
+      state machine + the `org_halts.acks` ledger it hardens). Not a
+      dependency of Phase 4 or Phase 5.
 - Phase 4 (T019) depends on spec 205 Phase 3 (its T020-T023); cross-spec
       gate, not landable until then.
 - T021 depends on Phases 1-3 (a real pull-and-lift to drill); T022 is the

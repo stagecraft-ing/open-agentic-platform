@@ -280,6 +280,15 @@ reintegration for an engine that never re-acknowledged. Engines re-ack on
 the next lift broadcast per the resync-replay contract, so the drop is
 lossless.
 
+The symmetric case, a late *halt*-ack replay arriving after the scope has
+left `halted` (moved to `reintegrating` or `lifted`), is written unchecked
+today. Its direction is fail-safe: a stale halt-ack can only over-count
+halt acknowledgements, at worst holding a scope in `reintegrating` because
+a phantom acker is still expected to lift-ack, never completing a
+premature `lifted`. It is recorded as deferred hardening in
+`## Deferred hardening (Phase 3.1)` rather than fixed in the same change
+that closed the dangerous lift-ack direction.
+
 ### FR-005: Drill requirement
 
 The e2e harness (spec 187, `product/apps/opc/tests-e2e/`) exercises the
@@ -374,3 +383,32 @@ decoration. The drill runs in the existing nightly e2e lane
    shipped behavior.
 5. **Drill.** The e2e pull-and-lift cycle in the nightly lane (FR-005),
    the completion gate for the spec.
+
+## Deferred hardening (Phase 3.1)
+
+Two follow-ups surfaced by the FR-004 reintegration fix (the lift-ack
+write-path guard, PR #502) are recorded here rather than left in a review
+thread. Neither blocks the drill (FR-005) or the credential-closure phase;
+both harden the `org_halts.acks` ledger against replay.
+
+- **(a) Symmetric halt-ack write-path guard.** FR-004 guards the *lift*-ack
+  write on `state === "reintegrating"`, but a late *halt*-ack replay (an
+  outbox resync landing after the scope has moved to `reintegrating` or
+  `lifted`) is appended unchecked, widening the recorded halt-acker set.
+  The direction is fail-safe: a stale halt-ack can only over-count halt
+  acknowledgements, at worst holding a scope in `reintegrating` because a
+  phantom acker is still expected to lift-ack, never completing a premature
+  `lifted`. The dangerous direction is already closed by PR #502. The guard
+  mirrors that fix: append a halt-ack only while the scope is `halted`, and
+  drop it otherwise as a benign no-op (the engine re-acks on the next
+  broadcast per the resync-replay contract, so the drop is lossless).
+- **(b) Dropped-ack audit trail.** The ack-drop paths (`not-reintegrating`,
+  `duplicate`, and the (a) halt-ack drop above) only `log.info` today. A
+  `FACTORY_ORG_HALT_ACK_DROPPED` audit action (or a `dropped: true` field
+  on the existing engine-ack audit) closes a forensic gap on a
+  safety-critical containment path: a dropped ack is otherwise invisible to
+  the audit chain the rest of the switch is built to preserve.
+
+Both land as one small follow-up (PR-3.1, tasks T023/T024). Because spec
+208 is still `draft`, this is an ordinary refinement, not an amendment; the
+section reaches `approved` with the Phase 5 drill's lifecycle flip (T022).
