@@ -833,4 +833,135 @@ describe("reintegration completion + two-sided validation (FR-004, AC-4, AC-7)",
       .where(eq(auditLog.action, FACTORY_ORG_HALT_REASSERTED));
     expect(audits.some((a) => a.targetId === halt.haltId)).toBe(true);
   });
+
+  it("a lift ack arriving while the halt is not reintegrating is ignored (not recorded)", async () => {
+    // Cycle guard: a lift ack only counts during reintegration. A lift ack that
+    // lands while the halt is still `halted` (e.g. an in-flight resync replay
+    // after a D3 re-pull reset the ledger) must be a benign no-op, never a
+    // ledger entry, or it contaminates the next cycle's completion count.
+    const halt = await pullHaltCore(AUTH, { scope: "org", reason: "still halted" });
+    expect(await haltState(halt.haltId)).toBe("halted");
+
+    const res = await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "lift", "2026-07-02T00:01:00.000Z"),
+    );
+    // Benign ignore, not a hard rejection: the engine re-acks on the next
+    // `lifted` broadcast per the resync-replay contract.
+    expect(res.ok).toBe(true);
+    expect(await haltState(halt.haltId)).toBe("halted");
+
+    const [row] = await db
+      .select({ acks: orgHalts.acks })
+      .from(orgHalts)
+      .where(eq(orgHalts.id, halt.haltId));
+    expect(row.acks.some((a) => a.kind === "lift")).toBe(false);
+
+    // The guard returns before the tx.insert(auditLog): no phantom engine_ack
+    // row for the ignored ack (only a lift ack was sent in this test).
+    const audits = await db
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, FACTORY_ORG_HALT_ENGINE_ACK));
+    expect(audits.filter((a) => a.targetId === halt.haltId)).toHaveLength(0);
+  });
+
+  it("a lift ack arriving after the halt already lifted is ignored (guard covers the lifted branch)", async () => {
+    // The cycle guard fires on any state !== "reintegrating", which includes
+    // `lifted`. A late resync replay landing after completion (from an engine
+    // not already in the ledger, so it is not caught by the idempotency check)
+    // must be a no-op: the halt is complete, there is no next lift broadcast.
+    const halt = await pullHaltCore(AUTH, { scope: "org", reason: "already lifted" });
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "halt", "2026-07-02T00:00:00.000Z"),
+    );
+    await liftHaltCore(AUTH, { id: halt.haltId }); // -> reintegrating
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "lift", "2026-07-02T00:01:00.000Z"),
+    );
+    expect(await haltState(halt.haltId)).toBe("lifted");
+
+    // A different engine's late lift ack lands after the halt is `lifted`.
+    const late = await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_B, userId: USER_ID },
+      ack(halt.haltId, "lift", "2026-07-02T00:02:00.000Z"),
+    );
+    expect(late.ok).toBe(true);
+    expect(await haltState(halt.haltId)).toBe("lifted");
+
+    const [row] = await db
+      .select({ acks: orgHalts.acks })
+      .from(orgHalts)
+      .where(eq(orgHalts.id, halt.haltId));
+    // B's late lift ack was not recorded; only A's halt + lift entries remain.
+    expect(row.acks.filter((a) => a.kind === "lift").map((a) => a.clientId)).toEqual([
+      CLIENT_A,
+    ]);
+  });
+
+  it("a stale lift ack replayed after a D3 re-pull does not complete the next cycle prematurely", async () => {
+    // The contamination scenario the cycle guard closes. Cycle 1: A and B both
+    // halt-ack, the operator lifts (-> reintegrating), A lift-acks (B still
+    // outstanding). B's lift ack is in flight when the operator re-pulls (D3),
+    // which resets the ledger. B's delayed cycle-1 lift ack then lands while the
+    // halt is `halted`. Without the guard it would be recorded and later counted
+    // as B's cycle-2 lift, letting A's first cycle-2 lift ack complete
+    // reintegration even though B never lift-acked cycle 2.
+    const halt = await pullHaltCore(AUTH, { scope: "org", reason: "cycle 1" });
+    for (const c of [CLIENT_A, CLIENT_B]) {
+      await handleInbound(
+        { orgId: ORG_ID, clientId: c, userId: USER_ID },
+        ack(halt.haltId, "halt", "2026-07-02T00:00:00.000Z"),
+      );
+    }
+    await liftHaltCore(AUTH, { id: halt.haltId }); // -> reintegrating (cycle 1)
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "lift", "2026-07-02T00:01:00.000Z"),
+    );
+    expect(await haltState(halt.haltId)).toBe("reintegrating");
+
+    // D3: re-pull mid-reintegration re-asserts the SAME halt record (identity
+    // is what makes the ledger reset, not a fresh row) and resets the ledger.
+    const re = await pullHaltCore(AUTH, { scope: "org", reason: "cycle 2 re-halt" });
+    expect(re.haltId).toBe(halt.haltId);
+    expect(re.state).toBe("halted");
+
+    // B's in-flight cycle-1 lift ack lands late, while the halt is `halted`.
+    const stale = await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_B, userId: USER_ID },
+      ack(halt.haltId, "lift", "2026-07-02T00:01:30.000Z"),
+    );
+    expect(stale.ok).toBe(true);
+    const [afterStale] = await db
+      .select({ acks: orgHalts.acks })
+      .from(orgHalts)
+      .where(eq(orgHalts.id, halt.haltId));
+    expect(afterStale.acks.some((a) => a.kind === "lift")).toBe(false);
+
+    // Cycle 2 proceeds legitimately: A and B halt-ack, operator lifts, A
+    // lift-acks. Because B's stale lift did not leak into the ledger, B is still
+    // outstanding, so the halt must stay reintegrating (not prematurely lifted).
+    for (const c of [CLIENT_A, CLIENT_B]) {
+      await handleInbound(
+        { orgId: ORG_ID, clientId: c, userId: USER_ID },
+        ack(halt.haltId, "halt", "2026-07-02T00:02:00.000Z"),
+      );
+    }
+    await liftHaltCore(AUTH, { id: halt.haltId }); // -> reintegrating (cycle 2)
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "lift", "2026-07-02T00:03:00.000Z"),
+    );
+    expect(await haltState(halt.haltId)).toBe("reintegrating");
+
+    // B finally lift-acks cycle 2: now every halt-acker has lift-acked -> lifted.
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_B, userId: USER_ID },
+      ack(halt.haltId, "lift", "2026-07-02T00:04:00.000Z"),
+    );
+    expect(await haltState(halt.haltId)).toBe("lifted");
+  });
 });

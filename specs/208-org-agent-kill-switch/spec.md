@@ -269,6 +269,17 @@ identity cannot lift (the spec 200 AC-4 pattern, enforced by the
 are re-admitted per scope, not by one global flip, and each re-admission
 is recorded with its per-engine timestamp.
 
+The reintegration completion count is windowed to the current cycle: a
+lift-ack counts toward completion only while the scope is actively
+`reintegrating`. A re-halt on a scope mid-reintegration (the D3 path)
+re-asserts `halted` and resets the ack ledger, so a lift-ack from the
+interrupted cycle that arrives late (an outbox resync replay landing
+after the reset) is dropped rather than recorded; it would otherwise be
+miscounted as a completed lift in the next cycle and complete
+reintegration for an engine that never re-acknowledged. Engines re-ack on
+the next lift broadcast per the resync-replay contract, so the drop is
+lossless.
+
 ### FR-005: Drill requirement
 
 The e2e harness (spec 187, `product/apps/opc/tests-e2e/`) exercises the
