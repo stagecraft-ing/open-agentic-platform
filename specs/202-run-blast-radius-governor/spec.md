@@ -3,7 +3,7 @@ id: "202-run-blast-radius-governor"
 title: "Run Blast-Radius Governor (ASI08 cascading-failure caps)"
 feature_branch: "feat/202-run-blast-radius-governor"
 status: approved
-implementation: complete  # All five FRs landed across PR1 #469 (FR-002 meter + circuit break), Slice C #472 (FR-005 cert binding), Slice D #481 (FR-003b oscillation), Slice E #486 (FR-003a intent-dedup), Slice F #492 (FR-003c queue-storm detection), Slice G (FR-004 approval-velocity counter, this PR). AC-1/2/3/4/5/7 satisfied. AC-6 is HALF-satisfied and honestly recorded as such: pt1 (max_total_tokens removed from the engine config) landed in PR1; pt2 (subsume FactoryPipelineState.total_tokens into the meter's tokens axis, so no two independent token accumulators coexist) is a tracked mechanical-cleanup follow-up (PR1b), NOT yet done. total_tokens + add_tokens() still exist in crates/factory-engine/src/pipeline_state.rs and are wired in bin/factory_run.rs; the RunBudgetMeter's tokens axis is already the authoritative accumulator, so this is redundant-counter removal, not a behavior gap. The flip is user-ratified (2026-07-01) with PR1b sequenced after; see §Acceptance criteria AC-6 note.
+implementation: complete  # All five FRs landed across PR1 #469 (FR-002 meter + circuit break), Slice C #472 (FR-005 cert binding), Slice D #481 (FR-003b oscillation), Slice E #486 (FR-003a intent-dedup), Slice F #492 (FR-003c queue-storm detection), Slice G (FR-004 approval-velocity counter, this PR). AC-1 through AC-7 all satisfied. AC-6 pt1 (max_total_tokens removed from the engine config) landed in PR1. AC-6 pt2 (subsume FactoryPipelineState.total_tokens into the meter's tokens axis) was WITHDRAWN on investigation (2026-07-02, user-ratified): the two counters are not redundant. total_tokens is the persisted, poll-surfaced UI total (build_status_response -> PipelineStatusResponse; serialized to .factory/pipeline-state.json), whereas the RunBudgetMeter is an in-memory, per-spawn accumulator feeding only the budget gate + cert snapshot and is not in scope at the status endpoint. Removing total_tokens would be a behavior-bearing refactor, not a cleanup, so it is kept by design; AC-6 is satisfied by pt1 and the "no two accumulators coexist" clause is retracted. See §Acceptance criteria AC-6 note.
 kind: governance
 domain: platform
 created: "2026-06-11"
@@ -150,9 +150,10 @@ references:
 surfaces; see §Code reality)
 **Status**: Approved, implementation complete (2026-07-01). Originally filed
 as a follow-on by the ASI gap-closure pass (named in spec 198's all-ten table,
-ASI08 row); all five FRs have since landed (see plan.md), with the AC-6 pt2
-token-accumulator cleanup tracked as PR1b (see §Acceptance criteria
-"Implementation status (AC-6 residual)").
+ASI08 row); all five FRs have since landed (see plan.md). The AC-6 pt2
+token-accumulator cleanup (originally tracked as PR1b) was withdrawn on
+investigation (see §Acceptance criteria "Implementation status (AC-6
+residual)").
 **Input**: Spec 198 §"All-ten ASI coverage" records ASI08 as the only
 control that is *partial with an unowned residual*: "blast-radius caps are
 follow-on". ASI06's residual got spec 200 and ASI09's got spec 201 at
@@ -443,29 +444,43 @@ distinct `RunBudget*` prefix to avoid collision.
   audited human override.
 - **AC-6.** No declared-but-unenforced ceiling remains in the engine
   configuration: `max_total_tokens` is enforced through the meter or
-  removed, and `FactoryPipelineState.total_tokens` is subsumed by the
-  meter's `tokens` axis or removed — no two independent token
-  accumulators coexist after implementation.
+  removed. (The criterion originally also required
+  `FactoryPipelineState.total_tokens` to be subsumed by the meter's
+  `tokens` axis so that "no two independent token accumulators coexist";
+  that clause was withdrawn on investigation, see the residual note below.
+  The two counters are not redundant: one is the persisted UI total, the
+  other the in-memory budget meter.)
 - **AC-7.** The envelope schema 1.1.0 and its Rust twin land in the same
   PR; schema-parity (125/191) and the factory-schema-lockstep lane (212)
   are green.
 
 > **Implementation status (AC-6 residual).** This spec flipped to
 > `implementation: complete` on 2026-07-01 (user-ratified) with all five FRs
-> landed. AC-6 is the one acceptance criterion not fully discharged at the
-> flip, and the flip records that honestly rather than hiding it: AC-6 pt1
-> (retire the dead `max_total_tokens` engine-config stub) landed in PR1 #469;
-> AC-6 pt2 (subsume `FactoryPipelineState.total_tokens` into the meter's
-> `tokens` axis so no two independent token accumulators coexist) is a tracked
-> follow-up, PR1b, and is **not** yet done. As of the flip,
-> `total_tokens` + `add_tokens()` still live in
-> `crates/factory-engine/src/pipeline_state.rs` and are wired in
-> `bin/factory_run.rs`. This is a redundant-counter cleanup, not a governance
-> behavior gap: the `RunBudgetMeter`'s `tokens` axis (FR-002, PR1) is already
-> the authoritative run-level accumulator, and `total_tokens` is a now-vestigial
-> second counter that is read for a diagnostic eprintln only. PR1b removes it;
-> until then the "no two accumulators coexist" clause of AC-6 remains open by
-> design of the sequencing, not by oversight.
+> landed. AC-6 pt1 (retire the dead `max_total_tokens` engine-config stub)
+> landed in PR1 #469. AC-6 pt2 (subsume `FactoryPipelineState.total_tokens`
+> into the meter's `tokens` axis so no two independent token accumulators
+> coexist) was tracked as a follow-up (PR1b) and then **withdrawn on
+> investigation (2026-07-02, user-ratified)**: the two counters are not
+> redundant, so pt2's removal premise does not hold.
+>
+> The investigation (surveying the OPC read path the original §Code reality
+> point 2 did not fully trace): `FactoryPipelineState.total_tokens` is the
+> **persisted, poll-surfaced UI total**. It is read by `build_status_response`
+> (`product/apps/opc/src-tauri/src/commands/factory.rs:1005`) into the desktop
+> `PipelineStatusResponse`, read again by `emit_terminal_completed`
+> (`factory.rs:1832`), and serialized into `.factory/pipeline-state.json`. The
+> `RunBudgetMeter`'s `tokens` axis (FR-002) is a **separate, in-memory,
+> per-spawn** accumulator (`factory.rs:1393`) that feeds only the budget gate
+> and the certificate snapshot; it never persists and is out of scope at the
+> status-poll command. Making the meter the single source would mean persisting
+> it and threading it into the status path (a behavior-bearing refactor that
+> changes the desktop `PipelineStatusResponse` contract), not the mechanical
+> cleanup the flip anticipated.
+>
+> `total_tokens` is therefore **kept by design** as the UI/persistence surface,
+> and AC-6 is satisfied by pt1 alone. The "no two accumulators coexist" clause
+> is retracted: the counters serve different layers (persisted UI total vs.
+> in-memory budget/cert meter) and their coexistence is correct, not drift.
 
 ## Out of scope
 
