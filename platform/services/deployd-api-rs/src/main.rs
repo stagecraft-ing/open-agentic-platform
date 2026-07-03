@@ -11,6 +11,7 @@ mod config;
 mod helm;
 mod k8s;
 mod metrics;
+mod rbac;
 mod routes;
 mod store;
 

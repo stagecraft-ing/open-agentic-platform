@@ -291,6 +291,44 @@ pub async fn create_deployment(
                 values,
             };
             let runner = HelmRunner::from_env();
+
+            // Self-provision per-namespace RBAC before helm runs its
+            // workloads there. Opt-in (DEPLOYD_SELF_PROVISION_RBAC): a no-op
+            // under the default cluster-wide fallback, so existing
+            // deployments are unaffected. When enabled and it fails, fail the
+            // deploy now with a clear cause rather than let helm fail
+            // mid-install with an opaque "forbidden".
+            let self_provision = crate::rbac::SelfProvisionConfig::from_env();
+            if let Err(e) =
+                crate::rbac::ensure_workload_rbac(&namespace, &self_provision).await
+            {
+                tracing::error!(
+                    deployment_id = %deployment_id,
+                    "self-provision RBAC failed: {e}"
+                );
+                let _ = store::update_status(&state.client, &deployment_id, "FAILED").await;
+                let _ = store::add_event(
+                    &state.client,
+                    &deployment_id,
+                    "failed",
+                    Some(&format!(
+                        "self-provision RBAC failed for namespace {namespace}: {e}"
+                    )),
+                )
+                .await;
+                return (
+                    StatusCode::OK,
+                    Json(json!({
+                        "release_id": deployment_id,
+                        "status": "FAILED",
+                        "endpoints": endpoints,
+                        "logs_pointer": format!("/v1/deployments/{}/logs", deployment_id),
+                        "chart": chart,
+                        "chart_version": chart_version,
+                    })),
+                );
+            }
+
             let access_gate = body.access_gate.clone();
             let tenant_release_for_gate = release_name.clone();
             let first_host = route_pairs

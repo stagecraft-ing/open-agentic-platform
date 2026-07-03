@@ -64,6 +64,22 @@ spec:
               value: {{ .Values.oidc.audience | quote }}
             - name: DEPLOYD_REQUIRED_SCOPE
               value: {{ .Values.requiredScope | quote }}
+            {{- if .Values.rbac.selfProvision }}
+            # Self-provisioned per-namespace RBAC (opt-in): deployd creates a
+            # RoleBinding granting its own ServiceAccount the workloads
+            # ClusterRole in each target namespace before helm runs there
+            # (deployd-api-rs/src/rbac.rs). No-op default; see rbac.yaml.
+            - name: DEPLOYD_SELF_PROVISION_RBAC
+              value: "true"
+            - name: DEPLOYD_SERVICE_ACCOUNT
+              value: {{ .Values.serviceAccount.name | quote }}
+            - name: DEPLOYD_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DEPLOYD_WORKLOADS_CLUSTER_ROLE
+              value: "deployd-controller-workloads"
+            {{- end }}
             {{- if and .Values.backup.endpoint .Values.backup.bucket }}
             # Spec 145 backup config — non-sensitive (FR-005a translation layer
             # reads these DEPLOYD_BACKUP_* env vars in deployd-api-rs/src/config.rs).

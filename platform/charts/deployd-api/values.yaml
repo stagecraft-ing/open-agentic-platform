@@ -27,6 +27,15 @@ serviceAccount:
 # a namespace right after creating it).
 rbac:
   namespaces: []
+  # Opt-in (additive): when true, deployd self-provisions a RoleBinding
+  # granting its own ServiceAccount the workloads ClusterRole in each
+  # target namespace before helm runs there (deployd-api-rs/src/rbac.rs),
+  # and the chart grants the `rolebindings` + `bind` permissions that
+  # requires. Default false preserves today's cluster-wide fallback; this
+  # is the mechanism that will LATER let `namespaces` be flipped to scoped
+  # once validated on a real cluster (that flip is intentionally not made
+  # here).
+  selfProvision: false
 
 podLabels: {}
 

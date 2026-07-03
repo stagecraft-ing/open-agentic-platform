@@ -33,8 +33,8 @@
           {
             "file": "platform/charts/deployd-api/values.yaml",
             "span": {
-              "endLine": 52,
-              "startLine": 41
+              "endLine": 61,
+              "startLine": 50
             }
           }
         ],
@@ -51,5 +51,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "3a040b945c2df1003a661bc95843571f8a1c8141b3db17ecbc734cd2c70d6804"
+  "shardHash": "2d1e29e61744324d717e3b8b3a06f1834d8e4e1aed8e0899afd0e3827e1cd57c"
 }
