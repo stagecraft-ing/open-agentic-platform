@@ -206,7 +206,7 @@ hardening (Phase 3.1)`). Both harden the `org_halts.acks` ledger against
 replay; neither blocks Phase 4 or Phase 5. Land as one small PR. Not on the
 critical path to the Phase 5 drill.
 
-- [ ] T023 Symmetric halt-ack write-path guard: `orgHaltAckDispatch`
+- [x] T023 Symmetric halt-ack write-path guard: `orgHaltAckDispatch`
       (`api/sync/service.ts`) appends a `kind:'halt'` ack only while
       `row.state === "halted"`; a halt-ack arriving after the scope moved
       to `reintegrating` / `lifted` is dropped as a benign no-op (the
@@ -214,13 +214,13 @@ critical path to the Phase 5 drill.
       "not-halted"`-style). Regression tests: a stale halt-ack while
       `reintegrating` and while `lifted` does not widen the recorded
       halt-acker set.
-- [ ] T024 Dropped-ack audit trail: emit `FACTORY_ORG_HALT_ACK_DROPPED`
+- [x] T024 Dropped-ack audit trail: emit `FACTORY_ORG_HALT_ACK_DROPPED`
       (new `api/factory/auditActions.ts` constant + union member, the T003
       pattern) or a `dropped:true` field on the existing engine-ack audit,
       on every drop path (`not-reintegrating`, `duplicate`, and the T023
       stale-halt-ack drop), so a dropped ack is visible in the audit chain
       rather than only `log.info`. Test: a dropped ack writes the audit row.
-- [ ] T025 Gate PR-3.1: paths are already 208-owned (`api/sync/service.ts`
+- [x] T025 Gate PR-3.1: paths are already 208-owned (`api/sync/service.ts`
       is the declared `org-halt-propagation` refine aspect;
       `api/factory/auditActions.ts` is `establishes:`), so no frontmatter
       change is expected; registry -> golden (only if frontmatter moves) ->

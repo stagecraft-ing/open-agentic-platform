@@ -48,6 +48,15 @@ export const FACTORY_ORG_HALT_REINTEGRATED =
   "factory.org_halt.reintegrated" as const;
 export const FACTORY_ORG_HALT_REASSERTED =
   "factory.org_halt.reasserted" as const;
+// Spec 208 Phase 3.1 (T024, FR-004 follow-up): a duplex org.halt.ack that was
+// dropped rather than recorded. Emitted on every benign drop path in
+// `orgHaltAckDispatch` (a duplicate replay, a halt-ack arriving after the scope
+// left `halted`, or a lift-ack arriving while not `reintegrating`), with the
+// drop `reason` in metadata. These paths previously only `log.info`d, so a
+// dropped ack was invisible to the audit chain the rest of the switch preserves;
+// this closes that forensic gap on a safety-critical containment path.
+export const FACTORY_ORG_HALT_ACK_DROPPED =
+  "factory.org_halt.ack_dropped" as const;
 // Spec 202 FR-003(c): queue-storm detection (detection-only; the run is
 // still admitted). Recorded when an org's in-flight run count is at or over
 // the configured ceiling at reservation time (`api/factory/queueStormGate.ts`).
@@ -78,5 +87,6 @@ export type FactoryRunAuditAction =
   | typeof FACTORY_ORG_HALT_ENGINE_ACK
   | typeof FACTORY_ORG_HALT_REINTEGRATED
   | typeof FACTORY_ORG_HALT_REASSERTED
+  | typeof FACTORY_ORG_HALT_ACK_DROPPED
   | typeof FACTORY_RUN_STORM_DETECTED
   | typeof FACTORY_RUN_APPROVAL_VELOCITY_ANOMALY;
