@@ -50,7 +50,10 @@ import {
 import { publishProjectCatalogUpsert } from "../sync/projectCatalogRelay";
 import { createRepoWithBranchProtection } from "./scaffold/githubRepoCreate";
 import { gitInitAndPush } from "./scaffold/gitInitAndPush";
-import { scaffoldFromPrebuilt } from "./scaffold/perRequestScaffold";
+import {
+  scaffoldFromPrebuilt,
+  regenerateProducedIndex,
+} from "./scaffold/perRequestScaffold";
 import { provisionTenantSigningKey } from "./scaffold/tenantSigningKey";
 import { buildL0PipelineStateSeed } from "./scaffold/seedPipelineState";
 import { buildProjectOpenDeepLink } from "./scaffold/deepLink";
@@ -61,6 +64,7 @@ import {
   isTemplateCacheReady,
   isTemplateCacheRefreshing,
   defaultWorkspaceDir,
+  specSpineBin,
 } from "./scaffold/templateCache";
 import {
   isKnownModule,
@@ -311,6 +315,23 @@ export const createFactoryProject = api(
       await advanceStep(job.id, "provision-signing-key");
       const signer = await provisionTenantSigningKey(token, repoCreate.fullName);
       signerPublicKey = signer.publicKeyB64;
+
+      // Spec 112 §5.3 + spec 220 AC-2: regenerate the produced app's codebase
+      // index over the FINAL tree so commit #1 ships a fresh, committed
+      // `.derived`. The generator strips the template's `.derived` precisely
+      // because it must be recomputed against the produced tree (seeded specs,
+      // born-with Makefile + tools/lint, the added oap-build.yml); the produced
+      // app's own born-with CI gates on `spec-spine index check`, so without
+      // this every produced app is born red (index absent, exit 3), which also
+      // blocks the spec 220 certificate emission. Fail-closed: a scaffold that
+      // cannot produce a fresh index orphans the job rather than pushing a
+      // red-on-arrival repo.
+      await advanceStep(job.id, "regenerate-index");
+      await regenerateProducedIndex({
+        dest: projectRoot,
+        specSpineBin: specSpineBin(workspace),
+        workspaceDir: workspace,
+      });
 
       await advanceStep(job.id, "push-initial");
       const pushed = await gitInitAndPush({

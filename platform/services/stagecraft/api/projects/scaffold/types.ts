@@ -65,6 +65,7 @@ export type ScaffoldStep =
   | "extract-artifacts"
   | "repo-create"
   | "provision-signing-key"
+  | "regenerate-index"
   | "push-initial"
   | "cleanup";
 

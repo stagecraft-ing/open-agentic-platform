@@ -222,6 +222,52 @@ export async function scaffoldFromPrebuilt(
 }
 
 /**
+ * Spec 112 §5.3 + spec 220 AC-2: regenerate the produced app's codebase
+ * index over the FINAL scaffold tree so commit #1 ships a fresh, committed
+ * `.derived`.
+ *
+ * The generator (factory-encore `born-with.ts`) strips the template's
+ * `.derived` on purpose: it must be recomputed against the PRODUCED tree,
+ * which differs from the template (seeded specs, born-with `Makefile` +
+ * `tools/lint`, the added `.github/workflows/oap-build.yml`, per-profile
+ * modules). The produced app's own born-with CI gates on `spec-spine index
+ * check` (spec 000-bootstrap); without a committed, fresh index that gate
+ * exits 3 and the whole spec-spine job (including the spec 220 certificate
+ * emission) never runs.
+ *
+ * Fail-closed (spec 209 posture, no skip-as-pass): compile + index, then
+ * re-run `index check`; if the freshly generated index is not fresh the step
+ * throws, so create.ts orphans the job rather than pushing a red-on-arrival
+ * repo. Uses the pinned `spec-spine` from the template cache (`specSpineBin`)
+ * so the committed shards match the version the produced app's CI checks
+ * with. Runs after every tree mutation (scaffold, add-module, kernel stamp,
+ * oap-build.yml seed, artifact extraction), all of which touch hashed index
+ * inputs.
+ */
+export async function regenerateProducedIndex(opts: {
+  /** The scaffold tree root (commit #1 working dir). */
+  dest: string;
+  /** Absolute path to the pinned `spec-spine` binary (template cache). */
+  specSpineBin: string;
+  /** Workspace dir, for the writable-path subprocess env. */
+  workspaceDir: string;
+  /** Optional progress sink. */
+  log?: (line: string) => void;
+}): Promise<void> {
+  const env = tooledEnv(opts.workspaceDir);
+  const sink = opts.log ?? (() => {});
+  sink("spec-spine compile (regenerate registry)");
+  await spawnAndCapture(opts.specSpineBin, ["compile"], opts.dest, env);
+  sink("spec-spine index (regenerate codebase index)");
+  await spawnAndCapture(opts.specSpineBin, ["index"], opts.dest, env);
+  // Fail-closed freshness gate: what the produced app's CI will run must pass
+  // here first, so a scaffold that cannot produce a fresh index fails
+  // creation instead of shipping a repo whose very first CI run is red.
+  sink("spec-spine index check (fail-closed freshness gate)");
+  await spawnAndCapture(opts.specSpineBin, ["index", "check"], opts.dest, env);
+}
+
+/**
  * Spec 209 FR-002 (born-with kernel completeness, fail-closed). After the
  * `.kernel-version` stamp is written, re-read and validate it: the file must
  * exist, parse as YAML, and carry a non-empty `spec_spine_version` plus a
