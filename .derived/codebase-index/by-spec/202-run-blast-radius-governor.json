@@ -68,7 +68,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "platform/services/stagecraft/api/db/migrations/2_audit_log_actor_action_created_idx.up.sql",
+        "path": "platform/services/stagecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql",
         "source": "spec-edge"
       },
       {
@@ -171,14 +171,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/db/migrations/2_audit_log_actor_action_created_idx.up.sql"
+            "file": "platform/services/stagecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/db/migrations/2_audit_log_actor_action_created_idx.up.sql"
+          "path": "platform/services/stagecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql"
         }
       },
       {
@@ -537,5 +537,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "260b264299a5a89e70ff68efc03ece3eea1a633ec0f21cf78c2d447ee6f0e707"
+  "shardHash": "d90e1f1d5cc6bb826211e8c87b9c260a9fd9a0db19451dd7da85626c414d1a98"
 }
