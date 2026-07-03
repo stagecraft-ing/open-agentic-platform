@@ -35,6 +35,7 @@ import {
 import { handleGrantRenew, handleGrantRequest } from "./grantDuplexHandlers";
 import { isHaltedInScope, liftHaltCore, pullHaltCore } from "./orgHalt";
 import {
+  FACTORY_ORG_HALT_ACK_DROPPED,
   FACTORY_ORG_HALT_ACTIVATED,
   FACTORY_ORG_HALT_ENGINE_ACK,
   FACTORY_ORG_HALT_LIFTED,
@@ -963,5 +964,183 @@ describe("reintegration completion + two-sided validation (FR-004, AC-4, AC-7)",
       ack(halt.haltId, "lift", "2026-07-02T00:04:00.000Z"),
     );
     expect(await haltState(halt.haltId)).toBe("lifted");
+  });
+});
+
+// Spec 208 Phase 3.1 (PR-3.1): ack-ledger hardening (T023 symmetric halt-ack
+// write-path guard, T024 dropped-ack audit trail). T023 mirrors the PR #502
+// lift-ack cycle guard onto the halt-ack write path: a late halt-ack replayed
+// via resync after the scope has left `halted` must not widen the recorded
+// halt-acker set. T024 makes every benign drop (a duplicate replay, a
+// stale halt-ack, a stale lift-ack) visible in the audit chain instead of only
+// log.info.
+describe("ack-ledger hardening (Phase 3.1, T023/T024, FR-004)", () => {
+  const CLIENT_A = "20808080-0000-0000-0000-0000000000f1";
+  const CLIENT_C = "20808080-0000-0000-0000-0000000000f2";
+
+  function ack(
+    haltId: string,
+    haltKind: "halt" | "lift",
+    ackedAt: string,
+  ): ClientOrgHaltAck {
+    return {
+      kind: "org.halt.ack",
+      meta: META(`evt-p31-ack-${haltId}-${haltKind}-${ackedAt}`),
+      haltId,
+      haltKind,
+      ackedAt,
+    };
+  }
+
+  async function haltState(haltId: string): Promise<string> {
+    const [row] = await db
+      .select({ state: orgHalts.state })
+      .from(orgHalts)
+      .where(eq(orgHalts.id, haltId));
+    return row.state;
+  }
+
+  async function acksOf(haltId: string) {
+    const [row] = await db
+      .select({ acks: orgHalts.acks })
+      .from(orgHalts)
+      .where(eq(orgHalts.id, haltId));
+    return row.acks;
+  }
+
+  async function droppedAudits(haltId: string) {
+    const rows = await db
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, FACTORY_ORG_HALT_ACK_DROPPED));
+    return rows.filter((a) => a.targetId === haltId);
+  }
+
+  it("T023: a stale halt-ack while reintegrating is dropped, not widening the halt-acker set", async () => {
+    // A halt-acks, the operator lifts (-> reintegrating), then a DIFFERENT engine
+    // that missed the halt window replays the (still outbox-durable) halt
+    // broadcast and halt-acks late. The idempotency check misses it (new client),
+    // so without the T023 guard it would be recorded, adding C to the halt-acker
+    // set. C is then expected to lift-ack, holding the scope in `reintegrating`.
+    const halt = await pullHaltCore(AUTH, { scope: "org", reason: "widen probe" });
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "halt", "2026-07-03T00:00:00.000Z"),
+    );
+    await liftHaltCore(AUTH, { id: halt.haltId }); // -> reintegrating (A outstanding)
+    expect(await haltState(halt.haltId)).toBe("reintegrating");
+
+    const stale = await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_C, userId: USER_ID },
+      ack(halt.haltId, "halt", "2026-07-03T00:01:00.000Z"),
+    );
+    // Benign ignore, not a hard rejection.
+    expect(stale.ok).toBe(true);
+    // C's halt-ack was not recorded: only A remains a halt-acker.
+    const acks = await acksOf(halt.haltId);
+    expect(acks.filter((a) => a.kind === "halt").map((a) => a.clientId)).toEqual([
+      CLIENT_A,
+    ]);
+
+    // The decisive behavioural check: because C never widened the halt-acker set,
+    // A (the only halt-acker) lift-acking completes reintegration. If the stale
+    // halt-ack had leaked in, C would still be outstanding and the halt would
+    // remain reintegrating.
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "lift", "2026-07-03T00:02:00.000Z"),
+    );
+    expect(await haltState(halt.haltId)).toBe("lifted");
+
+    // T024: the drop is auditable (reason names the guard that fired).
+    const drops = await droppedAudits(halt.haltId);
+    const notHalted = drops.find(
+      (a) => (a.metadata as Record<string, unknown>)?.reason === "not-halted",
+    );
+    expect(notHalted).toBeDefined();
+    const meta = notHalted?.metadata as Record<string, unknown>;
+    expect(meta?.clientId).toBe(CLIENT_C);
+    expect(meta?.haltKind).toBe("halt");
+  });
+
+  it("T023: a stale halt-ack after the halt already lifted is dropped (guard covers the lifted branch)", async () => {
+    const halt = await pullHaltCore(AUTH, { scope: "org", reason: "post-lift probe" });
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "halt", "2026-07-03T01:00:00.000Z"),
+    );
+    await liftHaltCore(AUTH, { id: halt.haltId }); // -> reintegrating
+    await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "lift", "2026-07-03T01:01:00.000Z"),
+    );
+    expect(await haltState(halt.haltId)).toBe("lifted");
+
+    // A late halt-ack from an engine not in the ledger lands after completion.
+    const stale = await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_C, userId: USER_ID },
+      ack(halt.haltId, "halt", "2026-07-03T01:02:00.000Z"),
+    );
+    expect(stale.ok).toBe(true);
+    expect(await haltState(halt.haltId)).toBe("lifted");
+    // The ledger is untouched: only A's halt + lift entries remain.
+    const acks = await acksOf(halt.haltId);
+    expect(acks.filter((a) => a.clientId === CLIENT_C)).toHaveLength(0);
+
+    const drops = await droppedAudits(halt.haltId);
+    expect(
+      drops.some(
+        (a) => (a.metadata as Record<string, unknown>)?.reason === "not-halted",
+      ),
+    ).toBe(true);
+  });
+
+  it("T024: a lift-ack dropped while halted (not-reintegrating) writes an ack-dropped audit", async () => {
+    // The PR #502 cycle-guard drop, now asserted to be audit-visible.
+    const halt = await pullHaltCore(AUTH, { scope: "org", reason: "lift-while-halted" });
+    expect(await haltState(halt.haltId)).toBe("halted");
+
+    const res = await handleInbound(
+      { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID },
+      ack(halt.haltId, "lift", "2026-07-03T02:00:00.000Z"),
+    );
+    expect(res.ok).toBe(true);
+    expect((await acksOf(halt.haltId)).some((a) => a.kind === "lift")).toBe(false);
+
+    const drops = await droppedAudits(halt.haltId);
+    const notReint = drops.find(
+      (a) =>
+        (a.metadata as Record<string, unknown>)?.reason === "not-reintegrating",
+    );
+    expect(notReint).toBeDefined();
+    expect((notReint?.metadata as Record<string, unknown>)?.haltKind).toBe("lift");
+  });
+
+  it("T024: a duplicate ack replay writes an ack-dropped audit without a second engine_ack", async () => {
+    const halt = await pullHaltCore(AUTH, { scope: "org", reason: "dup-audit" });
+    const ctx = { orgId: ORG_ID, clientId: CLIENT_A, userId: USER_ID };
+    await handleInbound(ctx, ack(halt.haltId, "halt", "2026-07-03T03:00:00.000Z"));
+    // The reconnect replay: same (clientId, kind) -> duplicate drop.
+    const replay = await handleInbound(
+      ctx,
+      ack(halt.haltId, "halt", "2026-07-03T03:01:00.000Z"),
+    );
+    expect(replay.ok).toBe(true);
+
+    // One recorded ack, one engine_ack audit (the replay minted neither).
+    expect(await acksOf(halt.haltId)).toHaveLength(1);
+    const engineAcks = await db
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, FACTORY_ORG_HALT_ENGINE_ACK));
+    expect(engineAcks.filter((a) => a.targetId === halt.haltId)).toHaveLength(1);
+
+    // ...but the replay IS visible as an explicit drop marker.
+    const drops = await droppedAudits(halt.haltId);
+    expect(
+      drops.some(
+        (a) => (a.metadata as Record<string, unknown>)?.reason === "duplicate",
+      ),
+    ).toBe(true);
   });
 });

@@ -27,6 +27,7 @@ import {
   projects,
 } from "../db/schema";
 import {
+  FACTORY_ORG_HALT_ACK_DROPPED,
   FACTORY_ORG_HALT_ENGINE_ACK,
   FACTORY_ORG_HALT_REINTEGRATED,
 } from "../factory/auditActions";
@@ -511,6 +512,30 @@ async function orgHaltAckDispatch(
   };
   try {
     const result = await db.transaction(async (tx) => {
+      // Dropped-ack audit (spec 208 T024, FR-004 follow-up): every benign drop
+      // path below records a FACTORY_ORG_HALT_ACK_DROPPED row so a dropped ack is
+      // visible in the audit chain rather than only in log.info. `reason` names
+      // which guard fired. Written inside the txn (atomic with the drop decision);
+      // the drop paths do not mutate org_halts, so this is the only write they do.
+      const auditDrop = (
+        reason: "duplicate" | "not-halted" | "not-reintegrating",
+      ) =>
+        tx.insert(auditLog).values({
+          actorUserId: ctx.userId,
+          nhiSub: ctx.nhiSub ?? null,
+          onBehalfOf: ctx.onBehalfOf ?? null,
+          action: FACTORY_ORG_HALT_ACK_DROPPED,
+          targetType: "org_halts",
+          targetId: evt.haltId,
+          metadata: {
+            orgId: ctx.orgId,
+            clientId: ctx.clientId,
+            haltKind: evt.haltKind,
+            ackedAt: evt.ackedAt,
+            recordedAt: entry.recordedAt,
+            reason,
+          },
+        });
       // FOR UPDATE locks the quarantine row for the txn so the dedup
       // read-modify-write is race-free. The ack is a cold path (one per engine
       // per broadcast), so the lock cost is irrelevant. A cross-org or unknown
@@ -530,12 +555,33 @@ async function orgHaltAckDispatch(
       // Idempotency (FR-003): the broadcast is outbox-durable, so a reconnecting
       // engine replays the halt on resync and re-acks. Without this guard every
       // reconnect would append another entry (unbounded jsonb growth) and emit a
-      // duplicate engine_ack audit row. One (clientId, kind) ack per halt is the
-      // fact; the first `recordedAt` is the bound.
+      // duplicate engine_ack audit row miscounted as a distinct ack. One
+      // (clientId, kind) ack per halt is the fact; the first `recordedAt` is the
+      // bound. The replay is instead recorded as an explicit ACK_DROPPED marker
+      // (T024) -- forensically visible, but not a phantom ack and not jsonb growth.
       const already = row.acks.some(
         (a) => a.clientId === ctx.clientId && a.kind === evt.haltKind,
       );
-      if (already) return "duplicate" as const;
+      if (already) {
+        await auditDrop("duplicate");
+        return "duplicate" as const;
+      }
+
+      // Symmetric write-path guard (spec 208 T023, FR-004): a halt ack only
+      // counts while the scope is `halted`. A late halt-ack replayed via resync
+      // after the scope has moved to `reintegrating` (the operator already
+      // lifted) or `lifted` must NOT be recorded: for a client not already in the
+      // ledger (the idempotency check above misses it) it would widen the
+      // halt-acker set, adding a phantom acker that is then expected to lift-ack
+      // and so holds the scope in `reintegrating` indefinitely. The direction is
+      // fail-safe (over-count, never a premature `lifted`), but a stuck
+      // reintegration is still a defect, so drop it. The engine re-acks on the
+      // next broadcast per the resync-replay contract, so the drop is lossless.
+      // This mirrors the lift-ack cycle guard below.
+      if (evt.haltKind === "halt" && row.state !== "halted") {
+        await auditDrop("not-halted");
+        return "not-halted" as const;
+      }
 
       // Cycle guard (spec 208 FR-004): a lift ack only counts while the halt is
       // actively reintegrating. Outside that window (a halt still `halted` after
@@ -547,6 +593,7 @@ async function orgHaltAckDispatch(
       // resync-replay contract, so ignoring it here is safe and lossless. Halt
       // acks (kind === "halt") are unaffected; they record while `halted`.
       if (evt.haltKind === "lift" && row.state !== "reintegrating") {
+        await auditDrop("not-reintegrating");
         return "not-reintegrating" as const;
       }
 
@@ -651,6 +698,19 @@ async function orgHaltAckDispatch(
           "admitted (fresh re-validation failed, FR-004)",
       };
     }
+    if (result === "not-halted") {
+      // Symmetric write-path guard (T023): the halt ack arrived while the scope
+      // was no longer `halted` (already `reintegrating` or `lifted`). Not
+      // recorded, so a stale halt-ack cannot widen the halt-acker set of a cycle
+      // that has moved on. Benign no-op: the engine re-acks on the next broadcast
+      // per the resync-replay contract. Audited as a drop (T024).
+      log.info("sync: org-halt halt ack ignored (halt no longer halted)", {
+        orgId: ctx.orgId,
+        clientId: ctx.clientId,
+        haltId: evt.haltId,
+      });
+      return { ok: true };
+    }
     if (result === "not-reintegrating") {
       // Cycle guard: the lift ack arrived while the halt was not actively
       // reintegrating. Not recorded, so a stale ack cannot contaminate the next
@@ -673,7 +733,9 @@ async function orgHaltAckDispatch(
       return { ok: true };
     }
     if (result === "duplicate") {
-      // A replayed ack is a no-op success: the bound is already recorded.
+      // A replayed ack is a no-op success: the bound is already recorded. The
+      // replay is captured as an ACK_DROPPED audit (T024) so the audit chain
+      // shows the reconnect without minting a second engine_ack.
       log.info("sync: org-halt engine ack replay ignored (already recorded)", {
         orgId: ctx.orgId,
         clientId: ctx.clientId,
