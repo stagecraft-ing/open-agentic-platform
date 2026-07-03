@@ -58,6 +58,25 @@ rules:
   - apiGroups: [""]
     resources: ["namespaces"]
     verbs: ["get", "list", "watch", "create", "patch", "update"]
+  {{- if .Values.rbac.selfProvision }}
+  # Self-provisioning (opt-in, additive): deployd creates a RoleBinding in
+  # each target namespace granting its own ServiceAccount the workloads
+  # ClusterRole (deployd-api-rs/src/rbac.rs), so the cluster-wide workloads
+  # ClusterRoleBinding fallback below can eventually be dropped. Creating a
+  # RoleBinding that references a ClusterRole requires two grants under
+  # Kubernetes privilege-escalation prevention: `create` on rolebindings,
+  # and the `bind` verb on that specific ClusterRole. Both are cluster-wide
+  # here because deployd provisions across arbitrary tenant namespaces it
+  # creates on demand. Off by default; the chart's rbac.namespaces default
+  # is intentionally NOT flipped here (cluster-validation gated).
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["rolebindings"]
+    verbs: ["get", "list", "watch", "create", "patch"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    resourceNames: ["deployd-controller-workloads"]
+    verbs: ["bind"]
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
