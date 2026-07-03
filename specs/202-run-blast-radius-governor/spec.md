@@ -51,6 +51,15 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalVelocity.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalVelocity-pure.test.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/approvalVelocity.test.ts }
+  # Slice G follow-up (FR-004 perf): the composite index serving the
+  # approval-velocity read on audit_log (actor_user_id, action, created_at).
+  # audit_log carried no indexes, so loadActorApprovalTimestamps was a
+  # sequential scan over an append-only, monotonically growing table. It is
+  # numbered 3 (renumbered from 2 to sit after #499's backfill, which is itself
+  # the first migration since the #454/#455 baseline reset). api/db is co-owned
+  # by spec 119's directory claim; this file-level establishes makes 202 the
+  # specific owner so the coupling gate resolves to the motivating spec.
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/3_audit_log_actor_action_created_idx.up.sql }
 extends:
   # Budget declarations are an additive, ASI08-tagged section of the
   # envelope schema spec 198 establishes.
@@ -372,6 +381,15 @@ distinct `RunBudget*` prefix to avoid collision.
     actor's `gate_approved` rows are scoped to the caller's org by joining to
     `factory_runs` (`targetType = "factory_runs"`, `targetId = <run uuid>`) on
     the org, matching the plan's `(actor_id, org_id, window)` key.
+  - *The read is indexed (follow-up migration).* `loadActorApprovalTimestamps`
+    filters `audit_log` on equality `(actor_user_id, action)` plus a
+    `created_at >= cutoff` range. `audit_log` carried no indexes at all, so the
+    read (and every other `audit_log` read) was a sequential scan over an
+    append-only, monotonically growing table. Migration
+    `3_audit_log_actor_action_created_idx.up.sql` (renumbered from 2 to sit
+    after #499's backfill migration) adds the composite btree
+    `(actor_user_id, action, created_at)`; the planner picks it for this exact
+    predicate, with `target_type` left as a cheap post-filter.
   - *Thresholds are platform config.* Window and threshold are env knobs
     (`STAGECRAFT_FACTORY_APPROVAL_VELOCITY_WINDOW_SEC` / `_THRESHOLD`, defaults
     60s / 10), the same "platform config until the envelope carries an
