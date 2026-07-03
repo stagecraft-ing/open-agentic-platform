@@ -11,7 +11,7 @@
 | Finding | Impact |
 |---------|--------|
 | `CERTIFICATE_VERSION` is already `"1.6.0"` (spec 218 FR-001 landed it). The spec text says `1.5.0 -> 1.6.0`; this is stale. The correct bump for spec 202 is `1.6.0 -> 1.7.0`. | **AC-4/FR-005 lockstep bump must be corrected in the PR.** The `CERTIFICATE_VERSION` const, the version check in `verify_certificate`, all test fixtures that assert the version string, and the doc comment on the const all need updating to `"1.7.0"`. |
-| `FactoryPipelineState.total_tokens` accumulates tokens via `add_tokens()` in `pipeline_state.rs`. `FactoryEngineConfig.max_total_tokens` is declared and defaulted `None` in `engine.rs`, read nowhere, not enforced. Both confirmed present. | AC-6 is fully landable: subsume `total_tokens` into the meter's `tokens` axis, remove `max_total_tokens` or enforce it via the meter (the meter is simpler; retire the stub and wire the meter). |
+| `FactoryPipelineState.total_tokens` accumulates tokens via `add_tokens()` in `pipeline_state.rs`. `FactoryEngineConfig.max_total_tokens` is declared and defaulted `None` in `engine.rs`, read nowhere, not enforced. Both confirmed present. | AC-6 pt1: remove `max_total_tokens` or enforce it via the meter (the meter is simpler; retire the stub and wire the meter), landed in PR1. The pt2 "subsume `total_tokens`" plan was later withdrawn on investigation: `total_tokens` is the persisted UI total, not redundant with the in-memory per-spawn meter (see §Summary). |
 | `GovernanceEnvelope` (and the schema file) are at `schema_version: "1.0.0"`. The Rust twin const is `GOVERNANCE_ENVELOPE_SCHEMA_VERSION = "1.0.0"`. The 1.1.0 bump is clean. | No drift; plan proceeds as written. |
 | `crates/orchestrator/src/circuit_breaker.rs` is a complete, tested library. It is not imported anywhere in the orchestrator dispatch loops (confirmed by reading `lib.rs`: no `circuit_breaker` import in the dispatch path). | FR-003(b) wires this library. The precedent was correctly described in the spec. |
 | `IntentCapsule.derive_goal_id()` uses `"goal-" + first 16 hex chars of SHA-256(goal_text)`. FR-003(a) says the step signature hashes `goal_id + normalized instruction text` with step id excluded. The normalization rule ("fixed at implementation") is intentionally left to the implementer. | No drift; the hash construction is derivable from the existing `derive_goal_id` pattern. |
@@ -113,11 +113,16 @@ budgets:
 > **AC-6 status (read this before the AC-6 bullets below).** Slice B / PR1 #469
 > landed AC-6 pt1 only (retire the `max_total_tokens` engine-config stub). AC-6
 > pt2 (remove `FactoryPipelineState.total_tokens` / `add_tokens()` so no two
-> token accumulators coexist) was split to a follow-up, PR1b, and is still
-> open as of the 2026-07-01 `implementation: complete` flip. The "remove
-> `total_tokens`" bullets in this section describe PR1b's intended work, not
-> what shipped in PR1. See the plan Summary and spec.md "Implementation status
-> (AC-6 residual)" for the authoritative disclosure.
+> token accumulators coexist) was split to a follow-up, PR1b, and then
+> **withdrawn on investigation (2026-07-02, user-ratified)**: the two counters
+> are not redundant. `total_tokens` is the persisted, poll-surfaced UI total
+> (`build_status_response` -> `PipelineStatusResponse`, serialized to
+> `.factory/pipeline-state.json`); the `RunBudgetMeter` is an in-memory,
+> per-spawn accumulator feeding only the budget gate + cert snapshot and is out
+> of scope at the status-poll command. The "remove `total_tokens`" bullets in
+> this section are therefore **moot** (they describe PR1b's original intended
+> work, which is not being done). See the plan Summary and spec.md
+> "Implementation status (AC-6 residual)" for the authoritative disclosure.
 
 **Depends on**: Slice A (needs `AdmittedBudget`, `RunBudgetAxis`).
 
@@ -480,7 +485,7 @@ Slice A (FR-001, AC-3, AC-7) -- LAND FIRST
 | F | FR-003(c) | (none stated) | No (independent) |
 | G | FR-004 | (none stated) | No (independent) |
 
-All seven slices landed (PR1 #469, C #472, D #481, E #486, F #492, G this PR; B rode PR1). `spec.md` flipped to `status: approved` / `implementation: complete` on 2026-07-01 (user-ratified). One residual is honestly recorded rather than hidden: AC-6 pt2 (subsume `FactoryPipelineState.total_tokens` into the meter's `tokens` axis so no two independent accumulators coexist) is a tracked mechanical-cleanup follow-up, PR1b, sequenced after the flip. The meter's `tokens` axis is already the authoritative accumulator; `total_tokens` is a now-vestigial second counter read for a diagnostic only. See spec.md §Acceptance criteria "Implementation status (AC-6 residual)".
+All seven slices landed (PR1 #469, C #472, D #481, E #486, F #492, G this PR; B rode PR1). `spec.md` flipped to `status: approved` / `implementation: complete` on 2026-07-01 (user-ratified). One acceptance-criterion detail was corrected after the flip: AC-6 pt2 (subsume `FactoryPipelineState.total_tokens` into the meter's `tokens` axis so no two independent accumulators coexist) was tracked as a follow-up (PR1b) and then withdrawn on investigation (2026-07-02, user-ratified). The two counters are not redundant: `total_tokens` is the persisted, poll-surfaced UI total (`build_status_response` -> `PipelineStatusResponse`, serialized to `.factory/pipeline-state.json`), whereas the `RunBudgetMeter`'s `tokens` axis is an in-memory, per-spawn accumulator feeding only the budget gate + certificate snapshot and out of scope at the status-poll command. `total_tokens` is kept by design; AC-6 is satisfied by pt1. See spec.md §Acceptance criteria "Implementation status (AC-6 residual)".
 
 ---
 
