@@ -537,6 +537,19 @@ async function orgHaltAckDispatch(
       );
       if (already) return "duplicate" as const;
 
+      // Cycle guard (spec 208 FR-004): a lift ack only counts while the halt is
+      // actively reintegrating. Outside that window (a halt still `halted` after
+      // a D3 re-pull reset the ledger, or one already `lifted`), an in-flight
+      // lift ack replayed via resync must NOT be recorded: it would sit in the
+      // ledger and be miscounted as a completed lift in the NEXT reintegration
+      // cycle, flipping the halt to `lifted` for an engine that never lift-acked
+      // that cycle. The engine re-acks on the next `lifted` broadcast per the
+      // resync-replay contract, so ignoring it here is safe and lossless. Halt
+      // acks (kind === "halt") are unaffected; they record while `halted`.
+      if (evt.haltKind === "lift" && row.state !== "reintegrating") {
+        return "not-reintegrating" as const;
+      }
+
       // D2 (spec 208 FR-004): a lift ack must pass fresh two-sided validation
       // before it counts toward reintegration. Re-check the standing admission
       // (the liftRevocationCore "lifting alone does not re-admit" precedent): if
@@ -637,6 +650,20 @@ async function orgHaltAckDispatch(
           "lift ack rejected: org factory admission is not currently " +
           "admitted (fresh re-validation failed, FR-004)",
       };
+    }
+    if (result === "not-reintegrating") {
+      // Cycle guard: the lift ack arrived while the halt was not actively
+      // reintegrating. Not recorded, so a stale ack cannot contaminate the next
+      // reintegration cycle's completion count. Benign no-op in both branches:
+      // for `halted` (e.g. after a D3 re-pull) the engine re-acks on the next
+      // `lifted` broadcast per the resync-replay contract; for `lifted` the halt
+      // is already complete, so there is no next broadcast and the drop is final.
+      log.info("sync: org-halt lift ack ignored (halt not reintegrating)", {
+        orgId: ctx.orgId,
+        clientId: ctx.clientId,
+        haltId: evt.haltId,
+      });
+      return { ok: true };
     }
     if (result === "completed") {
       log.info(
