@@ -178,7 +178,7 @@ pub async fn create_deployment(
     // plus reserved-name check, not tenant-ownership enforcement; see
     // `is_valid_tenant_namespace`'s doc comment for the isolation lever
     // this does NOT provide.
-    if !is_valid_tenant_namespace(&namespace) {
+    if !crate::rbac::is_valid_tenant_namespace(&namespace) {
         return (
             StatusCode::BAD_REQUEST,
             Json(json!({
@@ -632,6 +632,38 @@ pub async fn delete_deployment(
             .app_slug
             .clone()
             .unwrap_or_else(|| deployment.app_id.clone());
+
+        // Spec 225 FR-007: self-provision the workloads RoleBinding before
+        // teardown. Once the cluster-wide workloads fallback is dropped
+        // (`rbac.selfProvision: true`), a namespace created before the flip and
+        // never redeployed has no RoleBinding, so `helm uninstall` would hit
+        // Forbidden and the best-effort uninstall below would swallow it,
+        // orphaning the namespace's k8s resources. `ensure_workload_rbac_for_teardown`
+        // provisions it (into the existing namespace only; it will not
+        // resurrect a namespace already gone, and its internal
+        // `is_valid_tenant_namespace` guard refuses a reserved / untrusted
+        // recorded-or-fallback namespace) so this delete tears the namespace
+        // down cleanly. Best-effort: a failure (including the guard rejecting a
+        // bad namespace) is logged and recorded as an event, and the delete
+        // still proceeds so it stays idempotent, matching the uninstall it
+        // precedes. A no-op under the default cluster-wide fallback (opt-in on
+        // env).
+        let self_provision = crate::rbac::SelfProvisionConfig::from_env();
+        if let Err(e) =
+            crate::rbac::ensure_workload_rbac_for_teardown(&namespace, &self_provision).await
+        {
+            tracing::warn!("self-provision RBAC before teardown failed for {release_id}: {e}");
+            let _ = store::add_event(
+                &state.client,
+                &release_id,
+                "rbac_warning",
+                Some(&format!(
+                    "teardown self-provision RBAC failed for namespace {namespace}: {e}; uninstall attempted best-effort"
+                )),
+            )
+            .await;
+        }
+
         let runner = HelmRunner::from_env();
         let result = tokio::task::spawn_blocking(move || {
             runner.uninstall_with_gate(&namespace, &release)
@@ -660,99 +692,4 @@ pub async fn delete_deployment(
             "status": "DESTROYED",
         })),
     )
-}
-
-/// DNS-1123-label validation for a Kubernetes namespace name, plus a small
-/// reserved-namespace blocklist. `create_deployment` forwards `namespace`
-/// straight from the request body (spec 214 FR-008 lets the caller override
-/// the computed default); without this check a caller holding the required
-/// scope could point `helm upgrade --install` at any namespace in the
-/// cluster, cluster-system or platform-owned, purely by setting the field.
-///
-/// This function validates DNS-1123 label shape and blocks the reserved /
-/// platform namespaces listed below. It does NOT enforce per-tenant
-/// isolation: it cannot distinguish "tenant A's namespace" from "tenant B's
-/// namespace" (both are well-formed, non-reserved names), so a caller
-/// holding the required scope can still target another tenant's namespace
-/// by name. True per-tenant isolation is a separate lever: the chart's
-/// `rbac.namespaces` allowlist (see the deployd-api Helm chart) scopes what
-/// the deployd-api ServiceAccount is actually permitted to touch in the
-/// cluster's RBAC.
-fn is_valid_tenant_namespace(ns: &str) -> bool {
-    const RESERVED: &[&str] = &[
-        "kube-system",
-        "kube-public",
-        "kube-node-lease",
-        "default",
-        "deployd-system",
-        "rauthy-system",
-        "stagecraft-system",
-        "monitoring",
-        "ingress-nginx",
-        "flux-system",
-        "kube-flannel",
-        "cert-manager",
-        "external-secrets",
-    ];
-    if ns.is_empty() || ns.len() > 63 {
-        return false;
-    }
-    if RESERVED.contains(&ns) {
-        return false;
-    }
-    let bytes = ns.as_bytes();
-    let edge_ok = |b: u8| b.is_ascii_lowercase() || b.is_ascii_digit();
-    if !edge_ok(bytes[0]) || !edge_ok(bytes[bytes.len() - 1]) {
-        return false;
-    }
-    bytes
-        .iter()
-        .all(|&b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn is_valid_tenant_namespace_accepts_well_formed_names() {
-        assert!(is_valid_tenant_namespace("acme-p-dev"));
-        assert!(is_valid_tenant_namespace("app123-env1"));
-        assert!(is_valid_tenant_namespace("a"));
-    }
-
-    #[test]
-    fn is_valid_tenant_namespace_rejects_reserved_names() {
-        assert!(!is_valid_tenant_namespace("kube-system"));
-        assert!(!is_valid_tenant_namespace("kube-public"));
-        assert!(!is_valid_tenant_namespace("kube-node-lease"));
-        assert!(!is_valid_tenant_namespace("default"));
-        assert!(!is_valid_tenant_namespace("deployd-system"));
-    }
-
-    #[test]
-    fn is_valid_tenant_namespace_rejects_platform_namespaces() {
-        // A deploy-scope holder must not be able to target the platform's
-        // own namespaces by setting `namespace` on the request body.
-        assert!(!is_valid_tenant_namespace("rauthy-system"));
-        assert!(!is_valid_tenant_namespace("stagecraft-system"));
-        assert!(!is_valid_tenant_namespace("monitoring"));
-        assert!(!is_valid_tenant_namespace("ingress-nginx"));
-        assert!(!is_valid_tenant_namespace("flux-system"));
-        assert!(!is_valid_tenant_namespace("kube-flannel"));
-        assert!(!is_valid_tenant_namespace("cert-manager"));
-        assert!(!is_valid_tenant_namespace("external-secrets"));
-    }
-
-    #[test]
-    fn is_valid_tenant_namespace_rejects_malformed_names() {
-        assert!(!is_valid_tenant_namespace(""));
-        assert!(!is_valid_tenant_namespace("-leading-dash"));
-        assert!(!is_valid_tenant_namespace("trailing-dash-"));
-        assert!(!is_valid_tenant_namespace("Has-Upper-Case"));
-        assert!(!is_valid_tenant_namespace("has_underscore"));
-        assert!(!is_valid_tenant_namespace("has.dot"));
-        assert!(!is_valid_tenant_namespace("has/slash"));
-        assert!(!is_valid_tenant_namespace(&"a".repeat(64)));
-    }
 }

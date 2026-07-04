@@ -16,6 +16,10 @@
       {
         "kind": "file",
         "path": "platform/charts/deployd-api/templates/rbac.yaml"
+      },
+      {
+        "kind": "file",
+        "path": "platform/services/deployd-api-rs/src/rbac.rs"
       }
     ],
     "extends": [
@@ -26,6 +30,14 @@
           "kind": "file",
           "path": "crates/featuregraph/tests/golden/features_graph.json"
         }
+      },
+      {
+        "nature": "additive",
+        "spec": "136-tenant-hello-demo-service",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/deployd-api-rs/src/routes.rs"
+        }
       }
     ],
     "extraFrontmatter": {
@@ -35,22 +47,6 @@
     "id": "225-deployd-selfprovision-rbac",
     "implementation": "complete",
     "kind": "platform",
-    "references": [
-      {
-        "role": "mechanism-implementation",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/deployd-api-rs/src/rbac.rs"
-        }
-      },
-      {
-        "role": "mechanism-wiring",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/deployd-api-rs/src/routes.rs"
-        }
-      }
-    ],
     "refines": [
       {
         "aspect": "deployd-selfprovision-rbac",
@@ -69,7 +65,7 @@
       "Requirements *(mandatory)*",
       "Functional Requirements: mechanism (shipped in #503, documented here)",
       "Functional Requirements: the flip (this PR)",
-      "Functional Requirements: staged (NOT delivered this PR)",
+      "Functional Requirements: the teardown follow-up (delivered)",
       "Key Entities",
       "Success Criteria *(mandatory)*",
       "Measurable Outcomes",
@@ -82,6 +78,6 @@
     "summary": "deployd-api creates tenant/preview namespaces on demand and runs `helm upgrade --install` inside them. Its workload permissions (secrets, deployments, services, ...) were granted CLUSTER-WIDE via a single ClusterRoleBinding, so deployd could touch workloads in every namespace on the cluster, not just the ones it manages. #503 split the RBAC into a cluster-scoped `deployd-controller-namespaces` role (namespace CRUD only) and a namespaced `deployd-controller-workloads` role, and added an opt-in self-provisioning mechanism (`DEPLOYD_SELF_PROVISION_RBAC`): when on, deployd grants its own ServiceAccount the workloads role via a RoleBinding it creates in each target namespace, right before helm runs there. #503 deliberately left the cluster-wide fallback in place because dropping it was gated on real-cluster validation of the `bind`-verb escalation. This spec is the design home for that mechanism and lands the validated flip: with `rbac.selfProvision: true` the chart no longer renders the cluster-wide workloads ClusterRoleBinding, so deployd's standing workload authority is reduced from every namespace to only the namespaces it actually deploys into. The chart default is unchanged (fallback intact); the flip is enabled per-environment via values.\n",
     "title": "deployd Self-Provisioned Per-Namespace RBAC (drop the cluster-wide workloads grant)"
   },
-  "shardHash": "de8576aa245aee43c5973b5ddcdb20f1536827a1f568f1aeef5208cea15fc0fe",
+  "shardHash": "bfd30ca27c016b80d8461b3e6b722010283a7a49684cb3761914db4d4de8f9b8",
   "specVersion": "1.1.0"
 }

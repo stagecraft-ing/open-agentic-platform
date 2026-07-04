@@ -117,6 +117,88 @@ impl std::fmt::Display for RbacError {
 
 impl std::error::Error for RbacError {}
 
+/// DNS-1123-label validation for a Kubernetes namespace name, plus a small
+/// reserved-namespace blocklist. Used both by `create_deployment` (to reject a
+/// caller-supplied request namespace up front) and, as defense-in-depth, by
+/// the self-provision entry points here so a deployd RoleBinding is never
+/// written into a reserved / platform namespace regardless of caller.
+///
+/// It validates DNS-1123 label shape and blocks the reserved / platform
+/// namespaces listed below. It does NOT enforce per-tenant isolation: it
+/// cannot distinguish "tenant A's namespace" from "tenant B's namespace" (both
+/// are well-formed, non-reserved names). True per-tenant isolation is a
+/// separate lever: the chart's `rbac.namespaces` allowlist scopes what the
+/// deployd-api ServiceAccount is actually permitted to touch in the cluster's
+/// RBAC.
+pub(crate) fn is_valid_tenant_namespace(ns: &str) -> bool {
+    const RESERVED: &[&str] = &[
+        "kube-system",
+        "kube-public",
+        "kube-node-lease",
+        "default",
+        "deployd-system",
+        "rauthy-system",
+        "stagecraft-system",
+        "monitoring",
+        "ingress-nginx",
+        "flux-system",
+        "kube-flannel",
+        "cert-manager",
+        "external-secrets",
+    ];
+    if ns.is_empty() || ns.len() > 63 {
+        return false;
+    }
+    if RESERVED.contains(&ns) {
+        return false;
+    }
+    let bytes = ns.as_bytes();
+    let edge_ok = |b: u8| b.is_ascii_lowercase() || b.is_ascii_digit();
+    if !edge_ok(bytes[0]) || !edge_ok(bytes[bytes.len() - 1]) {
+        return false;
+    }
+    bytes
+        .iter()
+        .all(|&b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+}
+
+/// Whether `namespace` currently exists in the cluster. Shared existence
+/// probe for the deploy (create-if-absent) and teardown (skip-if-absent)
+/// self-provision paths.
+async fn namespace_exists(client: &Client, namespace: &str) -> Result<bool, RbacError> {
+    let ns_api: Api<Namespace> = Api::all(client.clone());
+    Ok(ns_api
+        .get_opt(namespace)
+        .await
+        .map_err(|e| RbacError::Namespace(e.to_string()))?
+        .is_some())
+}
+
+/// Create (or confirm) the workloads RoleBinding in `namespace`, binding
+/// deployd's ServiceAccount to the `deployd-controller-workloads` ClusterRole.
+/// Idempotent: an already-present RoleBinding (HTTP 409) is treated as
+/// success. Shared by the deploy ([`ensure_workload_rbac`]) and teardown
+/// ([`ensure_workload_rbac_for_teardown`]) self-provision paths.
+///
+/// Creating the RoleBinding requires deployd to hold the `bind` verb on the
+/// referenced ClusterRole (Kubernetes privilege-escalation prevention) plus
+/// `create` on rolebindings, both granted by the chart when self-provisioning
+/// is enabled.
+async fn create_workload_rolebinding(
+    client: Client,
+    namespace: &str,
+    cfg: &SelfProvisionConfig,
+) -> Result<(), RbacError> {
+    let rb_api: Api<RoleBinding> = Api::namespaced(client, namespace);
+    let rb = workload_rolebinding(namespace, cfg);
+    match rb_api.create(&PostParams::default(), &rb).await {
+        Ok(_) => Ok(()),
+        // Already provisioned on a previous deploy/teardown of this namespace.
+        Err(kube::Error::Api(ae)) if ae.code == 409 => Ok(()),
+        Err(e) => Err(RbacError::RoleBinding(e.to_string())),
+    }
+}
+
 /// Ensure the target namespace exists and carries a RoleBinding granting
 /// deployd's ServiceAccount the workloads ClusterRole. Idempotent: an
 /// already-existing namespace or RoleBinding (HTTP 409) is treated as
@@ -134,6 +216,17 @@ pub async fn ensure_workload_rbac(
         return Ok(());
     }
 
+    // Defense-in-depth: refuse to provision RBAC into a reserved / platform
+    // namespace even if a caller reached here without validating (the chart's
+    // `bind` grant is cluster-wide, so this pub entry point is a standing
+    // privilege-escalation surface without the guard). `create_deployment`
+    // already validates the request namespace up front; this is the backstop.
+    if !is_valid_tenant_namespace(namespace) {
+        return Err(RbacError::Namespace(format!(
+            "refusing to self-provision RBAC in reserved or malformed namespace {namespace}"
+        )));
+    }
+
     let client = Client::try_default()
         .await
         .map_err(|e| RbacError::Client(e.to_string()))?;
@@ -141,13 +234,8 @@ pub async fn ensure_workload_rbac(
     // 1. Ensure the namespace exists. deployd holds cluster-wide namespace
     //    create via `deployd-controller-namespaces`, so this works before
     //    the RoleBinding (which is namespace-scoped) can be created.
-    let ns_api: Api<Namespace> = Api::all(client.clone());
-    let exists = ns_api
-        .get_opt(namespace)
-        .await
-        .map_err(|e| RbacError::Namespace(e.to_string()))?
-        .is_some();
-    if !exists {
+    if !namespace_exists(&client, namespace).await? {
+        let ns_api: Api<Namespace> = Api::all(client.clone());
         let ns = Namespace {
             metadata: ObjectMeta {
                 name: Some(namespace.to_string()),
@@ -163,18 +251,66 @@ pub async fn ensure_workload_rbac(
         }
     }
 
-    // 2. Ensure the RoleBinding. Creating it requires deployd to hold the
-    //    `bind` verb on the referenced ClusterRole (Kubernetes privilege-
-    //    escalation prevention) plus `create` on rolebindings, both granted
-    //    by the chart when self-provisioning is enabled.
-    let rb_api: Api<RoleBinding> = Api::namespaced(client, namespace);
-    let rb = workload_rolebinding(namespace, cfg);
-    match rb_api.create(&PostParams::default(), &rb).await {
-        Ok(_) => Ok(()),
-        // Already provisioned on a previous deploy to this namespace.
-        Err(kube::Error::Api(ae)) if ae.code == 409 => Ok(()),
-        Err(e) => Err(RbacError::RoleBinding(e.to_string())),
+    // 2. Ensure the RoleBinding.
+    create_workload_rolebinding(client, namespace, cfg).await
+}
+
+/// Teardown counterpart of [`ensure_workload_rbac`] (spec 225 FR-007). Ensures
+/// deployd holds the workloads RoleBinding in an **already-existing** target
+/// namespace so `helm uninstall` can remove that namespace's objects under
+/// scoped RBAC, WITHOUT creating the namespace when it is already gone.
+///
+/// Why a separate function rather than reusing [`ensure_workload_rbac`]: the
+/// deploy path creates the namespace on demand because a deploy needs it to
+/// exist. A teardown must not. Recreating a namespace that has already been
+/// deleted (then adding a RoleBinding to it) would orphan an empty namespace
+/// plus RoleBinding, the exact leak this requirement closes.
+///
+/// The gap it closes: once the cluster-wide workloads fallback is dropped
+/// (`rbac.selfProvision: true`), a namespace created before the flip and never
+/// redeployed has no RoleBinding, so its `helm uninstall` fails `Forbidden`
+/// and the delete handler swallows it best-effort, silently orphaning the
+/// namespace's resources. Provisioning the RoleBinding here lets that first
+/// delete tear the namespace down cleanly.
+///
+/// Semantics:
+/// - `cfg.enabled == false` -> no-op `Ok(())` (cluster-wide fallback still in
+///   force; deployd already has rights everywhere, nothing to provision).
+/// - reserved / malformed namespace -> `Err(RbacError::Namespace)` (the
+///   caller records it best-effort; no RoleBinding is written there).
+/// - namespace absent -> `Ok(())` (nothing to tear down; do NOT create it).
+/// - namespace present -> create the workloads RoleBinding (idempotent,
+///   409-tolerant), identical to the deploy path.
+pub async fn ensure_workload_rbac_for_teardown(
+    namespace: &str,
+    cfg: &SelfProvisionConfig,
+) -> Result<(), RbacError> {
+    if !cfg.enabled {
+        return Ok(());
     }
+
+    // Defense-in-depth: same reserved-namespace guard as the deploy entry
+    // point. The delete path derives the namespace from the recorded column or
+    // the `app_id-env_id` fallback and does not otherwise revalidate it, so a
+    // legacy row resolving to e.g. `kube-system` must not get a RoleBinding.
+    if !is_valid_tenant_namespace(namespace) {
+        return Err(RbacError::Namespace(format!(
+            "refusing to self-provision RBAC in reserved or malformed namespace {namespace}"
+        )));
+    }
+
+    let client = Client::try_default()
+        .await
+        .map_err(|e| RbacError::Client(e.to_string()))?;
+
+    // Only provision into an EXISTING namespace; never resurrect a namespace
+    // that has already been torn down (that would create the very orphan this
+    // path exists to prevent).
+    if !namespace_exists(&client, namespace).await? {
+        return Ok(());
+    }
+
+    create_workload_rolebinding(client, namespace, cfg).await
 }
 
 #[cfg(test)]
@@ -265,5 +401,71 @@ mod tests {
         // No kube client is built when disabled, so this succeeds with no
         // cluster reachable (proves the opt-in guard short-circuits first).
         assert!(ensure_workload_rbac("tenant-acme-prod", &c).await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn teardown_ensure_is_a_noop_when_disabled() {
+        let mut c = cfg();
+        c.enabled = false;
+        // Same opt-in guard as the deploy path: disabled short-circuits before
+        // any kube client is built, so the teardown self-provision is inert
+        // under the cluster-wide fallback (no cluster reachable, still Ok).
+        assert!(ensure_workload_rbac_for_teardown("tenant-acme-prod", &c)
+            .await
+            .is_ok());
+    }
+
+    #[tokio::test]
+    async fn teardown_ensure_rejects_reserved_namespace_when_enabled() {
+        // Defense-in-depth guard fires before any kube client is built, so a
+        // reserved namespace is rejected without a cluster: enabled + reserved
+        // -> Err, never a RoleBinding write into e.g. kube-system.
+        let c = cfg(); // enabled = true
+        let err = ensure_workload_rbac_for_teardown("kube-system", &c)
+            .await
+            .expect_err("reserved namespace must be rejected");
+        assert!(matches!(err, RbacError::Namespace(_)));
+    }
+
+    #[test]
+    fn is_valid_tenant_namespace_accepts_well_formed_names() {
+        assert!(is_valid_tenant_namespace("acme-p-dev"));
+        assert!(is_valid_tenant_namespace("app123-env1"));
+        assert!(is_valid_tenant_namespace("a"));
+    }
+
+    #[test]
+    fn is_valid_tenant_namespace_rejects_reserved_names() {
+        assert!(!is_valid_tenant_namespace("kube-system"));
+        assert!(!is_valid_tenant_namespace("kube-public"));
+        assert!(!is_valid_tenant_namespace("kube-node-lease"));
+        assert!(!is_valid_tenant_namespace("default"));
+        assert!(!is_valid_tenant_namespace("deployd-system"));
+    }
+
+    #[test]
+    fn is_valid_tenant_namespace_rejects_platform_namespaces() {
+        // A deploy-scope holder must not be able to target the platform's
+        // own namespaces by setting `namespace` on the request body.
+        assert!(!is_valid_tenant_namespace("rauthy-system"));
+        assert!(!is_valid_tenant_namespace("stagecraft-system"));
+        assert!(!is_valid_tenant_namespace("monitoring"));
+        assert!(!is_valid_tenant_namespace("ingress-nginx"));
+        assert!(!is_valid_tenant_namespace("flux-system"));
+        assert!(!is_valid_tenant_namespace("kube-flannel"));
+        assert!(!is_valid_tenant_namespace("cert-manager"));
+        assert!(!is_valid_tenant_namespace("external-secrets"));
+    }
+
+    #[test]
+    fn is_valid_tenant_namespace_rejects_malformed_names() {
+        assert!(!is_valid_tenant_namespace(""));
+        assert!(!is_valid_tenant_namespace("-leading-dash"));
+        assert!(!is_valid_tenant_namespace("trailing-dash-"));
+        assert!(!is_valid_tenant_namespace("Has-Upper-Case"));
+        assert!(!is_valid_tenant_namespace("has_underscore"));
+        assert!(!is_valid_tenant_namespace("has.dot"));
+        assert!(!is_valid_tenant_namespace("has/slash"));
+        assert!(!is_valid_tenant_namespace(&"a".repeat(64)));
     }
 }

@@ -3,7 +3,7 @@ id: "225-deployd-selfprovision-rbac"
 title: "deployd Self-Provisioned Per-Namespace RBAC (drop the cluster-wide workloads grant)"
 feature_branch: "225-deployd-selfprovision-rbac"
 status: approved
-implementation: complete  # Mechanism (ClusterRole split + ensure_workload_rbac + env/grants) shipped in #503 under a Spec-Drift-Waiver; this spec is its design home and lands the validated flip: the chart template now suppresses the cluster-wide workloads ClusterRoleBinding when rbac.selfProvision is true, and values-hetzner.yaml enables it. The bind-verb escalation was validated on the real oap-hetzner-master1 K3s cluster on 2026-07-04 before the fallback-drop was wired (see Validation).
+implementation: complete  # Mechanism (ClusterRole split + ensure_workload_rbac + env/grants) shipped in #503 under a Spec-Drift-Waiver; this spec is its design home and lands the validated flip: the chart template now suppresses the cluster-wide workloads ClusterRoleBinding when rbac.selfProvision is true, and values-hetzner.yaml enables it. The bind-verb escalation was validated on the real oap-hetzner-master1 K3s cluster on 2026-07-04 before the fallback-drop was wired (see Validation). A follow-up lands the FR-007 teardown self-provision (`rbac::ensure_workload_rbac_for_teardown`, called from `delete_deployment` in routes.rs), so this spec now also authoritatively claims those two deployd-api-rs paths, retiring #503's Spec-Drift-Waiver on them.
 kind: platform
 domain: platform
 created: "2026-07-04"
@@ -34,6 +34,11 @@ depends_on:
   - "145-deployd-durability"  # co-owns values-hetzner.yaml (persistence); this spec refines it with the rbac block
 establishes:
   - unit: { kind: file, path: platform/charts/deployd-api/templates/rbac.yaml }
+  # FR-007 delivery retires #503's Spec-Drift-Waiver on the mechanism module:
+  # this spec is the design home for deployd self-provisioning, so it now
+  # authoritatively claims the module #503 created. No other spec claims
+  # rbac.rs (W-4: a path has at most one establisher).
+  - unit: { kind: file, path: platform/services/deployd-api-rs/src/rbac.rs }
 refines:
   # Add the rbac.selfProvision block to the Hetzner overlay. Additive concern
   # (RBAC scoping) on a file 143 refines (sweeper secret) and 145 extends
@@ -46,10 +51,12 @@ extends:
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
-references:
-  - role: mechanism-implementation
-    unit: { kind: file, path: platform/services/deployd-api-rs/src/rbac.rs }
-  - role: mechanism-wiring
+  # FR-007 additively wires the teardown self-provision into routes.rs (the
+  # deploy/delete handlers), matching the additive-extends pattern specs 136
+  # and 214 already use on this file; the edit lands outside 137's
+  # `gate-overlay` co-authored region.
+  - spec: "136-tenant-hello-demo-service"
+    nature: additive
     unit: { kind: file, path: platform/services/deployd-api-rs/src/routes.rs }
 ---
 
@@ -144,6 +151,21 @@ deployed into, but self-provisions access on its next deploy there.
    is 409-tolerant, so a namespace that already has a static binding is a
    no-op. This is the supported transitional state the Cutover section
    recommends for operators who cannot redeploy every tenant at cutover.
+6. **Given** `rbac.selfProvision: true` and a DELETE for a tenant whose
+   namespace `N` exists but was never self-provisioned (created before the
+   flip), **When** `delete_deployment` runs, **Then** deployd creates the
+   `deployd-controller-workloads` RoleBinding in `N` (best-effort,
+   409-tolerant) before `helm uninstall`, so the uninstall has workload rights
+   and tears `N` down cleanly; **And** if `N` is absent, is a reserved /
+   platform namespace (`is_valid_tenant_namespace` rejects it), or the RBAC
+   step fails, no RoleBinding is written and the delete still proceeds
+   best-effort (the failure, if any, is recorded as a `rbac_warning` event).
+
+   **Independent Test**: the disabled short-circuit is unit-tested
+   (`teardown_ensure_is_a_noop_when_disabled`); the enabled cluster paths
+   (existing-namespace provision, absent-namespace skip, reserved-namespace
+   skip) require a live or mocked apiserver and share the deploy path's
+   existing coverage boundary (no in-crate kube mock harness yet).
 
 ### Edge Cases
 
@@ -164,15 +186,27 @@ deployed into, but self-provisions access on its next deploy there.
   RoleBinding regardless of who created the namespace (namespace create is
   409-tolerant), so an externally-created target is self-provisioned on first
   deploy too.
-- **Teardown path does not self-provision (residual, FR-007).** Only the
-  deploy handler calls `ensure_workload_rbac`; `delete_deployment`
-  (`routes.rs`) shells `helm uninstall` / `uninstall_with_gate` directly. So
-  a DELETE of a namespace that was created before the flip and never
-  redeployed (hence never self-provisioned) would hit `Forbidden` on
-  uninstall. The delete path treats uninstall as best-effort and ignores the
-  failure to stay idempotent, so the DB row is marked deleted while the
-  namespace's k8s resources are orphaned rather than a hard error. Mitigation
-  is the cutover procedure below; the durable fix is FR-007.
+- **Teardown path self-provisions (FR-007, delivered).** `delete_deployment`
+  (`routes.rs`) now calls `ensure_workload_rbac_for_teardown` before `helm
+  uninstall` / `uninstall_with_gate`, so a DELETE of a namespace created
+  before the flip and never redeployed (hence never self-provisioned)
+  provisions the workloads RoleBinding first and tears down cleanly instead of
+  hitting `Forbidden` on uninstall. Three deliberate differences from the
+  deploy path keep the delete safe: the teardown variant provisions only into
+  an **existing** namespace (a namespace already gone is left alone, so
+  teardown never resurrects an orphan); the RBAC write is **gated on
+  `is_valid_tenant_namespace` inside the self-provision entry point**
+  (defense-in-depth for every caller, the same reserved-name check
+  `create_deployment` applies up front), because the delete path derives the
+  namespace from the recorded column or the `app_id-env_id` fallback for legacy
+  rows and does not otherwise revalidate it, and the chart's `bind` grant is
+  cluster-wide, so a legacy row resolving to `kube-system` must not receive a
+  deployd RoleBinding; and the call is **best-effort** (a failure is logged and
+  recorded as a `rbac_warning` event, not fatal) so the delete stays
+  idempotent: the DB row is still marked destroyed on a transient RBAC error,
+  exactly as the surrounding best-effort uninstall already behaves. On a
+  deployd image predating FR-007, the original gap stands and the Cutover
+  procedure below is the mitigation.
 
 ## Requirements *(mandatory)*
 
@@ -212,17 +246,33 @@ deployed into, but self-provisions access on its next deploy there.
   ServiceAccount has not been shown to successfully self-provision a
   workloads RoleBinding (see Validation for the Hetzner evidence).
 
-### Functional Requirements: staged (NOT delivered this PR)
+### Functional Requirements: the teardown follow-up (delivered)
 
-- **FR-007** *(staged, code follow-up)*: The teardown path
-  (`delete_deployment` in `routes.rs`) SHOULD call `ensure_workload_rbac` for
-  the target namespace before `helm uninstall` / `uninstall_with_gate`, the
-  same way the deploy handler does, so a namespace that was never
+- **FR-007** *(delivered, code follow-up)*: The teardown path
+  (`delete_deployment` in `routes.rs`) calls
+  `ensure_workload_rbac_for_teardown` for the target namespace before `helm
+  uninstall` / `uninstall_with_gate`, so a namespace that was never
   self-provisioned can still be torn down cleanly once the cluster-wide
-  fallback is gone. Deferred here because this PR is chart + spec only (the
-  chosen "template change + spec" path) and requires a deployd-api-rs code
-  change plus an image rebuild to take effect. Until it lands, the Cutover
-  procedure covers existing tenants.
+  fallback is gone. Three design differences from the deploy path's
+  `ensure_workload_rbac` keep the delete safe and idempotent: (a) it provisions
+  **only into a namespace that already exists** (a namespace already deleted is
+  left untouched, because recreating it just to attach a RoleBinding would
+  orphan an empty namespace, the very leak this closes); (b) the RBAC write is
+  **gated on `is_valid_tenant_namespace` inside the self-provision entry point
+  itself** (defense-in-depth: every caller is covered, not just the delete call
+  site), because the delete path derives the namespace from the recorded column
+  or the `app_id-env_id` fallback and the chart's `bind` grant is cluster-wide,
+  so an untrusted value resolving to a reserved namespace must not receive a
+  deployd RoleBinding (the same reserved-name check `create_deployment` applies,
+  now shared from `rbac.rs`); and (c) the call is
+  **best-effort** (a failure is logged, recorded as a `rbac_warning` event, and
+  the delete continues), so a transient RBAC error still marks the DB row
+  destroyed rather than wedging the deployment, matching the best-effort
+  posture of the uninstall it precedes. Landed as a deployd-api-rs code change
+  (new `rbac::ensure_workload_rbac_for_teardown`, wired in `routes.rs`) plus an
+  image rebuild; before it landed, the Cutover procedure below covered existing
+  tenants. A deployd image predating this change retains the original teardown
+  gap, so the Cutover mitigation still applies there.
 
 ## Key Entities
 
@@ -246,7 +296,9 @@ deployed into, but self-provisions access on its next deploy there.
   (the `bind`-gated operation succeeds). Validated 2026-07-04 on
   `oap-hetzner-master1` (see Validation).
 - **SC-003**: The coupling gate and spec-lint are green with spec 225
-  claiming the new/changed paths (`rbac.yaml`, `values-hetzner.yaml`).
+  claiming the new/changed paths: `rbac.yaml` and `values-hetzner.yaml` (the
+  chart flip), plus `rbac.rs` (establishes) and `routes.rs` (extends) once the
+  FR-007 teardown follow-up retires #503's waiver on the mechanism code.
 - **SC-004**: A tenant namespace created before the flip regains deployd
   workload access on its next deploy with no manual RBAC step (self-heal via
   the idempotent `ensure_workload_rbac`).
@@ -265,9 +317,11 @@ gap (FR-007). The recommended cutover, ordered:
    on Hetzner today: `oap-stagecraft-ing-single-simple-dev`). Each redeploy
    runs `ensure_workload_rbac`, provisioning that namespace's RoleBinding, so
    both future deploys AND deletes have workload rights there.
-3. Until FR-007 lands, avoid deleting a tenant that has not been redeployed
-   since the flip (its uninstall would be silently best-effort and orphan
-   resources).
+3. FR-007 has landed, so a delete now self-provisions the workloads RoleBinding
+   before uninstall and tears the namespace down cleanly even if it was never
+   redeployed since the flip. This self-heal requires a deployd image carrying
+   FR-007; on an image predating it, avoid deleting an un-redeployed tenant (its
+   uninstall would be silently best-effort and orphan resources).
 
 An operator who cannot redeploy all tenants at cutover can instead list them
 in `rbac.namespaces` as a transitional allowlist (the chart still renders
@@ -299,14 +353,16 @@ here. This satisfies FR-006 for the Hetzner environment.
 Acknowledged from the automated review of this PR; none block the flip, all
 tracked here so they are not lost:
 
-- **Teardown-gap severity elevates post-flip (FR-007).** Before the flip a
-  teardown `Forbidden` was masked by the cluster-wide grant; after it, a
+- **Teardown-gap severity elevates post-flip (FR-007), resolved.** Before the
+  flip a teardown `Forbidden` was masked by the cluster-wide grant; after it, a
   never-self-provisioned namespace's `helm uninstall` fails and is swallowed
-  as best-effort, silently orphaning resources. The cutover is manual and
-  unenforced. FR-007 (self-provision in the teardown path) is the durable
-  fix; until then the Cutover procedure is the mitigation. Low current risk:
-  no tenant exists that predates the flip once the clean-slate cluster is the
-  starting point.
+  as best-effort, silently orphaning resources. FR-007 (self-provision in the
+  teardown path) is the durable fix and is now delivered: `delete_deployment`
+  provisions the RoleBinding (into the existing namespace, best-effort) before
+  uninstall, so a never-redeployed namespace tears down cleanly on its first
+  delete under a deployd image carrying FR-007. The Cutover procedure remains
+  the mitigation for images predating it. Low residual risk regardless: no
+  tenant predates the flip once the clean-slate cluster is the starting point.
 - **Self-provision subject comes from env, not a literal.**
   `workload_rolebinding` takes the RoleBinding subject from
   `DEPLOYD_SERVICE_ACCOUNT` / `DEPLOYD_POD_NAMESPACE` (downward API). The
