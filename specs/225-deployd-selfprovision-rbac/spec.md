@@ -28,7 +28,7 @@ summary: >
   workload authority is reduced from every namespace to only the namespaces
   it actually deploys into. The chart default is unchanged (fallback intact);
   the flip is enabled per-environment via values.
-code_aliases: ["DEPLOYD_SELFPROVISION_RBAC"]
+code_aliases: ["DEPLOYD_SELF_PROVISION_RBAC"]
 depends_on:
   - "136-tenant-hello-demo-service"  # deployd's helm-upgrade deploy path (Phase 3 cluster-validation-gating precedent)
   - "145-deployd-durability"  # co-owns values-hetzner.yaml (persistence); this spec refines it with the rbac block
@@ -134,6 +134,16 @@ deployed into, but self-provisions access on its next deploy there.
    renders, **Then** one per-namespace `RoleBinding` is produced for each
    listed namespace and no cluster-wide binding, regardless of
    `rbac.selfProvision`.
+5. **Given** BOTH `rbac.selfProvision: true` AND a non-empty
+   `rbac.namespaces` (the transitional-cutover configuration), **When** the
+   chart renders and deployd runs, **Then** the chart produces the static
+   per-namespace `RoleBinding`s from the allowlist (the `if .namespaces`
+   branch wins) AND the deployment still carries
+   `DEPLOYD_SELF_PROVISION_RBAC=true`, so deployd also self-provisions at
+   deploy time. The two coexist safely: the self-provision RoleBinding create
+   is 409-tolerant, so a namespace that already has a static binding is a
+   no-op. This is the supported transitional state the Cutover section
+   recommends for operators who cannot redeploy every tenant at cutover.
 
 ### Edge Cases
 
@@ -283,3 +293,36 @@ self-provision on this cluster. The kind negative control (no `bind` verb ->
 Forbidden) established the grant is load-bearing. The deployd Rust code path
 is unchanged from #503, so the mechanism validated on kind runs identically
 here. This satisfies FR-006 for the Hetzner environment.
+
+## Review follow-ups (2026-07-04)
+
+Acknowledged from the automated review of this PR; none block the flip, all
+tracked here so they are not lost:
+
+- **Teardown-gap severity elevates post-flip (FR-007).** Before the flip a
+  teardown `Forbidden` was masked by the cluster-wide grant; after it, a
+  never-self-provisioned namespace's `helm uninstall` fails and is swallowed
+  as best-effort, silently orphaning resources. The cutover is manual and
+  unenforced. FR-007 (self-provision in the teardown path) is the durable
+  fix; until then the Cutover procedure is the mitigation. Low current risk:
+  no tenant exists that predates the flip once the clean-slate cluster is the
+  starting point.
+- **Self-provision subject comes from env, not a literal.**
+  `workload_rolebinding` takes the RoleBinding subject from
+  `DEPLOYD_SERVICE_ACCOUNT` / `DEPLOYD_POD_NAMESPACE` (downward API). The
+  `bind` grant is scoped to `deployd-controller-workloads` only, so a
+  poisoned projection could at worst grant THAT role to an unintended
+  subject, not arbitrary escalation. Hardening follow-up: assert the pod's
+  own downward-API namespace is authoritative rather than trusting a literal
+  env override.
+- **No stagecraft `audit_log` row for self-provisioned RoleBindings.** They
+  appear only in the Kubernetes audit log. If the OAP audit trail is treated
+  as the authority for privilege grants, this is a completeness gap. Candidate
+  follow-on FR: emit a `deployd.rbac.self_provisioned` audit row.
+- **Feature-annotation traceability.** The mechanism's code (`rbac.rs`,
+  `routes.rs`) carries no `// Feature: DEPLOYD_SELF_PROVISION_RBAC`
+  annotations (it shipped under #503's waiver), so the featuregraph records
+  `impl_files: []` for this spec even though it is `implementation: complete`
+  on the chart surface it establishes. Adding those annotations is the
+  natural companion to retiring #503's Spec-Drift-Waiver; the `code_aliases`
+  entry is aligned to the env-var token so a future annotation matches.
