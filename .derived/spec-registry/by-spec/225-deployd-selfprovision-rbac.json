@@ -4,7 +4,7 @@
       "open-agentic-platform"
     ],
     "codeAliases": [
-      "DEPLOYD_SELFPROVISION_RBAC"
+      "DEPLOYD_SELF_PROVISION_RBAC"
     ],
     "created": "2026-07-04",
     "dependsOn": [
@@ -74,13 +74,14 @@
       "Success Criteria *(mandatory)*",
       "Measurable Outcomes",
       "Cutover",
-      "Validation (2026-07-04, oap-hetzner-master1)"
+      "Validation (2026-07-04, oap-hetzner-master1)",
+      "Review follow-ups (2026-07-04)"
     ],
     "specPath": "specs/225-deployd-selfprovision-rbac/spec.md",
     "status": "approved",
     "summary": "deployd-api creates tenant/preview namespaces on demand and runs `helm upgrade --install` inside them. Its workload permissions (secrets, deployments, services, ...) were granted CLUSTER-WIDE via a single ClusterRoleBinding, so deployd could touch workloads in every namespace on the cluster, not just the ones it manages. #503 split the RBAC into a cluster-scoped `deployd-controller-namespaces` role (namespace CRUD only) and a namespaced `deployd-controller-workloads` role, and added an opt-in self-provisioning mechanism (`DEPLOYD_SELF_PROVISION_RBAC`): when on, deployd grants its own ServiceAccount the workloads role via a RoleBinding it creates in each target namespace, right before helm runs there. #503 deliberately left the cluster-wide fallback in place because dropping it was gated on real-cluster validation of the `bind`-verb escalation. This spec is the design home for that mechanism and lands the validated flip: with `rbac.selfProvision: true` the chart no longer renders the cluster-wide workloads ClusterRoleBinding, so deployd's standing workload authority is reduced from every namespace to only the namespaces it actually deploys into. The chart default is unchanged (fallback intact); the flip is enabled per-environment via values.\n",
     "title": "deployd Self-Provisioned Per-Namespace RBAC (drop the cluster-wide workloads grant)"
   },
-  "shardHash": "4f87f2ab324c88c71236d09a09fe70dfb6941428a4557e15e20ca42946103ffe",
+  "shardHash": "de8576aa245aee43c5973b5ddcdb20f1536827a1f568f1aeef5208cea15fc0fe",
   "specVersion": "1.1.0"
 }
