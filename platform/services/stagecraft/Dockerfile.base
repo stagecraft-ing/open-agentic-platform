@@ -7,7 +7,12 @@
 # Base must carry the `node` binary — Encore's overlay ships `main.mjs`
 # and `encore-runtime.node` (a native addon, not a runtime), and the API
 # CMD plus the migration Job's `command: ["node", ...]` both invoke it
-# directly. node:22-slim is the minimal Debian-based image that does.
+# directly. node:22-trixie-slim (Debian 13, glibc 2.41) is the minimal
+# Debian-based image that carries node AND clears the glibc 2.39 floor
+# the produced app's pinned `@spec-spine/cli-linux-x64` requires.
+# stagecraft runs that binary in-container at scaffold time (spec 112
+# regenerate-index step, spec 220 AC-2); on the older node:22-slim
+# (bookworm, glibc 2.36) it aborted with `GLIBC_2.39 not found`.
 #
 # This base also carries:
 #   - git + ca-certificates: api/factory/clone.ts shells out to `git clone`
@@ -22,7 +27,7 @@
 #   cp crates/target/release/artifact-extract       platform/services/stagecraft/
 #   cp crates/target/release/factory-project-detect platform/services/stagecraft/
 
-FROM node:22-slim
+FROM node:22-trixie-slim
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates \
