@@ -30,6 +30,10 @@
       {
         "kind": "file",
         "path": ".github/workflows/opc-e2e-nightly.yml"
+      },
+      {
+        "kind": "file",
+        "path": "product/apps/opc/src-tauri/src/bin/e2e_seed_session.rs"
       }
     ],
     "extends": [
@@ -66,6 +70,15 @@
         }
       }
     ],
+    "refines": [
+      {
+        "aspect": "e2e-seed-bin-registration",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/Cargo.toml"
+        }
+      }
+    ],
     "risk": "medium",
     "sectionHeadings": [
       "187 — OPC end-to-end test harness",
@@ -91,6 +104,6 @@
     "summary": "Establishes the test infrastructure required to execute spec-bound end-to-end acceptance criteria against a built OPC desktop binary. The canonical motivating consumer is spec 183 AC-7/8/9 (boot-screen stickiness when stagecraft is unreachable; mid-session restore on axiomregent kill; clean process-tree teardown on Quit) which were explicitly deferred to nightly/manual at spec-183 PR time because no e2e harness existed. The harness has three load-bearing components: a built-binary driver that launches the OPC Tauri executable and introspects WebView render state (the BootGate→Cockpit transition is the canonical assertion target); a mock-stagecraft duplex server that can be made selectively unreachable (network-level deny vs. protocol-level reject) so AC-7-style \"substrate-unavailable\" cases are deterministic; and platform-portable process-tree introspection for AC-9-style \"no orphan sidecar\" assertions. The harness is not itself a gate — it is a capability other specs opt into by registering their AC against it. The non-goal section pins this: no per-PR runtime budget assumed, no implicit gating, no per-feature flake amnesty.\n",
     "title": "OPC end-to-end test harness — built-binary driver, mock-stagecraft, process-tree introspection"
   },
-  "shardHash": "8fa76a9be8c4f2d80aac5f48728d77d36b91e1cb2744aae1679e32bb4bdc7426",
+  "shardHash": "448e4aae1eda5005ac0aef61fb5ad8f304c651409a96646b1cbf895570462fff",
   "specVersion": "1.1.0"
 }

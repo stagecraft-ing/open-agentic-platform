@@ -19,6 +19,14 @@
         "source": "spec-edge"
       },
       {
+        "path": "product/apps/opc/src-tauri/Cargo.toml",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/src-tauri/src/bin/e2e_seed_session.rs",
+        "source": "spec-edge"
+      },
+      {
         "path": "product/apps/opc/src/App.tsx",
         "source": "spec-edge"
       },
@@ -95,6 +103,19 @@
       {
         "locations": [
           {
+            "file": "product/apps/opc/src-tauri/src/bin/e2e_seed_session.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/src/bin/e2e_seed_session.rs"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/featuregraph/tests/golden/features_graph.json"
           }
         ],
@@ -121,6 +142,19 @@
       {
         "locations": [
           {
+            "file": "product/apps/opc/src-tauri/Cargo.toml"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "refines",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/src-tauri/Cargo.toml"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "specs/183-opc-boot-precondition-gate/spec.md"
           }
         ],
@@ -136,5 +170,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "bce3fd608a45032d95d9434708c952525dc974a14eea7bfa809252728a4bb41e"
+  "shardHash": "fc844aec1ead706d9bf2e010b77edff054b96b8f5da4f2c623576150c8768587"
 }

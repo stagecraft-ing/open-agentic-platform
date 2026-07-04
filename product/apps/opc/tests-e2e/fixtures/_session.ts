@@ -13,6 +13,11 @@ import { connect } from "node:net";
 import { remote } from "webdriverio";
 import { MockStagecraft, type MockMode } from "../harness/mock_stagecraft";
 import { OpcDriver, opcBinaryPath, type WebDriverLike } from "../harness/driver";
+import {
+  clearSeededSession,
+  seedSignedInSession,
+  type SeedSessionOptions,
+} from "../harness/seed_session";
 
 export interface OpcSession {
   driver: OpcDriver;
@@ -31,12 +36,33 @@ export interface LaunchOptions {
   mode: MockMode;
   orgId?: string;
   extraEnv?: Record<string, string>;
+  /**
+   * Seed a signed-in session into the OS keychain BEFORE the binary launches, so
+   * the cockpit mounts headlessly without the real OAuth flow (spec 187
+   * [[opc-e2e-auth-state-seeding]]). `true` uses defaults; an object customizes
+   * the JWT claims. The seed's org id is aligned with the mock's effective org
+   * id for a coherent fixture. Cleared on teardown.
+   */
+  seedSession?: boolean | SeedSessionOptions;
 }
 
 export async function launchOpc(opts: LaunchOptions): Promise<OpcSession> {
   const mock = new MockStagecraft({ mode: opts.mode, orgId: opts.orgId });
   const { url } = await mock.start();
   const httpBase = url.replace(/^ws:\/\//, "http://").replace(/\/api\/sync\/duplex$/, "");
+
+  // Seed BEFORE spawning the binary: OPC reads the keychain "session" entry at
+  // boot (Rust setup() + React AuthContext), so the token must already be there.
+  // Align the seed's org id with the mock's effective org id (the mock defaults
+  // to "org_mock") so `custom.oap_org_id` and the sync.hello org match.
+  let seeded = false;
+  if (opts.seedSession) {
+    const seedOpts: SeedSessionOptions =
+      typeof opts.seedSession === "object" ? { ...opts.seedSession } : {};
+    seedOpts.orgId = seedOpts.orgId ?? opts.orgId ?? "org_mock";
+    seedSignedInSession(seedOpts);
+    seeded = true;
+  }
 
   // tauri-driver spawns the OPC binary, so the binary inherits tauri-driver's
   // env. A fresh tauri-driver per fixture keeps STAGECRAFT_BASE_URL per-mode.
@@ -66,6 +92,16 @@ export async function launchOpc(opts: LaunchOptions): Promise<OpcSession> {
       await browser.deleteSession().catch(() => undefined);
       tauriDriver.kill();
       await mock.stop();
+      if (seeded) {
+        // Best effort: the CI runner is ephemeral, but leaving a stale session
+        // entry would leak a signed-in state into a later fixture on the same
+        // runner (keychain is process-external).
+        try {
+          clearSeededSession();
+        } catch {
+          /* ignore: teardown must not mask the test's own failure */
+        }
+      }
     },
   };
 }

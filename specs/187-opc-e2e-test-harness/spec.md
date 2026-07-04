@@ -27,6 +27,19 @@ establishes:
   - unit: { kind: directory, path: product/apps/opc/tests-e2e/harness }
   - unit: { kind: directory, path: product/apps/opc/tests-e2e/fixtures }
   - unit: { kind: file, path: .github/workflows/opc-e2e-nightly.yml }
+  # The [[opc-e2e-auth-state-seeding]] follow-up (§8) brought this e2e-only
+  # keychain seed helper into existence. It lives in the opc crate (not under
+  # tests-e2e) solely to link the SAME `keyring` crate/version the app reads
+  # back with; it is feature-gated (`e2e-seed`) and never in a shipping build.
+  # The harness is its authority even though the file sits in the opc crate.
+  - unit: { kind: file, path: product/apps/opc/src-tauri/src/bin/e2e_seed_session.rs }
+refines:
+  # The e2e seed bin's target + feature registration in the opc manifest. The
+  # opc crate spec owns the manifest at large; 187 co-authors only the
+  # `[[bin]] e2e_seed_session` + `[features] e2e-seed` additions (both inert in
+  # production builds), so the harness spec is the authority for that aspect.
+  - aspect: "e2e-seed-bin-registration"
+    unit: { kind: file, path: product/apps/opc/src-tauri/Cargo.toml }
 extends:
   # Mechanical featuregraph-golden refresh required by spec 177
   # ci-orchestrator-pr-gate atomicity contract — any new spec
@@ -379,18 +392,16 @@ absence of a skip flag, not a flake-rate ceiling.
   first green nightly* — they have never executed locally, because
   tauri-driver has no macOS WebView backend and the binary-driving
   fixtures run only on Linux (FR-T5). **AC-8** (cockpit reverts to
-  `<BootGate>` on sidecar kill) is migrated as a `describe.skip` with a
-  recorded reason (FR-T6 "manual-only" path — NOT a flake skip): it
-  begins "from a fully-signed-in cockpit", and reaching that state
-  headlessly is not yet possible. *Precise cause:* OPC sign-in is a full
-  GitHub OAuth/PKCE browser flow against Rauthy
-  (`product/apps/opc/src-tauri/src/commands/auth.rs`) with no dev bypass,
-  and `org_session_ready` requires a materialised `org_id`; no
-  headless auth-state seeding exists. The follow-up
-  `[[opc-e2e-auth-state-seeding]]` adds the seeding helper and un-skips
-  AC-8. This is a precise-cause staging finding, not a weakening of the
-  claim: the deferral pattern is retired for AC-7/AC-9 now and for AC-8
-  when seeding lands.
+  `<BootGate>` on sidecar kill) begins "from a fully-signed-in cockpit".
+  It was originally migrated as a `describe.skip` (FR-T6 "manual-only"
+  path, NOT a flake skip) because reaching that state headlessly was not
+  yet possible: OPC sign-in is a full GitHub OAuth/PKCE browser flow
+  against Rauthy (`product/apps/opc/src-tauri/src/commands/auth.rs`) with
+  no dev bypass, and `org_session_ready` requires a materialised `org_id`.
+  The `[[opc-e2e-auth-state-seeding]]` follow-up (§8) has since landed
+  `seedSignedInSession` + `killProcess`, so AC-8 is now un-skipped and
+  registered in the nightly run alongside AC-7/AC-9, verified by the first
+  green nightly. The deferral pattern is fully retired.
 
 AC-1 through AC-4 are spec-shape gates and ride per-PR. AC-5 through
 AC-9 are implementation gates that ride post-implementation; they
@@ -427,14 +438,21 @@ designed, not friction.
 
 ## 8. Future work
 
-- `[[opc-e2e-auth-state-seeding]]` — a `seedSignedInSession` helper
-  (seed the keychain `session` token + a materialised `org_id`; the mock
-  duplex already accepts any bearer) plus a `killProcess({name})` helper,
-  so the spec-183 AC-8 fixture (cockpit → sidecar kill → `<BootGate>`)
-  can run in the nightly. Un-skips
-  `fixtures/183/ac8-precondition-loss.e2e.ts`. Blocking cause recorded in
-  §6 AC-9; this is the prerequisite for flipping `implementation:
-  complete`.
+- `[[opc-e2e-auth-state-seeding]]` (LANDED): the `seedSignedInSession`
+  helper (`tests-e2e/harness/seed_session.ts`, backed by the feature-gated
+  `e2e_seed_session` bin) writes a keychain `session` token carrying a
+  materialised `org_id`, and `killProcess({name})`
+  (`tests-e2e/harness/kill_process.ts`) SIGKILLs a sidecar by name. Together
+  they un-skip `fixtures/183/ac8-precondition-loss.e2e.ts` (signed-in
+  cockpit, sidecar kill, `<BootGate>` reasserts), so AC-8 now runs in the
+  nightly rather than as a `describe.skip`. OPC never verifies the session
+  JWT's signature (`stagecraft_client.rs::decode_jwt_claims`) and the mock
+  duplex accepts any bearer, so a seeded fake token is a complete signed-in
+  state. The nightly runs the e2e step inside a D-Bus session with an
+  unlocked gnome-keyring so the `keyring` crate's Secret Service backend is
+  available to both the seed writer and the OPC binary. `implementation:
+  complete` still awaits the first green nightly confirming AC-5/AC-7/AC-9
+  (now including AC-8) on Linux, per §6.
 - `[[opc-e2e-fast-pre-merge-subset]]` — proposal to opt a small
   subset of fixtures into per-PR runs once the nightly cadence has
   established a non-flaky baseline. Amends FR-T5.

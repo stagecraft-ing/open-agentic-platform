@@ -29,6 +29,16 @@ crate-type = ["lib", "cdylib", "staticlib"]
 name = "opc-web"
 path = "src/web_main.rs"
 
+# Spec 187 [[opc-e2e-auth-state-seeding]]: e2e-only keychain seed helper. Gated
+# behind `e2e-seed` (nothing in the production feature set enables it), so it is
+# never compiled into a shipping build. It links the same `keyring` dep as the
+# app so a seeded value reads back identically. Built by the nightly with
+# `--features e2e-seed`.
+[[bin]]
+name = "e2e_seed_session"
+path = "src/bin/e2e_seed_session.rs"
+required-features = ["e2e-seed"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
@@ -134,6 +144,10 @@ custom-protocol = ["tauri/custom-protocol"]
 # Enable to activate the MCP bridge during development (cargo tauri dev --features mcp-dev).
 # Exposes the running app to AI assistants via WebSocket on port 9223.
 mcp-dev = ["tauri-plugin-mcp-bridge"]
+# Spec 187 [[opc-e2e-auth-state-seeding]]: gates the e2e-only `e2e_seed_session`
+# bin. A marker feature (no deps: the bin only needs the always-present `keyring`
+# dep). Off in every production build; enabled only by the nightly e2e job.
+e2e-seed = []
 
 [dev-dependencies]
 # Spec 180 FR-T5 — deterministic mtime control for the usage-cache freshness
