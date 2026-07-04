@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:9dbf412684853a44de44bf4766e094743f6dc3f26013d7ec9fb739f2dfdc9805",
+  "graph_fingerprint": "sha256:c420e66d14b0fa9ba77a11b96521a5e778f7610a08552c0e6ddd3c1a4ad285a6",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4240,6 +4240,23 @@
         "087-unified-workspace-architecture",
         "115-knowledge-extraction-pipeline",
         "106-rauthy-native-oidc-and-membership"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "225-deployd-selfprovision-rbac",
+      "title": "deployd Self-Provisioned Per-Namespace RBAC (drop the cluster-wide workloads grant)",
+      "spec_path": "specs/225-deployd-selfprovision-rbac/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "136-tenant-hello-demo-service",
+        "145-deployd-durability"
       ],
       "impl_files": [],
       "test_files": [],
