@@ -101,3 +101,68 @@ describe("FR-T2 mock-stagecraft duplex server", () => {
     expect(port).toBeGreaterThan(0);
   });
 });
+
+// Spec 208 FR-005 (kill-switch drill). The duplex must stay bidirectional
+// after the hello: the drill pushes an org.halt.* frame server->client and
+// awaits the client's org.halt.ack client->server.
+describe("FR-005 drill duplex extensions", () => {
+  async function connectHealthy(): Promise<WebSocket> {
+    const s = new MockStagecraft({ mode: "healthy", orgId: "org_drill" });
+    server = s;
+    const { url } = await s.start();
+    const ws = new WebSocket(`${url}${HANDSHAKE}`, {
+      headers: { Authorization: "Bearer test" },
+    });
+    await firstMessage(ws); // consume sync.hello; socket is now retained
+    return ws;
+  }
+
+  it("push(): delivers a server->client frame to the connected client after hello", async () => {
+    const ws = await connectHealthy();
+    const next = firstMessage(ws);
+    server!.push({ kind: "org.halt.activated", haltId: "halt-1" });
+    const frame = await next;
+    expect(frame.kind).toBe("org.halt.activated");
+    expect(frame.haltId).toBe("halt-1");
+    ws.close();
+  });
+
+  it("waitForFrame(): resolves for a client->server frame that arrives later", async () => {
+    const ws = await connectHealthy();
+    const pending = server!.waitForFrame(
+      (f) => (f as { kind?: string }).kind === "org.halt.ack",
+    );
+    ws.send(JSON.stringify({ kind: "org.halt.ack", haltId: "halt-1" }));
+    const ack = (await pending) as { kind: string; haltId: string };
+    expect(ack.kind).toBe("org.halt.ack");
+    expect(ack.haltId).toBe("halt-1");
+    ws.close();
+  });
+
+  it("waitForFrame(): resolves for a frame already recorded before the call", async () => {
+    const ws = await connectHealthy();
+    ws.send(JSON.stringify({ kind: "org.halt.ack", haltId: "seen" }));
+    // Give the server a tick to record the inbound frame, then subscribe.
+    await new Promise((r) => setTimeout(r, 50));
+    const ack = (await server!.waitForFrame(
+      (f) => (f as { kind?: string }).kind === "org.halt.ack",
+    )) as { haltId: string };
+    expect(ack.haltId).toBe("seen");
+    expect(server!.inboundFrames().length).toBe(1);
+    ws.close();
+  });
+
+  it("waitForFrame(): rejects after the timeout when no frame matches", async () => {
+    await connectHealthy();
+    await expect(server!.waitForFrame(() => false, 100)).rejects.toThrow(
+      /timed out waiting for inbound frame/,
+    );
+  });
+
+  it("push(): is a no-op when no client is connected (the disconnected leg)", async () => {
+    const s = new MockStagecraft({ mode: "healthy" });
+    server = s;
+    await s.start();
+    expect(() => s.push({ kind: "org.halt.activated" })).not.toThrow();
+  });
+});

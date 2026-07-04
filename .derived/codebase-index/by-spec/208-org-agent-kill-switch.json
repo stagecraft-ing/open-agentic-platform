@@ -81,6 +81,18 @@
       {
         "path": "product/apps/opc/src-tauri/src/lib.rs",
         "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/tests-e2e/fixtures/208/org-halt-drill.e2e.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts",
+        "source": "spec-edge"
       }
     ],
     "resolvedUnits": [
@@ -108,6 +120,19 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/factory/orgHalt.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/tests-e2e/fixtures/208/org-halt-drill.e2e.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/tests-e2e/fixtures/208/org-halt-drill.e2e.ts"
         }
       },
       {
@@ -173,6 +198,32 @@
         "unit": {
           "kind": "file",
           "path": "product/apps/opc/src-tauri/src/commands/run_governance.rs"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
         }
       },
       {
@@ -336,5 +387,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "4df3e01c52abcaab5a7fd82bda8b199e4f4770d2f3f40dc7c03756a6a5c5e6df"
+  "shardHash": "98e22450ac582efa3795eba9abe19635f87ba93f4dd58aa0773828ead802f973"
 }

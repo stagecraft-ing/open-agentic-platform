@@ -39,6 +39,9 @@ establishes:
   # brought into existence by this spec.
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/orgHalt.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/orgHalt.test.ts }
+  # Phase 5 (FR-005): the e2e kill-switch pull-and-lift drill fixture is brought
+  # into existence by this spec, inside the spec-187 harness fixtures/ tree.
+  - unit: { kind: file, path: product/apps/opc/tests-e2e/fixtures/208/org-halt-drill.e2e.ts }
 extends:
   # The org scope is an additive widening of the revocation lattice
   # spec 198 FR-010 establishes. Phase 1 also exports requireFactoryConfigure
@@ -62,6 +65,16 @@ extends:
   - spec: "198-factory-governance-envelope"
     nature: additive
     unit: { kind: file, path: product/apps/opc/src-tauri/src/commands/factory_platform.rs }
+  # Phase 5 (FR-005): the drill additively extends the spec-187 mock-stagecraft
+  # harness so the duplex stays bidirectional after the hello (push a
+  # server->client org.halt.* frame, collect the client's org.halt.ack). The
+  # spec-187 handshake modes are untouched; this is a pure surface addition.
+  - spec: "187-opc-e2e-test-harness"
+    nature: additive
+    unit: { kind: file, path: product/apps/opc/tests-e2e/harness/mock_stagecraft.ts }
+  - spec: "187-opc-e2e-test-harness"
+    nature: additive
+    unit: { kind: file, path: product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts }
   # Same precedent as specs 196, 194, 193, 187, 183: a new spec adds a row
   # to the featuregraph golden.
   - spec: "034-featuregraph-registry-scanner-fix"
