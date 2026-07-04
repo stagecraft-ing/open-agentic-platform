@@ -36,17 +36,20 @@
 # have no rights in it" failure than the one the resource-list comment
 # below already documents from a real incident.
 #
-# Residual architectural work (NOT done here -- needs a deployd-api-rs
-# code change, out of scope for this chart-only pass): teach deployd-api
-# to create a RoleBinding (referencing deployd-controller-workloads) in
-# every namespace it creates, right after it creates it. Once that lands,
-# `rbac.namespaces` becomes unnecessary for the dynamic-tenant case and
-# this chart can drop the cluster-wide fallback entirely, closing the gap
-# the original MVP comment flagged ("Later: tighten by restricting to
-# tenant namespaces only (OPA/Gatekeeper + naming convention)"). Until
-# then, operators with a closed, known set of target namespaces (no
-# dynamic tenant provisioning) can set `rbac.namespaces` today to opt out
-# of the cluster-wide grant.
+# Self-provisioning (`rbac.selfProvision: true`, spec 225): deployd-api-rs
+# creates a RoleBinding (referencing deployd-controller-workloads) in every
+# namespace it targets, right before helm runs there
+# (deployd-api-rs/src/rbac.rs). This closes the gap the original MVP comment
+# flagged ("Later: tighten by restricting to tenant namespaces only"): with
+# self-provisioning on, `rbac.namespaces` is unnecessary for the dynamic-
+# tenant case and the cluster-wide fallback ClusterRoleBinding below is
+# suppressed (see the binding logic at the bottom of this file). The
+# `bind`-verb escalation this requires was validated on a real K3s cluster
+# (2026-07-04) before the fallback was allowed to drop. Two ways to opt out
+# of the cluster-wide grant, then: set `rbac.selfProvision: true` (dynamic
+# tenants), or supply an explicit `rbac.namespaces` allowlist (closed, known
+# set of target namespaces). The chart default leaves BOTH off, preserving
+# the cluster-wide fallback untouched.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -67,8 +70,9 @@ rules:
   # Kubernetes privilege-escalation prevention: `create` on rolebindings,
   # and the `bind` verb on that specific ClusterRole. Both are cluster-wide
   # here because deployd provisions across arbitrary tenant namespaces it
-  # creates on demand. Off by default; the chart's rbac.namespaces default
-  # is intentionally NOT flipped here (cluster-validation gated).
+  # creates on demand. Off by default in the chart; enabled per-environment
+  # via values (values-hetzner.yaml). The bind-verb escalation was validated
+  # on real K3s (2026-07-04, spec 225) before the fallback-drop was wired.
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["rolebindings"]
     verbs: ["get", "list", "watch", "create", "patch"]
@@ -156,10 +160,15 @@ subjects:
     namespace: {{ $.Release.Namespace }}
 ---
 {{- end }}
-{{- else }}
-# MVP default (see file header): no `.Values.rbac.namespaces` allowlist
-# supplied, so deployd-controller-workloads is bound cluster-wide, same
-# effective scope as before this fix's ClusterRole split.
+{{- else if not .Values.rbac.selfProvision }}
+# Fallback ONLY when neither an explicit allowlist nor self-provisioning is
+# configured: bind deployd-controller-workloads cluster-wide, the same
+# effective scope as before this fix's ClusterRole split. When
+# `rbac.selfProvision` is true this branch is intentionally suppressed.
+# deployd grants itself the workloads ClusterRole per-namespace, at deploy
+# time, in every namespace it targets (deployd-api-rs/src/rbac.rs), so the
+# cluster-wide grant is no longer needed. Validated on real K3s before this
+# default was allowed to drop the fallback (see the file header).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
