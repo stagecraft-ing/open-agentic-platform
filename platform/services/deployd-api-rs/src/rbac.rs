@@ -432,6 +432,9 @@ mod tests {
         assert!(is_valid_tenant_namespace("acme-p-dev"));
         assert!(is_valid_tenant_namespace("app123-env1"));
         assert!(is_valid_tenant_namespace("a"));
+        // Exactly 63 chars is the max DNS-1123 label length: accepted. Guards
+        // the `> 63` boundary against an off-by-one drift to `>= 63`.
+        assert!(is_valid_tenant_namespace(&"a".repeat(63)));
     }
 
     #[test]

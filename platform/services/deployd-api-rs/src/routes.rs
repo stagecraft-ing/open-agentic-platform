@@ -307,12 +307,13 @@ pub async fn create_deployment(
                     "self-provision RBAC failed: {e}"
                 );
                 let _ = store::update_status(&state.client, &deployment_id, "FAILED").await;
+                let cause = sanitize_event_detail(&e.to_string());
                 let _ = store::add_event(
                     &state.client,
                     &deployment_id,
                     "failed",
                     Some(&format!(
-                        "self-provision RBAC failed for namespace {namespace}: {e}"
+                        "self-provision RBAC failed for namespace {namespace}: {cause}"
                     )),
                 )
                 .await;
@@ -653,12 +654,13 @@ pub async fn delete_deployment(
             crate::rbac::ensure_workload_rbac_for_teardown(&namespace, &self_provision).await
         {
             tracing::warn!("self-provision RBAC before teardown failed for {release_id}: {e}");
+            let cause = sanitize_event_detail(&e.to_string());
             let _ = store::add_event(
                 &state.client,
                 &release_id,
                 "rbac_warning",
                 Some(&format!(
-                    "teardown self-provision RBAC failed for namespace {namespace}: {e}; uninstall attempted best-effort"
+                    "teardown self-provision RBAC failed for namespace {namespace}: {cause}; uninstall attempted best-effort"
                 )),
             )
             .await;
@@ -692,4 +694,83 @@ pub async fn delete_deployment(
             "status": "DESTROYED",
         })),
     )
+}
+
+/// Cap and single-line an untrusted error cause before it lands in the
+/// append-only event store. `kube::Error::to_string()` can embed a Kubernetes
+/// API response body, so without this an error could inject newlines (splitting
+/// an audit-log line) or unbounded content into a deployment's event trail, or
+/// embed Unicode bidi / zero-width formatting that visually spoofs a line in a
+/// rich log viewer. Callers interpolate the already-validated `namespace`
+/// (restricted to `[a-z0-9-]`) directly and pass only the untrusted cause here.
+fn sanitize_event_detail(cause: &str) -> String {
+    const MAX_CHARS: usize = 500;
+    // Flatten anything that can break, spoof, or hide a log line, by category
+    // rather than by enumerating codepoints:
+    //   - C0/C1 control chars (newlines, etc.) via `is_control()`;
+    //   - every other Unicode whitespace / line + paragraph separator (U+2028,
+    //     U+2029, no-break and figure spaces, ...) except a plain space, via
+    //     `is_whitespace()`, which is what `is_control()` alone misses;
+    //   - the non-whitespace bidi / zero-width / format chars neither predicate
+    //     covers: bidi overrides + isolates (U+202A-202E, U+2066-2069), the
+    //     directional marks + zero-width joiners (U+200B-200F), and the BOM.
+    let is_unsafe = |c: char| {
+        c.is_control()
+            || (c.is_whitespace() && c != ' ')
+            || matches!(c,
+                '\u{200B}'..='\u{200F}'
+                | '\u{202A}'..='\u{202E}'
+                | '\u{2066}'..='\u{2069}'
+                | '\u{FEFF}')
+    };
+    // Single pass: drain MAX_CHARS sanitized chars, then peek one more to learn
+    // whether truncation occurred without re-walking the input.
+    let mut chars = cause.chars().map(|c| if is_unsafe(c) { ' ' } else { c });
+    let mut out: String = chars.by_ref().take(MAX_CHARS).collect();
+    if chars.next().is_some() {
+        out.push_str("...(truncated)");
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sanitize_event_detail_flattens_control_chars() {
+        // Newlines/tabs/carriage returns become spaces so a kube error body
+        // cannot split or inject audit-log lines.
+        assert_eq!(sanitize_event_detail("a\nb\tc\rd"), "a b c d");
+        assert_eq!(sanitize_event_detail("all good"), "all good");
+    }
+
+    #[test]
+    fn sanitize_event_detail_truncates_unbounded_input() {
+        let out = sanitize_event_detail(&"x".repeat(600));
+        assert!(out.ends_with("...(truncated)"));
+        // 500 kept chars + the marker, nothing more.
+        assert_eq!(out.chars().count(), 500 + "...(truncated)".chars().count());
+    }
+
+    #[test]
+    fn sanitize_event_detail_keeps_exactly_max_chars_untruncated() {
+        // Exactly MAX_CHARS (500) is emitted unchanged: guards the truncation
+        // bound against an off-by-one drift from `>` to `>=`.
+        let input = "a".repeat(500);
+        assert_eq!(sanitize_event_detail(&input), input);
+    }
+
+    #[test]
+    fn sanitize_event_detail_flattens_separators_and_formatting() {
+        // Visual log-spoofing / line-injection vectors that `is_control()`
+        // alone does not catch, all flattened to spaces before the audit trail:
+        // bidi override, zero-width space, BOM, isolate,
+        assert_eq!(sanitize_event_detail("a\u{202E}b\u{200B}c"), "a b c");
+        assert_eq!(sanitize_event_detail("x\u{FEFF}y"), "x y");
+        assert_eq!(sanitize_event_detail("i\u{2066}j"), "i j");
+        // and the Unicode LINE / PARAGRAPH separators (U+2028 / U+2029), which
+        // act as line breaks in many log viewers but are not C0/C1 controls.
+        assert_eq!(sanitize_event_detail("p\u{2028}q\u{2029}r"), "p q r");
+    }
 }
