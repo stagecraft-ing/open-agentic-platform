@@ -382,3 +382,43 @@ tracked here so they are not lost:
   on the chart surface it establishes. Adding those annotations is the
   natural companion to retiring #503's Spec-Drift-Waiver; the `code_aliases`
   entry is aligned to the env-var token so a future annotation matches.
+
+### Post-delivery hygiene (follow-up to the FR-007 PR)
+
+The automated review of the FR-007 PR raised several non-blocking nits.
+Delivered as a hygiene follow-up:
+
+- **63-char boundary test** for `is_valid_tenant_namespace` (the max
+  DNS-1123 label length is accepted, guarding the `> 63` bound against an
+  off-by-one drift).
+- **Event-detail sanitization.** The RBAC-failure event details on both the
+  deploy and teardown paths now pass the untrusted error cause
+  (`kube::Error::to_string()`, which can embed an API response body) through
+  `sanitize_event_detail`, which flattens (by category, not a codepoint
+  enumeration) control characters, all Unicode whitespace and line / paragraph
+  separators except a plain space (U+2028, U+2029, ...), and the non-whitespace
+  bidi / zero-width / format chars (U+202A-202E, U+2066-2069, U+200B-200F,
+  U+FEFF), and caps length, so an error cannot inject a line break, spoof a
+  line via a directional override, or write unbounded content into the
+  append-only event store (a `TEXT` column). The already-validated `namespace`
+  (`[a-z0-9-]`) is interpolated directly; only the untrusted cause is
+  sanitized.
+
+Deferred with rationale (tracked, not delivered):
+
+- **Shared kube `Client` in `AppState`.** Both self-provision paths call
+  `Client::try_default()` per request. A shared client would avoid the
+  repeat config read, but it trades the current lazy/probe pattern (which
+  tolerates deployd booting without cluster access) for startup coupling to
+  cluster availability. Deletes are not latency-sensitive, so this is a
+  deliberate non-change.
+- **Namespace deletion on teardown.** Deleting the tenant namespace (not just
+  `helm uninstall`) would remove the self-provisioned RoleBinding and any
+  residue (true least-privilege cleanup), but it is a teardown-semantics and
+  blast-radius change that warrants its own decision rather than a hygiene
+  bundle; the current uninstall-only teardown is intentionally conservative.
+- **TOCTOU error variant.** If a namespace vanishes between the existence
+  check and the RoleBinding create, the create's 404 surfaces as
+  `RbacError::RoleBinding` rather than a "namespace gone" outcome. Cosmetic
+  (best-effort teardown proceeds either way); distinguishing it would
+  complicate the shared create helper the deploy path also uses.
