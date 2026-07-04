@@ -195,7 +195,8 @@ deployed into, but self-provisions access on its next deploy there.
   deploy path keep the delete safe: the teardown variant provisions only into
   an **existing** namespace (a namespace already gone is left alone, so
   teardown never resurrects an orphan); the RBAC write is **gated on
-  `is_valid_tenant_namespace`** (the same reserved-name guard
+  `is_valid_tenant_namespace` inside the self-provision entry point**
+  (defense-in-depth for every caller, the same reserved-name check
   `create_deployment` applies up front), because the delete path derives the
   namespace from the recorded column or the `app_id-env_id` fallback for legacy
   rows and does not otherwise revalidate it, and the chart's `bind` grant is
@@ -257,11 +258,13 @@ deployed into, but self-provisions access on its next deploy there.
   **only into a namespace that already exists** (a namespace already deleted is
   left untouched, because recreating it just to attach a RoleBinding would
   orphan an empty namespace, the very leak this closes); (b) the RBAC write is
-  **gated on `is_valid_tenant_namespace`** (the same reserved-name guard
-  `create_deployment` applies), because the delete path derives the namespace
-  from the recorded column or the `app_id-env_id` fallback and the chart's
-  `bind` grant is cluster-wide, so an untrusted value resolving to a reserved
-  namespace must not receive a deployd RoleBinding; and (c) the call is
+  **gated on `is_valid_tenant_namespace` inside the self-provision entry point
+  itself** (defense-in-depth: every caller is covered, not just the delete call
+  site), because the delete path derives the namespace from the recorded column
+  or the `app_id-env_id` fallback and the chart's `bind` grant is cluster-wide,
+  so an untrusted value resolving to a reserved namespace must not receive a
+  deployd RoleBinding (the same reserved-name check `create_deployment` applies,
+  now shared from `rbac.rs`); and (c) the call is
   **best-effort** (a failure is logged, recorded as a `rbac_warning` event, and
   the delete continues), so a transient RBAC error still marks the DB row
   destroyed rather than wedging the deployment, matching the best-effort
