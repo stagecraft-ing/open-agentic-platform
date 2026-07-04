@@ -117,6 +117,43 @@ impl std::fmt::Display for RbacError {
 
 impl std::error::Error for RbacError {}
 
+/// Whether `namespace` currently exists in the cluster. Shared existence
+/// probe for the deploy (create-if-absent) and teardown (skip-if-absent)
+/// self-provision paths.
+async fn namespace_exists(client: &Client, namespace: &str) -> Result<bool, RbacError> {
+    let ns_api: Api<Namespace> = Api::all(client.clone());
+    Ok(ns_api
+        .get_opt(namespace)
+        .await
+        .map_err(|e| RbacError::Namespace(e.to_string()))?
+        .is_some())
+}
+
+/// Create (or confirm) the workloads RoleBinding in `namespace`, binding
+/// deployd's ServiceAccount to the `deployd-controller-workloads` ClusterRole.
+/// Idempotent: an already-present RoleBinding (HTTP 409) is treated as
+/// success. Shared by the deploy ([`ensure_workload_rbac`]) and teardown
+/// ([`ensure_workload_rbac_for_teardown`]) self-provision paths.
+///
+/// Creating the RoleBinding requires deployd to hold the `bind` verb on the
+/// referenced ClusterRole (Kubernetes privilege-escalation prevention) plus
+/// `create` on rolebindings, both granted by the chart when self-provisioning
+/// is enabled.
+async fn create_workload_rolebinding(
+    client: Client,
+    namespace: &str,
+    cfg: &SelfProvisionConfig,
+) -> Result<(), RbacError> {
+    let rb_api: Api<RoleBinding> = Api::namespaced(client, namespace);
+    let rb = workload_rolebinding(namespace, cfg);
+    match rb_api.create(&PostParams::default(), &rb).await {
+        Ok(_) => Ok(()),
+        // Already provisioned on a previous deploy/teardown of this namespace.
+        Err(kube::Error::Api(ae)) if ae.code == 409 => Ok(()),
+        Err(e) => Err(RbacError::RoleBinding(e.to_string())),
+    }
+}
+
 /// Ensure the target namespace exists and carries a RoleBinding granting
 /// deployd's ServiceAccount the workloads ClusterRole. Idempotent: an
 /// already-existing namespace or RoleBinding (HTTP 409) is treated as
@@ -141,13 +178,8 @@ pub async fn ensure_workload_rbac(
     // 1. Ensure the namespace exists. deployd holds cluster-wide namespace
     //    create via `deployd-controller-namespaces`, so this works before
     //    the RoleBinding (which is namespace-scoped) can be created.
-    let ns_api: Api<Namespace> = Api::all(client.clone());
-    let exists = ns_api
-        .get_opt(namespace)
-        .await
-        .map_err(|e| RbacError::Namespace(e.to_string()))?
-        .is_some();
-    if !exists {
+    if !namespace_exists(&client, namespace).await? {
+        let ns_api: Api<Namespace> = Api::all(client.clone());
         let ns = Namespace {
             metadata: ObjectMeta {
                 name: Some(namespace.to_string()),
@@ -163,18 +195,54 @@ pub async fn ensure_workload_rbac(
         }
     }
 
-    // 2. Ensure the RoleBinding. Creating it requires deployd to hold the
-    //    `bind` verb on the referenced ClusterRole (Kubernetes privilege-
-    //    escalation prevention) plus `create` on rolebindings, both granted
-    //    by the chart when self-provisioning is enabled.
-    let rb_api: Api<RoleBinding> = Api::namespaced(client, namespace);
-    let rb = workload_rolebinding(namespace, cfg);
-    match rb_api.create(&PostParams::default(), &rb).await {
-        Ok(_) => Ok(()),
-        // Already provisioned on a previous deploy to this namespace.
-        Err(kube::Error::Api(ae)) if ae.code == 409 => Ok(()),
-        Err(e) => Err(RbacError::RoleBinding(e.to_string())),
+    // 2. Ensure the RoleBinding.
+    create_workload_rolebinding(client, namespace, cfg).await
+}
+
+/// Teardown counterpart of [`ensure_workload_rbac`] (spec 225 FR-007). Ensures
+/// deployd holds the workloads RoleBinding in an **already-existing** target
+/// namespace so `helm uninstall` can remove that namespace's objects under
+/// scoped RBAC, WITHOUT creating the namespace when it is already gone.
+///
+/// Why a separate function rather than reusing [`ensure_workload_rbac`]: the
+/// deploy path creates the namespace on demand because a deploy needs it to
+/// exist. A teardown must not. Recreating a namespace that has already been
+/// deleted (then adding a RoleBinding to it) would orphan an empty namespace
+/// plus RoleBinding, the exact leak this requirement closes.
+///
+/// The gap it closes: once the cluster-wide workloads fallback is dropped
+/// (`rbac.selfProvision: true`), a namespace created before the flip and never
+/// redeployed has no RoleBinding, so its `helm uninstall` fails `Forbidden`
+/// and the delete handler swallows it best-effort, silently orphaning the
+/// namespace's resources. Provisioning the RoleBinding here lets that first
+/// delete tear the namespace down cleanly.
+///
+/// Semantics:
+/// - `cfg.enabled == false` -> no-op `Ok(())` (cluster-wide fallback still in
+///   force; deployd already has rights everywhere, nothing to provision).
+/// - namespace absent -> `Ok(())` (nothing to tear down; do NOT create it).
+/// - namespace present -> create the workloads RoleBinding (idempotent,
+///   409-tolerant), identical to the deploy path.
+pub async fn ensure_workload_rbac_for_teardown(
+    namespace: &str,
+    cfg: &SelfProvisionConfig,
+) -> Result<(), RbacError> {
+    if !cfg.enabled {
+        return Ok(());
     }
+
+    let client = Client::try_default()
+        .await
+        .map_err(|e| RbacError::Client(e.to_string()))?;
+
+    // Only provision into an EXISTING namespace; never resurrect a namespace
+    // that has already been torn down (that would create the very orphan this
+    // path exists to prevent).
+    if !namespace_exists(&client, namespace).await? {
+        return Ok(());
+    }
+
+    create_workload_rolebinding(client, namespace, cfg).await
 }
 
 #[cfg(test)]
@@ -265,5 +333,17 @@ mod tests {
         // No kube client is built when disabled, so this succeeds with no
         // cluster reachable (proves the opt-in guard short-circuits first).
         assert!(ensure_workload_rbac("tenant-acme-prod", &c).await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn teardown_ensure_is_a_noop_when_disabled() {
+        let mut c = cfg();
+        c.enabled = false;
+        // Same opt-in guard as the deploy path: disabled short-circuits before
+        // any kube client is built, so the teardown self-provision is inert
+        // under the cluster-wide fallback (no cluster reachable, still Ok).
+        assert!(ensure_workload_rbac_for_teardown("tenant-acme-prod", &c)
+            .await
+            .is_ok());
     }
 }

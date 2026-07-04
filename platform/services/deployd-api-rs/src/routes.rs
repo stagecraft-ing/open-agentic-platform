@@ -632,6 +632,54 @@ pub async fn delete_deployment(
             .app_slug
             .clone()
             .unwrap_or_else(|| deployment.app_id.clone());
+
+        // Spec 225 FR-007: self-provision the workloads RoleBinding before
+        // teardown. Once the cluster-wide workloads fallback is dropped
+        // (`rbac.selfProvision: true`), a namespace created before the flip and
+        // never redeployed has no RoleBinding, so `helm uninstall` would hit
+        // Forbidden and the best-effort uninstall below would swallow it,
+        // orphaning the namespace's k8s resources. Provisioning here (into the
+        // existing namespace only; it will not resurrect a namespace already
+        // gone) lets this delete tear the namespace down cleanly. Best-effort
+        // like the uninstall: log and continue so delete stays idempotent, and
+        // a no-op under the default cluster-wide fallback (opt-in on env).
+        //
+        // Defense-in-depth: only self-provision into a valid tenant namespace.
+        // Unlike `create_deployment` (which validates the request namespace up
+        // front), the delete path derives `namespace` from the recorded column
+        // or the `app_id-env_id` fallback for legacy rows and does not
+        // revalidate it. Because the chart's `bind`/`rolebindings create`
+        // grants are cluster-wide (they must be: deployd binds in namespaces it
+        // creates on demand), an unvalidated namespace resolving to a reserved
+        // one (e.g. `kube-system`) would otherwise get a deployd RoleBinding
+        // written there. `is_valid_tenant_namespace` is the same reserved-name
+        // guard `create_deployment` applies, so the RBAC write is scoped to
+        // real tenant namespaces even when the recorded value is untrusted.
+        let self_provision = crate::rbac::SelfProvisionConfig::from_env();
+        if self_provision.enabled && !is_valid_tenant_namespace(&namespace) {
+            tracing::warn!(
+                "skipping teardown self-provision for {release_id}: namespace {namespace} is not a valid tenant namespace"
+            );
+        } else if let Err(e) =
+            crate::rbac::ensure_workload_rbac_for_teardown(&namespace, &self_provision).await
+        {
+            // Best-effort: the uninstall below still runs. Record the failure
+            // as an event so a persistent RBAC-provisioning failure (e.g. chart
+            // `rbac.selfProvision` desynced from the env var) is visible in the
+            // deployment's audit trail, not only the pod logs, mirroring the
+            // deploy path's `store::add_event` on the same underlying failure.
+            tracing::warn!("self-provision RBAC before teardown failed for {release_id}: {e}");
+            let _ = store::add_event(
+                &state.client,
+                &release_id,
+                "rbac_warning",
+                Some(&format!(
+                    "teardown self-provision RBAC failed for namespace {namespace}: {e}; uninstall attempted best-effort"
+                )),
+            )
+            .await;
+        }
+
         let runner = HelmRunner::from_env();
         let result = tokio::task::spawn_blocking(move || {
             runner.uninstall_with_gate(&namespace, &release)

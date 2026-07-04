@@ -43,6 +43,19 @@
       {
         "locations": [
           {
+            "file": "platform/services/deployd-api-rs/src/rbac.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/deployd-api-rs/src/rbac.rs"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/featuregraph/tests/golden/features_graph.json"
           }
         ],
@@ -51,6 +64,19 @@
         "unit": {
           "kind": "file",
           "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/deployd-api-rs/src/routes.rs"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/deployd-api-rs/src/routes.rs"
         }
       },
       {
@@ -65,37 +91,11 @@
           "kind": "file",
           "path": "platform/charts/deployd-api/values-hetzner.yaml"
         }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/deployd-api-rs/src/rbac.rs"
-          }
-        ],
-        "ownership": false,
-        "sourceField": "references",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/deployd-api-rs/src/rbac.rs"
-        }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/deployd-api-rs/src/routes.rs"
-          }
-        ],
-        "ownership": false,
-        "sourceField": "references",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/deployd-api-rs/src/routes.rs"
-        }
       }
     ],
     "specId": "225-deployd-selfprovision-rbac",
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "c67355a823cc2b58e09cc9affe729f969acedc6e53091b176b380f2512ba38a5"
+  "shardHash": "b2b7989e90faf8dd9238b7712dd25733ba567648f592ac886326f7f45789b388"
 }
