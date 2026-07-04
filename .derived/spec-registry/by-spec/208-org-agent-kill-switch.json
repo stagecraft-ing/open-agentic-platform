@@ -21,6 +21,10 @@
       {
         "kind": "file",
         "path": "platform/services/stagecraft/api/factory/orgHalt.test.ts"
+      },
+      {
+        "kind": "file",
+        "path": "product/apps/opc/tests-e2e/fixtures/208/org-halt-drill.e2e.ts"
       }
     ],
     "extends": [
@@ -54,6 +58,22 @@
         "unit": {
           "kind": "file",
           "path": "product/apps/opc/src-tauri/src/commands/factory_platform.rs"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "187-opc-e2e-test-harness",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/tests-e2e/harness/mock_stagecraft.ts"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "187-opc-e2e-test-harness",
+        "unit": {
+          "kind": "file",
+          "path": "product/apps/opc/tests-e2e/harness/mock_stagecraft.test.ts"
         }
       },
       {
@@ -192,6 +212,6 @@
     "summary": "Containment today is precise but narrow: an operator can force-disconnect one session (spec 172), the four-key revocation lattice quarantines factory content (spec 198 FR-010), and Rauthy sessions can be revoked one principal at a time. What does not exist is the emergency stop ASI10 m4 and ASI04 m8 require: one admin-gated action that halts agent execution org-wide (pausing in-flight runs at the next boundary, refusing new sessions and grant issuance, revoking agent credentials) with propagation inside a stated bound, a quarantine record, and reintegration that requires fresh validation plus human approval. The switch composes the levers that already exist (grant renewal, duplex channels, revocation rows, session force-disconnect) rather than adding a parallel mechanism, and it is drilled: a kill switch that has never been pulled is decoration, so exercising it is an acceptance criterion, not an operational afterthought.\n",
     "title": "Org-Wide Agent Kill Switch and Quarantine (ASI10 containment)"
   },
-  "shardHash": "c1046350d8dec50a729589fdde8f5e3f273f7591e74773caba55b82c4e2c0cbb",
+  "shardHash": "2b6e83f7eb107d4e4a54a9e7d7c897b78b72861b5855e5becc9b4d6f4c6a569a",
   "specVersion": "1.1.0"
 }

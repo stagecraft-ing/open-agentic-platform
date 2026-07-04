@@ -13,7 +13,7 @@ import { createServer, type Server as HttpServer } from "node:http";
 import { createServer as createNetServer, type Server as NetServer } from "node:net";
 import { randomUUID } from "node:crypto";
 import type { AddressInfo } from "node:net";
-import { WebSocketServer, type WebSocket as WsSocket } from "ws";
+import { WebSocketServer, type WebSocket as WsSocket, type RawData } from "ws";
 
 // MUST equal api/sync/types.ts::ENVELOPE_SCHEMA_VERSION and
 // sync_client.rs::ENVELOPE_SCHEMA_VERSION (spec 189 version parity). The
@@ -60,6 +60,14 @@ export interface MockStagecraftOptions {
   path?: string;
 }
 
+/** A pending waitForFrame() subscription (spec 208 FR-005 drill). */
+interface InboundWaiter {
+  match: (frame: unknown) => boolean;
+  resolve: (frame: unknown) => void;
+  reject: (err: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+}
+
 export class MockStagecraft {
   private mode: MockMode;
   private readonly orgId: string;
@@ -71,6 +79,16 @@ export class MockStagecraft {
   private wss?: WebSocketServer;
   private refuser?: NetServer;
   private boundPort = 0;
+
+  // Spec 208 FR-005 (the kill-switch drill). The base mock speaks only the
+  // handshake: one scripted sync.hello, then silence. The drill needs the
+  // duplex to stay bidirectional after the hello so it can push an
+  // org.halt.* frame server->client and observe the client's org.halt.ack
+  // client->server. These three fields add exactly that, without touching
+  // the spec 187 handshake modes above.
+  private readonly sockets = new Set<WsSocket>();
+  private readonly inbound: unknown[] = [];
+  private inboundWaiters: InboundWaiter[] = [];
 
   constructor(opts: MockStagecraftOptions) {
     this.mode = opts.mode;
@@ -123,8 +141,64 @@ export class MockStagecraft {
       // Emit sync.hello, then drop without server-side reconnect (FR-T2d) —
       // the duplex-side analog of AC-8's mid-session restore.
       socket.close(1001, "mid-session-drop");
+      return;
     }
-    // "healthy": leave the socket open, as a real stagecraft would.
+
+    // "healthy": leave the socket open, as a real stagecraft would. Spec 208
+    // FR-005: retain the socket so the drill can push an org.halt.* frame
+    // after the hello (push()) and record the client's org.halt.ack
+    // (recordInbound / waitForFrame).
+    this.sockets.add(socket);
+    socket.on("message", (data) => this.recordInbound(data));
+    socket.on("close", () => this.sockets.delete(socket));
+  }
+
+  /**
+   * Push a server->client frame to every retained duplex socket. Spec 208
+   * FR-005: the drill injects org.halt.activated / org.halt.lifted this way,
+   * after the initial sync.hello. Serialises with the same JSON convention as
+   * buildHello(). No-op when no client is connected (e.g. the disconnected
+   * engine leg), which is the intended shape for a fail-closed reconnect.
+   */
+  push(frame: unknown): void {
+    const payload = JSON.stringify(frame);
+    for (const socket of this.sockets) {
+      socket.send(payload);
+    }
+  }
+
+  /** Frames the client has sent since connect (parsed best-effort). */
+  inboundFrames(): readonly unknown[] {
+    return this.inbound;
+  }
+
+  /**
+   * Resolve with the first inbound frame (already-seen or future) matching
+   * `match`, or reject after `timeoutMs`. Lets the drill await the client's
+   * org.halt.ack without polling.
+   */
+  waitForFrame(match: (frame: unknown) => boolean, timeoutMs = 5000): Promise<unknown> {
+    const seen = this.inbound.findIndex(match);
+    if (seen >= 0) return Promise.resolve(this.inbound[seen]);
+    return new Promise<unknown>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.inboundWaiters = this.inboundWaiters.filter((w) => w !== waiter);
+        reject(new Error("mock-stagecraft: timed out waiting for inbound frame"));
+      }, timeoutMs);
+      const waiter: InboundWaiter = { match, resolve, reject, timer };
+      this.inboundWaiters.push(waiter);
+    });
+  }
+
+  private recordInbound(data: RawData): void {
+    const frame = parseFrame(data);
+    this.inbound.push(frame);
+    this.inboundWaiters = this.inboundWaiters.filter((waiter) => {
+      if (!waiter.match(frame)) return true;
+      clearTimeout(waiter.timer);
+      waiter.resolve(frame);
+      return false;
+    });
   }
 
   private buildHello(): ServerHello {
@@ -144,6 +218,19 @@ export class MockStagecraft {
   }
 
   async stop(): Promise<void> {
+    // Settle any drill still awaiting a frame so teardown never leaks a timer
+    // or an unhandled rejection past the fixture (FR-T3 / FR-T6 no-flake).
+    for (const waiter of this.inboundWaiters.splice(0)) {
+      clearTimeout(waiter.timer);
+      waiter.reject(new Error("mock-stagecraft: stopped while waiting for inbound frame"));
+    }
+    // Force-terminate any retained duplex socket. A real drill tears the OPC
+    // binary down separately, so the client socket is still open here, and
+    // http.Server.close() only fires its callback once every connection is
+    // gone. terminate() destroys the TCP socket so teardown never wedges.
+    for (const socket of this.sockets) socket.terminate();
+    this.sockets.clear();
+    this.inbound.length = 0;
     await new Promise<void>((resolve) => {
       if (this.wss) this.wss.close(() => resolve());
       else resolve();
@@ -179,4 +266,14 @@ function closeServer(server?: HttpServer | NetServer): Promise<void> {
     if (!server) return resolve();
     server.close(() => resolve());
   });
+}
+
+/** Parse an inbound duplex frame; fall back to the raw string on non-JSON. */
+function parseFrame(data: RawData): unknown {
+  const text = typeof data === "string" ? data : data.toString();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
 }
