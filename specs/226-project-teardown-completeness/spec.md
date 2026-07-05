@@ -31,6 +31,7 @@ depends_on:
   - "215-stagecraft-deploy-trigger-ux"  # owns `deploydClient.ts` (`destroyPreviewDeployment`), the stagecraft->deployd teardown trigger toggle (2) reuses
   - "214-tenant-app-chart-supersession"  # owns the forwarded `environments.k8sNamespace` the teardown resolves per env
   - "136-tenant-hello-demo-service"  # owns deployd's helm uninstall path (`uninstall_with_gate`)
+  - "137-tenant-environment-access-gates"  # co-authors `uninstall_with_gate` (the universal teardown FR-006 routes through) with 073/136; the implementation PR promoting `routes.rs` needs this edge
   - "113-stagecraft-projects-rename-and-clone"  # established `deleteGithubRepo` (clone rollback), the helper toggle (1) reuses; also the provenance rollback precedent
   - "080-github-identity-onboarding"  # owns `createProjectWithRepo` (the repo-provenance origin: a repo OAP created vs an imported one)
 extends:
@@ -267,7 +268,10 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   be tearing a preview release down when a project delete lands. Both teardown
   calls are best-effort and idempotent (`helm uninstall` treats
   "release not found" as success; namespace delete treats "already gone" as
-  success), so the overlap is safe.
+  success), and the ordering is safe by construction: deployd deletes the
+  namespace only when no deployd-managed release remains in it (FR-007a), so two
+  racing teardowns delete it exactly once, whichever finishes last, and never
+  out from under a sibling still installed.
 - **Repo provenance unrecorded on legacy rows.** `project_repos` predates the
   provenance column (FR-004), so existing rows have no origin. They are treated
   as `imported` (the conservative default): `deleteRepo` refuses them. An
@@ -302,6 +306,8 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   opening the delete transaction** and drive the post-commit legs from that
   captured snapshot, exactly as the current handler collects knowledge /
   artifact storage keys before the transaction and sweeps them after commit.
+  The snapshot is taken only when at least one toggle is set; a toggle-free
+  delete skips the extra reads and behaves exactly as today.
 
 ### Functional Requirements: repo delete (toggle 1)
 
@@ -310,7 +316,11 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   (`factory-created` | `imported` | `linked`), set at creation
   (`createProjectWithRepo` / factory-create -> `factory-created`; import ->
   `imported`; add-repo link -> `linked`). Rows without a recorded origin
-  (pre-migration) MUST be treated as `imported`.
+  (pre-migration) MUST be treated as `imported`. The `origin` value MUST be set
+  exactly once at row creation and treated as **immutable** thereafter: no code
+  path may relabel a repo's origin (e.g. flip an `imported` row to
+  `factory-created`), because a mutable origin would silently bypass the
+  provenance gate that makes `deleteRepo` safe to offer.
 - **FR-005**: When `deleteRepo=true`, the handler MUST delete **only** the
   project's linked repos whose recorded origin is `factory-created` (there may
   be more than one), via the existing best-effort `deleteGithubRepo` (404
@@ -325,8 +335,15 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   project's environments that has a recorded live release, invoke deployd
   teardown (the `destroyPreviewDeployment` -> deployd `delete_deployment`
   wire, `helm uninstall` via `uninstall_with_gate`), best-effort per
-  environment. When deployd is not configured (local dev), the leg is recorded
-  as skipped, not failed.
+  environment. The per-environment release id captured in the FR-003 snapshot is
+  the `:id` for the `DELETE /v1/deployments/:id` call. The teardowns run
+  **synchronously after the DB commit with bounded concurrency** (mirroring the
+  existing storage-sweep loop), and the delete returns once they settle; a
+  project has few environments (typically 1-3), so a bounded synchronous fan-out
+  is preferred over an async `202` + status-tracking surface. Moving to an async
+  completion is a compatible future change if per-project environment counts
+  grow. When deployd is not configured (local dev), the leg is recorded as
+  skipped, not failed.
 
 ### Functional Requirements: namespace deletion (toggle 3, promotes spec 225 deferred item)
 
@@ -335,20 +352,29 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   request flag on `DELETE /v1/deployments/:id`, off by default so preview
   cleanup and every existing caller keep uninstall-only semantics). The
   capability MUST: (a) delete the tenant namespace **only after** the release's
-  `helm uninstall`; (b) be gated by `is_valid_tenant_namespace` inside the
-  capability itself (defense-in-depth, refusing reserved / malformed
-  namespaces regardless of caller, matching spec 225 FR-007); (c) treat an
-  already-absent namespace as success and never recreate it; and (d) be
-  best-effort (a failure is logged and recorded, the teardown proceeds).
-- **FR-008**: When `deleteNamespaces=true`, stagecraft MUST request namespace
-  deletion (the FR-007 flag) on the deployd teardown call so the tenant
-  namespace is deleted after its release is uninstalled. For a namespace shared
-  by more than one environment, stagecraft MUST set the FR-007 flag ONLY on the
-  teardown of the **last** release in that namespace, so the namespace is
-  deleted once, after all its releases are uninstalled, and never out from under
-  a sibling release still installed there. `deleteNamespaces` MUST NOT delete a
-  namespace for an environment whose deployment teardown (FR-006) was skipped or
-  refused.
+  `helm uninstall`, **and only when no other deployd-managed release remains in
+  that namespace**: deployd, not the caller, owns the safe-to-delete
+  determination: it lists the releases it manages in the namespace and deletes
+  the namespace only when that set is empty. This makes the delete robust to a
+  concurrent teardown (two callers racing) and to a failed sibling teardown
+  (its release remains, so the namespace is non-empty and is not deleted);
+  (b) be gated by `is_valid_tenant_namespace` inside the capability itself
+  (defense-in-depth, refusing reserved / malformed namespaces regardless of
+  caller, matching spec 225 FR-007); (c) treat an already-absent namespace as
+  success and never recreate it; and (d) be best-effort (a failure is logged and
+  recorded, the teardown proceeds).
+- **FR-008**: When `deleteNamespaces=true`, stagecraft MUST set the FR-007 flag
+  on **every** deployd teardown call it issues for the project; it MUST NOT try
+  to compute which release is "last". deployd's empty-namespace check (FR-007a)
+  is the single arbiter: whichever teardown leaves the namespace with no
+  remaining deployd-managed releases performs the delete, exactly once, with no
+  cross-caller coordination. This is why the ordering is correct under
+  concurrent teardowns (a project delete racing a PR-close webhook) and under
+  partial failure: if one environment's teardown fails or is skipped (FR-006),
+  its release remains, the namespace is non-empty, and deployd declines to
+  delete it. A namespace is deleted only when all its deployd-managed releases
+  are gone, which subsumes "MUST NOT delete a namespace whose deployment
+  teardown was skipped or refused".
 
 ### Functional Requirements: auditability
 
@@ -361,7 +387,32 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   recorded post-commit: a companion `project.teardown` audit event (or an
   update to the `project.delete` row's metadata) written once the legs finish,
   NOT the in-transaction `project.delete` row, which is committed before any leg
-  runs.
+  runs. To survive a crash between the commit and the outcome write, the handler
+  MUST record the **requested** toggles as intent at (or immediately after) the
+  commit, then record each per-resource outcome as its leg settles; a crash
+  after the commit thus still leaves an auditable record of what was attempted,
+  not a silent gap.
+
+### Functional Requirements: authorization
+
+- **FR-010**: Setting any destructive toggle MUST require the same authority the
+  base delete already enforces: `deleteProject` gates on `project:delete`, which
+  is an admin/owner org permission, so an unauthenticated or non-admin caller
+  cannot reach the handler and therefore cannot set a toggle. Because
+  `project:delete` is already the top org tier, this spec does NOT invent a
+  separate permission; the extra protection for the irreversible external
+  actions (repo deletion, namespace deletion) is the per-action opt-in checkbox
+  (FR-002) plus the typed confirmation (FR-011), not a new role. A request that
+  sets a toggle without `project:delete` MUST be rejected before any destructive
+  action.
+- **FR-011**: Because namespace deletion is permanent data loss (PVCs, an
+  in-namespace database), enabling `deleteNamespaces` MUST require a typed
+  confirmation (the project slug) at the API boundary, not only in the UI: the
+  handler MUST reject a `deleteNamespaces=true` request that does not carry the
+  matching confirmation token. This is the CONST-001 destructive-operation
+  posture made normative (promoted from the SHOULD in the confirmation
+  contract). The exact token ergonomics are an implementation detail; that the
+  server enforces it is not.
 
 ## Key Entities
 
@@ -399,6 +450,14 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   the featuregraph golden node in this design PR, and (in the follow-on
   implementation PRs) the referenced code paths once promoted to authoritative
   relationships.
+- **SC-007**: A request that sets any destructive toggle without `project:delete`
+  is rejected before any destructive action runs (FR-010).
+- **SC-008**: A `deleteNamespaces=true` request missing the typed confirmation
+  token is rejected at the API boundary (FR-011) and no namespace is deleted.
+- **SC-009**: A namespace with a still-installed sibling release (a failed or
+  concurrent teardown) is NOT deleted; once every deployd-managed release in it
+  is gone it is deleted exactly once, even under two racing teardowns
+  (FR-007a / FR-008).
 
 ## Confirmation and irreversibility contract
 
@@ -418,11 +477,12 @@ and API MUST make the destructive scope explicit and per-action:
    checkbox is disabled until deployment teardown is checked; its label calls
    out permanent PVC / in-namespace-database loss.
 4. **Typed confirmation for namespace deletion.** Because namespace deletion is
-   permanent data loss, enabling `deleteNamespaces` SHOULD require a typed
-   confirmation (e.g. the project slug), consistent with CONST-001's
-   destructive-operation posture. The exact confirmation ergonomics are an
-   implementation detail; the requirement is that namespace deletion is not a
-   single-click action.
+   permanent data loss, enabling `deleteNamespaces` **MUST** require a typed
+   confirmation (e.g. the project slug), enforced at the API boundary per FR-011
+   (not UI-only), consistent with CONST-001's destructive-operation posture. The
+   exact confirmation ergonomics are an implementation detail; the requirement
+   is that namespace deletion is not a single-click action and cannot be
+   triggered by an API caller that bypasses the UI.
 
 ## Implementation staging
 
@@ -437,10 +497,13 @@ at a time:
   `destroyDeployments` legs (reusing `deleteGithubRepo` and
   `destroyPreviewDeployment`), the post-commit teardown audit (FR-009), and the
   delete-dialog checkboxes. It also wires `deleteNamespaces` through to the
-  deployd teardown call, but that request flag is inert until PR B ships FR-007,
-  so **PR B MUST land before `deleteNamespaces` is surfaced to users**. Promotes
-  `projects.ts` / `cloneHelpers.ts` / `deploydClient.ts` / `schema.ts` to
-  `extends`/`refines` of spec 226.
+  deployd teardown call, guarded behind a **runtime capability probe** of deployd
+  (a version / feature check on the deployd API): an older deployd that does not
+  understand the FR-007 flag makes the checkbox unavailable rather than silently
+  no-op, so correctness does not depend on deploy ordering. PR B ships FR-007;
+  until a deployd carrying it is live, the probe keeps `deleteNamespaces` off.
+  Promotes `projects.ts` / `cloneHelpers.ts` / `deploydClient.ts` / `schema.ts`
+  to `extends`/`refines` of spec 226.
 - **PR B (deployd)**: the namespace-delete capability and its off-by-default
   request flag on `delete_deployment` (FR-007). Promotes `routes.rs` / `rbac.rs`
   to `extends`/`refines` of spec 226. This is the delivery of spec 225's
@@ -450,3 +513,51 @@ at a time:
 Splitting delivery this way keeps each PR reviewable and lets toggle (2) ship
 usefully even before toggle (3) lands (uninstall-without-namespace-delete is a
 complete, safe teardown on its own).
+
+## Review follow-ups (AI review of #515)
+
+The automated review of the spec's landing PR (#515) raised design points on a
+design-only spec. All are resolved here (this follow-up amends 226 in place),
+mirroring how spec 225 recorded its own review follow-ups. Dispositions:
+
+**Resolved by tightening the contract:**
+
+- **Provenance immutability.** `project_repos.origin` is now MUST-immutable
+  (FR-004): no path may relabel a repo, so the gate cannot be bypassed.
+- **Typed confirmation elevated SHOULD -> MUST** and moved to the API boundary
+  (FR-011 + confirmation contract item 4): namespace deletion cannot be
+  triggered by a caller that bypasses the UI.
+- **Authorization stated explicitly** (FR-010): destructive toggles inherit the
+  base `project:delete` admin/owner gate; no new permission tier is invented
+  because `project:delete` is already the top org tier.
+- **Audit crash-window closed** (FR-009): requested toggles are recorded as
+  intent at commit; per-resource outcomes are appended as legs settle, so a
+  crash after commit still leaves an auditable record.
+- **Conditional snapshot** (FR-003): the pre-transaction snapshot runs only when
+  at least one toggle is set, so a toggle-free delete pays nothing.
+- **Spec 137 added to `depends_on`**: it co-authors `uninstall_with_gate`, which
+  FR-006 routes through; the implementation PR promoting `routes.rs` needs the
+  edge.
+
+**Resolved by architectural decision (delegated on this PR):**
+
+- **Namespace-delete ordering owner -> deployd-side empty-namespace check**
+  (FR-007a / FR-008). deployd, not stagecraft, decides a namespace is safe to
+  delete (no remaining deployd-managed release in it). This dissolves the
+  "who is last?" race the review flagged and makes partial failure correct: a
+  failed or concurrent sibling teardown leaves the namespace non-empty, so it is
+  not deleted. stagecraft just sets the flag on every teardown; deployd deletes
+  exactly once.
+- **Teardown execution shape -> synchronous, bounded-concurrent** (FR-006). A
+  project has few environments, so a bounded synchronous fan-out (matching the
+  existing storage-sweep loop) is preferred over an async `202` + status
+  surface; async is a compatible future change if counts grow.
+- **PR-ordering enforcement -> runtime capability probe** (Implementation
+  staging). PR A gates `deleteNamespaces` behind a deployd capability probe
+  rather than relying on deploy ordering, so an older deployd disables the
+  checkbox instead of silently no-opping.
+
+**Acknowledged, no change:** the review's Spec Compliance section (code_aliases
+consistent, `implementation: pending` correct, derived shards present with
+`ownership: true` only on the featuregraph golden) confirmed the staging intent
+is correctly encoded.

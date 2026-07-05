@@ -6,6 +6,7 @@
       "215-stagecraft-deploy-trigger-ux",
       "214-tenant-app-chart-supersession",
       "136-tenant-hello-demo-service",
+      "137-tenant-environment-access-gates",
       "113-stagecraft-projects-rename-and-clone",
       "080-github-identity-onboarding"
     ],
@@ -136,5 +137,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "085a9c3c41f9599a3a6e87ccb3e611ab22c2ceeb3109228f7ff9447a3d4346a3"
+  "shardHash": "0e505efd7407990f1742a76ecfc35947f91d1a1577c55ff96fad6921a78d0620"
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:35cdbe6bc5033e2f16c39bacf45e60f0a2c5537becc8efb87b145f531ca235f3",
+  "graph_fingerprint": "sha256:8e8f54fac96543a346c7290a8aceacaa212c0e8240f9c67cb66601569d490b0b",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4277,6 +4277,7 @@
         "215-stagecraft-deploy-trigger-ux",
         "214-tenant-app-chart-supersession",
         "136-tenant-hello-demo-service",
+        "137-tenant-environment-access-gates",
         "113-stagecraft-projects-rename-and-clone",
         "080-github-identity-onboarding"
       ],
