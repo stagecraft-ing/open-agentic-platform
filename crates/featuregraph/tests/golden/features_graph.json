@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:c420e66d14b0fa9ba77a11b96521a5e778f7610a08552c0e6ddd3c1a4ad285a6",
+  "graph_fingerprint": "sha256:35cdbe6bc5033e2f16c39bacf45e60f0a2c5537becc8efb87b145f531ca235f3",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4257,6 +4257,28 @@
       "depends_on": [
         "136-tenant-hello-demo-service",
         "145-deployd-durability"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "226-project-teardown-completeness",
+      "title": "Complete Project Teardown (opt-in repo delete, deployment teardown, namespace deletion)",
+      "spec_path": "specs/226-project-teardown-completeness/spec.md",
+      "status": "approved",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "119-project-as-unit-of-governance",
+        "225-deployd-selfprovision-rbac",
+        "215-stagecraft-deploy-trigger-ux",
+        "214-tenant-app-chart-supersession",
+        "136-tenant-hello-demo-service",
+        "113-stagecraft-projects-rename-and-clone",
+        "080-github-identity-onboarding"
       ],
       "impl_files": [],
       "test_files": [],
