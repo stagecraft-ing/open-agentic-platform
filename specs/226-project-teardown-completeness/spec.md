@@ -320,7 +320,10 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   exactly once at row creation and treated as **immutable** thereafter: no code
   path may relabel a repo's origin (e.g. flip an `imported` row to
   `factory-created`), because a mutable origin would silently bypass the
-  provenance gate that makes `deleteRepo` safe to offer.
+  provenance gate that makes `deleteRepo` safe to offer. Immutability MUST be
+  enforced at the **database layer** (a trigger or equivalent write-once guard
+  that rejects any UPDATE to `origin`), not application code alone, so an ad-hoc
+  migration, a future handler, or a time-pressure hotfix cannot relabel a row.
 - **FR-005**: When `deleteRepo=true`, the handler MUST delete **only** the
   project's linked repos whose recorded origin is `factory-created` (there may
   be more than one), via the existing best-effort `deleteGithubRepo` (404
@@ -342,8 +345,11 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   project has few environments (typically 1-3), so a bounded synchronous fan-out
   is preferred over an async `202` + status-tracking surface. Moving to an async
   completion is a compatible future change if per-project environment counts
-  grow. When deployd is not configured (local dev), the leg is recorded as
-  skipped, not failed.
+  grow. Each deployd call MUST carry a per-call timeout (recommended <= 30s per
+  environment) and the leg a total wall-clock ceiling (recommended <= 120s), so
+  "best-effort" means "attempted for at most T", never "blocked indefinitely on
+  a hung or partitioned deployd". When deployd is not configured (local dev),
+  the leg is recorded as skipped, not failed.
 
 ### Functional Requirements: namespace deletion (toggle 3, promotes spec 225 deferred item)
 
@@ -357,7 +363,12 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   determination: it lists the releases it manages in the namespace and deletes
   the namespace only when that set is empty. This makes the delete robust to a
   concurrent teardown (two callers racing) and to a failed sibling teardown
-  (its release remains, so the namespace is non-empty and is not deleted);
+  (its release remains, so the namespace is non-empty and is not deleted). The
+  check-then-delete need NOT be atomic (no distributed lock is required):
+  because namespace DELETE is idempotent (FR-007c), two callers that both
+  observe an empty namespace and both issue the delete is benign, one deletes
+  and the other sees "already gone" as success. deployd MUST rely on this
+  idempotency for the delete-once guarantee rather than a lock;
   (b) be gated by `is_valid_tenant_namespace` inside the capability itself
   (defense-in-depth, refusing reserved / malformed namespaces regardless of
   caller, matching spec 225 FR-007); (c) treat an already-absent namespace as
@@ -367,14 +378,15 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   on **every** deployd teardown call it issues for the project; it MUST NOT try
   to compute which release is "last". deployd's empty-namespace check (FR-007a)
   is the single arbiter: whichever teardown leaves the namespace with no
-  remaining deployd-managed releases performs the delete, exactly once, with no
-  cross-caller coordination. This is why the ordering is correct under
-  concurrent teardowns (a project delete racing a PR-close webhook) and under
-  partial failure: if one environment's teardown fails or is skipped (FR-006),
-  its release remains, the namespace is non-empty, and deployd declines to
-  delete it. A namespace is deleted only when all its deployd-managed releases
-  are gone, which subsumes "MUST NOT delete a namespace whose deployment
-  teardown was skipped or refused".
+  remaining deployd-managed releases performs the delete, idempotently (FR-007a:
+  a racing double-delete is benign, so no cross-caller coordination is needed).
+  This is why the ordering is correct under concurrent teardowns (a project
+  delete racing a PR-close webhook) and under partial failure: if one
+  environment's teardown fails or is skipped (FR-006), its release remains, the
+  namespace is non-empty, and deployd declines to delete it. A namespace is
+  deleted only when all its deployd-managed releases are gone, which subsumes
+  "MUST NOT delete a namespace whose deployment teardown was skipped or
+  refused".
 
 ### Functional Requirements: auditability
 
@@ -387,11 +399,13 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   recorded post-commit: a companion `project.teardown` audit event (or an
   update to the `project.delete` row's metadata) written once the legs finish,
   NOT the in-transaction `project.delete` row, which is committed before any leg
-  runs. To survive a crash between the commit and the outcome write, the handler
-  MUST record the **requested** toggles as intent at (or immediately after) the
-  commit, then record each per-resource outcome as its leg settles; a crash
-  after the commit thus still leaves an auditable record of what was attempted,
-  not a silent gap.
+  runs. To fully close the crash window, the handler MUST record the
+  **requested** toggles as intent **in the same transaction as the delete**
+  (e.g. on the existing in-transaction `project.delete` audit row, which commits
+  atomically with the delete), then record each per-resource outcome as its leg
+  settles post-commit. A crash after the commit thus still leaves an atomic
+  record of what was requested; only the best-effort outcomes may be lost, and
+  those are recoverable by re-running the specific teardown.
 
 ### Functional Requirements: authorization
 
@@ -404,7 +418,12 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   actions (repo deletion, namespace deletion) is the per-action opt-in checkbox
   (FR-002) plus the typed confirmation (FR-011), not a new role. A request that
   sets a toggle without `project:delete` MUST be rejected before any destructive
-  action.
+  action. The org-membership scope that already bounds `deleteProject` (the
+  handler loads the project by `(id, orgId = auth.orgId)`) applies to all three
+  toggle legs: a `factory-created` repo under another org's GitHub installation,
+  or a namespace in another org's environment, MUST NOT be acted on even if the
+  caller holds `project:delete` in their own org. `project:delete` MUST be
+  evaluated org-scoped, never as a global "admin somewhere" check.
 - **FR-011**: Because namespace deletion is permanent data loss (PVCs, an
   in-namespace database), enabling `deleteNamespaces` MUST require a typed
   confirmation (the project slug) at the API boundary, not only in the UI: the
@@ -412,7 +431,9 @@ uninstalled and `N` still exists. Repeat with `deleteNamespaces=true`; assert
   matching confirmation token. This is the CONST-001 destructive-operation
   posture made normative (promoted from the SHOULD in the confirmation
   contract). The exact token ergonomics are an implementation detail; that the
-  server enforces it is not.
+  server enforces it is not. The comparison MUST be exact, case-sensitive string
+  equality against the project slug (never a substring or case-insensitive
+  match).
 
 ## Key Entities
 
@@ -502,8 +523,10 @@ at a time:
   understand the FR-007 flag makes the checkbox unavailable rather than silently
   no-op, so correctness does not depend on deploy ordering. PR B ships FR-007;
   until a deployd carrying it is live, the probe keeps `deleteNamespaces` off.
-  Promotes `projects.ts` / `cloneHelpers.ts` / `deploydClient.ts` / `schema.ts`
-  to `extends`/`refines` of spec 226.
+  The probe result MAY be cached (short TTL, invalidated on a deployd version
+  change) to avoid a round-trip on every delete. Promotes `projects.ts` /
+  `cloneHelpers.ts` / `deploydClient.ts` / `schema.ts` to `extends`/`refines` of
+  spec 226.
 - **PR B (deployd)**: the namespace-delete capability and its off-by-default
   request flag on `delete_deployment` (FR-007). Promotes `routes.rs` / `rbac.rs`
   to `extends`/`refines` of spec 226. This is the delivery of spec 225's
@@ -547,7 +570,7 @@ mirroring how spec 225 recorded its own review follow-ups. Dispositions:
   "who is last?" race the review flagged and makes partial failure correct: a
   failed or concurrent sibling teardown leaves the namespace non-empty, so it is
   not deleted. stagecraft just sets the flag on every teardown; deployd deletes
-  exactly once.
+  it idempotently (a racing double-delete is benign).
 - **Teardown execution shape -> synchronous, bounded-concurrent** (FR-006). A
   project has few environments, so a bounded synchronous fan-out (matching the
   existing storage-sweep loop) is preferred over an async `202` + status
@@ -561,3 +584,31 @@ mirroring how spec 225 recorded its own review follow-ups. Dispositions:
 consistent, `implementation: pending` correct, derived shards present with
 `ownership: true` only on the featuregraph golden) confirmed the staging intent
 is correctly encoded.
+
+## Review follow-ups (AI review of #516)
+
+The AI review of the follow-up PR (#516) raised a second, more marginal round on
+the same design-only spec. Resolved in place:
+
+- **Crash window fully closed** (FR-009): intent is written **in the same
+  transaction** as the delete (not merely "immediately after"), so a crash
+  cannot lose the record of what was requested.
+- **Delete-once is idempotency, not atomicity** (FR-007a / FR-008): the
+  empty-namespace check need not be atomic; namespace DELETE is idempotent, so a
+  racing double-delete is benign. The spec no longer over-claims "exactly once"
+  or implies a distributed lock.
+- **Org-scope reaffirmed against IDOR** (FR-010): the existing
+  `(id, orgId = auth.orgId)` scope bounds all three toggle legs; `project:delete`
+  is evaluated org-scoped, never as a global "admin somewhere" check.
+- **Immutability enforced at the DB layer** (FR-004): a write-once trigger, not
+  application code alone, so an ad-hoc migration cannot relabel `origin`.
+- **Exact token match** (FR-011): the typed confirmation MUST be exact,
+  case-sensitive string equality against the project slug.
+- **Timeout ceiling on the synchronous fan-out** (FR-006): per-call (<= 30s) and
+  total (<= 120s) bounds so best-effort cannot block indefinitely; the
+  capability probe result MAY be cached.
+
+**Acknowledged, no change:** the review confirmed derived-artifact consistency
+(frontmatter, both shards, and the featuregraph golden all gain the `137` edge
+together) and noted the permanent `Review follow-ups` section is a style choice;
+it is retained deliberately, matching spec 225, and spec-lint accepts it.
