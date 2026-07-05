@@ -539,3 +539,66 @@ sufficed was wrong; the unit tests mock `fetch`, so only a live run caught it).
 Fixed by adding `secrets: write` to the brokered token (`create.ts`) and
 granting the OAP GitHub App the repository Secrets permission. AC-2 closure now
 waits on a deploy of this fix plus a retried scaffold.
+
+**2026-07-04 (live AC-2 attempt 2): the retried scaffold cleared the secrets
+gap but surfaced a glibc floor, now fixed and deployed.** With `secrets: write`
+brokered, the retried scaffold reached the produced-app regenerate-index step
+(spec 112 §5.3), which runs the produced app's pinned
+`@spec-spine/cli-linux-x64` inside the stagecraft container. That binary is
+built on `ubuntu-latest` (glibc 2.39) while stagecraft's runtime base was
+`node:22-slim` (Debian bookworm, glibc 2.36), so it aborted with
+`GLIBC_2.39 not found`. Fixed by bumping the runtime base to
+`node:22-trixie-slim` (glibc 2.41) in
+`platform/services/stagecraft/Dockerfile.base` (#512), deployed to Hetzner (CD
+stagecraft green on `4cb4f34b`).
+
+**2026-07-04 (live AC-2 attempt 3): a Dual-variant scaffold fails regenerate-index
+because the dual produced tree has no root `specs/` corpus. Confirmed a real
+stagecraft bug, not deployed skew or a source bug.** With the glibc floor cleared
+the pinned binary executes and immediately exits 3: `spec-spine compile ... cannot
+read specs dir .../spec220-ac2-verify/specs: No such file or directory`.
+`regenerateProducedIndex` (`api/projects/scaffold/perRequestScaffold.ts`) runs one
+`spec-spine compile` at the produced ROOT. A live read-only diagnostic on the
+Hetzner `stagecraft-api` pod disproved the deployed-skew hypothesis and pinned the
+cause:
+- The warmup caches are current: `_factory-cache` HEAD = `c988258` (factory-encore
+  `main`, which DOES carry specs), `_template-cache` ships the full `specs/`
+  corpus, and the live `_prebuilt/current` is keyed to both current SHAs.
+- Single variants (`minimal`/`public`/`internal`) ship `specs/` + `spec-spine.toml`
+  + `Makefile` + `tools/` at the produced root, so `compile` at root works.
+- The Dual variant produces a two-sub-app monorepo: the dual root holds only
+  `internal/` and `public/`, and each sub-app carries its OWN root-level `specs/`
+  (`dual/internal/specs`, `dual/public/specs`). The dual root has no corpus, so the
+  single root-level `compile` finds nothing and exits 3.
+
+So `regenerateProducedIndex` assumes a single-app layout (one root `specs/`). AC-2
+does not require the Dual variant, so the closure path is: (a) re-scaffold with a
+Single variant, which passes regenerate-index and reaches commit #1 with a
+committed `.derived`; and (b) as a separate follow-up, make `regenerateProducedIndex`
+iterate per sub-app (`internal/`, `public/`) for the Dual variant rather than once
+at the root. `implementation` stays `in-progress` pending the Single-variant
+live run.
+
+**2026-07-04 (live AC-2 attempt 4, Single variant): scaffold born-green, but the
+produced app's own CI is red on two further born-with defects.** Re-scaffolded with
+the Single (internal) variant. The scaffold SUCCEEDED: `stagecraft-ing/spec220-ac2-single`
+commit #1 (`a77a876b`) carries a committed `.derived/codebase-index/` (`by-spec` +
+`by-package`) and a root `specs/` corpus, and the produced app's `spec-spine` CI job
+passes the codebase-index staleness gate, confirming the attempt-3 diagnosis (Single
+has a root corpus, so regenerate-index works). But the produced-app CI's cert path did
+NOT run green:
+- **Claim provenance verify (spec 209 FR-001 / spec 121) FAILED**, which SKIPPED the
+  downstream "Emit governance certificate" (FR-002) and "verify-certificate" steps, so
+  the AC-2 cert chain never executed. Cause: the step runs `tenant-tail verify-provenance
+  --project . --fail-on-rejected`, which exits 1 on a fresh scaffold because there is no
+  BRD (`brdNotFound=true`, `total=0` claims, `rejected=0`): "no BRD found under the
+  project; nothing was verified". A born-green app with zero claims has nothing to
+  reject, so this should be a vacuous pass; the fix belongs in tenant-tail (spec 219) or
+  the born-with CI step (spec 209 FR-001), not in this spec.
+- **`encore check` FAILED** separately: "unable to read static assets directory: No such
+  file or directory". The produced app's Encore graph parse expects a static-assets dir
+  (the built SPA) that is absent at check time. A produced-app born-with composition/CI
+  defect, independent of the cert path.
+
+AC-2 remains blocked on the provenance-verify-on-empty-BRD behavior (the cert emit and
+verify steps are gated behind it). `implementation` stays `in-progress`.
