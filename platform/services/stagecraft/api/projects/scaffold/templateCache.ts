@@ -332,8 +332,18 @@ async function resolveEncoreCliVersion(workspace: string): Promise<string> {
       pkg.dependencies?.["encore.dev"] ?? pkg.devDependencies?.["encore.dev"];
     const m = spec?.match(/(\d+\.\d+\.\d+)/);
     if (m) return m[1];
-  } catch {
-    // fall through to the pinned default
+    log.warn(
+      "encore CLI: no encore.dev semver in template package.json; using default",
+      { default: DEFAULT_ENCORE_CLI_VERSION, spec }
+    );
+  } catch (err) {
+    // ensureEncoreCli runs AFTER ensureTemplateCache, so the cache should be
+    // present here; a read/parse failure is anomalous. Warn rather than fall
+    // through silently, so a stale or mismatched pin is diagnosable in the logs.
+    log.warn(
+      "encore CLI: template package.json unreadable; using default version",
+      { default: DEFAULT_ENCORE_CLI_VERSION, error: errMsg(err) }
+    );
   }
   return DEFAULT_ENCORE_CLI_VERSION;
 }
@@ -376,26 +386,48 @@ export async function ensureEncoreCli(ctx: WarmupContext): Promise<void> {
     await ensureToolingDirs(workspace);
     await mkdir(installRoot, { recursive: true });
 
+    // The CloudFront distribution and `encore-<version>-<target>.tar.gz` naming
+    // are Encore's own release layout, taken verbatim from its published
+    // install.sh (https://encore.dev/install.sh, the ENCORE_INSTALL_VERSION
+    // path). The tarball is FLAT-rooted -- verified: `./bin/encore`,
+    // `./encore-go/`, `./runtimes/` all sit at the archive root -- so
+    // `tar -C installRoot` lands the binary at `installRoot/bin/encore` ==
+    // encoreBin(), with no `--strip-components`. Integrity rests on TLS to the
+    // CDN, at parity with Encore's own installer (which likewise does not verify
+    // a checksum); Encore publishes no per-release SHA-256 at a stable URL to
+    // check against before extract, so that hardening is deferred.
     const target = encoreReleaseTarget();
     const url = `https://d2f391esomvqpi.cloudfront.net/encore-${want}-${target}.tar.gz`;
     const tgz = join(installRoot, "encore.tar.gz");
     log.info("encore CLI: downloading", { version: want, target, url });
 
-    const resp = await fetch(url);
-    if (!resp.ok || !resp.body) {
-      throw new Error(
-        `encore CLI download failed: HTTP ${resp.status} ${resp.statusText} (${url})`
+    // Bound the transfer so an unresponsive or stalled CDN cannot hang the
+    // warmup pod indefinitely. Generous for a ~160MB body over slow egress; the
+    // signal aborts the fetch and its streamed body. Cleared once the download
+    // and extract complete.
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 300_000);
+    try {
+      const resp = await fetch(url, { signal: ac.signal });
+      if (!resp.ok || !resp.body) {
+        throw new Error(
+          `encore CLI download failed: HTTP ${resp.status} ${resp.statusText} (${url})`
+        );
+      }
+      await pipeline(Readable.fromWeb(resp.body), createWriteStream(tgz));
+      await spawnLogged(
+        "tar",
+        ["-C", installRoot, "-xzf", tgz],
+        workspace,
+        tooledEnv(workspace),
+        undefined
       );
+    } finally {
+      clearTimeout(timer);
+      // Always drop the tarball -- including on a fetch/extract failure -- so a
+      // partial ~160MB download never accumulates on the finite PVC.
+      await rm(tgz, { force: true }).catch(() => {});
     }
-    await pipeline(Readable.fromWeb(resp.body), createWriteStream(tgz));
-    await spawnLogged(
-      "tar",
-      ["-C", installRoot, "-xzf", tgz],
-      workspace,
-      tooledEnv(workspace),
-      undefined
-    );
-    await rm(tgz, { force: true }).catch(() => {});
 
     // Fail LOUD if the binary is not where we expect: never write the marker on
     // a partial install. This is the guard the old `curl | bash` recipe lacked.
