@@ -46,6 +46,18 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/scaffold/regenerateProducedClient.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.test.ts",
         "source": "spec-edge"
       },
@@ -75,6 +87,19 @@
       }
     ],
     "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/scaffold/regenerateProducedClient.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/scaffold/regenerateProducedClient.test.ts"
+        }
+      },
       {
         "locations": [
           {
@@ -164,6 +189,32 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/projects/create.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/scaffold/templateCache.ts"
         }
       },
       {
@@ -288,5 +339,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "a31209126eab7571bb2ad2905dc8a50d6018fe179e0544e90da8fb6c96adf68c"
+  "shardHash": "25560d9b76432d53d00f1752b028dc7075dde845714b82c0b4c7e675e46fb1a9"
 }

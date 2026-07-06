@@ -53,6 +53,9 @@ establishes:
   # as a libsodium sealed-box Actions secret. Plus its unit test.
   - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.ts }
   - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/tenantSigningKey.test.ts }
+  # Spec 220 AC-2 (Option C): unit test for the born-with typed-client regen
+  # step. New file created by this spec.
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/regenerateProducedClient.test.ts }
 extends:
   # Same featuregraph-golden precedent specs 196/194/193/187/183/209/219 follow.
   - spec: "034-featuregraph-registry-scanner-fix"
@@ -89,6 +92,23 @@ extends:
   - spec: "112-factory-project-lifecycle"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
+  # Spec 220 AC-2 (Option C): the born-with app must ship a typed Encore client
+  # matching its FINAL composed graph (a profile that composes user-management
+  # otherwise ships a client missing the user_management namespace, failing the
+  # produced app's own `Typed client up-to-date` gate). perRequestScaffold.ts
+  # gains regenerateProducedClient (npm install + `npm run gen:client` per apps/api
+  # with the pinned CLI on PATH), invoked from create.ts before the index regen.
+  # Additive edit to the spec-112 scaffold file.
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts }
+  # Spec 220 AC-2 (Option C): the warmup provisions the pinned Encore CLI into the
+  # PVC (ensureEncoreCli, official install.sh, version read from the template's
+  # encore.dev pin) so the per-request client regen can run `encore gen client`.
+  # Additive edit to the spec-112 warmup file.
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/templateCache.ts }
   # The matching `provision-signing-key` ScaffoldStep union member is an additive
   # edit to the spec-140-established scaffold/types.ts.
   - spec: "140-acme-vue-node-scaffold-source-id-cutover"
@@ -305,9 +325,12 @@ firing point** invokes the emitter at a tenant run's completion.
 - **FR-004: Unsealed-but-verifiable posture.** A tenant run is outside OAP's
   admission/grant flow, so the emitted certificate carries **no platform
   countersign** (spec 198 FR-014). It is Ed25519-signed by the tenant signer and
-  self-authenticating. tenant-tail `verify-certificate` accepts it offline and
-  reports it "verifiable-but-unsealed" (198 FR-014 AC-4); `--require-sealed` fails
-  it, which a tenant that has opted into a platform countersign may set. The
+  self-authenticating. tenant-tail `verify-certificate --allow-unsealed` accepts it
+  offline and reports it "verifiable-but-unsealed" (198 FR-014 AC-4). As of
+  tenant-tail 0.3.0 the platform seal is **required by default**, so an unsealed
+  certificate exits 1 unless `--allow-unsealed` is passed; the born-with verify step
+  passes it because a tenant run has no seal to adjudicate. A tenant that opts into a
+  platform countersign drops the flag and supplies `--platform-jwks` instead. The
   platform countersign and the tenant-to-OAP certificate uplink are deferred (spec
   168 already defers the uplink; see Out of scope).
 - **FR-005: Verifier round-trip closes the loop.** A certificate emitted under
@@ -353,18 +376,20 @@ firing point** invokes the emitter at a tenant run's completion.
   and, at run completion, the vended emitter writes a signed
   `governance-certificate.json` under that run directory with an attributable
   signer and `signing_attestation.kind: operator`.
-- **AC-2.** tenant-tail `verify-certificate <cert> --artifact-dir <run-dir>` exits
-  0 on that certificate; and the spec 209 FR-001 seeded CI `verify-certificate`
-  step, run against a produced app that now emits, verifies a real certificate
-  green end-to-end (the dormant step activates).
+- **AC-2.** tenant-tail `verify-certificate <cert> --artifact-dir <run-dir> --allow-unsealed`
+  exits 0 on that certificate (the tenant cert is unsealed by design, FR-004, and
+  tenant-tail 0.3.0 rejects an unsealed certificate by default); and the spec 209
+  FR-001 seeded CI `verify-certificate` step, run against a produced app that now
+  emits, verifies a real certificate green end-to-end (the dormant step activates).
 - **AC-3.** Tampering any artifact the certificate references, or any certificate
   field, makes `verify-certificate` exit 1 with a specific mismatch diagnostic.
 - **AC-4.** A run with no resolvable signer (no `signer-subject`, no identity
   context) halts before emission with an attributable error; no null-signer
   certificate is written.
-- **AC-5.** The emitted certificate verifies fully offline (no network), is
-  reported "verifiable-but-unsealed," and `--require-sealed` fails it (there is no
-  platform countersign on a tenant run).
+- **AC-5.** The emitted certificate verifies fully offline (no network) under
+  `--allow-unsealed`, where it is reported "verifiable-but-unsealed"; tenant-tail's
+  default (seal required as of 0.3.0) fails it (there is no platform countersign on
+  a tenant run).
 - **AC-6.** The emitter is not reachable as a tenant-tail verb and tenant-tail's
   verify-only boundary (spec 219 FR-002, AC-6) is unbroken: the two tools remain
   distinct distributables.
@@ -383,8 +408,9 @@ firing point** invokes the emitter at a tenant run's completion.
   pass through OAP's admission seal / run-grant / countersign flow (spec 198
   FR-014); the tenant certificate is unsealed by design. Sealing a tenant run, and
   aggregating tenant certificates into a portfolio audit view at the substrate, is
-  the deferred uplink spec 168 already names. FR-004 leaves the `--require-sealed`
-  hook in place for when it lands.
+  the deferred uplink spec 168 already names. FR-004 relies on tenant-tail's
+  `--allow-unsealed` opt-out (the seal is required by default as of tenant-tail
+  0.3.0) until that uplink lands.
 - **The certificate format and verdict logic.** Owned by specs 102/168 (cert),
   170 (inter-stage chain), 198 (platform seal), 121 (provenance). Spec 220 changes
   who emits and where the key lives, not what a valid certificate is.
@@ -602,3 +628,48 @@ NOT run green:
 
 AC-2 remains blocked on the provenance-verify-on-empty-BRD behavior (the cert emit and
 verify steps are gated behind it). `implementation` stays `in-progress`.
+
+**2026-07-05 (live AC-2 attempts 5-6, Single variant): the cert chain now runs green
+through emit; the last cert-chain blocker is the unsealed-verify default.** The
+attempt-4 blockers were cleared upstream: template-encore #36 seeds a born-with BRD
+placeholder (empty-BRD provenance now a vacuous pass) and #39 carries the SPA build
+placeholder into born-with apps (the `encore check` static-assets read succeeds). On
+the push run for commit `b881510f` (which, unlike a Dependabot PR run, has signing-key
+access), every cert-chain step is green through **Emit governance certificate** (a
+real, operator-signed certificate is written), and the corpus + SBOM bindings both
+verify. The chain fails at exactly one step:
+
+- **Governance certificate verify FAILED** with a single error: the certificate is
+  "verifiable-but-UNSEALED (no platform countersign) ... rejected by default (spec 198
+  FR-014); pass --allow-unsealed to accept an unsealed certificate". This is not a
+  defect: a tenant run is unsealed by design (FR-004, Out of scope). The cause is that
+  **tenant-tail 0.3.0 (2026-07-03) inverted its default** -- the seal is now required
+  by default and the old `--require-sealed` opt-in became a deprecated no-op, replaced
+  by a new `--allow-unsealed` opt-out (tenant-tail CHANGELOG 0.3.0 "Breaking"). Spec
+  220's AC-2/AC-5/FR-004 were written against the pre-0.3.0 semantics. **Resolution
+  (this commit):** the born-with verify step now passes `--allow-unsealed`
+  (template-encore `.github/workflows/spec-spine.yml`), and AC-2, AC-5, and FR-004 are
+  amended to the 0.3.0 contract (seal-required-by-default, `--allow-unsealed` opt-out
+  for the unsealed-by-design tenant cert). This is a faithful contract-sync: it aligns
+  the acceptance criteria with both the tool's deliberate hardening and the spec's own
+  unsealed-by-design tenant model, not a relaxation of the cert's verdict logic.
+
+- **Typed client staleness FAILED (separate, off the cert-chain path).** The produced
+  app's `Typed client up-to-date` CI job regenerates `apps/web/src/lib/encore-client.ts`
+  from the produced app's own Encore graph and finds it missing the `user_management`
+  service namespace (spec 003). Root cause is generator-side and **not** trivially a
+  scaffold-time regen: the internal profile composes the `user-management` module into
+  `apps/api`, but the committed client is copied verbatim from template-encore's base
+  graph (auth/gateway/health/web) and never updated, because the scaffold runs the
+  generator with `NO_INSTALL=true` (stagecraft `templateCache.ts` warmup +
+  `perRequestScaffold.ts`), which skips `encore gen client` entirely (setup-app.ts step
+  4), and the warmup container has no Encore CLI or booted app to regenerate it offline.
+  (`setup-app.ts` also writes the regenerated client to the wrong path,
+  `apps/web/src/client.ts`, not `apps/web/src/lib/encore-client.ts`.) The fix is a
+  born-with-contract choice -- splice a per-module client fragment during composition,
+  or relocate the drift gate for born-with `Initial commit` -- tracked separately from
+  this spec's cert chain.
+
+AC-2's cert chain is one flag away from green; `implementation` stays `in-progress`
+pending the re-scaffold that carries the `--allow-unsealed` verify step and the
+typed-client fix.
