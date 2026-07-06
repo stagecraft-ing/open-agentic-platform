@@ -280,7 +280,7 @@ jobs:
     name: oap/verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: OAP Governance Check
         run: |
           echo "OAP governance verification"
