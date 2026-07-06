@@ -155,6 +155,37 @@ export function specSpineBin(workspace: string): string {
   return join(templateCacheDir(workspace), "node_modules", ".bin", "spec-spine");
 }
 
+/**
+ * Fallback Encore CLI version if the template cache's `encore.dev` pin cannot be
+ * read. Keep in lockstep with template-encore `apps/api` `encore.dev` and the
+ * born-with `encore-install` action default (spec 220 AC-2 client-parity).
+ */
+const DEFAULT_ENCORE_CLI_VERSION = "1.57.9";
+
+/**
+ * Where Encore's install.sh drops the CLI. install.sh installs under
+ * `$HOME/.encore`; `tooledEnv` routes HOME to `<workspace>/.home`, so the binary
+ * lands on the writable PVC (the pod is `readOnlyRootFilesystem: true`).
+ */
+function encoreInstallRoot(workspace: string): string {
+  return join(workspace, ".home", ".encore");
+}
+
+/** The PVC-provisioned Encore CLI binary (spec 220 Option C). */
+export function encoreBin(workspace: string): string {
+  return join(encoreInstallRoot(workspace), "bin", "encore");
+}
+
+/** The dir to prepend to PATH so `encore gen client` resolves the pinned CLI. */
+export function encoreBinDir(workspace: string): string {
+  return join(encoreInstallRoot(workspace), "bin");
+}
+
+/** Marker recording which pinned version is installed (idempotency). */
+function encoreVersionMarker(workspace: string): string {
+  return join(encoreInstallRoot(workspace), ".installed-version");
+}
+
 /** The adapter's scripts dir inside the factory cache. */
 function adapterScriptsDir(workspace: string): string {
   return join(
@@ -273,6 +304,86 @@ export async function ensureTemplateCache(ctx: WarmupContext): Promise<void> {
     throw err;
   } finally {
     cacheRefreshing = false;
+  }
+}
+
+/**
+ * The `encore.dev` runtime version the template pins (e.g. "1.57.9"), read from
+ * the template cache. The scaffold installs THIS CLI version so the client it
+ * generates is structurally identical to the one the produced app's own CI
+ * regenerates and checks (spec 220 AC-2). Falls back to the pinned default if
+ * the cache is not yet present or the field is missing.
+ */
+async function resolveEncoreCliVersion(workspace: string): Promise<string> {
+  try {
+    const raw = await readFile(
+      join(templateCacheDir(workspace), "apps", "api", "package.json"),
+      "utf8"
+    );
+    const pkg = JSON.parse(raw) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    const spec =
+      pkg.dependencies?.["encore.dev"] ?? pkg.devDependencies?.["encore.dev"];
+    const m = spec?.match(/(\d+\.\d+\.\d+)/);
+    if (m) return m[1];
+  } catch {
+    // fall through to the pinned default
+  }
+  return DEFAULT_ENCORE_CLI_VERSION;
+}
+
+/**
+ * Provision the Encore CLI into the PVC (one-time per pod, idempotent on the
+ * pinned version). The CLI is a standalone Go binary, NOT an npm package, so it
+ * cannot ride the template cache's `npm install` the way `spec-spine` does. The
+ * warmup installs it via Encore's official install.sh, version-pinned to the
+ * template's `encore.dev` runtime, so the client the scaffold generates matches
+ * the one the produced app's own `Typed client up-to-date` CI job regenerates
+ * (spec 220 AC-2 / Option C). Egress is HTTPS/443, allowed by the stagecraft
+ * NetworkPolicy's general-HTTPS rule; the recipe mirrors the born-with app's own
+ * `.github/actions/encore-install` (install.sh + telemetry disable).
+ *
+ * Fail-closed: a pod that cannot provision the CLI cannot produce a valid client,
+ * so surface the failure through initStatus (Create is blocked) rather than
+ * shipping a born-red repo.
+ */
+export async function ensureEncoreCli(ctx: WarmupContext): Promise<void> {
+  const workspace = ctx.workspaceDir;
+  const want = await resolveEncoreCliVersion(workspace);
+  const bin = encoreBin(workspace);
+  const marker = encoreVersionMarker(workspace);
+
+  if ((await readShaFile(marker)) === want && (await pathExists(bin))) {
+    log.info("encore CLI: already installed", { version: want });
+    return;
+  }
+
+  try {
+    await ensureToolingDirs(workspace);
+    await mkdir(encoreInstallRoot(workspace), { recursive: true });
+    const env = tooledEnv(workspace, { ENCORE_INSTALL_VERSION: want });
+    log.info("encore CLI: installing", { version: want });
+    // Mirrors the produced app's own encore-install action: official install.sh,
+    // version-pinned via ENCORE_INSTALL_VERSION, HOME routed to the PVC.
+    await spawnLogged(
+      "bash",
+      ["-c", "curl -fsSL https://encore.dev/install.sh | bash"],
+      workspace,
+      env,
+      undefined
+    );
+    // Best-effort: telemetry off (never fail the warmup on this).
+    await spawnLogged(bin, ["telemetry", "disable"], workspace, env, undefined).catch(
+      () => {}
+    );
+    await writeFile(marker, want, "utf8");
+    log.info("encore CLI: ready", { version: want, bin });
+  } catch (err) {
+    initStatus = { step: "error", progress: 0, ready: false, error: errMsg(err) };
+    templateCacheReady = false;
+    throw err;
   }
 }
 
@@ -471,6 +582,11 @@ export async function runWarmup(ctx: WarmupContext): Promise<void> {
   warmupInFlight = true;
   try {
     await ensureTemplateCache(ctx);
+    // Provision the pinned Encore CLI (spec 220 Option C) after the template
+    // cache exists (its `encore.dev` pin is the version source) and before
+    // prebuilds. Per-request scaffolds use it to regenerate the produced app's
+    // typed client over the final composed graph.
+    await ensureEncoreCli(ctx);
     await ensurePrebuilts(ctx);
   } catch (err) {
     log.warn("scaffold warmup failed", { error: errMsg(err) });

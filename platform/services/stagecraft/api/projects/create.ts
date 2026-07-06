@@ -52,6 +52,7 @@ import { createRepoWithBranchProtection } from "./scaffold/githubRepoCreate";
 import { gitInitAndPush } from "./scaffold/gitInitAndPush";
 import {
   scaffoldFromPrebuilt,
+  regenerateProducedClient,
   regenerateProducedIndex,
 } from "./scaffold/perRequestScaffold";
 import { provisionTenantSigningKey } from "./scaffold/tenantSigningKey";
@@ -65,6 +66,7 @@ import {
   isTemplateCacheRefreshing,
   defaultWorkspaceDir,
   specSpineBin,
+  encoreBinDir,
 } from "./scaffold/templateCache";
 import {
   isKnownModule,
@@ -326,7 +328,17 @@ export const createFactoryProject = api(
       // blocks the spec 220 certificate emission. Fail-closed: a scaffold that
       // cannot produce a fresh index orphans the job rather than pushing a
       // red-on-arrival repo.
+      // Spec 220 AC-2 (Option C): regenerate the produced app's typed Encore
+      // client over the FINAL composed graph with the pinned CLI, so the
+      // committed `apps/web/src/lib/encore-client.ts` matches what the produced
+      // app's own `Typed client up-to-date` CI job regenerates. Runs before the
+      // index regen so the committed `.derived` reflects the fresh client.
       await advanceStep(job.id, "regenerate-index");
+      await regenerateProducedClient({
+        dest: projectRoot,
+        encoreBinDir: encoreBinDir(workspace),
+        workspaceDir: workspace,
+      });
       await regenerateProducedIndex({
         dest: projectRoot,
         specSpineBin: specSpineBin(workspace),

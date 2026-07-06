@@ -268,6 +268,83 @@ export async function regenerateProducedIndex(opts: {
 }
 
 /**
+ * Spec 220 AC-2 / the born-with `Typed client up-to-date` gate (Option C):
+ * regenerate the produced app's committed typed Encore client over the FINAL
+ * composed graph, using the real Encore CLI.
+ *
+ * The generator ships the template's base-graph client verbatim (auth, gateway,
+ * health, web) and cannot regenerate it offline: the scaffold runs the generator
+ * under NO_INSTALL, and `encore gen client` needs both the Encore CLI and the
+ * app's node_modules. A profile that composes a service-bearing module (internal
+ * composes user-management, adding a `user_management` service) therefore ships a
+ * client missing that namespace, and the produced app's own `client-staleness` CI
+ * job -- which regenerates from apps/api and diffs -- fails on structural drift.
+ *
+ * This step closes that gap with the PVC-provisioned, version-pinned CLI
+ * (warmup `ensureEncoreCli`): for every `apps/api` in the tree (single:
+ * `<dest>/apps/api`; dual: `<dest>/{public,internal}/apps/api`), install deps and
+ * run the app's own `gen:client` script -- the identical command the CI runs
+ * (`npm --prefix apps/api run gen:client`), with the pinned `encore` on PATH -- so
+ * the committed client matches what the CI regenerates (modulo the app-id prefix
+ * and CLI-version string the CI normalizes). Runs before `regenerateProducedIndex`
+ * so the committed index reflects the regenerated client. `npm install` (not
+ * `--package-lock-only`) materializes node_modules AND reconciles the lockfile;
+ * node_modules is gitignored, so it never rides commit #1.
+ */
+export async function regenerateProducedClient(opts: {
+  /** The scaffold tree root (commit #1 working dir). */
+  dest: string;
+  /** Dir to prepend to PATH so `encore` resolves to the pinned PVC CLI. */
+  encoreBinDir: string;
+  /** Workspace dir, for the writable-path subprocess env. */
+  workspaceDir: string;
+  /** Optional progress sink. */
+  log?: (line: string) => void;
+}): Promise<void> {
+  const sink = opts.log ?? (() => {});
+  const apiDirs = await findGenClientApiDirs(opts.dest);
+  if (apiDirs.length === 0) {
+    sink("regenerate-client: no apps/api with a gen:client script; skipping");
+    return;
+  }
+  const env = tooledEnv(opts.workspaceDir, {
+    PATH: `${opts.encoreBinDir}:${process.env.PATH ?? ""}`,
+  });
+  for (const apiDir of apiDirs) {
+    sink(`regenerate-client: npm install (${apiDir})`);
+    await spawnAndCapture("npm", ["install"], apiDir, env);
+    sink(`regenerate-client: gen:client (${apiDir})`);
+    await spawnAndCapture("npm", ["run", "gen:client"], apiDir, env);
+  }
+}
+
+/**
+ * The `apps/api` dirs in the produced tree that carry a `gen:client` script.
+ * Single-app profiles have `<dest>/apps/api`; the dual variant has two roots,
+ * `<dest>/{public,internal}/apps/api`. Guarding on the script's presence keeps a
+ * layout without it (or a future variant) from failing the regen step.
+ */
+async function findGenClientApiDirs(dest: string): Promise<string[]> {
+  const candidates = [
+    join(dest, "apps", "api"),
+    join(dest, "public", "apps", "api"),
+    join(dest, "internal", "apps", "api"),
+  ];
+  const found: string[] = [];
+  for (const dir of candidates) {
+    try {
+      const pkg = JSON.parse(
+        await readFile(join(dir, "package.json"), "utf8")
+      ) as { scripts?: Record<string, string> };
+      if (pkg.scripts?.["gen:client"]) found.push(dir);
+    } catch {
+      // no package.json here (dir absent for this layout)
+    }
+  }
+  return found;
+}
+
+/**
  * Spec 209 FR-002 (born-with kernel completeness, fail-closed). After the
  * `.kernel-version` stamp is written, re-read and validate it: the file must
  * exist, parse as YAML, and carry a non-empty `spec_spine_version` plus a
