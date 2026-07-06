@@ -3,7 +3,7 @@ id: "220-tenant-emit-governance-certificate"
 title: "Tenant-Emit Governance Certificate (the emitter, its firing, and the tenant signer identity)"
 feature_branch: "feat/220-tenant-emit-governance-certificate"
 status: approved
-implementation: in-progress
+implementation: complete
 kind: capability
 domain: platform
 created: "2026-06-20"
@@ -694,3 +694,50 @@ node's `fetch`, streamed to disk, and extract with `tar` (both present in the im
 verify `encoreBin` exists before writing the marker so a partial install can never
 masquerade as ready. `implementation` stays `in-progress` pending the redeploy of
 this fix and a clean re-scaffold.
+
+**2026-07-06 (live AC-2 attempt 8, Single variant): SUCCESS. A born-green scaffold
+emitted and verified a real governance certificate end-to-end; AC-2 is satisfied
+verbatim and `implementation` flips to `complete`.** After #524 (`c8a60621`, the
+node-fetch+tar CLI provisioning) merged and stagecraft redeployed, the re-scaffold
+`stagecraft-ing/spec220-ac2-single-4` was born green. Its born-with `Initial commit`
+push ran the full cert chain in the `spec-spine` job (CI run 28809268503) to
+completion, every step green:
+
+- **Emit** (step 14, "Emit governance certificate", spec 220 FR-002 firing): the
+  vended emitter fired at run completion and wrote an operator-signed
+  `governance-certificate.json` under `.factory/runs/ci-28809268503/`
+  (status=Complete, `signing_attestation.kind: operator`), satisfying AC-1.
+- **Verify** (step 15, "Governance certificate verify", spec 209 FR-001 + spec 168):
+  the spec 209 FR-001 seeded CI verify-certificate step, dormant until a produced
+  app could emit, activated and reported the certificate VERIFIED under
+  `--allow-unsealed` (the unsealed-by-design tenant posture, FR-004 / AC-5). This
+  is the AC-2 done-when: a real produced app emits, and the seeded verifier verifies
+  it green end-to-end.
+- **Bindings**: tenant corpus attestation (step 13, FR-007, AC-8) and produced-app
+  SBOM + audit + BOM/lockfile parity (steps 11-12, spec 203) all green.
+- **Typed client** (`encore / Typed client up-to-date`): green, because the Option C
+  warmup regenerated the born-with client at scaffold time so it now carries the
+  `user_management` namespace (closing the attempt-4/6 typed-client blocker, which
+  sat off the cert-chain path).
+- The whole born-with `ci-gate`, `encore / API`, `encore / Web`, supply-chain, and
+  workflow-pins jobs are all green.
+
+The three fixes that closed it, all validated live: (1) `--allow-unsealed` on the
+seeded verify step plus the AC-2/AC-5/FR-004 amendments to tenant-tail 0.3.0
+semantics (template-encore #42, OAP #519); (2) Option C, the warmup provisioning the
+pinned Encore CLI and regenerating the typed client at scaffold time (factory-encore
+#16); and (3) the 7th-blocker self-fix, provisioning the CLI via node `fetch` + `tar`
+after a masked `curl | bash` missing-curl failure (OAP #524).
+
+The one remaining red on the produced repo is benign and out of AC-2 scope: the
+`Deploy docs to GitHub Pages` workflow (spec 016 docs-website) hard-fails a fresh
+repo whose Pages site is not yet enabled ("Get Pages site failed"); it is neither the
+born-with ci-gate nor the cert chain, and carries no governance or scaffold defect. A
+small template follow-up (the scaffold enables Pages, or the workflow tolerates its
+absence) is owed separately.
+
+With AC-1, AC-2, AC-5, and AC-8 all demonstrated green on a real produced app, spec
+220's closure gate (a real produced app emitting a certificate the spec verifier
+verifies green end-to-end) is met, so `implementation` moves from `in-progress` to
+`complete`. Residual hardening of the CLI download (fetch timeout, tarball cleanup,
+provenance docs) lands as a follow-up (OAP #525); it is robustness, not an AC gate.
