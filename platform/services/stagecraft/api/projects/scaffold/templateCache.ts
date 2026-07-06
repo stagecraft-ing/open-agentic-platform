@@ -39,7 +39,10 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises";
+import { createWriteStream } from "node:fs";
 import { resolve, join } from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import log from "encore.dev/log";
 import { PROFILES, type Profile } from "./moduleCatalog";
 
@@ -163,9 +166,10 @@ export function specSpineBin(workspace: string): string {
 const DEFAULT_ENCORE_CLI_VERSION = "1.57.9";
 
 /**
- * Where Encore's install.sh drops the CLI. install.sh installs under
- * `$HOME/.encore`; `tooledEnv` routes HOME to `<workspace>/.home`, so the binary
- * lands on the writable PVC (the pod is `readOnlyRootFilesystem: true`).
+ * Install root for the Encore CLI, under `<workspace>/.home/.encore`. We extract
+ * the release tarball here (it lays out `bin/encore`), matching the layout
+ * Encore's own install.sh uses under `$HOME/.encore`. Lives on the writable PVC
+ * (the pod is `readOnlyRootFilesystem: true`).
  */
 function encoreInstallRoot(workspace: string): string {
   return join(workspace, ".home", ".encore");
@@ -337,17 +341,24 @@ async function resolveEncoreCliVersion(workspace: string): Promise<string> {
 /**
  * Provision the Encore CLI into the PVC (one-time per pod, idempotent on the
  * pinned version). The CLI is a standalone Go binary, NOT an npm package, so it
- * cannot ride the template cache's `npm install` the way `spec-spine` does. The
- * warmup installs it via Encore's official install.sh, version-pinned to the
- * template's `encore.dev` runtime, so the client the scaffold generates matches
- * the one the produced app's own `Typed client up-to-date` CI job regenerates
- * (spec 220 AC-2 / Option C). Egress is HTTPS/443, allowed by the stagecraft
- * NetworkPolicy's general-HTTPS rule; the recipe mirrors the born-with app's own
- * `.github/actions/encore-install` (install.sh + telemetry disable).
+ * cannot ride the template cache's `npm install` the way `spec-spine` does, and
+ * the stagecraft runtime image is slim (no curl/wget), so Encore's curl-based
+ * install.sh is unusable here. We download the pinned release tarball with
+ * node's global `fetch` (streamed to disk to avoid buffering ~160MB) and extract
+ * it with `tar` (present in the image); the tarball lays out `bin/encore` under
+ * the install root, matching `encoreBin()`. Egress is HTTPS/443, allowed by the
+ * stagecraft NetworkPolicy's general-HTTPS rule.
  *
- * Fail-closed: a pod that cannot provision the CLI cannot produce a valid client,
- * so surface the failure through initStatus (Create is blocked) rather than
- * shipping a born-red repo.
+ * Version-pinned to the template's `encore.dev` runtime so the client the
+ * scaffold generates matches the one the produced app's own `Typed client
+ * up-to-date` CI job regenerates (spec 220 AC-2 / Option C).
+ *
+ * Fail-closed and fail-LOUD: the marker is written only after the binary is
+ * confirmed present at `encoreBin`, so a partial or failed download can never
+ * masquerade as a ready CLI. (An earlier `curl | bash` recipe masked a
+ * missing-curl failure as exit 0 because the pipe returns bash's status, not
+ * curl's.) A pod that cannot provision the CLI surfaces the failure through
+ * initStatus, blocking Create rather than shipping a born-red repo.
  */
 export async function ensureEncoreCli(ctx: WarmupContext): Promise<void> {
   const workspace = ctx.workspaceDir;
@@ -361,23 +372,46 @@ export async function ensureEncoreCli(ctx: WarmupContext): Promise<void> {
   }
 
   try {
+    const installRoot = encoreInstallRoot(workspace);
     await ensureToolingDirs(workspace);
-    await mkdir(encoreInstallRoot(workspace), { recursive: true });
-    const env = tooledEnv(workspace, { ENCORE_INSTALL_VERSION: want });
-    log.info("encore CLI: installing", { version: want });
-    // Mirrors the produced app's own encore-install action: official install.sh,
-    // version-pinned via ENCORE_INSTALL_VERSION, HOME routed to the PVC.
+    await mkdir(installRoot, { recursive: true });
+
+    const target = encoreReleaseTarget();
+    const url = `https://d2f391esomvqpi.cloudfront.net/encore-${want}-${target}.tar.gz`;
+    const tgz = join(installRoot, "encore.tar.gz");
+    log.info("encore CLI: downloading", { version: want, target, url });
+
+    const resp = await fetch(url);
+    if (!resp.ok || !resp.body) {
+      throw new Error(
+        `encore CLI download failed: HTTP ${resp.status} ${resp.statusText} (${url})`
+      );
+    }
+    await pipeline(Readable.fromWeb(resp.body), createWriteStream(tgz));
     await spawnLogged(
-      "bash",
-      ["-c", "curl -fsSL https://encore.dev/install.sh | bash"],
+      "tar",
+      ["-C", installRoot, "-xzf", tgz],
       workspace,
-      env,
+      tooledEnv(workspace),
       undefined
     );
+    await rm(tgz, { force: true }).catch(() => {});
+
+    // Fail LOUD if the binary is not where we expect: never write the marker on
+    // a partial install. This is the guard the old `curl | bash` recipe lacked.
+    if (!(await pathExists(bin))) {
+      throw new Error(
+        `encore CLI install incomplete: binary absent at ${bin} after extracting ${url}`
+      );
+    }
     // Best-effort: telemetry off (never fail the warmup on this).
-    await spawnLogged(bin, ["telemetry", "disable"], workspace, env, undefined).catch(
-      () => {}
-    );
+    await spawnLogged(
+      bin,
+      ["telemetry", "disable"],
+      workspace,
+      tooledEnv(workspace),
+      undefined
+    ).catch(() => {});
     await writeFile(marker, want, "utf8");
     log.info("encore CLI: ready", { version: want, bin });
   } catch (err) {
@@ -385,6 +419,14 @@ export async function ensureEncoreCli(ctx: WarmupContext): Promise<void> {
     templateCacheReady = false;
     throw err;
   }
+}
+
+/**
+ * The Encore release target for this host, mirroring install.sh's arch map. The
+ * stagecraft runtime image is Linux; node's `process.arch` is `x64` or `arm64`.
+ */
+function encoreReleaseTarget(): string {
+  return process.arch === "arm64" ? "linux_arm64" : "linux_amd64";
 }
 
 interface CacheSpec {

@@ -673,3 +673,24 @@ verify. The chain fails at exactly one step:
 AC-2's cert chain is one flag away from green; `implementation` stays `in-progress`
 pending the re-scaffold that carries the `--allow-unsealed` verify step and the
 typed-client fix.
+
+**2026-07-06 (live AC-2 attempt 7, Single variant): the merged Option C fixes
+deployed and the warmup+cache posture is correct, but the first re-scaffold failed
+on a bug in the Option C CLI provisioning itself, now fixed.** All three PRs merged
+(template-encore #42, factory-encore #16, OAP #519); stagecraft redeployed
+(`sha-dcabc54`); the warmup refreshed its caches to the merged SHAs (template
+`3da8b679`, factory `0191d32c`) and published all four prebuilds. But the first
+Single-internal scaffold (`spec220-ac2-single-4`) halted at
+`regenerateProducedClient` with `npm run gen:client exited 127: sh: 1: encore: not
+found`, orphaning the job before push (an empty repo was created and must be
+reclaimed). Root cause: `ensureEncoreCli` provisioned the CLI via
+`curl -fsSL https://encore.dev/install.sh | bash`, but the stagecraft runtime image
+is slim and ships **no curl/wget**; the missing-curl failure was masked because a
+`curl | bash` pipeline exits with bash's status (0 on empty stdin), not curl's, so
+the warmup logged `encore CLI: ready` and wrote the idempotency marker while the
+binary was never installed. Fix (this change): download the pinned release tarball
+(`https://d2f391esomvqpi.cloudfront.net/encore-<version>-linux_amd64.tar.gz`) with
+node's `fetch`, streamed to disk, and extract with `tar` (both present in the image);
+verify `encoreBin` exists before writing the marker so a partial install can never
+masquerade as ready. `implementation` stays `in-progress` pending the redeploy of
+this fix and a clean re-scaffold.
