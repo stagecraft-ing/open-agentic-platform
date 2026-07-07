@@ -43,31 +43,56 @@ depends_on:
   - "213-tenant-repo-image-build"  # owns the seeded oap-build.yml and `encore build docker --config ./infra.config.json`; Option A rides on this single build path
   - "214-tenant-app-chart-supersession"  # owns the acme-vue-encore chart and the previewDatabase dev-provisioning path previewRedis mirrors
   - "225-deployd-selfprovision-rbac"  # owns the current deployd provisioning/RBAC surface previewRedis extends
+establishes:
+  # Stage 3 (deployd previewRedis) landed this net-new chart template: the
+  # dev-only preview-Redis workload (Deployment + Service + generated-password
+  # Secret), the redis.yaml mirror of 214's postgres.yaml. Promoted here from
+  # the design PR's implied surface as the code landed (spec 227 §6 staging;
+  # the 214 `references:planned-establishes -> establishes` precedent).
+  - unit: { kind: file, path: platform/charts/acme-vue-encore/templates/redis.yaml }
 extends:
   # A new spec adds a node to the featuregraph golden (same precedent as specs
   # 214, 222, 223, 224, 225, 226); claimed additively against spec 034 so the
-  # golden diff carries a 227 authority. This is the only code path this
-  # design-only PR changes.
+  # golden diff carries a 227 authority.
   - spec: "034-featuregraph-registry-scanner-fix"
     nature: additive
     unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
+  # Stage 3 (deployd previewRedis): promoted from references: as the
+  # implementation landed. previewRedis mirrors 214's previewDatabase machinery
+  # (helm.rs DeployExtras/build_values, routes.rs wire) and adds to 214's
+  # acme-vue-encore chart the Redis provisioning path plus the previewDatabase
+  # SQL_* env correction (the app resolves ${SQL_HOST}/${SQL_USERNAME}/
+  # $env:SQL_PASSWORD, not the POSTGRES_* names the chart previously injected).
+  # Additive against 214.
+  - spec: "214-tenant-app-chart-supersession"
+    nature: additive
+    unit: { kind: file, path: platform/services/deployd-api-rs/src/helm.rs }
+  - spec: "214-tenant-app-chart-supersession"
+    nature: additive
+    unit: { kind: file, path: platform/services/deployd-api-rs/src/routes.rs }
+  - spec: "214-tenant-app-chart-supersession"
+    nature: additive
+    unit: { kind: file, path: platform/charts/acme-vue-encore/templates/deployment.yaml }
+  - spec: "214-tenant-app-chart-supersession"
+    nature: additive
+    unit: { kind: file, path: platform/charts/acme-vue-encore/values.yaml }
+  - spec: "214-tenant-app-chart-supersession"
+    nature: additive
+    unit: { kind: file, path: platform/charts/acme-vue-encore/templates/_helpers.tpl }
+  - spec: "214-tenant-app-chart-supersession"
+    nature: additive
+    unit: { kind: file, path: platform/charts/acme-vue-encore/templates/networkpolicy.yaml }
 references:
-  # Non-authoritative pointers to the code paths this spec governs. They are
-  # deliberately NOT claimed via establishes/extends/refines in this PR: no code
-  # changes here, so claiming them would over-fire the coupling gate. The
-  # follow-on implementation PRs promote them (see Implementation staging).
+  # Non-authoritative pointers to the code paths later stages govern. The
+  # Stage 3 deployd/chart paths were promoted to establishes/extends above as
+  # that code landed; the pointers below remain un-promoted until their own
+  # stage lands (claiming them now would over-fire the coupling gate).
   - role: create-project-form-and-frontend-catalog
     unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx }
   - role: hand-mirrored-catalog-backend
     unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts }
   - role: create-endpoint
     unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
-  - role: deployd-provisioning
-    unit: { kind: file, path: platform/services/deployd-api-rs/src/helm.rs }
-  - role: deployd-request-wire
-    unit: { kind: file, path: platform/services/deployd-api-rs/src/routes.rs }
-  - role: tenant-app-chart
-    unit: { kind: file, path: platform/charts/acme-vue-encore/templates/deployment.yaml }
   - role: dev-provisioning-trigger
     unit: { kind: file, path: platform/services/stagecraft/api/deploy/deploy.ts }
 ---
@@ -320,6 +345,31 @@ authoritative relationships:
    selection through to the baked `redis` block; depends on factory-encore 008
    landing the adapter-side promotion. Satisfies FR-004, and FR-006 falls out of
    Option A with no per-env files.
+
+### Implementation log
+
+**Stage 3 landed (2026-07-07).** deployd + chart preview-Redis provisioning:
+
+- deployd `DeployExtras.preview_redis` + `build_values` `previewRedis.enabled`
+  branch (`helm.rs`), the `preview_redis: Option<bool>` request wire field
+  (`routes.rs`), the embedded `templates/redis.yaml` register, and unit +
+  `helm template` render tests. Mirrors the `preview_database` path 1:1.
+- Chart: net-new `templates/redis.yaml` (single-replica, no-persistence Redis
+  Deployment + Service + generated-password Secret, gated on
+  `previewRedis.enabled`); `previewRedis` values block; `redisName` helper;
+  `REDIS_HOST`/`REDIS_PASSWORD` app-container env; NetworkPolicy egress 6379.
+- **previewDatabase env correction (rode along).** A verification pass found
+  the existing preview Postgres was unreachable by the app: the chart injected
+  `POSTGRES_HOST`/`POSTGRES_USER`/`POSTGRES_PASSWORD`, but the generated app's
+  baked `infra.config.json` resolves `${SQL_HOST}` (host:port), `${SQL_USERNAME}`,
+  and `$env:SQL_PASSWORD`. The app container now receives the `SQL_*` names
+  (the postgres pod/Secret keep the `POSTGRES_*` keys the image itself needs).
+  Redis follows the corrected convention (`REDIS_HOST`/`REDIS_PASSWORD`).
+
+The stagecraft trigger (`deploy.ts`) that sets `preview_redis` from a project's
+opt-in Redis selection, gated by `envKind`, lands with the Stage 2 form reframe
+and the Stage 4 end-to-end wiring (it has no honest opt-in source until the
+Infrastructure section exists), so `deploy.ts` stays under `references:`.
 
 ## 7. Out of scope
 

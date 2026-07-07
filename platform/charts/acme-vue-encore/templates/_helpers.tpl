@@ -32,6 +32,15 @@ tenant image's baked infra.config.json targets this host for the preview DB.
 {{- end -}}
 
 {{/*
+Deterministic in-namespace Redis Service name (spec 227 FR-005). The tenant
+image's baked infra.config.json redis block targets this host for the preview
+cache, mirroring the postgresName pattern above.
+*/}}
+{{- define "acme-vue-encore.redisName" -}}
+{{- printf "%s-redis" (include "acme-vue-encore.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
 Common labels shared across every rendered object.
 */}}
 {{- define "acme-vue-encore.labels" -}}

@@ -50,19 +50,36 @@ spec:
             - name: PORT
               value: {{ .Values.service.port | quote }}
             {{- if .Values.previewDatabase.enabled }}
-            - name: POSTGRES_HOST
-              value: {{ include "acme-vue-encore.postgresName" . | quote }}
-            - name: POSTGRES_PORT
-              value: "5432"
-            - name: POSTGRES_DB
-              value: {{ .Values.previewDatabase.database | quote }}
-            - name: POSTGRES_USER
+            # Spec 227: the tenant app's baked infra.config.json resolves its
+            # SQLDatabase("app") from ${SQL_HOST} (host:port), ${SQL_USERNAME},
+            # and $env:SQL_PASSWORD. Inject those exact names. The preview
+            # Postgres Secret carries POSTGRES_* keys (the postgres image's own
+            # env contract); map POSTGRES_PASSWORD onto the SQL_PASSWORD name
+            # Encore actually reads. (Previously injected POSTGRES_*, which the
+            # app never reads, so the preview DB was unreachable.)
+            - name: SQL_HOST
+              value: "{{ include "acme-vue-encore.postgresName" . }}:5432"
+            - name: SQL_USERNAME
               value: {{ .Values.previewDatabase.user | quote }}
-            - name: POSTGRES_PASSWORD
+            - name: SQL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "acme-vue-encore.postgresName" . }}
                   key: POSTGRES_PASSWORD
+            {{- end }}
+            {{- if .Values.previewRedis.enabled }}
+            # Spec 227 FR-005: opt-in preview Redis. The app's redis block (baked
+            # once factory-encore 008 promotes data-redis to a native Encore
+            # `redis` resource) resolves ${REDIS_HOST} (host:port) and
+            # $env:REDIS_PASSWORD; inject those names against the in-namespace
+            # preview Redis (templates/redis.yaml).
+            - name: REDIS_HOST
+              value: "{{ include "acme-vue-encore.redisName" . }}:6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "acme-vue-encore.redisName" . }}
+                  key: REDIS_PASSWORD
             {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}

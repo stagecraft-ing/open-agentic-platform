@@ -54,6 +54,9 @@ const ACME_VUE_ENCORE_SA_YAML: &str =
     include_str!("../../../charts/acme-vue-encore/templates/serviceaccount.yaml");
 const ACME_VUE_ENCORE_POSTGRES_YAML: &str =
     include_str!("../../../charts/acme-vue-encore/templates/postgres.yaml");
+// Spec 227 FR-005: opt-in preview-grade Redis (the previewDatabase mirror).
+const ACME_VUE_ENCORE_REDIS_YAML: &str =
+    include_str!("../../../charts/acme-vue-encore/templates/redis.yaml");
 
 // region: gate-overlay
 // Spec 137 — oauth2-proxy-gate chart (per-environment passwordless OIDC gate).
@@ -379,6 +382,12 @@ pub struct DeployExtras<'a> {
     /// development/preview environments; production tenants supply an
     /// external DSN instead (not auto-provisioned here).
     pub preview_database: bool,
+    /// Spec 227 FR-005: when true, render the chart's opt-in preview-grade
+    /// Redis (`previewRedis.enabled: true`), mirroring `preview_database`, so
+    /// a tenant whose baked infra.config.json declares a `redis` block boots
+    /// against an in-namespace cache. Development/preview only; non-dev
+    /// environments supply an external Redis endpoint as runtime env instead.
+    pub preview_redis: bool,
 }
 
 /// Translate a DeploymentRequest's fields into a values JSON the chart
@@ -455,11 +464,20 @@ pub fn build_values(
     }
     // Spec 214 FR-006: opt-in preview-grade Postgres. When enabled, the chart
     // renders a single-replica Postgres StatefulSet + credentials Secret and
-    // injects the POSTGRES_* connection env the Encore runtime resolves, so a
+    // injects the SQL_* connection env the Encore runtime resolves, so a
     // tenant with a SQLDatabase boots instead of crashing on an unresolved
     // password. Left unset (chart default `enabled: false`) otherwise.
     if extras.preview_database {
         values["previewDatabase"] = serde_json::json!({ "enabled": true });
+    }
+    // Spec 227 FR-005: opt-in preview-grade Redis, the previewDatabase mirror.
+    // When enabled, the chart renders a single-replica Redis Deployment +
+    // generated-password Secret and injects REDIS_HOST/REDIS_PASSWORD, so a
+    // tenant whose baked infra.config.json declares a `redis` block boots
+    // against an in-namespace cache. Left unset (chart default `enabled:
+    // false`) otherwise.
+    if extras.preview_redis {
+        values["previewRedis"] = serde_json::json!({ "enabled": true });
     }
     values
 }
@@ -619,6 +637,7 @@ fn write_chart(name: &str, dir: &Path) -> Result<(), HelmError> {
             ("templates/ingress.yaml", ACME_VUE_ENCORE_INGRESS_YAML),
             ("templates/serviceaccount.yaml", ACME_VUE_ENCORE_SA_YAML),
             ("templates/postgres.yaml", ACME_VUE_ENCORE_POSTGRES_YAML),
+            ("templates/redis.yaml", ACME_VUE_ENCORE_REDIS_YAML),
         ],
         other => return Err(HelmError::UnknownChart(other.to_string())),
     };
@@ -766,6 +785,34 @@ mod tests {
         );
         assert!(
             v.get("previewDatabase").is_none(),
+            "chart default (disabled) is left untouched when not requested"
+        );
+    }
+
+    #[test]
+    fn build_values_enables_preview_redis_when_requested() {
+        // Spec 227 FR-005: preview_redis renders the chart's opt-in Redis so an
+        // Encore tenant whose baked infra.config.json declares a redis block
+        // boots against an in-namespace cache.
+        let extras = DeployExtras {
+            preview_redis: true,
+            ..Default::default()
+        };
+        let v = build_values("ghcr.io/org/app:v1", "app-prod", &[], None, &extras);
+        assert_eq!(v["previewRedis"]["enabled"], true);
+    }
+
+    #[test]
+    fn build_values_omits_preview_redis_by_default() {
+        let v = build_values(
+            "ghcr.io/org/app:v1",
+            "app-prod",
+            &[],
+            None,
+            &DeployExtras::default(),
+        );
+        assert!(
+            v.get("previewRedis").is_none(),
             "chart default (disabled) is left untouched when not requested"
         );
     }
@@ -1137,6 +1184,7 @@ mod tests {
             "templates/ingress.yaml",
             "templates/serviceaccount.yaml",
             "templates/postgres.yaml",
+            "templates/redis.yaml",
         ] {
             let p = dir.join(rel);
             assert!(p.exists(), "missing materialised file: {rel}");
@@ -1234,9 +1282,85 @@ mod tests {
             rendered.contains("kind: StatefulSet"),
             "preview Postgres StatefulSet rendered"
         );
+        // Spec 227: the app container must receive the SQL_* names its baked
+        // infra.config.json resolves (${SQL_HOST} / ${SQL_USERNAME} /
+        // $env:SQL_PASSWORD), not the POSTGRES_* names it never reads. The
+        // POSTGRES_* keys still exist on the postgres pod's own Secret, so
+        // asserting the SQL_* names specifically is what proves the fix.
         assert!(
-            rendered.contains("POSTGRES_PASSWORD"),
-            "DB credential wired into the app container env"
+            rendered.contains("SQL_HOST"),
+            "app container gets SQL_HOST (the name Encore actually resolves)"
+        );
+        assert!(
+            rendered.contains("SQL_PASSWORD"),
+            "app container gets SQL_PASSWORD from the preview Postgres secret"
+        );
+    }
+
+    #[test]
+    fn template_renders_acme_vue_encore_preview_redis_when_enabled() {
+        if !helm_available() {
+            eprintln!("skipping: helm binary not in PATH");
+            return;
+        }
+        let runner = HelmRunner::from_env();
+        let extras = DeployExtras {
+            preview_redis: true,
+            ..Default::default()
+        };
+        let req = InstallRequest {
+            chart: "acme-vue-encore".into(),
+            namespace: "acme-dev".into(),
+            release: "acme-p-dev".into(),
+            values: build_values(
+                "ghcr.io/org/acme-vue-encore:sha-abc123",
+                "acme-p-dev",
+                &[],
+                None,
+                &extras,
+            ),
+        };
+        let rendered = runner.template(&req).expect("helm template should succeed");
+        // FR-005: opt-in preview Redis renders a Deployment + Service +
+        // generated-password Secret and injects REDIS_HOST/REDIS_PASSWORD into
+        // the app container.
+        assert!(
+            rendered.contains("app.kubernetes.io/component: redis"),
+            "preview Redis workload rendered"
+        );
+        assert!(
+            rendered.contains("acme-p-dev-redis:6379"),
+            "REDIS_HOST targets the in-namespace preview Redis Service"
+        );
+        assert!(
+            rendered.contains("REDIS_PASSWORD"),
+            "Redis credential wired into the app container env"
+        );
+    }
+
+    #[test]
+    fn template_omits_preview_redis_by_default() {
+        if !helm_available() {
+            eprintln!("skipping: helm binary not in PATH");
+            return;
+        }
+        let runner = HelmRunner::from_env();
+        let req = InstallRequest {
+            chart: "acme-vue-encore".into(),
+            namespace: "acme-dev".into(),
+            release: "acme-p-dev".into(),
+            values: build_values(
+                "ghcr.io/org/acme-vue-encore:sha-abc123",
+                "acme-p-dev",
+                &[],
+                None,
+                &DeployExtras::default(),
+            ),
+        };
+        let rendered = runner.template(&req).expect("helm template should succeed");
+        assert!(
+            !rendered.contains("app.kubernetes.io/component: redis"),
+            "no preview Redis workload when previewRedis is disabled"
         );
     }
 }

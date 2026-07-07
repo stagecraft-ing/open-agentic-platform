@@ -149,7 +149,31 @@ previewDatabase:
       memory: 256Mi
 
 database:
-  # Secret carrying DB connection env (POSTGRES_* keys) when previewDatabase
-  # is disabled. Empty when the chart provisions the preview DB itself.
+  # Secret carrying DB connection env (the SQL_HOST / SQL_USERNAME /
+  # SQL_PASSWORD keys the app's baked infra.config.json resolves) when
+  # previewDatabase is disabled. Empty when the chart provisions the preview
+  # DB itself.
   externalSecretName: ""
 # endregion preview-database
+
+# region: preview-redis
+# Spec 227 FR-005: opt-in preview-grade Redis, the previewDatabase mirror for
+# the cache resource. Single replica, no HA, no persistence (pure in-memory
+# cache). When enabled the chart renders a Deployment + Service +
+# generated-password Secret (templates/redis.yaml) and injects
+# REDIS_HOST / REDIS_PASSWORD into the app container (the names the
+# 008-promoted `redis` block in the baked infra.config.json resolves).
+# Explicitly NOT production-grade: non-development environments supply an
+# external Redis endpoint as runtime env instead (deployd never provisions
+# Redis for them, gated the same way as previewDatabase).
+previewRedis:
+  enabled: false
+  image: redis:7-alpine
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+# endregion preview-redis

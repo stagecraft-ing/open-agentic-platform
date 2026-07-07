@@ -66,6 +66,14 @@ pub struct DeploymentRequest {
     /// environments; absent/false leaves the chart default (no preview DB).
     #[serde(default)]
     pub preview_database: Option<bool>,
+    /// Spec 227 FR-005: when true, render the chart's opt-in preview-grade
+    /// Redis (mirrors `preview_database`) so a tenant whose baked
+    /// infra.config.json declares a `redis` block boots against an
+    /// in-namespace cache. Stagecraft sets this for development/preview
+    /// environments that opted into the Redis infrastructure resource;
+    /// absent/false leaves the chart default (no preview Redis).
+    #[serde(default)]
+    pub preview_redis: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -276,6 +284,7 @@ pub async fn create_deployment(
                 image_pull_secret_name: body.image_pull_secret_name.as_deref(),
                 tls_secret_name: Some(tenant_tls_secret.as_str()).filter(|s| !s.is_empty()),
                 preview_database: body.preview_database.unwrap_or(false),
+                preview_redis: body.preview_redis.unwrap_or(false),
             };
             let values = helm::build_values(
                 &body.artifact_ref,
