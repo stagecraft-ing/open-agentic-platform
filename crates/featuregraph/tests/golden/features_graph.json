@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:5ae0256e07bc75e730b6b6740aa76c24dfa79085ae05a4d18cf8abb8dceb652c",
+  "graph_fingerprint": "sha256:894f6ef362969695e804e93a5a094fab6db216a9e7876dbbfbc3e12a23c91d96",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4280,6 +4280,27 @@
         "137-tenant-environment-access-gates",
         "113-stagecraft-projects-rename-and-clone",
         "080-github-identity-onboarding"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "227-create-project-infra-config-projection",
+      "title": "Create Project as an Encore-infra-config projection: derived catalog, two-axis selector, dev-provisioned Redis",
+      "spec_path": "specs/227-create-project-infra-config-projection/spec.md",
+      "status": "draft",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "138-stagecraft-create-realised-scaffold",
+        "199-factory-thin-consumer-sync",
+        "160-factory-adapter-stagecraft-relocation",
+        "213-tenant-repo-image-build",
+        "214-tenant-app-chart-supersession",
+        "225-deployd-selfprovision-rbac"
       ],
       "impl_files": [],
       "test_files": [],
