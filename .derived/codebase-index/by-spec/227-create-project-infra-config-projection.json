@@ -46,11 +46,35 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/factory/browse.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/moduleCatalog.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/projects/create.ts",
         "source": "spec-edge"
       },
       {
         "path": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts",
         "source": "spec-edge"
       },
       {
@@ -70,6 +94,19 @@
         "unit": {
           "kind": "file",
           "path": "platform/charts/acme-vue-encore/templates/redis.yaml"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/moduleCatalog.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/moduleCatalog.ts"
         }
       },
       {
@@ -166,14 +203,14 @@
       {
         "locations": [
           {
-            "file": "platform/services/stagecraft/api/deploy/deploy.ts"
+            "file": "platform/services/stagecraft/api/factory/browse.ts"
           }
         ],
-        "ownership": false,
-        "sourceField": "references",
+        "ownership": true,
+        "sourceField": "extends",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deploy.ts"
+          "path": "platform/services/stagecraft/api/factory/browse.ts"
         }
       },
       {
@@ -182,8 +219,8 @@
             "file": "platform/services/stagecraft/api/projects/create.ts"
           }
         ],
-        "ownership": false,
-        "sourceField": "references",
+        "ownership": true,
+        "sourceField": "extends",
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/projects/create.ts"
@@ -195,8 +232,8 @@
             "file": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts"
           }
         ],
-        "ownership": false,
-        "sourceField": "references",
+        "ownership": true,
+        "sourceField": "extends",
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts"
@@ -205,14 +242,79 @@
       {
         "locations": [
           {
+            "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/lib/projects-api.server.ts"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/deploy/deploy.ts"
           }
         ],
         "ownership": false,
         "sourceField": "references",
         "unit": {
           "kind": "file",
-          "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
+          "path": "platform/services/stagecraft/api/deploy/deploy.ts"
         }
       }
     ],
@@ -220,5 +322,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "bfdeb52bee469f42be75e954283654328dcdc9fb7f526737bd7e86d4ce0d52da"
+  "shardHash": "a006a694ddf104902f4047d0e03fa7a47d0b4ac4148e9bb408fcac460f2fa2df"
 }

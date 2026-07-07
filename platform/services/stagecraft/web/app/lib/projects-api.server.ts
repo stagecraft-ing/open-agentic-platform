@@ -327,6 +327,25 @@ export async function listFactoryAdapters(request: Request) {
   }>;
 }
 
+// Spec 227 Stage 1: the create-project module catalog, derived server-side
+// from the org's adapter manifests (api/factory/moduleCatalog.ts). Mirrors the
+// backend ModuleDescriptor so the route loader can drop its hand-copy.
+export interface ModuleDescriptor {
+  id: string;
+  displayName: string;
+  category: string;
+  description: string;
+  requires: string[];
+  conflicts: string[];
+  status?: string;
+}
+
+export async function getModuleCatalog(request: Request) {
+  return apiFetch(request, "/api/factory/module-catalog") as Promise<{
+    modules: ModuleDescriptor[];
+  }>;
+}
+
 // Spec 112 §6.2 — factory project import.
 export interface ImportedRawArtifact {
   objectId: string;
