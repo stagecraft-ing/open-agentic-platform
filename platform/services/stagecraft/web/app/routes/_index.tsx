@@ -1,98 +1,232 @@
 import { Link } from "react-router";
+import {
+  ArrowRight,
+  CheckCircle2,
+  GitBranch,
+  Layers,
+  Lock,
+  Shield,
+  Zap,
+} from "lucide-react";
+import { SignInLink } from "../components/sign-in-link";
 
 export function meta() {
   return [
-    { title: "Open Agentic Platform — Governed OS for AI-Native Software Delivery" },
+    { title: "Open Agentic Platform: Governed OS for AI-Native Software Delivery" },
     {
       name: "description",
       content:
-        "OAP turns intent into machine-verifiable software. Spec-driven contracts, governed agents, policy-enforced pipelines — unified per project.",
+        "OAP turns intent into machine-verifiable software. Spec-driven contracts, governed agents, policy-enforced pipelines, unified per project.",
     },
   ];
 }
 
+const PRINCIPLES = [
+  {
+    id: "P-001",
+    title: "Governance as Execution",
+    description:
+      "Every state transition requires authorisation from a governing spec. Ungoverned transitions are structurally impossible.",
+    spec: "spec 102",
+  },
+  {
+    id: "P-002",
+    title: "Deterministic Compilation",
+    description:
+      "Same inputs produce byte-identical output on every platform. The spec registry is a pure function of (config, file contents).",
+    spec: "spec 127",
+  },
+  {
+    id: "P-003",
+    title: "Coupling Gate Enforcement",
+    description:
+      "Code that drifts from its owning spec fails CI before merge. Drift is prevented, not detected after the fact.",
+    spec: "spec 127",
+  },
+  {
+    id: "P-004",
+    title: "Emit/Verify Separation",
+    description:
+      "The entity that produces governance claims is structurally distinct from the entity that verifies them. Different binaries, different trust.",
+    spec: "spec 219",
+  },
+  {
+    id: "P-005",
+    title: "Supply Chain Integrity",
+    description:
+      "CycloneDX SBOMs bound to governance certificates. Every dependency traceable, every artifact hash-verified.",
+    spec: "spec 203",
+  },
+  {
+    id: "P-006",
+    title: "Identity-Bounded Collaboration",
+    description:
+      "Rauthy OIDC issues tokens, deployd-api enforces scope at every request. No action without attributable identity.",
+    spec: "spec 001",
+  },
+];
+
+const DIFFERENTIATORS = [
+  {
+    title: "Spec Spine",
+    body: "Human-written specifications compile into a machine-verifiable registry. Every feature is traceable from intent to contract to code. No more drift between design and delivery.",
+  },
+  {
+    title: "Two-plane architecture",
+    body: "A web governance plane for approvals, policy, and audit. A desktop execution plane for generation, git, and local tooling. Govern from the cloud, execute where the code lives.",
+  },
+  {
+    title: "Project as the unit of governance",
+    body: "Identity, knowledge, policy, repos, and factories converge on one atom: the project. Not a Jira project, a Drive folder, and a pile of runners held together with YAML.",
+  },
+  {
+    title: "Policy kernel, not policy theatre",
+    body: "A 5-tier settings merge produces a compiled bundle with proof chains. Every agent call, every gate, every deploy evaluates against the same kernel. Governance is a runtime property.",
+  },
+  {
+    title: "Knowledge as a first-class domain",
+    body: "Pluggable connectors (SharePoint, S3, Azure Blob, GCS, upload) normalise documents into a canonical object store. Provenance is preserved; factories consume knowledge, they don't scrape it.",
+  },
+  {
+    title: "Factories with adapters",
+    body: "Deterministic multi-stage pipelines for real stacks. Consume project knowledge, produce build artifacts, ship through governed gates with a signed certificate at the end.",
+  },
+];
+
+const STEPS = [
+  {
+    n: "01",
+    title: "Define",
+    body: "Write specs in markdown with machine-readable frontmatter. The spec compiler emits a signed registry that every tool in the system reads from.",
+  },
+  {
+    n: "02",
+    title: "Ingest",
+    body: "Connect SharePoint, S3, Azure Blob, GCS, or upload directly. Documents normalise into the project's canonical object store with full provenance.",
+  },
+  {
+    n: "03",
+    title: "Execute",
+    body: "Factories run governed pipelines on the desktop plane. Every stage is typed, every artifact is hashed, every agent call passes through the policy kernel.",
+  },
+  {
+    n: "04",
+    title: "Promote",
+    body: "Approvals, gates, and deploys flow through the web plane. Reviewers see proof chains, audit sees every action, production never receives ungoverned bytes.",
+  },
+];
+
+const ECOSYSTEM = [
+  {
+    name: "open-agentic-platform",
+    role: "Control Plane",
+    description:
+      "The governed operating system. 228 specs, SHA-256 proof chains, OWASP ASI 2026 compliance.",
+    url: "https://github.com/stagecraft-ing/open-agentic-platform",
+  },
+  {
+    name: "spec-spine",
+    role: "Authority Ledger",
+    description:
+      "Typed, hash-verifiable authority over the spec corpus. The single source of truth.",
+    url: "https://github.com/stagecraft-ing/spec-spine",
+  },
+  {
+    name: "factory-encore",
+    role: "Build Pipeline",
+    description:
+      "Technology-agnostic software factory. Process, Contract, and Adapter separation.",
+    url: "https://github.com/stagecraft-ing/factory-encore",
+  },
+  {
+    name: "template-encore",
+    role: "Reference App",
+    description:
+      "Runnable reference: Encore.ts + Vue 3 + PrimeVue + PostgreSQL + Rauthy OIDC.",
+    url: "https://github.com/stagecraft-ing/template-encore",
+  },
+  {
+    name: "tenant-emit",
+    role: "Certificate Emitter",
+    description:
+      "Emit-only CLI. Ed25519-signed governance certificates with corpus and SBOM binding.",
+    url: "https://github.com/stagecraft-ing/tenant-emit",
+  },
+  {
+    name: "tenant-tail",
+    role: "Certificate Verifier",
+    description:
+      "Verify-only CLI. Offline-capable, identity-free, read-only certificate verification.",
+    url: "https://github.com/stagecraft-ing/tenant-tail",
+  },
+  {
+    name: "oap-bootstrap",
+    role: "Instance Provisioner",
+    description:
+      "One resumable CLI to stand up an OAP instance. Fork, register, wire, provision, verify.",
+    url: "https://github.com/stagecraft-ing/oap-bootstrap",
+  },
+];
+
+const TRUST_FABRIC = [
+  { icon: Lock, label: "OIDC Login", sub: "Rauthy" },
+  { icon: Shield, label: "Scope Gate", sub: "deployd-api" },
+  { icon: Zap, label: "Policy Kernel", sub: "factory-engine" },
+  { icon: GitBranch, label: "Spec-to-Code Map", sub: "codebase-index" },
+  { icon: CheckCircle2, label: "Certificate", sub: "governance-cert" },
+];
+
 export default function Landing() {
   return (
-    <div className="min-h-full bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
-      <SiteHeader />
-      <main>
-        <Hero />
-        <Differentiators />
-        <HowItWorks />
-        <Architecture />
-        <FinalCta />
-      </main>
-      <SiteFooter />
-    </div>
-  );
-}
-
-function SiteHeader() {
-  return (
-    <header className="sticky top-0 z-30 border-b border-gray-200/60 bg-white/80 backdrop-blur dark:border-gray-800/60 dark:bg-gray-950/80">
-      <div className="container mx-auto flex h-14 items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-2 text-sm font-semibold tracking-tight">
-          <Logo className="h-5 w-5 text-indigo-500" />
-          <span>Open Agentic Platform</span>
-        </Link>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/signin"
-            className="hidden sm:inline-flex items-center rounded-md px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
-          >
-            Sign in
-          </Link>
-          <Link
-            to="/signup"
-            className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
-          >
-            Get started
-          </Link>
-        </div>
-      </div>
-    </header>
+    <>
+      <Hero />
+      <CorePrinciples />
+      <Differentiators />
+      <HowItWorks />
+      <Ecosystem />
+      <TrustFabric />
+      <FinalCta />
+    </>
   );
 }
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative overflow-hidden border-b border-border/50">
+      <div aria-hidden className="blueprint-grid absolute inset-0 opacity-60" />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-24 -z-10 h-[28rem] bg-gradient-to-b from-indigo-500/10 via-transparent to-transparent dark:from-indigo-500/15"
+        className="pointer-events-none absolute inset-x-0 -top-24 h-[28rem] bg-gradient-to-b from-primary/10 via-transparent to-transparent"
       />
-      <div className="container mx-auto px-4 pt-20 pb-24 sm:pt-28 sm:pb-32">
-        <div className="max-w-4xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/60 px-3 py-1 text-xs font-medium text-gray-600 backdrop-blur dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-300">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-500" />
+      <div className="container relative mx-auto max-w-6xl px-4 py-24 sm:py-32">
+        <div className="max-w-3xl">
+          <span className="spec-chip">
+            <span className="pulse-dot" />
             Open Agentic Platform
-          </div>
-          <h1 className="mt-6 text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
+          </span>
+          <h1 className="mt-6 font-mono text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl">
             The governed operating system for{" "}
-            <span className="bg-gradient-to-r from-indigo-500 to-fuchsia-500 bg-clip-text text-transparent">
+            <span className="text-primary text-glow">
               AI-native software delivery
             </span>
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-gray-600 dark:text-gray-400">
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
             OAP turns intent into machine-verifiable software. Compile specs into
             contracts, run agents under a policy kernel, and promote work through
-            governed pipelines — every project, end to end.
+            governed pipelines: every project, end to end.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
-              to="/signup"
-              className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
+              to="/get-started"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:glow-cyan active:scale-[0.97]"
             >
-              Get started
+              Get started <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link
-              to="/signin"
-              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800 dark:focus:ring-offset-gray-950"
-            >
+            <SignInLink className="inline-flex items-center rounded-md border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-all hover:border-primary/50 hover:bg-primary/5">
               Sign in
-            </Link>
+            </SignInLink>
           </div>
-          <dl className="mt-10 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
+          <dl className="mt-12 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-3">
             <Metric label="Spec-driven" value="Every feature is a compiled contract" />
             <Metric label="Policy-enforced" value="Gates with proof chains, not vibes" />
             <Metric label="Audit-complete" value="Every agent action, recorded" />
@@ -105,69 +239,90 @@ function Hero() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-l border-gray-200 pl-4 dark:border-gray-800">
-      <dt className="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+    <div className="border-l border-border pl-4">
+      <dt className="font-mono text-xs font-semibold uppercase tracking-wider text-primary">
         {label}
       </dt>
-      <dd className="mt-1 text-gray-700 dark:text-gray-300">{value}</dd>
+      <dd className="mt-1 text-sm text-muted-foreground">{value}</dd>
     </div>
   );
 }
 
-function Differentiators() {
-  const items = [
-    {
-      title: "Spec Spine",
-      body: "Human-written specifications compile into a machine-verifiable registry. Every feature is traceable from intent → contract → code. No more drift between design and delivery.",
-    },
-    {
-      title: "Two-plane architecture",
-      body: "A web governance plane for approvals, policy, and audit. A desktop execution plane for generation, git, and local tooling. Govern from the cloud, execute where the code lives.",
-    },
-    {
-      title: "Project as the unit of governance",
-      body: "Identity, knowledge, policy, repos, and factories converge on one atom — the project. Not a Jira project, a Drive folder, and a pile of runners held together with YAML.",
-    },
-    {
-      title: "Policy kernel, not policy theatre",
-      body: "A 5-tier settings merge produces a compiled bundle with proof chains. Every agent call, every gate, every deploy evaluates against the same kernel. Governance is a runtime property.",
-    },
-    {
-      title: "Knowledge as a first-class domain",
-      body: "Pluggable connectors (SharePoint, S3, Azure Blob, GCS, upload) normalise documents into a canonical object store. Provenance is preserved; factories consume knowledge, they don't scrape it.",
-    },
-    {
-      title: "Factories with adapters",
-      body: "Deterministic multi-stage pipelines for real stacks — Vue/Node, Next/Prisma, Encore/React, Rust/Axum. Consume project knowledge, produce build artifacts, ship through governed gates.",
-    },
-  ];
+function SectionEyebrow({
+  icon: Icon,
+  label,
+}: {
+  icon: typeof Layers;
+  label: string;
+}) {
   return (
-    <section className="border-t border-gray-200 dark:border-gray-800">
-      <div className="container mx-auto px-4 py-20 sm:py-24">
-        <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-            Only one of its class
-          </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+    <div className="mb-3 flex items-center gap-2">
+      <Icon className="h-4 w-4 text-primary" />
+      <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function CorePrinciples() {
+  return (
+    <section className="container mx-auto max-w-6xl px-4 py-20">
+      <div className="mb-10 max-w-2xl">
+        <SectionEyebrow icon={Layers} label="Core Principles" />
+        <h2 className="mb-3 font-mono text-3xl font-bold tracking-tight">
+          Governance is the execution model.
+        </h2>
+        <p className="text-muted-foreground">
+          Six architectural principles that define how the platform operates. Each
+          is enforced by the platform itself, not by policy documents.
+        </p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {PRINCIPLES.map((p) => (
+          <div
+            key={p.id}
+            className="rounded-lg border border-border/60 bg-card p-5 transition-all hover:border-primary/30"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <span className="font-mono text-xs text-muted-foreground">{p.id}</span>
+              <span className="spec-chip">{p.spec}</span>
+            </div>
+            <h3 className="mb-2 font-mono text-sm font-medium">{p.title}</h3>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {p.description}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Differentiators() {
+  return (
+    <section className="border-t border-border/50">
+      <div className="container mx-auto max-w-6xl px-4 py-20">
+        <div className="mb-10 max-w-3xl">
+          <SectionEyebrow icon={Zap} label="Only one of its class" />
+          <h2 className="mb-3 font-mono text-3xl font-bold tracking-tight">
             Codegen tools ship diffs. OAP ships governed delivery.
           </h2>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            IDE assistants live inside editors. Agent frameworks live in notebooks. CI
-            systems live in YAML. OAP is the first platform that binds them together
-            under one spec, one policy kernel, and one audit trail — so AI-written
-            software is as governed as anything a human would ship.
+          <p className="text-muted-foreground">
+            IDE assistants live inside editors. Agent frameworks live in notebooks.
+            CI systems live in YAML. OAP is the first platform that binds them
+            together under one spec, one policy kernel, and one audit trail, so
+            AI-written software is as governed as anything a human would ship.
           </p>
         </div>
-        <div className="mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 sm:grid-cols-2 lg:grid-cols-3 dark:border-gray-800 dark:bg-gray-800">
-          {items.map((item) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {DIFFERENTIATORS.map((item) => (
             <div
               key={item.title}
-              className="bg-white p-6 dark:bg-gray-950"
+              className="rounded-lg border border-border/60 bg-card p-6 transition-all hover:border-primary/30"
             >
-              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                {item.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+              <h3 className="text-base font-semibold">{item.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 {item.body}
               </p>
             </div>
@@ -179,50 +334,24 @@ function Differentiators() {
 }
 
 function HowItWorks() {
-  const steps = [
-    {
-      n: "01",
-      title: "Define",
-      body: "Write specs in markdown with machine-readable frontmatter. The spec compiler emits a signed registry that every tool in the system reads from.",
-    },
-    {
-      n: "02",
-      title: "Ingest",
-      body: "Connect SharePoint, S3, Azure Blob, GCS, or upload directly. Documents are normalised into the project's canonical object store with full provenance.",
-    },
-    {
-      n: "03",
-      title: "Execute",
-      body: "Factories run governed pipelines on the desktop plane. Every stage is typed, every artifact is hashed, every agent call passes through the policy kernel.",
-    },
-    {
-      n: "04",
-      title: "Promote",
-      body: "Approvals, gates, and deploys flow through the web plane. Reviewers see proof chains, audit sees every action, and production never receives ungoverned bytes.",
-    },
-  ];
   return (
-    <section className="border-t border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/40">
-      <div className="container mx-auto px-4 py-20 sm:py-24">
-        <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-            How it works
-          </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-            Intent → contract → artifact → deployment.
+    <section className="border-t border-border/50 bg-card/30">
+      <div className="container mx-auto max-w-6xl px-4 py-20">
+        <div className="mb-10 max-w-3xl">
+          <SectionEyebrow icon={ArrowRight} label="How it works" />
+          <h2 className="font-mono text-3xl font-bold tracking-tight">
+            Intent to contract to artifact to deployment.
           </h2>
         </div>
-        <ol className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map((s) => (
+        <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {STEPS.map((s) => (
             <li
               key={s.n}
-              className="relative rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-950"
+              className="rounded-lg border border-border/60 bg-card p-6"
             >
-              <div className="font-mono text-xs text-indigo-600 dark:text-indigo-400">
-                {s.n}
-              </div>
+              <div className="font-mono text-xs text-primary">{s.n}</div>
               <h3 className="mt-2 text-base font-semibold">{s.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 {s.body}
               </p>
             </li>
@@ -233,165 +362,109 @@ function HowItWorks() {
   );
 }
 
-function Architecture() {
+function Ecosystem() {
   return (
-    <section className="border-t border-gray-200 dark:border-gray-800">
-      <div className="container mx-auto px-4 py-20 sm:py-24">
-        <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-            Architecture
-          </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-            Two planes. One system. Zero lock-in.
+    <section className="border-t border-border/50">
+      <div className="container mx-auto max-w-6xl px-4 py-20">
+        <div className="mb-10 max-w-2xl">
+          <SectionEyebrow icon={GitBranch} label="Ecosystem" />
+          <h2 className="mb-3 font-mono text-3xl font-bold tracking-tight">
+            Seven repositories. One governance chain.
           </h2>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            The web plane governs. The desktop plane executes. They share one
-            project model, one policy kernel, and one audit log — so work moves
-            between them without translation.
+          <p className="text-muted-foreground">
+            Each repository owns a specific surface in the governed delivery
+            pipeline. Together they form a complete, auditable, self-authenticating
+            system.
           </p>
         </div>
-        <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <PlaneCard
-            tag="Governance plane"
-            title="Stagecraft"
-            description="Runs in the cloud. Identity, project administration, knowledge intake, approvals, deploy promotion, and audit. Read-heavy surface for reviewers, operators, and compliance."
-            bullets={[
-              "GitHub OAuth + OIDC identity",
-              "Project-scoped knowledge object store",
-              "Policy bundle serving & grant management",
-              "Deploy orchestration to Azure Kubernetes",
-            ]}
-          />
-          <PlaneCard
-            tag="Execution plane"
-            title="OPC desktop"
-            description="Runs locally. Factories, code generation, git operations, checkpoints, and inspection — enforcing the same policy kernel Stagecraft serves. Works offline; reconciles when online."
-            bullets={[
-              "Multi-agent orchestrator with DAG validation",
-              "Unified MCP agent (axiomregent)",
-              "Checkpointed, reversible execution",
-              "Streamed audit back to Stagecraft",
-            ]}
-          />
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {ECOSYSTEM.map((repo) => (
+            <a
+              key={repo.name}
+              href={repo.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group rounded-lg border border-border/60 bg-card p-4 transition-all hover:border-primary/40 hover:glow-cyan-sm"
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <span className="pulse-dot" />
+                <span className="font-mono text-[10px] uppercase tracking-wider text-primary">
+                  {repo.role}
+                </span>
+              </div>
+              <h3 className="mb-1 font-mono text-sm font-medium transition-colors group-hover:text-primary">
+                {repo.name}
+              </h3>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {repo.description}
+              </p>
+            </a>
+          ))}
         </div>
       </div>
     </section>
   );
 }
 
-function PlaneCard({
-  tag,
-  title,
-  description,
-  bullets,
-}: {
-  tag: string;
-  title: string;
-  description: string;
-  bullets: string[];
-}) {
+function TrustFabric() {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-950">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-        <span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-500" />
-        {tag}
+    <section className="border-t border-border/50">
+      <div className="container mx-auto max-w-6xl px-4 py-20">
+        <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card/50 p-8">
+          <SectionEyebrow icon={Shield} label="Trust Fabric" />
+          <h2 className="mb-6 font-mono text-2xl font-bold tracking-tight">
+            One continuous path from identity to audit.
+          </h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-3 md:grid-cols-5">
+            {TRUST_FABRIC.map((step) => (
+              <div
+                key={step.label}
+                className="flex flex-col items-center gap-2 text-center"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/30 bg-primary/5">
+                  <step.icon className="h-4 w-4 text-primary" />
+                </div>
+                <span className="font-mono text-xs font-medium">{step.label}</span>
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {step.sub}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 max-w-xl text-sm text-muted-foreground">
+            You operate every node in the path. There is no SaaS in the trust path
+            unless you put it there.
+          </p>
+        </div>
       </div>
-      <h3 className="mt-2 text-xl font-semibold">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-        {description}
-      </p>
-      <ul className="mt-4 space-y-2 text-sm">
-        {bullets.map((b) => (
-          <li key={b} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
-            <Check className="mt-0.5 h-4 w-4 flex-none text-indigo-500" />
-            <span>{b}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    </section>
   );
 }
 
 function FinalCta() {
   return (
-    <section className="border-t border-gray-200 dark:border-gray-800">
-      <div className="container mx-auto px-4 py-20 sm:py-24">
-        <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-indigo-50 via-white to-white p-10 dark:border-gray-800 dark:from-indigo-500/10 dark:via-gray-950 dark:to-gray-950">
+    <section className="border-t border-border/50">
+      <div className="container mx-auto max-w-6xl px-4 py-20">
+        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-card p-10">
           <div className="max-w-2xl">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            <h2 className="font-mono text-3xl font-bold tracking-tight">
               Govern your agents. Ship verified software.
             </h2>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">
+            <p className="mt-4 text-muted-foreground">
               Create a project, connect your knowledge sources, and run your first
               governed factory pipeline today.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
-                to="/signup"
-                className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
+                to="/get-started"
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:glow-cyan active:scale-[0.97]"
               >
-                Get started
-              </Link>
-              <Link
-                to="/signin"
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800 dark:focus:ring-offset-gray-950"
-              >
-                Sign in
+                Get started <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
         </div>
       </div>
     </section>
-  );
-}
-
-function SiteFooter() {
-  return (
-    <footer className="border-t border-gray-200 dark:border-gray-800">
-      <div className="container mx-auto flex flex-col gap-3 px-4 py-8 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between dark:text-gray-500">
-        <div className="flex items-center gap-2">
-          <Logo className="h-4 w-4 text-indigo-500" />
-          <span>Open Agentic Platform</span>
-        </div>
-        <div>© {new Date().getFullYear()} OAP. Governed by design.</div>
-      </div>
-    </footer>
-  );
-}
-
-function Logo({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden
-    >
-      <path d="M12 3 3 7.5v9L12 21l9-4.5v-9z" />
-      <path d="M3 7.5 12 12l9-4.5" />
-      <path d="M12 12v9" />
-    </svg>
-  );
-}
-
-function Check({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      className={className}
-      aria-hidden
-    >
-      <path
-        fillRule="evenodd"
-        d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.5 7.6a1 1 0 0 1-1.42.006L3.29 9.82a1 1 0 1 1 1.42-1.408l3.787 3.82 6.793-6.885a1 1 0 0 1 1.414-.057z"
-        clipRule="evenodd"
-      />
-    </svg>
   );
 }
