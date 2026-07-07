@@ -76,13 +76,14 @@ spec:
           protocol: TCP
         {{- end }}
 ---
-# Outbound: DNS, and general HTTPS/Postgres egress for whatever external
-# APIs or managed database the tenant app calls. The in-namespace preview
-# Postgres (FR-006) is already covered by allow-intra-namespace above;
-# `database.externalSecretName` deployments (previewDatabase disabled)
-# point at an operator-managed DB this chart has no fixed address for, so
-# this stays port-scoped rather than peer-pinned, matching the convention
-# in platform/k8s/policies/monitoring's egress rule.
+# Outbound: DNS, and general HTTPS/Postgres/Redis egress for whatever
+# external APIs, managed database, or cache the tenant app calls. The
+# in-namespace preview Postgres (FR-006) and preview Redis (spec 227 FR-005)
+# are already covered by allow-intra-namespace above; external
+# (previewDatabase/previewRedis disabled) deployments point at
+# operator-managed endpoints this chart has no fixed address for, so this
+# stays port-scoped rather than peer-pinned, matching the convention in
+# platform/k8s/policies/monitoring's egress rule.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -104,5 +105,7 @@ spec:
         - port: 443
           protocol: TCP
         - port: 5432
+          protocol: TCP
+        - port: 6379
           protocol: TCP
 {{- end -}}

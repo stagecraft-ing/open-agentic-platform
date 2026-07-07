@@ -350,8 +350,8 @@
           {
             "file": "platform/services/deployd-api-rs/src/helm.rs",
             "span": {
-              "endLine": 78,
-              "startLine": 58
+              "endLine": 81,
+              "startLine": 61
             }
           }
         ],
@@ -404,5 +404,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "14f95c0a8d30e669b98386e22225af4fed08713b460977f9ca60bb6ae2155cc3"
+  "shardHash": "cf7e541c28890317a5609e28417e68e68e0a00232c1171934d5008f01d3f6e77"
 }

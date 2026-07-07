@@ -209,3 +209,87 @@ and the deployd `previewRedis` path) and factory-encore spec
 promotion, dual composition, and CORS knob). Both are design-only draft
 specs; the code lands across the follow-on implementation PRs each spec
 stages.
+
+## Session addendum (2026-07-07): parity scope verified, cron dropped, encore.app resolved
+
+The "final analysis before work begins" pass resolved two things this
+record left open: how far the Infrastructure projection reaches beyond
+Redis, and how `encore.app` becomes a first-class config object.
+
+### Belief-check: what OAP actually provisions for tenants today
+
+Local `encore run` gives a developer five backing primitives; the aim is
+to match them in the stagecraft-deployed dev environment. Verified against
+deployd-api-rs, the acme-vue-encore chart, the tenant baseline
+(`template-encore/apps/api/infra.config.json`), and the cluster charts:
+
+| Primitive | `infra.config` key | Provisioned for tenants in OAP dev today | Verdict |
+|---|---|---|---|
+| SQL (Postgres) | `sql_servers` | yes (`previewDatabase` renders `postgres.yaml`) | real |
+| Redis / cache | `redis` | no | the work (this spec) |
+| Pub/Sub (NSQ) | `pubsub` (nsq) | no (cluster `nsqd` serves stagecraft's own app only) | not wired for tenants |
+| Cron | none (absent from the schema) | no; a no-op under self-host regardless | dropped (see below) |
+| Object storage | `object_storage` (s3/gcs) | no (no cluster MinIO/S3 backing) | not wired for tenants |
+
+Only SQL is real for tenants today. The "we already have NSQ / cron /
+object storage" reading came from stagecraft's *own* infra config
+(`platform/services/stagecraft/infra.config.json`, a mature 4-resource
+file), which the tenant scaffold and deployd's per-tenant path share none
+of.
+
+### Parity roadmap (scope decision)
+
+- **Redis first (this spec).** A clean `previewDatabase` mirror, the
+  smallest real proof the infra-config expansion generalizes past Postgres.
+  Blocked only on factory-encore 008 promoting `data-redis` to a real
+  `redis` block.
+- **Object storage, then Pub/Sub (NSQ): sibling specs.** Object storage
+  needs a net-new cluster MinIO backing plus an `object_storage` type-`s3`
+  block plus `S3_*` env. NSQ needs a shared-cluster-nsqd vs per-tenant
+  decision. Both are the same "project an infra.config resource, provision
+  it in dev only" shape as Redis; neither belongs inside spec 227.
+- **Cron: dropped.** It does not align with the rest. It is not an
+  `infra.config.json` key, so the Infrastructure section cannot project it
+  at all, and Encore's cron primitive is a no-op when self-hosted
+  (`platform/charts/stagecraft/templates/cronjob-orphan-sweeper.yaml:12`:
+  the Encore cron is "a no-op without Encore Cloud, so this K8s CronJob IS
+  the production scheduler" for stagecraft's own sweepers). Tenant cron
+  parity would mean generating a per-schedule K8s CronJob from app
+  metadata: a different mechanism, not this projection. Not pursued now.
+- Metrics (`metrics` pointing at the cluster Prometheus, mirroring
+  stagecraft's own config) is a cheap future add; low value for local-dev
+  parity, left out.
+
+### encore.app first-class config (resolves Open item #2, the CORS knob)
+
+`encore.app` is **build-time only**: unlike `infra.config.json` it has no
+`{"$env": ...}` runtime resolution, so its `global_cors` origins are baked
+at `encore build`. Under Option A (one image across environments) CORS
+origins are therefore fixed by the built image.
+
+- **Dev:** scaffold-time template the tenant's domain set (apex plus
+  `*.wildcard`) into `global_cors`, surfaced as the FR-007 "CORS origin"
+  Base-app field. **Drop the dead runtime `CORS_ORIGIN` env** (security-core
+  Open item #2): it can never work because `encore.app` reads no runtime
+  env. This is the "drop the knob" resolution for factory-encore 008.
+- **Staging / prod (tenant-owned): a deliberate branch build.** A
+  build-time-only value that must differ per environment is handled by
+  branching `main`, amending `encore.app`, and pushing or dispatching; the
+  spec-213-seeded `deploy-{staging,prod}.yml` plus `deploy-reusable.yml`
+  check out that ref, run `encore build docker`, and push an
+  environment-tagged image bound to the GitHub Environment. Verified:
+  `deploy-staging.yml` triggers on `push: branches:[staging]` and
+  `workflow_dispatch`; `deploy-prod.yml` on `workflow_dispatch`;
+  `deploy-reusable.yml` checks out the triggering ref before building.
+
+**Option A boundary, clarified (not contradicted).** OAP dev stays strictly
+one image (deployd-provisioned, runtime `$env`). A CORS-domain change is a
+build-time *value* change, not a resource *topology* change: the infra
+resource set stays identical, so SC-003 ("no rebuild for a topology
+change") holds. FR-006 ("no per-environment image builds introduced by this
+spec") also holds: OAP introduces none. The optional per-environment build
+lives in the tenant's already-seeded CI, for the narrow class of values
+`encore.app` cannot resolve at runtime, and only when the tenant asks for
+that environment. OAP's responsibility ends at ensuring the tenant repo
+*can* build an environment-specific image on demand, which (per the
+verification above) it already can.

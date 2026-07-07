@@ -14,7 +14,23 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/charts/acme-vue-encore/templates/_helpers.tpl",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/charts/acme-vue-encore/templates/deployment.yaml",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/charts/acme-vue-encore/templates/networkpolicy.yaml",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/charts/acme-vue-encore/templates/redis.yaml",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/charts/acme-vue-encore/values.yaml",
         "source": "spec-edge"
       },
       {
@@ -46,6 +62,19 @@
       {
         "locations": [
           {
+            "file": "platform/charts/acme-vue-encore/templates/redis.yaml"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/charts/acme-vue-encore/templates/redis.yaml"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "crates/featuregraph/tests/golden/features_graph.json"
           }
         ],
@@ -59,11 +88,24 @@
       {
         "locations": [
           {
+            "file": "platform/charts/acme-vue-encore/templates/_helpers.tpl"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/charts/acme-vue-encore/templates/_helpers.tpl"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "platform/charts/acme-vue-encore/templates/deployment.yaml"
           }
         ],
-        "ownership": false,
-        "sourceField": "references",
+        "ownership": true,
+        "sourceField": "extends",
         "unit": {
           "kind": "file",
           "path": "platform/charts/acme-vue-encore/templates/deployment.yaml"
@@ -72,11 +114,37 @@
       {
         "locations": [
           {
+            "file": "platform/charts/acme-vue-encore/templates/networkpolicy.yaml"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/charts/acme-vue-encore/templates/networkpolicy.yaml"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/charts/acme-vue-encore/values.yaml"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/charts/acme-vue-encore/values.yaml"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "platform/services/deployd-api-rs/src/helm.rs"
           }
         ],
-        "ownership": false,
-        "sourceField": "references",
+        "ownership": true,
+        "sourceField": "extends",
         "unit": {
           "kind": "file",
           "path": "platform/services/deployd-api-rs/src/helm.rs"
@@ -88,8 +156,8 @@
             "file": "platform/services/deployd-api-rs/src/routes.rs"
           }
         ],
-        "ownership": false,
-        "sourceField": "references",
+        "ownership": true,
+        "sourceField": "extends",
         "unit": {
           "kind": "file",
           "path": "platform/services/deployd-api-rs/src/routes.rs"
@@ -152,5 +220,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "65fea91bcdad42dd941706ad7ab98a46f49d8a2fbe1e673bcca304888f80487f"
+  "shardHash": "bfdeb52bee469f42be75e954283654328dcdc9fb7f526737bd7e86d4ce0d52da"
 }
