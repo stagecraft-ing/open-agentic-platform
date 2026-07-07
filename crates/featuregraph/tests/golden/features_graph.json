@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:894f6ef362969695e804e93a5a094fab6db216a9e7876dbbfbc3e12a23c91d96",
+  "graph_fingerprint": "sha256:f9fc09980f53ef1741410a83c4921c179195e4ef752a4c2b85251de0631c7311",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4301,6 +4301,25 @@
         "213-tenant-repo-image-build",
         "214-tenant-app-chart-supersession",
         "225-deployd-selfprovision-rbac"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "228-stagecraft-public-marketing-site",
+      "title": "Stagecraft public marketing site: governed teal/mono port of the ecosystem + whitepaper",
+      "spec_path": "specs/228-stagecraft-public-marketing-site/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "160-factory-adapter-stagecraft-relocation",
+        "163-stagecraft-requirements-view",
+        "103-init-protocol-governed-reads",
+        "217-spec-spine-engine-swap-collapse"
       ],
       "impl_files": [],
       "test_files": [],

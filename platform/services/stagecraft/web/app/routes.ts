@@ -1,11 +1,26 @@
 import {
   type RouteConfig,
   index,
+  layout,
   route,
 } from "@react-router/dev/routes";
 
 export default [
-  index("routes/_index.tsx"),
+  // Public marketing surface. The pathless `marketing` layout supplies the
+  // shared header + footer; sign-in / app / admin sit outside it.
+  layout("routes/marketing.tsx", [
+    index("routes/_index.tsx"),
+    route("products", "routes/products.tsx"),
+    route("papers", "routes/papers.tsx"),
+    route("papers/:slug", "routes/papers.$slug.tsx"),
+    route("registry", "routes/registry.tsx", [
+      index("routes/registry._index.tsx"),
+      route("graph", "routes/registry.graph.tsx"),
+      route("dashboard", "routes/registry.dashboard.tsx"),
+    ]),
+    route("registry/:specId", "routes/registry.$specId.tsx"),
+    route("get-started", "routes/get-started.tsx"),
+  ]),
   route("signin", "routes/signin.tsx"),
   route("signup", "routes/signup.tsx"),
   route("auth/no-org", "routes/auth.no-org.tsx"),
