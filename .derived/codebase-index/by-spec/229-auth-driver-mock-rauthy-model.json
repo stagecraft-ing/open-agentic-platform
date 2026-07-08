@@ -1,0 +1,14 @@
+{
+  "mapping": {
+    "amends": [
+      "148-auth-driver-registry",
+      "149-saml-auth-driver",
+      "150-example-tenant-profile"
+    ],
+    "implementingPaths": [],
+    "specId": "229-auth-driver-mock-rauthy-model",
+    "specStatus": "approved"
+  },
+  "schemaVersion": "1.1.0",
+  "shardHash": "21b476fcfde790ce3c61e2d09157b3e32d49fe6a7345cc9c4273bf9a5ac7cdfc"
+}

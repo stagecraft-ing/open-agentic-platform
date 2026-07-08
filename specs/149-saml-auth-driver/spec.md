@@ -4,6 +4,13 @@ title: "SAML auth driver capability — IdP integration for SAML 2.0 tenants"
 status: approved
 created: "2026-05-17"
 approved: "2026-05-22"
+amended: "2026-07-08"
+amendment_record: |
+  amended 2026-07-08 by spec 229 (auth-driver model correction): relabeled
+  as a spec-kind-grammar fixture. OAP ships no standalone SAML driver;
+  crates/auth-driver-saml/ is a hypothetical fixture target. SAML tenants
+  federate via a Rauthy custom-OIDC upstream (Google Workspace SSO), served
+  by the rauthy driver. Structure unchanged so V-013/V-014/V-015 stay green.
 authors: ["open-agentic-platform"]
 kind: capability
 domain: platform
@@ -48,6 +55,14 @@ summary: >
 ---
 
 # 149 — SAML auth driver
+
+> **Amended 2026-07-08 by spec 229 (auth-driver model correction).** This
+> capability is retained as a spec-kind-grammar fixture for spec 147
+> (V-013/V-014/V-015), not a shipped driver. OAP ships no standalone SAML
+> driver: SAML-requiring tenants federate via a Rauthy custom-OIDC upstream
+> (Google Workspace SSO with custom OIDC profiles), served by the `rauthy`
+> driver. `crates/auth-driver-saml/` is a hypothetical fixture target. See
+> spec 229 §4.
 
 ## §1 Motivation
 

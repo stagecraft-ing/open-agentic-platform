@@ -4,6 +4,13 @@ title: "Auth driver registry — pluggable identity-provider integration contrac
 status: approved
 created: "2026-05-17"
 approved: "2026-05-22"
+amended: "2026-07-08"
+amendment_record: |
+  amended 2026-07-08 by spec 229 (auth-driver model correction): default
+  flipped rauthy-oidc to rauthy; app-level members clarified to mock|rauthy;
+  upstream IdPs (SAML/Entra/Auth0/Google/GitHub) federate inside Rauthy as
+  upstream providers, not AUTH_DRIVER members. Registry pattern and
+  V-015/V-017 unchanged. Spec 149 retained as a grammar fixture.
 authors: ["open-agentic-platform"]
 kind: registry
 domain: platform
@@ -13,7 +20,7 @@ implementation: complete
 category: ["auth", "identity"]
 selector: AUTH_DRIVER
 member_contract: auth-driver
-default: rauthy-oidc
+default: rauthy
 production_forbidden: ["example-tenant-mock"]
 depends_on:
   - "147-spec-kind-grammar"
@@ -35,6 +42,13 @@ summary: >
 ---
 
 # 148 — Auth driver registry
+
+> **Amended 2026-07-08 by spec 229 (auth-driver model correction).** The
+> registry's app-level members are `mock` (dev) and `rauthy` (prod); the
+> `default` is now `rauthy`. Enterprise IdPs (SAML, Entra ID, Auth0, Google,
+> GitHub) federate *inside* Rauthy as upstream providers, not as additional
+> `AUTH_DRIVER` member capabilities. Spec 149 (SAML) is retained as a
+> spec-kind-grammar fixture, not a shipped driver. See spec 229 §3.
 
 ## §1 Motivation
 
@@ -79,7 +93,8 @@ contract is exercised by a real tenant deployment.
 
 ## §3 Defaults and forbidden production members
 
-- `default: rauthy-oidc` — when `AUTH_DRIVER` is unset, OAP behaves as
+- `default: rauthy` (amended from `rauthy-oidc` by spec 229; `rauthy` is the
+  canonical driver token): when `AUTH_DRIVER` is unset, OAP behaves as
   spec 106 specifies (Rauthy-issued JWTs validated by the existing
   `deployd-api` scope gate). The default keeps the registry
   backward-compatible with deployments that have not opted into
