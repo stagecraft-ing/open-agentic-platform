@@ -28,23 +28,24 @@ import {
   getScaffoldReadiness,
   getModuleCatalog,
   type ModuleDescriptor,
+  type ProfileDefault,
   type ScaffoldReadiness,
 } from "../lib/projects-api.server";
 import { applyModuleToggle } from "../lib/module-selection";
+import {
+  toVariant,
+  profileName,
+  type Auth,
+  type Topology,
+} from "../lib/create-project-variant";
 
-type Variant = "single-public" | "single-internal" | "dual";
+// Spec 227 Stage 2: the surface presents two orthogonal axes (FR-002). Auth is
+// not independently selectable for `dual` (it serves both stacks); `minimal`
+// (mock auth) is deliberately not offered at the OAP surface. The axis-to-wire
+// mapping lives in the pure, tested `create-project-variant` helper.
 
-const VARIANTS: Array<{ value: Variant; label: string; description: string }> = [
-  {
-    value: "single-public",
-    label: "Single (public)",
-    description: "One stack served to citizens / external users.",
-  },
-  {
-    value: "single-internal",
-    label: "Single (internal)",
-    description: "One stack served to staff / internal users.",
-  },
+const TOPOLOGY_OPTIONS: Array<{ value: Topology; label: string; description: string }> = [
+  { value: "single", label: "Single", description: "One stack (public or internal)." },
   {
     value: "dual",
     label: "Dual",
@@ -52,23 +53,19 @@ const VARIANTS: Array<{ value: Variant; label: string; description: string }> = 
   },
 ];
 
-// Spec 227 Stage 1: the module catalog (ModuleDescriptor) is no longer a
-// hand-mirrored constant here. The route loader fetches it from
-// GET /api/factory/module-catalog (derived server-side from the org's adapter
-// manifests) and the component groups it by category at render time, so the
-// prose can no longer drift from the adapter.
+const AUTH_OPTIONS: Array<{ value: Auth; label: string; description: string }> = [
+  { value: "public", label: "Public", description: "Served to citizens / external users." },
+  { value: "internal", label: "Internal", description: "Served to staff / internal users." },
+];
 
-// Empty by design: template profiles select AUTH_DRIVER (auth is not
-// a module) and no module ships by default; selected modules are composed
-// server-side on top of the prebuilt tree (spec 199 FR-007 cutover,
-// 2026-06-11).
-const PRESETS: Record<Variant, string[]> = {
-  "single-public": [],
-  "single-internal": [],
-  // Dual modules are managed by setup-dual-app.ts; the picker is hidden
-  // for variant=dual, so the empty preset is informational only.
-  dual: [],
-};
+const GATEWAY_TIMEOUT_DEFAULT = "30000";
+
+// Spec 227 Stage 2: the surface splits the catalog into honest regions
+// (FR-003/FR-007). Feature modules are the real code modules (category
+// "Application"); Infrastructure resources project from the app's baked
+// infra.config topology; the gateway (api-gateway) is a base-app config knob +
+// the opt-in /connectivity page, not a feature toggle. The catalog + per-profile
+// defaults are fetched server-side from GET /api/factory/module-catalog.
 
 interface AdapterSummary {
   id: string;
@@ -80,6 +77,7 @@ interface LoaderData {
   adapters: AdapterSummary[];
   readiness: ScaffoldReadiness;
   modules: ModuleDescriptor[];
+  profiles: ProfileDefault[];
 }
 
 interface ActionSuccess {
@@ -119,11 +117,16 @@ export async function loader({
           .map((a) => ({ id: a.id, name: a.name, version: a.version }))
       : [];
 
-  // Spec 227 Stage 1: derived module catalog. A rejected/empty result yields
-  // an empty picker (the form still renders) rather than a 500.
+  // Spec 227 Stage 1/2: derived module catalog + per-profile defaults. A
+  // rejected/empty result yields an empty picker (the form still renders)
+  // rather than a 500.
   const modules =
     moduleCatalogResult.status === "fulfilled"
       ? moduleCatalogResult.value.modules
+      : [];
+  const profiles =
+    moduleCatalogResult.status === "fulfilled"
+      ? moduleCatalogResult.value.profiles
       : [];
 
   const readiness: ScaffoldReadiness =
@@ -147,7 +150,7 @@ export async function loader({
               : "scaffold-readiness lookup failed",
         };
 
-  return { adapters, readiness, modules };
+  return { adapters, readiness, modules, profiles };
 }
 
 export async function action({
@@ -162,10 +165,20 @@ export async function action({
   const slug = (formData.get("slug") as string | null) ?? "";
   const description = (formData.get("description") as string | null) ?? "";
   const adapterId = (formData.get("adapterId") as string | null) ?? "";
-  const variant = (formData.get("variant") as string | null) ?? "dual";
+  const topology = ((formData.get("topology") as string | null) ??
+    "single") as Topology;
+  const authAxis = ((formData.get("auth") as string | null) ??
+    "public") as Auth;
+  const variant = toVariant(topology, authAxis);
   const repoName = (formData.get("repoName") as string | null) ?? "";
   const isPrivate = formData.get("visibility") !== "public";
   const modules = formData.getAll("modules").map(String);
+  const bffPrivateApiBaseUrl = (
+    (formData.get("bffPrivateApiBaseUrl") as string | null) ?? ""
+  ).trim();
+  const gatewayTimeoutRaw = (
+    (formData.get("gatewayTimeoutMs") as string | null) ?? ""
+  ).trim();
 
   if (!name || !slug || !adapterId || !repoName) {
     return { error: "Name, slug, adapter, and repository name are required." };
@@ -176,8 +189,10 @@ export async function action({
         "Slug must be at least 3 characters, lowercase alphanumeric with hyphens (e.g., my-project).",
     };
   }
-  if (!["single-public", "single-internal", "dual"].includes(variant)) {
-    return { error: "Invalid variant selected." };
+  if (gatewayTimeoutRaw && !/^[1-9][0-9]*$/.test(gatewayTimeoutRaw)) {
+    return {
+      error: "Gateway timeout must be a positive whole number of milliseconds.",
+    };
   }
 
   try {
@@ -186,10 +201,12 @@ export async function action({
       slug,
       description: description || undefined,
       adapterId,
-      variant: variant as Variant,
+      variant,
       modules: variant === "dual" ? [] : modules,
       repoName,
       isPrivate,
+      bffPrivateApiBaseUrl: bffPrivateApiBaseUrl || undefined,
+      gatewayTimeoutMs: gatewayTimeoutRaw ? Number(gatewayTimeoutRaw) : undefined,
     });
     return result;
   } catch (err) {
@@ -225,15 +242,8 @@ function isSuccess(data: ActionResult | undefined): data is ActionSuccess {
 }
 
 export default function NewProject() {
-  const { adapters, readiness, modules } = useLoaderData() as LoaderData;
-  // Spec 227 Stage 1: group the derived catalog by category for the picker.
-  const modulesByCategory = modules.reduce<Record<string, ModuleDescriptor[]>>(
-    (acc, m) => {
-      (acc[m.category] ??= []).push(m);
-      return acc;
-    },
-    {}
-  );
+  const { adapters, readiness, modules, profiles } =
+    useLoaderData() as LoaderData;
   const actionData = useActionData() as ActionResult | undefined;
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
@@ -242,9 +252,24 @@ export default function NewProject() {
   const [repoName, setRepoName] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
   const [repoEdited, setRepoEdited] = useState(false);
-  const [variant, setVariant] = useState<Variant>("dual");
+  const [topology, setTopology] = useState<Topology>("single");
+  const [auth, setAuth] = useState<Auth>("public");
   const [selectedModules, setSelectedModules] = useState<Set<string>>(
-    () => new Set(PRESETS["dual"])
+    () => new Set()
+  );
+  const [connectivity, setConnectivity] = useState(false);
+  const [privateApiBaseUrl, setPrivateApiBaseUrl] = useState("");
+  const [gatewayTimeout, setGatewayTimeout] = useState(GATEWAY_TIMEOUT_DEFAULT);
+
+  // Spec 227 Stage 2 sectioning: feature modules are the real code modules
+  // (category "Application"); the gateway (api-gateway) is a base-app knob, not
+  // a feature toggle. The internal profile auto-ships its modules ("auto for
+  // Internal"), surfaced pre-checked and read-only.
+  const featureModules = modules.filter((m) => m.category === "Application");
+  const gatewayModule = modules.find((m) => m.id === "api-gateway");
+  const currentProfile = profileName(topology, auth);
+  const autoModules = new Set(
+    profiles.find((p) => p.name === currentProfile)?.modules ?? []
   );
 
   const handleNameChange = (value: string) => {
@@ -254,15 +279,8 @@ export default function NewProject() {
     if (!repoEdited) setRepoName(slugEdited ? slug : derived);
   };
 
-  const handleVariantChange = (next: Variant) => {
-    setVariant(next);
-    setSelectedModules(new Set(PRESETS[next]));
-  };
-
   const toggleModule = (id: string, checked: boolean) => {
-    // Transitive dependency resolution lives in a pure, tested helper: checking
-    // pulls in the full `requires` closure, unchecking drops the full dependent
-    // closure (spec 227; the prior inline pass only handled direct neighbours).
+    // Transitive dependency resolution lives in a pure, tested helper (spec 227).
     setSelectedModules((prev) => applyModuleToggle(modules, prev, id, checked));
   };
 
@@ -378,91 +396,260 @@ export default function NewProject() {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Variant
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {VARIANTS.map((v) => (
-                <label
-                  key={v.value}
-                  className="relative flex items-start border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 dark:has-[:checked]:bg-indigo-900/20"
-                >
-                  <input
-                    type="radio"
-                    name="variant"
-                    value={v.value}
-                    checked={variant === v.value}
-                    onChange={() => handleVariantChange(v.value)}
-                    required
-                    className="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300"
-                  />
-                  <div className="ml-3">
-                    <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {v.label}
-                    </span>
-                    <span className="block text-xs text-gray-500 dark:text-gray-400">
-                      {v.description}
-                    </span>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {variant !== "dual" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Modules
-              </label>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                Optional — none ship by default; selected modules are composed
-                into the scaffold. Dependencies are managed automatically.
-              </p>
-              <div className="space-y-4">
-                {Object.entries(modulesByCategory).map(([category, mods]) => (
-                  <fieldset
-                    key={category}
-                    className="rounded-md border border-gray-200 dark:border-gray-700 px-4 py-3"
+          {/* Spec 227 Stage 2 (FR-002): two orthogonal axes. Auth is fixed for
+              dual (it serves both stacks). */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <fieldset>
+              <legend className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Topology
+              </legend>
+              <div className="space-y-2">
+                {TOPOLOGY_OPTIONS.map((t) => (
+                  <label
+                    key={t.value}
+                    className="relative flex items-start border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 cursor-pointer hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 dark:has-[:checked]:bg-indigo-900/20"
                   >
-                    <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 px-1">
-                      {category}
-                    </legend>
-                    <div className="space-y-2 mt-1">
-                      {mods.map((m) => {
-                        const checked = selectedModules.has(m.id);
-                        return (
-                          <label
-                            key={m.id}
-                            className="flex items-start gap-3 cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              name="modules"
-                              value={m.id}
-                              checked={checked}
-                              onChange={(e) =>
-                                toggleModule(m.id, e.target.checked)
-                              }
-                              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            />
-                            <span>
-                              <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {m.displayName}
-                              </span>
-                              <span className="block text-xs text-gray-500 dark:text-gray-400">
-                                {m.description}
-                              </span>
-                            </span>
-                          </label>
-                        );
-                      })}
+                    <input
+                      type="radio"
+                      name="topology"
+                      value={t.value}
+                      checked={topology === t.value}
+                      onChange={() => setTopology(t.value)}
+                      className="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300"
+                    />
+                    <div className="ml-3">
+                      <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {t.label}
+                      </span>
+                      <span className="block text-xs text-gray-500 dark:text-gray-400">
+                        {t.description}
+                      </span>
                     </div>
-                  </fieldset>
+                  </label>
                 ))}
               </div>
+            </fieldset>
+
+            <fieldset
+              disabled={topology === "dual"}
+              className="disabled:opacity-50"
+            >
+              <legend className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Auth
+              </legend>
+              <div className="space-y-2">
+                {AUTH_OPTIONS.map((a) => (
+                  <label
+                    key={a.value}
+                    className="relative flex items-start border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 dark:has-[:checked]:bg-indigo-900/20 has-[:disabled]:cursor-not-allowed"
+                  >
+                    <input
+                      type="radio"
+                      name="auth"
+                      value={a.value}
+                      checked={auth === a.value}
+                      onChange={() => setAuth(a.value)}
+                      className="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300"
+                    />
+                    <div className="ml-3">
+                      <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {a.label}
+                      </span>
+                      <span className="block text-xs text-gray-500 dark:text-gray-400">
+                        {a.description}
+                      </span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              {topology === "dual" && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Dual serves both public and internal stacks.
+                </p>
+              )}
+            </fieldset>
+          </div>
+
+          {/* Spec 227 Stage 2 (FR-003): Infrastructure is a read-only projection
+              of the baked infra.config topology. */}
+          <fieldset className="rounded-md border border-gray-200 dark:border-gray-700 px-4 py-3">
+            <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 px-1">
+              Infrastructure
+            </legend>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Projected read-only from the baked{" "}
+              <code>apps/api/infra.config.json</code> topology; identical across
+              environments (dev provisioned by OAP).
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked
+                  disabled
+                  readOnly
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
+                    PostgreSQL
+                  </span>
+                  <span className="block text-xs text-gray-500 dark:text-gray-400">
+                    Default-on. The baseline database (sql_servers).
+                  </span>
+                </span>
+              </div>
+              <div className="flex items-start gap-3 opacity-60">
+                <input
+                  type="checkbox"
+                  disabled
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
+                    Redis / cache
+                    <span className="ml-2 rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] font-normal uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Planned
+                    </span>
+                  </span>
+                  <span className="block text-xs text-gray-500 dark:text-gray-400">
+                    Opt-in Redis provisioning arrives in a later stage.
+                  </span>
+                </span>
+              </div>
             </div>
+          </fieldset>
+
+          {/* Spec 227 Stage 2 (FR-008): feature modules, single topology only.
+              Dual composes no feature modules today, so the picker is hidden. */}
+          {topology !== "dual" && featureModules.length > 0 && (
+            <fieldset className="rounded-md border border-gray-200 dark:border-gray-700 px-4 py-3">
+              <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 px-1">
+                Application features
+              </legend>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                Real code modules composed into the scaffold. Dependencies are
+                resolved automatically.
+              </p>
+              <div className="space-y-2">
+                {featureModules.map((m) => {
+                  const isAuto = autoModules.has(m.id);
+                  const checked = isAuto || selectedModules.has(m.id);
+                  return (
+                    <label
+                      key={m.id}
+                      className="flex items-start gap-3 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        name="modules"
+                        value={m.id}
+                        checked={checked}
+                        disabled={isAuto}
+                        onChange={(e) => toggleModule(m.id, e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-60"
+                      />
+                      <span>
+                        <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {m.displayName}
+                          {isAuto && (
+                            <span className="ml-2 text-xs font-normal text-indigo-600 dark:text-indigo-400">
+                              auto for Internal
+                            </span>
+                          )}
+                        </span>
+                        <span className="block text-xs text-gray-500 dark:text-gray-400">
+                          {m.description}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
           )}
+
+          {/* Spec 227 Stage 2 (FR-007): base-app knobs as fields, not toggles;
+              security posture is always on. CORS omitted until factory-encore
+              008 wires it. */}
+          <fieldset className="rounded-md border border-gray-200 dark:border-gray-700 px-4 py-3 space-y-3">
+            <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 px-1">
+              Base-app config
+            </legend>
+            <div>
+              <label
+                htmlFor="bffPrivateApiBaseUrl"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                BFF private-backend URL
+              </label>
+              <input
+                type="text"
+                name="bffPrivateApiBaseUrl"
+                id="bffPrivateApiBaseUrl"
+                value={privateApiBaseUrl}
+                onChange={(e) => setPrivateApiBaseUrl(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm font-mono text-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                placeholder="blank uses the template default"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="gatewayTimeoutMs"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Gateway timeout (ms)
+              </label>
+              <input
+                type="number"
+                min={1}
+                name="gatewayTimeoutMs"
+                id="gatewayTimeoutMs"
+                value={gatewayTimeout}
+                onChange={(e) => setGatewayTimeout(e.target.value)}
+                className="mt-1 block w-40 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm font-mono text-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+            {/* The /connectivity page IS the api-gateway module. Only offer it
+                where it can be honored: single topology with the gateway module
+                in the catalog (dual composes no feature modules). */}
+            {topology !== "dual" && gatewayModule && (
+              <>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={connectivity}
+                    onChange={(e) => setConnectivity(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
+                      /connectivity diagnostic page
+                    </span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400">
+                      Adds a dev-only page that probes the gateway to the private
+                      backend.
+                    </span>
+                  </span>
+                </label>
+                {connectivity &&
+                  [
+                    ...applyModuleToggle(
+                      modules,
+                      new Set<string>(),
+                      gatewayModule.id,
+                      true
+                    ),
+                  ].map((id) => (
+                    <input key={id} type="hidden" name="modules" value={id} />
+                  ))}
+              </>
+            )}
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Security posture (CSP/HSTS, rate limiting, structured logging) is
+              always on.
+            </p>
+          </fieldset>
 
           <div>
             <label

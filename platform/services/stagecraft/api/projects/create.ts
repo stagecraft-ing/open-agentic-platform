@@ -73,8 +73,12 @@ import {
 import {
   isKnownModule,
   pickProfileFromModules,
+  profileModulesFor,
 } from "./scaffold/moduleCatalog";
-import { deriveModuleCatalogFromView } from "../factory/moduleCatalog";
+import {
+  deriveModuleCatalogFromView,
+  deriveProfileDefaultsFromView,
+} from "../factory/moduleCatalog";
 import type {
   ScaffoldAdapterRef,
   ScaffoldSeedInput,
@@ -100,6 +104,13 @@ export interface CreateFactoryProjectRequest {
   isPrivate?: boolean;
   /** Seed uploads already staged in the project bucket (spec 112 §4.3). */
   seedInputs?: ScaffoldSeedInput[];
+  /**
+   * Spec 227 Stage 2: Base-app config (BFF gateway knobs) plumbed into the
+   * scaffolded app's committed `apps/api/.env.example`. Omitted/blank leaves the
+   * template's commented default.
+   */
+  bffPrivateApiBaseUrl?: string;
+  gatewayTimeoutMs?: number;
 }
 
 export interface CreateFactoryProjectResponse {
@@ -131,6 +142,30 @@ export const createFactoryProject = api(
     validateSlug(req.slug);
     validateRepoName(req.repoName);
     validateVariant(req.variant);
+    // Spec 227 Stage 2: gateway timeout is a positive integer (milliseconds).
+    if (
+      req.gatewayTimeoutMs !== undefined &&
+      (!Number.isInteger(req.gatewayTimeoutMs) || req.gatewayTimeoutMs <= 0)
+    ) {
+      throw APIError.invalidArgument(
+        "gatewayTimeoutMs must be a positive integer (milliseconds)"
+      );
+    }
+    // Spec 227 Stage 2: guard the BFF URL so it cannot inject env lines or a
+    // non-URL value into the scaffolded apps/api/.env.example. Empty is allowed
+    // (keeps the template default); otherwise it must be a plain http(s) URL
+    // with no control characters.
+    if (req.bffPrivateApiBaseUrl) {
+      const url = req.bffPrivateApiBaseUrl;
+      const hasControlChar = [...url].some(
+        (c) => c.charCodeAt(0) < 0x20 || c.charCodeAt(0) === 0x7f
+      );
+      if (hasControlChar || !/^https?:\/\/\S+$/.test(url)) {
+        throw APIError.invalidArgument(
+          "bffPrivateApiBaseUrl must be an http(s) URL with no control characters"
+        );
+      }
+    }
     if (!hasOrgPermission(auth.platformRole, "project:create")) {
       throw APIError.permissionDenied(
         "Insufficient permissions to create projects in this org"
@@ -145,6 +180,9 @@ export const createFactoryProject = api(
     // substrate round-trip (ai-review on #533).
     const orgView = await loadOrgView(auth.orgId);
     const catalog = deriveModuleCatalogFromView(orgView, auth.orgId);
+    // Spec 227 Stage 2: per-profile defaults from the same admitted view, so the
+    // prebuilt profile's built-in modules are filtered out of the extras.
+    const profiles = deriveProfileDefaultsFromView(orgView, auth.orgId);
     const selectedModules = (req.modules ?? []).filter((id) =>
       isKnownModule(catalog, id)
     );
@@ -227,6 +265,7 @@ export const createFactoryProject = api(
     // rather than a preemptive block here.
 
     const profile = pickProfileFromModules(req.variant, selectedModules);
+    const profileBuiltIns = profileModulesFor(profiles, profile);
 
     const adapterRef: ScaffoldAdapterRef = {
       id: adapter.id,
@@ -266,6 +305,12 @@ export const createFactoryProject = api(
           adapter: { name: adapter.name, version: adapter.version },
           selectedModules,
           seedInputCount: req.seedInputs?.length ?? 0,
+          // Spec 227 Stage 2: record the (validated) Base-app config knobs so an
+          // injected or odd value is traceable.
+          baseAppConfig: {
+            bffPrivateApiBaseUrl: req.bffPrivateApiBaseUrl,
+            gatewayTimeoutMs: req.gatewayTimeoutMs,
+          },
         },
       })
       .returning();
@@ -312,6 +357,15 @@ export const createFactoryProject = api(
         // Spec 227 Stage 1: pass the already-derived catalog through so
         // extrasFor resolves install order without a second substrate load.
         catalog,
+        // Spec 227 Stage 2: the profile's manifest-declared built-in modules,
+        // so extrasFor does not re-compose what the prebuilt already ships.
+        profileBuiltIns,
+        // Spec 227 Stage 2: Base-app config plumbed into the produced app's
+        // committed apps/api/.env.example.
+        baseAppConfig: {
+          privateApiBaseUrl: req.bffPrivateApiBaseUrl,
+          gatewayTimeoutMs: req.gatewayTimeoutMs,
+        },
         destDir: projectRoot,
         pipelineStateSeed: pipelineStateSeed as unknown as Record<string, unknown>,
         // Spec 167 §2.3: adapter identity + manifest feed the .kernel-version
@@ -456,6 +510,12 @@ export const createFactoryProject = api(
             variant: req.variant,
             profile,
             selectedModules,
+            // Spec 227 Stage 2: the (validated) Base-app config knobs, for audit
+            // traceability of any injected or odd value.
+            baseAppConfig: {
+              bffPrivateApiBaseUrl: req.bffPrivateApiBaseUrl,
+              gatewayTimeoutMs: req.gatewayTimeoutMs,
+            },
             githubOrg: installation.githubOrgLogin,
             repoName: req.repoName,
             githubRepoUrl: repoCreate.htmlUrl,

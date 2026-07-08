@@ -64,6 +64,15 @@ establishes:
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/moduleCatalogCache.test.ts }
   - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/module-selection.ts }
   - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/module-selection.test.ts }
+  # Stage 2 (form reframe) landed this net-new pure helper: patchEnvExample
+  # plumbs the Base-app config knobs (FR-007) into the scaffolded app's committed
+  # apps/api/.env.example.
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/envExample.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/envExample.test.ts }
+  # Stage 2 review follow-up: the pure two-axis (Topology x Auth) to variant
+  # mapping, extracted from the route so it is unit-testable.
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/create-project-variant.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/create-project-variant.test.ts }
 extends:
   # A new spec adds a node to the featuregraph golden (same precedent as specs
   # 214, 222, 223, 224, 225, 226); claimed additively against spec 034 so the
@@ -395,6 +404,48 @@ authoritative relationships:
    Option A with no per-env files.
 
 ### Implementation log
+
+**Stage 2 landed (2026-07-08).** Create-project form reframe (FR-002/003/007/008):
+
+- **Two-axis selector (FR-002).** The single 3-way Variant radio is replaced by
+  independent Topology {single, dual} and Auth {public, internal} selectors,
+  mapped to the Build Spec `variant` wire (single+public to single-public,
+  single+internal to single-internal, dual to dual). `minimal` (mock auth) is not
+  offered; Auth is fixed for dual.
+- **Infrastructure projection (FR-003).** A read-only Infrastructure section:
+  PostgreSQL default-on, Redis a disabled "planned" row (its end-to-end wiring is
+  Stage 4), plus a read-only note that the app bakes its infra.config topology.
+- **Base-app config as fields (FR-007).** api-gateway's env knobs
+  (PRIVATE_API_BASE_URL, GATEWAY_TIMEOUT_MS) leave the module checkboxes and
+  become Base-app config fields, plumbed through create to perRequestScaffold via
+  the new `patchEnvExample` into the produced app's committed
+  apps/api/.env.example (the knobs are born-with baseline env). The /connectivity
+  page is an opt-in checkbox (the api-gateway module). Security posture is shown
+  always-on. The CORS field is omitted: factory-encore 008 is design-only, so per
+  FR-007 no inert control is offered until it wires the knob.
+- **Composition guard (FR-008).** The feature-module picker stays hidden for dual
+  (the adapter composes no feature modules for it today).
+- **Profile defaults derived (auto for Internal).**
+  `deriveProfileDefaultsFromView` projects the adapter manifest's
+  `scaffold.profiles[]`; the module-catalog endpoint now returns a
+  `{ modules, profiles }` bundle from one cached OrgView. The internal profile's
+  `["user-management"]` is surfaced pre-checked/read-only, and `extrasFor` takes
+  the derived built-ins (the static empty `PROFILE_MODULES`/`PRESETS` constants
+  are removed).
+
+`deploy.ts` stays under `references:`: the `preview_redis` dev-provisioning
+trigger has no honest opt-in source until Redis is wired end to end (Stage 4).
+`implementation:` stays `pending` (Stage 4 remains).
+
+Adversarial review fixes (same PR): the BFF URL is validated server-side (http(s)
+shape, no control chars) and `patchEnvExample` strips CR/LF, closing an env-line
+injection vector; the /connectivity checkbox is gated to single topology with the
+gateway module present (no silent dual no-op) and emits the transitive `requires`
+closure via `applyModuleToggle`; the per-org cache is keyed by `(namespace, org)`;
+the Topology/Auth-to-variant mapping (`create-project-variant.ts`) and the
+`scaffold.profiles` parse (`parseScaffoldProfiles`) are extracted into pure,
+unit-tested seams; the Base-app knobs are recorded in the create audit + scaffold
+job metadata; and stagecraft/CLAUDE.md is refreshed to the Stage 2 API.
 
 **Interim (post-Stage 1, 2026-07-08).** #533 ai-review follow-ups (the findings
 the Stage 1 PR adjudicated non-blocking), before the Stage 2 form reframe:

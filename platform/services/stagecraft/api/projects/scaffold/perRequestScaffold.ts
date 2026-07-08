@@ -25,6 +25,7 @@ import {
   serializeKernelVersionStamp,
 } from "./kernelVersionStamp";
 import { extrasFor, type ModuleDescriptor, type Profile } from "./moduleCatalog";
+import { patchEnvExample } from "./envExample";
 import { prebuiltDir, resolveCurrentPrebuiltSha } from "./templateCache";
 import type { ScaffoldAdapterRef } from "./types";
 import { OAP_BUILD_WORKFLOW_YAML } from "../../github/repoInit";
@@ -54,6 +55,17 @@ export interface PerRequestScaffoldOptions {
   selectedModules: string[];
   /** Spec 227 Stage 1: derived module catalog, for extrasFor install order. */
   catalog: ModuleDescriptor[];
+  /**
+   * Spec 227 Stage 2: the profile's manifest-declared built-in modules (from
+   * profileModulesFor); extrasFor filters these out of the extras so a profile
+   * default is never re-composed.
+   */
+  profileBuiltIns?: string[];
+  /**
+   * Spec 227 Stage 2: Base-app config values patched into the produced app's
+   * committed `apps/api/.env.example` after module composition.
+   */
+  baseAppConfig?: { privateApiBaseUrl?: string; gatewayTimeoutMs?: number };
   destDir: string;
   /** L0 pipeline-state seed object to drop at `.factory/pipeline-state.json`. */
   pipelineStateSeed: Record<string, unknown>;
@@ -133,9 +145,11 @@ export async function scaffoldFromPrebuilt(
   const extras =
     opts.profile === "dual"
       ? []
-      : extrasFor(opts.catalog, opts.profile, opts.selectedModules).filter(
-          (m) => !alreadyShipped.has(m)
-        );
+      : extrasFor(
+          opts.catalog,
+          opts.profileBuiltIns ?? [],
+          opts.selectedModules
+        ).filter((m) => !alreadyShipped.has(m));
   if (extras.length > 0) {
     const tsx = join(factoryModules, "tsx", "dist", "cli.mjs");
     const addModuleScript = join(factoryScriptsDir, "add-module.ts");
@@ -164,6 +178,13 @@ export async function scaffoldFromPrebuilt(
       tooledEnv(opts.workspaceDir)
     );
   }
+
+  // ── 3b. Patch Base-app config into apps/api/.env.example (spec 227 Stage 2).
+  // The gateway knobs (PRIVATE_API_BASE_URL / GATEWAY_TIMEOUT_MS) are born-with
+  // baseline env; the create form's values ride commit #1 via the committed
+  // `.env.example`. Independent of module selection (the gateway backend ships
+  // in every app).
+  await applyBaseAppConfig(dest, opts.baseAppConfig, sink);
 
   // ── 4. Drop the L0 pipeline-state seed ───────────────────────────────
   const factoryDir = join(dest, ".factory");
@@ -396,6 +417,52 @@ async function assertBornWithKernelComplete(dest: string): Promise<void> {
       `born-with kernel incomplete: .kernel-version missing or empty ` +
         `[${missing.join(", ")}] (spec 209 FR-002); a project cannot complete ` +
         `creation with a partial kernel`
+    );
+  }
+}
+
+/**
+ * Spec 227 Stage 2: write user-supplied Base-app config values into every
+ * `apps/api/.env.example` in the tree (single: `<dest>/apps/api`; dual:
+ * `<dest>/{public,internal}/apps/api`). Only keys with a supplied value are
+ * touched; a layout without the file is skipped. If a value was supplied but no
+ * `.env.example` was found anywhere, warn (rather than silently drop the knob).
+ */
+async function applyBaseAppConfig(
+  dest: string,
+  config: PerRequestScaffoldOptions["baseAppConfig"],
+  sink: (line: string) => void
+): Promise<void> {
+  const overrides: Record<string, string> = {};
+  if (config?.privateApiBaseUrl) {
+    overrides.PRIVATE_API_BASE_URL = config.privateApiBaseUrl;
+  }
+  if (config?.gatewayTimeoutMs !== undefined) {
+    overrides.GATEWAY_TIMEOUT_MS = String(config.gatewayTimeoutMs);
+  }
+  if (Object.keys(overrides).length === 0) return;
+
+  const candidates = [
+    join(dest, "apps", "api", ".env.example"),
+    join(dest, "public", "apps", "api", ".env.example"),
+    join(dest, "internal", "apps", "api", ".env.example"),
+  ];
+  let patched = 0;
+  for (const path of candidates) {
+    let body: string;
+    try {
+      body = await readFile(path, "utf8");
+    } catch {
+      continue; // .env.example absent for this layout
+    }
+    await writeFile(path, patchEnvExample(body, overrides), "utf8");
+    sink(`base-app config: patched ${path}`);
+    patched += 1;
+  }
+  if (patched === 0) {
+    log.warn(
+      "scaffoldFromPrebuilt: base-app config supplied but no apps/api/.env.example found",
+      { dest, keys: Object.keys(overrides) }
     );
   }
 }
