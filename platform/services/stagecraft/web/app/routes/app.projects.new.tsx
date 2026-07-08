@@ -30,6 +30,7 @@ import {
   type ModuleDescriptor,
   type ScaffoldReadiness,
 } from "../lib/projects-api.server";
+import { applyModuleToggle } from "../lib/module-selection";
 
 type Variant = "single-public" | "single-internal" | "dual";
 
@@ -259,24 +260,10 @@ export default function NewProject() {
   };
 
   const toggleModule = (id: string, checked: boolean) => {
-    setSelectedModules((prev) => {
-      const next = new Set(prev);
-      if (checked) {
-        next.add(id);
-        // Auto-add required deps.
-        const mod = modules.find((m) => m.id === id);
-        for (const dep of mod?.requires ?? []) next.add(dep);
-        // Drop conflicts.
-        for (const c of mod?.conflicts ?? []) next.delete(c);
-      } else {
-        next.delete(id);
-        // Drop modules that depend on this one.
-        for (const m of modules) {
-          if (m.requires.includes(id)) next.delete(m.id);
-        }
-      }
-      return next;
-    });
+    // Transitive dependency resolution lives in a pure, tested helper: checking
+    // pulls in the full `requires` closure, unchecking drops the full dependent
+    // closure (spec 227; the prior inline pass only handled direct neighbours).
+    setSelectedModules((prev) => applyModuleToggle(modules, prev, id, checked));
   };
 
   if (isSuccess(actionData)) {
