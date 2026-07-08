@@ -364,6 +364,6 @@
     "summary": "Define the governance envelope: the machine-checkable contract a factory must file for OAP to admit it, and the fail-closed admission gate that enforces it. The envelope is OAP's encoding of OWASP ASI 2026 obligations — a synthesis of the source's own ASI01 \"intent capsule\" (signed goal + constraints + context per run) and ASI10 \"signed behavioral manifest\" (declared capabilities, tools, goals, tiers — validated before each action), composed from a process envelope (the run) and per-adapter sub-envelopes (the scaffold boundary). OAP validates it two-sidedly — conformant to the schema AND reconciled against the factory's own atomic declarations (recompute-and-reconcile) — and refuses to admit a factory whose brief is absent, non-conformant, over-ceiling, or internally inconsistent. The envelope is the admission-time counterpart to the emission-time governance certificate (spec 102/168): the contract going in, the receipt coming out. OAP is the enforcer (judge/bouncer), not the rule-maker — ASI 2026 is the law, the factory interprets it for the org, OAP arbitrates, and OPC is an untrusted executor permitted only within the admitted envelope.\n",
     "title": "Factory Governance Envelope (ASI Admission Contract)"
   },
-  "shardHash": "649c9a8d40470b8931128ca2d692cd9f03fd61a7ea8be6ecf557aa605ad0865d",
+  "shardHash": "865a11e48bf7a736d782fe14fad091b709a44c24c3eb558f8cda2078c1c47455",
   "specVersion": "1.1.0"
 }

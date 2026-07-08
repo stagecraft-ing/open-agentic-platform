@@ -635,8 +635,10 @@ pub struct VariantEndpoint {
     pub port_api: u16,
     /// Port number for the web application.
     pub port_web: u16,
-    /// Auth driver wired into this variant's route guards (e.g., "saml",
-    /// "entra-id").
+    /// App-level auth driver for this variant: "mock" (dev) or "rauthy"
+    /// (prod) only (spec 229). Upstream IdPs (github/google/auth0/entra/
+    /// SAML-via-Google-Workspace) are Rauthy upstream-provider config, not
+    /// values of this field.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auth_driver: Option<String>,
     /// Per-variant env example file (e.g., ".env.external.example").
