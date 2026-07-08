@@ -55,7 +55,7 @@ if ! command -v spec-spine >/dev/null 2>&1; then
   cat >&2 <<EOF
 [merge-derived-index] spec-spine CLI not on PATH; cannot auto-resolve $PATHNAME.
             Install it (\`make setup\` one-time, or \`cargo install spec-spine-cli
-            --version 0.8.0 --locked\`), then re-run the rebase/merge, or resolve
+            --version 0.10.0 --locked\`), then re-run the rebase/merge, or resolve
             manually: make registry && git add $INDEX_DIR
 EOF
   exit 1

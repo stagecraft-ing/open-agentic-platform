@@ -177,7 +177,7 @@ fetch-axiomregent-check:
 # is on PATH; `make setup` installs the pinned version via the
 # `ensure-spec-spine` prerequisite.
 # ============================================================
-SPEC_SPINE_VERSION ?= 0.8.0
+SPEC_SPINE_VERSION ?= 0.10.0
 
 ensure-spec-spine:
 	@if [ "$$(spec-spine --version 2>/dev/null | awk '{print $$2}')" != "$(SPEC_SPINE_VERSION)" ]; then \

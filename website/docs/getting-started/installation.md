@@ -23,7 +23,7 @@ make setup
 ```
 
 The `make setup` command performs several essential bootstrapping steps:
-1. Installs the generic `spec-spine` CLI (pinned to version 0.8.0) from crates.io.
+1. Installs the generic `spec-spine` CLI (pinned to version 0.10.0) from crates.io.
 2. Builds the OAP-specific overlay tools (like `spec-lint`, `oap-registry-enrich`, and `oap-code-index-enrich`).
 3. Compiles the registry to generate the initial JSON shards under `.derived/spec-registry/by-spec/`.
 4. Fetches the `axiomregent` sidecar binary required by the desktop app.

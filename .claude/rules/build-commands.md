@@ -18,7 +18,7 @@ The four in-tree spec-spine binaries were deleted in spec 217 and replaced by th
 `spec-spine-cli` crate (see spec 217-spec-spine-engine-swap-collapse). Install once via:
 
 ```bash
-cargo install spec-spine-cli --version 0.8.0 --locked
+cargo install spec-spine-cli --version 0.10.0 --locked
 # or: make setup  (installs as part of contributor bootstrap)
 ```
 

@@ -167,7 +167,7 @@ spine**: drift between a spec and the code it claims fails CI before merge
 ([spec 127](../specs/127-spec-code-coupling-gate/spec.md)).
 
 **spec-spine is its own published library**, not a vendored in-tree
-engine. It ships as `spec-spine-cli` on crates.io (pinned to 0.8.0) from
+engine. It ships as `spec-spine-cli` on crates.io (pinned to 0.10.0) from
 its own repository. Because each produced project is its own GitHub
 repository that uses a public spec engine, a project can **graduate off
 OAP with no lock-in**. This is the same rationale as the AGPL-3.0 license:
