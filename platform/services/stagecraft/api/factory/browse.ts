@@ -57,13 +57,15 @@ export type FactoryProcessDetail = FactoryResourceSummary & {
 // Substrate loading + admission verdict (one round trip per request)
 // ---------------------------------------------------------------------------
 
-type OrgView = {
+export type OrgView = {
   substrate: SubstrateTranslation;
   admission: { admitted: boolean; reason: string | null };
   syncedAt: string;
 };
 
-async function loadOrgView(orgId: string): Promise<OrgView> {
+// Exported for the spec 227 module-catalog endpoint (api/factory/moduleCatalog.ts)
+// so the admission gate has a single home rather than a second copy.
+export async function loadOrgView(orgId: string): Promise<OrgView> {
   const substrate = await loadSubstrateForOrg(orgId);
   const admission = substrate.factoryOriginId
     ? await isFactoryAdmitted(orgId, substrate.factoryOriginId)
@@ -74,7 +76,7 @@ async function loadOrgView(orgId: string): Promise<OrgView> {
 /** Factory-origin rows serve only under an admitted envelope; `oap-self`
  * rows (OAP's own contract schemas) are not synced factory content and are
  * never admission-gated. */
-function servableRows(view: OrgView): SubstrateRowDraft[] {
+export function servableRows(view: OrgView): SubstrateRowDraft[] {
   return view.substrate.rows.filter(
     (r) =>
       r.origin === "oap-self" ||

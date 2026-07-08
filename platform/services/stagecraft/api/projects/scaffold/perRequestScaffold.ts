@@ -24,7 +24,7 @@ import {
   resolveSpecSpinePin,
   serializeKernelVersionStamp,
 } from "./kernelVersionStamp";
-import { extrasFor, type Profile } from "./moduleCatalog";
+import { extrasFor, type ModuleDescriptor, type Profile } from "./moduleCatalog";
 import { prebuiltDir, resolveCurrentPrebuiltSha } from "./templateCache";
 import type { ScaffoldAdapterRef } from "./types";
 import { OAP_BUILD_WORKFLOW_YAML } from "../../github/repoInit";
@@ -50,8 +50,10 @@ function tooledEnv(
 export interface PerRequestScaffoldOptions {
   workspaceDir: string;
   profile: Profile;
-  /** Modules selected by the user (raw — extrasFor filters them down). */
+  /** Modules selected by the user (raw; extrasFor filters them down). */
   selectedModules: string[];
+  /** Spec 227 Stage 1: derived module catalog, for extrasFor install order. */
+  catalog: ModuleDescriptor[];
   destDir: string;
   /** L0 pipeline-state seed object to drop at `.factory/pipeline-state.json`. */
   pipelineStateSeed: Record<string, unknown>;
@@ -131,7 +133,7 @@ export async function scaffoldFromPrebuilt(
   const extras =
     opts.profile === "dual"
       ? []
-      : extrasFor(opts.profile, opts.selectedModules).filter(
+      : extrasFor(opts.catalog, opts.profile, opts.selectedModules).filter(
           (m) => !alreadyShipped.has(m)
         );
   if (extras.length > 0) {

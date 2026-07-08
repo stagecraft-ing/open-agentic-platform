@@ -50,6 +50,11 @@ establishes:
   # the design PR's implied surface as the code landed (spec 227 §6 staging;
   # the 214 `references:planned-establishes -> establishes` precedent).
   - unit: { kind: file, path: platform/charts/acme-vue-encore/templates/redis.yaml }
+  # Stage 1 (catalog derivation) landed this net-new endpoint: the org-scoped
+  # module-catalog loader + GET /api/factory/module-catalog that projects the
+  # feature-module list from the adapter's substrate module manifests, replacing
+  # the two hand-mirrored MODULE_CATALOG copies (FR-001).
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/moduleCatalog.ts }
 extends:
   # A new spec adds a node to the featuregraph golden (same precedent as specs
   # 214, 222, 223, 224, 225, 226); claimed additively against spec 034 so the
@@ -82,17 +87,44 @@ extends:
   - spec: "214-tenant-app-chart-supersession"
     nature: additive
     unit: { kind: file, path: platform/charts/acme-vue-encore/templates/networkpolicy.yaml }
+  # Stage 1 (catalog derivation): promoted from references: as the
+  # implementation landed. The create-project feature-module catalog is now
+  # derived at request time from the adapter's substrate module manifests
+  # instead of hand-mirrored in two copies (FR-001, SC-001). Additive against
+  # 138 (the create/scaffold surface these paths belong to), 199 (the
+  # thin-consumer factory browser whose admission gate the endpoint reuses), and
+  # 112 (which owns the scaffold test files).
+  - spec: "138-stagecraft-create-realised-scaffold"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts }
+  - spec: "138-stagecraft-create-realised-scaffold"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
+  - spec: "138-stagecraft-create-realised-scaffold"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.ts }
+  - spec: "138-stagecraft-create-realised-scaffold"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx }
+  - spec: "138-stagecraft-create-realised-scaffold"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
+  - spec: "199-factory-thin-consumer-sync"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/factory/browse.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts }
+  - spec: "112-factory-project-lifecycle"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.test.ts }
 references:
   # Non-authoritative pointers to the code paths later stages govern. The
-  # Stage 3 deployd/chart paths were promoted to establishes/extends above as
-  # that code landed; the pointers below remain un-promoted until their own
-  # stage lands (claiming them now would over-fire the coupling gate).
-  - role: create-project-form-and-frontend-catalog
-    unit: { kind: file, path: platform/services/stagecraft/web/app/routes/app.projects.new.tsx }
-  - role: hand-mirrored-catalog-backend
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts }
-  - role: create-endpoint
-    unit: { kind: file, path: platform/services/stagecraft/api/projects/create.ts }
+  # Stage 3 deployd/chart paths and the Stage 1 catalog-derivation paths were
+  # promoted to establishes/extends above as that code landed; the pointer below
+  # remains un-promoted until its own stage lands (claiming it now would
+  # over-fire the coupling gate). The Stage 2 form reframe promotes the
+  # dev-provisioning trigger when it wires the opt-in Redis selection.
   - role: dev-provisioning-trigger
     unit: { kind: file, path: platform/services/stagecraft/api/deploy/deploy.ts }
 ---
@@ -370,6 +402,31 @@ The stagecraft trigger (`deploy.ts`) that sets `preview_redis` from a project's
 opt-in Redis selection, gated by `envKind`, lands with the Stage 2 form reframe
 and the Stage 4 end-to-end wiring (it has no honest opt-in source until the
 Infrastructure section exists), so `deploy.ts` stays under `references:`.
+
+**Stage 1 landed (2026-07-07).** Catalog derivation (FR-001, SC-001):
+
+- The two hand-mirrored `MODULE_CATALOG` copies are gone. `api/projects/scaffold/moduleCatalog.ts`
+  is now pure: `deriveModuleCatalog(rows)` maps the adapter's module
+  `manifest.json` bodies to descriptors, `deriveInstallOrder` topo-sorts over
+  `requires`, and `isKnownModule`/`extrasFor` take the derived catalog.
+  `id`/`description`/`requires`/`conflicts`/`status` come from the manifest; a
+  thin transitional `PRESENTATION` overlay supplies `displayName`/`category`
+  (no upstream source), which Stage 2's re-sectioning reworks.
+- New `api/factory/moduleCatalog.ts`: `loadModuleCatalogForOrg` + the
+  admission-gated `GET /api/factory/module-catalog`, reusing `browse.ts`'s
+  `loadOrgView`/`servableRows` (single admission gate). Module manifests land in
+  the catch-all `reference-data` kind, so they are selected by path regex.
+- `create.ts` loads the derived catalog per-org; the frontend route deletes its
+  hand-copy const and consumes the endpoint via its loader (a rejected/empty
+  fetch degrades to an empty picker, not a 500).
+- Out of scope for Stage 1 (deferred to Stage 2): `PROFILE_MODULES`/`PRESETS`
+  are left empty; the adapter manifest's `scaffold.profiles[].modules` declares
+  per-profile defaults (`internal` ships `user-management`) that Stage 2's form
+  reframe derives and surfaces as "auto for Internal". The runtime dedupe in
+  `perRequestScaffold.readInstalledModules` keeps composition correct meanwhile,
+  so behavior is unchanged. The false `data-redis` label is corrected by
+  factory-encore 008 at the manifest source; Stage 1 removes the hand-copy so
+  stagecraft cannot drift from it.
 
 ## 7. Out of scope
 

@@ -26,6 +26,8 @@ import {
   createFactoryProject,
   listFactoryAdapters,
   getScaffoldReadiness,
+  getModuleCatalog,
+  type ModuleDescriptor,
   type ScaffoldReadiness,
 } from "../lib/projects-api.server";
 
@@ -49,69 +51,14 @@ const VARIANTS: Array<{ value: Variant; label: string; description: string }> = 
   },
 ];
 
-// Mirror of platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts.
-// Kept inline to avoid a shared client/server dep on the api/ tree (Encore.ts
-// codegen would surface it as well, but this UI is small enough that
-// duplication beats coupling).
-interface ModuleDescriptor {
-  id: string;
-  displayName: string;
-  category: string;
-  description: string;
-  requires: string[];
-  conflicts: string[];
-}
-
-const MODULE_CATALOG: ModuleDescriptor[] = [
-  {
-    id: "security-core",
-    displayName: "Security Core",
-    category: "Infrastructure",
-    description:
-      "Cross-cutting security overlay — documents the CORS origin knob; Helmet/CSP, rate limiting, and logging ship in the base app",
-    requires: [],
-    conflicts: [],
-  },
-  {
-    id: "api-gateway",
-    displayName: "API Gateway",
-    category: "Infrastructure",
-    description:
-      "BFF gateway opt-in — private-backend config knobs + the /connectivity test page; the gateway service ships in the base app",
-    requires: ["security-core"],
-    conflicts: [],
-  },
-  {
-    id: "data-postgres",
-    displayName: "PostgreSQL",
-    category: "Data",
-    description:
-      'Declarative marker — persistence is the base app\'s SQLDatabase("app"); Encore owns pooling, health, and migrations',
-    requires: [],
-    conflicts: [],
-  },
-  {
-    id: "data-redis",
-    displayName: "Redis",
-    category: "Data",
-    description:
-      "Optional rate-limit backend (REDIS_URL). Not a session store — auth is stateless RS256 JWT",
-    requires: [],
-    conflicts: [],
-  },
-  {
-    id: "user-management",
-    displayName: "User/Role Management",
-    category: "Application",
-    description:
-      "User + role management as an Encore service — role catalog with admin CRUD behind auth + requireRole",
-    requires: [],
-    conflicts: [],
-  },
-];
+// Spec 227 Stage 1: the module catalog (ModuleDescriptor) is no longer a
+// hand-mirrored constant here. The route loader fetches it from
+// GET /api/factory/module-catalog (derived server-side from the org's adapter
+// manifests) and the component groups it by category at render time, so the
+// prose can no longer drift from the adapter.
 
 // Empty by design: template profiles select AUTH_DRIVER (auth is not
-// a module) and no module ships by default — selected modules are composed
+// a module) and no module ships by default; selected modules are composed
 // server-side on top of the prebuilt tree (spec 199 FR-007 cutover,
 // 2026-06-11).
 const PRESETS: Record<Variant, string[]> = {
@@ -122,14 +69,6 @@ const PRESETS: Record<Variant, string[]> = {
   dual: [],
 };
 
-const MODULES_BY_CATEGORY = MODULE_CATALOG.reduce<Record<string, ModuleDescriptor[]>>(
-  (acc, m) => {
-    (acc[m.category] ??= []).push(m);
-    return acc;
-  },
-  {}
-);
-
 interface AdapterSummary {
   id: string;
   name: string;
@@ -139,6 +78,7 @@ interface AdapterSummary {
 interface LoaderData {
   adapters: AdapterSummary[];
   readiness: ScaffoldReadiness;
+  modules: ModuleDescriptor[];
 }
 
 interface ActionSuccess {
@@ -164,16 +104,25 @@ export async function loader({
 }): Promise<LoaderData> {
   await requireUser(request);
 
-  const [adapterListResult, readinessResult] = await Promise.allSettled([
-    listFactoryAdapters(request),
-    getScaffoldReadiness(request),
-  ]);
+  const [adapterListResult, readinessResult, moduleCatalogResult] =
+    await Promise.allSettled([
+      listFactoryAdapters(request),
+      getScaffoldReadiness(request),
+      getModuleCatalog(request),
+    ]);
 
   const adapters =
     adapterListResult.status === "fulfilled"
       ? adapterListResult.value.adapters
           .filter((a): a is AdapterSummary & { id: string } => Boolean(a.id))
           .map((a) => ({ id: a.id, name: a.name, version: a.version }))
+      : [];
+
+  // Spec 227 Stage 1: derived module catalog. A rejected/empty result yields
+  // an empty picker (the form still renders) rather than a 500.
+  const modules =
+    moduleCatalogResult.status === "fulfilled"
+      ? moduleCatalogResult.value.modules
       : [];
 
   const readiness: ScaffoldReadiness =
@@ -197,7 +146,7 @@ export async function loader({
               : "scaffold-readiness lookup failed",
         };
 
-  return { adapters, readiness };
+  return { adapters, readiness, modules };
 }
 
 export async function action({
@@ -275,7 +224,15 @@ function isSuccess(data: ActionResult | undefined): data is ActionSuccess {
 }
 
 export default function NewProject() {
-  const { adapters, readiness } = useLoaderData() as LoaderData;
+  const { adapters, readiness, modules } = useLoaderData() as LoaderData;
+  // Spec 227 Stage 1: group the derived catalog by category for the picker.
+  const modulesByCategory = modules.reduce<Record<string, ModuleDescriptor[]>>(
+    (acc, m) => {
+      (acc[m.category] ??= []).push(m);
+      return acc;
+    },
+    {}
+  );
   const actionData = useActionData() as ActionResult | undefined;
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
@@ -307,14 +264,14 @@ export default function NewProject() {
       if (checked) {
         next.add(id);
         // Auto-add required deps.
-        const mod = MODULE_CATALOG.find((m) => m.id === id);
+        const mod = modules.find((m) => m.id === id);
         for (const dep of mod?.requires ?? []) next.add(dep);
         // Drop conflicts.
         for (const c of mod?.conflicts ?? []) next.delete(c);
       } else {
         next.delete(id);
         // Drop modules that depend on this one.
-        for (const m of MODULE_CATALOG) {
+        for (const m of modules) {
           if (m.requires.includes(id)) next.delete(m.id);
         }
       }
@@ -476,7 +433,7 @@ export default function NewProject() {
                 into the scaffold. Dependencies are managed automatically.
               </p>
               <div className="space-y-4">
-                {Object.entries(MODULES_BY_CATEGORY).map(([category, mods]) => (
+                {Object.entries(modulesByCategory).map(([category, mods]) => (
                   <fieldset
                     key={category}
                     className="rounded-md border border-gray-200 dark:border-gray-700 px-4 py-3"

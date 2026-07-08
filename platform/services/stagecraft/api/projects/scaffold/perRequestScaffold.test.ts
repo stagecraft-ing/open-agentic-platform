@@ -63,6 +63,8 @@ describe("scaffoldFromPrebuilt — VCS-free output (spec 112 §5.3)", () => {
         workspaceDir: ws,
         profile: "dual",
         selectedModules: [],
+        // dual composes no extras, so the catalog is unused on this path.
+        catalog: [],
         destDir: dest,
         pipelineStateSeed: { level: "L0" },
         adapter: {

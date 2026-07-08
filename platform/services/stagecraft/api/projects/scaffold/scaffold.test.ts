@@ -4,16 +4,31 @@ import { describe, expect, test } from "vitest";
 import { buildL0PipelineStateSeed } from "./seedPipelineState";
 import { buildProjectOpenDeepLink } from "./deepLink";
 import {
-  INSTALL_ORDER,
-  MODULE_CATALOG,
   PRESETS,
   PROFILE_MODULES,
   PROFILES,
+  deriveModuleCatalog,
+  deriveInstallOrder,
   extrasFor,
   pickProfileFromModules,
   isKnownModule,
+  isModuleManifestPath,
+  type RawModuleManifest,
 } from "./moduleCatalog";
 import type { ScaffoldAdapterRef } from "./types";
+
+// Spec 227 Stage 1: the catalog derives from the adapter's module manifests.
+// This fixture mirrors the five real acme-vue-encore module manifest.json
+// shapes (id/description/requires/conflicts/status) so the derivation tests
+// exercise the same relationships the substrate would feed at runtime.
+const MODULE_MANIFEST_FIXTURE: RawModuleManifest[] = [
+  { name: "security-core", description: "sec", requires: [], conflicts: [], status: "stable" },
+  { name: "api-gateway", description: "bff", requires: ["security-core"], conflicts: [], status: "stable" },
+  { name: "data-postgres", description: "pg", requires: [], conflicts: [], status: "stable" },
+  { name: "data-redis", description: "redis", requires: [], conflicts: [], status: "stable" },
+  { name: "user-management", description: "users", requires: [], conflicts: [], status: "stable" },
+];
+const catalog = deriveModuleCatalog(MODULE_MANIFEST_FIXTURE);
 
 // Spec 140 §2.2 — the legacy `templateRemote` / `templateDefaultBranch`
 // fields no longer exist on `ScaffoldAdapterRef`; the clone target is
@@ -71,9 +86,9 @@ describe("buildProjectOpenDeepLink", () => {
   });
 });
 
-describe("moduleCatalog — template cutover (spec 199 FR-007)", () => {
-  test("the catalog is exactly template's modules/ directory", () => {
-    expect(MODULE_CATALOG.map((m) => m.id).sort()).toEqual([
+describe("moduleCatalog derivation (spec 227 Stage 1)", () => {
+  test("the derived catalog is exactly the adapter's modules/ set", () => {
+    expect(catalog.map((m) => m.id).sort()).toEqual([
       "api-gateway",
       "data-postgres",
       "data-redis",
@@ -82,7 +97,33 @@ describe("moduleCatalog — template cutover (spec 199 FR-007)", () => {
     ]);
   });
 
-  test("retired express-session-era and auth-module ids are gone", () => {
+  test("manifest fields drive the descriptor (requires/description/status)", () => {
+    const gw = catalog.find((m) => m.id === "api-gateway");
+    expect(gw?.requires).toEqual(["security-core"]);
+    expect(gw?.description).toBe("bff");
+    expect(gw?.status).toBe("stable");
+  });
+
+  test("presentation overlay supplies displayName/category; fallback for unknown ids", () => {
+    expect(catalog.find((m) => m.id === "data-redis")?.displayName).toBe("Redis");
+    expect(catalog.find((m) => m.id === "data-redis")?.category).toBe("Data");
+    const [extra] = deriveModuleCatalog([{ name: "new-thing" }]);
+    expect(extra.displayName).toBe("New Thing");
+    expect(extra.category).toBe("Other");
+  });
+
+  test("a malformed manifest (requires as a string) yields an empty edge list, not char-spread", () => {
+    // JSON.parse + cast can let a malformed `"requires": "security-core"`
+    // through; a bare spread would iterate it into single characters. The
+    // coercion must produce [] instead of ["s","e","c",...].
+    const [derived] = deriveModuleCatalog([
+      { name: "bad", requires: "security-core" as unknown as string[] },
+    ]);
+    expect(derived.requires).toEqual([]);
+    expect(derived.conflicts).toEqual([]);
+  });
+
+  test("retired express-session-era and auth-module ids are unknown", () => {
     for (const retired of [
       "auth-saml",
       "auth-entra-id",
@@ -91,7 +132,7 @@ describe("moduleCatalog — template cutover (spec 199 FR-007)", () => {
       "service-auth",
       "api-docs",
     ]) {
-      expect(isKnownModule(retired)).toBe(false);
+      expect(isKnownModule(catalog, retired)).toBe(false);
     }
   });
 
@@ -102,13 +143,28 @@ describe("moduleCatalog — template cutover (spec 199 FR-007)", () => {
     }
   });
 
-  test("INSTALL_ORDER covers the catalog and puts security-core before api-gateway", () => {
-    expect([...INSTALL_ORDER].sort()).toEqual(
-      MODULE_CATALOG.map((m) => m.id).sort()
+  test("deriveInstallOrder covers the catalog and puts security-core before api-gateway", () => {
+    const order = deriveInstallOrder(catalog);
+    expect([...order].sort()).toEqual(catalog.map((m) => m.id).sort());
+    expect(order.indexOf("security-core")).toBeLessThan(
+      order.indexOf("api-gateway")
     );
-    expect(INSTALL_ORDER.indexOf("security-core")).toBeLessThan(
-      INSTALL_ORDER.indexOf("api-gateway")
-    );
+  });
+});
+
+describe("isModuleManifestPath (spec 227 Stage 1)", () => {
+  test("matches an adapter module manifest.json path", () => {
+    expect(
+      isModuleManifestPath("adapters/acme-vue-encore/modules/data-redis/manifest.json")
+    ).toBe(true);
+  });
+
+  test("rejects the top-level adapter manifest and non-manifest module files", () => {
+    expect(isModuleManifestPath("adapters/acme-vue-encore/manifest.yaml")).toBe(false);
+    expect(
+      isModuleManifestPath("adapters/acme-vue-encore/modules/data-redis/web.snippet.ts")
+    ).toBe(false);
+    expect(isModuleManifestPath("modules/data-redis/manifest.json")).toBe(false);
   });
 });
 
@@ -134,29 +190,37 @@ describe("pickProfileFromModules", () => {
 
 describe("extrasFor", () => {
   test("every selected module is an extra (no profile built-ins exist)", () => {
-    const result = extrasFor("public", ["data-redis", "user-management"]);
+    const result = extrasFor(catalog, "public", ["data-redis", "user-management"]);
     expect(result).toEqual(["data-redis", "user-management"]);
   });
 
-  test("sorting by INSTALL_ORDER: security-core installs before api-gateway", () => {
-    const result = extrasFor("minimal", [
+  test("install order respects dependencies: security-core before api-gateway", () => {
+    // The only ordering constraint is deps-before-dependents; api-gateway
+    // requires security-core, user-management is independent. Assert the
+    // invariant + presence, not an arbitrary exact permutation.
+    const result = extrasFor(catalog, "minimal", [
       "user-management",
       "api-gateway",
       "security-core",
     ]);
-    expect(result).toEqual([
-      "security-core",
+    expect([...result].sort()).toEqual([
       "api-gateway",
+      "security-core",
       "user-management",
     ]);
+    expect(result.indexOf("security-core")).toBeLessThan(
+      result.indexOf("api-gateway")
+    );
   });
 
   test("returns empty when nothing is selected", () => {
-    expect(extrasFor("public", [])).toEqual([]);
+    expect(extrasFor(catalog, "public", [])).toEqual([]);
   });
 
   test("unknown (incl. retired) modules are dropped", () => {
-    expect(extrasFor("minimal", ["bogus-not-real", "session-store-redis"])).toEqual([]);
+    expect(
+      extrasFor(catalog, "minimal", ["bogus-not-real", "session-store-redis"])
+    ).toEqual([]);
   });
 });
 
@@ -217,15 +281,13 @@ describe("spec 112 §10 runtime gate (shape)", () => {
 
 describe("isKnownModule", () => {
   test("recognises catalogued modules", () => {
-    // security-core is a regular opt-in module in template's
-    // catalog (the old always-on framing was template-distributor-era).
-    expect(isKnownModule("security-core")).toBe(true);
-    expect(isKnownModule("user-management")).toBe(true);
+    expect(isKnownModule(catalog, "security-core")).toBe(true);
+    expect(isKnownModule(catalog, "user-management")).toBe(true);
   });
 
   test("rejects unknown ids", () => {
-    expect(isKnownModule("nope")).toBe(false);
-    expect(isKnownModule("")).toBe(false);
-    expect(isKnownModule("auth-core")).toBe(false);
+    expect(isKnownModule(catalog, "nope")).toBe(false);
+    expect(isKnownModule(catalog, "")).toBe(false);
+    expect(isKnownModule(catalog, "auth-core")).toBe(false);
   });
 });

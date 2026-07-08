@@ -72,6 +72,7 @@ import {
   isKnownModule,
   pickProfileFromModules,
 } from "./scaffold/moduleCatalog";
+import { loadModuleCatalogForOrg } from "../factory/moduleCatalog";
 import type {
   ScaffoldAdapterRef,
   ScaffoldSeedInput,
@@ -128,13 +129,19 @@ export const createFactoryProject = api(
     validateSlug(req.slug);
     validateRepoName(req.repoName);
     validateVariant(req.variant);
-    const selectedModules = (req.modules ?? []).filter(isKnownModule);
-
     if (!hasOrgPermission(auth.platformRole, "project:create")) {
       throw APIError.permissionDenied(
         "Insufficient permissions to create projects in this org"
       );
     }
+
+    // Spec 227 Stage 1: the module catalog is derived from the org's admitted
+    // adapter manifests (the substrate), not a hand-mirrored constant, so
+    // `isKnownModule` validates against what the adapter actually exposes.
+    const catalog = await loadModuleCatalogForOrg(auth.orgId);
+    const selectedModules = (req.modules ?? []).filter((id) =>
+      isKnownModule(catalog, id)
+    );
 
     // ── 1. Warmup readiness — Create blocks if cache/prebuilds aren't up. ──
     const status = getInitStatus();
@@ -292,9 +299,12 @@ export const createFactoryProject = api(
         workspaceDir: workspace,
         profile,
         selectedModules,
+        // Spec 227 Stage 1: pass the already-derived catalog through so
+        // extrasFor resolves install order without a second substrate load.
+        catalog,
         destDir: projectRoot,
         pipelineStateSeed: pipelineStateSeed as unknown as Record<string, unknown>,
-        // Spec 167 §2.3 — adapter identity + manifest feed the .kernel-version
+        // Spec 167 §2.3: adapter identity + manifest feed the .kernel-version
         // born-with stamp written into commit #1.
         adapter: adapterRef,
         manifest,
