@@ -7173,30 +7173,30 @@ dependencies = [
 
 [[package]]
 name = "spec-spine-core"
-version = "0.8.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba9d432546e08c02a5f862f4377ae4c2f3e6cb63316689a70b6d6e17d06f7519"
+checksum = "e93d1e150a9a62091eb4e5206a5539a1f2dc5fe3dcbc8416b0694de2bd901d4a"
 dependencies = [
  "glob",
  "serde",
  "serde_json",
  "serde_yaml",
- "sha2 0.10.9",
+ "sha2 0.11.0",
  "spec-spine-types",
- "toml 0.8.23",
- "toml_edit 0.22.27",
+ "toml 1.1.2+spec-1.1.0",
+ "toml_edit 0.25.11+spec-1.1.0",
 ]
 
 [[package]]
 name = "spec-spine-types"
-version = "0.8.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5734dd1e4adea668c2c9d1762cf5d01e64040737215f9adbd4ca30ff089c50ec"
+checksum = "00a7df99099fed4485d7cc73ccc364b2afb1ecc702a6e56296874d333ab39728"
 dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
- "toml 0.8.23",
+ "toml 1.1.2+spec-1.1.0",
 ]
 
 [[package]]
@@ -7725,6 +7725,7 @@ dependencies = [
  "indexmap 2.14.0",
  "toml_datetime 1.1.1+spec-1.1.0",
  "toml_parser",
+ "toml_writer",
  "winnow 1.0.3",
 ]
 

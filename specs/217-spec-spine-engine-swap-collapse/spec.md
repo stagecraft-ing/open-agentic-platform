@@ -540,6 +540,28 @@ tests confirm it). (Boundary note: the `derived_at` provenance extension was
 requested of, and shipped by, the spec-spine-rooted CC; OAP does not write
 into spec-spine.)
 
+**Subsequent advance to 0.10.0 (2026-07-08).** The pin later advanced from
+0.8.0 to 0.10.0 across every site 217 governs, in lockstep so the installed
+build tool and the linked library never skew: the `spec-spine-cli` install
+version (`Makefile` `SPEC_SPINE_VERSION`, the four CI workflows that install
+it, and the `make setup` / docs / rules / githook install instructions) AND
+the six library consumers' `spec-spine-core` / `spec-spine-types` crate deps
+(`featuregraph`, `factory-engine`, `oap-registry-enrich`,
+`oap-code-index-enrich`, `opc/src-tauri`, `opc-decomposition-pipeline`). The
+motivation is the library's cargo + GitHub-Actions dependency auto-waiver,
+which lands at 0.10.0: dependabot cargo and workflow bumps self-clear without
+a human Spec-Drift-Waiver, and a `Cargo.toml` dependency bump no longer
+stales the codebase index because the dependency table is stripped from the
+hashed governance projection (mirroring the existing `package.json`
+treatment). This directly reduces OAP's recurring dependabot friction. FR-000
+still holds: the registry and index schema MAJOR versions are unchanged
+between 0.8.0 and 0.10.0 (both remain `1.1.0`) and the grammar is unchanged,
+so OAP's committed shards read identically. The one deterministic, one-time
+effect is that the 0.10.0 index-hash projection recomputes the committed
+codebase index once (same class as the spec 188 config-hash rehome, not a
+regression); it is regenerated and committed in the bump PR after a local
+recompile + index + coupling + featuregraph-golden pass across the corpus.
+
 ---
 
 ## 2. Phased Delivery Plan

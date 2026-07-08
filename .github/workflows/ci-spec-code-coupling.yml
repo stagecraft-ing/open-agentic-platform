@@ -51,7 +51,7 @@ jobs:
           shared-key: spec-code-coupling
 
       - name: Install spec-spine CLI
-        run: cargo install spec-spine-cli --version 0.8.0 --locked
+        run: cargo install spec-spine-cli --version 0.10.0 --locked
 
       - name: Index staleness gate
         run: spec-spine index check

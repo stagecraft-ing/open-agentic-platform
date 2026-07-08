@@ -193,7 +193,7 @@ aggregate `open-agentic-platform-release.cyclonedx.json` are release
 assets — verify the bill of materials before the binary runs in your
 environment. The `oap-tools-<triple>.tar.gz` archive ships `spec-lint` plus OAP-specific
 overlay tools. The generic spec engine is `spec-spine` from crates.io (install
-via `cargo install spec-spine-cli --version 0.8.0 --locked` or `make setup`).
+via `cargo install spec-spine-cli --version 0.10.0 --locked` or `make setup`).
 
 ## Try it
 
@@ -204,7 +204,7 @@ through compiled consumer binaries.
 
 ```bash
 make setup
-# Installs spec-spine CLI (0.8.0), builds OAP overlay tools,
+# Installs spec-spine CLI (0.10.0), builds OAP overlay tools,
 # compiles the registry, fetches the axiomregent sidecar binary.
 
 ./tools/oap/oap-registry-enrich/target/release/oap-registry-enrich \

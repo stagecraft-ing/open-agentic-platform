@@ -40,7 +40,7 @@ spec-spine registry status-report --json --nonzero-only   # typed lifecycle coun
 
 - A consumer binary IS allowed to parse its own artifact (`serde_json::from_reader`). That is what makes it the consumer.
 - A human running `jq` at the shell to inspect an artifact interactively is not an orchestrated workflow. The rule binds repeatable protocol steps, not debugging.
-- If the `spec-spine` CLI is absent, workflows MUST instruct the user to `cargo install spec-spine-cli --version 0.8.0 --locked` (or `make setup`); if an OAP overlay binary is unbuilt, `cargo build --release --manifest-path tools/<name>/Cargo.toml`. Do NOT silently fall back to ad-hoc parsing.
+- If the `spec-spine` CLI is absent, workflows MUST instruct the user to `cargo install spec-spine-cli --version 0.10.0 --locked` (or `make setup`); if an OAP overlay binary is unbuilt, `cargo build --release --manifest-path tools/<name>/Cargo.toml`. Do NOT silently fall back to ad-hoc parsing.
 
 ## Enforcement (MVP)
 

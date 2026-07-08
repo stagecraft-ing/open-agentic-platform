@@ -22,8 +22,8 @@ xray              = { path = "../xray", features = ["analysis-call-graph"] }
 # 217 engine swap: via the published spec-spine library `compile` (caller writes
 # the shard tree). default-features=false drops the symbol-resolution tree-sitter
 # dep, which clashes with xray's 0.26 under the `links` rule.
-spec-spine-core = { version = "0.8.0", default-features = false }
-spec-spine-types = "0.8.0"
+spec-spine-core = { version = "0.10.0", default-features = false }
+spec-spine-types = "0.10.0"
 
 # LLM-backed stage-6 synthesiser substrate (spec 042). Optional + default
 # features off: this crate uses only the `ProviderAdapter` trait + types;

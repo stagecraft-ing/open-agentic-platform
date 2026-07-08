@@ -24,8 +24,8 @@ xray = { path = "../xray" }
 # and its tree-sitter native dep tree (spec-spine 027), which would otherwise
 # clash with xray's tree-sitter 0.26 via the `links = "tree-sitter"` rule. The
 # committed-shard readers we use need no symbol resolution.
-spec-spine-core = { version = "0.8.0", default-features = false }
-spec-spine-types = "0.8.0"
+spec-spine-core = { version = "0.10.0", default-features = false }
+spec-spine-types = "0.10.0"
 
 [dev-dependencies]
 tempfile = "3.10"

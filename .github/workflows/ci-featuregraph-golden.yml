@@ -60,7 +60,7 @@ jobs:
       # Install the spec-spine CLI and emit a fresh registry as a fixture
       # before running the test, mirroring ci-crates.yml's pre-compile pattern.
       - name: Install spec-spine CLI
-        run: cargo install spec-spine-cli --version 0.8.0 --locked
+        run: cargo install spec-spine-cli --version 0.10.0 --locked
 
       - name: Emit spec registry (test fixture)
         run: spec-spine compile
