@@ -5,7 +5,11 @@
 # ../../../charts/<chart>/... at compile time. The runtime image bundles the
 # helm CLI so the binary can shell out at deploy time.
 
-FROM rust:1.88 AS builder
+# rustc 1.95 to satisfy hiqlite 0.14 / serde_rusqlite 0.43 MSRV (1.95.0),
+# matching the repo-root rust-toolchain.toml channel. The build context is
+# `platform/`, which does not include that toolchain file, so the base image
+# rustc is what actually compiles here.
+FROM rust:1.95 AS builder
 WORKDIR /repo
 COPY services/deployd-api-rs ./services/deployd-api-rs
 COPY charts ./charts
