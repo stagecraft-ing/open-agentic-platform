@@ -54,6 +54,14 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/factory/moduleCatalogCache.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/factory/moduleCatalogCache.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/projects/create.ts",
         "source": "spec-edge"
       },
@@ -71,6 +79,14 @@
       },
       {
         "path": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/web/app/lib/module-selection.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/web/app/lib/module-selection.ts",
         "source": "spec-edge"
       },
       {
@@ -107,6 +123,58 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/factory/moduleCatalog.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/moduleCatalogCache.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/moduleCatalogCache.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/factory/moduleCatalogCache.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/factory/moduleCatalogCache.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/app/lib/module-selection.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/lib/module-selection.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/app/lib/module-selection.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/lib/module-selection.ts"
         }
       },
       {
@@ -322,5 +390,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "a006a694ddf104902f4047d0e03fa7a47d0b4ac4148e9bb408fcac460f2fa2df"
+  "shardHash": "4721edab8046204f66d5f07beaf0f6e4ed074bc73e038eb7c97d038731a12b75"
 }

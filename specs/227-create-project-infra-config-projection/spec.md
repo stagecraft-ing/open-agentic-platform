@@ -3,7 +3,7 @@ id: "227-create-project-infra-config-projection"
 title: "Create Project as an Encore-infra-config projection: derived catalog, two-axis selector, dev-provisioned Redis"
 feature_branch: "227-create-project-infra-config-projection"
 status: draft
-implementation: pending  # Design spec. No code lands in this PR; the contract is captured so the follow-on implementation PRs (stagecraft catalog derivation + form reframe; deployd previewRedis) can promote the referenced paths to authoritative relationships and satisfy the coupling gate one subsystem at a time. This spec establishes no code path yet: its only in-PR code change is the featuregraph golden node (extends 034), matching the 214/222/223/224/225/226 new-spec precedent.
+implementation: pending  # Staged implementation. The design PR (#530) landed only the featuregraph golden node (extends 034); each follow-on stage PR then promotes referenced paths to authoritative relationships and lands code one subsystem at a time. Stage 1 (catalog derivation), Stage 3 (deployd previewRedis), and the interim nit PR have landed; implementation stays pending until the Stage 2 form reframe and Stage 4 end-to-end wiring complete.
 kind: platform
 domain: platform
 created: "2026-07-06"
@@ -55,6 +55,15 @@ establishes:
   # feature-module list from the adapter's substrate module manifests, replacing
   # the two hand-mirrored MODULE_CATALOG copies (FR-001).
   - unit: { kind: file, path: platform/services/stagecraft/api/factory/moduleCatalog.ts }
+  # Interim (post-Stage 1): the two Stage-2-deferred ai-review nits from #533,
+  # pulled forward. Net-new files, so they enter establishes directly rather
+  # than promoting a references: pointer: the pure per-org catalog cache behind
+  # loadModuleCatalogForOrg, and the pure transitive module-selection helper the
+  # picker's toggle now delegates to (each with its unit test).
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/moduleCatalogCache.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/api/factory/moduleCatalogCache.test.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/module-selection.ts }
+  - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/module-selection.test.ts }
 extends:
   # A new spec adds a node to the featuregraph golden (same precedent as specs
   # 214, 222, 223, 224, 225, 226); claimed additively against spec 034 so the
@@ -379,6 +388,28 @@ authoritative relationships:
    Option A with no per-env files.
 
 ### Implementation log
+
+**Interim (post-Stage 1, 2026-07-07).** The two Stage-2-deferred ai-review nits
+from #533, pulled forward into a standalone PR ahead of the full form reframe:
+
+- **Transitive module selection.** The Create-project picker's `toggleModule`
+  resolved only *direct* dependents on uncheck (`m.requires.includes(id)`), so
+  an `A -> B -> C` chain left `A` checked after unchecking `C`. Now that
+  `requires` is adapter-derived (Stage 1), multi-hop chains are plausible.
+  Extracted a pure, tested `applyModuleToggle`
+  (`web/app/lib/module-selection.ts`) that closes over the requires DAG in both
+  directions: checking pulls the full `requires` closure, unchecking drops the
+  full dependent closure, and a newly-present module's declared conflicts are
+  dropped (a requirement always wins over a conflicting entry).
+- **Per-org catalog cache.** `loadModuleCatalogForOrg` ran a full substrate
+  load + admission check on every call (once per create POST). Added a pure
+  60s-TTL per-org cache (`api/factory/moduleCatalogCache.ts`) behind it; the
+  catalog only changes on a factory-origin re-sync, and the signature is
+  unchanged so `create.ts` is untouched.
+
+Both are net-new files, so they enter `establishes:` directly. `implementation:`
+stays `pending` (the Stage 2 form reframe and Stage 4 end-to-end wiring remain
+outstanding); this PR does not touch the form's regions or `deploy.ts`.
 
 **Stage 3 landed (2026-07-07).** deployd + chart preview-Redis provisioning:
 

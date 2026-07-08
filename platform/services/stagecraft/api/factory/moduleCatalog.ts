@@ -19,6 +19,7 @@ import {
   type ModuleDescriptor,
   type RawModuleManifest,
 } from "../projects/scaffold/moduleCatalog";
+import { getCachedModuleCatalog } from "./moduleCatalogCache";
 
 /** Substrate rows that are an adapter module's `manifest.json`. */
 export function moduleManifestRows(
@@ -32,7 +33,7 @@ export function moduleManifestRows(
  * each module `manifest.json` body as JSON; a body that fails to parse is
  * skipped with a warning rather than failing the whole catalog.
  */
-export async function loadModuleCatalogForOrg(
+async function loadModuleCatalogUncached(
   orgId: string
 ): Promise<ModuleDescriptor[]> {
   const view = await loadOrgView(orgId);
@@ -52,6 +53,19 @@ export async function loadModuleCatalogForOrg(
     }
   }
   return deriveModuleCatalog(manifests);
+}
+
+/**
+ * Cached front door for the org's feature-module catalog. The catalog changes
+ * only when the org's factory origin re-syncs, so a short-TTL per-org cache
+ * (see moduleCatalogCache) lets create/read paths reuse a recent derivation
+ * instead of a fresh substrate load + admission check on every call (ai-review
+ * on #533; spec 227 Stage 2 optimization).
+ */
+export async function loadModuleCatalogForOrg(
+  orgId: string
+): Promise<ModuleDescriptor[]> {
+  return getCachedModuleCatalog(orgId, () => loadModuleCatalogUncached(orgId));
 }
 
 export const getModuleCatalog = api(
