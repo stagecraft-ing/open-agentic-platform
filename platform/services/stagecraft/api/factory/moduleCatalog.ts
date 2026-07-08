@@ -11,7 +11,7 @@
 import { api } from "encore.dev/api";
 import log from "encore.dev/log";
 import { getAuthData } from "~encore/auth";
-import { loadOrgView, servableRows } from "./browse";
+import { loadOrgView, servableRows, type OrgView } from "./browse";
 import type { SubstrateRowDraft } from "./translator";
 import {
   deriveModuleCatalog,
@@ -29,14 +29,17 @@ export function moduleManifestRows(
 }
 
 /**
- * Derive the org's feature-module catalog from its admitted substrate. Parses
+ * Derive the feature-module catalog from an already-loaded `OrgView`. Parses
  * each module `manifest.json` body as JSON; a body that fails to parse is
- * skipped with a warning rather than failing the whole catalog.
+ * skipped with a warning rather than failing the whole catalog. Exported so a
+ * caller that already holds the org's substrate (e.g. `create.ts`, which also
+ * resolves the adapter from the same view) derives the catalog without a second
+ * substrate round-trip.
  */
-async function loadModuleCatalogUncached(
-  orgId: string
-): Promise<ModuleDescriptor[]> {
-  const view = await loadOrgView(orgId);
+export function deriveModuleCatalogFromView(
+  view: OrgView,
+  orgId?: string
+): ModuleDescriptor[] {
   const manifests: RawModuleManifest[] = [];
   for (const row of moduleManifestRows(servableRows(view))) {
     try {
@@ -45,7 +48,7 @@ async function loadModuleCatalogUncached(
         manifests.push(parsed);
       }
     } catch (err) {
-      log.warn("loadModuleCatalogForOrg: unparseable module manifest skipped", {
+      log.warn("deriveModuleCatalogFromView: unparseable module manifest skipped", {
         orgId,
         path: row.path,
         cause: err instanceof Error ? err.message : String(err),
@@ -55,12 +58,21 @@ async function loadModuleCatalogUncached(
   return deriveModuleCatalog(manifests);
 }
 
+async function loadModuleCatalogUncached(
+  orgId: string
+): Promise<ModuleDescriptor[]> {
+  return deriveModuleCatalogFromView(await loadOrgView(orgId), orgId);
+}
+
 /**
- * Cached front door for the org's feature-module catalog. The catalog changes
- * only when the org's factory origin re-syncs, so a short-TTL per-org cache
- * (see moduleCatalogCache) lets create/read paths reuse a recent derivation
- * instead of a fresh substrate load + admission check on every call (ai-review
- * on #533; spec 227 Stage 2 optimization).
+ * Cached front door for the org's feature-module catalog, used by the
+ * `GET /api/factory/module-catalog` endpoint (the create-project page loader).
+ * The catalog changes only when the org's factory origin re-syncs, so a
+ * short-TTL per-org cache (see moduleCatalogCache) reuses a recent derivation
+ * instead of a substrate load + admission check on every page view. The create
+ * path does not go through here: it loads one `OrgView` and derives the catalog
+ * via `deriveModuleCatalogFromView`, threading the same substrate into adapter
+ * resolution (ai-review on #533).
  */
 export async function loadModuleCatalogForOrg(
   orgId: string

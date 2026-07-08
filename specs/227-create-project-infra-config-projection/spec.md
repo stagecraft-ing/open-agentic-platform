@@ -118,6 +118,13 @@ extends:
   - spec: "138-stagecraft-create-realised-scaffold"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/web/app/lib/projects-api.server.ts }
+  # The #533 review follow-up refreshed the stagecraft CLAUDE.md scaffold
+  # `moduleCatalog.ts` description to the Stage 1 derived-catalog API this spec
+  # introduced, so 227 additively co-authors that doc file (138 already claims
+  # it via extends 112).
+  - spec: "138-stagecraft-create-realised-scaffold"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/CLAUDE.md }
   - spec: "199-factory-thin-consumer-sync"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/factory/browse.ts }
@@ -388,6 +395,35 @@ authoritative relationships:
    Option A with no per-env files.
 
 ### Implementation log
+
+**Interim (post-Stage 1, 2026-07-08).** #533 ai-review follow-ups (the findings
+the Stage 1 PR adjudicated non-blocking), before the Stage 2 form reframe:
+
+- **Single substrate load per create.** `createFactoryProject` loaded the org
+  substrate twice: `loadModuleCatalogForOrg` (via `loadOrgView`) and
+  `loadFactoryAdapter` (via `loadSubstrateForOrg`). It now loads one `OrgView`,
+  derives the catalog via the new exported `deriveModuleCatalogFromView`, and
+  threads that substrate into `loadFactoryAdapter`. The per-org cache
+  (`moduleCatalogCache.ts`) now serves the read endpoint / page loader; create
+  loads once and threads.
+- **Prototype-safe presentation lookup.** The `PRESENTATION` overlay in the pure
+  `moduleCatalog.ts` is a `Map`, so an externally-authored module named
+  `__proto__`/`constructor` misses cleanly rather than resolving to a truthy
+  prototype value (which had left `displayName`/`category` undefined).
+- **extrasFor test kept, not loosened.** The #533 review flagged its exact-order
+  assertion as fragile; a local adversarial review re-derived `deriveInstallOrder`
+  and confirmed the order is a deterministic alphabetical-within-level contract,
+  so the exact assertion is correct and is retained with a comment documenting
+  the guarantee.
+- **stagecraft/CLAUDE.md** `moduleCatalog.ts` description refreshed to the
+  derived Stage 1 API (the stale `MODULE_CATALOG`/`INSTALL_ORDER` listing).
+
+A direct unit test for the new `deriveModuleCatalogFromView` seam is deferred: it
+is exported from an Encore endpoint module, so exercising it needs the
+`encore test` runtime lane (or a pure extraction of `servableRows`); the
+extraction is behavior-preserving and stays transitively covered by
+`deriveModuleCatalog`'s pure tests. These are refinements to already-claimed
+paths (no new `establishes:` entries); `implementation:` stays `pending`.
 
 **Interim (post-Stage 1, 2026-07-07).** The two Stage-2-deferred ai-review nits
 from #533, pulled forward into a standalone PR ahead of the full form reframe:

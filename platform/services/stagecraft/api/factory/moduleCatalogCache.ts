@@ -1,9 +1,11 @@
 // Spec 227 (interim, post-Stage 1): short-TTL per-org cache for the derived
 // module catalog. `loadModuleCatalogForOrg` runs a full substrate load plus an
 // admission check; the catalog only changes when the org's factory origin
-// re-syncs, so create/read paths should not pay that round-trip on every call
-// (ai-review flagged the per-request substrate load on #533; spec 227 Stage 2
-// optimization, pulled forward).
+// re-syncs, so the read endpoint (the create-project page loader) should not
+// pay that round-trip on every page view (ai-review flagged the per-request
+// substrate load on #533; spec 227 Stage 2 optimization, pulled forward). The
+// create path instead loads one OrgView and threads its substrate through both
+// catalog derivation and adapter resolution.
 //
 // Pure module (no Encore imports) so the TTL semantics are unit-testable
 // without infra; the clock is injectable for the same reason. Mirrors the
