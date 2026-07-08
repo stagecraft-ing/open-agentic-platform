@@ -39,14 +39,6 @@
           "kind": "file",
           "path": "standards/schemas/spec-spine/registry.schema.json"
         }
-      },
-      {
-        "nature": "additive",
-        "spec": "001-spec-compiler-mvp",
-        "unit": {
-          "kind": "directory",
-          "path": "tools/spec-spine/spec-compiler/tests"
-        }
       }
     ],
     "extraFrontmatter": {
@@ -54,16 +46,9 @@
     },
     "featureBranch": "feat/216-spec-spine-library-grammar-adoption",
     "id": "216-spec-spine-library-grammar-adoption",
-    "implementation": "in-progress",
+    "implementation": "complete",
     "kind": "governance",
     "refines": [
-      {
-        "aspect": "amends-supersedes-frontmatter-grammar",
-        "unit": {
-          "kind": "file",
-          "path": "tools/spec-spine/spec-compiler/src/lib.rs"
-        }
-      },
       {
         "aspect": "amends-supersedes-frontmatter-grammar",
         "unit": {
@@ -98,10 +83,10 @@
       "Coupling and migration"
     ],
     "specPath": "specs/216-spec-spine-library-grammar-adoption/spec.md",
-    "status": "draft",
+    "status": "approved",
     "summary": "Converge OAP's spec-compiler frontmatter grammar onto the standalone spec-spine library, which models `amends` and `supersedes` as typed fields and rejects malformed entries at deserialization. OAP's compiler parses both through `optional_string_list`, which silently drops any non-string entry: an object-form `amends`/`supersedes` records nothing and confers no authority. That silent drop was the spec 125 defect PR #358 corrected. Phase 1 (this spec, implementable now) narrows `amends` to bare-id and replaces the silent drop with a loud V-033 compile error, a behaviour-preserving convergence for the real corpus (zero live object-form `amends` remain after PR #358). Phase 2 (sequenced) reconciles `supersedes`, whose silent drop discards the structured partial-supersession form the library honours and the relationship graph (specs 130/154) documents: that is an authority-transfer change and carries the real review weight.\n",
     "title": "Spec-Spine Library Grammar Adoption (amends bare-id; supersedes-partial reconciliation)"
   },
-  "shardHash": "c278cf2f1203468210581951c3b93ef637f8973faf1941745a230d955d994e81",
+  "shardHash": "5d750057e6627d55444e3a3bb46bc32c897884846d8b4a110ebb22a2bcfae478",
   "specVersion": "1.1.0"
 }

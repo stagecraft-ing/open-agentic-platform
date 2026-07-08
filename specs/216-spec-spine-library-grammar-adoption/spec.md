@@ -2,8 +2,8 @@
 id: "216-spec-spine-library-grammar-adoption"
 title: "Spec-Spine Library Grammar Adoption (amends bare-id; supersedes-partial reconciliation)"
 feature_branch: "feat/216-spec-spine-library-grammar-adoption"
-status: draft
-implementation: in-progress  # Phase 1 landed (V-033 bare-id `amends`, all six Phase-1 ACs). Phase 2a landed (§2.3: typed `supersedes` parse + V-034 + structured emission + additive schema widen). Phase 2b landed (§2.4: codebase-index `TraceMapping.supersedes` field + SCHEMA_VERSION 3.1.0, gate full/partial-supersession filtering in `legitimate_owners`, registry-consumer `by-authority` parity; FR-010..FR-014, AC-013..AC-019). All three phases now coded; stays `draft` pending approval.
+status: approved
+implementation: complete  # Phase 1 landed (V-033 bare-id `amends`), Phase 2a (§2.3: typed `supersedes` parse + V-034 + structured emission + additive schema widen), Phase 2b (§2.4: gate full/partial-supersession filtering, index `TraceMapping.supersedes`, registry-consumer `by-authority` parity). Reconciled post spec 217 (#387, issue #404): the engine swap deleted the in-tree spec-compiler that embodied Phase 1/2a/2b, so the two `spec-compiler` units were dropped from this spec's graph; the grammar now lives in the published spec-spine library. The surviving in-repo surfaces (registry.schema.json widen, spec-types known-key comment, featuregraph golden row) remain live. 217 depends on this spec as a completed predecessor, so it is approved, not superseded.
 kind: governance
 domain: tooling
 created: "2026-06-14"
@@ -45,22 +45,25 @@ extends:
   - spec: "130-spec-coupling-primary-owner"
     nature: additive
     unit: { kind: file, path: standards/schemas/spec-spine/registry.schema.json }
-  # This spec adds fixture tests (v033_amends_bare_id, v034_supersedes_typed)
-  # to the spec-compiler test suite; additively extend 001's tests directory,
-  # mirroring spec 154's own edge on this path. (Phase 1's v033 test was
-  # covered only incidentally by Phase 1's spec 154 edit; declaring the edge
-  # makes 216's authority over its own test files explicit.)
-  - spec: "001-spec-compiler-mvp"
-    nature: additive
-    unit: { kind: directory, path: tools/spec-spine/spec-compiler/tests }
+  # NOTE (issue #404, post spec 217): the former `extends: 001` edge over
+  # `tools/spec-spine/spec-compiler/tests` was dropped here. Spec 217's engine
+  # swap (#387) deleted the in-tree spec-compiler and its test directory, so
+  # that unit no longer exists. The fixture tests it referenced
+  # (v033_amends_bare_id, v034_supersedes_typed) went with the deleted engine;
+  # the equivalent grammar validation now lives in the published spec-spine
+  # library. No replacement edge is added: OAP no longer owns an in-tree
+  # compiler test surface for this grammar.
 refines:
   # The narrowing itself. `amends` (Phase 1) and `supersedes` (Phase 2)
-  # parse through the same `optional_string_list` site; this spec tightens
-  # that aspect from silent-drop to typed-or-reject. Two files share the
-  # aspect: the compiler parse site + V-033, and the shared frontmatter
-  # known-key comment that documents the field grammar.
-  - aspect: "amends-supersedes-frontmatter-grammar"
-    unit: { kind: file, path: tools/spec-spine/spec-compiler/src/lib.rs }
+  # parse through the same `optional_string_list` site; this spec tightened
+  # that aspect from silent-drop to typed-or-reject.
+  #
+  # NOTE (issue #404, post spec 217): the compiler parse site + V-033/V-034
+  # (`tools/spec-spine/spec-compiler/src/lib.rs`) was deleted by spec 217's
+  # engine swap (#387); that unit is dropped from this aspect. The surviving
+  # unit is the shared frontmatter known-key comment, which still documents
+  # the field grammar and is still consumed by spec-lint and the OAP overlay
+  # tools (oap-registry-enrich, oap-code-index-enrich, policy-compiler).
   - aspect: "amends-supersedes-frontmatter-grammar"
     unit: { kind: file, path: tools/shared/spec-types/src/lib.rs }
 amends:
@@ -92,10 +95,34 @@ amends:
 
 **Feature Branch**: `feat/216-spec-spine-library-grammar-adoption`
 **Created**: 2026-06-14
-**Status**: Draft (Phase 1 landed; Phase 2a implementable; Phase 2b sequenced)
+**Status**: Approved (all three phases landed; reconciled post spec 217 engine
+swap; see the reconciliation note below)
 **Input**: Follow-up to PR #358 (`fix(125): migrate structured amends to
 bare-id + refines`) and the 2026-06-14 clarification callouts added to
 spec 130 §2.5 and spec 154 §5.
+
+> **Reconciliation note (2026-07-08, issue #404).** Spec 217's engine swap
+> (#387, `145b6fc3`, "delete 4 in-tree engine crates, repoint to published
+> spec-spine CLI") deleted the in-tree spec-compiler that embodied this spec's
+> Phase 1/2a/2b changes: the V-033/V-034 parse sites in
+> `tools/spec-spine/spec-compiler/src/lib.rs`, its fixture tests under
+> `tools/spec-spine/spec-compiler/tests`, and the Phase 2b supersession
+> filtering that lived in the (also-deleted) `spec-code-coupling-check`,
+> `codebase-indexer`, and `registry-consumer` crates. OAP now consumes the
+> published spec-spine library, which models this grammar natively: the
+> ultimate form of the convergence this spec set out to achieve. That deletion
+> orphaned two of this spec's claimed units
+> (`tools/spec-spine/spec-compiler/src/lib.rs`,
+> `tools/spec-spine/spec-compiler/tests`), which are dropped from the
+> relationship graph above. This spec's still-live in-repo contribution is the
+> additive `standards/schemas/spec-spine/registry.schema.json`
+> `supersedeScopedItem` widen (FR-008), the `tools/shared/spec-types/src/lib.rs`
+> known-key comment (FR-003/FR-009, still consumed by spec-lint and the OAP
+> overlay tools), and the featuregraph golden row. Spec 217 declares this spec
+> a *completed* grammar-convergence predecessor it depends on (217 spec.md
+> `depends_on: 216`; "Spec 216 implementation complete"), so this spec is
+> approved, not superseded. SC-001 is fully realised: OAP no longer has an
+> in-tree compiler that can diverge from the library.
 
 ## Overview
 
