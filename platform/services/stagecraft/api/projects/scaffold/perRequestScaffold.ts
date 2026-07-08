@@ -65,7 +65,12 @@ export interface PerRequestScaffoldOptions {
    * Spec 227 Stage 2: Base-app config values patched into the produced app's
    * committed `apps/api/.env.example` after module composition.
    */
-  baseAppConfig?: { privateApiBaseUrl?: string; gatewayTimeoutMs?: number };
+  baseAppConfig?: {
+    privateApiBaseUrl?: string;
+    gatewayTimeoutMs?: number;
+    /** Spec 229 auth-driver axis: patched as AUTH_DRIVER (mock|rauthy). */
+    authDriver?: string;
+  };
   destDir: string;
   /** L0 pipeline-state seed object to drop at `.factory/pipeline-state.json`. */
   pipelineStateSeed: Record<string, unknown>;
@@ -439,6 +444,11 @@ async function applyBaseAppConfig(
   }
   if (config?.gatewayTimeoutMs !== undefined) {
     overrides.GATEWAY_TIMEOUT_MS = String(config.gatewayTimeoutMs);
+  }
+  // Spec 229 auth-driver axis: patch AUTH_DRIVER to the chosen app-level driver
+  // (mock|rauthy). Deterministic; overrides the profile's baked default.
+  if (config?.authDriver) {
+    overrides.AUTH_DRIVER = config.authDriver;
   }
   if (Object.keys(overrides).length === 0) return;
 
