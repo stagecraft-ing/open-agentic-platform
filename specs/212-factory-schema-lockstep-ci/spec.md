@@ -51,13 +51,22 @@ amendment_record: |
   de-em-dashed (em-dash to hyphen) to restore exact parity with the upstream
   mirror and clear a house-style violation; no contract-shape change. Dated
   historical verification notes (@cc1139f) are left intact as records.
+
+  self-amended (2026-07-08, fourth): pin bump for the spec 210 agentic_posture
+  contract mirror. OAP's build-spec.schema.yaml gains the top-level
+  agentic_posture object (spec 210 FR-001, schema 1.1.0 -> 1.2.0), a Floor-mode
+  file, so the upstream factory contract must mirror it; factory-encore#21 adds
+  the same field + version bump. pinned_ref moves 427f499 -> a87daf6, the
+  upstream commit carrying the mirror, re-verified in lockstep here (Floor
+  parity holds on every mode). No lockstep-set or compare-mode change.
 # The upstream-contract ref the PR lane checks against; the repo itself is
 # resolved operationally from the UPSTREAM_FACTORY_SOURCE variable, not named
 # here (see §"Upstream source identity is operational, not spec truth").
 # Bumping it is a coupling-gated spec edit (FR-007). Re-verified in lockstep at
-# this SHA 2026-06-23 against the configured upstream source; the prior pin
-# (cc1139f) was verified 2026-06-12 (spec 197 AC-8 / spec 198 admission).
-pinned_ref: "427f49960cb4976b19036dc076fa3b7e1026070b"
+# this SHA 2026-07-08 against the configured upstream source (the spec 210
+# agentic_posture contract mirror, factory-encore#21); the prior pin (427f499)
+# was verified 2026-06-23, and cc1139f 2026-06-12 (spec 197 AC-8 / spec 198).
+pinned_ref: "a87daf6f642cc16ff3c40937019a27c3fe2d55dc"
 authors: ["open-agentic-platform"]
 language: en
 summary: >

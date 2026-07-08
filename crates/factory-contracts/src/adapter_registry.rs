@@ -397,6 +397,7 @@ mod tests {
             data_ingestion: None,
             file_storage: None,
             traceability: None,
+            agentic_posture: None,
         }
     }
 

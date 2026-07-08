@@ -84,7 +84,22 @@ use std::path::Path;
 /// per-stage records carry no per-axis totals to cross-sum, so verify does not
 /// independently corroborate the magnitudes. Absent certs still verify; skipped in
 /// serialization when absent so pre-1.8.0 payloads stay byte-identical.
-pub const CERTIFICATE_VERSION: &str = "1.8.0";
+///
+/// 1.9.0 (spec 210 FR-002) added the optional `agenticPostureBinding` block
+/// `{ posture, defaulted, surfaces }`, recording the produced application's own
+/// declared agentic surface (Least Agency applied to outputs). Like
+/// `corpusBinding`/`sbomArtifactBinding` it sits INSIDE the hash + signature
+/// (bound at emission). `posture` is `none | declared | governed`; `defaulted`
+/// distinguishes "authored none" (someone decided) from "defaulted none" (the
+/// Build Spec omitted the field, nobody asked). `verify-certificate` catches raw
+/// byte tamper (the signature check) and a self-inconsistent binding
+/// (declared/governed with no surfaces, none with surfaces, a governed surface
+/// with no or a non-conformant inline governance envelope), and, when
+/// `--sbom-dir` is supplied, cross-checks a `none` posture against the produced
+/// app's CycloneDX BOM (a watchlisted agent/LLM SDK dependency contradicts the
+/// declaration; spec 210 FR-003). Absent certs still verify; skipped in
+/// serialization when absent so pre-1.9.0 payloads stay byte-identical.
+pub const CERTIFICATE_VERSION: &str = "1.9.0";
 
 /// Environment-variable name carrying a base64-encoded 32-byte Ed25519 seed
 /// (FR-008.1). Operator-supplied keys outside the agent's write scope.
@@ -186,6 +201,17 @@ pub struct GovernanceCertificate {
     /// when absent so pre-1.8.0 payloads stay byte-identical.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub budget_consumption: Option<Vec<BudgetAxisRecord>>,
+
+    /// Spec 210 FR-002: the produced application's declared agentic posture
+    /// (`{ posture, defaulted, surfaces }`). The builder populates this from the
+    /// posture read off the frozen Build Spec by the emission path (read, never
+    /// recompute). Inside the hash + signature (bound at emission). Absent = the
+    /// named "unstated" state (a pre-1.9.0 cert, or a run with no readable Build
+    /// Spec), never silently equivalent to an authored `none`; a run whose Build
+    /// Spec is read but omits the field yields a `none`/`defaulted:true` binding.
+    /// Skipped when absent so pre-1.9.0 payloads stay byte-identical.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agentic_posture_binding: Option<AgenticPostureBinding>,
 
     /// SHA-256 of the canonical JSON of this certificate with `certificate_hash`
     /// AND `cert_signature` set to empty string. Content-binding fingerprint
@@ -399,6 +425,82 @@ pub struct SbomAuditFinding {
     pub advisory_id: String,
     pub severity: String,
     pub package: String,
+}
+
+/// Spec 210 FR-002: the produced application's declared agentic posture, bound
+/// into the certificate.
+///
+/// Records the posture level (`none | declared | governed`, as the canonical
+/// wire string, version-independent like `BudgetAxisRecord`), whether it was
+/// authored or defaulted (a Build Spec that omits `agentic_posture` resolves to
+/// `none` with `defaulted: true`, so an auditor can tell "authored none" from
+/// "nobody asked"), and the enumerated surfaces. Populated by the emission path
+/// from the frozen Build Spec (read, never recompute). Inside the certificate
+/// hash + signature (bound at emission), so tampering with the binding is caught
+/// by the cert's own signature check.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AgenticPostureBinding {
+    /// Canonical wire form of the posture level: `none`, `declared`, or
+    /// `governed`.
+    pub posture: String,
+    /// `true` when the Build Spec omitted `agentic_posture` and the posture was
+    /// defaulted to `none`; `false` when the posture was authored.
+    pub defaulted: bool,
+    /// Enumerated agentic surfaces (non-empty for `declared`/`governed`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub surfaces: Vec<CertAgenticSurface>,
+}
+
+/// Spec 210 FR-002: one enumerated agentic surface, as bound in the certificate.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CertAgenticSurface {
+    /// Canonical wire form of the surface kind (`model-api`, `tool-surface`,
+    /// `memory-persistence`, `human-approval-point`).
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Inline governance envelope for a `governed` surface (spec 210 FR-004),
+    /// carried verbatim; validated for SHAPE (must deserialize as a
+    /// `factory_contracts::governance_envelope::GovernanceEnvelope`) at verify
+    /// time, never recomputed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub governance_envelope: Option<serde_json::Value>,
+}
+
+impl AgenticPostureBinding {
+    /// Build a binding from the Build Spec posture (or its absence). Absent
+    /// (`None`) yields `none`/`defaulted: true`: the Build Spec was read but did
+    /// not declare a posture. Present yields the authored posture with
+    /// `defaulted: false`. The single construction seam the emission paths use
+    /// (read, never recompute).
+    pub fn from_build_spec(
+        posture: Option<&factory_contracts::build_spec::AgenticPosture>,
+    ) -> Self {
+        match posture {
+            None => AgenticPostureBinding {
+                posture: factory_contracts::build_spec::PostureLevel::None
+                    .as_str()
+                    .to_string(),
+                defaulted: true,
+                surfaces: Vec::new(),
+            },
+            Some(p) => AgenticPostureBinding {
+                posture: p.posture.as_str().to_string(),
+                defaulted: false,
+                surfaces: p
+                    .surfaces
+                    .iter()
+                    .map(|s| CertAgenticSurface {
+                        kind: s.kind.as_str().to_string(),
+                        description: s.description.clone(),
+                        governance_envelope: s.governance_envelope.clone(),
+                    })
+                    .collect(),
+            },
+        }
+    }
 }
 
 /// Spec 198 FR-013(c) — one override of admitted factory content the run
@@ -774,6 +876,7 @@ pub struct CertificateBuilder {
     corpus_binding: Option<CorpusBinding>,
     sbom_artifact_binding: Option<SbomArtifactBinding>,
     budget_consumption: Option<Vec<BudgetAxisRecord>>,
+    agentic_posture_binding: Option<AgenticPostureBinding>,
 }
 
 impl CertificateBuilder {
@@ -808,6 +911,7 @@ impl CertificateBuilder {
             corpus_binding: None,
             sbom_artifact_binding: None,
             budget_consumption: None,
+            agentic_posture_binding: None,
         }
     }
 
@@ -937,6 +1041,17 @@ impl CertificateBuilder {
         self
     }
 
+    /// Spec 210 FR-002: bind the produced application's declared agentic posture
+    /// (from the frozen Build Spec, read by the emission path; read, never
+    /// recompute) into the certificate (inside hash + signature). The binding is
+    /// always present when the emission path saw a Build Spec: an omitted
+    /// `agentic_posture` yields `none`/`defaulted: true` (visibly defaulted,
+    /// never silently equivalent to authored `none`).
+    pub fn agentic_posture_binding(mut self, binding: AgenticPostureBinding) -> Self {
+        self.agentic_posture_binding = Some(binding);
+        self
+    }
+
     /// Fallible build path for tenant emission (spec 168 §FR-007).
     ///
     /// Returns [`CertificateBuildError::MissingSigner`] when no
@@ -990,6 +1105,7 @@ impl CertificateBuilder {
             corpus_binding: self.corpus_binding,
             sbom_artifact_binding: self.sbom_artifact_binding,
             budget_consumption: self.budget_consumption,
+            agentic_posture_binding: self.agentic_posture_binding,
             certificate_hash: String::new(),
             signing_public_key: public_key_b64,
             cert_signature: String::new(),
@@ -1460,6 +1576,72 @@ pub struct VerificationResult {
     pub notices: Vec<String>,
 }
 
+/// Spec 210 FR-003/FR-004: structural self-consistency of an
+/// `agenticPostureBinding`, independent of any SBOM. Returns the list of
+/// inconsistency diagnostics (empty when consistent). Rules:
+/// - `none`: no surfaces.
+/// - `declared`/`governed`: at least one surface.
+/// - `governed`: every surface carries an inline governance envelope that
+///   deserializes as a spec-198 [`factory_contracts::governance_envelope::GovernanceEnvelope`]
+///   (shape validation, FR-004).
+/// - any other posture string is an unknown-posture error.
+///
+/// The binding is signed into the certificate payload, so raw byte tamper is
+/// already caught by the signature check; this rejects a validly-signed but
+/// self-inconsistent binding. The SBOM cross-check (posture vs the produced
+/// app's dependency tree, FR-003) is separate and needs the on-disk BOM.
+pub fn agentic_posture_binding_inconsistencies(binding: &AgenticPostureBinding) -> Vec<String> {
+    let mut errors = Vec::new();
+    match binding.posture.as_str() {
+        "none" => {
+            if !binding.surfaces.is_empty() {
+                errors.push(format!(
+                    "agentic_posture_binding: `none` must enumerate no surfaces, found {}",
+                    binding.surfaces.len()
+                ));
+            }
+        }
+        "declared" | "governed" => {
+            if binding.surfaces.is_empty() {
+                errors.push(format!(
+                    "agentic_posture_binding: `{}` requires a non-empty surface enumeration",
+                    binding.posture
+                ));
+            }
+        }
+        other => {
+            errors.push(format!(
+                "agentic_posture_binding: unknown posture `{other}` \
+                 (expected none|declared|governed)"
+            ));
+        }
+    }
+    if binding.posture == "governed" {
+        for (i, s) in binding.surfaces.iter().enumerate() {
+            match &s.governance_envelope {
+                None => errors.push(format!(
+                    "agentic_posture_binding: `governed` surface #{i} ({}) is missing its \
+                     governance_envelope (spec 210 FR-004)",
+                    s.kind
+                )),
+                Some(env) => {
+                    if let Err(e) = serde_json::from_value::<
+                        factory_contracts::governance_envelope::GovernanceEnvelope,
+                    >(env.clone())
+                    {
+                        errors.push(format!(
+                            "agentic_posture_binding: `governed` surface #{i} ({}) has a \
+                             non-conformant governance_envelope: {e}",
+                            s.kind
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    errors
+}
+
 /// Verify a governance certificate by re-deriving hashes and checking integrity.
 ///
 /// FR-007: exits 0 on success, 1 on any mismatch.
@@ -1569,6 +1751,21 @@ pub fn verify_certificate(
                 errors.push(format!("budget_consumption: duplicate axis '{}'", r.axis));
             }
         }
+    }
+
+    // 3c. Spec 210 FR-003/FR-004: agentic-posture binding self-consistency. The
+    //     binding is signed into the payload, so raw byte tamper is already
+    //     caught by the signature check (0). These structural checks reject a
+    //     validly-signed but self-inconsistent binding: declared/governed with
+    //     no surfaces; none with surfaces; a governed surface with no inline
+    //     governance envelope or one that does not deserialize as a spec-198
+    //     GovernanceEnvelope (shape validation, FR-004). The SBOM cross-check
+    //     (posture vs the produced app's dependency tree, FR-003) needs the
+    //     on-disk BOM and lives in the verify bin's --sbom-dir path. Skipped when
+    //     absent (pre-1.9.0 / unstated), never silently equivalent to authored
+    //     none.
+    if let Some(binding) = &cert.agentic_posture_binding {
+        errors.extend(agentic_posture_binding_inconsistencies(binding));
     }
 
     // 4. Spec 170 FR-007 — verify the signed inter-stage manifest chain
@@ -1820,6 +2017,141 @@ pub fn verify_sbom_binding(
              (spec 203 FR-003)"
                 .into(),
         ),
+    }
+}
+
+// ── Agentic-posture SBOM cross-check (spec 210 FR-003) ───────────────────────
+
+/// The agent/LLM SDK watchlist, versioned with the standard and embedded into
+/// the verifier so the binary is self-contained and deterministic. The file is
+/// the single source of truth (spec 210 FR-003); a build-time-tested invariant
+/// keeps it well-formed and non-empty.
+const AGENTIC_SDK_WATCHLIST_YAML: &str =
+    include_str!("../../../standards/schemas/factory/agentic-sdk-watchlist.yaml");
+
+/// Parsed shape of `agentic-sdk-watchlist.yaml`.
+#[derive(Debug, Clone, Deserialize)]
+struct AgenticSdkWatchlist {
+    #[allow(dead_code)]
+    schema_version: String,
+    packages: Vec<WatchlistEntry>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct WatchlistEntry {
+    #[allow(dead_code)]
+    ecosystem: String,
+    name: String,
+    #[serde(default)]
+    #[allow(dead_code)]
+    note: Option<String>,
+}
+
+/// Parse the embedded watchlist. Malformed is a build-time invariant violation
+/// (the file is committed and tested), so this panics rather than fail-soft.
+fn load_agentic_sdk_watchlist() -> AgenticSdkWatchlist {
+    serde_yaml::from_str(AGENTIC_SDK_WATCHLIST_YAML)
+        .expect("embedded agentic-sdk-watchlist.yaml is malformed (build-time invariant)")
+}
+
+/// A CycloneDX `purl` carries the watchlist package name as its name segment.
+/// Tolerates the npm scope encoding (`%40` for `@`): a scoped package
+/// `@anthropic-ai/sdk` appears as `pkg:npm/%40anthropic-ai/sdk@<version>`.
+fn purl_matches(purl: &str, name: &str) -> bool {
+    let decoded = purl.replace("%40", "@");
+    decoded.contains(&format!("/{name}@")) || decoded.ends_with(&format!("/{name}"))
+}
+
+/// Walk a CycloneDX BOM's `components[]` (recursively, since cyclonedx-npm may
+/// nest) and return the first watchlisted package name found, if any. A missing
+/// or unparseable BOM yields `None` (the caller treats a miss as a stated
+/// residual, not a pass).
+fn first_watchlist_match_in_bom(bom_bytes: &[u8]) -> Option<String> {
+    let v: serde_json::Value = serde_json::from_slice(bom_bytes).ok()?;
+    let watchlist = load_agentic_sdk_watchlist();
+
+    fn walk(node: &serde_json::Value, wl: &AgenticSdkWatchlist) -> Option<String> {
+        let arr = node.get("components")?.as_array()?;
+        for c in arr {
+            let name = c.get("name").and_then(|n| n.as_str());
+            let purl = c.get("purl").and_then(|p| p.as_str());
+            for entry in &wl.packages {
+                if name == Some(entry.name.as_str())
+                    || purl.is_some_and(|p| purl_matches(p, &entry.name))
+                {
+                    return Some(entry.name.clone());
+                }
+            }
+            if let Some(hit) = walk(c, wl) {
+                return Some(hit);
+            }
+        }
+        None
+    }
+
+    walk(&v, &watchlist)
+}
+
+/// Spec 210 FR-003: the outcome of cross-checking a certificate's agentic
+/// posture against the produced app's CycloneDX SBOM.
+#[derive(Debug, PartialEq, Eq)]
+pub enum PostureCrossCheckOutcome {
+    /// No `agentic_posture_binding` on the cert: nothing to cross-check.
+    Unbound,
+    /// Posture is `declared`/`governed`: agency was declared, so a watchlist
+    /// match is not a contradiction.
+    Declared,
+    /// Posture `none` and no watchlisted package found in the BOM. NOTE: a
+    /// watchlist miss is a STATED RESIDUAL (absence of a match is not proof of
+    /// absence of agency), surfaced by the caller as a notice.
+    ConsistentNone,
+    /// Posture `none` (authored or defaulted) contradicted by a watchlisted
+    /// agent/LLM SDK dependency in the BOM. Names the package + the posture.
+    Contradicted { package: String, posture: String },
+    /// Binding present but no `--sbom-dir` supplied: cannot cross-check.
+    UnverifiedNoDir,
+    /// Binding present, `--sbom-dir` supplied, but the BOM was unreadable.
+    BomUnreadable { path: String, error: String },
+}
+
+/// Spec 210 FR-003: cross-check a certificate's bound agentic posture against
+/// the produced app's CycloneDX BOM (`<sbom_dir>/.factory/sbom.cdx.json`). Only
+/// a `none` posture (authored OR defaulted) is falsifiable this way:
+/// `declared`/`governed` already acknowledge agency. A `none` posture whose BOM
+/// carries a watchlisted agent/LLM SDK dependency is `Contradicted` (the caller
+/// folds this into an error naming the package). A miss is `ConsistentNone` (a
+/// stated residual). Absent binding is `Unbound`; a binding with no `--sbom-dir`
+/// is `UnverifiedNoDir` (a notice, not fail-closed: unlike the SBOM *hash*
+/// binding, this is a declaration cross-check whose evidence is optional).
+pub fn cross_check_agentic_posture(
+    cert: &GovernanceCertificate,
+    sbom_dir: Option<&Path>,
+) -> PostureCrossCheckOutcome {
+    let Some(binding) = &cert.agentic_posture_binding else {
+        return PostureCrossCheckOutcome::Unbound;
+    };
+    if binding.posture != "none" {
+        return PostureCrossCheckOutcome::Declared;
+    }
+    let Some(dir) = sbom_dir else {
+        return PostureCrossCheckOutcome::UnverifiedNoDir;
+    };
+    let bom_path = dir.join(SBOM_BOM_RELPATH);
+    let bom_bytes = match std::fs::read(&bom_path) {
+        Ok(b) => b,
+        Err(e) => {
+            return PostureCrossCheckOutcome::BomUnreadable {
+                path: bom_path.display().to_string(),
+                error: e.to_string(),
+            };
+        }
+    };
+    match first_watchlist_match_in_bom(&bom_bytes) {
+        Some(package) => PostureCrossCheckOutcome::Contradicted {
+            package,
+            posture: binding.posture.clone(),
+        },
+        None => PostureCrossCheckOutcome::ConsistentNone,
     }
 }
 
@@ -3181,7 +3513,328 @@ mod sbom_binding_tests {
     /// binding spec 203, 1.8.0 budget consumption spec 202).
     #[test]
     fn certificate_version_is_current() {
-        assert_eq!(CERTIFICATE_VERSION, "1.8.0");
+        assert_eq!(CERTIFICATE_VERSION, "1.9.0");
+    }
+
+    // ── Agentic posture binding (spec 210 FR-002) ───────────────────────
+
+    fn posture_binding(
+        posture: &str,
+        defaulted: bool,
+        surfaces: Vec<CertAgenticSurface>,
+    ) -> AgenticPostureBinding {
+        AgenticPostureBinding {
+            posture: posture.into(),
+            defaulted,
+            surfaces,
+        }
+    }
+
+    fn cert_with_posture(binding: Option<AgenticPostureBinding>) -> GovernanceCertificate {
+        let mut b = CertificateBuilder::new(
+            "run-210",
+            IntentRecord {
+                requirements_hash: "req".into(),
+                spec_id: None,
+                spec_hash: None,
+            },
+        )
+        .build_spec_hash("spec-hash");
+        if let Some(pb) = binding {
+            b = b.agentic_posture_binding(pb);
+        }
+        b.build()
+    }
+
+    /// FR-002: the binding is INSIDE the content hash + signature and serialises
+    /// camelCase as `agenticPostureBinding`; a bound cert still verifies.
+    #[test]
+    fn posture_binding_is_inside_hash_and_serialises_camel_case() {
+        let bound = cert_with_posture(Some(posture_binding("none", true, vec![])));
+        let unbound = cert_with_posture(None);
+        assert_ne!(
+            bound.certificate_hash, unbound.certificate_hash,
+            "binding must change the content-binding hash (proves it is inside the hash)"
+        );
+        let json = serde_json::to_string(&bound).unwrap();
+        assert!(json.contains("agenticPostureBinding"));
+        assert!(json.contains("\"defaulted\":true"));
+        let result = verify_certificate(&bound, None);
+        assert!(
+            result.valid,
+            "bound cert must verify; errors: {:?}",
+            result.errors
+        );
+    }
+
+    /// FR-002 / AC-2: tampering the bound posture after signing fails verify
+    /// (the signature spans the binding).
+    #[test]
+    fn tampering_bound_posture_fails_verify() {
+        let mut bound = cert_with_posture(Some(posture_binding("none", false, vec![])));
+        // Flip the recorded posture: the signature no longer covers this content.
+        bound.agentic_posture_binding.as_mut().unwrap().posture = "governed".into();
+        let result = verify_certificate(&bound, None);
+        assert!(!result.valid, "tampered posture must fail verify");
+    }
+
+    /// FR-002 / AC-2 + spec 220 regression guard: a posture-free cert (a
+    /// 220-style tenant cert, or any pre-1.9.0 shape) stays byte-identical when
+    /// absent and still verifies. Spec 210 must not perturb the delivered 220
+    /// certificate.
+    #[test]
+    fn absent_posture_binding_is_skipped_and_legacy_certs_verify() {
+        let unbound = cert_with_posture(None);
+        let json = serde_json::to_string(&unbound).unwrap();
+        assert!(
+            !json.contains("agenticPostureBinding"),
+            "absent binding must be skipped in serialisation"
+        );
+        let restored: GovernanceCertificate = serde_json::from_str(&json).unwrap();
+        assert!(restored.agentic_posture_binding.is_none());
+        let result = verify_certificate(&restored, None);
+        assert!(
+            result.valid,
+            "posture-free cert must verify; errors: {:?}",
+            result.errors
+        );
+    }
+
+    /// FR-002: `from_build_spec(None)` yields the defaulted-none binding (Build
+    /// Spec read, field omitted); `Some(authored none)` yields authored none with
+    /// `defaulted: false` (the "authored none" vs "nobody asked" distinction).
+    #[test]
+    fn posture_binding_from_build_spec_defaulting() {
+        use factory_contracts::build_spec::{AgenticPosture, PostureLevel};
+        let defaulted = AgenticPostureBinding::from_build_spec(None);
+        assert_eq!(defaulted.posture, "none");
+        assert!(defaulted.defaulted);
+        assert!(defaulted.surfaces.is_empty());
+
+        let authored = AgenticPosture {
+            posture: PostureLevel::None,
+            surfaces: vec![],
+        };
+        let bound = AgenticPostureBinding::from_build_spec(Some(&authored));
+        assert_eq!(bound.posture, "none");
+        assert!(!bound.defaulted, "authored none must NOT be marked defaulted");
+    }
+
+    /// A minimal shape-conformant governance envelope (spec 198 schema), reused
+    /// at application level for a `governed` surface.
+    fn conformant_envelope() -> serde_json::Value {
+        serde_json::json!({
+            "schema_version": factory_contracts::GOVERNANCE_ENVELOPE_SCHEMA_VERSION,
+            "process": {
+                "id": "app-agent",
+                "objective_class": "Assist the user within the app",
+                "goal_identifier_scheme": "app:<feature>"
+            },
+            "ceilings": { "max_tier": "tier1", "max_mutation": "read-only" },
+            "gates": [{ "predicate": "human-approval-before-tool-call" }],
+            "emits": [{ "kind": "assistant-response" }],
+            "constituents": { "agents": "app/agents/*.md" },
+            "overrides": { "require_verified": false }
+        })
+    }
+
+    fn cert_surface(kind: &str, env: Option<serde_json::Value>) -> CertAgenticSurface {
+        CertAgenticSurface {
+            kind: kind.into(),
+            description: Some("s".into()),
+            governance_envelope: env,
+        }
+    }
+
+    /// FR-003 (internal half): declared/governed with no surfaces, and none with
+    /// surfaces, are inconsistent.
+    #[test]
+    fn posture_binding_surface_cardinality_consistency() {
+        assert!(agentic_posture_binding_inconsistencies(&posture_binding("none", false, vec![])).is_empty());
+        assert!(
+            !agentic_posture_binding_inconsistencies(&posture_binding(
+                "none",
+                false,
+                vec![cert_surface("model-api", None)]
+            ))
+            .is_empty(),
+            "none with surfaces must be inconsistent"
+        );
+        assert!(
+            !agentic_posture_binding_inconsistencies(&posture_binding("declared", false, vec![])).is_empty(),
+            "declared with no surfaces must be inconsistent"
+        );
+        assert!(agentic_posture_binding_inconsistencies(&posture_binding(
+            "declared",
+            false,
+            vec![cert_surface("model-api", None)]
+        ))
+        .is_empty());
+        // Unknown posture string is rejected.
+        assert!(!agentic_posture_binding_inconsistencies(&posture_binding("maybe", false, vec![])).is_empty());
+    }
+
+    /// FR-004: a `governed` surface requires a conformant inline governance
+    /// envelope; missing or non-conformant fails, conformant passes shape.
+    #[test]
+    fn governed_surface_requires_conformant_envelope() {
+        // missing envelope
+        let missing = posture_binding("governed", false, vec![cert_surface("tool-surface", None)]);
+        assert!(!agentic_posture_binding_inconsistencies(&missing).is_empty());
+
+        // present but non-conformant
+        let malformed = posture_binding(
+            "governed",
+            false,
+            vec![cert_surface("tool-surface", Some(serde_json::json!({ "not": "an envelope" })))],
+        );
+        assert!(!agentic_posture_binding_inconsistencies(&malformed).is_empty());
+
+        // conformant
+        let ok = posture_binding(
+            "governed",
+            false,
+            vec![cert_surface("tool-surface", Some(conformant_envelope()))],
+        );
+        assert!(
+            agentic_posture_binding_inconsistencies(&ok).is_empty(),
+            "conformant envelope must pass: {:?}",
+            agentic_posture_binding_inconsistencies(&ok)
+        );
+    }
+
+    /// FR-003/FR-004 wired through `verify_certificate`: a validly-signed but
+    /// self-inconsistent binding fails verification; a consistent one passes.
+    #[test]
+    fn inconsistent_bound_posture_fails_verify_certificate() {
+        // declared with no surfaces: inconsistent, but validly signed.
+        let bad = cert_with_posture(Some(posture_binding("declared", false, vec![])));
+        let result = verify_certificate(&bad, None);
+        assert!(!result.valid, "self-inconsistent binding must fail verify");
+        assert!(
+            result.errors.iter().any(|e| e.contains("agentic_posture_binding")),
+            "diagnostic must name the binding: {:?}",
+            result.errors
+        );
+
+        // governed with a conformant envelope: consistent, verifies.
+        let good = cert_with_posture(Some(posture_binding(
+            "governed",
+            false,
+            vec![cert_surface("tool-surface", Some(conformant_envelope()))],
+        )));
+        assert!(verify_certificate(&good, None).valid);
+    }
+
+    // ── FR-003 SBOM cross-check + watchlist ─────────────────────────────
+
+    /// The embedded watchlist parses and is non-empty (build-time invariant).
+    #[test]
+    fn embedded_watchlist_is_well_formed_and_non_empty() {
+        let wl = load_agentic_sdk_watchlist();
+        assert!(!wl.packages.is_empty(), "watchlist must be non-empty");
+        assert!(
+            wl.packages.iter().any(|e| e.name == "@anthropic-ai/sdk"),
+            "watchlist should include the @anthropic-ai/sdk-class entry"
+        );
+    }
+
+    fn bom_with(names: &[(&str, &str)]) -> Vec<u8> {
+        let components: Vec<serde_json::Value> = names
+            .iter()
+            .map(|(name, ver)| {
+                serde_json::json!({
+                    "type": "library",
+                    "name": name,
+                    "version": ver,
+                    "purl": format!("pkg:npm/{}@{}", name.replace('@', "%40"), ver)
+                })
+            })
+            .collect();
+        serde_json::to_vec(&serde_json::json!({
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.6",
+            "components": components
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn watchlist_matcher_hits_sdk_misses_plain_deps() {
+        let hit = bom_with(&[("react", "18.0.0"), ("@anthropic-ai/sdk", "0.30.0")]);
+        assert_eq!(
+            first_watchlist_match_in_bom(&hit).as_deref(),
+            Some("@anthropic-ai/sdk")
+        );
+        let miss = bom_with(&[("react", "18.0.0"), ("express", "4.19.0")]);
+        assert_eq!(first_watchlist_match_in_bom(&miss), None);
+    }
+
+    fn write_bom(bytes: &[u8]) -> tempfile::TempDir {
+        let dir = tempfile::tempdir().unwrap();
+        let factory = dir.path().join(".factory");
+        std::fs::create_dir_all(&factory).unwrap();
+        std::fs::write(factory.join("sbom.cdx.json"), bytes).unwrap();
+        dir
+    }
+
+    /// AC-3: `none` posture + an `@anthropic-ai/sdk`-class dependency in the BOM
+    /// is Contradicted, naming the package + posture. Both authored and
+    /// defaulted `none` are falsified.
+    #[test]
+    fn cross_check_none_with_sdk_is_contradicted() {
+        let dir = write_bom(&bom_with(&[("@anthropic-ai/sdk", "0.30.0")]));
+
+        for defaulted in [false, true] {
+            let cert = cert_with_posture(Some(posture_binding("none", defaulted, vec![])));
+            match cross_check_agentic_posture(&cert, Some(dir.path())) {
+                PostureCrossCheckOutcome::Contradicted { package, posture } => {
+                    assert_eq!(package, "@anthropic-ai/sdk");
+                    assert_eq!(posture, "none");
+                }
+                other => panic!("expected Contradicted (defaulted={defaulted}), got {other:?}"),
+            }
+        }
+    }
+
+    /// AC-3: removing the dependency (a plain-web BOM) passes; declaring the
+    /// agency (`declared`) passes even with the SDK present.
+    #[test]
+    fn cross_check_passes_without_sdk_or_when_declared() {
+        // none + no watchlisted dep -> ConsistentNone (a stated-residual pass).
+        let clean = write_bom(&bom_with(&[("react", "18.0.0"), ("express", "4.19.0")]));
+        let none_cert = cert_with_posture(Some(posture_binding("none", false, vec![])));
+        assert_eq!(
+            cross_check_agentic_posture(&none_cert, Some(clean.path())),
+            PostureCrossCheckOutcome::ConsistentNone
+        );
+
+        // declared + SDK present -> Declared (agency acknowledged, not a contradiction).
+        let with_sdk = write_bom(&bom_with(&[("@anthropic-ai/sdk", "0.30.0")]));
+        let declared_cert = cert_with_posture(Some(posture_binding(
+            "declared",
+            false,
+            vec![cert_surface("model-api", None)],
+        )));
+        assert_eq!(
+            cross_check_agentic_posture(&declared_cert, Some(with_sdk.path())),
+            PostureCrossCheckOutcome::Declared
+        );
+    }
+
+    /// Absent binding -> Unbound; binding with no --sbom-dir -> UnverifiedNoDir.
+    #[test]
+    fn cross_check_unbound_and_no_dir_outcomes() {
+        let unbound = cert_with_posture(None);
+        assert_eq!(
+            cross_check_agentic_posture(&unbound, None),
+            PostureCrossCheckOutcome::Unbound
+        );
+        let none_cert = cert_with_posture(Some(posture_binding("none", true, vec![])));
+        assert_eq!(
+            cross_check_agentic_posture(&none_cert, None),
+            PostureCrossCheckOutcome::UnverifiedNoDir
+        );
     }
 
     /// FR-002: the audit-record schema round-trips for both `present` and
