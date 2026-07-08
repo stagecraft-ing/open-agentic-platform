@@ -69,6 +69,13 @@ const PRESENTATION = new Map<string, { displayName: string; category: string }>(
   ["data-postgres", { displayName: "PostgreSQL", category: "Data" }],
   ["data-redis", { displayName: "Redis", category: "Data" }],
   ["user-management", { displayName: "User/Role Management", category: "Application" }],
+  // Spec 227 cron stage (OAP consumer of factory-encore spec 009 / OAP spec 230).
+  // An Application feature that pulls infra: its manifest declares
+  // `requires: ["data-postgres"]` and `optionalPeers: ["data-redis"]`, so the
+  // picker's transitive requires closure adds Postgres, and the large-scale
+  // Redis lock lights up only once the Redis Infrastructure resource lands
+  // (Stage 4). The Small (Postgres atomic-claim) tier is the default.
+  ["cron", { displayName: "Cron Scheduler", category: "Application" }],
 ]);
 
 function titleCase(id: string): string {

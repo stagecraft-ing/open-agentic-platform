@@ -13,9 +13,10 @@ use std::collections::HashMap;
 
 /// Current Build Spec contract version. Bumped 1.0.0 → 1.1.0 by spec 197
 /// (open-standard extensions: per-audience `provisioning_model`,
-/// per-integration `implementation_status`). The additions are optional, so
-/// every 1.0.0 Build Spec still deserializes unchanged.
-pub const BUILD_SPEC_SCHEMA_VERSION: &str = "1.1.0";
+/// per-integration `implementation_status`), then 1.1.0 → 1.2.0 by spec 210
+/// (top-level `agentic_posture` object). Every addition is optional, so a
+/// 1.0.0 or 1.1.0 Build Spec still deserializes unchanged.
+pub const BUILD_SPEC_SCHEMA_VERSION: &str = "1.2.0";
 
 // ── Top-level Build Spec ──────────────────────────────────────────────────────
 
@@ -47,6 +48,142 @@ pub struct BuildSpec {
     pub file_storage: Option<Vec<FileStorage>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub traceability: Option<TraceabilitySpec>,
+    /// The produced application's declared agentic surface (spec 210). Absent
+    /// ⇒ `none`, and the governance certificate records that default AS
+    /// defaulted (spec 210 FR-002). Optional/additive (schema 1.2.0).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agentic_posture: Option<AgenticPosture>,
+}
+
+// ── Agentic posture (spec 210) ──────────────────────────────────────────────────
+
+/// The produced application's declared agentic surface (spec 210 FR-001).
+///
+/// Least Agency applied to outputs: a produced app's autonomy is a stated
+/// choice, never a silent acquisition. Absent from a Build Spec means `none`,
+/// and the governance certificate records that default AS defaulted
+/// (spec 210 FR-002), so an auditor can tell "authored none" (someone decided)
+/// from "defaulted none" (nobody asked).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AgenticPosture {
+    /// Declared agentic level.
+    pub posture: PostureLevel,
+    /// Enumerated agentic surfaces. Required non-empty for `declared` and
+    /// `governed`; empty for `none`. Enforced by [`AgenticPosture::validate`].
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub surfaces: Vec<AgenticSurface>,
+}
+
+/// Declared agentic level of a produced application (spec 210 FR-001).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum PostureLevel {
+    /// No model calls, agent loops, tool surfaces, or persistent agent memory.
+    None,
+    /// Agentic surfaces exist and are enumerated.
+    Declared,
+    /// Declared, plus every surface carries a governance envelope.
+    Governed,
+}
+
+impl PostureLevel {
+    /// Canonical wire string (matches the schema enum and serde form).
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PostureLevel::None => "none",
+            PostureLevel::Declared => "declared",
+            PostureLevel::Governed => "governed",
+        }
+    }
+}
+
+/// One enumerated agentic surface (spec 210 FR-001).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AgenticSurface {
+    pub kind: SurfaceKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Inline governance envelope (the spec 198 schema, reused at application
+    /// level). Required for every surface under `governed`; validated for
+    /// SHAPE (must deserialize as a [`crate::governance_envelope::GovernanceEnvelope`])
+    /// by [`AgenticPosture::validate`]. Carried as a raw value so the
+    /// certificate binding can bind it verbatim (read, never recompute).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub governance_envelope: Option<serde_json::Value>,
+}
+
+/// Kind of an agentic surface (spec 210 FR-001).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum SurfaceKind {
+    ModelApi,
+    ToolSurface,
+    MemoryPersistence,
+    HumanApprovalPoint,
+}
+
+impl SurfaceKind {
+    /// Canonical wire string (matches the schema enum and serde form).
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SurfaceKind::ModelApi => "model-api",
+            SurfaceKind::ToolSurface => "tool-surface",
+            SurfaceKind::MemoryPersistence => "memory-persistence",
+            SurfaceKind::HumanApprovalPoint => "human-approval-point",
+        }
+    }
+}
+
+impl AgenticPosture {
+    /// Well-formedness (spec 210 FR-001 / FR-004):
+    /// - `none`: no surfaces.
+    /// - `declared`: at least one surface.
+    /// - `governed`: at least one surface, and every surface carries an inline
+    ///   governance envelope that deserializes as a
+    ///   [`crate::governance_envelope::GovernanceEnvelope`] (shape validation;
+    ///   the spec 198 schema reused at application level). Shape only: runtime
+    ///   admission of the app's own agents is out of scope (the tenant
+    ///   deployment's concern).
+    pub fn validate(&self) -> Result<(), String> {
+        match self.posture {
+            PostureLevel::None => {
+                if !self.surfaces.is_empty() {
+                    return Err(format!(
+                        "agentic_posture `none` must enumerate no surfaces, found {}",
+                        self.surfaces.len()
+                    ));
+                }
+            }
+            PostureLevel::Declared | PostureLevel::Governed => {
+                if self.surfaces.is_empty() {
+                    return Err(format!(
+                        "agentic_posture `{}` requires a non-empty surface enumeration",
+                        self.posture.as_str()
+                    ));
+                }
+            }
+        }
+        if self.posture == PostureLevel::Governed {
+            for (i, s) in self.surfaces.iter().enumerate() {
+                let Some(env) = &s.governance_envelope else {
+                    return Err(format!(
+                        "agentic_posture `governed` surface #{i} ({}) is missing its \
+                         governance_envelope (spec 210 FR-004)",
+                        s.kind.as_str()
+                    ));
+                };
+                serde_json::from_value::<crate::governance_envelope::GovernanceEnvelope>(env.clone())
+                    .map_err(|e| {
+                        format!(
+                            "agentic_posture `governed` surface #{i} ({}) has a \
+                             non-conformant governance_envelope: {e}",
+                            s.kind.as_str()
+                        )
+                    })?;
+            }
+        }
+        Ok(())
+    }
 }
 
 // ── Project ───────────────────────────────────────────────────────────────────
@@ -1165,8 +1302,130 @@ mod tests {
     }
 
     #[test]
-    fn build_spec_schema_version_is_1_1_0() {
-        assert_eq!(BUILD_SPEC_SCHEMA_VERSION, "1.1.0");
+    fn build_spec_schema_version_is_1_2_0() {
+        assert_eq!(BUILD_SPEC_SCHEMA_VERSION, "1.2.0");
+    }
+
+    // ── Agentic posture (spec 210) ──────────────────────────────────────────
+
+    /// A minimal, shape-conformant governance envelope (spec 198 schema),
+    /// reused at application level for a `governed` surface. Mirrors the
+    /// 1.x envelope shape asserted in governance_envelope.rs tests.
+    fn conformant_envelope_value() -> serde_json::Value {
+        serde_json::json!({
+            "schema_version": crate::GOVERNANCE_ENVELOPE_SCHEMA_VERSION,
+            "process": {
+                "id": "app-agent",
+                "objective_class": "Assist the user within the app",
+                "goal_identifier_scheme": "app:<feature>"
+            },
+            "ceilings": { "max_tier": "tier1", "max_mutation": "read-only" },
+            "gates": [{ "predicate": "human-approval-before-tool-call" }],
+            "emits": [{ "kind": "assistant-response" }],
+            "constituents": { "agents": "app/agents/*.md" },
+            "overrides": { "require_verified": false }
+        })
+    }
+
+    fn surface(kind: SurfaceKind, envelope: Option<serde_json::Value>) -> AgenticSurface {
+        AgenticSurface {
+            kind,
+            description: Some("surface".to_string()),
+            governance_envelope: envelope,
+        }
+    }
+
+    #[test]
+    fn posture_none_authored_parses_and_validates() {
+        // `none` with no surfaces: authored none, well-formed.
+        let p: AgenticPosture = serde_yaml::from_str("posture: none\n").unwrap();
+        assert_eq!(p.posture, PostureLevel::None);
+        assert!(p.surfaces.is_empty());
+        assert!(p.validate().is_ok());
+    }
+
+    #[test]
+    fn posture_none_with_surfaces_is_rejected() {
+        let p = AgenticPosture {
+            posture: PostureLevel::None,
+            surfaces: vec![surface(SurfaceKind::ModelApi, None)],
+        };
+        assert!(p.validate().is_err());
+    }
+
+    #[test]
+    fn posture_declared_requires_non_empty_surfaces() {
+        let empty = AgenticPosture {
+            posture: PostureLevel::Declared,
+            surfaces: vec![],
+        };
+        assert!(empty.validate().is_err());
+
+        let ok = AgenticPosture {
+            posture: PostureLevel::Declared,
+            surfaces: vec![surface(SurfaceKind::ModelApi, None)],
+        };
+        assert!(ok.validate().is_ok());
+    }
+
+    #[test]
+    fn posture_governed_requires_conformant_envelope_per_surface() {
+        // Missing envelope on a governed surface.
+        let missing = AgenticPosture {
+            posture: PostureLevel::Governed,
+            surfaces: vec![surface(SurfaceKind::ToolSurface, None)],
+        };
+        assert!(missing.validate().is_err());
+
+        // Present but non-conformant (does not deserialize as a GovernanceEnvelope).
+        let malformed = AgenticPosture {
+            posture: PostureLevel::Governed,
+            surfaces: vec![surface(
+                SurfaceKind::ToolSurface,
+                Some(serde_json::json!({ "not": "an envelope" })),
+            )],
+        };
+        assert!(malformed.validate().is_err());
+
+        // Conformant inline envelope: passes shape validation.
+        let ok = AgenticPosture {
+            posture: PostureLevel::Governed,
+            surfaces: vec![surface(
+                SurfaceKind::ToolSurface,
+                Some(conformant_envelope_value()),
+            )],
+        };
+        assert!(
+            ok.validate().is_ok(),
+            "conformant envelope should pass shape validation: {:?}",
+            ok.validate()
+        );
+    }
+
+    #[test]
+    fn posture_round_trips_through_yaml() {
+        let p = AgenticPosture {
+            posture: PostureLevel::Declared,
+            surfaces: vec![
+                surface(SurfaceKind::ModelApi, None),
+                surface(SurfaceKind::HumanApprovalPoint, None),
+            ],
+        };
+        let yaml = serde_yaml::to_string(&p).unwrap();
+        let back: AgenticPosture = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(p, back);
+    }
+
+    #[test]
+    fn surface_kind_and_posture_level_wire_forms() {
+        assert_eq!(PostureLevel::None.as_str(), "none");
+        assert_eq!(PostureLevel::Declared.as_str(), "declared");
+        assert_eq!(PostureLevel::Governed.as_str(), "governed");
+        assert_eq!(SurfaceKind::ModelApi.as_str(), "model-api");
+        assert_eq!(SurfaceKind::HumanApprovalPoint.as_str(), "human-approval-point");
+        // Serde form matches the schema enum (kebab-case).
+        let k: SurfaceKind = serde_yaml::from_str("memory-persistence").unwrap();
+        assert_eq!(k, SurfaceKind::MemoryPersistence);
     }
 
     // The sibling contract version consts are also pinned, so a typo in either

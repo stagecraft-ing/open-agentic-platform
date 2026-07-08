@@ -3,7 +3,7 @@ id: "227-create-project-infra-config-projection"
 title: "Create Project as an Encore-infra-config projection: derived catalog, two-axis selector, dev-provisioned Redis"
 feature_branch: "227-create-project-infra-config-projection"
 status: draft
-implementation: pending  # Staged implementation. The design PR (#530) landed only the featuregraph golden node (extends 034); each follow-on stage PR then promotes referenced paths to authoritative relationships and lands code one subsystem at a time. Stage 1 (catalog derivation), Stage 2 (two-axis form + base-app config), Stage 3 (deployd previewRedis), the interim nit PR, and Stage 2b (auth-driver axis, spec 229: an independent mock|rauthy selector patched as AUTH_DRIVER) have landed; implementation stays pending until Stage 4 end-to-end wiring completes.
+implementation: pending  # Staged implementation. The design PR (#530) landed only the featuregraph golden node (extends 034); each follow-on stage PR then promotes referenced paths to authoritative relationships and lands code one subsystem at a time. Stage 1 (catalog derivation), Stage 2 (two-axis form + base-app config), Stage 3 (deployd previewRedis), the interim nit PR, and Stage 2b (auth-driver axis, spec 229: an independent mock|rauthy selector patched as AUTH_DRIVER), and the cron-capability stage (spec 230: cron surfaced as an Application feature, submitting its transitive data-postgres requires closure; the large-scale Redis tier rides Stage 4) have landed; implementation stays pending until Stage 4 end-to-end wiring completes.
 kind: platform
 domain: platform
 created: "2026-07-06"
@@ -416,8 +416,39 @@ authoritative relationships:
    selection through to the baked `redis` block; depends on factory-encore 008
    landing the adapter-side promotion. Satisfies FR-004, and FR-006 falls out of
    Option A with no per-env files.
+5. **Cron capability** (stagecraft): surface the factory-encore `cron` module
+   (OAP spec 230, factory-encore spec 009) as an Application feature whose
+   transitive `data-postgres` requires closure is submitted with the scaffold
+   request. The Small (Postgres atomic-claim) tier is active; the large-scale
+   Redis lock rides the Redis Infrastructure resource (Stage 4). Refines 138.
 
 ### Implementation log
+
+**Cron capability stage landed (2026-07-08).** The OAP consumer of factory-encore
+spec 009 (OAP spec 230 section 6): create-project surfaces the `cron` module as
+an Application feature.
+
+- **Presentation (`moduleCatalog.ts`).** `cron` gains a PRESENTATION overlay
+  entry (`displayName: "Cron Scheduler"`, `category: "Application"`) so it renders
+  in the Application-features section; its `description`/`requires`/`status`
+  derive from the admitted manifest (`requires: ["data-postgres"]`,
+  `optionalPeers: ["data-redis"]`).
+- **Transitive requires submission (`app.projects.new.tsx`).** Selecting cron
+  pulls `data-postgres` into the selection via `applyModuleToggle`, but infra
+  modules are not rendered feature checkboxes and so would not submit. The form
+  now emits the transitive infra-requires closure as hidden `modules` inputs (the
+  same closure-as-hidden-inputs pattern the /connectivity gateway uses), so the
+  scaffold composes `data-postgres` ahead of `cron` and the generator's requires
+  check is satisfied.
+- **Scale tiers.** The Small (Postgres atomic-claim lock) tier is active. The
+  large-scale Redis distributed lock rides `REDIS_URL`, provisioned by the Redis
+  Infrastructure resource, which is Stage 4 (the Infrastructure Redis row stays
+  "Planned"). The cron manifest description states both tiers honestly.
+
+The end-to-end composition activates once factory-encore #20 merges and the org
+substrate admits the cron module manifest (the catalog derives from the
+substrate). `deploy.ts` and the Redis end-to-end path stay Stage 4;
+`implementation:` stays `pending`.
 
 **Stage 2 landed (2026-07-08).** Create-project form reframe (FR-002/003/007/008):
 

@@ -14,6 +14,12 @@
       "168-per-project-governance-certificate"
     ],
     "domain": "platform",
+    "establishes": [
+      {
+        "kind": "file",
+        "path": "standards/schemas/factory/agentic-sdk-watchlist.yaml"
+      }
+    ],
     "extends": [
       {
         "nature": "additive",
@@ -21,6 +27,14 @@
         "unit": {
           "kind": "file",
           "path": "standards/schemas/factory/build-spec.schema.yaml"
+        }
+      },
+      {
+        "nature": "additive",
+        "spec": "197-factory-contract-open-standard-extensions",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-contracts/src/build_spec.rs"
         }
       },
       {
@@ -46,7 +60,7 @@
     },
     "featureBranch": "feat/210-build-spec-agentic-posture",
     "id": "210-build-spec-agentic-posture",
-    "implementation": "pending",
+    "implementation": "in-progress",
     "kind": "governance",
     "references": [
       {
@@ -71,21 +85,37 @@
           "kind": "file",
           "path": "crates/factory-engine/src/governance_certificate.rs"
         }
+      },
+      {
+        "aspect": "agentic-posture-emitter-read-path",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/bin/build_certificate.rs"
+        }
+      },
+      {
+        "aspect": "agentic-posture-verify-path",
+        "unit": {
+          "kind": "file",
+          "path": "crates/factory-engine/src/bin/verify_certificate.rs"
+        }
       }
     ],
     "sectionHeadings": [
       "Feature Specification: Build Spec Agentic-Posture Declaration",
       "Purpose",
-      "Functional requirements (sketch — refine before implementation)",
-      "Acceptance criteria (sketch)",
+      "Model",
+      "Functional requirements",
+      "Acceptance criteria",
       "Out of scope",
-      "Sequencing"
+      "Sequencing",
+      "ASI mapping"
     ],
     "specPath": "specs/210-build-spec-agentic-posture/spec.md",
-    "status": "draft",
-    "summary": "Make the produced application's agentic surface a declared, falsifiable contract fact. Produced apps are conventional web applications today, but nothing STATES that: the Build Spec is silent on whether the application embeds model calls, tools, or agent loops, so a tenant that later adds an LLM SDK acquires an ungoverned agentic surface while still carrying OAP's governance certificate — the certificate then implies a coverage it does not have. This spec adds an open-standard Build Spec field, agentic_posture: none | declared | governed, binds it into the governance certificate, and makes it falsifiable by cross-checking the declaration against the produced app's SBOM (spec 203): posture \"none\" with a known agent/LLM SDK in the dependency tree fails verification with an attributable diagnostic. \"Declared\" requires the agentic surfaces to be enumerated; \"governed\" requires referencing a governance envelope for that surface, bridging the spec 198 contract from the factory run to the thing the factory built. This is cross-cutting principle 1 — Least Agency — applied to outputs: autonomy is a deliberate, stated choice, never a silent acquisition.\n",
+    "status": "approved",
+    "summary": "Make the produced application's agentic surface a declared, falsifiable contract fact. Produced apps are conventional web applications today, but nothing STATES that: the Build Spec is silent on whether the application embeds model calls, tools, or agent loops, so a tenant that later adds an LLM SDK acquires an ungoverned agentic surface while still carrying OAP's governance certificate, and the certificate then implies a coverage it does not have. This spec adds an open-standard Build Spec field, agentic_posture: none | declared | governed, binds it into the governance certificate, and makes it falsifiable by cross-checking the declaration against the produced app's SBOM (spec 203): posture \"none\" with a known agent/LLM SDK in the dependency tree fails verification with an attributable diagnostic. \"Declared\" requires the agentic surfaces to be enumerated; \"governed\" requires each surface to carry a governance envelope (the spec 198 schema, reused at application level), bridging the spec 198 contract from the factory run to the thing the factory built. This is cross-cutting principle 1 (Least Agency) applied to outputs: autonomy is a deliberate, stated choice, never a silent acquisition.\n",
     "title": "Build Spec Agentic-Posture Declaration (Least Agency for produced apps)"
   },
-  "shardHash": "833b4f1c8831b1373b8bcaa2537254e313a860c947937bd21851ca95c2cbd56b",
+  "shardHash": "52f1b3d609604a3c26e7aa34973339c61a676582d65a18bc43fb35b7bf393598",
   "specVersion": "1.1.0"
 }

@@ -10,7 +10,14 @@
 #
 # The factory produces this. The adapter consumes it.
 #
-# Schema version: 1.1.0
+# Schema version: 1.2.0
+#
+# 1.2.0 (spec 210 - build spec agentic posture): adds the top-level
+#   agentic_posture object (posture: none | declared | governed, with
+#   enumerated surfaces; governed surfaces carry an inline governance
+#   envelope). Additive/optional; absent field defaults to none, and the
+#   governance certificate records the default AS defaulted (so an auditor
+#   can tell "authored none" from "nobody asked").
 #
 # 1.1.0 (spec 197 — open-standard extensions):
 #   - auth.audiences.<name>.provisioning_model  (admin-only | open-authenticated) — REQUIRED
@@ -20,7 +27,7 @@
 # concepts (classification labels, service catalogue) live in the adapter layer.
 # ============================================================================
 
-schema_version: "1.1.0"
+schema_version: "1.2.0"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PROJECT
@@ -44,6 +51,38 @@ project:
   # Optional metadata
   domain: string                  # e.g., "children-and-family-services"
   fiscal_context: string          # e.g., "2025-2026" if relevant to business logic
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AGENTIC POSTURE (spec 210)
+# ─────────────────────────────────────────────────────────────────────────────
+# The produced application's OWN agentic surface, as a declared, falsifiable
+# contract fact (Least Agency applied to outputs). Optional/additive. Absent
+# field defaults to `none`, and the governance certificate records the default
+# AS defaulted, so an auditor can tell "authored none" (someone decided) from
+# "defaulted none" (nobody asked). The declaration is falsified against the
+# produced app's SBOM (spec 203): posture `none` with a known agent/LLM SDK
+# dependency in the BOM fails certificate verification with a diagnostic naming
+# the package. This is app-level posture, NOT the factory-run envelope (spec
+# 198): the run envelope governs how the factory built; this governs what it
+# built.
+#
+agentic_posture:                     # optional; absent => none (recorded defaulted)
+  # Declared agentic level of the produced application.
+  posture:
+    enum: [none, declared, governed] # none: no model calls, agent loops, tool surfaces, or persistent memory; declared: surfaces enumerated; governed: declared + each surface carries a governance envelope
+  # Enumerated agentic surfaces. REQUIRED non-empty for `declared` and
+  # `governed`; MUST be empty (or omitted) for `none`.
+  surfaces:
+    - kind:
+        enum: [model-api, tool-surface, memory-persistence, human-approval-point]
+      description: string            # human elaboration of the surface
+      # REQUIRED for every surface under `governed`: an inline governance
+      # envelope conforming (in shape) to governance-envelope.schema.yaml (the
+      # spec 198 schema, reused at application level). Shape validation only;
+      # runtime admission of the app's own agents is the tenant deployment's
+      # concern, out of scope here.
+      governance_envelope: object    # see governance-envelope.schema.yaml
 
 
 # ─────────────────────────────────────────────────────────────────────────────

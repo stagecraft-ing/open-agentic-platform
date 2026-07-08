@@ -20,8 +20,9 @@
 
 use clap::Parser;
 use factory_engine::governance_certificate::{
-    CorpusBindingOutcome, GovernanceCertificate, SbomBindingOutcome,
-    verify_certificate_with_platform, verify_corpus_binding, verify_sbom_binding,
+    CorpusBindingOutcome, GovernanceCertificate, PostureCrossCheckOutcome, SbomBindingOutcome,
+    cross_check_agentic_posture, verify_certificate_with_platform, verify_corpus_binding,
+    verify_sbom_binding,
 };
 use factory_engine::platform_jws::PlatformJwks;
 use factory_engine::{validate_spec_id_resolution, write_validation_warnings};
@@ -185,6 +186,58 @@ fn main() {
             "INVALID".to_string()
         }
     };
+
+    // Spec 210 FR-003: cross-check the bound agentic posture against the produced
+    // app's CycloneDX BOM under --sbom-dir. A `none` posture (authored or
+    // defaulted) contradicted by a watchlisted agent/LLM SDK dependency is folded
+    // into errors (exit 1) naming the package; a watchlist miss is a
+    // stated-residual notice, never a silent pass; a missing --sbom-dir is a
+    // notice (the posture is already bound + internally consistency-checked, the
+    // BOM is the optional falsifiability evidence).
+    let posture_label = match cross_check_agentic_posture(&cert, cli.sbom_dir.as_deref()) {
+        PostureCrossCheckOutcome::Unbound => {
+            result
+                .notices
+                .push("agentic posture: UNSTATED (no binding)".into());
+            "UNSTATED".to_string()
+        }
+        PostureCrossCheckOutcome::Declared => {
+            result
+                .notices
+                .push("agentic posture: DECLARED (agency acknowledged)".into());
+            "DECLARED".to_string()
+        }
+        PostureCrossCheckOutcome::ConsistentNone => {
+            result.notices.push(
+                "agentic posture: none, no watchlisted agent/LLM SDK in the BOM \
+                 (NOTE: a watchlist miss is not proof of absence of agency; spec 210 FR-003)"
+                    .into(),
+            );
+            "NONE (consistent)".to_string()
+        }
+        PostureCrossCheckOutcome::Contradicted { package, posture } => {
+            result.errors.push(format!(
+                "agentic posture `{posture}` is contradicted by SBOM dependency `{package}` \
+                 (spec 210 FR-003): declare the agentic surface \
+                 (agentic_posture: declared|governed) or remove the dependency"
+            ));
+            "CONTRADICTED".to_string()
+        }
+        PostureCrossCheckOutcome::UnverifiedNoDir => {
+            result.notices.push(
+                "agentic posture: none, PRESENT-BUT-UNVERIFIED (supply --sbom-dir to cross-check \
+                 against the BOM; spec 210 FR-003)"
+                    .into(),
+            );
+            "UNVERIFIED".to_string()
+        }
+        PostureCrossCheckOutcome::BomUnreadable { path, error } => {
+            result.notices.push(format!(
+                "agentic posture: none, BOM unreadable at {path}: {error} (cross-check skipped)"
+            ));
+            "BOM-UNREADABLE".to_string()
+        }
+    };
     result.valid = result.errors.is_empty();
 
     let repo_root = cli
@@ -228,6 +281,7 @@ fn main() {
         );
         eprintln!("  corpus binding: {corpus_label}");
         eprintln!("  sbom binding: {sbom_label}");
+        eprintln!("  agentic posture: {posture_label}");
         std::process::exit(0);
     } else {
         eprintln!(
@@ -239,6 +293,7 @@ fn main() {
         }
         eprintln!("  corpus binding: {corpus_label}");
         eprintln!("  sbom binding: {sbom_label}");
+        eprintln!("  agentic posture: {posture_label}");
         std::process::exit(1);
     }
 }

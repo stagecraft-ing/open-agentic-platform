@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:836676e440eef810eb78b0b29344db951a75135deb0b3afecd646d3b0d299048",
+  "graph_fingerprint": "sha256:b391e3ac6c68f7e9da224a8e727c6a019bf8defec9c4d6763b71d6810e8ff5c6",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3961,8 +3961,8 @@
       "feature_id": "210-build-spec-agentic-posture",
       "title": "Build Spec Agentic-Posture Declaration (Least Agency for produced apps)",
       "spec_path": "specs/210-build-spec-agentic-posture/spec.md",
-      "status": "draft",
-      "implementation": "pending",
+      "status": "approved",
+      "implementation": "in-progress",
       "governance": "",
       "owner": "",
       "group": "",
@@ -4894,6 +4894,13 @@
       "severity": "error",
       "path": "crates/factory-engine/tests/spec_170_handoff_chain.rs",
       "message": "Malformed Spec directive: // Spec: specs/170-signed-inter-stage-manifests/spec.md",
+      "suggested_fix": "Fix header format"
+    },
+    {
+      "code": "INVALID_HEADER_FORMAT",
+      "severity": "error",
+      "path": "crates/factory-engine/tests/spec_210_agentic_posture.rs",
+      "message": "Malformed Spec directive: // Spec: specs/210-build-spec-agentic-posture/spec.md",
       "suggested_fix": "Fix header format"
     },
     {
