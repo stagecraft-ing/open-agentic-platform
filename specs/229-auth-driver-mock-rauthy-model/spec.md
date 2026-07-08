@@ -13,6 +13,14 @@ language: en
 category: ["auth", "identity"]
 amends: ["148-auth-driver-registry", "149-saml-auth-driver", "150-example-tenant-profile"]
 amends_sections: []
+extends:
+  # A new spec adds a node to the featuregraph golden (same precedent as
+  # specs 214, 222, 223, 224, 225, 226); claimed additively against spec 034
+  # so the golden diff carries a 229 authority. This is the only code path
+  # this amendment PR changes.
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 summary: >
   Corrects the auth-driver mental model without changing the registry
   pattern. The app-level AUTH_DRIVER axis has exactly two values, `mock`

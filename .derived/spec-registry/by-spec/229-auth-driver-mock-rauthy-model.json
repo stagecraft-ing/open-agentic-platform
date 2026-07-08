@@ -10,6 +10,16 @@
     ],
     "created": "2026-07-08",
     "domain": "platform",
+    "extends": [
+      {
+        "nature": "additive",
+        "spec": "034-featuregraph-registry-scanner-fix",
+        "unit": {
+          "kind": "file",
+          "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      }
+    ],
     "extraFrontmatter": {
       "approved": "2026-07-08",
       "category": [
@@ -39,6 +49,6 @@
     "summary": "Corrects the auth-driver mental model without changing the registry pattern. The app-level AUTH_DRIVER axis has exactly two values, `mock` (zero-dependency dev/test identity) and `rauthy` (the single production driver). Every real identity provider (GitHub, Google, Auth0, Entra ID, and SAML-requiring tenants) federates INSIDE Rauthy as an upstream provider, one layer below the app, not as a peer AUTH_DRIVER member capability. SAML needs no OAP SAML driver and no Rauthy SAML code: SAML tenants enter Rauthy as a Custom/Google OIDC upstream via Google Workspace SSO with custom OpenID Connect profiles (Google, Dec 2024 open beta). This amends 148 (default `rauthy-oidc` to `rauthy`; membership clarified), and relabels 149/150 as spec-kind-grammar fixtures rather than a real SAML driver, so spec 147's proving-ground stays intact.\n",
     "title": "Auth-driver model correction: mock|rauthy app axis, upstream IdPs federate inside Rauthy"
   },
-  "shardHash": "6b282009d43bc2dc55764de448ce456109bc1333e640041cf7b526077fdfa0dc",
+  "shardHash": "4d86a06b34a0b2fbdafe25d61f76b38d61f60d1e71563221e50d4100a18f33e4",
   "specVersion": "1.1.0"
 }
