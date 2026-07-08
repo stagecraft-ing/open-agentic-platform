@@ -712,6 +712,15 @@ the FRs:
   `{schema_version, governance}` only, so `dual_stack` drift was outside
   its coverage; widening that coverage is deferred (a spec-212 decision,
   not taken in this pass).
+- **2026-07-08: adapter-manifest `dual_stack.variants.*.auth_driver`
+  examples corrected to the mock|rauthy model (spec 229).** The illustrative
+  `# e.g. "saml"/"entra-id"/"auth0"` comments on the schema's variant
+  `auth_driver` (and the matching Rust `VariantEndpoint.auth_driver` doc)
+  named enterprise IdPs as if they were app-level driver values. Per spec 229
+  the app-level `auth_driver` is only `mock` (dev) or `rauthy` (prod); those
+  IdPs federate inside Rauthy as upstream providers, not as values of this
+  field. Comment/doc-only correction on the schema path and Rust type this
+  spec refines; no wire or behavior change.
 - **2026-06-12 — `implementation: complete` flip.** The tasks.md
   completion gate ("runtime AC verification after the Stagecraft-side
   envelope merge + org re-sync (first real ADMIT)") is discharged: the
