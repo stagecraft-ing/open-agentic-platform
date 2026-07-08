@@ -113,6 +113,26 @@ describe("moduleCatalog derivation (spec 227 Stage 1)", () => {
     expect(extra.category).toBe("Other");
   });
 
+  test("cron surfaces as an Application feature that requires data-postgres (spec 227 cron stage)", () => {
+    // The OAP consumer of factory-encore spec 009: cron is an Application
+    // feature (so it renders in the create form) whose manifest-declared
+    // `requires: ["data-postgres"]` drives the picker's transitive closure.
+    const [cron] = deriveModuleCatalog([
+      {
+        name: "cron",
+        description:
+          "In-app scheduler. Lock: Postgres by default, Redis when REDIS_URL is set.",
+        requires: ["data-postgres"],
+        conflicts: [],
+        status: "stable",
+      },
+    ]);
+    expect(cron.id).toBe("cron");
+    expect(cron.displayName).toBe("Cron Scheduler");
+    expect(cron.category).toBe("Application");
+    expect(cron.requires).toEqual(["data-postgres"]);
+  });
+
   test("a manifest name colliding with a prototype key uses the fallback overlay", () => {
     // Without a prototype-safe lookup, a module named `__proto__`/`constructor`
     // would resolve to a truthy prototype value and leave displayName/category
