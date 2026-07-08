@@ -300,6 +300,17 @@ export default function NewProject() {
     profiles.find((p) => p.name === currentProfile)?.modules ?? []
   );
 
+  // Spec 227 cron stage: a selected feature module can transitively require an
+  // infra module that is not itself a rendered feature checkbox (cron ->
+  // data-postgres). `applyModuleToggle` pulls those into `selectedModules`, but
+  // only rendered, enabled feature checkboxes submit their value, so the infra
+  // requires would be dropped and the generator would reject the cron install
+  // (its `requires: ["data-postgres"]` unmet). Emit them as hidden inputs so the
+  // scaffold receives the full requires closure and composes data-postgres first
+  // (the same closure-as-hidden-inputs pattern the /connectivity gateway uses).
+  const featureIds = new Set(featureModules.map((m) => m.id));
+  const infraRequires = [...selectedModules].filter((id) => !featureIds.has(id));
+
   const handleNameChange = (value: string) => {
     setName(value);
     const derived = slugify(value);
@@ -627,6 +638,12 @@ export default function NewProject() {
                   );
                 })}
               </div>
+              {/* Spec 227 cron stage: submit the transitive infra requires
+                  (e.g. cron -> data-postgres) that are not rendered feature
+                  checkboxes, so the scaffold composes them ahead of the feature. */}
+              {infraRequires.map((id) => (
+                <input key={id} type="hidden" name="modules" value={id} />
+              ))}
             </fieldset>
           )}
 
