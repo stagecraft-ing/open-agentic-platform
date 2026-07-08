@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:2eb5007655ff9cb2eb1025c781d9316160d1e580b3721191789014c8e20e3836",
+  "graph_fingerprint": "sha256:836676e440eef810eb78b0b29344db951a75135deb0b3afecd646d3b0d299048",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4071,8 +4071,8 @@
       "feature_id": "216-spec-spine-library-grammar-adoption",
       "title": "Spec-Spine Library Grammar Adoption (amends bare-id; supersedes-partial reconciliation)",
       "spec_path": "specs/216-spec-spine-library-grammar-adoption/spec.md",
-      "status": "draft",
-      "implementation": "in-progress",
+      "status": "approved",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",
