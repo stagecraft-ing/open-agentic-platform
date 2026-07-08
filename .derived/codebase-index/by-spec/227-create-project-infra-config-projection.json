@@ -70,6 +70,14 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/projects/scaffold/envExample.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/projects/scaffold/envExample.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/projects/scaffold/moduleCatalog.ts",
         "source": "spec-edge"
       },
@@ -83,6 +91,14 @@
       },
       {
         "path": "platform/services/stagecraft/api/projects/scaffold/scaffold.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/web/app/lib/create-project-variant.test.ts",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/web/app/lib/create-project-variant.ts",
         "source": "spec-edge"
       },
       {
@@ -153,6 +169,58 @@
         "unit": {
           "kind": "file",
           "path": "platform/services/stagecraft/api/factory/moduleCatalogCache.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/scaffold/envExample.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/scaffold/envExample.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/projects/scaffold/envExample.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/projects/scaffold/envExample.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/app/lib/create-project-variant.test.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/lib/create-project-variant.test.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/web/app/lib/create-project-variant.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/web/app/lib/create-project-variant.ts"
         }
       },
       {
@@ -407,5 +475,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "43dadaa70c5354026d9641fd38328dff8d92dd4337a950f7bedf9ae7c0d02bdd"
+  "shardHash": "8f7b09202ee93826f0adea0b93b42930758a60a3ebe0140affefca348d4a0b24"
 }

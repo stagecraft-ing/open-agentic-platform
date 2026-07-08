@@ -38,6 +38,20 @@ export interface RawModuleManifest {
   status?: string;
 }
 
+/**
+ * Per-profile defaults projected from the adapter manifest's
+ * `scaffold.profiles[]` (spec 227 Stage 2). `name` is the profile id
+ * (minimal/public/internal/dual), `variant` the Build Spec variant it maps to,
+ * and `modules` the module ids the profile ships by default (internal ships
+ * `["user-management"]`). `authDriver` is informational (mock / rauthy-oidc).
+ */
+export interface ProfileDefault {
+  name: string;
+  variant: string;
+  authDriver?: string;
+  modules: string[];
+}
+
 // Transitional presentation overlay (spec 227 Stage 1). The module manifest
 // carries no display label or grouping category, so these two UI-only fields
 // are supplied here rather than derived. This is deliberately a thin, cosmetic
@@ -166,28 +180,55 @@ export const PROFILES: ReadonlyArray<Profile> = [
   "dual",
 ];
 
-// Empty for Stage 1 (template fact 2): profiles select AUTH_DRIVER only; no
-// module is treated as a profile built-in here. NOTE (spec 227 Stage 2): the
-// adapter manifest's `scaffold.profiles[].modules` does declare per-profile
-// defaults (internal ships ["user-management"]); Stage 2's form reframe will
-// derive these from the manifest and surface "auto for Internal". Until then
-// the runtime dedupe in perRequestScaffold.readInstalledModules keeps
-// composition correct, so this stays empty and behavior is unchanged.
-export const PROFILE_MODULES: Record<Profile, string[]> = {
-  minimal: [],
-  public: [],
-  internal: [],
-  dual: [],
-};
+/**
+ * The module ids a profile ships by default, from the adapter manifest's
+ * `scaffold.profiles[]` (spec 227 Stage 2): the `internal` profile ships
+ * `["user-management"]`, the others ship none. Returns `[]` for an unknown
+ * profile. Used to filter profile built-ins out of the user's extra-module
+ * selection (extrasFor) and to surface "auto for Internal" in the create form.
+ * Replaces the Stage 1 hardcoded-empty `PROFILE_MODULES`/`PRESETS` constants:
+ * the defaults are now derived per-org from the admitted manifest rather than
+ * assumed empty (the runtime dedupe in perRequestScaffold stays as a backstop).
+ */
+export function profileModulesFor(
+  profiles: ProfileDefault[],
+  profile: Profile
+): string[] {
+  return profiles.find((p) => p.name === profile)?.modules ?? [];
+}
 
-// User-selectable pre-checked presets per profile; empty by design, same
-// source as PROFILE_MODULES (see the Stage 2 note above).
-export const PRESETS: Record<Profile, string[]> = {
-  minimal: [],
-  public: [],
-  internal: [],
-  dual: [],
-};
+/**
+ * Parse an adapter manifest's `scaffold.profiles[]` into `ProfileDefault[]`
+ * (spec 227 Stage 2). Defensive against a missing/malformed `scaffold.profiles`,
+ * non-string `modules` entries, and entries lacking `name`/`variant` (skipped).
+ * Pure so the projection is unit-testable; the Encore loader
+ * (`deriveProfileDefaultsFromView`) supplies the parsed YAML.
+ */
+export function parseScaffoldProfiles(manifest: unknown): ProfileDefault[] {
+  const scaffold = (manifest as { scaffold?: { profiles?: unknown } } | null)
+    ?.scaffold;
+  const rawProfiles: unknown[] = Array.isArray(scaffold?.profiles)
+    ? (scaffold?.profiles as unknown[])
+    : [];
+  const profiles: ProfileDefault[] = [];
+  for (const entry of rawProfiles) {
+    if (!entry || typeof entry !== "object") continue;
+    const rec = entry as Record<string, unknown>;
+    if (typeof rec.name !== "string" || typeof rec.variant !== "string") {
+      continue;
+    }
+    profiles.push({
+      name: rec.name,
+      variant: rec.variant,
+      authDriver:
+        typeof rec.auth_driver === "string" ? rec.auth_driver : undefined,
+      modules: Array.isArray(rec.modules)
+        ? rec.modules.filter((m): m is string => typeof m === "string")
+        : [],
+    });
+  }
+  return profiles;
+}
 
 /**
  * Pick the prebuild profile from the build-spec variant. Maps variants to
@@ -213,17 +254,17 @@ export function pickProfileFromModules(
 /**
  * Modules that need to be installed via add-module.ts on top of the prebuilt
  * profile, in dependency-respecting order (derived from the catalog). Modules
- * already shipped in the profile (PROFILE_MODULES built-ins) are filtered out;
- * unknown modules are dropped silently (the API layer rejects unknown ids via
- * `isKnownModule` before reaching this helper).
+ * the profile already ships (`builtIns`, from profileModulesFor) are filtered
+ * out; unknown modules are dropped silently (the API layer rejects unknown ids
+ * via `isKnownModule` before reaching this helper).
  */
 export function extrasFor(
   catalog: ModuleDescriptor[],
-  profile: Profile,
+  builtIns: string[],
   selected: string[]
 ): string[] {
   const known = new Set(catalog.map((m) => m.id));
-  const builtIn = new Set(PROFILE_MODULES[profile] ?? []);
+  const builtIn = new Set(builtIns);
   const wanted = new Set(selected.filter((id) => known.has(id)));
   return deriveInstallOrder(catalog).filter(
     (m) => wanted.has(m) && !builtIn.has(m)

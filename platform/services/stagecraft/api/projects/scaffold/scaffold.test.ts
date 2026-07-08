@@ -4,15 +4,16 @@ import { describe, expect, test } from "vitest";
 import { buildL0PipelineStateSeed } from "./seedPipelineState";
 import { buildProjectOpenDeepLink } from "./deepLink";
 import {
-  PRESETS,
-  PROFILE_MODULES,
   PROFILES,
   deriveModuleCatalog,
   deriveInstallOrder,
   extrasFor,
+  profileModulesFor,
+  parseScaffoldProfiles,
   pickProfileFromModules,
   isKnownModule,
   isModuleManifestPath,
+  type ProfileDefault,
   type RawModuleManifest,
 } from "./moduleCatalog";
 import type { ScaffoldAdapterRef } from "./types";
@@ -149,10 +150,18 @@ describe("moduleCatalog derivation (spec 227 Stage 1)", () => {
     }
   });
 
-  test("no module ships by default: profile built-ins and presets are empty", () => {
-    for (const profile of PROFILES) {
-      expect(PROFILE_MODULES[profile]).toEqual([]);
-      expect(PRESETS[profile]).toEqual([]);
+  test("profileModulesFor projects a profile's built-ins (internal ships user-management)", () => {
+    const profiles: ProfileDefault[] = [
+      { name: "public", variant: "single-public", modules: [] },
+      { name: "internal", variant: "single-internal", modules: ["user-management"] },
+      { name: "dual", variant: "dual", modules: [] },
+    ];
+    expect(profileModulesFor(profiles, "internal")).toEqual(["user-management"]);
+    expect(profileModulesFor(profiles, "public")).toEqual([]);
+    // A profile absent from the manifest projection resolves to [].
+    expect(profileModulesFor(profiles, "minimal")).toEqual([]);
+    for (const p of PROFILES) {
+      expect(Array.isArray(profileModulesFor(profiles, p))).toBe(true);
     }
   });
 
@@ -201,20 +210,67 @@ describe("pickProfileFromModules", () => {
   });
 });
 
+describe("parseScaffoldProfiles (spec 227 Stage 2)", () => {
+  test("projects scaffold.profiles (internal ships user-management)", () => {
+    const manifest = {
+      scaffold: {
+        profiles: [
+          { name: "public", variant: "single-public", auth_driver: "rauthy-oidc", modules: [] },
+          { name: "internal", variant: "single-internal", auth_driver: "rauthy-oidc", modules: ["user-management"] },
+          { name: "dual", variant: "dual", auth_driver: "rauthy-oidc", modules: [] },
+        ],
+      },
+    };
+    const profiles = parseScaffoldProfiles(manifest);
+    expect(profiles.map((p) => p.name)).toEqual(["public", "internal", "dual"]);
+    expect(profileModulesFor(profiles, "internal")).toEqual(["user-management"]);
+    expect(profiles[0].authDriver).toBe("rauthy-oidc");
+  });
+
+  test("a missing or malformed scaffold.profiles yields []", () => {
+    expect(parseScaffoldProfiles(null)).toEqual([]);
+    expect(parseScaffoldProfiles({})).toEqual([]);
+    expect(parseScaffoldProfiles({ scaffold: {} })).toEqual([]);
+    expect(parseScaffoldProfiles({ scaffold: { profiles: "nope" } })).toEqual([]);
+  });
+
+  test("non-string modules are filtered and entries missing name/variant are skipped", () => {
+    const profiles = parseScaffoldProfiles({
+      scaffold: {
+        profiles: [
+          { name: "internal", variant: "single-internal", modules: ["user-management", 5, null] },
+          { variant: "single-public" }, // missing name -> skipped
+          { name: "no-variant" }, // missing variant -> skipped
+          "garbage",
+        ],
+      },
+    });
+    expect(profiles).toHaveLength(1);
+    expect(profiles[0].modules).toEqual(["user-management"]);
+  });
+});
+
 describe("extrasFor", () => {
   test("every selected module is an extra (no profile built-ins exist)", () => {
     // extrasFor returns a deterministic install order: deriveInstallOrder sorts
     // ids alphabetically within each dependency level, so with two dependency-free
     // modules the exact order is a contract worth pinning (data-redis < user-management).
-    const result = extrasFor(catalog, "public", ["data-redis", "user-management"]);
+    const result = extrasFor(catalog, [], ["data-redis", "user-management"]);
     expect(result).toEqual(["data-redis", "user-management"]);
+  });
+
+  test("profile built-ins are filtered out of the extras", () => {
+    // internal ships user-management; re-selecting it yields no extra for it.
+    expect(
+      extrasFor(catalog, ["user-management"], ["user-management", "data-redis"])
+    ).toEqual(["data-redis"]);
   });
 
   test("install order respects dependencies: security-core before api-gateway", () => {
     // The only ordering constraint is deps-before-dependents; api-gateway
     // requires security-core, user-management is independent. Assert the
     // invariant + presence, not an arbitrary exact permutation.
-    const result = extrasFor(catalog, "minimal", [
+    const result = extrasFor(catalog, [], [
       "user-management",
       "api-gateway",
       "security-core",
@@ -230,12 +286,12 @@ describe("extrasFor", () => {
   });
 
   test("returns empty when nothing is selected", () => {
-    expect(extrasFor(catalog, "public", [])).toEqual([]);
+    expect(extrasFor(catalog, [], [])).toEqual([]);
   });
 
   test("unknown (incl. retired) modules are dropped", () => {
     expect(
-      extrasFor(catalog, "minimal", ["bogus-not-real", "session-store-redis"])
+      extrasFor(catalog, [], ["bogus-not-real", "session-store-redis"])
     ).toEqual([]);
   });
 });

@@ -257,6 +257,9 @@ export async function createFactoryProject(
     modules?: string[];
     repoName: string;
     isPrivate?: boolean;
+    // Spec 227 Stage 2: Base-app config (BFF gateway knobs).
+    bffPrivateApiBaseUrl?: string;
+    gatewayTimeoutMs?: number;
   }
 ) {
   return apiFetch(request, "/api/projects/factory-create", {
@@ -340,9 +343,20 @@ export interface ModuleDescriptor {
   status?: string;
 }
 
+// Spec 227 Stage 2: per-profile scaffold defaults (from the adapter manifest's
+// scaffold.profiles), mirrored for the create form's two-axis selector and
+// "auto for Internal" pre-check. Source of truth: api/factory/moduleCatalog.ts.
+export interface ProfileDefault {
+  name: string;
+  variant: string;
+  authDriver?: string;
+  modules: string[];
+}
+
 export async function getModuleCatalog(request: Request) {
   return apiFetch(request, "/api/factory/module-catalog") as Promise<{
     modules: ModuleDescriptor[];
+    profiles: ProfileDefault[];
   }>;
 }
 

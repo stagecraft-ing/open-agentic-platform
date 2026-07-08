@@ -11,15 +11,18 @@
 import { api } from "encore.dev/api";
 import log from "encore.dev/log";
 import { getAuthData } from "~encore/auth";
+import { parse as parseYaml } from "yaml";
 import { loadOrgView, servableRows, type OrgView } from "./browse";
 import type { SubstrateRowDraft } from "./translator";
 import {
   deriveModuleCatalog,
   isModuleManifestPath,
+  parseScaffoldProfiles,
   type ModuleDescriptor,
+  type ProfileDefault,
   type RawModuleManifest,
 } from "../projects/scaffold/moduleCatalog";
-import { getCachedModuleCatalog } from "./moduleCatalogCache";
+import { getCachedForOrg } from "./moduleCatalogCache";
 
 /** Substrate rows that are an adapter module's `manifest.json`. */
 export function moduleManifestRows(
@@ -58,26 +61,71 @@ export function deriveModuleCatalogFromView(
   return deriveModuleCatalog(manifests);
 }
 
-async function loadModuleCatalogUncached(
-  orgId: string
-): Promise<ModuleDescriptor[]> {
-  return deriveModuleCatalogFromView(await loadOrgView(orgId), orgId);
+/**
+ * Project the org's per-profile scaffold defaults from the single admitted
+ * `adapter-manifest` row's `scaffold.profiles[]` (spec 227 Stage 2). Each entry
+ * carries the profile id, the Build Spec `variant` it maps to, its default
+ * modules (internal ships `["user-management"]`), and the informational
+ * `auth_driver`. A missing or unparseable manifest yields `[]` (the form
+ * degrades to no profile defaults rather than failing).
+ */
+export function deriveProfileDefaultsFromView(
+  view: OrgView,
+  orgId?: string
+): ProfileDefault[] {
+  const row = servableRows(view).find((r) => r.kind === "adapter-manifest");
+  if (!row) return [];
+  let manifest: unknown;
+  try {
+    manifest = parseYaml(row.upstreamBody);
+  } catch (err) {
+    log.warn("deriveProfileDefaultsFromView: unparseable adapter manifest skipped", {
+      orgId,
+      path: row.path,
+      cause: err instanceof Error ? err.message : String(err),
+    });
+    return [];
+  }
+  return parseScaffoldProfiles(manifest);
 }
 
 /**
- * Cached front door for the org's feature-module catalog, used by the
+ * The create-project catalog bundle returned by the loader endpoint: the
+ * feature-module catalog and the per-profile defaults, both derived from one
+ * admitted OrgView.
+ */
+export interface CreateCatalogBundle {
+  modules: ModuleDescriptor[];
+  profiles: ProfileDefault[];
+}
+
+/** Derive both projections from one OrgView (spec 227). */
+export function deriveCreateCatalogFromView(
+  view: OrgView,
+  orgId?: string
+): CreateCatalogBundle {
+  return {
+    modules: deriveModuleCatalogFromView(view, orgId),
+    profiles: deriveProfileDefaultsFromView(view, orgId),
+  };
+}
+
+/**
+ * Cached front door for the create-project catalog bundle, used by the
  * `GET /api/factory/module-catalog` endpoint (the create-project page loader).
- * The catalog changes only when the org's factory origin re-syncs, so a
+ * The bundle changes only when the org's factory origin re-syncs, so a
  * short-TTL per-org cache (see moduleCatalogCache) reuses a recent derivation
  * instead of a substrate load + admission check on every page view. The create
  * path does not go through here: it loads one `OrgView` and derives the catalog
- * via `deriveModuleCatalogFromView`, threading the same substrate into adapter
+ * and profiles from it directly, threading the same substrate into adapter
  * resolution (ai-review on #533).
  */
-export async function loadModuleCatalogForOrg(
+async function loadCreateCatalogForOrg(
   orgId: string
-): Promise<ModuleDescriptor[]> {
-  return getCachedModuleCatalog(orgId, () => loadModuleCatalogUncached(orgId));
+): Promise<CreateCatalogBundle> {
+  return getCachedForOrg("create-catalog", orgId, async () =>
+    deriveCreateCatalogFromView(await loadOrgView(orgId), orgId)
+  );
 }
 
 export const getModuleCatalog = api(
@@ -87,8 +135,8 @@ export const getModuleCatalog = api(
     method: "GET",
     path: "/api/factory/module-catalog",
   },
-  async (): Promise<{ modules: ModuleDescriptor[] }> => {
+  async (): Promise<CreateCatalogBundle> => {
     const auth = getAuthData()!;
-    return { modules: await loadModuleCatalogForOrg(auth.orgId) };
+    return loadCreateCatalogForOrg(auth.orgId);
   },
 );
