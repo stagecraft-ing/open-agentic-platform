@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:ea04c97827f17b0b2e59e54f0eac60093a888ac6b39ef424d019c1c1fc4c0f11",
+  "graph_fingerprint": "sha256:2eb5007655ff9cb2eb1025c781d9316160d1e580b3721191789014c8e20e3836",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4335,6 +4335,22 @@
       "owner": "",
       "group": "",
       "depends_on": [],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "230-tenant-cron-scheduler-module",
+      "title": "Tenant self-hosted cron: in-app scheduler module (postgres small-scale / +redis large-scale), the create-project Infra axis",
+      "spec_path": "specs/230-tenant-cron-scheduler-module/spec.md",
+      "status": "approved",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "227-create-project-infra-config-projection"
+      ],
       "impl_files": [],
       "test_files": [],
       "violations": []
