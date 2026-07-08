@@ -42,6 +42,10 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/CLAUDE.md",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/deploy/deploy.ts",
         "source": "spec-edge"
       },
@@ -271,6 +275,19 @@
       {
         "locations": [
           {
+            "file": "platform/services/stagecraft/CLAUDE.md"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/CLAUDE.md"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "platform/services/stagecraft/api/factory/browse.ts"
           }
         ],
@@ -390,5 +407,5 @@
     "specStatus": "draft"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "4721edab8046204f66d5f07beaf0f6e4ed074bc73e038eb7c97d038731a12b75"
+  "shardHash": "43dadaa70c5354026d9641fd38328dff8d92dd4337a950f7bedf9ae7c0d02bdd"
 }

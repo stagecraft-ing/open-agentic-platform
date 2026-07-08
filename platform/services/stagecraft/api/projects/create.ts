@@ -42,6 +42,8 @@ import {
 import { hasOrgPermission } from "../auth/membership";
 import { brokerInstallationToken } from "../github/repoInit";
 import { loadSubstrateForOrg } from "../factory/substrateBrowser";
+import { loadOrgView } from "../factory/browse";
+import type { SubstrateTranslation } from "../factory/translator";
 import { listAdapterViews } from "../factory/adapterView";
 import {
   isFactoryAdmitted,
@@ -72,7 +74,7 @@ import {
   isKnownModule,
   pickProfileFromModules,
 } from "./scaffold/moduleCatalog";
-import { loadModuleCatalogForOrg } from "../factory/moduleCatalog";
+import { deriveModuleCatalogFromView } from "../factory/moduleCatalog";
 import type {
   ScaffoldAdapterRef,
   ScaffoldSeedInput,
@@ -138,7 +140,11 @@ export const createFactoryProject = api(
     // Spec 227 Stage 1: the module catalog is derived from the org's admitted
     // adapter manifests (the substrate), not a hand-mirrored constant, so
     // `isKnownModule` validates against what the adapter actually exposes.
-    const catalog = await loadModuleCatalogForOrg(auth.orgId);
+    // Load the OrgView once and reuse its substrate for both the catalog and
+    // the adapter resolution below, so a create request makes a single
+    // substrate round-trip (ai-review on #533).
+    const orgView = await loadOrgView(auth.orgId);
+    const catalog = deriveModuleCatalogFromView(orgView, auth.orgId);
     const selectedModules = (req.modules ?? []).filter((id) =>
       isKnownModule(catalog, id)
     );
@@ -165,7 +171,11 @@ export const createFactoryProject = api(
     // (an id, not a URL). The actual clone target lives in
     // `factory_upstreams` for the same org and is resolved by
     // `scheduler.ts::resolveScaffoldUpstream` at warmup time.
-    const adapter = await loadFactoryAdapter(auth.orgId, req.adapterId);
+    const adapter = await loadFactoryAdapter(
+      auth.orgId,
+      req.adapterId,
+      orgView.substrate
+    );
     const manifest = adapter.manifest;
 
     // Spec 112 §10 — Create-eligibility gate. Adapters that declare a
@@ -597,7 +607,8 @@ function validateVariant(variant: string): void {
 
 async function loadFactoryAdapter(
   orgId: string,
-  adapterId: string
+  adapterId: string,
+  preloadedSubstrate?: SubstrateTranslation
 ): Promise<{
   id: string;
   name: string;
@@ -613,7 +624,9 @@ async function loadFactoryAdapter(
   // listAdapters can use it here unchanged.
   // Spec 198 FR-001 — binding is admission-gated: an inadmissible factory
   // MUST NOT be bound to a project.
-  const substrate = await loadSubstrateForOrg(orgId);
+  // A caller that already loaded the org substrate (create's OrgView) threads
+  // it in to avoid a second round-trip (ai-review on #533).
+  const substrate = preloadedSubstrate ?? (await loadSubstrateForOrg(orgId));
   const found = listAdapterViews(substrate).find(
     (a) => synthesiseAdapterId(orgId, a.name) === adapterId,
   );

@@ -112,6 +112,19 @@ describe("moduleCatalog derivation (spec 227 Stage 1)", () => {
     expect(extra.category).toBe("Other");
   });
 
+  test("a manifest name colliding with a prototype key uses the fallback overlay", () => {
+    // Without a prototype-safe lookup, a module named `__proto__`/`constructor`
+    // would resolve to a truthy prototype value and leave displayName/category
+    // undefined instead of taking the title-cased + "Other" fallback.
+    for (const name of ["__proto__", "constructor"]) {
+      const [derived] = deriveModuleCatalog([{ name }]);
+      expect(derived.id).toBe(name);
+      expect(typeof derived.displayName).toBe("string");
+      expect(derived.displayName.length).toBeGreaterThan(0);
+      expect(derived.category).toBe("Other");
+    }
+  });
+
   test("a malformed manifest (requires as a string) yields an empty edge list, not char-spread", () => {
     // JSON.parse + cast can let a malformed `"requires": "security-core"`
     // through; a bare spread would iterate it into single characters. The
@@ -190,6 +203,9 @@ describe("pickProfileFromModules", () => {
 
 describe("extrasFor", () => {
   test("every selected module is an extra (no profile built-ins exist)", () => {
+    // extrasFor returns a deterministic install order: deriveInstallOrder sorts
+    // ids alphabetically within each dependency level, so with two dependency-free
+    // modules the exact order is a contract worth pinning (data-redis < user-management).
     const result = extrasFor(catalog, "public", ["data-redis", "user-management"]);
     expect(result).toEqual(["data-redis", "user-management"]);
   });

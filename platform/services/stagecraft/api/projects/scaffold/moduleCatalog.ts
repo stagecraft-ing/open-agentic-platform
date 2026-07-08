@@ -46,13 +46,16 @@ export interface RawModuleManifest {
 // re-sectioning (Infrastructure / Application-features / Base-app config)
 // replaces the `category` grouping, at which point this overlay shrinks or
 // goes away. Unknown-upstream modules fall back to a title-cased id + "Other".
-const PRESENTATION: Record<string, { displayName: string; category: string }> = {
-  "security-core": { displayName: "Security Core", category: "Infrastructure" },
-  "api-gateway": { displayName: "API Gateway", category: "Infrastructure" },
-  "data-postgres": { displayName: "PostgreSQL", category: "Data" },
-  "data-redis": { displayName: "Redis", category: "Data" },
-  "user-management": { displayName: "User/Role Management", category: "Application" },
-};
+// A Map (not a plain object) so an externally-authored module named `__proto__`
+// or `constructor` misses cleanly (`.get` returns undefined) rather than
+// resolving to a truthy prototype value and bypassing the fallback.
+const PRESENTATION = new Map<string, { displayName: string; category: string }>([
+  ["security-core", { displayName: "Security Core", category: "Infrastructure" }],
+  ["api-gateway", { displayName: "API Gateway", category: "Infrastructure" }],
+  ["data-postgres", { displayName: "PostgreSQL", category: "Data" }],
+  ["data-redis", { displayName: "Redis", category: "Data" }],
+  ["user-management", { displayName: "User/Role Management", category: "Application" }],
+]);
 
 function titleCase(id: string): string {
   return id
@@ -85,7 +88,7 @@ export function deriveModuleCatalog(
   return manifests
     .filter((m) => typeof m.name === "string" && m.name.length > 0)
     .map((m) => {
-      const overlay = PRESENTATION[m.name] ?? {
+      const overlay = PRESENTATION.get(m.name) ?? {
         displayName: titleCase(m.name),
         category: "Other",
       };
