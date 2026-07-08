@@ -30,7 +30,7 @@ set -eu
 if ! command -v spec-spine >/dev/null 2>&1; then
   cat >&2 <<'EOF'
 [pre-commit] spec-spine CLI not found on PATH.
-            Run `make setup` (one-time) or `cargo install spec-spine-cli --version 0.8.0 --locked`.
+            Run `make setup` (one-time) or `cargo install spec-spine-cli --version 0.10.0 --locked`.
             To bypass for this commit only: git commit --no-verify
 EOF
   exit 1

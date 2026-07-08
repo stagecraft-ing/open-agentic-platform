@@ -46,7 +46,7 @@ jobs:
           shared-key: spec-conformance
 
       - name: Install spec-spine CLI
-        run: cargo install spec-spine-cli --version 0.8.0 --locked
+        run: cargo install spec-spine-cli --version 0.10.0 --locked
 
       - name: Emit registry (compile smoke)
         run: spec-spine compile

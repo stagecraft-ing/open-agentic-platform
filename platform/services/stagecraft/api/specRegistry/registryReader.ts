@@ -39,7 +39,7 @@ function resolveBinary(opts: ReaderOptions): string {
     throw new Error(
       "spec-spine CLI path is not configured. Set REGISTRY_CONSUMER_BIN to the " +
         "`spec-spine` binary, or install it: " +
-        "`cargo install spec-spine-cli --version 0.8.0 --locked`"
+        "`cargo install spec-spine-cli --version 0.10.0 --locked`"
     );
   }
   return bin;

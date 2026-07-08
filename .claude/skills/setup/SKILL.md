@@ -8,7 +8,7 @@ allowed-tools: Bash, Read
 
 Get a fresh clone operational. After this completes, `/init` can report lifecycle and structural counts through governed consumer binaries (no ad-hoc parsing of `build/**/*.json` — see spec 103).
 
-`make setup` is the canonical contributor entry point. It installs the spec-spine CLI (`cargo install spec-spine-cli --version 0.8.0 --locked`), builds OAP-specific tools, compiles the spec registry and codebase index shards under `.derived/`, and fetches the axiomregent sidecar. This command runs it and then verifies the binaries the init protocol depends on actually return.
+`make setup` is the canonical contributor entry point. It installs the spec-spine CLI (`cargo install spec-spine-cli --version 0.10.0 --locked`), builds OAP-specific tools, compiles the spec registry and codebase index shards under `.derived/`, and fetches the axiomregent sidecar. This command runs it and then verifies the binaries the init protocol depends on actually return.
 
 ## Process
 
