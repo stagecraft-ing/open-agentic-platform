@@ -260,6 +260,8 @@ export async function createFactoryProject(
     // Spec 227 Stage 2: Base-app config (BFF gateway knobs).
     bffPrivateApiBaseUrl?: string;
     gatewayTimeoutMs?: number;
+    // Spec 229 auth-driver axis: mock|rauthy, patched as AUTH_DRIVER.
+    authDriver?: "mock" | "rauthy";
   }
 ) {
   return apiFetch(request, "/api/projects/factory-create", {

@@ -111,6 +111,12 @@ export interface CreateFactoryProjectRequest {
    */
   bffPrivateApiBaseUrl?: string;
   gatewayTimeoutMs?: number;
+  /**
+   * Spec 229 auth-driver axis: the app-level AUTH_DRIVER patched into the
+   * scaffolded app's `apps/api/.env.example`. "mock" (dev) or "rauthy" (prod);
+   * defaults to "rauthy" when omitted. Every real IdP federates inside Rauthy.
+   */
+  authDriver?: string;
 }
 
 export interface CreateFactoryProjectResponse {
@@ -165,6 +171,14 @@ export const createFactoryProject = api(
           "bffPrivateApiBaseUrl must be an http(s) URL with no control characters"
         );
       }
+    }
+    // Spec 229 auth-driver axis: only the two app-level drivers are accepted.
+    if (
+      req.authDriver !== undefined &&
+      req.authDriver !== "mock" &&
+      req.authDriver !== "rauthy"
+    ) {
+      throw APIError.invalidArgument('authDriver must be "mock" or "rauthy"');
     }
     if (!hasOrgPermission(auth.platformRole, "project:create")) {
       throw APIError.permissionDenied(
@@ -365,6 +379,7 @@ export const createFactoryProject = api(
         baseAppConfig: {
           privateApiBaseUrl: req.bffPrivateApiBaseUrl,
           gatewayTimeoutMs: req.gatewayTimeoutMs,
+          authDriver: req.authDriver,
         },
         destDir: projectRoot,
         pipelineStateSeed: pipelineStateSeed as unknown as Record<string, unknown>,

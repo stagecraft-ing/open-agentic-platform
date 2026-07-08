@@ -35,7 +35,9 @@ import { applyModuleToggle } from "../lib/module-selection";
 import {
   toVariant,
   profileName,
+  DEFAULT_AUTH_DRIVER,
   type Auth,
+  type AuthDriver,
   type Topology,
 } from "../lib/create-project-variant";
 
@@ -56,6 +58,28 @@ const TOPOLOGY_OPTIONS: Array<{ value: Topology; label: string; description: str
 const AUTH_OPTIONS: Array<{ value: Auth; label: string; description: string }> = [
   { value: "public", label: "Public", description: "Served to citizens / external users." },
   { value: "internal", label: "Internal", description: "Served to staff / internal users." },
+];
+
+// Spec 229 auth-driver axis: the app-level AUTH_DRIVER, orthogonal to topology
+// and audience. `rauthy` is the production default; `mock` is a zero-dependency
+// dev identity. Enterprise IdPs (github/google/auth0/entra/SAML-via-Google-
+// Workspace) are Rauthy upstream providers, selected inside Rauthy (later), not
+// here.
+const AUTH_DRIVER_OPTIONS: Array<{
+  value: AuthDriver;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "rauthy",
+    label: "Rauthy (OIDC)",
+    description: "Production identity via Rauthy. Enterprise IdPs federate inside Rauthy.",
+  },
+  {
+    value: "mock",
+    label: "Mock (dev)",
+    description: "Zero-dependency dev identity; no IdP required. Not for production.",
+  },
 ];
 
 const GATEWAY_TIMEOUT_DEFAULT = "30000";
@@ -170,6 +194,8 @@ export async function action({
   const authAxis = ((formData.get("auth") as string | null) ??
     "public") as Auth;
   const variant = toVariant(topology, authAxis);
+  const authDriver = ((formData.get("authDriver") as string | null) ??
+    DEFAULT_AUTH_DRIVER) as AuthDriver;
   const repoName = (formData.get("repoName") as string | null) ?? "";
   const isPrivate = formData.get("visibility") !== "public";
   const modules = formData.getAll("modules").map(String);
@@ -207,6 +233,7 @@ export async function action({
       isPrivate,
       bffPrivateApiBaseUrl: bffPrivateApiBaseUrl || undefined,
       gatewayTimeoutMs: gatewayTimeoutRaw ? Number(gatewayTimeoutRaw) : undefined,
+      authDriver,
     });
     return result;
   } catch (err) {
@@ -254,6 +281,7 @@ export default function NewProject() {
   const [repoEdited, setRepoEdited] = useState(false);
   const [topology, setTopology] = useState<Topology>("single");
   const [auth, setAuth] = useState<Auth>("public");
+  const [authDriver, setAuthDriver] = useState<AuthDriver>(DEFAULT_AUTH_DRIVER);
   const [selectedModules, setSelectedModules] = useState<Set<string>>(
     () => new Set()
   );
@@ -435,7 +463,7 @@ export default function NewProject() {
               className="disabled:opacity-50"
             >
               <legend className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Auth
+                Audience
               </legend>
               <div className="space-y-2">
                 {AUTH_OPTIONS.map((a) => (
@@ -469,6 +497,39 @@ export default function NewProject() {
               )}
             </fieldset>
           </div>
+
+          {/* Spec 229 auth-driver axis: the app-level AUTH_DRIVER (mock|rauthy),
+              orthogonal to topology and audience. */}
+          <fieldset>
+            <legend className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Auth
+            </legend>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {AUTH_DRIVER_OPTIONS.map((d) => (
+                <label
+                  key={d.value}
+                  className="relative flex items-start border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 cursor-pointer hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 dark:has-[:checked]:bg-indigo-900/20"
+                >
+                  <input
+                    type="radio"
+                    name="authDriver"
+                    value={d.value}
+                    checked={authDriver === d.value}
+                    onChange={() => setAuthDriver(d.value)}
+                    className="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300"
+                  />
+                  <div className="ml-3">
+                    <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {d.label}
+                    </span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400">
+                      {d.description}
+                    </span>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
           {/* Spec 227 Stage 2 (FR-003): Infrastructure is a read-only projection
               of the baked infra.config topology. */}

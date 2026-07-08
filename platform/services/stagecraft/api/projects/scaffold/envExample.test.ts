@@ -70,4 +70,16 @@ describe("patchEnvExample", () => {
     expect(out).toContain("# GATEWAY_TIMEOUT_MS_EXTRA=1");
     expect(out).toContain("GATEWAY_TIMEOUT_MS=7");
   });
+
+  test("overrides a baked AUTH_DRIVER for the spec 229 auth axis", () => {
+    // The profile scaffold bakes AUTH_DRIVER=rauthy; the create form's driver
+    // choice patches it (mock override, or an idempotent rauthy re-set).
+    const body = "AUTH_DRIVER=rauthy\n# GATEWAY_TIMEOUT_MS=30000";
+    const toMock = patchEnvExample(body, { AUTH_DRIVER: "mock" });
+    expect(toMock).toContain("AUTH_DRIVER=mock");
+    expect(toMock).not.toContain("AUTH_DRIVER=rauthy");
+    expect(patchEnvExample(body, { AUTH_DRIVER: "rauthy" })).toContain(
+      "AUTH_DRIVER=rauthy"
+    );
+  });
 });

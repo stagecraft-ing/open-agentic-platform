@@ -3,7 +3,7 @@ id: "227-create-project-infra-config-projection"
 title: "Create Project as an Encore-infra-config projection: derived catalog, two-axis selector, dev-provisioned Redis"
 feature_branch: "227-create-project-infra-config-projection"
 status: draft
-implementation: pending  # Staged implementation. The design PR (#530) landed only the featuregraph golden node (extends 034); each follow-on stage PR then promotes referenced paths to authoritative relationships and lands code one subsystem at a time. Stage 1 (catalog derivation), Stage 3 (deployd previewRedis), and the interim nit PR have landed; implementation stays pending until the Stage 2 form reframe and Stage 4 end-to-end wiring complete.
+implementation: pending  # Staged implementation. The design PR (#530) landed only the featuregraph golden node (extends 034); each follow-on stage PR then promotes referenced paths to authoritative relationships and lands code one subsystem at a time. Stage 1 (catalog derivation), Stage 2 (two-axis form + base-app config), Stage 3 (deployd previewRedis), the interim nit PR, and Stage 2b (auth-driver axis, spec 229: an independent mock|rauthy selector patched as AUTH_DRIVER) have landed; implementation stays pending until Stage 4 end-to-end wiring completes.
 kind: platform
 domain: platform
 created: "2026-07-06"
@@ -217,6 +217,17 @@ them into one three-way "Variant" (`single-public` / `single-internal` /
 has no product home and is deliberately not offered, but the fusion also means
 a user cannot express the axes independently.
 
+Spec 229 later untangled the naming this section conflates: the app-level
+**auth driver** (`mock` | `rauthy`) is a SEPARATE axis from the **audience**
+(`public` | `internal`). Every real IdP federates inside Rauthy, so the driver
+is orthogonal to audience and topology. Stage 2b lands that driver as its own
+selector (defaulting to `rauthy`, the production driver), patched into the
+scaffolded `apps/api/.env.example` as `AUTH_DRIVER` via the Stage 2
+`envExample.ts` mechanism. This does NOT re-introduce the forbidden `minimal`
+profile (FR-002): the `mock` DRIVER is a zero-dependency dev identity offered
+on top of a public/internal/dual variant, distinct from the barebones
+`minimal` PROFILE. The form's former "Auth" selector is relabeled "Audience".
+
 ### 1.4 The Encore infra config is already there, and invisible
 
 Every generated app already commits `apps/api/infra.config.json`, an Encore
@@ -294,10 +305,13 @@ prod, it is a separate spec.
   spec 160) rather than hardcoded. The two hand-mirrored `MODULE_CATALOG`
   copies (`app.projects.new.tsx`, `moduleCatalog.ts`) MUST be eliminated so a
   drift like the retired-Redis label cannot recur.
-- **FR-002**: The form MUST present two orthogonal selectors: an **auth
-  profile** {`public`, `internal`} and a **topology** {`single`, `dual`}.
-  `minimal` MUST NOT be offered at the OAP surface (it remains a valid
-  factory-encore generator profile for the factory-e2e harness only).
+- **FR-002**: The form MUST present orthogonal selectors: an **audience**
+  {`public`, `internal`}, a **topology** {`single`, `dual`}, and (Stage 2b,
+  spec 229) an app-level **auth driver** {`mock`, `rauthy`} defaulting to
+  `rauthy`. The `minimal` PROFILE MUST NOT be offered at the OAP surface (it
+  remains a valid factory-encore generator profile for the factory-e2e harness
+  only); this is distinct from the `mock` DRIVER, which IS offered as a
+  zero-dependency dev identity per spec 229.
 - **FR-003**: The **Infrastructure** section MUST be a projection of Encore's
   `infra.config.json` resource vocabulary. PostgreSQL MUST be default-on and
   read-only. The generated `apps/api/infra.config.json` topology MUST be
