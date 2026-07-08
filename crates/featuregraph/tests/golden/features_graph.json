@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:f9fc09980f53ef1741410a83c4921c179195e4ef752a4c2b85251de0631c7311",
+  "graph_fingerprint": "sha256:ea04c97827f17b0b2e59e54f0eac60093a888ac6b39ef424d019c1c1fc4c0f11",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4321,6 +4321,20 @@
         "103-init-protocol-governed-reads",
         "217-spec-spine-engine-swap-collapse"
       ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "229-auth-driver-mock-rauthy-model",
+      "title": "Auth-driver model correction: mock|rauthy app axis, upstream IdPs federate inside Rauthy",
+      "spec_path": "specs/229-auth-driver-mock-rauthy-model/spec.md",
+      "status": "approved",
+      "implementation": "pending",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [],
       "impl_files": [],
       "test_files": [],
       "violations": []

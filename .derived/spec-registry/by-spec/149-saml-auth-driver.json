@@ -1,11 +1,13 @@
 {
   "record": {
+    "amendmentRecord": "amended 2026-07-08 by spec 229 (auth-driver model correction): relabeled\nas a spec-kind-grammar fixture. OAP ships no standalone SAML driver;\ncrates/auth-driver-saml/ is a hypothetical fixture target. SAML tenants\nfederate via a Rauthy custom-OIDC upstream (Google Workspace SSO), served\nby the rauthy driver. Structure unchanged so V-013/V-014/V-015 stay green.\n",
     "authors": [
       "open-agentic-platform"
     ],
     "created": "2026-05-17",
     "domain": "platform",
     "extraFrontmatter": {
+      "amended": "2026-07-08",
       "approved": "2026-05-22",
       "category": [
         "auth",
@@ -73,6 +75,6 @@
     "summary": "Capability member of the auth-driver registry (148). Validates SAML 2.0 assertions issued by an IdP, maps assertion attributes to OAP identity scopes, and integrates with Rauthy's session model (spec 106). Implementation lives in `crates/auth-driver-saml/` — reserved by this spec but not yet authored; Phase 3 of spec 147 lands the capability spec as proving-ground material.\nAuthored as part of spec 147 §Migration Phase 3 — the proving-ground spec triplet exercising V-013/V-014/V-015/V-017 against the new `capability` kind.\n",
     "title": "SAML auth driver capability — IdP integration for SAML 2.0 tenants"
   },
-  "shardHash": "bc25708d1a841a61176d58b9ae60dd83f44d80db4af438dec0acaea45aca5dfd",
+  "shardHash": "24de3ed786255f1e830ba6b0e621275130745e40196aae374284d25c36db1342",
   "specVersion": "1.1.0"
 }

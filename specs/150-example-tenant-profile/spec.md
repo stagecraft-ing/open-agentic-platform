@@ -4,6 +4,12 @@ title: "Example tenant profile — proving-ground tenant for spec-kind grammar"
 status: approved
 created: "2026-05-17"
 approved: "2026-05-22"
+amended: "2026-07-08"
+amendment_record: |
+  amended 2026-07-08 by spec 229 (auth-driver model correction): reaffirmed
+  as a synthetic proving-ground profile. Its selected SAML capability (149)
+  is now explicitly a grammar fixture, not a separate SAML driver. selects:
+  and composition.requires: unchanged, keeping V-017 green.
 authors: ["open-agentic-platform"]
 kind: profile
 domain: platform
@@ -43,6 +49,11 @@ summary: >
 ---
 
 # 150 — Example tenant profile
+
+> **Amended 2026-07-08 by spec 229 (auth-driver model correction).** This
+> profile is a synthetic spec-kind-grammar fixture. The SAML capability it
+> selects (149) is a fixture, not a shipped driver; real SAML tenants
+> federate through Rauthy (see spec 229 §5). `selects:` is unchanged.
 
 ## §1 Motivation
 
