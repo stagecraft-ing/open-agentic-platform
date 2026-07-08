@@ -62,6 +62,17 @@ function titleCase(id: string): string {
     .join(" ");
 }
 
+// The manifest body is JSON.parse'd and cast to RawModuleManifest, so a
+// malformed upstream (e.g. `"requires": "security-core"` as a string instead of
+// an array) would survive the cast. A bare spread `[...m.requires]` would then
+// iterate the string into single characters. Coerce to a clean string[] so a
+// malformed manifest yields an empty edge list rather than junk dependency ids.
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((v): v is string => typeof v === "string")
+    : [];
+}
+
 /**
  * Derive the module descriptor catalog from the adapter's module manifests.
  * `id`, `description`, `requires`, `conflicts`, `status` come from the manifest;
@@ -82,10 +93,10 @@ export function deriveModuleCatalog(
         id: m.name,
         displayName: overlay.displayName,
         category: overlay.category,
-        description: m.description ?? "",
-        requires: [...(m.requires ?? [])],
-        conflicts: [...(m.conflicts ?? [])],
-        status: m.status,
+        description: typeof m.description === "string" ? m.description : "",
+        requires: asStringArray(m.requires),
+        conflicts: asStringArray(m.conflicts),
+        status: typeof m.status === "string" ? m.status : undefined,
       };
     })
     .sort((a, b) => a.id.localeCompare(b.id));

@@ -112,6 +112,17 @@ describe("moduleCatalog derivation (spec 227 Stage 1)", () => {
     expect(extra.category).toBe("Other");
   });
 
+  test("a malformed manifest (requires as a string) yields an empty edge list, not char-spread", () => {
+    // JSON.parse + cast can let a malformed `"requires": "security-core"`
+    // through; a bare spread would iterate it into single characters. The
+    // coercion must produce [] instead of ["s","e","c",...].
+    const [derived] = deriveModuleCatalog([
+      { name: "bad", requires: "security-core" as unknown as string[] },
+    ]);
+    expect(derived.requires).toEqual([]);
+    expect(derived.conflicts).toEqual([]);
+  });
+
   test("retired express-session-era and auth-module ids are unknown", () => {
     for (const retired of [
       "auth-saml",
