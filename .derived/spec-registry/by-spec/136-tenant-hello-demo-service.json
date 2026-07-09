@@ -123,13 +123,14 @@
       "Functional Requirements *(MVP)*",
       "Success Criteria",
       "Clarifications",
-      "Session 2026-05-04"
+      "Session 2026-05-04",
+      "Session 2026-07-09: deployd-api builder/runtime glibc parity"
     ],
     "specPath": "specs/136-tenant-hello-demo-service/spec.md",
     "status": "approved",
     "summary": "Document `platform/services/tenant-hello` as the deliberately-minimal reference of what a project codebase looks like when stagecraft is responsible for deploying it. The express service itself is trivial; the spec exists to pin the contract a tenant codebase must honour to round-trip through stagecraft (containerised entrypoint, health probe, port-from-env, no privileged dependencies) and to call out the current gap between \"tenant codebase exists\" and \"stagecraft can deploy it end-to-end.\"\n",
     "title": "Tenant-hello — stagecraft-deployable tenant reference service"
   },
-  "shardHash": "0910973171720f14294c1232ef3da8744b97bf86e1b8c25ed9f8fb92489ce4cb",
+  "shardHash": "78ceb613d45ded5fc99bcf46ef9b7f76e5014fa2d096ea8d60f82876df695659",
   "specVersion": "1.1.0"
 }

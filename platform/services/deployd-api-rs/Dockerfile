@@ -9,7 +9,17 @@
 # matching the repo-root rust-toolchain.toml channel. The build context is
 # `platform/`, which does not include that toolchain file, so the base image
 # rustc is what actually compiles here.
-FROM rust:1.95 AS builder
+#
+# The `-bookworm` suffix is load-bearing, not cosmetic: the bare `rust:1.95`
+# tag tracks Debian Trixie (glibc 2.41), but the runtime stage below is
+# `debian:bookworm-slim` (glibc 2.36). A Trixie-built binary links against
+# GLIBC_2.38/2.39 symbols the Bookworm runtime does not provide, so the pod
+# crash-loops with `libc.so.6: version 'GLIBC_2.38' not found` (regression
+# introduced when #558 bumped 1.88 -> 1.95 for the MSRV; the 1.88 tag was
+# still Bookworm-based, which is why it worked before). Pinning the builder
+# to `-bookworm` keeps builder and runtime glibc in lockstep. If you move the
+# runtime stage to a newer base, bump this suffix to match.
+FROM rust:1.95-bookworm AS builder
 WORKDIR /repo
 COPY services/deployd-api-rs ./services/deployd-api-rs
 COPY charts ./charts
