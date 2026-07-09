@@ -226,3 +226,21 @@ trivially holds since it has only one dependency (`express`).
 - This spec is filed as `draft` rather than `approved` because the
   contract clauses (C-001…C-005) are first authoring and benefit from
   one reviewer pass before lock-in. The fixture itself is unchanged.
+
+### Session 2026-07-09: deployd-api builder/runtime glibc parity
+
+- The `platform/services/deployd-api-rs/Dockerfile` this spec extends is a
+  two-stage build: a `rust:*` builder and a `debian:bookworm-slim` runtime.
+  These two images MUST share a compatible glibc. A binary linked against a
+  newer glibc than the runtime provides fails at container start with
+  `libc.so.6: version 'GLIBC_2.xx' not found` and the pod enters
+  CrashLoopBackOff. This is a runtime failure the Docker build and CI cannot
+  catch; it only surfaces at deploy time (`deploy-hetzner`).
+- Concretely: the bare `rust:1.95` tag tracks Debian Trixie (glibc 2.41),
+  while `bookworm-slim` is glibc 2.36. The builder is therefore pinned to
+  `rust:1.95-bookworm`, not `rust:1.95`. When #558 bumped the builder
+  `1.88 -> 1.95` for the hiqlite 0.14 MSRV it silently moved the builder base
+  OS from Bookworm to Trixie and broke this parity (the `1.88` tag was still
+  Bookworm-based, which is why the deploy had been green). **When bumping the
+  builder Rust version or the runtime base image, keep both on the same
+  Debian release (or an older builder glibc than the runtime).**
