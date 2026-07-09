@@ -170,7 +170,7 @@ the design; the design is implemented as specified):
   overflowed hcloud's 63-char volume-label cap
   (`invalid input in field 'labels'`; PVC stuck Pending). Service name
   (FR-001 remote_write literal) unaffected.
-- [ ] T042 Post-merge: resume the `policies` Flux Kustomization
+- [x] T042 Post-merge: resume the `policies` Flux Kustomization
   (suspended during mitigation), confirm the three deleted objects stay
   pruned and the reduced apply set reconciles; rerun the failed
   `CD stagecraft` deploy-hetzner job (and the `CD deployd-api-rs` run,
@@ -178,44 +178,59 @@ the design; the design is implemented as specified):
 
 ## Deploy-time validation checklist *(post-merge; SC evidence lands as a spec.md amendment)*
 
-- [ ] V001 SC-001: stagecraft series queryable in Prometheus within
+- [x] V001 SC-001: stagecraft series queryable in Prometheus within
   ~60s of a request. **Record the concrete series name** — it is the
   SC-010 anchor and the dashboard-panel correction input (T023).
-- [ ] V002 SC-002: one known series each from deployd-api
+- [x] V002 SC-002: one known series each from deployd-api
   (`deployd_api_build_info`), Flux
   (`controller_runtime_reconcile_total`), ingress-nginx
   (`nginx_ingress_controller_requests`).
-- [ ] V003 SC-005 (rescoped): no pre-existing NetworkPolicy weakened;
+- [x] V003 SC-005 (rescoped): no pre-existing NetworkPolicy weakened;
   negative probe against monitoring's default-deny drops an
   un-allowed flow.
-- [ ] V004 SC-006: no Alertmanager pods; zero PrometheusRules from the
+- [x] V004 SC-006: no Alertmanager pods; zero PrometheusRules from the
   release.
-- [ ] V005 SC-007: Flux-reconciled (no imperative helm in the path),
+- [x] V005 SC-007: Flux-reconciled (no imperative helm in the path),
   CRDs at chart-pinned version, PVC-bounded retention,
   `collection_interval` ≥ 15s.
-- [ ] V006 SC-008: receiver :9090 unreachable from a generic
+- [x] V006 SC-008: receiver :9090 unreachable from a generic
   namespace AND from flux-system / deployd-system / ingress-nginx;
   reachable from stagecraft-system.
-- [ ] V007 Manual step: create `grafana` client in Rauthy admin UI
+- [x] V007 Manual step: create `grafana` client in Rauthy admin UI
   (confidential, authorization_code + PKCE, exact redirect URI, scopes
   openid email profile oap), fill .env, re-run `./setup.sh`; Grafana
   pod becomes Ready (it blocks on the `grafana-oidc` Secret until
   then — same operator contract as `rauthy-smtp-secret`).
-- [ ] V008 SC-003: member ⇒ Viewer, owner/admin ⇒ Admin; negative
+- [x] V008 SC-003: member ⇒ Viewer, owner/admin ⇒ Admin; negative
   non-OIDC probes (`Authorization: Basic`, `Bearer glsa_…`) return
-  401/403.
-- [ ] V009 SC-009: Grafana :3000 reachable only from ingress-nginx.
-- [ ] V010 SC-010: the SC-001-recorded series renders in the OAP
+  401/403. *(owner/admin ⇒ Admin driven live; member ⇒ Viewer inferred via
+  the shared `role_attribute_path` JMESPath branch and locked map, not
+  separately driven, for want of a member-role test user at validation time;
+  see spec.md §SC-003 evidence.)*
+- [x] V009 SC-009: Grafana :3000 reachable only from ingress-nginx.
+- [x] V010 SC-010: the SC-001-recorded series renders in the OAP
   Platform Overview panel; correct the provisional expr if Encore's
   name differs.
-- [ ] V011 Incident closure (T040): with the `policies` Kustomization
+- [x] V011 Incident closure (T040): with the `policies` Kustomization
   resumed on the reduced apply set, the three withdrawn NetworkPolicies
   are absent and all four public hosts (`stagecraft.ing`, `auth.`,
   `deploy.`, `minio.`) return non-5xx through Cloudflare; the
   `seed-rauthy` job completes on the rerun deploy.
-- [ ] V012 Incident closure (T041): `kubectl get pvc -n monitoring`
+- [x] V012 Incident closure (T041): `kubectl get pvc -n monitoring`
   shows the Prometheus TSDB PVC `Bound` on `hcloud-volumes` and
   `prometheus-monitoring-0` Running.
+
+## Follow-ups (owned by other specs, not 196)
+
+- **Cross-namespace HTTP-01 solver allow.** The solver default-deny gap fixed
+  here for `monitoring` also exists in `stagecraft-system`, `deployd-system`,
+  and `rauthy` (all issue via the HTTP-01 `letsencrypt-prod` ClusterIssuer;
+  `minio.` lands in `stagecraft-system` under the same issuer). Certificate
+  *renewal* for `stagecraft.ing`/`auth.`/`deploy.`/`minio.` will 502 at the
+  next ACME cycle until each owning spec adds an
+  `allow-acme-solver-from-ingress-nginx` equivalent to its namespace policy.
+  Tracked here so the risk is not lost; 196 does not `establishes:` those
+  policy files, so the fix belongs to those specs.
 
 ## Deferred (per plan.md §Out of scope)
 
