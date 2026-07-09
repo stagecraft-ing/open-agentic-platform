@@ -318,6 +318,38 @@ helper explicitly with `cargo build --release --example e2e_seed_session
 crate. Any e2e-only executable co-located in the opc crate for dependency
 parity is a cargo `[[example]]`.
 
+#### 3.5.2 WebDriver session + keyring bootstrap (first-green-nightly, 2026-07-09)
+
+Record correction: before the seed helper's `[[example]]` fix, the e2e step
+had run green on 2026-07-04 *only because it masked failures* (`npm run
+test:e2e | tee` returned `tee`'s exit code; the run showed 2 failed test files
+yet "succeeded"). The `set -eo pipefail` that makes a fixture failure fail the
+step landed in the same PR (#508) as the seeding fixtures, so the first honest
+signal did not surface until the bundler bug (§3.5.1) was cleared. The
+"first green nightly" §6 defers `implementation: complete` to has therefore
+**never happened**; getting it green is initial bring-up, not a regression fix.
+
+Two environment contracts the harness pins to reach it:
+
+1. **Classic WebDriver only.** WebdriverIO v9 negotiates WebDriver BiDi by
+   default (`webSocketUrl: true`). tauri-driver proxies to WebKitWebDriver on
+   Linux, which has no BiDi support and rejects the whole session with
+   `session not created: Failed to match capabilities`. Fixtures MUST set
+   `wdio:enforceWebDriverClassic: true`. `tauri-driver` and `webdriverio` are
+   version-pinned in the nightly so this contract does not silently drift (a
+   tauri-driver bump is a known cause of this exact error class,
+   tauri-apps/tauri#8828).
+
+2. **A default Secret Service collection MUST exist before any keychain
+   write.** `gnome-keyring-daemon --unlock` only unlocks a pre-existing login
+   keyring; a fresh runner has none, so `keyring` `set` fails with
+   `Secret Service: no result found`. The nightly pre-creates + unlocks a
+   `login` keyring (empty password) so a default collection exists before the
+   seed writer runs.
+
+Both are proven only by the nightly (tauri-driver has no macOS backend), so
+`implementation: complete` stays deferred until the first genuinely-green run.
+
 ### 3.6 No implicit per-feature flake amnesty (FR-T6)
 
 **FR-T6.** A flaky e2e fixture MUST NOT be silently disabled or
