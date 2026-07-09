@@ -60,7 +60,7 @@
     },
     "featureBranch": "feat/210-build-spec-agentic-posture",
     "id": "210-build-spec-agentic-posture",
-    "implementation": "in-progress",
+    "implementation": "complete",
     "kind": "governance",
     "references": [
       {
@@ -109,13 +109,14 @@
       "Acceptance criteria",
       "Out of scope",
       "Sequencing",
-      "ASI mapping"
+      "ASI mapping",
+      "Implementation status"
     ],
     "specPath": "specs/210-build-spec-agentic-posture/spec.md",
     "status": "approved",
     "summary": "Make the produced application's agentic surface a declared, falsifiable contract fact. Produced apps are conventional web applications today, but nothing STATES that: the Build Spec is silent on whether the application embeds model calls, tools, or agent loops, so a tenant that later adds an LLM SDK acquires an ungoverned agentic surface while still carrying OAP's governance certificate, and the certificate then implies a coverage it does not have. This spec adds an open-standard Build Spec field, agentic_posture: none | declared | governed, binds it into the governance certificate, and makes it falsifiable by cross-checking the declaration against the produced app's SBOM (spec 203): posture \"none\" with a known agent/LLM SDK in the dependency tree fails verification with an attributable diagnostic. \"Declared\" requires the agentic surfaces to be enumerated; \"governed\" requires each surface to carry a governance envelope (the spec 198 schema, reused at application level), bridging the spec 198 contract from the factory run to the thing the factory built. This is cross-cutting principle 1 (Least Agency) applied to outputs: autonomy is a deliberate, stated choice, never a silent acquisition.\n",
     "title": "Build Spec Agentic-Posture Declaration (Least Agency for produced apps)"
   },
-  "shardHash": "52f1b3d609604a3c26e7aa34973339c61a676582d65a18bc43fb35b7bf393598",
+  "shardHash": "3872ffef0b148f11433c5f3a7a7ba60e29406dfa8a402c4314b3060ff6815745",
   "specVersion": "1.1.0"
 }

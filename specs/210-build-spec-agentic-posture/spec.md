@@ -3,7 +3,7 @@ id: "210-build-spec-agentic-posture"
 title: "Build Spec Agentic-Posture Declaration (Least Agency for produced apps)"
 feature_branch: "feat/210-build-spec-agentic-posture"
 status: approved
-implementation: in-progress
+implementation: complete
 kind: governance
 domain: platform
 created: "2026-06-11"
@@ -81,7 +81,8 @@ references:
 **Feature Branch**: `feat/210-build-spec-agentic-posture`
 **Created**: 2026-06-11
 **Refined**: 2026-07-08 (sketch to implementation-ready)
-**Status**: Approved (in-progress)
+**Completed**: 2026-07-08 (live AC-2 evidence on a real produced app; see Implementation status)
+**Status**: Approved (complete)
 **Input**: Spec 198's out-of-scope section assigns the produced app's
 own ASI posture to "its Build Spec + governance certificate, not the
 factory-run envelope" and defers Build Spec field changes to "spec 197 /
@@ -279,3 +280,55 @@ does not change the OAP-side diff.
 - **ASI10 (Governance)**: the certificate, the app's trust artifact,
   states the app's agentic surface explicitly and falsifiably, and the
   `governed` bridge inherits OAP's own envelope grammar.
+
+## Implementation status
+
+**2026-07-08: complete. FR-001 through FR-004 landed, and AC-2 is
+satisfied verbatim on a real produced app.** The OAP-side diff (the
+schema field + Rust twin, the certificate binding, the emitter read-path,
+and the SBOM cross-check verifier) landed in #543; the cross-repo merge
+leg (Sequencing) cleared when the upstream `factory` contract mirrored
+the field, `template-encore` main `e94395b` (#46) pinned the born-with
+tools to `tenant-emit 0.3.0` / `tenant-tail 0.4.0` and authored
+`agentic_posture: none` into the born-with cert step, and the
+`spec-spine` CLI pin moved to 0.10.0 (#544) so the `factory-schema-lockstep`
+floor gate (spec 212) accepts the additive key.
+
+**Live AC-2 evidence.** A `Single`-internal produced app,
+`stagecraft-ing/spec210-ac2-single-1` (mock auth), was scaffolded from a
+warmup on template `e94395b`. Its born-with `Initial commit` push ran the
+cert chain in the `spec-spine` job to completion, green (CI run
+`28992039382`, job `86033823150`):
+
+- **Authored posture, not defaulted.** The born-with CI writes
+  `s5-ui-specification/build-spec.yaml` with `agentic_posture: { posture:
+  none }` present, so the emitter binds `agenticPostureBinding: { posture:
+  none, defaulted: false }` (FR-002): visibly authored, never silently
+  equivalent to a defaulted `none`.
+- **Emit** (FR-002 firing on the tenant/signer path): `tenant-emit
+  build-certificate` read the posture off the frozen Build Spec and wrote
+  an operator-signed `governance-certificate.json` under
+  `.factory/runs/ci-28992039382/` (`::notice::emitted ...`).
+- **Verify** (`tenant-tail 0.4.0`, spec 219): the seeded verify step
+  reported `governance certificate VERIFIED`, and the FR-003 SBOM
+  cross-check (`--sbom-dir .`) reported `agentic posture: none, no
+  watchlisted agent/LLM SDK in the BOM`: the consistent-`none` verdict,
+  with the watchlist-miss residual surfaced as a notice, not a silent pass
+  (FR-003). The corpus and SBOM artifact bindings also verified.
+
+AC-1 (schema bump + Rust twin version-pin / round-trip tests +
+`factory-schema-lockstep` floor), AC-3 (the `@anthropic-ai/sdk`-class
+SBOM-contradiction fixture), and AC-4 (the `governed`-envelope shape
+fixture) landed with #543, along with the AC-2 tamper-rejection and
+defaulted-`none` unit fixtures; this run demonstrates the AC-2
+authored-`none` emit-and-verify path end-to-end on a real produced app.
+
+The one red on the produced repo is benign and out of AC-2 scope: the
+`encore / Typed client up-to-date` job failed on a transient Encore daemon
+timeout (`dialing daemon: context deadline exceeded` during `encore gen
+client`), a re-runnable CI flake that sits off the cert-chain path and
+carries no governance or scaffold defect; the cert chain runs in the
+independent, green `spec-spine` job. A re-run of the failed jobs cleared
+the flake, so the produced run `28992039382` is now fully green end to end
+(`encore / Typed client up-to-date`, `spec-spine`, and `ci-gate` all
+pass).

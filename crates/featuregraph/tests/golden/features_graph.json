@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:e867065fa1df521dcd513be01d5375e2eacc52ac5407ce9e655f5d29d2efc20e",
+  "graph_fingerprint": "sha256:b982527b8abb61b3cdcc88b6ceca5e3f810b2621f8263b9614c446873c728989",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -3921,7 +3921,7 @@
       "title": "Build Spec Agentic-Posture Declaration (Least Agency for produced apps)",
       "spec_path": "specs/210-build-spec-agentic-posture/spec.md",
       "status": "approved",
-      "implementation": "in-progress",
+      "implementation": "complete",
       "governance": "",
       "owner": "",
       "group": "",
