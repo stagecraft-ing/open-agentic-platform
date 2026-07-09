@@ -3,7 +3,7 @@ id: "196-platform-metrics-stack"
 slug: platform-metrics-stack
 title: "Platform metrics stack — Prometheus + Grafana for the platform control plane"
 status: draft
-implementation: pending
+implementation: complete
 owner: bart
 created: "2026-06-02"
 kind: platform
@@ -342,6 +342,12 @@ A user whose Rauthy `platform_role` is `member` lands in Grafana as a Viewer; an
     Prometheus from scrape targets; that would expose the receiver port
     (`9090`) to `flux-system`/deployd-api and undercut SC-008.
   - **(c) Grafana UI:** Grafana ingress ← ingress-nginx.
+  - **(d) ACME HTTP-01 solver (added 2026-07-08; see §FR-006 correction
+    below):** ephemeral cert-manager solver pods
+    (`acme.cert-manager.io/http01-solver`) ingress ← ingress-nginx on `:8089`
+    only, so a `monitoring` ingress (Grafana) can obtain and renew its Let's
+    Encrypt certificate. Scoped to the solver label and port; receiver
+    isolation (SC-008) is untouched.
   The global default-deny is not weakened; only these named flows open. Because
   they span `stagecraft-system`, `monitoring`, and the target namespaces,
   implementation creates **multiple NetworkPolicy objects across namespaces**
@@ -769,3 +775,95 @@ design change to FR-009/SC-004, not a drift correction.
 Wired the new per-namespace default-deny NetworkPolicies into the policies kustomization so the stagecraft, deployd, and rauthy namespaces are covered alongside monitoring.
 
 Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.
+
+## Deploy-time validation record (2026-07-08): checklist closed, implementation complete
+
+`tasks.md` §Deploy-time validation (V001–V012) was executed end-to-end against
+the live Hetzner cluster. All criteria pass (with one disclosed caveat on
+SC-003's member-role leg, recorded in its evidence bullet below), so
+`implementation:` flips `pending → complete`. `status:` stays `draft`:
+implementation completeness (code shipped and deploy-validated) and formal
+approval are independent lifecycle axes, and ratification is a separate act.
+(196 is the first spec to pair `status: draft` with `implementation: complete`;
+there is no prior corpus precedent for the pairing. An earlier draft of this
+record cited 199/201/211 as precedent, which was inaccurate: those specs are
+`status: approved`.)
+
+**SC-001 anchor series (the value the spec deferred to test time): `e_requests_total`.**
+The dashboard's provisional expression was already `sum(rate(e_requests_total[5m]))`,
+so the SC-001 recording confirmed it verbatim; no dashboard correction (T023) was
+needed.
+
+Evidence, by success criterion:
+
+- **SC-001 / SC-002 (data plane):** stagecraft's Encore `remote_write` series
+  (`e_requests_total`, `e_sys_memory_used_bytes`) are queryable in Prometheus,
+  and one known series each from deployd-api (`deployd_api_build_info`), Flux
+  (`controller_runtime_reconcile_total`), and ingress-nginx
+  (`nginx_ingress_controller_requests`) is present. `oap-annotated-pods 6/6 up`.
+- **SC-003 (Grafana OIDC):** an OAP owner/admin user signs in via Rauthy OIDC
+  (Generic OAuth) and lands as Grafana **Admin** (role synced from the
+  `custom.platform_role` claim through `role_attribute_path`). The OIDC-only
+  property is confirmed by negative probes: `Authorization: Basic` and a
+  service-account `Bearer glsa_…` both return **401**. (The `member → Viewer`
+  leg exercises the same JMESPath branch and locked map; it was not separately
+  driven for want of a member-role test user at validation time.)
+- **SC-005 (no pre-existing policy weakened; default-deny drops un-allowed
+  flows):** the SC-008 probe matrix doubles as the SC-005 negative probe: a
+  generic-namespace pod cannot reach an un-named `monitoring` port, and no
+  pre-existing NetworkPolicy was weakened (196's only objects live in
+  `monitoring`; other namespaces stay policy-untouched by this spec). See the
+  SC-008 bullet below. (SC-004 is not listed in this record: it was superseded
+  2026-06-29 by the config-unification addendum, above.)
+- **SC-006 (Alertmanager off):** no Alertmanager pods, zero release
+  `PrometheusRule`s.
+- **SC-007 (deploy shape):** Flux-reconciled (HelmRelease revision 3, no
+  imperative `helm`), Operator CRDs at the chart pin, retention `15d` on a
+  PVC-bounded TSDB, `enableAdminAPI: false`, `collection_interval` 60s (≥15s).
+- **SC-008 (receiver isolation):** probe matrix confirms the unauthenticated
+  remote_write receiver (`:9090`) is reachable **only** from
+  `stagecraft-system`; blocked from a generic namespace and from every
+  scrape-target namespace (`flux-system`, `deployd-system`, `ingress-nginx`).
+- **SC-009 (Grafana isolation):** Grafana (`:3000`) reachable **only** from
+  `ingress-nginx`; blocked from every other probed namespace.
+- **SC-010 (end-to-end visibility):** the SC-001 series renders live in the
+  "stagecraft requests/s (remote_write)" panel of the OAP Platform Overview
+  dashboard, alongside the deployd-api / Flux / ingress-nginx / node panels.
+- **V011 / V012 (incident closure):** the three withdrawn cross-namespace
+  policies stay absent, the `policies` Kustomization reconciles the reduced set
+  (`Ready=True`), the four public hosts return non-5xx, and the Prometheus TSDB
+  PVC is `Bound` on the clean (48-char) name with `prometheus-monitoring-0`
+  Running.
+
+### FR-006 correction: allow the HTTP-01 solver (new NetworkPolicy)
+
+Validation surfaced a real defect in the FR-006 network policy: the
+`monitoring` default-deny admitted ingress-nginx → Grafana (`:3000`) but had
+**no allow for the ephemeral cert-manager HTTP-01 solver pods (`:8089`)**. On
+this cluster the netpol controller *rejects* rather than drops (the 2026-06-12
+incident-addendum behaviour), so every ACME challenge for a `monitoring`
+ingress failed with a 502 and Grafana's TLS certificate could never issue,
+silently defeating the spec's own "operator opens Grafana over TLS" goal
+(SC-009/SC-010). The fix adds `allow-acme-solver-from-ingress-nginx` to
+`platform/k8s/policies/monitoring/networkpolicy-monitoring.yaml` (already a
+`establishes:` unit): ingress-nginx → `http01-solver` pods on `:8089` only. It
+does not touch receiver isolation (SC-008): Prometheus is not a solver pod and
+`:8089` is not the receiver port. With it applied the certificate issued
+immediately.
+
+Out of scope, flagged as a follow-up: the same default-deny gap exists for the
+HTTP-01 solver in the namespaces the 2026-07-02 hardening covered
+(`stagecraft-system`, etc.), so certificate *renewal* for hosts like minio will
+fail the same way until each owning spec adds the equivalent solver allow. That
+is not `monitoring`'s policy and is left to those specs.
+
+### Operator steps performed (outside the repo)
+
+Recorded for reproducibility; none are code changes. The `grafana` Rauthy OIDC
+client was created via the Rauthy admin API (confidential, `authorization_code`
++ PKCE `S256`, redirect `https://grafana.<DOMAIN>/login/generic_oauth`, allowed
+scopes `openid email profile oap`); its credentials were written to the
+operator `.env` and materialised as the `grafana-oidc` Secret (`setup.sh`
+contract). A Cloudflare A record for `grafana.<DOMAIN>` was added **DNS-only**
+(grey-cloud, matching minio's posture) so the HTTP-01 challenge reaches the
+origin directly rather than deadlocking behind the proxy's Full-strict TLS.
