@@ -74,11 +74,16 @@ export function buildSeedJwt(opts: SeedSessionOptions = {}): string {
   return `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(payload))}.${b64url("e2e-seed-signature")}`;
 }
 
-/** Repo path of the built `e2e_seed_session` bin (cargo release output). */
+/**
+ * Repo path of the built `e2e_seed_session` example (cargo release output).
+ * It is a cargo `[[example]]`, not a `[[bin]]`, so it lands under
+ * `target/release/examples/` (see src-tauri/Cargo.toml for why: a required-
+ * features bin breaks Tauri's bundler, examples are never bundled).
+ */
 export function seedBinPath(platform: NodeJS.Platform = process.platform): string {
   const opcRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
   const name = platform === "win32" ? "e2e_seed_session.exe" : "e2e_seed_session";
-  return join(opcRoot, "src-tauri", "target", "release", name);
+  return join(opcRoot, "src-tauri", "target", "release", "examples", name);
 }
 
 /**
@@ -106,7 +111,7 @@ function runSeedBin(args: string[], stdin = ""): void {
   if (res.error) {
     throw new Error(
       `e2e_seed_session spawn failed (${bin}): ${res.error.message}. ` +
-        "Build it with `cargo build --release --bin e2e_seed_session --features e2e-seed`.",
+        "Build it with `cargo build --release --example e2e_seed_session --features e2e-seed`.",
     );
   }
   if (res.status !== 0) {

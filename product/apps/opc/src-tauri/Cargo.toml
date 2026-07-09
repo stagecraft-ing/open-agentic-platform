@@ -33,10 +33,16 @@ path = "src/web_main.rs"
 # behind `e2e-seed` (nothing in the production feature set enables it), so it is
 # never compiled into a shipping build. It links the same `keyring` dep as the
 # app so a seeded value reads back identically. Built by the nightly with
-# `--features e2e-seed`.
-[[bin]]
+# `--example e2e_seed_session --features e2e-seed`.
+#
+# It is an `[[example]]`, NOT a `[[bin]]`: Tauri's bundler copies every `[[bin]]`
+# of the packaged crate into the app bundle, and a required-features bin that
+# the release build never compiles made the bundler fail with
+# "e2e_seed_session does not exist" (broke Release Desktop + the nightly's
+# `tauri build`). Examples are not bundled. See examples/e2e_seed_session.rs.
+[[example]]
 name = "e2e_seed_session"
-path = "src/bin/e2e_seed_session.rs"
+path = "examples/e2e_seed_session.rs"
 required-features = ["e2e-seed"]
 
 [build-dependencies]
@@ -145,8 +151,9 @@ custom-protocol = ["tauri/custom-protocol"]
 # Exposes the running app to AI assistants via WebSocket on port 9223.
 mcp-dev = ["tauri-plugin-mcp-bridge"]
 # Spec 187 [[opc-e2e-auth-state-seeding]]: gates the e2e-only `e2e_seed_session`
-# bin. A marker feature (no deps: the bin only needs the always-present `keyring`
-# dep). Off in every production build; enabled only by the nightly e2e job.
+# example. A marker feature (no deps: the example only needs the always-present
+# `keyring` dep). Off in every production build; enabled only by the nightly
+# e2e job via `--example e2e_seed_session --features e2e-seed`.
 e2e-seed = []
 
 [dev-dependencies]

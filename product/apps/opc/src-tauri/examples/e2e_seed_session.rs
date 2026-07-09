@@ -4,11 +4,20 @@
 // `keyring` crate and version the OPC app links (`Cargo.toml` dep at the crate
 // root), so a value it stores is guaranteed to read back identically through
 // `StagecraftClient::load_token_from_keychain` / `auth_get_status` /
-// `resolve_token`. That "same crate" guarantee is why this bin lives inside the
-// opc crate rather than in a standalone helper crate: a re-declared dependency
-// could drift and silently break Secret-Service attribute compatibility.
+// `resolve_token`. That "same crate" guarantee is why this helper lives inside
+// the opc crate rather than in a standalone helper crate: a re-declared
+// dependency could drift and silently break Secret-Service attribute
+// compatibility.
 //
-// It is NEVER compiled into a shipping build: the `[[bin]]` target carries
+// It is a cargo `[[example]]`, NOT a `[[bin]]`, and deliberately so: Tauri's
+// bundler enumerates every `[[bin]]` target of the packaged crate and tries to
+// copy each one into the app bundle. A `[[bin]]` gated behind
+// `required-features` is never built by the release `cargo build`, so the
+// bundler failed with "e2e_seed_session does not exist" and broke both the
+// Release Desktop workflow and the nightly's `tauri build` step. Examples are
+// not bundled, so living in `examples/` keeps it out of Tauri's sight while
+// staying in the same crate (same `keyring`). It is still NEVER compiled into a
+// shipping build: the `[[example]]` target carries
 // `required-features = ["e2e-seed"]`, and nothing in the production feature set
 // enables `e2e-seed`. Only the nightly e2e job builds it, with
 // `--features e2e-seed`. The production `opc` binary is byte-for-byte

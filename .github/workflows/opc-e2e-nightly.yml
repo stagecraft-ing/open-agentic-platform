@@ -107,14 +107,18 @@ jobs:
           args: --config src-tauri/tauri.linux.conf.json
 
       # Spec 187 [[opc-e2e-auth-state-seeding]]: the e2e-only keychain seed helper
-      # (feature-gated, never in a shipping build). The seedSignedInSession
-      # harness helper shells out to it. Built into the same src-tauri/target the
+      # (feature-gated, never in a shipping build). It is a cargo `[[example]]`,
+      # not a `[[bin]]`, because Tauri's bundler copies every bin of the packaged
+      # crate and a required-features bin the release build skips broke the app
+      # build (Release Desktop + the `tauri build` step above). The
+      # seedSignedInSession harness helper shells out to it at
+      # target/release/examples/. Built into the same src-tauri/target the
       # fixtures resolve the OPC binary from; deps are warm from the app build.
       - name: Build e2e seed helper
         run: |
           cargo build --release \
             --manifest-path product/apps/opc/src-tauri/Cargo.toml \
-            --bin e2e_seed_session --features e2e-seed
+            --example e2e_seed_session --features e2e-seed
 
       - name: Install tauri-driver
         run: cargo install tauri-driver --locked

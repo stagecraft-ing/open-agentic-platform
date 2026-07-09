@@ -31,13 +31,20 @@ establishes:
   # keychain seed helper into existence. It lives in the opc crate (not under
   # tests-e2e) solely to link the SAME `keyring` crate/version the app reads
   # back with; it is feature-gated (`e2e-seed`) and never in a shipping build.
-  # The harness is its authority even though the file sits in the opc crate.
-  - unit: { kind: file, path: product/apps/opc/src-tauri/src/bin/e2e_seed_session.rs }
+  # It is a cargo `[[example]]` under `examples/`, not a `[[bin]]` under
+  # `src/bin/`: Tauri's bundler copies every bin of the packaged crate and a
+  # required-features bin the release build skips broke the app bundle (see
+  # §3.5.1). Examples are not bundled, so it stays in the crate without breaking
+  # `tauri build`. The harness is its authority even though the file sits in the
+  # opc crate.
+  - unit: { kind: file, path: product/apps/opc/src-tauri/examples/e2e_seed_session.rs }
 refines:
-  # The e2e seed bin's target + feature registration in the opc manifest. The
-  # opc crate spec owns the manifest at large; 187 co-authors only the
-  # `[[bin]] e2e_seed_session` + `[features] e2e-seed` additions (both inert in
-  # production builds), so the harness spec is the authority for that aspect.
+  # The e2e seed example's target + feature registration in the opc manifest.
+  # The opc crate spec owns the manifest at large; 187 co-authors only the
+  # `[[example]] e2e_seed_session` + `[features] e2e-seed` additions (both inert
+  # in production builds), so the harness spec is the authority for that aspect.
+  # (The aspect id keeps its historical `-bin-` name for stability; the target
+  # is now an `[[example]]` per §3.5.1.)
   - aspect: "e2e-seed-bin-registration"
     unit: { kind: file, path: product/apps/opc/src-tauri/Cargo.toml }
 extends:
@@ -279,6 +286,37 @@ subset, but the default posture is post-merge nightly.
 > which budget-fits nightly but not per-PR.
 
 **Files FR-T5 binds on:** `.github/workflows/opc-e2e-nightly.yml`.
+
+#### 3.5.1 Seed helper is a cargo `[[example]]`, not a `[[bin]]` (2026-07-09)
+
+The `[[opc-e2e-auth-state-seeding]]` follow-up (§8) first registered the
+keychain seed helper as a `[[bin]]` in the opc crate manifest, gated behind
+`required-features = ["e2e-seed"]` so the shipping build never compiles it.
+That gating is correct for *production* but interacts badly with Tauri's
+bundler: `tauri build` enumerates **every** `[[bin]]` target of the packaged
+crate and copies each from the release target dir into the app bundle. A bin
+whose `required-features` are not enabled is never built, so the bundler
+failed with:
+
+```
+failed to bundle project Failed to copy binary from
+".../target/aarch64-apple-darwin/release/e2e_seed_session": does not exist
+```
+
+This broke the Release Desktop workflow on all three platforms and the
+nightly's own `tauri build` step (regression window: the nightly went green
+→ red the first night after the helper landed). The fix keeps the helper in
+the opc crate (the SAME-`keyring` guarantee above is load-bearing and a
+standalone helper crate would forfeit it) but declares it as a cargo
+`[[example]]` under `examples/e2e_seed_session.rs`. Tauri does not bundle
+examples, so the app build is clean, while the nightly still builds the
+helper explicitly with `cargo build --release --example e2e_seed_session
+--features e2e-seed`. The harness resolves it at
+`src-tauri/target/release/examples/e2e_seed_session`.
+
+**Invariant.** The seed helper MUST NOT be a `[[bin]]` of a Tauri-bundled
+crate. Any e2e-only executable co-located in the opc crate for dependency
+parity is a cargo `[[example]]`.
 
 ### 3.6 No implicit per-feature flake amnesty (FR-T6)
 
