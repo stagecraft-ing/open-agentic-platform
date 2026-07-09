@@ -120,18 +120,25 @@ jobs:
             --manifest-path product/apps/opc/src-tauri/Cargo.toml \
             --example e2e_seed_session --features e2e-seed
 
+      # Pinned: an unpinned `cargo install` silently tracks the latest
+      # tauri-driver, and a tauri-driver bump is a known cause of
+      # "session not created: Failed to match capabilities" regressions
+      # (tauri-apps/tauri#8828). Pin so the WebDriver contract only moves on a
+      # deliberate bump.
       - name: Install tauri-driver
-        run: cargo install tauri-driver --locked
+        run: cargo install tauri-driver@2.0.6 --locked
 
       # The WebdriverIO client is installed here rather than pinned in the
       # standalone package's lockfile, keeping it out of the per-PR install. The
       # fixtures use standalone webdriverio.remote() under vitest (already a base
-      # dep), so only `webdriverio` itself is added here.
+      # dep), so only `webdriverio` itself is added here. Pinned to a v9 line so
+      # its capability negotiation (BiDi vs classic) does not drift under us; the
+      # fixtures force classic WebDriver explicitly (spec 187 §3.5.2).
       - name: Install e2e harness dependencies
         working-directory: product/apps/opc/tests-e2e
         run: |
           npm install --no-fund --no-audit
-          npm install --no-fund --no-audit --save-dev webdriverio
+          npm install --no-fund --no-audit --save-dev webdriverio@9
 
       # Runs inside a D-Bus session with an unlocked gnome-keyring so the Secret
       # Service backend the `keyring` crate uses is available to both the seed
@@ -139,6 +146,17 @@ jobs:
       # `set -eo pipefail` preserves the pipefail semantics of the default GitHub
       # `run:` shell through the inner `bash -c`, so a fixture failure still fails
       # the step (the `tee` would otherwise mask it).
+      #
+      # KNOWN-INCOMPLETE (spec 187 §3.5.2): the seed writer's keychain `set`
+      # fails with "Secret Service: no result found" on the fresh runner because
+      # `gnome-keyring-daemon --unlock` does not establish a default Secret
+      # Service collection here. This is unresolved e2e bring-up tracked in a
+      # follow-up issue; the seeding fixtures (ac8/208) therefore still fail, and
+      # so does this step. The WebDriver session-creation contract IS fixed (see
+      # the capabilities change in fixtures/_session.ts + the pins above), so the
+      # non-seeding fixture ac7 now passes. Left as the original invocation to
+      # avoid landing an unverified keyring change; the fix is scoped in the
+      # tracking issue.
       - name: Run e2e fixtures (xvfb + tauri-driver + keyring)
         id: e2e
         working-directory: product/apps/opc/tests-e2e

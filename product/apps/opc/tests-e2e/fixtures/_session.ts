@@ -76,9 +76,19 @@ export async function launchOpc(opts: LaunchOptions): Promise<OpcSession> {
     hostname: "127.0.0.1",
     port: 4444,
     path: "/",
+    // Silence WebdriverIO's own capability-negotiation logging noise; the real
+    // signal is the fixture assertions.
+    logLevel: "error",
     capabilities: {
       browserName: "wry",
       "tauri:options": { application: opcBinaryPath() },
+      // WebdriverIO v9 negotiates WebDriver BiDi by default and adds
+      // `webSocketUrl: true` to the requested capabilities. tauri-driver proxies
+      // to WebKitWebDriver on Linux, which has no BiDi support and rejects the
+      // whole session with "session not created: Failed to match capabilities".
+      // Force classic WebDriver so only capabilities the driver can satisfy are
+      // sent. (spec 187 §3.5.2)
+      "wdio:enforceWebDriverClassic": true,
     } as Record<string, unknown>,
   })) as unknown as WebElementHost;
 

@@ -318,6 +318,48 @@ helper explicitly with `cargo build --release --example e2e_seed_session
 crate. Any e2e-only executable co-located in the opc crate for dependency
 parity is a cargo `[[example]]`.
 
+#### 3.5.2 WebDriver session + keyring bootstrap (first-green-nightly, 2026-07-09)
+
+Record correction: before the seed helper's `[[example]]` fix, the e2e step
+had run green on 2026-07-04 *only because it masked failures* (`npm run
+test:e2e | tee` returned `tee`'s exit code; the run showed 2 failed test files
+yet "succeeded"). The `set -eo pipefail` that makes a fixture failure fail the
+step landed in the same PR (#508) as the seeding fixtures, so the first honest
+signal did not surface until the bundler bug (§3.5.1) was cleared. The
+"first green nightly" §6 defers `implementation: complete` to has therefore
+**never happened**; getting it green is initial bring-up, not a regression fix.
+
+Environment contract 1, **FIXED and verified by nightly run 29042838102:**
+
+1. **Classic WebDriver only.** WebdriverIO v9 negotiates WebDriver BiDi by
+   default (`webSocketUrl: true`). tauri-driver proxies to WebKitWebDriver on
+   Linux, which has no BiDi support and rejected the whole session with
+   `session not created: Failed to match capabilities`. Fixtures MUST set
+   `wdio:enforceWebDriverClassic: true`. `tauri-driver` and `webdriverio` are
+   version-pinned in the nightly so this contract does not silently drift (a
+   tauri-driver bump is a known cause of this exact error class,
+   tauri-apps/tauri#8828). After this change the non-seeding fixture `ac7`
+   passes and sessions create; the "failed to match capabilities" class is
+   gone.
+
+Two contracts remain OPEN (tracked in a follow-up issue; the nightly is
+non-gating so they block nothing):
+
+2. **A default Secret Service collection MUST exist before any keychain
+   write.** `gnome-keyring-daemon --unlock` on the fresh runner does not
+   establish a default collection, so the seed writer's `set` fails with
+   `Secret Service: no result found` (fixtures `ac8`, `208`). Bootstrapping it
+   is unresolved bring-up. (The error itself confirms the §3.5.1 `[[example]]`
+   move works: the harness finds and runs the relocated binary.)
+
+3. **Per-AC element interactions.** Even with a session, `ac9` fails at an
+   element click with `element click intercepted` / `session deleted because
+   of page crash or hang` under xvfb. This is per-fixture app/interaction
+   bring-up, not an environment pin.
+
+`implementation: complete` stays deferred until the first genuinely-green run,
+which now requires resolving contracts 2 and 3, not contract 1.
+
 ### 3.6 No implicit per-feature flake amnesty (FR-T6)
 
 **FR-T6.** A flaky e2e fixture MUST NOT be silently disabled or
