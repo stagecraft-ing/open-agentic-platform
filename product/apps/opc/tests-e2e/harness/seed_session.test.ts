@@ -49,14 +49,14 @@ describe("buildSeedJwt", () => {
 });
 
 describe("seedBinPath", () => {
-  it("resolves the release e2e_seed_session under src-tauri/target", () => {
+  it("resolves the release e2e_seed_session under src-tauri/target/release/examples", () => {
     expect(seedBinPath("linux")).toMatch(
-      /product\/apps\/opc\/src-tauri\/target\/release\/e2e_seed_session$/,
+      /product\/apps\/opc\/src-tauri\/target\/release\/examples\/e2e_seed_session$/,
     );
   });
 
   it("uses the .exe suffix on win32", () => {
-    expect(seedBinPath("win32")).toMatch(/e2e_seed_session\.exe$/);
+    expect(seedBinPath("win32")).toMatch(/examples\/e2e_seed_session\.exe$/);
   });
 });
 

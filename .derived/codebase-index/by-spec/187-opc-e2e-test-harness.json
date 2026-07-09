@@ -23,7 +23,7 @@
         "source": "spec-edge"
       },
       {
-        "path": "product/apps/opc/src-tauri/src/bin/e2e_seed_session.rs",
+        "path": "product/apps/opc/src-tauri/examples/e2e_seed_session.rs",
         "source": "spec-edge"
       },
       {
@@ -103,14 +103,14 @@
       {
         "locations": [
           {
-            "file": "product/apps/opc/src-tauri/src/bin/e2e_seed_session.rs"
+            "file": "product/apps/opc/src-tauri/examples/e2e_seed_session.rs"
           }
         ],
         "ownership": true,
         "sourceField": "establishes",
         "unit": {
           "kind": "file",
-          "path": "product/apps/opc/src-tauri/src/bin/e2e_seed_session.rs"
+          "path": "product/apps/opc/src-tauri/examples/e2e_seed_session.rs"
         }
       },
       {
@@ -170,5 +170,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "fc844aec1ead706d9bf2e010b77edff054b96b8f5da4f2c623576150c8768587"
+  "shardHash": "e3c77ccd5cdbb65e05bd67acf8789d607ba3c81b7113536a02ea0697941e9e59"
 }
