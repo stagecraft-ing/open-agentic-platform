@@ -147,3 +147,33 @@ spec:
           protocol: TCP
         - port: 10254
           protocol: TCP
+---
+# FR-006 addendum (2026-07-08): allow ingress-nginx to reach the ephemeral
+# cert-manager HTTP-01 solver pods (port 8089) so a monitoring-namespace
+# ingress (Grafana) can obtain and renew its Let's Encrypt certificate. The
+# default-deny above otherwise REJECTs ingress-nginx -> solver (this cluster's
+# netpol controller rejects rather than drops, per the 2026-06-12 incident
+# addendum), stalling the ACME challenge with a 502 and blocking Grafana over
+# TLS entirely (SC-009/SC-010). Scoped to the solver label + port only: the
+# receiver isolation (SC-008) is untouched, since Prometheus is not a solver
+# pod and 8089 is not the receiver port. Solver pods are short-lived and exist
+# only while an HTTP-01 challenge is in flight.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-acme-solver-from-ingress-nginx
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      acme.cert-manager.io/http01-solver: "true"
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: 8089
+          protocol: TCP
