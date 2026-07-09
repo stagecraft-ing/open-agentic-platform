@@ -20,6 +20,15 @@
       "retroactive": true
     },
     "owner": "bart",
+    "refines": [
+      {
+        "aspect": "scanner-spec-directive-canonical-layout",
+        "unit": {
+          "kind": "file",
+          "path": "crates/featuregraph/src/scanner.rs"
+        }
+      }
+    ],
     "risk": "low",
     "sectionHeadings": [
       "Feature Specification: featuregraph registry scanner fix",
@@ -37,6 +46,6 @@
     "summary": "Point the featuregraph scanner and related governance inputs at `.derived/spec-registry/registry.json` (compiled by spec-compiler) instead of requiring `spec/features.yaml`, so the governance panel can hydrate from the same source of truth as CI and the Inspect surface.\n",
     "title": "featuregraph scanner reads compiled registry"
   },
-  "shardHash": "6df0948a073e5644acb9efc81d6966e271521e22a90b0d7400d7551eb2ba743e",
+  "shardHash": "0d12efceb48734862e102c430220c2a1e35c707017f1dd1c4015beec4532b200",
   "specVersion": "1.1.0"
 }

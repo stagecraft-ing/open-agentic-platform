@@ -19,6 +19,12 @@ code_aliases:
   - GOVERNANCE_ENGINE
 owner: bart
 risk: low
+refines:
+  # Amendment 2026-07-08: the `// Spec:` header directive resolves against the
+  # canonical `specs/NNN-slug/spec.md` layout; SPEC_REGEX widened to accept the
+  # `specs/` prefix and an optional trailing FR or section annotation after `.md`.
+  - aspect: "scanner-spec-directive-canonical-layout"
+    unit: { kind: file, path: crates/featuregraph/src/scanner.rs }
 origin:
   retroactive: true
 ---
@@ -115,3 +121,49 @@ spec 180's row in the feature graph. No semantic change to this
 spec's claims; the new spec's spec.md contributes a new entry to the
 featuregraph output by construction, and the originating PR carries
 the fixture refresh per the spec 177 atomicity contract.
+
+**Amendment 2026-07-08 (record: self, scanner-spec-directive-canonical-layout).**
+The scanner's `SPEC_REGEX` in `crates/featuregraph/src/scanner.rs` required the
+`// Spec:` header directive to match `spec/<path>.md`: a singular `spec/` prefix,
+a `.md` suffix, and no trailing content. That is the pre-`specs/` layout shape.
+The canonical spec layout is `specs/NNN-slug/spec.md`, and the corpus convention
+annotates the directive with the specific FR or section it implements after the
+`.md` (a dash-led suffix such as `FR-034`). Both the plural prefix and the
+trailing annotation were rejected as `INVALID_HEADER_FORMAT`, so the committed
+golden accepted 225 such entries as expected state, blinding the
+featuregraph-golden ci-gate: a genuinely broken directive would have landed as
+one more accepted entry rather than surfacing as a golden diff.
+
+This amendment widens `SPEC_REGEX` to accept the canonical `specs/` prefix (it
+still tolerates the legacy singular `spec/` so no currently-parsing header
+regresses) and an optional trailing annotation after `.md`. It also migrates this
+crate's own six headers off the dead `spec/core/featuregraph.md` and
+`spec/core/governance.md` conceptual paths onto their real spec path
+`specs/034-featuregraph-registry-scanner-fix/spec.md`; because
+`FEATUREGRAPH_REGISTRY` and `GOVERNANCE_ENGINE` are this spec's `code_aliases`,
+that removes the six `SPEC_PATH_MISMATCH` warnings those files produced. The
+golden is regenerated to the corrected scanner output: `INVALID_HEADER_FORMAT`
+drops 225 to 57, `SPEC_PATH_MISMATCH` drops 49 to 43, and 3 files reclassify from
+`INVALID_HEADER_FORMAT` to `DANGLING_FEATURE_ID` (0 to 3, so error-severity
+entries fall 225 to 60). The scanner-behavior
+change is claimed under this spec's new `refines:` edge over `scanner.rs` (aspect
+`scanner-spec-directive-canonical-layout`); the golden fixture and the migrated
+crate files remain package-owned by this spec (`crates/featuregraph` declares
+`spec = "034-featuregraph-registry-scanner-fix"` in its manifest).
+
+The 57 residual `INVALID_HEADER_FORMAT` entries are genuinely malformed
+independent of the prefix bug, and are now the clearly-visible follow-up backlog
+rather than being buried under 168 false positives: 34 bare-id `// Feature:`
+directives (a kebab or digit-leading spec-id used where an UPPERCASE code token is
+required), 21 malformed Spec directives (`// Spec:` or `# Spec:`: a bare spec-id, a
+`.yaml` reference such as `spec/verification.yaml`, or comma-joined multiple paths
+where a single `specs/NNN-slug/spec.md` is required), and 2 duplicate-directive
+files. The 3 newly-surfaced `DANGLING_FEATURE_ID` entries (the OPC scheduling files
+`web_server.rs`, `SchedulePanel.tsx`, and `ScheduleDialog.tsx`, whose
+`// Feature: SCHEDULING` token is not a registry id: spec 079's alias is
+`SCHEDULED_AGENT_EXECUTION`) are the same class of latent header error, previously
+masked as `INVALID_HEADER_FORMAT` and now honestly visible. Fixing all of these is
+a per-file convention migration requiring judgement on the correct token or path
+and belongs to the owning specs (the scheduling trio to spec 079); it is deferred
+to a follow-up, not accepted as correct here. This amendment only stops the false
+positives from hiding the real ones.
