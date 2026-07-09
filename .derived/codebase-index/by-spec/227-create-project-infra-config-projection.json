@@ -46,6 +46,14 @@
         "source": "spec-edge"
       },
       {
+        "path": "platform/services/stagecraft/api/db/migrations/4_project_uses_redis.up.sql",
+        "source": "spec-edge"
+      },
+      {
+        "path": "platform/services/stagecraft/api/db/schema.ts",
+        "source": "spec-edge"
+      },
+      {
         "path": "platform/services/stagecraft/api/deploy/deploy.ts",
         "source": "spec-edge"
       },
@@ -130,6 +138,19 @@
         "unit": {
           "kind": "file",
           "path": "platform/charts/acme-vue-encore/templates/redis.yaml"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/db/migrations/4_project_uses_redis.up.sql"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "establishes",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/migrations/4_project_uses_redis.up.sql"
         }
       },
       {
@@ -356,6 +377,32 @@
       {
         "locations": [
           {
+            "file": "platform/services/stagecraft/api/db/schema.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/db/schema.ts"
+        }
+      },
+      {
+        "locations": [
+          {
+            "file": "platform/services/stagecraft/api/deploy/deploy.ts"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "platform/services/stagecraft/api/deploy/deploy.ts"
+        }
+      },
+      {
+        "locations": [
+          {
             "file": "platform/services/stagecraft/api/factory/browse.ts"
           }
         ],
@@ -456,24 +503,11 @@
           "kind": "file",
           "path": "platform/services/stagecraft/web/app/routes/app.projects.new.tsx"
         }
-      },
-      {
-        "locations": [
-          {
-            "file": "platform/services/stagecraft/api/deploy/deploy.ts"
-          }
-        ],
-        "ownership": false,
-        "sourceField": "references",
-        "unit": {
-          "kind": "file",
-          "path": "platform/services/stagecraft/api/deploy/deploy.ts"
-        }
       }
     ],
     "specId": "227-create-project-infra-config-projection",
-    "specStatus": "draft"
+    "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "4a2249314e5462c5076b59d9dc32e66d1182b55f73b7d1a844a97d671503225d"
+  "shardHash": "3864d212215a1d6a332d6e3fa76cf8c2cccd958c90e2e8fc7333c7278252ecac"
 }

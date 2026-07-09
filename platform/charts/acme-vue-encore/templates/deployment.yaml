@@ -68,13 +68,17 @@ spec:
                   key: POSTGRES_PASSWORD
             {{- end }}
             {{- if .Values.previewRedis.enabled }}
-            # Spec 227 FR-005: opt-in preview Redis. The app's redis block (baked
-            # once factory-encore 008 promotes data-redis to a native Encore
-            # `redis` resource) resolves ${REDIS_HOST} (host:port) and
-            # $env:REDIS_PASSWORD; inject those names against the in-namespace
-            # preview Redis (templates/redis.yaml).
+            # Spec 227 FR-004/FR-005: opt-in preview Redis. The app's baked
+            # infra.config `redis` block (factory-encore 008 promotes data-redis
+            # to a native Encore `redis` resource) resolves ${REDIS_HOST}
+            # (host:port), ${REDIS_USER}, and $env:REDIS_PASSWORD; inject those
+            # exact names against the in-namespace preview Redis
+            # (templates/redis.yaml). Mirrors the SQL_HOST/SQL_USERNAME/
+            # SQL_PASSWORD triple above.
             - name: REDIS_HOST
               value: "{{ include "acme-vue-encore.redisName" . }}:6379"
+            - name: REDIS_USER
+              value: {{ .Values.previewRedis.user | quote }}
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
