@@ -329,26 +329,36 @@ signal did not surface until the bundler bug (§3.5.1) was cleared. The
 "first green nightly" §6 defers `implementation: complete` to has therefore
 **never happened**; getting it green is initial bring-up, not a regression fix.
 
-Two environment contracts the harness pins to reach it:
+Environment contract 1, **FIXED and verified by nightly run 29042838102:**
 
 1. **Classic WebDriver only.** WebdriverIO v9 negotiates WebDriver BiDi by
    default (`webSocketUrl: true`). tauri-driver proxies to WebKitWebDriver on
-   Linux, which has no BiDi support and rejects the whole session with
+   Linux, which has no BiDi support and rejected the whole session with
    `session not created: Failed to match capabilities`. Fixtures MUST set
    `wdio:enforceWebDriverClassic: true`. `tauri-driver` and `webdriverio` are
    version-pinned in the nightly so this contract does not silently drift (a
    tauri-driver bump is a known cause of this exact error class,
-   tauri-apps/tauri#8828).
+   tauri-apps/tauri#8828). After this change the non-seeding fixture `ac7`
+   passes and sessions create; the "failed to match capabilities" class is
+   gone.
+
+Two contracts remain OPEN (tracked in a follow-up issue; the nightly is
+non-gating so they block nothing):
 
 2. **A default Secret Service collection MUST exist before any keychain
-   write.** `gnome-keyring-daemon --unlock` only unlocks a pre-existing login
-   keyring; a fresh runner has none, so `keyring` `set` fails with
-   `Secret Service: no result found`. The nightly pre-creates + unlocks a
-   `login` keyring (empty password) so a default collection exists before the
-   seed writer runs.
+   write.** `gnome-keyring-daemon --unlock` on the fresh runner does not
+   establish a default collection, so the seed writer's `set` fails with
+   `Secret Service: no result found` (fixtures `ac8`, `208`). Bootstrapping it
+   is unresolved bring-up. (The error itself confirms the §3.5.1 `[[example]]`
+   move works: the harness finds and runs the relocated binary.)
 
-Both are proven only by the nightly (tauri-driver has no macOS backend), so
-`implementation: complete` stays deferred until the first genuinely-green run.
+3. **Per-AC element interactions.** Even with a session, `ac9` fails at an
+   element click with `element click intercepted` / `session deleted because
+   of page crash or hang` under xvfb. This is per-fixture app/interaction
+   bring-up, not an environment pin.
+
+`implementation: complete` stays deferred until the first genuinely-green run,
+which now requires resolving contracts 2 and 3, not contract 1.
 
 ### 3.6 No implicit per-feature flake amnesty (FR-T6)
 
