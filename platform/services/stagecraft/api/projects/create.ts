@@ -479,6 +479,10 @@ export const createFactoryProject = api(
             description: req.description ?? "",
             objectStoreBucket: `oap-${auth.orgSlug || "unknown"}-${req.slug}`,
             factoryAdapterId: adapter.id,
+            // Spec 227 Stage 4: the opt-in Redis infra selection (the factory
+            // data-redis module) is fixed at scaffold; the deploy trigger reads
+            // it to provision a dev preview Redis.
+            usesRedis: selectedModules.includes("data-redis"),
             createdBy: auth.userID,
           })
           .returning();

@@ -565,6 +565,7 @@ interface DeployEnvContext {
   orgId: string;
   orgSlug: string;
   factoryAdapterId: string | null;
+  usesRedis: boolean;
 }
 
 /**
@@ -590,6 +591,7 @@ async function loadDeployEnvContext(
       orgId: projects.orgId,
       orgSlug: organizations.slug,
       factoryAdapterId: projects.factoryAdapterId,
+      usesRedis: projects.usesRedis,
     })
     .from(environments)
     .innerJoin(projects, eq(projects.id, environments.projectId))
@@ -711,6 +713,14 @@ async function buildTriggerDeploydBody(
     };
   }
 
+  // Spec 227 Stage 4 (FR-005): opt-in Redis. Unlike Postgres (default-on, and
+  // required to boot), Redis provisions only when the project selected it at
+  // scaffold (ctx.usesRedis) AND only in the same dev/preview kinds that
+  // auto-provision infrastructure. Non-development environments supply an
+  // external Redis as runtime env; deployd never provisions it for them. This
+  // is opt-in, so no hard refusal when off (the app boots fine without Redis).
+  const previewRedis = ctx.usesRedis && previewDatabase;
+
   const chartSelection = resolveChartSelection(ctx.factoryAdapterId, undefined);
   const desiredRoutes = TENANTS_BASE_DOMAIN
     ? [
@@ -746,6 +756,7 @@ async function buildTriggerDeploydBody(
       image_pull_secret_name: "ghcr-pull",
       namespace: ctx.k8sNamespace ?? undefined,
       preview_database: previewDatabase,
+      preview_redis: previewRedis,
     },
   };
 }

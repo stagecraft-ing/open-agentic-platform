@@ -2,8 +2,8 @@
 id: "227-create-project-infra-config-projection"
 title: "Create Project as an Encore-infra-config projection: derived catalog, two-axis selector, dev-provisioned Redis"
 feature_branch: "227-create-project-infra-config-projection"
-status: draft
-implementation: pending  # Staged implementation. The design PR (#530) landed only the featuregraph golden node (extends 034); each follow-on stage PR then promotes referenced paths to authoritative relationships and lands code one subsystem at a time. Stage 1 (catalog derivation), Stage 2 (two-axis form + base-app config), Stage 3 (deployd previewRedis), the interim nit PR, and Stage 2b (auth-driver axis, spec 229: an independent mock|rauthy selector patched as AUTH_DRIVER), and the cron-capability stage (spec 230: cron surfaced as an Application feature, submitting its transitive data-postgres requires closure; the large-scale Redis tier rides Stage 4) have landed; implementation stays pending until Stage 4 end-to-end wiring completes.
+status: approved
+implementation: complete  # Staged implementation, now complete. The design PR (#530) landed only the featuregraph golden node (extends 034); each follow-on stage PR then promoted referenced paths to authoritative relationships and landed code one subsystem at a time. Stage 1 (catalog derivation), Stage 2 (two-axis form + base-app config), Stage 3 (deployd previewRedis), the interim nit PR, Stage 2b (auth-driver axis, spec 229: an independent mock|rauthy selector patched as AUTH_DRIVER), the cron-capability stage (spec 230: cron surfaced as an Application feature submitting its transitive data-postgres requires closure), and Stage 4 (end-to-end Redis wiring: the uses_redis column + migration 4, the create trigger reading the opt-in data-redis selection, the deploy preview_redis trigger, and the chart REDIS_USER injection) have all landed (2026-07-09). FR-004/FR-005/FR-006 satisfied; factory-encore spec 008 (data-redis promotion) is the merged adapter-side dependency.
 kind: platform
 domain: platform
 created: "2026-07-06"
@@ -73,6 +73,11 @@ establishes:
   # mapping, extracted from the route so it is unit-testable.
   - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/create-project-variant.ts }
   - unit: { kind: file, path: platform/services/stagecraft/web/app/lib/create-project-variant.test.ts }
+  # Stage 4 (end-to-end Redis): net-new migration adding the projects
+  # uses_redis column. Under Option A the topology is build-time, so the opt-in
+  # Redis selection is fixed at scaffold; the deploy trigger reads the column to
+  # auto-provision a dev preview Redis (mirrors the default-on preview Postgres).
+  - unit: { kind: file, path: platform/services/stagecraft/api/db/migrations/4_project_uses_redis.up.sql }
 extends:
   # A new spec adds a node to the featuregraph golden (same precedent as specs
   # 214, 222, 223, 224, 225, 226); claimed additively against spec 034 so the
@@ -143,15 +148,18 @@ extends:
   - spec: "112-factory-project-lifecycle"
     nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/projects/scaffold/perRequestScaffold.test.ts }
-references:
-  # Non-authoritative pointers to the code paths later stages govern. The
-  # Stage 3 deployd/chart paths and the Stage 1 catalog-derivation paths were
-  # promoted to establishes/extends above as that code landed; the pointer below
-  # remains un-promoted until its own stage lands (claiming it now would
-  # over-fire the coupling gate). The Stage 2 form reframe promotes the
-  # dev-provisioning trigger when it wires the opt-in Redis selection.
-  - role: dev-provisioning-trigger
+  # Stage 4 (end-to-end Redis): promoted from references: as the wiring landed.
+  # deploy.ts now has an honest opt-in source (the project's fixed uses_redis
+  # selection), so the preview_redis dev-provisioning trigger lands; additive
+  # against 215, which refines the deploy trigger.
+  - spec: "215-stagecraft-deploy-trigger-ux"
+    nature: additive
     unit: { kind: file, path: platform/services/stagecraft/api/deploy/deploy.ts }
+  # The projects table gains the uses_redis column (recording the opt-in Redis
+  # selection at create); additive against 114, which establishes schema.ts.
+  - spec: "114-async-project-clone-pipeline"
+    nature: additive
+    unit: { kind: file, path: platform/services/stagecraft/api/db/schema.ts }
 ---
 
 # 227. Create Project as an Encore-infra-config projection
@@ -423,6 +431,42 @@ authoritative relationships:
    Redis lock rides the Redis Infrastructure resource (Stage 4). Refines 138.
 
 ### Implementation log
+
+**Stage 4 landed (2026-07-09).** Redis Infrastructure resource end to end
+(FR-004/FR-005/FR-006). The opt-in Redis selection now flows from the form to a
+provisioned dev instance, closing the last stage:
+
+- **Opt-in selector (`app.projects.new.tsx`).** The Infrastructure "Redis /
+  cache" row is a live checkbox (single topology only; dual keeps the disabled
+  "Single only" row, mirroring the feature-module composition guard, FR-008). It
+  submits `data-redis` as a `modules` value via its own `redis` state (distinct
+  from the `selectedModules` toggle state the cron stage's transitive
+  infra-requires closure uses, so there is no double-submit). The scaffold then
+  composes the factory-encore `data-redis` module (promoted from inert marker by
+  factory-encore spec 008) and bakes a `redis` block into the app's
+  `apps/api/infra.config.json`.
+- **Fixed at create (`create.ts`, `schema.ts`, migration 4).** The projects
+  table gains a `uses_redis` column (default false), set at create from
+  `selectedModules.includes("data-redis")`. Under Option A the topology is
+  build-time, so the selection is fixed at scaffold.
+- **Deploy trigger (`deploy.ts`).** `loadDeployEnvContext` selects `uses_redis`;
+  `buildTriggerDeploydBody` sets `preview_redis = usesRedis && previewDatabase`,
+  so Redis auto-provisions only when opted in AND only in the same dev/preview
+  kinds that already auto-provision Postgres. Non-development environments supply
+  an external Redis as runtime env; deployd never provisions it for them
+  (FR-005). Opt-in, so no hard refusal when off (the app boots without Redis).
+- **Chart env (`deployment.yaml`, `values.yaml`).** The preview-Redis app
+  container now injects `REDIS_USER` (default `default`, the built-in Redis ACL
+  user the `--requirepass` preview workload authenticates as) alongside the
+  Stage 3 `REDIS_HOST`/`REDIS_PASSWORD`, matching the exact
+  `${REDIS_HOST}`/`${REDIS_USER}`/`$env:REDIS_PASSWORD` triple the app's baked
+  `redis` block resolves (the typed topology block, not a `REDIS_URL`), the same
+  shape as the Stage 3 `SQL_HOST`/`SQL_USERNAME`/`SQL_PASSWORD` correction.
+
+`deploy.ts` is promoted from `references:` to `extends 215` and `schema.ts` to
+`extends 114`; migration 4 enters `establishes`. FR-006 falls out of Option A
+with no per-environment files. `implementation:` flips to `complete` and
+`status` to `approved`: all four stages plus the cron capability have landed.
 
 **Cron capability stage landed (2026-07-08).** The OAP consumer of factory-encore
 spec 009 (OAP spec 230 section 6): create-project surfaces the `cron` module as

@@ -186,6 +186,12 @@ export const projects = pgTable(
     // over to substrate-projected synthetic adapter ids of the form
     // `synthetic-adapter-<orgId8>-<name>` (migration 38).
     factoryAdapterId: text("factory_adapter_id"),
+    // Spec 227 Stage 4 (FR-004/FR-005): whether the project opted into the
+    // Redis infrastructure resource at scaffold (data-redis in the composed
+    // set). Fixed at create time (topology is build-time under Option A). The
+    // deploy trigger reads this to auto-provision a dev preview Redis
+    // (previewRedis), mirroring the default-on previewDatabase path.
+    usesRedis: boolean("uses_redis").notNull().default(false),
     createdBy: uuid("created_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

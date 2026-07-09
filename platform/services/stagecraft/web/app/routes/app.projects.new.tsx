@@ -288,6 +288,13 @@ export default function NewProject() {
   const [connectivity, setConnectivity] = useState(false);
   const [privateApiBaseUrl, setPrivateApiBaseUrl] = useState("");
   const [gatewayTimeout, setGatewayTimeout] = useState(GATEWAY_TIMEOUT_DEFAULT);
+  // Spec 227 Stage 4 (FR-004): opt-in Redis infrastructure. Selecting it adds
+  // the factory data-redis module to the composed set, which bakes a `redis`
+  // block into the scaffolded apps/api/infra.config.json. Offered for single
+  // topology only; dual module composition is a later factory increment
+  // (factory-encore spec 008 FR-003), so the picker (and this row) stay
+  // single-only to avoid a silent dual no-op (mirrors the feature-module gate).
+  const [redis, setRedis] = useState(false);
 
   // Spec 227 Stage 2 sectioning: feature modules are the real code modules
   // (category "Application"); the gateway (api-gateway) is a base-app knob, not
@@ -571,24 +578,50 @@ export default function NewProject() {
                   </span>
                 </span>
               </div>
-              <div className="flex items-start gap-3 opacity-60">
-                <input
-                  type="checkbox"
-                  disabled
-                  className="mt-0.5 h-4 w-4 rounded border-gray-300"
-                />
-                <span>
-                  <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
-                    Redis / cache
-                    <span className="ml-2 rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] font-normal uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Planned
+              {topology === "dual" ? (
+                <div className="flex items-start gap-3 opacity-60">
+                  <input
+                    type="checkbox"
+                    disabled
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Redis / cache
+                      <span className="ml-2 rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] font-normal uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        Single only
+                      </span>
+                    </span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400">
+                      Redis is available for single-topology projects; dual
+                      module composition is a later factory increment.
                     </span>
                   </span>
-                  <span className="block text-xs text-gray-500 dark:text-gray-400">
-                    Opt-in Redis provisioning arrives in a later stage.
+                </div>
+              ) : (
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="modules"
+                    value="data-redis"
+                    checked={redis}
+                    onChange={(e) => setRedis(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Redis / cache
+                    </span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400">
+                      Opt-in. Bakes a <code>redis</code> block into the app&apos;s{" "}
+                      <code>infra.config.json</code> (REDIS_HOST / REDIS_USER /
+                      REDIS_PASSWORD); OAP provisions a dev instance. Consumed by
+                      the cron large-scale lock. Not a rate-limit backend (that is
+                      Postgres).
+                    </span>
                   </span>
-                </span>
-              </div>
+                </label>
+              )}
             </div>
           </fieldset>
 

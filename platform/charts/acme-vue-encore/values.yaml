@@ -168,6 +168,10 @@ database:
 # Redis for them, gated the same way as previewDatabase).
 previewRedis:
   enabled: false
+  # Redis ACL username the app's baked infra.config redis block resolves via
+  # ${REDIS_USER}. The preview workload authenticates with --requirepass, which
+  # maps to Redis's built-in "default" ACL user (no separate ACL user created).
+  user: default
   image: redis:7-alpine
   resources:
     requests:
