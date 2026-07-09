@@ -32,7 +32,13 @@ pub enum HeaderError {
 
 // Strict regexes as per spec
 const FEATURE_REGEX: &str = r"^(//|#)\s*Feature:\s*([A-Z][A-Z0-9_]{2,63})\s*$";
-const SPEC_REGEX: &str = r"^(//|#)\s*Spec:\s*(spec/[A-Za-z0-9_/\.-]+\.md)\s*$";
+// The `// Spec:` directive resolves against the canonical `specs/NNN-slug/spec.md`
+// layout (spec 034 amendment 2026-07-08). `specs?/` still tolerates the legacy
+// singular `spec/` prefix during the cross-crate header migration. The trailing
+// `(\s.*)?` group accepts an optional whitespace-separated annotation after the
+// `.md` (the corpus notes the FR or section a file implements there); only the
+// path is captured in group 2, the annotation itself is not parsed.
+const SPEC_REGEX: &str = r"^(//|#)\s*Spec:\s*(specs?/[A-Za-z0-9_/\.-]+\.md)(\s.*)?$";
 // "Looks like" regexes for checking intent (soft rule)
 const ATTEMPTED_FEATURE: &str = r"^\s*(//|#)\s*Feature\s*:";
 const ATTEMPTED_SPEC: &str = r"^\s*(//|#)\s*Spec\s*:";

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Bartek Kus
 // Feature: GOVERNANCE_ENGINE
-// Spec: spec/core/governance.md
+// Spec: specs/034-featuregraph-registry-scanner-fix/spec.md
 
 use crate::graph::{FeatureGraph, FeatureNode, Violation};
 use crate::scanner::HeaderParser;
