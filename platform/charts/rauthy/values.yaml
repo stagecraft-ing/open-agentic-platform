@@ -59,6 +59,16 @@ access:
   # tokens are valid from `iat` onwards.
   disableRefreshTokenNbf: true
 
+  # deployd-api's `create_deployment` handler (routes.rs) rejects any bearer
+  # token that carries no `sub` claim ("token missing subject claim"). Rauthy's
+  # `client_credentials` grant (stagecraft's machine-to-machine deploy dispatch,
+  # api/deploy/oidcM2m.ts) sets `sub = None` by default because that grant has
+  # no end-user subject. Enabling this maps `sub = <client id>` onto those M2M
+  # tokens, satisfying deployd's owner-bind guard (auth.rs `is_owner_or_admin`)
+  # so UI/webhook deploys dispatch instead of failing at the JWT check.
+  # Feature added in Rauthy v0.34.0; the deployed image (0.35.0) honours it.
+  clientCredentialsMapSub: true
+
 # Spec 106 amendment (2026-05-17) — SMTP for Rauthy's built-in
 # passwordless magic-link login. Required for spec 137 FR-005 / FR-008
 # magic-link evidence (E2/E3). Disabled by default; enable by setting
