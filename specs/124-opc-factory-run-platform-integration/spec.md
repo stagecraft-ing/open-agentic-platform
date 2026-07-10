@@ -580,3 +580,31 @@ Three fixes to the platform-triggered run surface, all in `product/apps/opc/src-
 - **`business_docs`.** `extract_factory_run` silently dropped the envelope's explicit `business_docs`; it now surfaces them in the log. Materialisation from the bare `storage_ref` (presigning in the stagecraft relay, as knowledge bundles already get) remains a follow-up.
 
 Couples these fixes in the paths this spec authors to their owning spec per the spec 127 coupling gate.
+
+## Correlation diagnostics + fail-loud amendment (2026-07-10)
+
+Follow-on to the 2026-07-09 gate-delivery fix, in the same `commands/factory.rs`
+run-integration surface. The `factory.event` handler resolves gates by matching
+the inbound `pipeline_id` against the run's `stagecraft_pipeline_id`; that field
+is populated from the `init_pipeline` response in a fire-and-forget task whose
+failure was a silent `warn`-and-continue. A run that fails `init_pipeline`
+therefore executes with `stagecraft_pipeline_id = None` and can NEVER match a
+web-side gate approval, indistinguishable in the UI from a healthy run. Two
+diagnostics, with no behavioural change to the correlation itself (the identity
+question between the reservation `platform_run_id` shown in the web UI and the
+`init_pipeline` `pipeline_id` gate approvals are keyed on is deferred to an
+end-to-end repro):
+
+- **Fail-loud `init_pipeline` error.** Escalated the failure log from `warn` to
+  `error` and emitted a `factory:stagecraft_correlation_failed` event so the
+  operator sees that governance sign-off will not reach the run. The success
+  path now logs the id triad (`pipeline_id`, local `run_id`, `platform_run_id`)
+  so a repro can correlate the web-shown run id against the pipeline id gate
+  approvals are keyed on.
+- **Correlation-miss trace.** `apply_factory_event`'s no-matching-run branch
+  (previously a bare `return`, indistinguishable from an ordinary org broadcast)
+  now logs the unmatched `pipeline_id` at debug, so a genuine correlation miss is
+  visible in a dev build.
+
+Couples these diagnostics in the paths this spec authors to their owning spec per
+the spec 127 coupling gate.
