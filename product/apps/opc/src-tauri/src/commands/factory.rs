@@ -316,6 +316,40 @@ pub struct PipelineRunSummary {
 // TauriGateHandler — bridges orchestrator gates to Tauri events + oneshots
 // ---------------------------------------------------------------------------
 
+/// Normalise a factory stage id to its `sN` prefix so ids that differ only by
+/// their descriptive suffix join across vocabularies. OPC's local step ids are
+/// `s4-api-specification` / `s5-ui-specification`; stagecraft's `PIPELINE_STAGES`
+/// use `s4-api-spec` / `s5-ui-spec`; the human sign-off surface labels them
+/// `s1`/`s2`/`s3`. All share the leading `sN` token, which is the stable join
+/// key. Returns `None` for anything that is not `s<digits>` (optionally
+/// followed by `-suffix`).
+fn stage_prefix(stage_id: &str) -> Option<String> {
+    let head = stage_id.split('-').next()?;
+    let digits = head.strip_prefix('s')?;
+    if !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit()) {
+        Some(head.to_string())
+    } else {
+        None
+    }
+}
+
+/// Given the currently-pending gate step ids, find the one whose stage-prefix
+/// matches `stage_id` (see `stage_prefix`). This is the join that lets a
+/// stagecraft-web `stage_confirmed` (carrying `s4-api-spec` or the `s1` label)
+/// resolve the OPC-local gate keyed `s4-api-specification`. When several
+/// pending gates share a prefix (not expected), the lexically smallest is
+/// chosen so the selection is deterministic.
+fn match_pending_stage<'a>(
+    pending_keys: impl Iterator<Item = &'a String>,
+    stage_id: &str,
+) -> Option<String> {
+    let want = stage_prefix(stage_id)?;
+    pending_keys
+        .filter(|k| stage_prefix(k).as_deref() == Some(want.as_str()))
+        .min()
+        .cloned()
+}
+
 struct TauriGateHandler {
     app: AppHandle,
     pending: Mutex<HashMap<String, tokio::sync::oneshot::Sender<Result<(), String>>>>,
@@ -349,6 +383,32 @@ impl TauriGateHandler {
         } else {
             Err(format!("no pending gate for step {step_id}"))
         }
+    }
+
+    /// Resolve a pending gate matched by stage-prefix rather than exact step id
+    /// (see `match_pending_stage`), returning the local step id that resolved.
+    /// This is the path a gate approved on the stagecraft web surface takes: the
+    /// `stage_confirmed` `factory.event` carries stagecraft's stage id, which
+    /// only prefix-matches the OPC-local gate key.
+    fn approve_by_prefix(&self, stage_id: &str) -> Result<String, String> {
+        let mut pending = self.pending.lock().map_err(|e| e.to_string())?;
+        let key = match_pending_stage(pending.keys(), stage_id)
+            .ok_or_else(|| format!("no pending gate matching stage '{stage_id}'"))?;
+        let tx = pending.remove(&key).expect("key came from match_pending_stage");
+        tx.send(Ok(()))
+            .map_err(|_| "gate channel closed".to_string())?;
+        Ok(key)
+    }
+
+    /// Reject a pending gate matched by stage-prefix (see `approve_by_prefix`).
+    fn reject_by_prefix(&self, stage_id: &str, feedback: &str) -> Result<String, String> {
+        let mut pending = self.pending.lock().map_err(|e| e.to_string())?;
+        let key = match_pending_stage(pending.keys(), stage_id)
+            .ok_or_else(|| format!("no pending gate matching stage '{stage_id}'"))?;
+        let tx = pending.remove(&key).expect("key came from match_pending_stage");
+        tx.send(Err(format!("rejected: {feedback}")))
+            .map_err(|_| "gate channel closed".to_string())?;
+        Ok(key)
     }
 }
 
@@ -1041,6 +1101,31 @@ pub async fn list_factory_adapters(app: AppHandle) -> Result<Vec<FactoryAdapterO
         .collect())
 }
 
+/// Resolve the local project directory for a resume, with an actionable error.
+///
+/// A run surfaced from the platform run list carries no local filesystem path:
+/// `list_factory_runs` now leaves `project_path` empty rather than emitting the
+/// stagecraft project UUID, which the old code canonicalised straight into a
+/// raw `No such file or directory (os error 2)` when the user clicked Resume on
+/// a project that has no local copy on this machine. Resume genuinely needs the
+/// local directory that holds the run's `.factory/runs/<id>` artifacts, so when
+/// the path is empty or does not resolve we point the user at the clone/open
+/// handoff instead of surfacing a bare OS error. Unlike `start`, this does NOT
+/// require a git clone: spec-110 envelope runs live under a non-git scratch
+/// path and must remain resumable.
+fn resolve_resume_project_path(raw_path: &str) -> Result<PathBuf, String> {
+    const REMEDY: &str = "This run has no local copy on this machine. Open the \
+        project in OPC (Open in OPC, then Clone locally) and start a fresh run, \
+        or resume from the machine where it originally ran.";
+    let trimmed = raw_path.trim();
+    if trimmed.is_empty() {
+        return Err(format!("cannot resume: no local project path. {REMEDY}"));
+    }
+    PathBuf::from(trimmed).canonicalize().map_err(|_| {
+        format!("cannot resume: project not found locally at '{trimmed}'. {REMEDY}")
+    })
+}
+
 /// Start a new Factory pipeline run.
 ///
 /// Creates a real `FactoryEngine`, generates a Phase 1 manifest, and dispatches
@@ -1062,7 +1147,12 @@ pub async fn start_factory_pipeline(
     let project_path = PathBuf::from(&project_path);
     let doc_paths: Vec<PathBuf> = business_doc_paths.iter().map(PathBuf::from).collect();
 
-    // Ensure project directory exists.
+    // Ensure project directory exists. NOTE: `start` intentionally accepts a
+    // not-yet-existing path and creates it, because the spec-110 envelope
+    // trigger (`handle_factory_run_request`) runs against a workspace-scoped
+    // scratch path (`$OPC_CACHE_DIR/projects/<project_id>`) that is not a git
+    // clone. Do not add a clone requirement here without wiring the envelope
+    // flow to a real cloned project path first.
     std::fs::create_dir_all(&project_path)
         .map_err(|e| format!("create project dir failed: {e}"))?;
     let project_path = project_path
@@ -2272,7 +2362,13 @@ pub async fn list_factory_runs(
             PipelineRunSummary {
                 run_id: row.id,
                 adapter: String::new(),
-                project_path: row.project_id.unwrap_or_default(),
+                // The platform run list has no local filesystem path; it only
+                // knows the stagecraft project UUID. Emitting that UUID here
+                // made Resume run `PathBuf::from(uuid).canonicalize()` -> ENOENT
+                // ("resolve project path failed"). Leave it empty so the
+                // frontend falls back to the open project's real clone path, or
+                // disables Resume with a "clone locally" hint when there is none.
+                project_path: String::new(),
                 started_at: row.started_at,
                 completed_at: row.completed_at,
                 phase,
@@ -2404,9 +2500,12 @@ pub async fn resume_factory_pipeline(
     let process_name = process_name
         .filter(|s| !s.trim().is_empty())
         .unwrap_or_else(|| DEFAULT_PROCESS_NAME.to_string());
-    let project_path = PathBuf::from(&project_path)
-        .canonicalize()
-        .map_err(|e| format!("resolve project path failed: {e}"))?;
+    // Resolve the local project directory (see `resolve_resume_project_path`).
+    // A run surfaced from the platform run list carries no local path, and the
+    // old code canonicalised that empty/UUID string straight into the raw
+    // "resolve project path failed: No such file or directory" error the user
+    // saw when clicking Resume on a project that has no local copy here.
+    let project_path = resolve_resume_project_path(&project_path)?;
     let run_uuid = Uuid::parse_str(&run_id).map_err(|e| format!("invalid run_id: {e}"))?;
 
     // Defence in depth: if the caller didn't resolve an adapter (legacy
@@ -2933,6 +3032,13 @@ struct InboundFactoryRun {
     project_id: String,
     adapter: String,
     knowledge: Vec<WireKnowledgeBundle>,
+    /// Names of any explicit `business_docs` carried on the envelope, distinct
+    /// from the knowledge corpus. Carried for diagnostics only: unlike knowledge
+    /// bundles (which ship a presigned `download_url`), a `business_docs` entry
+    /// ships a bare `storage_ref` that OPC has no path to fetch, so these are
+    /// surfaced (not silently dropped as before) and excluded from the run's
+    /// inputs pending the presign+materialise follow-up.
+    business_doc_names: Vec<String>,
 }
 
 fn extract_factory_run(envelope: &ServerEnvelopeWire) -> Option<InboundFactoryRun> {
@@ -2941,6 +3047,11 @@ fn extract_factory_run(envelope: &ServerEnvelopeWire) -> Option<InboundFactoryRu
         project_id: envelope.project_id.clone()?,
         adapter: envelope.adapter.clone()?,
         knowledge: envelope.knowledge.clone().unwrap_or_default(),
+        business_doc_names: envelope
+            .business_docs
+            .as_ref()
+            .map(|docs| docs.iter().map(|d| d.name.clone()).collect())
+            .unwrap_or_default(),
     })
 }
 
@@ -2998,6 +3109,129 @@ pub fn register_factory_run_handler(app: AppHandle, opc_instance_id: String) {
 
     dispatch.register("factory.run.request", Arc::new(handler));
     log::info!("sync_client: factory.run.request dispatch handler registered");
+}
+
+/// Find the live run whose `stagecraft_pipeline_id` matches `pipeline_id`.
+///
+/// `factory.event` frames are org-scoped broadcasts, so most desktops (and most
+/// runs on this desktop) will not match: a `None` result is the common,
+/// non-error case. The `FACTORY_RUNS` lock is released before the per-run
+/// `stagecraft_pipeline_id` mutexes are read so the two never nest.
+fn find_run_by_pipeline(pipeline_id: &str) -> Option<(String, Arc<FactoryRunContext>)> {
+    let candidates: Vec<(String, Arc<FactoryRunContext>)> = {
+        let runs = FACTORY_RUNS.lock().ok()?;
+        runs.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+    };
+    candidates.into_iter().find(|(_, ctx)| {
+        ctx.stagecraft_pipeline_id
+            .lock()
+            .ok()
+            .and_then(|g| g.clone())
+            .as_deref()
+            == Some(pipeline_id)
+    })
+}
+
+/// Minimal shape extracted from a `factory.event` envelope.
+struct InboundFactoryEvent {
+    pipeline_id: String,
+    event_type: String,
+    stage_id: Option<String>,
+    feedback: Option<String>,
+}
+
+fn extract_factory_event(envelope: &ServerEnvelopeWire) -> Option<InboundFactoryEvent> {
+    Some(InboundFactoryEvent {
+        pipeline_id: envelope.pipeline_id.clone()?,
+        event_type: envelope.event_type.clone()?,
+        stage_id: envelope.stage_id.clone(),
+        // stage_rejected carries operator feedback under details.reason/notes.
+        feedback: envelope.details.as_ref().and_then(|d| {
+            d.get("reason")
+                .or_else(|| d.get("notes"))
+                .and_then(|v| v.as_str())
+                .map(str::to_string)
+        }),
+    })
+}
+
+/// Apply a decoded `factory.event` to the matching local run.
+///
+/// The load-bearing case is a gate approved/rejected on the stagecraft web
+/// surface: `confirm`/`reject` there publish `stage_confirmed`/`stage_rejected`
+/// (`platform/services/stagecraft/api/factory/factory.ts`), which is the only
+/// path by which a web-side sign-off can resolve the OPC local pipeline's
+/// pending gate oneshot. The symmetric OPC-side path (`confirm_factory_stage`)
+/// already dual-writes to stagecraft; this closes the loop the other direction.
+/// An echo of a gate already resolved locally simply finds no pending gate and
+/// no-ops (logged at debug, not error).
+fn apply_factory_event(event: &InboundFactoryEvent) {
+    let Some((run_id, ctx)) = find_run_by_pipeline(&event.pipeline_id) else {
+        // Not a run this desktop is executing: expected for org broadcasts.
+        return;
+    };
+    match event.event_type.as_str() {
+        "stage_confirmed" => {
+            let Some(stage_id) = event.stage_id.as_deref() else {
+                log::warn!("factory.event stage_confirmed without stage_id (run {run_id})");
+                return;
+            };
+            match ctx.gate_handler.approve_by_prefix(stage_id) {
+                Ok(resolved) => log::info!(
+                    "factory.event: remote stage_confirmed '{stage_id}' resolved local gate '{resolved}' (run {run_id})"
+                ),
+                // Common and benign: an echo of a gate already confirmed
+                // locally, or an event for a stage not currently gating here.
+                Err(e) => log::debug!(
+                    "factory.event: stage_confirmed '{stage_id}' not applied (run {run_id}): {e}"
+                ),
+            }
+        }
+        "stage_rejected" => {
+            let Some(stage_id) = event.stage_id.as_deref() else {
+                log::warn!("factory.event stage_rejected without stage_id (run {run_id})");
+                return;
+            };
+            let feedback = event.feedback.as_deref().unwrap_or("rejected on stagecraft");
+            match ctx.gate_handler.reject_by_prefix(stage_id, feedback) {
+                Ok(resolved) => log::info!(
+                    "factory.event: remote stage_rejected '{stage_id}' resolved local gate '{resolved}' (run {run_id})"
+                ),
+                Err(e) => log::debug!(
+                    "factory.event: stage_rejected '{stage_id}' not applied (run {run_id}): {e}"
+                ),
+            }
+        }
+        // Terminal and informational events (pipeline_initialized,
+        // pipeline_completed, pipeline_failed, deployment_triggered) are
+        // surfaced by the run's own RunEmitter/status projection; there is no
+        // local gate to resolve for them.
+        other => log::debug!("factory.event: '{other}' for run {run_id} (no local gate action)"),
+    }
+}
+
+/// Register a `factory.event` handler on the sync consumer dispatch table.
+///
+/// Mirrors `register_factory_run_handler`. `factory.event` frames were already
+/// decoded by `ServerEnvelopeWire` but had no registered handler, so every one
+/// was dropped with "no handler registered", including the `stage_confirmed`
+/// frames that carry a stagecraft-web gate approval back to the OPC run. The
+/// handler body is synchronous (a fast oneshot resolve under a brief lock), so
+/// unlike the run-request handler it does not spawn.
+pub fn register_factory_event_handler(app: AppHandle) {
+    let sync_state_present = app.try_state::<SyncClientState>().is_some();
+    if !sync_state_present {
+        log::warn!("register_factory_event_handler: SyncClientState not managed, skipping");
+        return;
+    }
+    let dispatch = app.state::<SyncClientState>().dispatch_table();
+    let handler = FnHandler(move |envelope: &ServerEnvelopeWire| {
+        if let Some(event) = extract_factory_event(envelope) {
+            apply_factory_event(&event);
+        }
+    });
+    dispatch.register("factory.event", Arc::new(handler));
+    log::info!("sync_client: factory.event dispatch handler registered");
 }
 
 /// Spec 120 FR-022 — pre-flight `s-1-extract` for orchestrated runs.
@@ -3059,6 +3293,22 @@ async fn handle_factory_run_request(
     session_id: String,
     run: InboundFactoryRun,
 ) {
+    // Surface, rather than silently drop, any explicit business_docs on the
+    // envelope. `extract_factory_run` used to ignore the field entirely; OPC
+    // still cannot materialise them (the envelope ships a bare `storage_ref`,
+    // not a presigned `download_url` like knowledge bundles), so they are
+    // excluded from this run's inputs, but the exclusion is now visible in the
+    // log instead of invisible. Full support requires presigning these in the
+    // stagecraft relay (as knowledge is) and materialising them here.
+    if !run.business_doc_names.is_empty() {
+        log::warn!(
+            "factory.run.request pipeline_id={} carries {} explicit business_docs OPC cannot yet materialise (storage_ref not presigned); excluded from inputs: {:?}",
+            run.pipeline_id,
+            run.business_doc_names.len(),
+            run.business_doc_names
+        );
+    }
+
     // Step 1: materialise knowledge bundles. Hash mismatch is a trust-boundary
     // failure — decline the run and let stagecraft mark it failed.
     let mut materialised: Vec<(WireKnowledgeBundle, std::path::PathBuf)> =
@@ -3236,6 +3486,66 @@ mod tests {
         assert!(!is_lowercase_hex_sha256(&"a".repeat(63)));
         assert!(!is_lowercase_hex_sha256(&"A".repeat(64)), "uppercase rejected");
         assert!(!is_lowercase_hex_sha256(&"g".repeat(64)), "non-hex rejected");
+    }
+
+    #[test]
+    fn resolve_resume_project_path_rejects_missing_and_accepts_existing() {
+        // Empty path: a platform-projected run carries no local copy. The old
+        // code surfaced a raw OS error; we now return an actionable message.
+        let err = resolve_resume_project_path("   ").unwrap_err();
+        assert!(err.contains("no local project path"), "got: {err}");
+
+        // A path that does not exist reproduces the old UUID-as-path bug
+        // (`PathBuf::from(uuid).canonicalize()` -> ENOENT). It must be an
+        // actionable "not found locally" error, not the bare OS string.
+        let missing = "/definitely/not/a/real/path/oap-resume-x9f3";
+        let err = resolve_resume_project_path(missing).unwrap_err();
+        assert!(err.contains("not found locally"), "got: {err}");
+        assert!(!err.contains("os error"), "must not leak the raw OS error: {err}");
+
+        // An existing directory resolves. We deliberately do NOT require a git
+        // clone here (spec-110 scratch runs live under a non-git path), so the
+        // crate manifest dir is a valid stand-in.
+        let existing = env!("CARGO_MANIFEST_DIR");
+        let ok = resolve_resume_project_path(existing).expect("existing dir resolves");
+        assert!(ok.is_absolute());
+    }
+
+    #[test]
+    fn stage_prefix_normalises_across_vocabularies() {
+        assert_eq!(stage_prefix("s0-preflight").as_deref(), Some("s0"));
+        assert_eq!(stage_prefix("s4-api-specification").as_deref(), Some("s4"));
+        assert_eq!(stage_prefix("s4-api-spec").as_deref(), Some("s4"));
+        assert_eq!(stage_prefix("s6-scaffolding").as_deref(), Some("s6"));
+        assert_eq!(stage_prefix("s1").as_deref(), Some("s1"));
+        // Not an `s<digits>` token.
+        assert_eq!(stage_prefix("preflight"), None);
+        assert_eq!(stage_prefix("stage-1"), None);
+        assert_eq!(stage_prefix("sx-thing"), None);
+        assert_eq!(stage_prefix(""), None);
+    }
+
+    #[test]
+    fn match_pending_stage_reconciles_drifted_ids() {
+        // Pending gates are keyed by the OPC-local step ids.
+        let keys = vec![
+            "s0-preflight".to_string(),
+            "s4-api-specification".to_string(),
+        ];
+        // stagecraft's PIPELINE_STAGES id joins the drifted OPC key.
+        assert_eq!(
+            match_pending_stage(keys.iter(), "s4-api-spec").as_deref(),
+            Some("s4-api-specification")
+        );
+        // The bare sign-off label joins too.
+        assert_eq!(
+            match_pending_stage(keys.iter(), "s0").as_deref(),
+            Some("s0-preflight")
+        );
+        // No gate pending for that stage prefix.
+        assert_eq!(match_pending_stage(keys.iter(), "s2-service-requirements"), None);
+        // Unrecognised stage id resolves to nothing rather than mis-joining.
+        assert_eq!(match_pending_stage(keys.iter(), "garbage"), None);
     }
 
     #[test]

@@ -360,12 +360,19 @@ export const PipelineHistory: React.FC<{
 
   const selectedRun = runs.find((r) => r.runId === selectedRunId) ?? null;
   const adapterName = selectedRun?.adapter ?? bundle?.adapter?.name ?? null;
-  const resumeProjectPath = selectedRun?.projectPath ?? projectPath ?? null;
-  const canResume =
+  // `list_factory_runs` returns an empty `projectPath` for platform-projected
+  // runs (they carry no local filesystem path, only a stagecraft UUID that must
+  // never be treated as a path). Normalise empties so the value falls back to
+  // the open project's real clone path; when neither is a real path, treat the
+  // run as needing a local clone rather than firing Resume against nothing.
+  const resumeProjectPath =
+    selectedRun?.projectPath?.trim() || projectPath?.trim() || null;
+  const resumablePhase =
     selectedRun != null &&
     selectedRun.phase !== 'complete' &&
-    adapterName != null &&
-    resumeProjectPath != null;
+    adapterName != null;
+  const canResume = resumablePhase && resumeProjectPath != null;
+  const needsLocalClone = resumablePhase && resumeProjectPath == null;
 
   const handleResume = useCallback(async () => {
     if (selectedRunId == null || !canResume) return;
@@ -455,7 +462,7 @@ export const PipelineHistory: React.FC<{
                   {truncateRunId(selectedRunId)}
                 </span>
               </h3>
-              {canResume && (
+              {canResume ? (
                 <Button
                   size="sm"
                   variant="outline"
@@ -471,7 +478,14 @@ export const PipelineHistory: React.FC<{
                   )}
                   Resume
                 </Button>
-              )}
+              ) : needsLocalClone ? (
+                <span
+                  className="text-xs text-muted-foreground italic"
+                  title="This run exists on the platform but has no local clone on this machine. Clone the project locally (Open in OPC, then Clone locally) to resume it."
+                >
+                  Clone locally to resume
+                </span>
+              ) : null}
             </div>
             {resumeError != null && (
               <p className="text-xs text-red-400 mb-2">{resumeError}</p>

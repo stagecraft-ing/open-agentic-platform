@@ -1028,7 +1028,30 @@ impl SyncClientInner {
             };
             map.insert(event_id.clone(), tx);
         }
-        let sent = self.send(frame).await;
+        // Bound the outbound send, not just the reply wait below. `send` queues
+        // on a *bounded* mpsc (`tx.send(frame).await`), so if the duplex WS
+        // writer task is stalled (a dead-but-undetected connection) this await
+        // can block indefinitely, wedging the run before governance completes
+        // with no signal which phase blocked (the "Waiting for agent output"
+        // silent stall). Failing closed here keeps the handshake bounded end to
+        // end so `establish()` returns an actionable error instead of hanging.
+        let sent = match tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            self.send(frame),
+        )
+        .await
+        {
+            Ok(sent) => sent,
+            Err(_) => {
+                if let Ok(mut map) = self.reply_waiters.lock() {
+                    map.remove(&event_id);
+                }
+                return Err(
+                    "duplex outbound send stalled (>10 s); failing closed rather than wedging the run"
+                        .into(),
+                );
+            }
+        };
         if !sent {
             // Remove the waiter we just registered so it doesn't leak.
             if let Ok(mut map) = self.reply_waiters.lock() {

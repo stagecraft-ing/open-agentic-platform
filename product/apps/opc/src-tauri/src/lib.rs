@@ -345,6 +345,15 @@ pub fn run() {
                     opc_instance_id,
                 );
 
+                // Spec 110: register the desktop handler for `factory.event`.
+                // A gate confirmed/rejected on the stagecraft web surface
+                // publishes `stage_confirmed`/`stage_rejected` back over the
+                // duplex; without this handler every such frame was dropped
+                // ("no handler registered"), so a web-side sign-off never
+                // resolved the local run's pending gate. This is the reverse
+                // of the OPC-side dual-write in `confirm_factory_stage`.
+                commands::factory::register_factory_event_handler(app.handle().clone());
+
                 // Spec 111 Phase 5: register the desktop catalog sync
                 // handlers only when the OPC_REMOTE_AGENT_CATALOG feature
                 // flag is set. The Phase 3 decode path stays live either
