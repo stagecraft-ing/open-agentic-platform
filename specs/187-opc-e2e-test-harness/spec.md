@@ -342,15 +342,27 @@ Environment contract 1, **FIXED and verified by nightly run 29042838102:**
    passes and sessions create; the "failed to match capabilities" class is
    gone.
 
-Two contracts remain OPEN (tracked in a follow-up issue; the nightly is
-non-gating so they block nothing):
+Environment contract 2, **fix applied 2026-07-10, pending first-green-nightly
+verification** (the failure mode is Secret-Service-only and does not reproduce
+on the macOS `apple-native` keychain, so this lands push-then-observe against
+the `workflow_dispatch` nightly rather than a local run):
 
 2. **A default Secret Service collection MUST exist before any keychain
    write.** `gnome-keyring-daemon --unlock` on the fresh runner does not
-   establish a default collection, so the seed writer's `set` fails with
-   `Secret Service: no result found` (fixtures `ac8`, `208`). Bootstrapping it
-   is unresolved bring-up. (The error itself confirms the §3.5.1 `[[example]]`
-   move works: the harness finds and runs the relocated binary.)
+   establish a default collection, so the seed writer's `set` failed with
+   `Secret Service: no result found` (fixtures `ac8`, `208`). The earlier
+   invocation piped `echo -n ""` (zero bytes / immediate EOF), which does not
+   drive the daemon to register the `default` alias. The bootstrap is now two
+   layers, tried in order: **(1)** a newline-terminated *empty* password
+   (`printf '\n' | gnome-keyring-daemon --daemonize --unlock`, the keyring-rs CI
+   pattern) so the daemon creates + unlocks the login keyring and registers it
+   as the `default` collection; **(2)** a fallback that, if the `default` alias
+   still did not materialise, force-creates the collection via `secret-tool
+   store` (`libsecret-tools`). (The original error already confirmed the §3.5.1
+   `[[example]]` move works: the harness finds and runs the relocated binary.)
+
+One contract remains OPEN (tracked in the follow-up issue; the nightly is
+non-gating so it blocks nothing):
 
 3. **Per-AC element interactions.** Even with a session, `ac9` fails at an
    element click with `element click intercepted` / `session deleted because
@@ -358,7 +370,8 @@ non-gating so they block nothing):
    bring-up, not an environment pin.
 
 `implementation: complete` stays deferred until the first genuinely-green run,
-which now requires resolving contracts 2 and 3, not contract 1.
+which requires contract 2's bootstrap to verify green on the nightly and
+contract 3 to be resolved.
 
 ### 3.6 No implicit per-feature flake amnesty (FR-T6)
 
