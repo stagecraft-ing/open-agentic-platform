@@ -106,6 +106,6 @@
     "summary": "Establishes the test infrastructure required to execute spec-bound end-to-end acceptance criteria against a built OPC desktop binary. The canonical motivating consumer is spec 183 AC-7/8/9 (boot-screen stickiness when stagecraft is unreachable; mid-session restore on axiomregent kill; clean process-tree teardown on Quit) which were explicitly deferred to nightly/manual at spec-183 PR time because no e2e harness existed. The harness has three load-bearing components: a built-binary driver that launches the OPC Tauri executable and introspects WebView render state (the BootGate→Cockpit transition is the canonical assertion target); a mock-stagecraft duplex server that can be made selectively unreachable (network-level deny vs. protocol-level reject) so AC-7-style \"substrate-unavailable\" cases are deterministic; and platform-portable process-tree introspection for AC-9-style \"no orphan sidecar\" assertions. The harness is not itself a gate — it is a capability other specs opt into by registering their AC against it. The non-goal section pins this: no per-PR runtime budget assumed, no implicit gating, no per-feature flake amnesty.\n",
     "title": "OPC end-to-end test harness — built-binary driver, mock-stagecraft, process-tree introspection"
   },
-  "shardHash": "ba945e99ad81e64ebec671c336cc73b2251ee989ff12ec58f9597b3995b947fc",
+  "shardHash": "8d1d3cf2ea4f8a011ea6d906c97ce1136a7e5a2bd2f5909bf1e5b56e1b0aa037",
   "specVersion": "1.1.0"
 }
