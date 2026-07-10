@@ -373,6 +373,13 @@ non-gating so it blocks nothing):
 which requires contract 2's bootstrap to verify green on the nightly and
 contract 3 to be resolved.
 
+The FR-T5(e) auto-file-a-regression-issue step is scoped to the unattended
+`schedule` event. A manual `workflow_dispatch` (the bring-up iteration loop used
+to verify contract 2 push-then-observe) has an operator watching the run, so
+auto-filing an issue on each failed dispatch would be noise, not signal; the
+`schedule`-only guard preserves FR-T5(e)'s "capture the regression even when no
+one is watching" intent while keeping iteration clean.
+
 ### 3.6 No implicit per-feature flake amnesty (FR-T6)
 
 **FR-T6.** A flaky e2e fixture MUST NOT be silently disabled or

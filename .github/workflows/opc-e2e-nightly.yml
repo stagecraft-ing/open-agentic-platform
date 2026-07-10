@@ -209,8 +209,11 @@ jobs:
           if-no-files-found: ignore
 
       # FR-T5(e) + FR-T6: capture the regression even when no one is watching.
+      # Scoped to the unattended `schedule` run: a manual `workflow_dispatch`
+      # (bring-up iteration) has someone watching, so auto-filing a regression
+      # issue on each failed dispatch would be noise (spec 187 §3.5.2).
       - name: Open issue on failure
-        if: failure()
+        if: failure() && github.event_name == 'schedule'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
