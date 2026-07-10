@@ -1310,15 +1310,46 @@ pub async fn start_factory_pipeline(
                 })
                 .collect();
             let ctx_init = ctx.clone();
+            let app_for_init = app.clone();
             tokio::spawn(async move {
                 match sc.init_pipeline(&pid, &adapter, &docs).await {
                     Ok(resp) => {
-                        log::info!("Stagecraft pipeline registered: {}", resp.pipeline_id);
+                        // Log the id triad so a repro can correlate the three
+                        // identities in play: the OPC-local run_id, the platform
+                        // reservation row (`platform_run_id`, the id the web UI
+                        // shows), and the stagecraft `pipeline_id` that inbound
+                        // `factory.event` gate approvals are keyed on
+                        // (find_run_by_pipeline). A web run_id that differs from
+                        // this pipeline_id is the "gates approved on web, nothing
+                        // happens locally" correlation miss.
+                        log::info!(
+                            "Stagecraft pipeline registered: pipeline_id={} (local run_id={}, platform_run_id={})",
+                            resp.pipeline_id, ctx_init.run_id, ctx_init.platform_run_id
+                        );
                         if let Ok(mut guard) = ctx_init.stagecraft_pipeline_id.lock() {
                             *guard = Some(resp.pipeline_id);
                         }
                     }
-                    Err(e) => log::warn!("Stagecraft init_pipeline failed (local continues): {e}"),
+                    Err(e) => {
+                        // Fail loud, not a silent warn: with no stagecraft
+                        // pipeline_id recorded, find_run_by_pipeline can never
+                        // match this run, so every web-side gate approval for it
+                        // is silently undeliverable (spec 076/124). Surface it in
+                        // the UI so the operator sees that governance sign-off
+                        // will not reach this run.
+                        log::error!(
+                            "Stagecraft init_pipeline failed for local run_id={}: web gate approvals will NOT reach this run: {e}",
+                            ctx_init.run_id
+                        );
+                        let _ = app_for_init.emit(
+                            "factory:stagecraft_correlation_failed",
+                            &serde_json::json!({
+                                "runId": ctx_init.run_id.to_string(),
+                                "platformRunId": ctx_init.platform_run_id,
+                                "error": e.to_string(),
+                            }),
+                        );
+                    }
                 }
             });
         }
@@ -3167,7 +3198,17 @@ fn extract_factory_event(envelope: &ServerEnvelopeWire) -> Option<InboundFactory
 /// no-ops (logged at debug, not error).
 fn apply_factory_event(event: &InboundFactoryEvent) {
     let Some((run_id, ctx)) = find_run_by_pipeline(&event.pipeline_id) else {
-        // Not a run this desktop is executing: expected for org broadcasts.
+        // Usually expected: factory.event is an org-scoped broadcast, so most
+        // frames are for runs on other desktops. But this is ALSO the signature
+        // of a correlation miss: a gate approved on the web for a run THIS
+        // desktop is executing, under a pipeline_id that never got recorded in
+        // its stagecraft_pipeline_id. Logged at debug so a repro can compare
+        // this id against the "Stagecraft pipeline registered: pipeline_id=..."
+        // line and tell the two cases apart.
+        log::debug!(
+            "factory.event {} for pipeline_id={} matched no local run",
+            event.event_type, event.pipeline_id
+        );
         return;
     };
     match event.event_type.as_str() {
