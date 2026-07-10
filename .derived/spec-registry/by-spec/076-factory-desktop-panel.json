@@ -56,13 +56,14 @@
       "Phase 4: Token Dashboard & History (2 days)",
       "Success Criteria",
       "Dependencies",
-      "Risks"
+      "Risks",
+      "Factory desktop wiring hardening amendment (2026-07-09)"
     ],
     "specPath": "specs/076-factory-desktop-panel/spec.md",
     "status": "approved",
     "summary": "Adds an Factory Pipeline panel to the OPC desktop app with DAG stage visualization, real-time progress tracking, artifact inspection, gate confirm/reject dialogs, token spend dashboard, and scaffolding fan-out monitoring.\n",
     "title": "Factory Desktop Panel — Pipeline Visualization, Artifact Inspection, and Gate Dialogs"
   },
-  "shardHash": "5d4f87bde14be0aef414741bf58fd572d4497b404d375c3705ca842af1d9cd40",
+  "shardHash": "5e9173bc6488981e367fc6d5101ca950b8c0ecacd2f3bb6d739451b070a324bf",
   "specVersion": "1.1.0"
 }

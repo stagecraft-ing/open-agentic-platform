@@ -570,3 +570,13 @@ mount.
 Added path-component validation that rejects separators and .. traversal on platform-supplied adapter, contract, agent, and role names before any cache write, surfaced through a new InvalidPathComponent error variant in the client error mapping.
 
 Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.
+
+## Stagecraft-web gate delivery + resume-path amendment (2026-07-09)
+
+Three fixes to the platform-triggered run surface, all in `product/apps/opc/src-tauri/src/commands/factory.rs` and `product/apps/opc/src/components/factory/PipelineHistory.tsx`:
+
+- **`factory.event` gate delivery.** OPC registered no handler for the `factory.event` envelope, so a gate confirmed or rejected on the stagecraft web surface (`stage_confirmed` / `stage_rejected`) never resolved the local run's pending gate oneshot; the run sat at "Waiting for agent output". Added the handler (routing by `stagecraft_pipeline_id` to the run's `TauriGateHandler`) with `sN`-prefix stage-id normalisation to bridge the OPC (`s4-api-specification`) vs stagecraft (`s4-api-spec`) id drift and the `s1`/`s2`/`s3` sign-off labels. This is the reverse of the OPC-side dual-write already present in `confirm_factory_stage` (the registration site is under spec 076).
+- **Resume path.** `list_factory_runs` emitted the stagecraft project UUID as `project_path`, so Resume canonicalised a non-existent path and surfaced a raw "No such file or directory" error. It now emits no local path; `resolve_resume_project_path` returns an actionable message, and the history view falls back to the real clone path or disables Resume with a "Clone locally" hint.
+- **`business_docs`.** `extract_factory_run` silently dropped the envelope's explicit `business_docs`; it now surfaces them in the log. Materialisation from the bare `storage_ref` (presigning in the stagecraft relay, as knowledge bundles already get) remains a follow-up.
+
+Couples these fixes in the paths this spec authors to their owning spec per the spec 127 coupling gate.
