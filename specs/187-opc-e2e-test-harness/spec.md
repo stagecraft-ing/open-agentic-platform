@@ -342,10 +342,10 @@ Environment contract 1, **FIXED and verified by nightly run 29042838102:**
    passes and sessions create; the "failed to match capabilities" class is
    gone.
 
-Environment contract 2, **fix applied 2026-07-10, pending first-green-nightly
-verification** (the failure mode is Secret-Service-only and does not reproduce
-on the macOS `apple-native` keychain, so this lands push-then-observe against
-the `workflow_dispatch` nightly rather than a local run):
+Environment contract 2, **FIXED and verified by `workflow_dispatch` run
+29075858753** (the failure mode is Secret-Service-only and does not reproduce on
+the macOS `apple-native` keychain, so this was verified push-then-observe
+against the `workflow_dispatch` nightly rather than a local run):
 
 2. **A default Secret Service collection MUST exist before any keychain
    write.** `gnome-keyring-daemon --unlock` on the fresh runner does not
@@ -358,8 +358,12 @@ the `workflow_dispatch` nightly rather than a local run):
    pattern) so the daemon creates + unlocks the login keyring and registers it
    as the `default` collection; **(2)** a fallback that, if the `default` alias
    still did not materialise, force-creates the collection via `secret-tool
-   store` (`libsecret-tools`). (The original error already confirmed the §3.5.1
-   `[[example]]` move works: the harness finds and runs the relocated binary.)
+   store` (`libsecret-tools`). After this change both seeding fixtures pass
+   (`ac8` and both `208` tests), the `Secret Service: no result found` class is
+   gone, and the run moved from `3 failed | 1 passed` to `1 failed | 4 passed`
+   with `ac9` (contract 3) the sole remaining failure. (The original error
+   already confirmed the §3.5.1 `[[example]]` move works: the harness finds and
+   runs the relocated binary.)
 
 One contract remains OPEN (tracked in the follow-up issue; the nightly is
 non-gating so it blocks nothing):
@@ -370,8 +374,8 @@ non-gating so it blocks nothing):
    bring-up, not an environment pin.
 
 `implementation: complete` stays deferred until the first genuinely-green run,
-which requires contract 2's bootstrap to verify green on the nightly and
-contract 3 to be resolved.
+which now requires only contract 3 (`ac9`) to be resolved: contracts 1 and 2
+are verified fixed.
 
 The FR-T5(e) auto-file-a-regression-issue step is scoped to the unattended
 `schedule` event. A manual `workflow_dispatch` (the bring-up iteration loop used
