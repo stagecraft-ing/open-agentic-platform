@@ -829,3 +829,9 @@ requiring a manual webhook redelivery or reinstall.
 Hardened the rauthy StatefulSet with pod and container securityContext (runAsNonRoot, seccomp RuntimeDefault, drop ALL capabilities, no privilege escalation, read-only root filesystem with a /tmp emptyDir) and disabled service-account token automount.
 
 Recorded during the cross-subsystem security-hardening sweep; couples the security fixes in the code paths this spec authors to their owning spec per the spec 127 coupling gate.
+
+## M2M subject-claim amendment (2026-07-09)
+
+Enabled `CLIENT_CREDENTIALS_MAP_SUB` on the rauthy StatefulSet, via a new `access.clientCredentialsMapSub` chart value (default `true`). Rauthy's `client_credentials` grant sets the `sub` claim to `None` by default because that grant has no end-user subject, but `deployd-api`'s owner-bind guard rejects any bearer token without a `sub` ("token missing subject claim"). Every stagecraft machine-to-machine deploy dispatch therefore failed. Mapping `sub = <client id>` onto M2M tokens satisfies the guard. The flag is available in Rauthy >= 0.34.0 (the chart image is 0.35.0).
+
+Couples the chart change in the paths this spec authors to their owning spec per the spec 127 coupling gate.

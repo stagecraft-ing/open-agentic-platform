@@ -75,6 +75,15 @@ spec:
             # Disable the nbf offset so refresh is valid from `iat` onwards.
             - name: DISABLE_REFRESH_TOKEN_NBF
               value: {{ .Values.access.disableRefreshTokenNbf | default true | quote }}
+            # deployd-api rejects any bearer token with no `sub` claim
+            # (routes.rs create_deployment: "token missing subject claim").
+            # The `client_credentials` grant is stagecraft's machine-to-machine
+            # deploy dispatch path (api/deploy/oidcM2m.ts); Rauthy omits `sub`
+            # from those tokens unless this flag is set, so every M2M-triggered
+            # deploy fails deployd's owner-bind guard. Map `sub = <client id>`
+            # so the tokens carry a subject (Rauthy >= 0.34.0).
+            - name: CLIENT_CREDENTIALS_MAP_SUB
+              value: {{ .Values.access.clientCredentialsMapSub | default true | quote }}
             {{- if .Values.raft.existingSecret }}
             - name: SECRET_RAFT
               valueFrom:
