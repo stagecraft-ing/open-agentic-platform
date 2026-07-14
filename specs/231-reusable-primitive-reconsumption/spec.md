@@ -43,6 +43,12 @@ refines:
   # The manifest gains the four extracted-crate dependencies.
   - aspect: "add-extracted-primitive-dependencies"
     unit: { kind: file, path: crates/policy-kernel/Cargo.toml }
+extends:
+  # Additive: spec 231 adds one feature-graph node. Regenerated golden per the
+  # featuregraph-golden precedent specs 196/194/193/187/183/209/219 follow.
+  - spec: "034-featuregraph-registry-scanner-fix"
+    nature: additive
+    unit: { kind: file, path: crates/featuregraph/tests/golden/features_graph.json }
 references:
   - { unit: { kind: file, path: crates/policy-kernel/src/audit.rs }, role: context }
 ---

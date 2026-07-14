@@ -5,6 +5,10 @@
     ],
     "implementingPaths": [
       {
+        "path": "crates/featuregraph/tests/golden/features_graph.json",
+        "source": "spec-edge"
+      },
+      {
         "path": "crates/policy-kernel/Cargo.toml",
         "source": "spec-edge"
       },
@@ -26,6 +30,19 @@
       }
     ],
     "resolvedUnits": [
+      {
+        "locations": [
+          {
+            "file": "crates/featuregraph/tests/golden/features_graph.json"
+          }
+        ],
+        "ownership": true,
+        "sourceField": "extends",
+        "unit": {
+          "kind": "file",
+          "path": "crates/featuregraph/tests/golden/features_graph.json"
+        }
+      },
       {
         "locations": [
           {
@@ -96,5 +113,5 @@
     "specStatus": "approved"
   },
   "schemaVersion": "1.1.0",
-  "shardHash": "2114a8dad181d23733110b03c9bc0efd270d9c7b03f055962e947650450a871a"
+  "shardHash": "e8da20f7afb1764ff9e17ddf4882881d1143e8737b081d9db837d47c3bc59301"
 }
