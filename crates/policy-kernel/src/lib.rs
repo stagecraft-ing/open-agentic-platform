@@ -29,10 +29,11 @@ pub use proof_chain::{
     ProofRecord, ProofRecordDecision, compute_record_hash, nf004_payload_bytes, verify_proof_chain,
 };
 
+use action_gate_core::{ActionContext, Check, Decision, Gate, Outcome};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 /// Policy rule as emitted by the policy compiler (`specs/047` fenced `policy` blocks).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -114,172 +115,271 @@ pub struct PolicyDecision {
 }
 
 /// Core entrypoint (FR-006).
+///
+/// Spec 231: implemented over the extracted `action-gate` crate. OAP's six
+/// domain checks are registered as `impl Check` in the original evaluation
+/// order; the code-governance-shaped `ToolCallContext` maps to a domain-neutral
+/// `ActionContext` (typed extras go into `attributes`, read only by OAP's own
+/// checks, never by the gate core). The `PolicyDecision` shape, reason codes,
+/// bundle-derived rule ids, and first-match short-circuit order are all
+/// preserved, guarded by the tests below.
 pub fn evaluate(ctx: &ToolCallContext, bundle: &PolicyBundle) -> PolicyDecision {
-    if let Some(d) = gate_secrets_scanner(ctx, bundle) {
-        return d;
+    let action_ctx = to_action_context(ctx);
+    // Checks that consult the bundle share one Arc clone per evaluation.
+    let shared = Arc::new(bundle.clone());
+    let gate = Gate::builder()
+        .check(SecretsCheck {
+            bundle: shared.clone(),
+        })
+        .check(DestructiveCheck {
+            bundle: shared.clone(),
+        })
+        .check(AllowlistCheck {
+            bundle: shared.clone(),
+        })
+        .check(SpecStatusCheck)
+        .check(SpecRiskCheck)
+        .check(DiffSizeCheck { bundle: shared })
+        .build();
+    to_policy_decision(gate.evaluate(&action_ctx))
+}
+
+/// Map OAP's typed evaluation context onto the domain-neutral `ActionContext`.
+/// The gate core never inspects `attributes`; only OAP's own checks do.
+fn to_action_context(ctx: &ToolCallContext) -> ActionContext {
+    use serde_json::json;
+    let mut ac =
+        ActionContext::new(ctx.tool_name.clone()).with_summary(ctx.arguments_summary.clone());
+    if let Some(body) = &ctx.proposed_file_content {
+        ac = ac.with_body(body.clone());
     }
-    if let Some(d) = gate_destructive_operation(ctx, bundle) {
-        return d;
+    if let Some(dl) = ctx.diff_lines {
+        ac = ac.with_attr("diff_lines", json!(dl));
     }
-    if let Some(d) = gate_tool_allowlist(ctx, bundle) {
-        return d;
+    if let Some(db) = ctx.diff_bytes {
+        ac = ac.with_attr("diff_bytes", json!(db));
     }
-    // Spec 093: spec-derived gates (after security gates, before diff size)
-    if let Some(d) = gate_spec_status(ctx, bundle) {
-        return d;
+    ac = ac.with_attr("active_shard_scopes", json!(ctx.active_shard_scopes));
+    if let Some(risk) = &ctx.max_spec_risk {
+        ac = ac.with_attr("max_spec_risk", json!(risk));
     }
-    if let Some(d) = gate_spec_risk(ctx, bundle) {
-        return d;
-    }
-    if let Some(d) = gate_diff_size_limiter(ctx, bundle) {
-        return d;
-    }
-    PolicyDecision {
-        outcome: PolicyOutcome::Allow,
-        reason: "policy:allow:no_gate_triggered".into(),
-        rule_ids: vec![],
+    ac = ac.with_attr("spec_statuses", json!(ctx.spec_statuses));
+    ac
+}
+
+/// Map a gate `Decision` back to OAP's `PolicyDecision`. OAP carries its
+/// bundle-derived rule ids in the gate's `check_ids` field. The unconditional
+/// allow keeps OAP's historical reason code.
+fn to_policy_decision(d: Decision) -> PolicyDecision {
+    match d.outcome {
+        Outcome::Allow => PolicyDecision {
+            outcome: PolicyOutcome::Allow,
+            reason: "policy:allow:no_gate_triggered".into(),
+            rule_ids: vec![],
+        },
+        Outcome::Deny => PolicyDecision {
+            outcome: PolicyOutcome::Deny,
+            reason: d.reason,
+            rule_ids: d.check_ids,
+        },
+        Outcome::Degrade => PolicyDecision {
+            outcome: PolicyOutcome::Degrade,
+            reason: d.reason,
+            rule_ids: d.check_ids,
+        },
     }
 }
 
-fn gate_secrets_scanner(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Option<PolicyDecision> {
-    let haystack = format!(
-        "{}\n{}",
-        ctx.arguments_summary,
-        ctx.proposed_file_content.as_deref().unwrap_or("")
-    );
-    if !secrets_match(&haystack) {
-        return None;
-    }
-    let rule_id = bundle
-        .constitution
-        .iter()
-        .find(|r| r.mode == "enforce" && r.gate.as_deref() == Some("secrets_scanner"))
-        .map(|r| r.id.clone())
-        .unwrap_or_else(|| "KERNEL:BUILTIN-SECRETS".into());
-    Some(PolicyDecision {
-        outcome: PolicyOutcome::Deny,
-        reason: "policy:deny:secrets_scanner:pattern_match".into(),
-        rule_ids: vec![rule_id],
-    })
+/// Read a JSON string-array attribute as a `Vec<String>`.
+fn attr_string_vec(ctx: &ActionContext, key: &str) -> Vec<String> {
+    ctx.attr(key)
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            a.iter()
+                .filter_map(|x| x.as_str().map(String::from))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
-fn gate_destructive_operation(
-    ctx: &ToolCallContext,
-    bundle: &PolicyBundle,
-) -> Option<PolicyDecision> {
-    if !destructive_match(&ctx.tool_name, &ctx.arguments_summary) {
-        return None;
+/// KERNEL:BUILTIN-SECRETS: deny when the payload matches a credential pattern.
+struct SecretsCheck {
+    bundle: Arc<PolicyBundle>,
+}
+impl Check for SecretsCheck {
+    fn id(&self) -> &str {
+        "secrets_scanner"
     }
-    let permitted = bundle.constitution.iter().any(|r| {
-        r.gate.as_deref() == Some("destructive_operation") && r.allow_destructive == Some(true)
-    });
-    if permitted {
-        return None;
+    fn evaluate(&self, ctx: &ActionContext) -> Option<Decision> {
+        let haystack = format!(
+            "{}\n{}",
+            ctx.payload_summary,
+            ctx.payload_body.as_deref().unwrap_or("")
+        );
+        if !secrets_match(&haystack) {
+            return None;
+        }
+        let rule_id = self
+            .bundle
+            .constitution
+            .iter()
+            .find(|r| r.mode == "enforce" && r.gate.as_deref() == Some("secrets_scanner"))
+            .map(|r| r.id.clone())
+            .unwrap_or_else(|| "KERNEL:BUILTIN-SECRETS".into());
+        Some(Decision::deny(
+            "policy:deny:secrets_scanner:pattern_match",
+            vec![rule_id],
+        ))
     }
-    let block_rule = bundle
-        .constitution
-        .iter()
-        .find(|r| r.gate.as_deref() == Some("destructive_operation") && r.mode == "enforce");
-    let rule_id = block_rule
-        .map(|r| r.id.clone())
-        .unwrap_or_else(|| "KERNEL:BUILTIN-DESTRUCTIVE".into());
-    Some(PolicyDecision {
-        outcome: PolicyOutcome::Deny,
-        reason: "policy:deny:destructive_operation:matched_pattern".into(),
-        rule_ids: vec![rule_id],
-    })
 }
 
-fn gate_tool_allowlist(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Option<PolicyDecision> {
-    let mut allowed: Vec<String> = Vec::new();
-    let mut originating_rule_ids: BTreeSet<String> = BTreeSet::new();
-    for r in &bundle.constitution {
-        if r.gate.as_deref() == Some("tool_allowlist") {
-            originating_rule_ids.insert(r.id.clone());
-            if let Some(ref tools) = r.allowed_tools {
-                allowed.extend(tools.iter().cloned());
+/// Deny destructive operations unless the constitution explicitly permits them.
+struct DestructiveCheck {
+    bundle: Arc<PolicyBundle>,
+}
+impl Check for DestructiveCheck {
+    fn id(&self) -> &str {
+        "destructive_operation"
+    }
+    fn evaluate(&self, ctx: &ActionContext) -> Option<Decision> {
+        if !destructive_match(&ctx.action, &ctx.payload_summary) {
+            return None;
+        }
+        let permitted = self.bundle.constitution.iter().any(|r| {
+            r.gate.as_deref() == Some("destructive_operation") && r.allow_destructive == Some(true)
+        });
+        if permitted {
+            return None;
+        }
+        let rule_id = self
+            .bundle
+            .constitution
+            .iter()
+            .find(|r| r.gate.as_deref() == Some("destructive_operation") && r.mode == "enforce")
+            .map(|r| r.id.clone())
+            .unwrap_or_else(|| "KERNEL:BUILTIN-DESTRUCTIVE".into());
+        Some(Decision::deny(
+            "policy:deny:destructive_operation:matched_pattern",
+            vec![rule_id],
+        ))
+    }
+}
+
+/// Deny tools absent from the merged (constitution + active-shard) allowlist.
+struct AllowlistCheck {
+    bundle: Arc<PolicyBundle>,
+}
+impl Check for AllowlistCheck {
+    fn id(&self) -> &str {
+        "tool_allowlist"
+    }
+    fn evaluate(&self, ctx: &ActionContext) -> Option<Decision> {
+        let scopes = attr_string_vec(ctx, "active_shard_scopes");
+        let mut allowed: Vec<String> = Vec::new();
+        let mut originating_rule_ids: BTreeSet<String> = BTreeSet::new();
+        for r in &self.bundle.constitution {
+            if r.gate.as_deref() == Some("tool_allowlist") {
+                originating_rule_ids.insert(r.id.clone());
+                if let Some(ref tools) = r.allowed_tools {
+                    allowed.extend(tools.iter().cloned());
+                }
             }
         }
-    }
-    for scope in &ctx.active_shard_scopes {
-        if let Some(rules) = bundle.shards.get(scope) {
-            for r in rules {
-                if r.gate.as_deref() == Some("tool_allowlist") {
-                    originating_rule_ids.insert(r.id.clone());
-                    if let Some(ref tools) = r.allowed_tools {
-                        allowed.extend(tools.iter().cloned());
+        for scope in &scopes {
+            if let Some(rules) = self.bundle.shards.get(scope) {
+                for r in rules {
+                    if r.gate.as_deref() == Some("tool_allowlist") {
+                        originating_rule_ids.insert(r.id.clone());
+                        if let Some(ref tools) = r.allowed_tools {
+                            allowed.extend(tools.iter().cloned());
+                        }
                     }
                 }
             }
         }
+        if allowed.is_empty() {
+            return None;
+        }
+        let set: BTreeSet<_> = allowed.into_iter().collect();
+        if set.contains(&ctx.action) {
+            None
+        } else {
+            Some(Decision::deny(
+                "policy:deny:tool_allowlist:not_listed",
+                originating_rule_ids.into_iter().collect(),
+            ))
+        }
     }
-    if allowed.is_empty() {
-        return None;
+}
+
+/// Spec 093, Slice 3: draft specs degrade to read-only; superseded/retired deny.
+struct SpecStatusCheck;
+impl Check for SpecStatusCheck {
+    fn id(&self) -> &str {
+        "spec_status"
     }
-    let set: std::collections::BTreeSet<_> = allowed.into_iter().collect();
-    if set.contains(&ctx.tool_name) {
+    fn evaluate(&self, ctx: &ActionContext) -> Option<Decision> {
+        let statuses = attr_string_vec(ctx, "spec_statuses");
+        if statuses.is_empty() {
+            return None;
+        }
+        if statuses.iter().any(|s| s == "superseded" || s == "retired") {
+            return Some(Decision::deny(
+                "policy:deny:spec_status:superseded_or_retired",
+                vec!["KERNEL:SPEC-STATUS".into()],
+            ));
+        }
+        if statuses.iter().any(|s| s == "draft") {
+            return Some(Decision::degrade(
+                "policy:degrade:spec_status:draft_read_only",
+                vec!["KERNEL:SPEC-STATUS".into()],
+            ));
+        }
         None
-    } else {
-        Some(PolicyDecision {
-            outcome: PolicyOutcome::Deny,
-            reason: "policy:deny:tool_allowlist:not_listed".into(),
-            rule_ids: originating_rule_ids.into_iter().collect(),
-        })
     }
 }
 
-/// Spec 093, Slice 3: if affected features include `draft` specs, degrade to read-only;
-/// if any are `superseded` or `retired`, deny outright. Skipped when `spec_statuses` is empty.
-fn gate_spec_status(ctx: &ToolCallContext, _bundle: &PolicyBundle) -> Option<PolicyDecision> {
-    if ctx.spec_statuses.is_empty() {
-        return None;
+/// Spec 093, Slice 4: critical/high spec risk degrades (gated); others allow.
+struct SpecRiskCheck;
+impl Check for SpecRiskCheck {
+    fn id(&self) -> &str {
+        "spec_risk"
     }
-    if ctx
-        .spec_statuses
-        .iter()
-        .any(|s| s == "superseded" || s == "retired")
-    {
-        return Some(PolicyDecision {
-            outcome: PolicyOutcome::Deny,
-            reason: "policy:deny:spec_status:superseded_or_retired".into(),
-            rule_ids: vec!["KERNEL:SPEC-STATUS".into()],
-        });
-    }
-    if ctx.spec_statuses.iter().any(|s| s == "draft") {
-        return Some(PolicyDecision {
-            outcome: PolicyOutcome::Degrade,
-            reason: "policy:degrade:spec_status:draft_read_only".into(),
-            rule_ids: vec!["KERNEL:SPEC-STATUS".into()],
-        });
-    }
-    None
-}
-
-/// Spec 093, Slice 4: gate based on spec risk level. `critical` → degrade (manual confirm),
-/// `high` → degrade (gated). `medium`/`low`/absent → no restriction.
-fn gate_spec_risk(ctx: &ToolCallContext, _bundle: &PolicyBundle) -> Option<PolicyDecision> {
-    match ctx.max_spec_risk.as_deref() {
-        Some("critical") => Some(PolicyDecision {
-            outcome: PolicyOutcome::Degrade,
-            reason: "policy:degrade:spec_risk:critical_requires_confirmation".into(),
-            rule_ids: vec!["KERNEL:SPEC-RISK".into()],
-        }),
-        Some("high") => Some(PolicyDecision {
-            outcome: PolicyOutcome::Degrade,
-            reason: "policy:degrade:spec_risk:high_gated".into(),
-            rule_ids: vec!["KERNEL:SPEC-RISK".into()],
-        }),
-        _ => None,
+    fn evaluate(&self, ctx: &ActionContext) -> Option<Decision> {
+        match ctx.attr_str("max_spec_risk") {
+            Some("critical") => Some(Decision::degrade(
+                "policy:degrade:spec_risk:critical_requires_confirmation",
+                vec!["KERNEL:SPEC-RISK".into()],
+            )),
+            Some("high") => Some(Decision::degrade(
+                "policy:degrade:spec_risk:high_gated",
+                vec!["KERNEL:SPEC-RISK".into()],
+            )),
+            _ => None,
+        }
     }
 }
 
-fn gate_diff_size_limiter(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Option<PolicyDecision> {
-    let applicable = applicable_rules(ctx, bundle);
-    let refs: Vec<&PolicyRule> = applicable.to_vec();
-    let (max_lines, max_bytes) = effective_diff_limits(&refs);
+/// Deny diffs exceeding the tightest applicable line/byte limit.
+struct DiffSizeCheck {
+    bundle: Arc<PolicyBundle>,
+}
+impl Check for DiffSizeCheck {
+    fn id(&self) -> &str {
+        "diff_size_limiter"
+    }
+    fn evaluate(&self, ctx: &ActionContext) -> Option<Decision> {
+        let scopes = attr_string_vec(ctx, "active_shard_scopes");
+        let refs = applicable_rules_for_scopes(&self.bundle, &scopes);
+        let (max_lines, max_bytes) = effective_diff_limits(&refs);
 
-    if let (Some(dl), Some(limit)) = (ctx.diff_lines, max_lines) {
-        if dl > limit {
+        let diff_lines = ctx
+            .attr("diff_lines")
+            .and_then(|v| v.as_u64())
+            .map(|v| v as u32);
+        if let (Some(dl), Some(limit)) = (diff_lines, max_lines)
+            && dl > limit
+        {
             let rule_id = refs
                 .iter()
                 .find(|r| {
@@ -288,16 +388,16 @@ fn gate_diff_size_limiter(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Optio
                 })
                 .map(|r| r.id.clone())
                 .unwrap_or_else(|| "KERNEL:BUILTIN-DIFF".into());
-            return Some(PolicyDecision {
-                outcome: PolicyOutcome::Deny,
-                reason: "policy:deny:diff_size_limiter:threshold_exceeded".into(),
-                rule_ids: vec![rule_id],
-            });
+            return Some(Decision::deny(
+                "policy:deny:diff_size_limiter:threshold_exceeded",
+                vec![rule_id],
+            ));
         }
-    }
 
-    if let (Some(db), Some(limit)) = (ctx.diff_bytes, max_bytes) {
-        if db > limit {
+        let diff_bytes = ctx.attr("diff_bytes").and_then(|v| v.as_u64());
+        if let (Some(db), Some(limit)) = (diff_bytes, max_bytes)
+            && db > limit
+        {
             let rule_id = refs
                 .iter()
                 .find(|r| {
@@ -306,20 +406,22 @@ fn gate_diff_size_limiter(ctx: &ToolCallContext, bundle: &PolicyBundle) -> Optio
                 })
                 .map(|r| r.id.clone())
                 .unwrap_or_else(|| "KERNEL:BUILTIN-DIFF".into());
-            return Some(PolicyDecision {
-                outcome: PolicyOutcome::Deny,
-                reason: "policy:deny:diff_size_limiter:threshold_exceeded".into(),
-                rule_ids: vec![rule_id],
-            });
+            return Some(Decision::deny(
+                "policy:deny:diff_size_limiter:threshold_exceeded",
+                vec![rule_id],
+            ));
         }
-    }
 
-    None
+        None
+    }
 }
 
-fn applicable_rules<'a>(ctx: &'a ToolCallContext, bundle: &'a PolicyBundle) -> Vec<&'a PolicyRule> {
+fn applicable_rules_for_scopes<'a>(
+    bundle: &'a PolicyBundle,
+    scopes: &[String],
+) -> Vec<&'a PolicyRule> {
     let mut v: Vec<&PolicyRule> = bundle.constitution.iter().collect();
-    for scope in &ctx.active_shard_scopes {
+    for scope in scopes {
         if let Some(rules) = bundle.shards.get(scope) {
             v.extend(rules.iter());
         }
@@ -392,38 +494,15 @@ pub fn decision_to_canonical_json(decision: &PolicyDecision) -> String {
     canonical_json_sorted(v)
 }
 
+/// Canonical (recursively key-sorted) JSON serialization.
+///
+/// Spec 231: delegates to the extracted `canonical-keysort-json` crate, so
+/// OAP is consumer-zero of the shared primitive rather than carrying its own
+/// sorter. The `spec231_canonical_json_parity_with_extracted_crate` test pins
+/// that this produces byte-identical output to the previous in-tree
+/// implementation, so every proof-chain and audit-chain hash is unchanged.
 pub(crate) fn canonical_json_sorted(v: serde_json::Value) -> String {
-    sort_json_value(v)
-}
-
-fn sort_json_value(v: serde_json::Value) -> String {
-    use serde_json::Value;
-    match v {
-        Value::Object(map) => {
-            let mut out = serde_json::Map::new();
-            let mut keys: Vec<_> = map.keys().cloned().collect();
-            keys.sort();
-            for k in keys {
-                let inner = map.get(&k).expect("key from own iterator").clone();
-                let s = sort_json_value(inner);
-                out.insert(
-                    k,
-                    serde_json::from_str(&s).expect("re-parsing own JSON output"),
-                );
-            }
-            serde_json::to_string(&Value::Object(out)).expect("stringify")
-        }
-        Value::Array(arr) => {
-            let sorted: Vec<serde_json::Value> = arr
-                .into_iter()
-                .map(|x| {
-                    serde_json::from_str(&sort_json_value(x)).expect("re-parsing own JSON output")
-                })
-                .collect();
-            serde_json::to_string(&Value::Array(sorted)).expect("stringify")
-        }
-        other => serde_json::to_string(&other).expect("stringify"),
-    }
+    canonical_keysort_json::to_canonical_string(&v)
 }
 
 #[cfg(test)]
@@ -658,6 +737,44 @@ mod tests {
         let a = decision_to_canonical_json(&evaluate(&ctx, &bundle));
         let b = decision_to_canonical_json(&evaluate(&ctx, &bundle));
         assert_eq!(a, b);
+    }
+
+    /// Spec 231 linchpin: the extracted `canonical-keysort-json` crate must
+    /// produce byte-identical output to OAP's in-tree `canonical_json_sorted`,
+    /// or swapping the primitive would silently change every proof-chain and
+    /// audit-chain hash. Verified across scalars, nesting, arrays of objects,
+    /// unicode, and a real ProofRecord shape.
+    #[test]
+    fn spec231_canonical_json_parity_with_extracted_crate() {
+        use serde_json::json;
+        let cases = vec![
+            json!({ "z": 1, "a": 2, "m": 3 }),
+            json!({ "outer": { "z": 1, "a": 2 }, "alpha": { "y": 3, "b": 4 } }),
+            json!([{ "z": 1, "a": 2 }, { "y": 3, "b": 4 }]),
+            json!(null),
+            json!(42),
+            json!(2.5),
+            json!("héllo \"wörld\" 日本語"),
+            json!({ "nested": [1, { "b": 2, "a": [true, false, null] }], "x": "y" }),
+            // A real ProofRecord shape (flat fields, the exact thing hashed).
+            serde_json::to_value(ProofRecord {
+                id: "00000000-0000-4000-8000-000000000001".into(),
+                timestamp: "2026-07-14T00:00:00Z".into(),
+                policy_bundle_hash: "sha256:aa".into(),
+                rule_ids: vec!["R-1".into(), "R-2".into()],
+                input_context_hash: "sha256:bb".into(),
+                decision: ProofRecordDecision::Degrade,
+                privilege_level: ProofPrivilege::ReadOnly,
+                previous_record_hash: "sha256:cc".into(),
+                record_hash: "sha256:dd".into(),
+            })
+            .unwrap(),
+        ];
+        for v in cases {
+            let oap = canonical_json_sorted(v.clone());
+            let extracted = canonical_keysort_json::to_canonical_string(&v);
+            assert_eq!(oap, extracted, "canonical JSON diverged for {v:?}");
+        }
     }
 
     // --- Spec 093: spec-status gate tests ---

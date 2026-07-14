@@ -3,6 +3,30 @@
 version = 4
 
 [[package]]
+name = "action-gate-core"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a0c828e53a7a5648d0555dfd8208df7fc9231bb32371078eeabb03c691e4145"
+dependencies = [
+ "action-gate-types",
+ "canonical-keysort-json",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
+name = "action-gate-types"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f06b181e4649459d2fafaf0ffe087ee29f467d04044e50f9d1c0738564c63264"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -412,6 +436,33 @@ name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
+
+[[package]]
+name = "attest-ledger-core"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdf835c5e3680ddaf4dd9c4da525a8762ce5803e1f3245889a7393f3ccd5f183"
+dependencies = [
+ "attest-ledger-types",
+ "base64 0.22.1",
+ "canonical-keysort-json",
+ "ed25519-dalek",
+ "getrandom 0.4.2",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
+name = "attest-ledger-types"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16b5cb6e21a7f0342be61b4cf42bfdad81360f2efdf4eeec4dc33c32734691d7"
+dependencies = [
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "autocfg"
@@ -1407,6 +1458,15 @@ dependencies = [
 [[package]]
 name = "canonical-json"
 version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
+name = "canonical-keysort-json"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05b39d732daeef9a1bff08849dfaa3217be9a9765024d494f6a5707e987e1043"
 dependencies = [
  "serde_json",
 ]
@@ -5090,7 +5150,10 @@ dependencies = [
 name = "open_agentic_policy_kernel"
 version = "0.1.0"
 dependencies = [
+ "action-gate-core",
+ "attest-ledger-core",
  "base64 0.22.1",
+ "canonical-keysort-json",
  "chrono",
  "criterion 0.8.2",
  "dirs",
@@ -5105,6 +5168,7 @@ dependencies = [
  "serde_yaml",
  "sha2 0.10.9",
  "tempfile",
+ "trust-window",
 ]
 
 [[package]]
@@ -7955,6 +8019,15 @@ name = "tree-sitter-language"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "009994f150cc0cd50ff54917d5bc8bffe8cad10ca10d81c34da2ec421ae61782"
+
+[[package]]
+name = "trust-window"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7daa9ad05701c68b73db55a248a6ae3e948c41a7da5f2a08c8cdea2821d34dc2"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "try-lock"

@@ -44,6 +44,14 @@ regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
+# Extracted reusable primitives (Apache-2.0), re-consumed here so policy-kernel
+# becomes a thin OAP-specific shim over the shared cores (spec 231). OAP keeps
+# its own record/anchor/decision SHAPES for hash and signature parity and
+# delegates the underlying hashing, scoring, and gate machinery to these.
+canonical-keysort-json = "0.1"
+attest-ledger-core = "0.1"
+trust-window = "0.1"
+action-gate-core = "0.1"
 
 [dev-dependencies]
 criterion = "0.8"
