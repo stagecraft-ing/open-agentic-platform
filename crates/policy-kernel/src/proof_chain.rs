@@ -14,7 +14,6 @@ use base64::{Engine as _, engine::general_purpose::STANDARD as B64};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 
 /// Environment variable carrying base64-encoded 32-byte Ed25519 seed (FR-009.1).
 /// Shared with factory-engine's cert signing for a single key-custody story.
@@ -124,11 +123,11 @@ impl std::error::Error for ProofChainError {}
 /// JSON of `value` with `hash_field` removed, so a record never hashes its
 /// own hash field. Both chains compute their record hash through this one
 /// function, differing only in the record body and the field name.
-pub fn link_record_hash(mut value: Value, hash_field: &str) -> String {
-    if let Value::Object(ref mut m) = value {
-        m.remove(hash_field);
-    }
-    sha256_hex(canonical_json_sorted(value).as_bytes())
+pub fn link_record_hash(value: Value, hash_field: &str) -> String {
+    // Spec 231: delegate to the extracted attest-ledger primitive. Byte-identical
+    // to the previous in-tree implementation (same canonical-JSON sort, same
+    // `sha256:` prefix), so existing chains verify unchanged.
+    attest_ledger_core::link_record_hash(value, hash_field)
 }
 
 /// `record_hash = SHA-256(canonical_json(record without record_hash field))` per spec.
@@ -140,9 +139,9 @@ pub fn compute_record_hash(record: &ProofRecord) -> String {
 }
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(bytes);
-    format!("sha256:{}", hex::encode(hasher.finalize()))
+    // Spec 231: delegate to the extracted attest-ledger primitive (same
+    // `sha256:<hex>` construction).
+    attest_ledger_core::sha256_hex(bytes)
 }
 
 /// Approximate size of the fixed fields as JSON with `input_context_hash` emptied (NF-004).

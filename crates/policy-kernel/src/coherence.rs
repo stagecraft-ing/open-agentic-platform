@@ -2,7 +2,7 @@
 //! No wall clock — deterministic given the recorded action sequence.
 
 use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
+use trust_window::{Direction, Level, LevelThresholds, Sample, WindowConfig, WindowScorer};
 
 /// Privilege level derived from coherence (FR-008).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -59,22 +59,22 @@ impl Default for CoherenceSchedulerConfig {
 }
 
 /// Rolling-window coherence + monotonic session degradation (SC-008).
+///
+/// Spec 231: implemented over the extracted `trust-window` scorer
+/// (`Direction::DegradeOnly`), so OAP is consumer-zero of the shared primitive.
+/// `PrivilegeLevel` and this type's public API are unchanged; the scoring math
+/// is identical (a boolean action is a `Sample::aligned`), guarded by the tests
+/// below. There are no external consumers of this module today.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CoherenceScheduler {
     config: CoherenceSchedulerConfig,
-    /// `true` = aligned (no policy intervention); `false` = violating / intervention.
-    window: VecDeque<bool>,
-    /// Worst severity reached this session without human restore (SC-008).
-    stuck_severity: u8,
+    scorer: WindowScorer,
 }
 
 impl CoherenceScheduler {
     pub fn new(config: CoherenceSchedulerConfig) -> Self {
-        Self {
-            config,
-            window: VecDeque::new(),
-            stuck_severity: 0,
-        }
+        let scorer = WindowScorer::new(window_config(&config));
+        Self { config, scorer }
     }
 
     pub fn with_defaults() -> Self {
@@ -87,91 +87,75 @@ impl CoherenceScheduler {
 
     /// Record one action. `aligned` is `false` when the policy layer intervened (deny, degrade, or counted warn).
     pub fn record_action(&mut self, aligned: bool) {
-        if self.window.len() >= self.config.window_size {
-            self.window.pop_front();
-        }
-        self.window.push_back(aligned);
-        self.update_stuck();
+        self.scorer.record(Sample::aligned(aligned));
     }
 
     /// Convenience: treat deny/degrade outcomes as non-aligned.
     pub fn record_from_policy_outcome(&mut self, outcome: &super::PolicyOutcome) {
-        let aligned = matches!(outcome, super::PolicyOutcome::Allow);
-        self.record_action(aligned);
+        self.record_action(matches!(outcome, super::PolicyOutcome::Allow));
     }
 
     /// Human explicitly restores maximum privilege: clears the rolling window and monotonic latch (SC-008).
     pub fn human_restore(&mut self) {
-        self.stuck_severity = 0;
-        self.window.clear();
+        self.scorer.restore_max();
     }
 
     /// Weighted coherence in \[0, 1\] from the rolling window (spec: aligned/total with decay weighting).
     pub fn coherence_score(&self) -> f64 {
-        let n = self.window.len();
-        if n == 0 {
-            return 1.0;
-        }
-        let lam = self.config.decay_lambda.clamp(0.0, 1.0);
-        let mut w_sum = 0.0;
-        let mut aligned_w = 0.0;
-        for (i, aligned) in self.window.iter().enumerate() {
-            // Newest entry last: index n-1-i steps from newest.
-            let w = lam.powi((n - 1 - i) as i32);
-            w_sum += w;
-            if *aligned {
-                aligned_w += w;
-            }
-        }
-        if w_sum <= f64::EPSILON {
-            return 0.0;
-        }
-        aligned_w / w_sum
+        self.scorer.score()
     }
 
     /// Policy-violating action count in the current window.
     pub fn violation_count(&self) -> u32 {
-        self.window.iter().filter(|a| !**a).count() as u32
+        self.scorer.violation_count()
     }
 
     /// Level implied by coherence thresholds only (before violation floor and monotonic cap).
     pub fn level_from_score(score: f64) -> PrivilegeLevel {
-        if score >= 0.8 {
-            PrivilegeLevel::Full
-        } else if score >= 0.5 {
-            PrivilegeLevel::Restricted
-        } else if score >= 0.2 {
-            PrivilegeLevel::ReadOnly
-        } else {
-            PrivilegeLevel::Suspended
-        }
+        from_level(default_thresholds().level_of(score))
     }
 
     /// Raw level from score + SC-007 violation floor.
     pub fn raw_privilege_level(&self) -> PrivilegeLevel {
-        let score = self.coherence_score();
-        let mut level = Self::level_from_score(score);
-        if self.violation_count() >= self.config.violation_count_for_restricted {
-            level = PrivilegeLevel::max_severity(level, PrivilegeLevel::Restricted);
-        }
-        level
+        from_level(self.scorer.raw_level())
     }
 
     /// Effective level with monotonic degradation (SC-008).
     pub fn effective_privilege_level(&self) -> PrivilegeLevel {
-        let raw = self.raw_privilege_level();
-        let s = u8::max(raw.severity(), self.stuck_severity);
-        match s {
-            0 => PrivilegeLevel::Full,
-            1 => PrivilegeLevel::Restricted,
-            2 => PrivilegeLevel::ReadOnly,
-            _ => PrivilegeLevel::Suspended,
-        }
+        from_level(self.scorer.level())
     }
+}
 
-    fn update_stuck(&mut self) {
-        let raw = self.raw_privilege_level();
-        self.stuck_severity = self.stuck_severity.max(raw.severity());
+/// The FR-008 coherence bands (Full >= 0.8, Restricted >= 0.5, ReadOnly >= 0.2).
+fn default_thresholds() -> LevelThresholds {
+    LevelThresholds {
+        full: 0.8,
+        restricted: 0.5,
+        read_only: 0.2,
+    }
+}
+
+/// Build the trust-window config from OAP's coherence config: degrade-only, the
+/// FR-008 bands, and the SC-007 violation floor. A boolean `false` action is a
+/// value-0.0 sample, so the 0.5 violation threshold reproduces OAP's count.
+fn window_config(c: &CoherenceSchedulerConfig) -> WindowConfig {
+    WindowConfig {
+        window_size: c.window_size,
+        direction: Direction::DegradeOnly,
+        decay_lambda: c.decay_lambda,
+        thresholds: default_thresholds(),
+        violation_threshold: 0.5,
+        violation_floor: c.violation_count_for_restricted,
+        promote_min_samples: 0,
+    }
+}
+
+fn from_level(level: Level) -> PrivilegeLevel {
+    match level {
+        Level::Full => PrivilegeLevel::Full,
+        Level::Restricted => PrivilegeLevel::Restricted,
+        Level::ReadOnly => PrivilegeLevel::ReadOnly,
+        Level::Suspended => PrivilegeLevel::Suspended,
     }
 }
 

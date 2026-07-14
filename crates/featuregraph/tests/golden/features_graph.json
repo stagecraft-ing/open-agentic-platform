@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "graph_fingerprint": "sha256:37412b85d5628f3c28108dabc5556c7d540389d979ef9f3aa427d93af258e24e",
+  "graph_fingerprint": "sha256:0b54e84c8807b05069a4b4845dca94ccaec9285006146198a2646d2f0e050eb2",
   "features": [
     {
       "feature_id": "000-bootstrap-spec-system",
@@ -4309,6 +4309,22 @@
       "group": "",
       "depends_on": [
         "227-create-project-infra-config-projection"
+      ],
+      "impl_files": [],
+      "test_files": [],
+      "violations": []
+    },
+    {
+      "feature_id": "231-reusable-primitive-reconsumption",
+      "title": "Reusable-primitive re-consumption (policy-kernel delegates to the extracted Apache-2.0 cores)",
+      "spec_path": "specs/231-reusable-primitive-reconsumption/spec.md",
+      "status": "approved",
+      "implementation": "complete",
+      "governance": "",
+      "owner": "",
+      "group": "",
+      "depends_on": [
+        "047-governance-control-plane"
       ],
       "impl_files": [],
       "test_files": [],
